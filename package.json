@@ -1,0 +1,14 @@
+{
+  "name": "application-name",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "start": "node app.js"
+  },
+  "dependencies": {
+    "express": "3.5.0",
+    "nconf": "0.6.9",
+    "sqlite3": "2.2.0",
+    "winston": "0.7.2"
+  }
+}
