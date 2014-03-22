@@ -1,4 +1,3 @@
-
 /**
  * Module dependencies.
  */
@@ -10,7 +9,7 @@ var http = require('http');
 var path = require('path');
 var config = require('config');
 var log = require('libs/log')(module);
-
+var auth = require('routes/auth');
 var app = express();
 
 // all environments
@@ -29,12 +28,32 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // development only
 if ('development' == app.get('env')) {
-  app.use(express.errorHandler());
+    app.use(express.errorHandler());
 }
 
 app.get('/', routes.index);
 app.get('/users', user.list);
+app.get('/auth', auth.list);
+app.get('/auth', auth.list);
 
 http.createServer(app).listen(config.get('port'), function(){
-  log.info('Express server listening on port ' + config.get('port'));
+    log.info('Express server listening on port ' + config.get('port'));
+    log.info(getHash('work'));
 });
+/**
+ * Get hash sum
+ * @param input
+ * @returns {*}
+ */
+function getHash(input){
+    try{
+        var shasum = require('crypto').createHash('sha1');
+        shasum.update(input);
+        return shasum.digest('hex');
+    } catch (e) {
+        log.info('Произошла ошибка: ' + e.value);
+    }
+}
+log.info(user.auth('ms','02kf'));
+log.info(user.getPublicKey(user.auth('ms','02kf')));
+log.info(user.getPrivateKey(user.auth('ms','02kf')));
