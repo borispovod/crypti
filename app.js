@@ -1,36 +1,36 @@
-/**
- * Module dependencies.
- */
+/*var express = require('express'),
+    routes = require('./routes'),
+    user = require('./routes/user'),
+    http = require('http'),
+    path = require('path'),
+    config = require('config'),
+    log = require('libs/log')(module),
+    auth = require('routes/auth'),
+    app = express();*/
+   
+var express = require('express'),
+    config = require('./config'),
+    routes = require('./routes');
 
-var express = require('express');
-var routes = require('./routes');
-var user = require('./routes/user');
-var http = require('http');
-var path = require('path');
-var config = require('config');
-var log = require('libs/log')(module);
-var auth = require('routes/auth');
 var app = express();
 
-// all environments
-app.set('port', config.get('port'));
-app.set('views', path.join(__dirname, 'views'));
-app.set('view engine', 'jade');
-app.use(express.favicon());
-app.use(express.logger('dev'));
-app.use(express.json());
-app.use(express.urlencoded());
-app.use(express.methodOverride());
-app.use(express.cookieParser('your secret here'));
-app.use(express.session());
-app.use(app.router);
-app.use(express.static(path.join(__dirname, 'public')));
+app.configure(function () {
+    app.set("address", config.get("address"));
+    app.set('port', config.get('port'));
+    app.use(app.router);    
+});
 
-// development only
-if ('development' == app.get('env')) {
+app.configure("development", function () {
+    app.use(express.logger('dev'));
     app.use(express.errorHandler());
-}
+});
 
+app.listen(app.get('port'), app.get('address'), function () {
+    console.log("Crypti started: " + app.get("address") + ":" + app.get("port"));
+    routes(app);
+});
+
+/*
 app.get('/', routes.index);
 app.get('/users', user.list);
 app.get('/auth', auth.list);
@@ -39,12 +39,14 @@ app.get('/auth', auth.list);
 http.createServer(app).listen(config.get('port'), function(){
     log.info('Express server listening on port ' + config.get('port'));
     log.info(getHash('work'));
-});
+});*/
 /**
  * Get hash sum
  * @param input
  * @returns {*}
  */
+
+/*
 function getHash(input){
     try{
         var shasum = require('crypto').createHash('sha1');
@@ -56,4 +58,4 @@ function getHash(input){
 }
 log.info(user.auth('ms','02kf'));
 log.info(user.getPublicKey(user.auth('ms','02kf')));
-log.info(user.getPrivateKey(user.auth('ms','02kf')));
+log.info(user.getPrivateKey(user.auth('ms','02kf')));*/
