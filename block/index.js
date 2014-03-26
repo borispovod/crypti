@@ -43,11 +43,11 @@ class Block {
     {
 
         if (transactions.size() > Constants.MAX_NUMBER_OF_TRANSACTIONS) {
-            throw new NxtException.ValidationException("attempted to create a block with " + transactions.size() + " transactions");
+            throw new Error("attempted to create a block with " + transactions.size() + " transactions");
         }
 
         if (payloadLength > Constants.MAX_PAYLOAD_LENGTH || payloadLength < 0) {
-            throw new NxtException.ValidationException("attempted to create a block with payloadLength " + payloadLength);
+            throw new Error("attempted to create a block with payloadLength " + payloadLength);
         }
 
         this.version = version;
@@ -67,7 +67,7 @@ class Block {
         var previousId = Long.MIN_VALUE;
         for (var transaction in this.blockTransactions) {
             if (transaction.getId() < previousId) {
-                throw new NxtException.ValidationException("Block transactions are not sorted!");
+                throw new Error("Block transactions are not sorted!");
             }
             transactionIds.add(transaction.getId());
             previousId = transaction.getId();
@@ -177,7 +177,7 @@ class Block {
 
     function getHeight() {
         if (height == -1) {
-            throw new IllegalStateException("Block height not yet set");
+            throw new Error("Block height not yet set");
         }
         return height;
     }
@@ -185,10 +185,10 @@ class Block {
     function getId() {
         if (id == null) {
             if (blockSignature == null) {
-                throw new IllegalStateException("Block is not signed yet");
+                throw new Error("Block is not signed yet");
             }
             var hash = Crypto.sha256().digest(getBytes());
-            var bigInteger = new BigInteger(1, new Array() {hash[7], hash[6], hash[5], hash[4], hash[3], hash[2], hash[1], hash[0]});
+            var bigInteger = new BigInteger(1, new Array( hash[7], hash[6], hash[5], hash[4], hash[3], hash[2], hash[1], hash[0]));
             id = bigInteger.longValue();
             stringId = bigInteger.toString();
         }
@@ -241,41 +241,35 @@ class Block {
         return buffer.array();
     }
 
-    public getJSONObject()
+    function getJSONObject()
     {
-
-        var json = new JSONObject();
-
-        json.put("version", version);
-        json.put("timestamp", timestamp);
-        json.put("previousBlock", Convert.toUnsignedLong(previousBlockId));
-        json.put("numberOfTransactions", blockTransactions.size()); //TODO: not used anymore, remove after a few releases
-        json.put("totalAmount", totalAmount);
-        json.put("totalFee", totalFee);
-        json.put("payloadLength", payloadLength);
-        json.put("payloadHash", Convert.toHexString(payloadHash));
-        json.put("generatorPublicKey", Convert.toHexString(generatorPublicKey));
-        json.put("generationSignature", Convert.toHexString(generationSignature));
-        if (version > 1) {
-            json.put("previousBlockHash", Convert.toHexString(previousBlockHash));
-        }
-        json.put("blockSignature", Convert.toHexString(blockSignature));
-
-        var transactionsData = new JSONArray();
+        var transactionsData;
         for (var transaction in this.blockTransactions) {
             transactionsData.add(transaction.getJSONObject());
         }
-        json.put("transactions", transactionsData);
 
-        return json;
-
+        return {
+            "version": version,
+            "timestamp": timestamp,
+            "previousBlock": Convert.toUnsignedLong(previousBlockId),
+            "numberOfTransactions": blockTransactions.size(),
+            "totalAmount": totalAmount,
+            "totalFee": totalFee,
+            "payloadLength": payloadLength,
+            "payloadHash": Convert.toHexString(payloadHash),
+            "generatorPublicKey": Convert.toHexString(generatorPublicKey),
+            "generationSignature": Convert.toHexString(generationSignature),
+            "previousBlockHash": (version > 1 ? Convert.toHexString(previousBlockHash) : ""),
+            "blockSignature": Convert.toHexString(blockSignature),
+            "transactions": transactionsData
+        };
     }
 
     function sign(secretPhrase) {
         if (blockSignature != null) {
-            throw new IllegalStateException("Block already signed");
+            throw new Error("Block already signed");
         }
-        blockSignature = new byte[64];
+        blockSignature = new array(64);
         var data = getBytes();
         var data2 = new byte[data.length - 64];
         System.arraycopy(data, 0, data2, 0, data2.length);
@@ -306,7 +300,7 @@ class Block {
 
             var previousBlock = Nxt.getBlockchain().getBlock(this.previousBlockId);
             if (previousBlock == null) {
-                throw new BlockchainProcessor.BlockOutOfOrderException("Can't verify signature because previous block is missing");
+                throw new Error("Can't verify signature because previous block is missing");
             }
 
             if (version == 1 && !Crypto.verify(generationSignature, previousBlock.generationSignature, generatorPublicKey)) {
@@ -336,7 +330,7 @@ class Block {
                 }
             }
 
-            var hit = new BigInteger(1, new array() {generationSignatureHash[7], generationSignatureHash[6], generationSignatureHash[5], generationSignatureHash[4], generationSignatureHash[3], generationSignatureHash[2], generationSignatureHash[1], generationSignatureHash[0]});
+            var hit = new BigInteger(1, new array(generationSignatureHash[7], generationSignatureHash[6], generationSignatureHash[5], generationSignatureHash[4], generationSignatureHash[3], generationSignatureHash[2], generationSignatureHash[1], generationSignatureHash[0]));
 
             return hit.compareTo(target) < 0;
 
@@ -352,20 +346,20 @@ class Block {
     function apply() {
         var generatorAccount = Account.addOrGetAccount(getGeneratorId());
         generatorAccount.apply(generatorPublicKey, this.height);
-        generatorAccount.addToBalanceAndUnconfirmedBalance(totalFee * 100L);
+        generatorAccount.addToBalanceAndUnconfirmedBalance(totalFee * 100);
     }
 
     function undo() {
         var generatorAccount = Account.getAccount(getGeneratorId());
         generatorAccount.undo(getHeight());
-        generatorAccount.addToBalanceAndUnconfirmedBalance(-totalFee * 100L);
+        generatorAccount.addToBalanceAndUnconfirmedBalance(-totalFee * 100);
     }
 
     function setPrevious(previousBlock) {
         if (previousBlock != null) {
             if (! previousBlock.getId().equals(getPreviousBlockId())) {
                 // shouldn't happen as previous id is already verified, but just in case
-                throw new IllegalStateException("Previous block id doesn't match");
+                throw new Error("Previous block id doesn't match");
             }
             this.height = previousBlock.getHeight() + 1;
             this.calculateBaseTarget(previousBlock);
