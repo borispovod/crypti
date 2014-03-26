@@ -9,7 +9,6 @@
     "express": "3.5.0",
     "nconf": "0.6.9",
     "sqlite3": "2.2.0",
-    "winston": "0.7.2",
-    "bignum": "~0.6.2"
+    "winston": "0.7.2"
   }
 }
