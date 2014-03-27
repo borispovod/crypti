@@ -182,14 +182,23 @@ class Block {
         return height;
     }
 
+    var curve = require('curve25519');
+    var crypto = require('crypto');
+    var bignum = require('bignum');
     function getId() {
         if (id == null) {
             if (blockSignature == null) {
                 throw new Error("Block is not signed yet");
             }
-            var hash = Crypto.sha256().digest(getBytes());
-            var bigInteger = new BigInteger(1, new Array( hash[7], hash[6], hash[5], hash[4], hash[3], hash[2], hash[1], hash[0]));
-            id = bigInteger.longValue();
+            var shasum = crypto.createHash('sha256');
+            shasum.update(getBytes(), 'utf8');
+            var hash = shasum.digest();
+            var temp = new Buffer(8);
+            for (var i = 0; i < 8; i++) {
+                temp[i] = hash[7-i];
+            }
+            var bigInteger = bignum.fromBuffer(temp).toString() + "C";
+            id = bigInteger.toNumber();
             stringId = bigInteger.toString();
         }
         return id;
@@ -199,7 +208,7 @@ class Block {
         if (stringId == null) {
             getId();
             if (stringId == null) {
-                stringId = Convert.toUnsignedLong(id);
+                stringId = id; // TODO convertToUnsignedLong
             }
         }
         return stringId;
