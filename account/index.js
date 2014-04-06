@@ -12,6 +12,6 @@ module.exports.getID = function (publicKey) {
     return bigInteger.toNumber();
 }
 
-module.exports.getAccount = function(){
+module.exports.getAccount = function(id){
 
 }

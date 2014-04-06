@@ -6,7 +6,7 @@ var fee; // private final int
 var referencedTransactionId; // private final Long
 var type; // private final TransactionType
 
-var height = Integer.MAX_VALUE; // private int
+var height = 2147483647; // private int
 var blockId; // private Long
 var block; // private volatile Block
 var signature; // private byte[]
@@ -225,23 +225,24 @@ function getBytes() {
     return buffer.array();
 
 }
-// TODO Переписать
+
 function getJSONObject() {
 
-    JSONObject json = new JSONObject();
+    var json = {
+        "type": type.getType(),
+        "subtype": type.getSubtype(),
+        "timestamp": timestamp,
+        "deadline": deadline,
+        "senderPublicKey": convert.toHexString(senderPublicKey),
+        "recipient": convert.toUnsignedLong(recipientId),
+        "amount": amount,
+        "fee": fee,
+        "referencedTransaction": convert.toUnsignedLong(referencedTransactionId),
+        "signature": convert.toHexString(signature)
+    };
 
-    json.put("type", type.getType());
-    json.put("subtype", type.getSubtype());
-    json.put("timestamp", timestamp);
-    json.put("deadline", deadline);
-    json.put("senderPublicKey", convert.toHexString(senderPublicKey));
-    json.put("recipient", convert.toUnsignedLong(recipientId));
-    json.put("amount", amount);
-    json.put("fee", fee);
-    json.put("referencedTransaction", convert.toUnsignedLong(referencedTransactionId));
-    json.put("signature", convert.toHexString(signature));
     if (attachment != null) {
-        json.put("attachment", attachment.getJSON());
+        json.attachment = attachment.getJSON();
     }
 
     return json;
@@ -253,14 +254,18 @@ function sign(secretPhrase) {
     }
     signature = Crypto.sign(getBytes(), secretPhrase);
 }
-// TODO Crypto
+
 function getHash() {
     if (hash == null) {
-        byte[] data = getBytes();
-        for (int i = 64; i < 128; i++) {
+        var data = getBytes();
+        for (var i = 64; i < 128; i++) {
             data[i] = 0;
         }
-        hash = convert.toHexString(Crypto.sha256().digest(data));
+        var shasum = crypto.createHash('sha256');
+        shasum.update(data, 'utf8');
+        var dataHash = shasum.digest();
+
+        hash = convert.toHexString(dataHash);
     }
     return hash;
 }
@@ -274,15 +279,15 @@ function hashCode() {
 }
 // TODO Account
 function verify() {
-    Account account = Account.getAccount(getSenderId());
-    if (account == null) {
+    var acc = account.getAccount(getSenderId());
+    if (acc == null) {
         return false;
     }
-    byte[] data = getBytes();
-    for (int i = 64; i < 128; i++) {
+    var data = getBytes();
+    for (var i = 64; i < 128; i++) {
         data[i] = 0;
     }
-    return Crypto.verify(signature, data, senderPublicKey) && account.setOrVerify(senderPublicKey, this.getHeight());
+    return Crypto.verify(signature, data, senderPublicKey) && acc.setOrVerify(senderPublicKey, this.getHeight());
 }
 
 function validateAttachment() {
@@ -291,7 +296,7 @@ function validateAttachment() {
 
 // returns false if double spending TODO Account
 function applyUnconfirmed() {
-    Account senderAccount = Account.getAccount(getSenderId());
+    var senderAccount = account.getAccount(getSenderId());
     if (senderAccount == null) {
         return false;
     }
@@ -324,12 +329,12 @@ function undo(){
 }
 // TODO Переписать
 function updateTotals(accumulatedAmounts, accumulatedAssetQuantities) {
-    Long senderId = getSenderId();
-    Long accumulatedAmount = accumulatedAmounts.get(senderId);
+    var senderId = getSenderId();
+    var accumulatedAmount = accumulatedAmounts.get(senderId);
     if (accumulatedAmount == null) {
-        accumulatedAmount = 0L;
+        accumulatedAmount = 0;
     }
-    accumulatedAmounts.put(senderId, accumulatedAmount + (amount + fee) * 100L);
+    accumulatedAmounts.put(senderId, accumulatedAmount + (amount + fee) * 100);
     type.updateTotals(this, accumulatedAmounts, accumulatedAssetQuantities, accumulatedAmount);
 }
 
