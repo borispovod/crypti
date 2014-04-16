@@ -10,6 +10,9 @@
     "nconf": "0.6.9",
     "sqlite3": "~2.2.0",
     "winston": "0.7.2",
-    "bignum": "~0.6.2"
+    "bignum": "~0.6.2",
+    "bigi": "~0.2.0",
+    "ecurve-names": "~0.3.0",
+    "ecdsa": "~0.4.1"
   }
 }
