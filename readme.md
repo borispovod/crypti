@@ -11,7 +11,8 @@ npm install
 
 Then run:
 ```
-npm link ./node-curve25519
+hg clone https://bpovod@bitbucket.org/bpovod/ed25519-node
+npm link ./ed25519-node
 ```
 
 ### Start ###
