@@ -80,12 +80,3 @@ module.exports.init = function (db, cb) {
         }
     });
 }
-
-
-/*gb.sign("bpovod", "ms02kf", function (err, signature) {
- var s = "";
- for (var i = 0; i < signature.length; i++) {
- s += signature[i] + ", ";
- }
- console.log(s);
- });*/

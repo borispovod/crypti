@@ -3,8 +3,7 @@ var express = require('express'),
     routes = require('./routes'),
     db = require('./db.js'),
     async = require('async'),
-    blockchain = require('./block').blockchain,
-    ed = require('ed25519');
+    blockchain = require('./block').blockchain;
 
 var transaction = require('./transactions');
 
@@ -26,6 +25,7 @@ app.configure("development", function () {
     app.use(express.logger('dev'));
     app.use(express.errorHandler());
 });
+
 
 async.series([
     function (cb) {
