@@ -1,8 +1,10 @@
 var crypto = require('crypto'),
     ed  = require('ed25519'),
-    bignum = require('bignum');
+    bignum = require('bignum'),
+    _ = require('underscore');
 
-var transaction = function(timestamp, senderPublicKey, senderId, recipientId, amount, deadline, fee, signature) {
+var transaction = function(id, timestamp, senderPublicKey, senderId, recipientId, amount, deadline, fee, signature) {
+    this.id = null;
     this.timestamp = timestamp;
     this.deadline = deadline;
     this.senderPublicKey = senderPublicKey;
@@ -13,6 +15,15 @@ var transaction = function(timestamp, senderPublicKey, senderId, recipientId, am
     this.signature = signature;
 }
 
+transaction.prototype.getJSON = function () {
+    var obj = _.extend({}, this);
+    obj.signature = null;
+    obj.id = null;
+    obj.hash = null;
+
+    return JSON.stringify(obj);
+}
+
 transaction.prototype.getId = function (cb) {
     if (!this.id) {
         if (!this.signature) {
@@ -20,8 +31,11 @@ transaction.prototype.getId = function (cb) {
                 cb("Transaction not signed");
             }
         } else {
+            var self = _.extend({}, this);
+            self.signature = null;
+
             var shasum = crypto.createHash('sha256'),
-                json = JSON.stringify(this);
+                json = this.getJSON();
 
             shasum.update(json, 'utf8');
             var hash = shasum.digest();
@@ -50,7 +64,6 @@ transaction.prototype.sign = function (username, password, cb) {
     if (this.signature) {
         cb("Transaction already signed");
     } else {
-        var json = JSON.stringify(this);
         var hash = this.getHash(function (err, hash) {
             if (err) {
                 cb(err);
@@ -68,13 +81,33 @@ transaction.prototype.sign = function (username, password, cb) {
 transaction.prototype.getHash = function (cb) {
     if (!this.hash) {
         var shasum = crypto.createHash('sha256'),
-            json = JSON.stringify(this);
+            json = this.getJSON();
 
         shasum.update(json, 'utf8');
         this.hash = shasum.digest();
-        cb(null, this.hash)
+
+        if (cb) {
+            cb(null, this.hash);
+        } else {
+            return this.hash;
+        }
     } else {
-        cb(null, this.hash);
+        if (cb) {
+            cb(null, this.hash);
+        } else {
+            return this.hash;
+        }
+    }
+}
+
+transaction.prototype.verify = function (publicKey, cb) {
+    if (!this.signature) {
+        cb("Transaction not signed", false);
+    } else {
+        var hash = this.getHash();
+
+        var r = ed.Verify(new Buffer(hash), this.signature, publicKey);
+        cb(null, r);
     }
 }
 
