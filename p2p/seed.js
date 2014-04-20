@@ -88,7 +88,6 @@ var Seed = function (port, peerProcessor, peer) {
 
         if (!method) {
             return res.json({ error : "Not provided method!" });
-            return;
         }
 
         if (req.query.params) {
@@ -137,13 +136,18 @@ var Seed = function (port, peerProcessor, peer) {
             };
 
 
-            request.get(options);
-
-            if (cb) {
-                cb(null, true);
-            } else {
-                return true;
-            }
+            request.get(options, function (err) {
+                if (err) {
+                    console.log(err);
+                    if (cb) {
+                        cb(err, false);
+                    }
+                } else {
+                    if (cb) {
+                        cb(null, true);
+                    }
+                }
+            });
         }
     }
 
