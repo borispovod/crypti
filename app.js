@@ -3,13 +3,18 @@ var express = require('express'),
     routes = require('./routes'),
     db = require('./db.js'),
     async = require('async'),
-    blockchain = require('./block').blockchain;
+    blockchain = require('./block').blockchain,
+    p2p = require("./p2p"),
+    peerNetwork = p2p.peernetwork,
+    peerProcessor = p2p.peerprocessor,
+    os = require("os");
 
 var transaction = require('./transactions');
 
 var app = express();
 
 app.configure(function () {
+    app.set("version", "0.1");
     app.set("address", config.get("address"));
     app.set('port', config.get('port'));
 
@@ -39,6 +44,11 @@ async.series([
                 cb();
             }
         })
+    },
+    function (cb) {
+        var p2pConf = config.get("p2p");
+        var pn = new peerNetwork(p2pConf.port, app.get("version"), os.type() + " " + os.platform() + " " + os.arch(), p2pConf.whitelist, new peerProcessor());
+        cb();
     }
 ], function (err) {
     if (err) {
