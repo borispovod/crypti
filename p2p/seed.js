@@ -36,8 +36,29 @@ var Seed = function (port, peerProcessor, peer) {
         }.bind(this));
     }
 
+    this.connect = function (ip, port, cb) {
+        var method = "connected";
+        var url = "http://" + ip + ":" + port + "/p2p?method=" + method;
+
+        var options = {
+            url : url,
+            headers: {
+                'node-info' : new Buffer(JSON.stringify(this.mypeer), 'utf8').toString('base64')
+            }
+        };
+
+        request.get(options);
+
+        if (cb) {
+            cb(null, true);
+        } else {
+            return true;
+        }
+    }
+
     this.processRequest = function (req, res) {
         var method = req.query.method;
+        var peer;
 
         if (!req.headers["node-info"]) {
             return res.json({ error: "Not provided node-info header!" });
@@ -53,7 +74,7 @@ var Seed = function (port, peerProcessor, peer) {
             }
 
             if (!nodeInfo.port || !nodeInfo.version || !nodeInfo.port) {
-                var peer = new Peer(nodeInfo.port, nodeInfo.version, nodeInfo.port, req.connection.remoteAddress);
+                peer = new Peer(nodeInfo.port, nodeInfo.version, nodeInfo.port, req.connection.remoteAddress);
                 this.peerprocessor.addPeer(peer);
             }
         }

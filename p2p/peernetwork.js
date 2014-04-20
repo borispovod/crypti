@@ -7,6 +7,10 @@ var peernetwork = function (port, version, os, whitelist, peerProcessor) {
     this.seed = new Seed(port, peerProcessor, this.peer);
     this.seed.listen();
 
+    for (var i = 0; i < whitelist.length; i++) {
+        this.seed.connect(whitelist[i].host, whitelist[i].port);
+    }
+
     this.processNetwork();
 }
 
