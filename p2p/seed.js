@@ -5,8 +5,6 @@ var express = require('express'),
     request = require("request");
 
 var Seed = function (port, peerProcessor, peer) {
-    events.EventEmitter.call(this);
-
     this.port = port;
     this.mypeer = peer;
     this.peerprocessor = peerProcessor;
@@ -31,7 +29,7 @@ var Seed = function (port, peerProcessor, peer) {
                 console.log(err);
             } else {
                 console.log("Seed listen on " + this.port);
-                this.app.get("/p2p", this.processRequest);
+                this.app.get("/p2p", this.processRequest.bind(this));
             }
         }.bind(this));
     }
@@ -47,14 +45,18 @@ var Seed = function (port, peerProcessor, peer) {
             }
         };
 
-        request.get(options);
-
-
-        if (cb) {
-            cb(null, true);
-        } else {
-            return true;
-        }
+        request.get(options, function (err) {
+            if (err) {
+                console.log(err);
+                if (cb) {
+                    cb(err, false);
+                }
+            } else {
+                if (cb) {
+                    cb(null, true);
+                }
+            }
+        });
     }
 
     this.processRequest = function (req, res) {
@@ -102,11 +104,12 @@ var Seed = function (port, peerProcessor, peer) {
             }
         }
 
+
         this.emit(method, res, jsonParams, peer.getId());
     }
 
     this.sendToPeer = function (peerId, method, params, cb) {
-        var peer = this.peerprocessor.getPeer(id);
+        var peer = this.peerprocessor.getPeer(peerId);
         if (!peer) {
             if (cb) {
                 return cb("Peer not found by id: " + peerId);
@@ -142,6 +145,8 @@ var Seed = function (port, peerProcessor, peer) {
             }
         }
     }
+
+    events.EventEmitter.call(this);
 }
 
 util.inherits(Seed, events.EventEmitter);
