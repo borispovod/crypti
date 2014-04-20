@@ -4,7 +4,9 @@ var n2n = require('n2n'),
     Peer = require('./peer.js');
 
 var peernetwork = function (port, version, os, whitelist, peerProcessor) {
-    this.seed = new Seed(port);
+    this.seed = new Seed();
+    this.seed.listen(port);
+
     this.node = new Node(port);
     this.peer = new Peer(port, version, os);
     this.whitelist = whitelist;
