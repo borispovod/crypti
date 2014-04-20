@@ -105,7 +105,8 @@ var Seed = function (port, peerProcessor, peer) {
         }
 
 
-        this.emit(method, res, jsonParams, peer.getId());
+        res.json({ success : true });
+        this.emit(method, jsonParams, peer.getId());
     }
 
     this.sendToPeer = function (peerId, method, params, cb) {

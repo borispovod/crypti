@@ -15,12 +15,12 @@ var peernetwork = function (port, version, os, whitelist, peerProcessor) {
 }
 
 peernetwork.prototype.processNetwork = function () {
-    this.seed.on("connected", function (res, params, id) {
+    this.seed.on("connected", function (params, id) {
         console.log("peer connected: " + id);
         this.seed.sendToPeer(id, "hello");
     }.bind(this));
 
-    this.seed.on("hello", function (res, params, id) {
+    this.seed.on("hello", function (params, id) {
         console.log("Hello from " + id);
     }.bind(this));
 }
