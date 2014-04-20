@@ -77,7 +77,7 @@ var Seed = function (port, peerProcessor, peer) {
             }
 
             if (nodeInfo.port && nodeInfo.version && nodeInfo.port) {
-                peer = new Peer(nodeInfo.port, nodeInfo.version, nodeInfo.port, req.connection.remoteAddress);
+                peer = new Peer(nodeInfo.port, nodeInfo.version, nodeInfo.port, req.connection.remoteAddres);
                 this.peerprocessor.addPeer(peer);
             } else {
                 return res.json({ error: "Not all information about node provided" });
