@@ -1,10 +1,11 @@
 var crypto = require('crypto'),
     ed = require('ed25519');
 
-var peer = function (port, version, os) {
+var peer = function (port, version, os, ip) {
     this.port = port;
     this.version = version;
     this.os = os;
+    this.ip = ip;
 }
 
 peer.prototype.getId = function (cb) {
@@ -34,5 +35,6 @@ peer.prototype.getId = function (cb) {
         }
     }
 }
+
 
 module.exports = peer;
