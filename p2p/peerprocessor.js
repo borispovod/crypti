@@ -37,4 +37,15 @@ peerprocessor.prototype.getPeers = function (cb) {
     }
 }
 
+peerprocessor.prototype.getPeer = function (id, cb) {
+    var peer = this.peers[id];
+
+    if (cb) {
+        cb(peer);
+    } else {
+        return peer;
+    }
+}
+
+
 module.exports = peerprocessor;
