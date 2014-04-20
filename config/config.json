@@ -1,4 +1,9 @@
 {
     "port": 6040,
-    "address" : "0.0.0.0"
+    "address" : "0.0.0.0",
+    "p2p" : {
+        "port": 7850,
+        "whitelist": [
+        ]
+    }
 }

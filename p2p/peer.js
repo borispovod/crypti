@@ -1,8 +1,7 @@
 var crypto = require('crypto'),
     ed = require('ed25519');
 
-var peer = function (ip, port, version, os) {
-    this.ip = ip;
+var peer = function (port, version, os) {
     this.port = port;
     this.version = version;
     this.os = os;
