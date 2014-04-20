@@ -49,6 +49,7 @@ var Seed = function (port, peerProcessor, peer) {
 
         request.get(options);
 
+
         if (cb) {
             cb(null, true);
         } else {
@@ -73,9 +74,11 @@ var Seed = function (port, peerProcessor, peer) {
                 return res.json({ error : "Invalid json in node-info header! "});
             }
 
-            if (!nodeInfo.port || !nodeInfo.version || !nodeInfo.port) {
+            if (nodeInfo.port && nodeInfo.version && nodeInfo.port) {
                 peer = new Peer(nodeInfo.port, nodeInfo.version, nodeInfo.port, req.connection.remoteAddress);
                 this.peerprocessor.addPeer(peer);
+            } else {
+                return res.json({ error: "Not all information about node provided" });
             }
         }
 
@@ -128,6 +131,7 @@ var Seed = function (port, peerProcessor, peer) {
                     'node-info' : new Buffer(JSON.stringify(this.mypeer), 'utf8').toString('base64')
                 }
             };
+
 
             request.get(options);
 
