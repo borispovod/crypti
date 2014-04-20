@@ -2,8 +2,10 @@
     "port": 6040,
     "address" : "0.0.0.0",
     "p2p" : {
-        "port": 7850,
-        "whitelist": [
-        ]
+        "port": 6785,
+        "whitelist": [{
+            "host": "crypti.me",
+            "port": 6785
+        }]
     }
 }
