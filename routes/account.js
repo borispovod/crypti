@@ -22,20 +22,16 @@ module.exports = function (app) {
         }
 
         var address = bignum.fromBuffer(temp).toString() + "C";
+        var accountprocessor = req.accountprocessor;
 
-        req.db.serialize(function () {
-            var s = req.db.prepare("SELECT SUM(amount) AS balance FROM trs WHERE recipientId=?");
-            s.bind(address);
-            s.get(function (err, row) {
-                if (err) {
-                    console.log(err);
-                    return res.json({ success : false, error : err });
-                } else {
-                    return res.json({ success : true, address : address, publicKey : keypair.publicKey.toString('hex'), balance : row.balance });
-                }
-            });
+        accountprocessor.getBalance(address, function (err, balance) {
+            if (err) {
+                console.log(err);
+                return res.json({ success : false, error : err });
+            } else {
+                return res.json({ success : true, address : address, publicKey : keypair.publicKey.toString('hex'), balance : balance });
+            }
         });
-
 
     });
 

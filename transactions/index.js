@@ -1,1 +1,4 @@
-module.exports = require('./transactions.js').transaction;
+module.exports = {
+    transaction: require('./transactions.js'),
+    transactionprocessor: require('./transactionprocessor.js')
+};

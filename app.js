@@ -7,7 +7,8 @@ var express = require('express'),
     p2p = require("./p2p"),
     peerNetwork = p2p.peernetwork,
     peerProcessor = p2p.peerprocessor,
-    os = require("os");
+    os = require("os"),
+    accountprocessor = require("./account").accountprocessor;
 
 var transaction = require('./transactions');
 
@@ -18,8 +19,10 @@ app.configure(function () {
     app.set("address", config.get("address"));
     app.set('port', config.get('port'));
 
+    var accountProcessor = new accountprocessor(db.db);
     app.use(function (req, res, next) {
         req.db = db.db;
+        req.accountprocessor = accountProcessor;
         next();
     });
 
@@ -45,11 +48,11 @@ async.series([
             }
         })
     },
-    function (cb) {
+    /*function (cb) {
         var p2pConf = config.get("p2p");
         var pn = new peerNetwork(p2pConf.port, app.get("version"), os.type() + " " + os.platform() + " " + os.arch(), p2pConf.whitelist, new peerProcessor());
         cb();
-    }
+    }*/
 ], function (err) {
     if (err) {
         console.log(err);
