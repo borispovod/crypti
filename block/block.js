@@ -30,8 +30,12 @@ block.prototype.getJSON = function () {
 
 block.prototype.getId = function (cb) {
     if (!this.id) {
-        if (!this.signature) {
-            cb("Block not signed");
+        if (!this.blockSignature) {
+            if (cb) {
+                cb("Block not signed");
+            } else {
+                return false;
+            }
         } else {
             var shasum = crypto.createHash('sha256'),
                 json = this.getJSON();
@@ -44,10 +48,19 @@ block.prototype.getId = function (cb) {
             }
 
             this.id = bignum.fromBuffer(temp).toString();
-            cb(null, this.id);
+
+            if (cb) {
+                cb(null, this.id);
+            } else {
+                return this.id;
+            }
         }
     } else {
-        cb(null, this.id);
+        if (cb) {
+            cb(null, this.id);
+        } else {
+            return this.id;
+        }
     }
 }
 

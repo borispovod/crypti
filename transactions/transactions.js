@@ -4,7 +4,7 @@ var crypto = require('crypto'),
     _ = require('underscore');
 
 var transaction = function(id, timestamp, senderPublicKey, senderId, recipientId, amount, deadline, fee, signature) {
-    this.id = null;
+    this.id = id;
     this.timestamp = timestamp;
     this.deadline = deadline;
     this.senderPublicKey = senderPublicKey;
@@ -29,6 +29,8 @@ transaction.prototype.getId = function (cb) {
         if (!this.signature) {
             if (cb) {
                 cb("Transaction not signed");
+            } else {
+                return false;
             }
         } else {
             var self = _.extend({}, this);
@@ -100,15 +102,17 @@ transaction.prototype.getHash = function (cb) {
     }
 }
 
+
+
 transaction.prototype.verify = function (publicKey, cb) {
     if (!this.signature) {
         cb("Transaction not signed", false);
     } else {
         var hash = this.getHash();
 
-        var r = ed.Verify(new Buffer(hash), this.signature, publicKey);
+        var r = ed.Verify(hash, this.signature, publicKey);
         cb(null, r);
     }
 }
 
-module.exports.transaction = transaction;
+module.exports = transaction;

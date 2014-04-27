@@ -1,7 +1,7 @@
 var genesisblock = require("./genesisblock.js"),
     crypto = require('crypto'),
     block = require("./block.js"),
-    transaction = require('../transactions');
+    transaction = require('../transactions').transaction;
 
 var blockchain = function (db) {
     this.db = db;
@@ -20,6 +20,21 @@ blockchain.prototype.findBlock = function (blockId, cb) {
            }
         });
     }.bind(this));
+}
+
+blockchain.prototype.transactionById = function (tId, cb) {
+    this.db.serialize(function () {
+        var s = this.db.prepare("SELECT * FROM trs WHERE id=? LIMIT 1");
+        s.bind(tId);
+
+        s.get(function (err, row) {
+            if (err) {
+                cb(err);
+            } else {
+                cb(null, row);
+            }
+        });
+    });
 }
 
 blockchain.prototype.pushBlock = function (b, cb) {
@@ -64,8 +79,9 @@ module.exports.init = function (db, cb) {
             if (gb) {
                 cb(null, bc);
             } else {
+
                 // creating genesis block
-                var t = new transaction(0, genesisblock.publicKey, genesisblock.recipient, genesisblock.recipient, genesisblock.amount, 0, 0, new Buffer(genesisblock.trSignature));
+                var t = new transaction(null, 0, genesisblock.publicKey, genesisblock.recipient, genesisblock.recipient, genesisblock.amount,  0, 0, new Buffer(genesisblock.trSignature));
                 var thash = crypto.createHash('sha256').update(JSON.stringify(t)).digest();
                 var gb = new block(0, genesisblock.amount, 0, genesisblock.publicKey, genesisblock.recipient, thash, new Buffer(genesisblock.blockSignature), [t]);
 
