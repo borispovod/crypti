@@ -24,6 +24,7 @@ module.exports = function (app) {
         var address = bignum.fromBuffer(temp).toString() + "C";
         var accountprocessor = req.accountprocessor;
 
+        accountprocessor.addAccount(address, new Account(address, keypair.publicKey));
         accountprocessor.getBalance(address, function (err, balance) {
             if (err) {
                 console.log(err);
