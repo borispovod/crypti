@@ -1,118 +1,132 @@
 var crypto = require('crypto'),
     ed  = require('ed25519'),
     bignum = require('bignum'),
-    _ = require('underscore');
+    _ = require('underscore'),
+    ByteBuffer = require("bytebuffer");
 
-var transaction = function(id, timestamp, senderPublicKey, senderId, recipientId, amount, deadline, fee, signature) {
+var transaction = function(type, id, timestamp, senderPublicKey, recipientId, amount, deadline, fee, referencedTransaction, signature) {
+    this.type = type;
+    this.subtype = 0;
     this.id = id;
     this.timestamp = timestamp;
     this.deadline = deadline;
     this.senderPublicKey = senderPublicKey;
-    this.senderId = senderId;
     this.recipientId = recipientId;
     this.amount = amount;
     this.fee = fee;
+    this.referencedTransaction = referencedTransaction;
     this.signature = signature;
+    this.height = Number.MAX_VALUE;
+}
+
+transaction.prototype.getBytes = function () {
+    var bb = new ByteBuffer(1 + 1 + 4 + 2 + 32 + 8 + 4 + 4 + 8 + 64, true);
+    bb.writeByte(this.type);
+    bb.writeByte(this.subtype);
+    bb.writeShort(this.deadline);
+    for (var i = 0; i < this.senderPublicKey.length; i++) {
+        bb.write(this.senderPublicKey[i]);
+    }
+
+    var recepient = parseInt(this.recipientId.slice(0, -1));
+    bb.writeLong(recepient);
+    bb.writeInt(this.amount);
+    bb.writeInt(this.fee);
+    bb.writeLong(this.referencedTransaction);
+
+    for (var i = 0; i < this.signature; i++) {
+        bb.write(this.signature[i]);
+    }
+
+    bb.flip();
+    return bb.toBuffer();
 }
 
 transaction.prototype.getJSON = function () {
-    var obj = _.extend({}, this);
-    obj.signature = null;
-    obj.id = null;
-    obj.hash = null;
-
-    return JSON.stringify(obj);
+    return JSON.stringify(this);
 }
 
 transaction.prototype.getId = function (cb) {
     if (!this.id) {
-        if (!this.signature) {
-            if (cb) {
-                cb("Transaction not signed");
-            } else {
-                return false;
-            }
-        } else {
-            var self = _.extend({}, this);
-            self.signature = null;
-
-            var shasum = crypto.createHash('sha256'),
-                json = this.getJSON();
-
-            shasum.update(json, 'utf8');
-            var hash = shasum.digest();
-            var temp = new Buffer(8);
-            for (var i = 0; i < 8; i++) {
-                temp[i] = hash[7-i];
-            }
-
-            this.id = bignum.fromBuffer(temp).toString();
-            if (cb) {
-                cb(null, this.id);
-            } else {
-                return this.id;
-            }
+        var hash = crypto.createHash('sha256').update(this.getBytes()).digest();
+        var hash = shasum.digest();
+        var temp = new Buffer(8);
+        for (var i = 0; i < 8; i++) {
+            temp[i] = hash[7 - i];
         }
+
+        this.id =  bignum.fromBuffer(temp).toString();
     } else {
-        if (cb) {
-            cb(null, this.id);
-        } else {
-            return this.id;
-        }
+        return this.id;
     }
 }
 
-transaction.prototype.sign = function (username, password, cb) {
-    if (this.signature) {
-        cb("Transaction already signed");
-    } else {
-        var hash = this.getHash(function (err, hash) {
-            if (err) {
-                cb(err);
-            } else {
-                var passHash = crypto.createHash('sha256').update(username + password, 'utf8').digest();
-                var keypair = ed.MakeKeypair(passHash);
-
-                this.signature = ed.Sign(hash, keypair);
-                cb(null, this.signature);
-            }
-        }.bind(this));
+transaction.prototype.fromJSON = function (JSON) {
+    try {
+        var json = JSON.parse(JSON);
+        return new transaction(json.type, json.id, json.timestamp, json.senderPublicKey, json.recipientId, json.amount, json.deadline, json.fee, json.referencedTransaction, json.signature);
+    } catch (e) {
+        return null;
     }
 }
 
-transaction.prototype.getHash = function (cb) {
-    if (!this.hash) {
-        var shasum = crypto.createHash('sha256'),
-            json = this.getJSON();
+transaction.prototype.fromBytes = function (buffer) {
+    var bb = ByteBuffer.wrap(buffer);
+    bb.flip();
 
-        shasum.update(json, 'utf8');
-        this.hash = shasum.digest();
+    var t = new transaction();
+    t.type = bb.readByte();
+    t.subtype = bb.readByte();
+    t.deadline = bb.readShort();
 
-        if (cb) {
-            cb(null, this.hash);
-        } else {
-            return this.hash;
-        }
-    } else {
-        if (cb) {
-            cb(null, this.hash);
-        } else {
-            return this.hash;
-        }
+    var buffer = new Buffer(32);
+    for (var i = 0; i < 32; i++) {
+        buffer[i] = bb.readByte();
     }
+
+    t.senderPublicKey = buffer;
+
+    var recepient = bb.readLong();
+    t.recipientId = recepient + "C";
+    t.amount = bb.readInt();
+    t.fee = bb.readInt();
+    t.referencedTransaction = bb.readLong();
+
+    var signature = new Buffer(64);
+    for (var i = 0; i < 64; i++) {
+        signature[i] = bb.readByte();
+    }
+
+    t.signature = signature;
+    return t;
 }
 
+transaction.prototype.sign = function (secretPhrase) {
+    var hash = this.getHash();
+    var passHash = crypto.createHash('sha256').update(secretPhrase, 'utf8').digest();
+    var keypair = ed.MakeKeypair(passHash);
+    this.signature = ed.Sign(hash, keypair);
+}
 
-
-transaction.prototype.verify = function (publicKey, cb) {
-    if (!this.signature) {
-        cb("Transaction not signed", false);
-    } else {
-        var hash = this.getHash();
-
-        var r = ed.Verify(hash, this.signature, publicKey);
-        cb(null, r);
+transaction.prototype.verify = function () {
+    if (!this.signature || !this.senderPublicKey) {
+        return false;
     }
+
+    var hash = this.getHash();
+    return ed.verify(hash, this.signature, this.senderPublicKey);
+}
+
+transaction.prototype.getHash = function () {
+    return crypto.createHash('sha256').update(this.getBytes()).digest();
+}
+
+transaction.prototype.getSize = function () {
+    return this.getBytes().length;
+}
+
+transaction.prototype.setBlockId = function (blockId) {
+    this.blockId = blockId;
 }
 
 module.exports = transaction;
