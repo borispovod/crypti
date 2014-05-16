@@ -1,270 +1,300 @@
 var genesisblock = require("./genesisblock.js"),
     crypto = require('crypto'),
-    block = require("./block.js"),
-    transaction = require('../transactions').transaction;
+    block = require("./block.js").block,
+    transaction = require('../transactions').transaction,
+    transactionprocessor = require("../transactions").transactionprocessor.getInstance(),
+    utils = require('../utils.js'),
+    constants = require("../Constants.js"),
+    ByteBuffer = require("bytebuffer"),
+    bignum = require('bignum'),
+    bufferEqual = require('buffer-equal');
 
-var blockchain = function (db, transationprocessor, accountprocessor) {
-    this.db = db;
-    this.transactionprocessor = transactionprocessor;
-    this.blocks = [];
-    this.accountprocessor = accountprocessor;
+var blockchain = function (app) {
+    this.app = app;
+    this.accountprocessor = this.app.accountprocessor;
+    this.transactionprocessor = this.app.transactionprocessor;
+    this.logger = this.app.logger;
+    this.blocks = {};
+    this.lastBlock = null;
 }
 
-blockchain.prototype.findBlock = function (blockId, cb) {
-    this.db.serialize(function () {
-        var s = this.db.prepare("SELECT * FROM block WHERE id=? LIMIT 1");
-        s.bind(blockId);
-
-        s.get(function (err, row) {
-           if (err) {
-               cb(err);
-           } else {
-                cb(null, row);
-           }
-        });
-    }.bind(this));
+blockchain.prototype.getBlock = function (id) {
+    return this.blocks[id];
 }
 
-blockchain.prototype.transactionById = function (tId, cb) {
-    this.db.serialize(function () {
-        var s = this.db.prepare("SELECT * FROM trs WHERE id=? LIMIT 1");
-        s.bind(tId);
-
-        s.get(function (err, row) {
-            if (err) {
-                cb(err);
-            } else {
-                cb(null, row);
-            }
-        });
-    });
+blockchain.prototype.getLastBlock = function () {
+    return this.blocks[this.lastBlock];
 }
 
-blockchain.prototype.pushBlock = function (b, cb) {
-    b.getId(function (err, id) {
-       if (err) {
-           cb(err);
-       }  else {
-           this.db.serialize(function () {
-               var s = this.db.prepare("INSERT INTO block (id, timestamp, height, generatorId, generatorPubKey, totalAmount, blockSignature, generationSignature) VALUES(?, ?, ?, ?, ?, ?, ?, ?)");
-               s.bind([id, b.timestamp, b.height || 0, b.generatorId, b.generatorPublicKey, b.totalAmount, b.blockSignature.toString('hex'), b.generationSignature.toString('hex') ]);
-               s.run(function (err) {
-                   if (err) {
-                       cb(err);
-                   } else {
-                       for (var i = 0; i < b.transactions.length; i++) {
-                           var t = b.transactions[i];
-                           var s = this.db.prepare("INSERT INTO trs (id, blockId, timestamp, senderPublicKey, senderId, recipientId, amount, deadline, fee, signature) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-                           s.bind([t.getId(), id, t.timestamp, t.senderPublicKey, t.senderId, t.recipientId, t.amount, t.deadline, t.fee, t.signature.toString('hex')]);
-                           s.run(function (err) {
-                               if (err) {
-                                   cb(err);
-                               } else {
-                                   this.blocks.push(b);
-                                   cb();
-                               }
-                           }.bind(this));
-                       }
-                   }
-               }.bind(this));
-           }.bind(this));
-       }
-    }.bind(this));
-}
 
-blockchain.prototype.getLastBlock = function (cb) {
-    if (cb) {
-        cb(this.blocks[this.blocks.length - 1]);
-    } else {
-        return this.blocks[this.blocks.length - 1];
+blockchain.prototype.blockFromJSON = function (jsonObj) {
+    try {
+        var data = JSON.parse(jsonObj);
+        return new block(data.version, data.id, data.timestamp, data.previousBlock, data.transactions, data.totalAmount, data.totalFee, data.payloadLength, data.payloadHash, data.generatorPublicKey, data.generationSignature, data.blockSignature);
+    } catch (e) {
+        return null;
     }
 }
 
-blockchain.prototype.generateBlock = function (username, password, cb) {
-    var amount = 0;
-    var fee = 0;
-    var transacations = [];
-    var payloadLength = 0;
-    var ammounts = {};
+blockchain.prototype.blockFromBytes = function (buffer) {
+    var bb = ByteBuffer.wrap(buffer);
+    bb.flip();
+    var b = new block();
 
-    var blockTimestamp = new Date().getTime();
+    b.version = bb.readInt();
+    b.timestamp = bb.readInt();
+    b.previousBlock = bb.readLong();
+    b.numbersOfTransactions = bb.readInt;
+    b.totalAmount = bb.readInt();
+    b.totalFee = bb.readInt();
+    b.payloadLength = bb.readInt();
 
-    while (payloadLength <= 255 * 128) {
-        var numberOfTransactions = this.transactionprocessor.publictransations.length;
-        for (var i = 0; i < numberOfTransactions; i++) {
-            var transaction = this.transactionprocessor.publictransactions[i];
-            var size = transation.getSize();
+    var payloadHash = new Buffer(32);
 
-            // здесь еще проверка на новые транзакции.
-            if (payloadLength + size > 255 * 128) {
-                continue;
-            }
-
-            var senderId = transaction.senderId;
-
-            accountprocessor.getBalance(senderId, function (err, balance) {
-               if (err) {
-                   if (transaction.amount + transaction.fee > balance) {
-                       continue;
-                   }
-
-                   if (transacation.timestamp > blockTimestamp || transaction.deadline > blockTimestamp) {
-                       continue;
-                   }
-
-                   this.transactionprocessor.getTransaction(transaction.getId(), function (t) {
-                       if (t) {
-                           continue;
-                       } else {
-                           this.ammounts
-                       }
-                   }.bind(this));
-               }
-            }.bind(this));
-
-
-        }
+    for (var i = 0; i < 32; i++) {
+        payloadHash[i] = bb.readByte();
     }
 
-    /*Set<TransactionImpl> sortedTransactions = new TreeSet<>();
+    var generatorPublicKey = new Buffer(32);
 
-    for (TransactionImpl transaction : transactionProcessor.getAllUnconfirmedTransactions()) {
-        if (transaction.getReferencedTransactionId() == null || TransactionDb.hasTransaction(transaction.getReferencedTransactionId())) {
-            sortedTransactions.add(transaction);
-        }
+    for (var i = 0; i < 32; i++) {
+        generatorPublicKey[i] = bb.readByte();
     }
 
-    SortedMap<Long, TransactionImpl> newTransactions = new TreeMap<>();
-    Map<TransactionType, Set<String>> duplicates = new HashMap<>();
-    Map<Long, Long> accumulatedAmounts = new HashMap<>();
+    var generationSignature = new Buffer(64);
 
-    int totalAmount = 0;
-    int totalFee = 0;
-    int payloadLength = 0;
+    for (var i = 0; i < 64; i++) {
+        generationSignature[i] = bb.readByte();
+    }
 
-    int blockTimestamp = Convert.getEpochTime();
 
-    while (payloadLength <= Constants.MAX_PAYLOAD_LENGTH) {
+    var blockSignature = new Buffer(64);
 
-        int prevNumberOfNewTransactions = newTransactions.size();
+    for (var i = 0; i < 64; i++) {
+        blockSignature[i] = bb.readByte();
+    }
 
-        for (TransactionImpl transaction : sortedTransactions) {
+    b.payloadHash = payloadHash;
+    b.generatorPublicKey = generatorPublicKey;
+    b.blockSignature = blockSignature;
 
-            int transactionLength = transaction.getSize();
-            if (newTransactions.get(transaction.getId()) != null || payloadLength + transactionLength > Constants.MAX_PAYLOAD_LENGTH) {
-                continue;
-            }
+    return b;
+}
 
-            Long sender = transaction.getSenderId();
-            Long accumulatedAmount = accumulatedAmounts.get(sender);
-            if (accumulatedAmount == null) {
-                accumulatedAmount = 0L;
-            }
+blockchain.prototype.pushBlock = function (buffer) {
+    this.logger.info("Processing new block...");
+    var bb = ByteBuffer.wrap(buffer, true);
+    bb.flip();
+    var b = new block();
 
-            long amount = (transaction.getAmount() + transaction.getFee()) * 100L;
-            if (accumulatedAmount + amount > Account.getAccount(sender).getBalance()) {
-                continue;
-            }
+    b.version = bb.readInt();
+    b.timestamp = bb.readInt();
 
-            if (transaction.getTimestamp() > blockTimestamp + 15 || (transaction.getExpiration() < blockTimestamp)) {
-                continue;
-            }
+    var pb = new Buffer(8);
 
-            if (transaction.isDuplicate(duplicates)) {
-                continue;
-            }
+    for (var i = 0; i < 8; i++) {
+        pb[i] = bb.readByte();
+    }
 
-            try {
-                transaction.validateAttachment();
-            } catch (NxtException.ValidationException e) {
-                continue;
-            }
+    b.previousBlock = bignum.fromBuffer(pb).toString();
+    b.numberOfTransactions = bb.readInt();
+    b.totalAmount = bb.readInt();
+    b.totalFee = bb.readInt();
+    b.payloadLength = bb.readInt();
 
-            accumulatedAmounts.put(sender, accumulatedAmount + amount);
+    var payloadHash = new Buffer(32);
 
-            newTransactions.put(transaction.getId(), transaction);
-            payloadLength += transactionLength;
-            totalAmount += transaction.getAmount();
-            totalFee += transaction.getFee();
+    for (var i = 0; i < 32; i++) {
+        payloadHash[i] = bb.readByte();
+    }
 
-        }
+    var generatorPublicKey = new Buffer(32);
 
-        if (newTransactions.size() == prevNumberOfNewTransactions) {
+    for (var i = 0; i < 32; i++) {
+        generatorPublicKey[i] = bb.readByte();
+    }
+
+    var generationSignature = new Buffer(64);
+
+    for (var i = 0; i < 64; i++) {
+        generationSignature[i] = bb.readByte();
+    }
+
+
+    var blockSignature = new Buffer(64);
+
+    for (var i = 0; i < 64; i++) {
+        blockSignature[i] = bb.readByte();
+    }
+
+    b.payloadHash = payloadHash;
+    b.generatorPublicKey = generatorPublicKey;
+    b.generationSignature = generationSignature;
+    b.blockSignature = blockSignature;
+
+    b.setApp(this.app);
+
+    if (this.getLastBlock().previousBlock == b.previousBlock) {
+        return false;
+    }
+
+    var curTime = utils.getEpochTime(new Date().getTime());
+    if (b.timestamp > curTime || b.timestamp < this.getLastBlock().timestamp) {
+        return false;
+    }
+
+    if (b.payloadLength > constants.maxPayloadLength || b.payloadLength + constants.blockHeaderLength != buffer.length) {
+        return false;
+    }
+
+    b.index = Object.keys(this.blocks).length + 1;
+
+    if (b.previousBlock != this.lastBlock || this.getBlock(b.getId()) != null || !b.verifyGenerationSignature() || !b.verifyBlockSignature()) {
+        return false;
+    }
+
+    b.transactions = [];
+    for (var i = 0; i < b.numberOfTransactions; i++) {
+        b.transactions.push(this.transactionprocessor.transactionFromBuffer(bb));
+    }
+
+    var accumulatedAmounts = {};
+    var i, calculatedTotalAmount = 0, calculatedTotalFee = 0;
+    for (i = 0; i < b.transactions.length; i++) {
+        var t = b.transactions[i];
+
+        if (t.timestamp > curTime || t.deadline < 1 || t.deadline > 24 || t.timestamp + (t.deadline * 60 * 60) < b.timestamp || t.fee <= 0 || t.fee >= 1000 * 1000 * 1000 || this.transactionprocessor.getTransaction(t.getId()) || (t.referencedTransaction != "0" && this.transactionprocessor.getTransaction(t.referencedTransaction) == null || (this.transactionprocessor.getUnconfirmedTransaction(t.getId()) && !t.verify()))) {
             break;
         }
+
+        var sender = this.accountprocessor.getAccountByPublicKey(t.senderPublicKey);
+        if (!accumulatedAmounts[sender.address]) {
+            accumulatedAmounts[sender.address] = 0;
+        }
+
+        accumulatedAmounts[sender.address] += t.amount + t.fee;
+        if (t.type == 0) {
+            if (t.subtype == 0) {
+                calculatedTotalAmount += t.amount;
+            } else {
+                break;
+            }
+        } else {
+            break;
+        }
+
+        calculatedTotalFee += t.fee;
     }
 
-    final byte[] publicKey = Crypto.getPublicKey(secretPhrase);
-
-    MessageDigest digest = Crypto.sha256();
-    for (Transaction transaction : newTransactions.values()) {
-        digest.update(transaction.getBytes());
+    if (calculatedTotalAmount != b.totalAmount || calculatedTotalFee != b.totalFee || i != b.transactions.length) {
+        return false;
     }
 
-    byte[] payloadHash = digest.digest();
+    var hash = crypto.createHash('sha256');
 
-    BlockImpl previousBlock = blockchain.getLastBlock();
-    if (previousBlock.getHeight() < Constants.TRANSPARENT_FORGING_BLOCK) {
-        Logger.logDebugMessage("Generate block below " + Constants.TRANSPARENT_FORGING_BLOCK + " no longer supported");
-        return;
+    for (i = 0; i < b.transactions.length; i++) {
+        hash.update(b.transactions[i].getBytes());
     }
 
-    digest.update(previousBlock.getGenerationSignature());
-    byte[] generationSignature = digest.digest(publicKey);
+    var a = hash.digest();
 
-    BlockImpl block;
-    //int version = previousBlock.getHeight() < Constants.TRANSPARENT_FORGING_BLOCK ? 1 : 2;
-    int version = 2;
-    byte[] previousBlockHash = Crypto.sha256().digest(previousBlock.getBytes());
-
-    try {
-
-        block = new BlockImpl(version, blockTimestamp, previousBlock.getId(), totalAmount, totalFee, payloadLength,
-            payloadHash, publicKey, generationSignature, null, previousBlockHash, new ArrayList<>(newTransactions.values()));
-
-    } catch (NxtException.ValidationException e) {
-        // shouldn't happen because all transactions are already validated
-        Logger.logMessage("Error generating block", e);
-        return;
+    if (!bufferEqual(a, b.payloadHash)) {
+        return false;
     }
 
-    block.sign(secretPhrase);
+    for (var a in accumulatedAmounts) {
+        var account = this.accountprocessor.getAccountById(a);
 
-    block.setPrevious(previousBlock);
+        if (account.balance < accumulatedAmounts[a]) {
+            return false;
+        }
+    }
 
-    try {
-        pushBlock(block);
-        blockListeners.notify(block, Event.BLOCK_GENERATED);
-        Logger.logDebugMessage("Account " + Convert.toUnsignedLong(block.getGeneratorId()) + " generated block " + block.getStringId());
-    } catch (BlockNotAcceptedException e) {
-        Logger.logDebugMessage("Generate block failed: " + e.getMessage());
-    }*/
+    if (b.previousBlock != this.getLastBlock().getId()) {
+        return false;
+    }
+
+
+    if (!b.analyze()) {
+        return false;
+    }
+
+    for (var i = 0; i < b.transactions.length; i++) {
+        b.transactions[i].height = b.height;
+        b.transactions[i].blockId = b.getId();
+
+        if (!this.transactionprocessor.addTransaction(b.transactions[i])) {
+            return false;
+        }
+    }
+
+    for (var i = 0; i < b.transactions.length; i++) {
+        var r = this.transactionprocessor.removeUnconfirmedTransaction(b.transactions[i]);
+        if (r) {
+            var a = this.accountprocessor.getAccountByPublicKey(b.transactions[i].senderPublicKey);
+            a.setUnconfirmedBalance(a.unconfirmedBalance + b.transactions[i].amount + b.transactions[i].fee);
+        }
+
+        this.transactionprocessor.getTransaction(b.transactions[i].getId()).blockId = b.getId();
+    }
+
+    this.lastBlock = b.getId();
+    this.logger.info("Block processed: " + b.getId());
+    // save to db.
+
+    // send to users.
+
+    return true;
 }
 
-module.exports.init = function (db, cb) {
-    var bc = new blockchain(db);
+module.exports.init = function (app) {
+    var logger = app.logger;
+    var bc = new blockchain(app);
+    app.blockchain = bc;
 
-    bc.findBlock(genesisblock.blockId, function (err, gb) {
-        if (err) {
-            cb(err);
-        } else {
-            if (gb) {
-                cb(null, bc);
-            } else {
+    logger.info("Blockchain is trying to find genesis block...");
+    var b = bc.getBlock(genesisblock.blockId);
 
-                // creating genesis block
-                var t = new transaction(null, 0, genesisblock.publicKey, genesisblock.recipient, genesisblock.recipient, genesisblock.amount,  0, 0, new Buffer(genesisblock.trSignature));
-                var thash = crypto.createHash('sha256').update(JSON.stringify(t)).digest();
-                var gb = new block(0, genesisblock.amount, 0, genesisblock.publicKey, genesisblock.recipient, thash, new Buffer(genesisblock.blockSignature), [t]);
+    if (!b) {
+        var t = new transaction(0, null, 0, new Buffer(genesisblock.sender, 'hex'), genesisblock.recipient, 1000 * 1000 * 1000, 0, 0, null, new Buffer(genesisblock.trSignature, 'hex'));
+        //t.sign("nY4NxXNd9velmtPxRN6TS8JLDR2dMGzkyL51p1sTPefA3tY9SzWBZT6GYlxyUgCQhSrJsoLiXHiuGqFVZTEObqI5BWgua6i5MAk");
+        //console.log(t.signature.toString('hex'));
 
-                bc.pushBlock(gb, function (err) {
-                    if (err) {
-                        cb(err);
-                    } else {
-                        cb(null, bc);
-                    }
-                });
-            }
+        if (!t.verify()) {
+            logger.error("Genesis transaction has not valid signature")
+            return null;
         }
-    });
+
+        var payloadHash = crypto.createHash('sha256').update(t.getBytes()).digest();
+
+        var generationSignature = new Buffer(64);
+        generationSignature.fill(0);
+
+        var blockSignature = new Buffer(64);
+        blockSignature.fill(0);
+
+        b = new block(1, null, 0, null, [t], 1000 * 1000 * 1000, 1, t.getSize(), payloadHash, new Buffer(genesisblock.sender, 'hex'), generationSignature, new Buffer(genesisblock.blockSignature, 'hex'));
+
+
+        b.baseTarget = bignum(constants.initialBaseTarget);
+        b.cumulativeDifficulty = 0;
+        b.numberOfTransactions = 1;
+        bc.lastBlock = b.getId();
+        t.blockId = genesisblock.blockId;
+
+        b.setApp(app);
+
+        var r = b.analyze();
+
+        if (!r) {
+            logger.error("Genesis block not added");
+            return null;
+        }
+
+        logger.info("Genesis block added");
+        return bc;
+    } else {
+        logger.info("Genesis block is found!");
+        return bc;
+    }
 }

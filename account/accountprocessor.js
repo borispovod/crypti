@@ -3,7 +3,6 @@ var account = require('./account.js'),
     bignum = require('bignum');
 
 var accountprocessor = function (db) {
-    this.db = db;
     this.accounts = {};
 }
 
@@ -27,13 +26,18 @@ accountprocessor.prototype.getAccountByPublicKey = function (publicKey) {
     return this.accounts[address];
 }
 
-var accountProcessorInstance = null;
+accountprocessor.prototype.getAddressByPublicKey = function (publicKey) {
+    var publicKeyHash = crypto.createHash('sha256').update(publicKey).digest();
+    var temp = new Buffer(8);
+    for (var i = 0; i < 8; i++) {
+        temp[i] = publicKeyHash[7-i];
+    }
 
-module.exports.init = function (db) {
-    accountProcessorInstance = new accountprocessor(db);
-    return accountProcessorInstance;
+    var address = bignum.fromBuffer(temp).toString() + "C";
+    return address;
 }
 
-module.exports.getInstance = function () {
-    return accountProcessorInstance;
+
+module.exports.init = function () {
+    return new accountprocessor();
 }
