@@ -257,8 +257,6 @@ module.exports.init = function (app) {
 
     if (!b) {
         var t = new transaction(0, null, 0, new Buffer(genesisblock.sender, 'hex'), genesisblock.recipient, 1000 * 1000 * 1000, 0, 0, null, new Buffer(genesisblock.trSignature, 'hex'));
-        //t.sign("nY4NxXNd9velmtPxRN6TS8JLDR2dMGzkyL51p1sTPefA3tY9SzWBZT6GYlxyUgCQhSrJsoLiXHiuGqFVZTEObqI5BWgua6i5MAk");
-        //console.log(t.signature.toString('hex'));
 
         if (!t.verify()) {
             logger.error("Genesis transaction has not valid signature")
