@@ -16,26 +16,46 @@ var transaction = function(type, id, timestamp, senderPublicKey, recipientId, am
     this.fee = fee;
     this.referencedTransaction = referencedTransaction;
     this.signature = signature;
-    this.height = Number.MAX_VALUE;
+    this.height = 9007199254740992;
 }
 
 transaction.prototype.getBytes = function () {
     var bb = new ByteBuffer(1 + 1 + 4 + 2 + 32 + 8 + 4 + 4 + 8 + 64, true);
     bb.writeByte(this.type);
     bb.writeByte(this.subtype);
+    bb.writeInt(this.timestamp);
     bb.writeShort(this.deadline);
+
     for (var i = 0; i < this.senderPublicKey.length; i++) {
-        bb.write(this.senderPublicKey[i]);
+        bb.writeByte(this.senderPublicKey[i]);
     }
 
-    var recepient = parseInt(this.recipientId.slice(0, -1));
-    bb.writeLong(recepient);
+
+    var recepient = this.recipientId.slice(0, -1);
+    recepient = bignum(recepient).toBuffer();
+
+    for (var i = 0; i < 8; i++) {
+        bb.writeByte(recepient[i] || 0);
+    }
+
     bb.writeInt(this.amount);
     bb.writeInt(this.fee);
-    bb.writeLong(this.referencedTransaction);
 
-    for (var i = 0; i < this.signature; i++) {
-        bb.write(this.signature[i]);
+    if (this.referencedTransaction) {
+        var referncedTransactionBuffer = bignum(this.referencedTransaction).toBuffer();
+        for (var i = 0; i < 8; i++) {
+            bb.writeByte(referncedTransactionBuffer[i] || 0);
+        }
+    } else {
+        for (var i = 0; i < 8; i++) {
+            bb.writeByte(0);
+        }
+    }
+
+    if (this.signature) {
+        for (var i = 0; i < this.signature.length; i++) {
+            bb.writeByte(this.signature[i]);
+        }
     }
 
     bb.flip();
@@ -46,16 +66,16 @@ transaction.prototype.getJSON = function () {
     return JSON.stringify(this);
 }
 
-transaction.prototype.getId = function (cb) {
+transaction.prototype.getId = function () {
     if (!this.id) {
         var hash = crypto.createHash('sha256').update(this.getBytes()).digest();
-        var hash = shasum.digest();
         var temp = new Buffer(8);
         for (var i = 0; i < 8; i++) {
             temp[i] = hash[7 - i];
         }
 
         this.id =  bignum.fromBuffer(temp).toString();
+        return this.id;
     } else {
         return this.id;
     }
@@ -101,9 +121,9 @@ transaction.prototype.fromBytes = function (buffer) {
     return t;
 }
 
-transaction.prototype.sign = function (secretPhrase) {
+transaction.prototype.sign = function (secretPharse) {
     var hash = this.getHash();
-    var passHash = crypto.createHash('sha256').update(secretPhrase, 'utf8').digest();
+    var passHash = crypto.createHash('sha256').update(secretPharse, 'utf8').digest();
     var keypair = ed.MakeKeypair(passHash);
     this.signature = ed.Sign(hash, keypair);
 }
@@ -113,8 +133,15 @@ transaction.prototype.verify = function () {
         return false;
     }
 
-    var hash = this.getHash();
-    return ed.verify(hash, this.signature, this.senderPublicKey);
+    var bytes = this.getBytes();
+    var data2 = new Buffer(bytes.length - 64);
+
+    for (var i = 0; i < data2.length; i++) {
+        data2[i] = bytes[i];
+    }
+
+    var hash = crypto.createHash('sha256').update(data2).digest();
+    return ed.Verify(hash, this.signature, this.senderPublicKey);
 }
 
 transaction.prototype.getHash = function () {

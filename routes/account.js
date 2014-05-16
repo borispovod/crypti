@@ -1,19 +1,28 @@
 var crypto = require('crypto'),
     ed  = require('ed25519'),
-    bignum = require('bignum');
+    bignum = require('bignum'),
+    Account = require("../account").account,
+    Forger = require("../forger").forger,
+    transaction = require("../transactions").transaction,
+    utils = require("../utils.js");
 
 module.exports = function (app) {
-    app.get("/unlock", function (req, res) {
-        var username = req.query.username || "",
-            password = req.query.password || "";
+    app.get("/api/unlock", function (req, res) {
+        var secretPharse = req.query.secretPharse || "",
+            startForging = req.query.startForging;
 
-        if (password.length == 0 || username.length == 0) {
-            return res.json({ success : false, error : "Username or password not provided" })
+        if (startForging == "true") {
+            startForging = true;
+        } else {
+            startForging = false;
         }
 
-        var hash = crypto.createHash('sha256').update(username + password, 'utf8').digest();
-        var keypair = ed.MakeKeypair(hash);
+        if (secretPharse.length == 0) {
+            return res.json({ success : false, error : "SecretPharse not provided" })
+        }
 
+        var hash = crypto.createHash('sha256').update(secretPharse, 'utf8').digest();
+        var keypair = ed.MakeKeypair(hash);
 
         var publicKeyHash = crypto.createHash('sha256').update(keypair.publicKey).digest();
         var temp = new Buffer(8);
@@ -22,43 +31,68 @@ module.exports = function (app) {
         }
 
         var address = bignum.fromBuffer(temp).toString() + "C";
-        var accountprocessor = req.accountprocessor;
 
-        accountprocessor.addAccount(address, new Account(address, keypair.publicKey));
-        accountprocessor.getBalance(address, function (err, balance) {
-            if (err) {
-                console.log(err);
-                return res.json({ success : false, error : err });
-            } else {
-                return res.json({ success : true, address : address, publicKey : keypair.publicKey.toString('hex'), balance : balance });
-            }
-        });
+        var account = app.accountprocessor.getAccountById(address);
 
-    });
-
-    app.get("/getPublicKey", function (req, res) {
-        var username = req.query.username || "",
-            password = req.query.password || "";
-
-        if (password.length == 0 || username.length == 0) {
-            return res.json({ success : false, error : "Username or password not provided" })
+        if (!account) {
+            account = new Account(address);
+            account.setApp(app);
+            app.accountprocessor.addAccount(account);
         }
 
-        var hash = crypto.createHash('sha256').update(username + password, 'utf8').digest();
+        if (!account.app) {
+            account.setApp(app);
+        }
+        account.publickey = keypair.publicKey;
+
+        app.logger.info("Account unlocked: " + address);
+
+
+        if (startForging) {
+            if (account.getEffectiveBalance() > 0) {
+                app.logger.info("Start forging: " + address);
+                var forger = new Forger(address, secretPharse);
+                forger.setApp(app);
+                var result = app.forgerprocessor.startForger(forger);
+
+                if (result) {
+                    app.logger.info("Forger started: " + address);
+                    res.json({ success : true, address : address, publickey : account.publickey.toString('hex'), balance : account.balance, unconfirmedBalance : account.unconfirmedBalance, effectiveBalance : account.getEffectiveBalance(), forging : { success : true } });
+                } else {
+                    app.logger.info("Forger can't start, it's already working: " + address);
+                    res.json({ success : true, address : address, publickey : account.publickey.toString('hex'), balance : account.balance, unconfirmedBalance : account.unconfirmedBalance, effectiveBalance : account.getEffectiveBalance(), forging : { error : "Forger can't start, it's already working: " + address, success : false } });
+
+                }
+            } else {
+                app.logger.info("Can't start forging, effective balance equal to 0: " + address);
+                res.json({ success : true, address : address, publickey : account.publickey.toString('hex'), balance : account.balance, unconfirmedBalance : account.unconfirmedBalance, effectiveBalance : account.getEffectiveBalance(), forging : { error : "Can't start forging, effective balance equal to 0: " + address, success : false } });
+            }
+        } else {
+            res.json({ success : true, address : address, publickey : account.publickey.toString('hex'), balance : account.balance, unconfirmedBalance : account.unconfirmedBalance, effectiveBalance : account.getEffectiveBalance() });
+        }
+    });
+
+    app.get("/api/getPublicKey", function (req, res) {
+        var secretPharse = req.query.secretPharse || "";
+
+        if (secretPharse.length == 0) {
+            return res.json({ success : false, error : "SecretPharse not provided" })
+        }
+
+        var hash = crypto.createHash('sha256').update(secretPharse, 'utf8').digest();
         var keypair = ed.MakeKeypair(hash);
 
         res.json({ success : true, publicKey : keypair.publicKey.toString('hex') });
     });
 
-    app.get("/getAddress", function (req, res) {
-        var username = req.query.username || "",
-            password = req.query.password || "";
+    app.get("/api/getAddress", function (req, res) {
+        var secretPharse = req.query.secretPharse || "";
 
-        if (password.length == 0 || username.length == 0) {
-            return res.json({ success : false, error : "Username or password not provided" })
+        if (secretPharse.length == 0) {
+            return res.json({ success : false, error : "SecretPharse not provided" })
         }
 
-        var hash = crypto.createHash('sha256').update(username + password, 'utf8').digest();
+        var hash = crypto.createHash('sha256').update(secretPharse, 'utf8').digest();
         var keypair = ed.MakeKeypair(hash);
 
         var publicKeyHash = crypto.createHash('sha256').update(keypair.publicKey).digest();
@@ -71,4 +105,146 @@ module.exports = function (app) {
         res.json({ success : true, address : address });
     });
 
+    app.get("/api/deadline", function (req, res) {
+        var account = req.query.account || "";
+        if (account.length == 0) {
+            return res.json({ success : false, error: "Provide account" });
+        }
+
+        var forger = app.forgerprocessor.getForgers(account);
+
+        if (!forger) {
+            return res.json({ success : false, error : "Account " + account + " not foring." });
+        } else {
+            return res.json({ success : true, deadline : forger.deadline });
+        }
+    });
+
+
+    app.get("/api/startForging", function (req, res) {
+        var secretPharse = req.query.secretPharse || "";
+
+        if (secretPharse.length == 0) {
+            return res.json({ success : false, error : "SecretPharse not provided" })
+        }
+
+        var account = app.accountprocessor.getAccountByPublicKey();
+
+        if (!account) {
+            return res.json({ success : false, error : "Account not found" });
+        }
+
+
+        if (app.forgerprocessor.getForgers(account.address)) {
+            return res.json({ success : false, error : "Account already forging" });
+        } else {
+            if (account.getEffectiveBalance() > 0) {
+                app.logger.info("Start forging: " + address);
+                var forger = new Forger(account.address, secretPharse);
+                forger.setApp(app);
+                var result = app.forgerprocessor.startForger(forger);
+
+                if (result) {
+                    app.logger.info("Forger started: " + address);
+                } else {
+                    app.logger.info("Forger can't start, something wrong: " + address);
+                }
+            } else {
+                app.logger.info("Can't start forging, effective balance equal to 0: " + address);
+                return res.json({ success : false, error : "Can't start forging, effective balance equal to 0: " + address });
+            }
+        }
+    });
+
+    app.get("/api/stopForging", function (req, res) {
+        var secretPharse = req.query.secretPharse || "";
+
+        if (secretPharse.length == 0) {
+            return res.json({ success : false, error : "SecretPharse not provided" })
+        }
+
+        var account = app.accountprocessor.getAccountByPublicKey();
+
+        if (!account) {
+            return res.json({ success : false, error : "Account not found" });
+        }
+
+        var forger = app.forgerprocessor.getForgers(account.address);
+        if (forger) {
+            forger.stopForge();
+            return res.json({ success : true });
+            app.logger.info("Forging stopped: " + account.address);
+        } else {
+            return res.json({ success : false, error : "Account not forging" });
+        }
+    });
+
+    app.get("/api/getNewAddress", function (req, res) {
+        
+    });
+
+    app.get("/api/sendMoney", function (req, res) {
+        var secretPharse = req.query.secretPharse,
+            amount = parseInt(req.query.amount),
+            recepient = req.query.recepient,
+            deadline = parseInt(req.query.deadline),
+            fee = parseInt(req.query.fee),
+            referencedTransaction = req.query.referencedTransaction;
+
+        if (!secretPharse) {
+            return res.json({ success : false, error : "Provide secretPharse" });
+        }
+
+        if (!amount) {
+            return res.json({ success : false, error: "Provide amount" });
+        }
+
+        if (!recepient) {
+            return res.json({ success : false, error: "Provide recepient" });
+        }
+
+        if (!deadline) {
+            return res.json({ success : false, error: "Provide deadline" });
+        }
+
+        if (!fee) {
+            return res.json({ success : false, error: "Provide fee" });
+        }
+
+        if (amount <= 0 || amount >= 1000 * 1000 * 1000) {
+            return res.json({ success : false, error: "Amount must be middle 0 or 1000000000" });
+        }
+
+        if (fee <= 0 || fee >= 1000 * 1000 * 1000) {
+            return res.json({ success : false, error: "Fee must be middle 0 or 1000000000" });
+        }
+
+        if (deadline <= 0 || deadline > 24) {
+            return res.json({ success : false, error: "Deadline must be middle 0 and 25" });
+        }
+
+        var hash = crypto.createHash('sha256').update(secretPharse, 'utf8').digest();
+        var keypair = ed.MakeKeypair(hash);
+
+        var sender = app.accountprocessor.getAccountByPublicKey(keypair.publicKey);
+
+        if (!sender) {
+            return res.json({ success : false, error: "Sender account not found" });
+        } else {
+            if (amount + fee > sender.unconfirmedBalance) {
+                return res.json({ success: false, error: "Balance not found" });
+            } else {
+                // create transaction and send to peers
+                var t = new transaction(0, null, utils.getEpochTime(new Date().getTime()), keypair.publicKey, recepient, amount, deadline, fee, referencedTransaction, null);
+                t.sign(secretPharse);
+
+                // send to peers
+
+                // add
+                app.transactionprocessor.processTransaction(t);
+
+                return res.json({ success : true, transactionId : t.getId() });
+            }
+        }
+    });
 }

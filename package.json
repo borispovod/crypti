@@ -9,7 +9,7 @@
     "express": "3.5.0",
     "nconf": "0.6.9",
     "sqlite3": "~2.2.0",
-    "winston": "0.7.2",
+    "winston": "~0.7.2",
     "bignum": "~0.6.2",
     "bigi": "~0.2.0",
     "ecurve-names": "~0.3.0",
@@ -19,6 +19,7 @@
     "request": "~2.34.0",
     "async": "~0.7.0",
     "nat-upnp": "~0.2.9",
-    "bytebuffer": "~2.3.1"
+    "bytebuffer": "~2.3.1",
+    "buffer-equal": "0.0.0"
   }
 }
