@@ -3,17 +3,17 @@ var crypto = require('crypto'),
     bignum = require('bignum'),
     _ = require('underscore'),
     genesis = require('./genesisblock.js'),
-    blockchain = require("./blockchain.js").getInstance(),
     account = require("../account").account,
-    accountprocessor = require("../account").accountprocessor,
-    constants = require("../Constants.js");
+    constants = require("../Constants.js"),
+    ByteBuffer = require("bytebuffer"),
+    bufferEqual = require('buffer-equal');
 
 var block = function (version, id, timestamp, previousBlock, transactions, totalAmount, totalFee, payloadLength, payloadHash, generatorPublicKey, generationSignature, blockSignature) {
     this.version = version;
     this.id = id;
     this.timestamp = timestamp;
     this.previousBlock = previousBlock;
-    this.transactions = transactions;
+    this.transactions = transactions || [];
     this.totalAmount = totalAmount;
     this.totalFee = totalFee;
     this.payloadLength = payloadLength;
@@ -26,40 +26,61 @@ var block = function (version, id, timestamp, previousBlock, transactions, total
     this.height = 0;
     this.baseTarget = 0;
 
-    this.numbersOfTransactions = this.transactions.length;
+    if (this.transactions) {
+        this.numbersOfTransactions = this.transactions.length;
+    } else {
+        this.numbersOfTransactions = 0;
+    }
+}
+
+
+block.prototype.setApp = function (app) {
+    this.app = app;
+    this.blockchain = app.blockchain;
+    this.accountprocessor = app.accountprocessor;
+    this.logger = app.logger;
 }
 
 block.prototype.analyze = function () {
     if (!this.previousBlock) {
         this.id = genesis.blockId;
-        blockchain.pushBlock(this);
+        this.blockchain.blocks[this.getId()] = this;
         this.cumulativeDifficulty = bignum("0");
-        this.baseTarget = constants.initialBaseTarget;
+        this.baseTarget = bignum(constants.initialBaseTarget);
 
-        var a = new account(genesis.sender);
-        accountprocessor.addAccount(a);
+        var a = new account(this.accountprocessor.getAddressByPublicKey(this.generatorPublicKey), this.generatorPublicKey);
+        a.setHeight(this.blockchain.getLastBlock().height);
+        this.accountprocessor.addAccount(a);
+
+        if (!this.verifyBlockSignature()) {
+            this.logger.error("Genesis block has not valid signature");
+            return false;
+        }
     } else {
-        blockchain.getLastBlock().nextBlock = this.getId();
-        this.height = blockchain.getLastBlock().height + 1;
-        blockchain.pushBlock(this);
+        this.blockchain.getLastBlock().nextBlock = this.getId();
+        this.height = this.blockchain.getLastBlock().height + 1;
+        this.blockchain.blocks[this.getId()] = this;
+        //this.blockchain.pushBlock(this);
 
         this.baseTarget = this.getBaseTarget();
-        this.cumulativeDifficulty = blockchain.get(this.previousBlock).cumulativeDifficulty.add(bignum(constantstwo64).div(bignum(this.baseTarget.toString())));
-        var a = accountprocessor.getAccountById(accountprocessor.getAccountByPublicKey(this.generatorPublicKey));
+        this.cumulativeDifficulty = this.blockchain.getBlock(this.previousBlock).cumulativeDifficulty.add(bignum(constants.two64).div(bignum(this.baseTarget.toString())));
+        var a = this.accountprocessor.getAccountByPublicKey(this.generatorPublicKey);
         a.addToBalance(this.totalFee);
         a.addToUnconfirmedBalance(this.totalFee);
     }
 
-    for (var i = 0; i < this.transactions; i++) {
+    for (var i = 0; i < this.transactions.length; i++) {
         var t = this.transactions[i];
-        var sender = accountprocessor.getAccountById(accountprocessor.getAccountByPublicKey(t.senderPublicKey));
+        var sender = this.accountprocessor.getAccountByPublicKey(t.senderPublicKey)
         sender.setBalance(sender.balance - (t.amount + t.fee));
+        sender.setUnconfirmedBalance(sender.unconfirmedBalance - (t.amount + t.fee));
 
-        var recepient = accountprocessor.getAccountById(t.recipientId);
+        var recepient = this.accountprocessor.getAccountById(t.recipientId);
 
         if (!recepient) {
             recepient = new account(t.recipientId);
-            accountprocessor.addAccount(recepient);
+            recepient.setHeight(this.blockchain.getLastBlock().height);
+            this.accountprocessor.addAccount(recepient);
         }
 
         switch (t.type) {
@@ -73,19 +94,21 @@ block.prototype.analyze = function () {
                 break;
         }
     }
+
+    return true;
 }
 
 block.prototype.getBaseTarget = function () {
-    var lastBlock = blockchain.getLastBlock();
+    var lastBlock = this.blockchain.getLastBlock();
 
     if (lastBlock.getId() == genesis.blockId) {
-        return blockchain.getBlock(lastBlock.getId()).baseTarget;
+        return this.blockchain.getBlock(lastBlock.getId()).baseTarget;
     } else {
-        var previousBlock = blockchain.getBlock(lastBlock.previousBlock);
+        var previousBlock = this.blockchain.getBlock(lastBlock.previousBlock);
         var newBaseTarget = previousBlock.baseTarget.mul(bignum(lastBlock.timestamp - previousBlock.timestamp)).div(60).toNumber();
 
         if (newBaseTarget < 0 || newBaseTarget > constants.maxBaseTarget) {
-            newBaseTarget = maxBaseTarget;
+            newBaseTarget = constants. maxBaseTarget;
         }
 
         if (newBaseTarget < previousBlock.baseTarget.toNumber() / 2) {
@@ -140,7 +163,7 @@ block.prototype.setPreviousBlock = function (block, cb) {
         }
     }
 }
-
+/*
 block.prototype.getBaseTarget = function (previousBlock) {
     if (this.getId() == genesis.blockId && !this.previousBlockId) {
         this.baseTarget = 153722867;
@@ -148,7 +171,7 @@ block.prototype.getBaseTarget = function (previousBlock) {
 
         return this.baseTarget;
     } else {
-        var prevBaseTarget = previousBlock.baseTarget;
+        var prevBaseTarget = this.blockchain.getBlock(previousBlock).baseTarget;
         var prevNum = bignum.fromBuffer(prevBaseTarget);
         var newBaseTarget = bignum.fromBuffer(prevBaseTarget).mul(bignum(this.timestamp - previousBlock.timestamp)).div(bignum(60));
 
@@ -176,36 +199,58 @@ block.prototype.getBaseTarget = function (previousBlock) {
         this.baseTarget = newBaseTarget.toBuffer();
         return this.baseTarget;
     }
-}
+}*/
 
 block.prototype.getBytes = function () {
     var bb = new ByteBuffer(4 + 4 + 8 + 4 + 4 + 4 + 4 + 32 + 32 + 64 + 64, true);
     bb.writeInt(this.version);
     bb.writeInt(this.timestamp);
-    bb.writeLong(this.previousBlock);
-    bb.writeInt(this.numbersOfTransactions);
+
+    if (this.previousBlock) {
+        var pb = bignum(this.previousBlock).toBuffer();
+
+        for (var i = 0; i < 8; i++) {
+            bb.writeByte(pb[i] || 0);
+        }
+    } else {
+        for (var i = 0; i < 8; i++) {
+            bb.writeByte(0);
+        }
+    }
+
+    bb.writeInt(this.numberOfTransactions);
     bb.writeInt(this.totalAmount);
     bb.writeInt(this.totalFee);
     bb.writeInt(this.payloadLength);
 
     for (var i = 0; i < this.payloadHash.length; i++) {
-        bb.write(this.payloadHash[i]);
+        bb.writeByte(this.payloadHash[i]);
     }
 
     for (var i = 0; i < this.generatorPublicKey.length; i++) {
-        bb.write(this.generatorPublicKey[i]);
+        bb.writeByte(this.generatorPublicKey[i]);
     }
 
     for (var i = 0; i < this.generationSignature.length; i++) {
-        bb.write(this.generationSignature[i]);
+        bb.writeByte(this.generationSignature[i]);
     }
 
-    for (var i = 0; i < this.blockSignature.length; i++) {
-        bb.write(this.blockSignature[i]);
+    if (this.blockSignature) {
+        for (var i = 0; i < this.blockSignature.length; i++) {
+            bb.writeByte(this.blockSignature[i]);
+        }
     }
 
     bb.flip();
-    return bb.toBuffer();
+    var b = bb.toBuffer();
+    return b;
+}
+
+block.prototype.sign = function (secretPharse) {
+    var hash = this.getHash();
+    var passHash = crypto.createHash('sha256').update(secretPharse, 'utf8').digest();
+    var keypair = ed.MakeKeypair(passHash);
+    this.blockSignature = ed.Sign(hash, keypair);
 }
 
 block.prototype.getId = function () {
@@ -217,6 +262,7 @@ block.prototype.getId = function () {
         }
 
         this.id = bignum.fromBuffer(temp).toString();
+        return this.id;
     } else {
         return this.id;
     }
@@ -226,8 +272,9 @@ block.prototype.getHash = function () {
     return crypto.createHash("sha256").update(this.getBytes()).digest();
 }
 
+
 block.prototype.verifyBlockSignature = function () {
-    var a = accountprocessor.getAccountById(accountprocessor.getAccountByPublicKey(this.generatorPublicKey));
+    var a = this.accountprocessor.getAccountByPublicKey(this.generatorPublicKey);
     if (a == null) {
         return false;
     }
@@ -239,39 +286,37 @@ block.prototype.verifyBlockSignature = function () {
         data2[i] = data[i];
     }
 
-    return ed.Verify(data2, this.blockSignature, a.publicKey);
+    var hash = crypto.createHash('sha256').update(data2).digest();
+    return ed.Verify(hash, this.blockSignature, a.publickey);
 }
 
 block.prototype.verifyGenerationSignature = function () {
-    var previousBlock = blockchain.getBlock(this.previousBlock);
+    var previousBlock = this.blockchain.getBlock(this.previousBlock);
 
     if (!previousBlock) {
         return false;
     }
 
-    if (ed.verify(this.generationSignature, previousBlock.generationSignature, this.generatorPublicKey)) {
+    if (ed.Verify(this.generationSignature, previousBlock.generationSignature, this.generatorPublicKey)) {
         return false;
     }
 
-    var a = accountprocessor.getAccountById(accountprocessor.getAccountByPublicKey(this.generatorPublicKey));
+    var a = this.accountprocessor.getAccountByPublicKey(this.generatorPublicKey);
 
     if (!a) {
         return false;
     }
 
-    var effectiveBalance = a.effectiveBalance;
+    var effectiveBalance = a.getEffectiveBalance();
 
     if (effectiveBalance <= 0) {
         return false;
     }
 
     var elapsedTime = this.timestamp - previousBlock.timestamp;
-    var target = bignum(blockchain.getLastBlock().getBaseTarget()).mul(bignum(effectiveBalance)).mul(bignum(elapsedTime));
+    var target = bignum(this.blockchain.getLastBlock().getBaseTarget()).mul(bignum(effectiveBalance)).mul(bignum(elapsedTime));
     var generationSignatureHash = crypto.createHash('sha256').update(previousBlock.generationSignature).update(this.generatorPublicKey).digest();
 
-    if (generationSignatureHash != this.generationSignature) {
-        return false;
-    }
 
     var temp = new Buffer(8);
     for (var i = 0; i < 8; i++) {
@@ -280,7 +325,11 @@ block.prototype.verifyGenerationSignature = function () {
 
     var hit = bignum.fromBuffer(temp);
 
-    return hit.lessThan(target);
+    if (hit.lt(target)) {
+        return true;
+    } else {
+        return false;
+    }
 }
 
-module.exports = block;
+module.exports.block = block;
