@@ -20,6 +20,8 @@
     "async": "~0.7.0",
     "nat-upnp": "~0.2.9",
     "bytebuffer": "~2.3.1",
-    "buffer-equal": "0.0.0"
+    "buffer-equal": "0.0.0",
+    "secure-random": "~0.2.1",
+    "base58-native": "~0.1.3"
   }
 }

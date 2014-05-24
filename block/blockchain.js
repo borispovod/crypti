@@ -44,9 +44,9 @@ blockchain.prototype.blockFromBytes = function (buffer) {
     b.version = bb.readInt();
     b.timestamp = bb.readInt();
     b.previousBlock = bb.readLong();
-    b.numbersOfTransactions = bb.readInt;
-    b.totalAmount = bb.readInt();
-    b.totalFee = bb.readInt();
+    b.numbersOfTransactions = bb.readInt();
+    b.totalAmount = bb.readFloat();
+    b.totalFee = bb.readFloat();
     b.payloadLength = bb.readInt();
 
     var payloadHash = new Buffer(32);
@@ -98,8 +98,8 @@ blockchain.prototype.pushBlock = function (buffer) {
 
     b.previousBlock = bignum.fromBuffer(pb).toString();
     b.numberOfTransactions = bb.readInt();
-    b.totalAmount = bb.readInt();
-    b.totalFee = bb.readInt();
+    b.totalAmount = bb.readFloat();
+    b.totalFee = bb.readFloat();
     b.payloadLength = bb.readInt();
 
     var payloadHash = new Buffer(32);
@@ -158,12 +158,39 @@ blockchain.prototype.pushBlock = function (buffer) {
         b.transactions.push(this.transactionprocessor.transactionFromBuffer(bb));
     }
 
+
+    b.addresses = {};
+    for (var i = 0; i < b.numberOfAddresses; i++) {
+        var addr = this.addressprocessor.fromByteBuffer(bb);
+        b.addresses[a.id] = a;
+    }
+
+    var c = 0;
+    for (var a in b.addresses) {
+        var addr = b.addresses[a];
+        if (addr.timestamp > curTime ||  !addr.verify() || !addr.verifyAccount() || !this.addressprocessor.unconfirmedAddresses[addr.id]) {
+            break;
+        }
+
+        var account = this.accountprocessor.getAccountByPublicKey(addr.generatorPublicKey);
+
+        if (!account || account.getEffectiveBalance() <= 0) {
+            break;
+        }
+
+        c++;
+    }
+
+    if (c != b.numberOfTransactions) {
+        return false;
+    }
+
     var accumulatedAmounts = {};
     var i, calculatedTotalAmount = 0, calculatedTotalFee = 0;
     for (i = 0; i < b.transactions.length; i++) {
         var t = b.transactions[i];
 
-        if (t.timestamp > curTime || t.deadline < 1 || t.deadline > 24 || t.timestamp + (t.deadline * 60 * 60) < b.timestamp || t.fee <= 0 || t.fee >= 1000 * 1000 * 1000 || this.transactionprocessor.getTransaction(t.getId()) || (t.referencedTransaction != "0" && this.transactionprocessor.getTransaction(t.referencedTransaction) == null || (this.transactionprocessor.getUnconfirmedTransaction(t.getId()) && !t.verify()))) {
+        if (t.timestamp > curTime || t.deadline < 1 || t.deadline > 24 || t.timestamp + (t.deadline * 60 * 60) < b.timestamp || t.fee <= 1 || t.fee >= 1000 * 1000 * 1000 || this.transactionprocessor.getTransaction(t.getId()) || (t.referencedTransaction != "0" && this.transactionprocessor.getTransaction(t.referencedTransaction) == null || (this.transactionprocessor.getUnconfirmedTransaction(t.getId()) && !t.verify()))) {
             break;
         }
 
@@ -238,6 +265,23 @@ blockchain.prototype.pushBlock = function (buffer) {
         this.transactionprocessor.getTransaction(b.transactions[i].getId()).blockId = b.getId();
     }
 
+    for (var i in b.addresses) {
+        var addr = b.addresses[i];
+        addr.height = b.height;
+        addr.blockId = b.getId();
+
+        if (this.addressprocessor.addresses[addr.id]) {
+            return false;
+        }
+
+        this.addressprocess.addresses[addr.id] = addr;
+        if (!this.addressprocessor.unconfirmedAddresses[addr.id]) {
+            return false;
+        }
+
+        delete this.addressprocessor.unconfirmedAddresses[addr.id];
+    }
+
     this.lastBlock = b.getId();
     this.logger.info("Block processed: " + b.getId());
     // save to db.
@@ -272,7 +316,6 @@ module.exports.init = function (app) {
         blockSignature.fill(0);
 
         b = new block(1, null, 0, null, [t], 1000 * 1000 * 1000, 1, t.getSize(), payloadHash, new Buffer(genesisblock.sender, 'hex'), generationSignature, new Buffer(genesisblock.blockSignature, 'hex'));
-
 
         b.baseTarget = bignum(constants.initialBaseTarget);
         b.cumulativeDifficulty = 0;

@@ -27,9 +27,15 @@ var block = function (version, id, timestamp, previousBlock, transactions, total
     this.baseTarget = 0;
 
     if (this.transactions) {
-        this.numbersOfTransactions = this.transactions.length;
+        this.numberOfTransactions = this.transactions.length;
     } else {
-        this.numbersOfTransactions = 0;
+        this.numberOfTransactions = 0;
+    }
+
+    if (this.addresses) {
+        this.numberOfAddresses = this.addresses.length;
+    } else {
+        this.numberOfAddresses = 0;
     }
 }
 
@@ -202,7 +208,9 @@ block.prototype.getBaseTarget = function (previousBlock) {
 }*/
 
 block.prototype.getBytes = function () {
-    var bb = new ByteBuffer(4 + 4 + 8 + 4 + 4 + 4 + 4 + 32 + 32 + 64 + 64, true);
+    var size = 4 + 4 + 8 + 4 + 4 + 4 + 4 + 4 + 32 + 32 + 64 + 64;
+
+    var bb = new ByteBuffer(size, true);
     bb.writeInt(this.version);
     bb.writeInt(this.timestamp);
 
@@ -218,9 +226,10 @@ block.prototype.getBytes = function () {
         }
     }
 
+    bb.writeInt(this.numberOfAddresses);
     bb.writeInt(this.numberOfTransactions);
-    bb.writeInt(this.totalAmount);
-    bb.writeInt(this.totalFee);
+    bb.writeFloat(this.totalAmount);
+    bb.writeFloat(this.totalFee);
     bb.writeInt(this.payloadLength);
 
     for (var i = 0; i < this.payloadHash.length; i++) {

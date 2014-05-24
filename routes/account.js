@@ -179,10 +179,6 @@ module.exports = function (app) {
         }
     });
 
-    app.get("/api/getNewAddress", function (req, res) {
-        
-    });
-
     app.get("/api/sendMoney", function (req, res) {
         var secretPharse = req.query.secretPharse,
             amount = parseInt(req.query.amount),
