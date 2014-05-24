@@ -1,0 +1,53 @@
+var ecparams = require('ecurve-names')('secp256k1'),
+    ECDSA = require('ecdsa'),
+    ed  = require('ed25519'),
+    bignum = require('bignum'),
+    Account = require("../account").account,
+    crypto = require("crypto"),
+    BigInteger = require('bigi'),
+    secureRandom = require('secure-random'),
+    getSECCurveByName = require('../ec').sec,
+    ripemd160 = require("../ec").ripemd160,
+    base58 = require('base58-native'),
+    Address = require("../address").address,
+    utils = require("../utils.js");
+
+module.exports = function (app) {
+    app.get("/api/newAddress", function (req, res) {
+        var secretPharse = req.query.secretPharse || "";
+
+        if (secretPharse.length == 0) {
+            return res.json({ success : false, error: "Provide secretPharse" });
+        }
+
+        var hash = crypto.createHash('sha256').update(secretPharse, 'utf8').digest();
+        var keypair = ed.MakeKeypair(hash);
+
+        var account = app.accountprocessor.getAccountByPublicKey(keypair.publicKey);
+
+        if (!account) {
+            return res.json({ success : false, error : "Account not found" });
+        }
+
+        if (account.getEffectiveBalance() <= 0) {
+            return res.json({ success : false, error : "Effective balance equal 0, for add new address please add founds on your account." });
+        }
+
+        var params = app.addressprocessor.newAddress();
+        var generatorKeypair = params.keypair;
+        var address = new Address(1, params.address, keypair.publicKey, generatorKeypair.publicKey, utils.getEpochTime(new Date().getTime()));
+        address.sign(generatorKeypair);
+        address.signAccount(keypair);
+
+        if (address.verify() && address.accountVerify()) {
+            var added = app.addressprocessor.processAddress(address);
+            if (added) {
+                return res.json({ success: true, address: params.address });
+            } else {
+                return res.json({ success : false, error: "Can't add new address, already exists" });
+            }
+        } else {
+            return res.json({ success : false, error: "Can't verify new address" });
+        }
+    });
+}
