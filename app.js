@@ -7,8 +7,8 @@ var express = require('express'),
     blockchain = require("./block").blockchain,
     accountprocessor = require("./account").accountprocessor,
     forgerprocessor = require("./forger").forgerprocessor,
-    transactionprocessor = require("./transactions").transactionprocessor;
-
+    transactionprocessor = require("./transactions").transactionprocessor,
+    addressprocessor = require("./address").addressprocessor;
 
 var app = express();
 
@@ -60,10 +60,16 @@ async.series([
         logger.getInstance().info("Initializing forger processor...");
         app.forgerprocessor = forgerprocessor.init(app);
         cb();
+    },
+    function (cb) {
+        logger.getInstance().info("Initializing address processor...");
+        app.addressprocessor = new addressprocessor();
+        cb();
     }
 ], function (err) {
     if (err) {
-        logger.getInstance().info("Crypti stopped");
+        logger.getInstance().info("Crypti stopped!");
+        logger.getInstance().error("Error: " + err);
     } else {
         app.listen(app.get('port'), app.get('address'), function () {
             logger.getInstance().info("Crypti started: " + app.get("address") + ":" + app.get("port"));

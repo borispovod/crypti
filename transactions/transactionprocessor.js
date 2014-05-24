@@ -112,8 +112,8 @@ transactionprocessor.prototype.transactionFromBuffer = function (bb) {
 
     var recepient = bignum.fromBuffer(recepientBuffer).toString();
     t.recipientId = recepient + "C";
-    t.amount = bb.readInt();
-    t.fee = bb.readInt();
+    t.amount = bb.readFloat();
+    t.fee = bb.readFloat();
 
     var referencedTransactionBuffer = new Buffer(8);
 
@@ -157,8 +157,8 @@ transactionprocessor.prototype.transactionFromBytes = function (bytes) {
 
     var recepient = bignum.fromBuffer(recepientBuffer).toString();
     t.recipientId = recepient + "C";
-    t.amount = bb.readInt();
-    t.fee = bb.readInt();
+    t.amount = bb.readFloat();
+    t.fee = bb.readFloat();
 
     var referencedTransactionBuffer = new Buffer(8);
 
