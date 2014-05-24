@@ -57,7 +57,7 @@ forger.prototype.startForge = function () {
     }
 
     var elapsedTime = utils.getEpochTime(new Date().getTime()) - lastBlock.timestamp;
-    if (elapsedTime > 0) {
+    if (elapsedTime > 0) {w
         var target = bignum(lastBlock.getBaseTarget()).mul(effectiveBalance).mul(elapsedTime);
 
         if (!this.forgerprocessor.hits[account.address]) {
@@ -136,6 +136,35 @@ forger.prototype.startForge = function () {
                 }
             }
 
+            var addresses = _.map(this.addressesprocessor.unconfirmedAddresses, function (obj, key) { return obj });
+            addresses.sort(function(a, b){
+                return a.timestamp > b.timestamp;
+            });
+
+            var newAddresses = {};
+            var addressesLength = 0;
+            for (var i = 0; i < addresses.length; i++) {
+                if (this.addressprocessor.addresses[addresses[i].id]) {
+                    continue;
+                }
+
+                var account = this.accountprocessor.getAddressByPublicKey(addresses[i].generatorPublicKey);
+                if (newAddresses[account]) {
+                    continue;
+                }
+
+                if (!this.accountprocessor.accounts[account] || this.accountprocessor.accounts[account].getEffectiveBalance() <= 0) {
+                    continue;
+                }
+
+                if (addressesLength + addresses[i].getBytes().length > constants.maxAddressLength) {
+                    break;
+                }
+
+                newAddresses[addresses[i].id] = addresses[i];
+                addressesLength += addresses[i].getBytes().length;
+            }
+
             var publicKey = account.publickey;
             var hash = crypto.createHash('sha256');
 
@@ -149,10 +178,10 @@ forger.prototype.startForge = function () {
             hash = crypto.createHash('sha256').update(previousBlock.generationSignature).update(publicKey);
             var generationSignature = hash.digest();
 
-
             var previousBlockHash = crypto.createHash('sha256').update(previousBlock.getBytes()).digest();
 
             var block = new Block(1, null, blockTimestamp, previousBlock.getId(), null, totalAmount, totalFee, payloadLength, payloadHash, publicKey, generationSignature, null);
+            block.numberOfAddresses = Object.keys(newAddresses);
             block.setApp(this.app);
             block.numberOfTransactions = Object.keys(newTransactions).length;
 
@@ -163,13 +192,16 @@ forger.prototype.startForge = function () {
 
             block.sign(this.secretPharse);
 
-
             if (block.verifyBlockSignature() && block.verifyGenerationSignature()) {
                 this.logger.info("Block generated: " + block.getId());
                 var buffer = block.getBytes();
 
                 for (var t in newTransactions) {
                     buffer = Buffer.concat([buffer, newTransactions[t].getBytes()]);
+                }
+
+                for (var addr in newAddresses) {
+                    buffer = Buffer.concat([buffer, newAddresses[addr].getBytes()]);
                 }
 
                 this.blockchain.pushBlock(buffer, true);
