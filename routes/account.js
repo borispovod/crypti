@@ -181,7 +181,7 @@ module.exports = function (app) {
 
     app.get("/api/sendMoney", function (req, res) {
         var secretPharse = req.query.secretPharse,
-            amount = parseInt(req.query.amount),
+            amount = parseFloat(req.query.amount).roundTo(8),
             recepient = req.query.recepient,
             deadline = parseInt(req.query.deadline),
             fee = parseInt(req.query.fee),
@@ -219,6 +219,7 @@ module.exports = function (app) {
             return res.json({ success : false, error: "Deadline must be middle 0 and 25" });
         }
 
+
         var hash = crypto.createHash('sha256').update(secretPharse, 'utf8').digest();
         var keypair = ed.MakeKeypair(hash);
 
@@ -230,8 +231,14 @@ module.exports = function (app) {
             if (amount + fee > sender.unconfirmedBalance) {
                 return res.json({ success: false, error: "Balance not found" });
             } else {
+                var type = 0;
+
+                if (recepient[recepient.length - 1] == "D") {
+                    type = 1;
+                }
+
                 // create transaction and send to peers
-                var t = new transaction(0, null, utils.getEpochTime(new Date().getTime()), keypair.publicKey, recepient, amount, deadline, fee, referencedTransaction, null);
+                var t = new transaction(type, null, utils.getEpochTime(new Date().getTime()), keypair.publicKey, recepient, amount, deadline, fee, referencedTransaction, null);
                 t.sign(secretPharse);
 
                 // send to peers
