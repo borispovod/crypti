@@ -66,13 +66,14 @@ block.prototype.analyze = function () {
         this.blockchain.getLastBlock().nextBlock = this.getId();
         this.height = this.blockchain.getLastBlock().height + 1;
         this.blockchain.blocks[this.getId()] = this;
-        //this.blockchain.pushBlock(this);
 
         this.baseTarget = this.getBaseTarget();
         this.cumulativeDifficulty = this.blockchain.getBlock(this.previousBlock).cumulativeDifficulty.add(bignum(constants.two64).div(bignum(this.baseTarget.toString())));
         var a = this.accountprocessor.getAccountByPublicKey(this.generatorPublicKey);
-        a.addToBalance(this.totalFee);
-        a.addToUnconfirmedBalance(this.totalFee);
+
+
+        a.addToBalance(this.forForger);
+        a.addToUnconfirmedBalance(this.forForger);
     }
 
     for (var i = 0; i < this.transactions.length; i++) {
@@ -95,6 +96,15 @@ block.prototype.analyze = function () {
                     case 0:
                         recepient.addToBalance(t.amount);
                         recepient.addToUnconfirmedBalance(t.amount);
+                        break;
+                }
+                break;
+
+            case 1:
+                switch (t.subtype) {
+                    case 0:
+                        recepient.addToBalance(t.amount + t.fee / 2);
+                        recepient.addToUnconfirmedBalance(t.amount + t.fee / 2);
                         break;
                 }
                 break;
