@@ -165,6 +165,8 @@ blockchain.prototype.pushBlock = function (buffer) {
         b.addresses[a.id] = a;
     }
 
+    b.forForger = 0;
+
     var c = 0;
     for (var a in b.addresses) {
         var addr = b.addresses[a];
@@ -203,6 +205,13 @@ blockchain.prototype.pushBlock = function (buffer) {
         if (t.type == 0) {
             if (t.subtype == 0) {
                 calculatedTotalAmount += t.amount;
+            } else {
+                break;
+            }
+        } else if (t.type == 1) {
+            if (t.subtype == 0) {
+                calculatedTotalAmount += t.amount;
+                b.forForger += t.fee / 2;
             } else {
                 break;
             }
@@ -247,7 +256,6 @@ blockchain.prototype.pushBlock = function (buffer) {
     }
 
     for (var i = 0; i < b.transactions.length; i++) {
-        b.transactions[i].height = b.height;
         b.transactions[i].blockId = b.getId();
 
         if (!this.transactionprocessor.addTransaction(b.transactions[i])) {
@@ -259,6 +267,7 @@ blockchain.prototype.pushBlock = function (buffer) {
         var r = this.transactionprocessor.removeUnconfirmedTransaction(b.transactions[i]);
         if (r) {
             var a = this.accountprocessor.getAccountByPublicKey(b.transactions[i].senderPublicKey);
+
             a.setUnconfirmedBalance(a.unconfirmedBalance + b.transactions[i].amount + b.transactions[i].fee);
         }
 
