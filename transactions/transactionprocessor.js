@@ -13,6 +13,7 @@ transactionprocessor.prototype.setApp = function (app) {
     this.app = app;
     this.logger = app.logger;
     this.accountprocessor = app.accountprocessor;
+    this.addressprocessor = app.addressprocessor;
 }
 
 transactionprocessor.prototype.getTransaction = function (id) {
