@@ -1,5 +1,5 @@
-module.exports = {
-    peer : require("./peer.js"),
-    peernetwork : require("./peernetwork.js"),
-    peerprocessor : require("./peerprocessor.js")
+module.exports.initRoutes = function (app) {
+
 }
+
+module.exports.p2p = require("./seed.js")
