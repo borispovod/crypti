@@ -14,6 +14,8 @@ var blockchain = function (app) {
     this.accountprocessor = this.app.accountprocessor;
     this.transactionprocessor = this.app.transactionprocessor;
     this.logger = this.app.logger;
+    this.addressprocessor = this.app.addressprocessor;
+    this.db = this.app.db;
     this.blocks = {};
     this.lastBlock = null;
 }
@@ -162,6 +164,7 @@ blockchain.prototype.pushBlock = function (buffer) {
     b.addresses = {};
     for (var i = 0; i < b.numberOfAddresses; i++) {
         var addr = this.addressprocessor.fromByteBuffer(bb);
+        addr.blockId = b.getId();
         b.addresses[a.id] = a;
     }
 
@@ -293,7 +296,18 @@ blockchain.prototype.pushBlock = function (buffer) {
 
     this.lastBlock = b.getId();
     this.logger.info("Block processed: " + b.getId());
-    // save to db.
+
+    // save block, transactions, addresses to db.
+    this.db.writeBlock(b);
+
+    for (var i = 0; i < b.transactions.length; i++) {
+        this.db.writeTransaction(b.transactions[i]);
+    }
+
+    for (var i = 0; i < b.addresses.length; i++) {
+        this.db.writeAddresses(b.addresses[i]);
+    }
+
 
     // send to users.
 
