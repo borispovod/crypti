@@ -12,7 +12,11 @@ var express = require('express'),
     transaction = require("./transactions").transaction,
     addressprocessor = require("./address").addressprocessor,
     address = require("./address").address,
-    path = require("path");
+    path = require("path"),
+    peerprocessor = require("./p2p").peerprocessor,
+    peer = require("./p2p").peer,
+    os = require("os"),
+    Constants = require("./Constants.js");
 
 var app = express();
 
@@ -74,6 +78,15 @@ async.series([
         logger.getInstance().info("Initializing address processor...");
         app.addressprocessor = new addressprocessor();
         cb();
+    },
+    function (cb) {
+      logger.getInstance().info("Initializing peer processor...");
+      app.peerprocessor = new peerprocessor();
+      cb();
+    },
+    function (cb) {
+        logger.getInstance().info("Load system info...");
+        app.info = { platform : os.platform, version : config.get('version') };
     },
     function (cb) {
         logger.getInstance().info("Initializing and scanning database...");
@@ -168,6 +181,384 @@ async.series([
             }
         });
     },
+    function (cb) {
+        logger.getInstance().info("Connecting to peers...");
+        var peers = config.get("peers").list;
+        async.forEach(peers, function (p , callback) {
+            p = new peer(p.ip, p.port);
+            app.peerprocessor.addPeer(p);
+            callback();
+        }, function () {
+            cb();
+        });
+    },
+    function (cb) {
+        logger.getInstance().info("Scanning peers...");
+        var p = app.peerprocessor.getAnyPeer();
+        var finished = false;
+
+        async.whilst(function () {
+                return finished;
+        },
+        function (next) {
+            if (Constants.maxClientConnections >= Object.keys(app.peerprocessor.peers)) {
+                next(true);
+            } else {
+                p.getPeers(function (err, peersJSON) {
+                    if (err) {
+                        p = app.peerprocessor.getAnyPeer();
+                        return next();
+                    } else {
+                        var ps = [];
+                        try {
+                            ps = JSON.parse(peersJSON).peers;
+                        } catch (e) {
+                            p = app.peerprocessor.getAnyPeer();
+                            return next();
+                        }
+
+                        if (ps) {
+                            for (var i = 0; i < ps.length; i++) {
+                                var p = new peer(ps[i].ip, ps[i].port, ps[i].platform, ps[i].version);
+
+                                if (!app.peerprocessor.peers[p.ip]) {
+                                    app.peerprocessor.addPeer(p);
+                                }
+                            }
+
+                            finished = true;
+                            next();
+                        } else {
+                            p = app.peerprocessor.getAnyPeer();
+                            return next();
+                        }
+                    }
+                });
+            }
+        },
+        function () {
+            cb();
+        });
+    },
+    function (cb) {
+        logger.getInstance().info("Scanning blockchain...");
+        var lastId = app.blockchain.getLastBlock().getId();
+
+        var newBlocks = [];
+        var p = app.peerprocessor.getAnyPeer();
+
+        async.whilst(function () {
+                return newBlocks.length == 0;
+            },
+            function (next) {
+                p = app.peerprocessor.getAnyPeer();
+                p.getNextBlocks(blockId, function (err, blocksJSON) {
+                    if (err) {
+                        logger.getInstance().info("Error with peer: " + p.id);
+                        p = app.peerprocessor.getAnyPeer();
+                        next();
+                    } else {
+                        try {
+                            newBlocks = JSON.parse(blocksJSON).blocks;
+                        }
+                        catch (e) {
+                            logger.getInstance().info("Error with peer: " + p.id);
+                            p = app.peerprocessor.getAnyPeer();
+                            return next();
+                        }
+
+                        if (bs) {
+                            for (var i = 0; i < bs.length; i++) {
+                                var b = app.blockchain.fromJSON(newBlocks[i]);
+                                b.transactions = [];
+                                b.previousBlock = app.blockchain.getLastBlock().getId();
+                                var trs = newBlocks[i].transactions;
+                                var buffer = b.getBytes();
+
+                                for (var j = 0; j < trs.length; i++) {
+                                    var t = app.transactionprocessor.fromJSON(trs[i]);
+                                    b.transactions.push(t);
+
+                                    buffer = Buffer.concat([buffer, t.getBytes()]);
+                                }
+
+                                var r = this.blockchain.pushBlock(buffer, true);
+
+                                if (!r) {
+                                    break;
+                                }
+                            }
+
+                            next();
+                        } else {
+                            logger.getInstance().info("Error with peer: " + p.id);
+                            p = app.peerprocessor.getAnyPeer();
+                            next();
+                        }
+                    }
+                });
+            },
+            function (err) {
+                cb();
+            });
+    },
+    function (cb) {
+        logger.getInstance().info("Getting unconfirmed blocks...");
+        var p = app.peerprocessor.getAnyPeer();
+        var finished = false;
+
+        async.whilst(function () {
+                return finished;
+            },
+            function (next) {
+                p.getUnconfirmedTransactions(function (err, transactionsJSON) {
+                    if (err) {
+                        p = app.peerprocessor.getAnyPeer();
+                        return next();
+                    } else {
+                        var trs = [];
+                        try {
+                            trs = JSON.parse(transactionsJSON).peers;
+                        } catch (e) {
+                            p = app.peerprocessor.getAnyPeer();
+                            return next();
+                        }
+
+                        if (trs) {
+                            var error = false;
+                            for (var i = 0; i < trs.length; i++) {
+                                var t = app.transactionprocessor.fromJSON(trs[i]);
+
+                                var r = app.transactionprocessor.processTransaction(t);
+
+                                if (!r) {
+                                    error = true;
+                                    break;
+                                }
+                            }
+
+                            if (error) {
+                                p = app.peerprocessor.getAnyPeer();
+                                next();
+                            } else {
+                                finished = true;
+                                next();
+                            }
+                        } else {
+                            p = app.peerprocessor.getAnyPeer();
+                            return next();
+                        }
+                    }
+                });
+            },
+            function () {
+                cb();
+            });
+    },
+    function (cb) {
+        logger.getInstance().info("Starting intervals...");
+        setInterval(function () {
+            var peers = app.peerprocessor.getPeersAsArray();
+            async.forEach(peers, function (p, callback) {
+                var i = p.checkBlacklisted();
+
+                if (!i) {
+                    p.setBlacklisted(false);
+                }
+
+                callback();
+            }, function () {
+
+            });
+        }, 1000 * 60);
+
+        var peersRunning = false;
+        // peers
+        setInterval(function () {
+            if (peersRunning) {
+                return;
+            }
+
+            peersRunning = true;
+            var p = app.peerprocessor.getAnyPeer();
+            var finished = false;
+
+            async.whilst(function () {
+                    return finished;
+                },
+                function (next) {
+                    if (Constants.maxClientConnections >= Object.keys(app.peerprocessor.peers)) {
+                        next(true);
+                    } else {
+                        p.getPeers(function (err, peersJSON) {
+                            if (err) {
+                                p = app.peerprocessor.getAnyPeer();
+                                return next();
+                            } else {
+                                var ps = [];
+                                try {
+                                    ps = JSON.parse(peersJSON).peers;
+                                } catch (e) {
+                                    p = app.peerprocessor.getAnyPeer();
+                                    return next();
+                                }
+
+                                if (ps) {
+                                    for (var i = 0; i < ps.length; i++) {
+                                        var p = new peer(ps[i].ip, ps[i].port, ps[i].platform, ps[i].version);
+
+                                        if (!app.peerprocessor.peers[p.ip]) {
+                                            app.peerprocessor.addPeer(p);
+                                        }
+                                    }
+
+                                    finished = true;
+                                    next();
+                                } else {
+                                    p = app.peerprocessor.getAnyPeer();
+                                    return next();
+                                }
+                            }
+                        });
+                    }
+                },
+                function () {
+                    peersRunning = false;
+                });
+        }, 1000 * 5);
+
+        // unconfirmed
+        var unconfirmedTrsRunning = false;
+        setInterval(function () {
+            if (unconfirmedTrsRunning) {
+                return;
+            }
+
+            unconfirmedTrsRunning = true;
+            var p = app.peerprocessor.getAnyPeer();
+            var finished = false;
+
+            async.whilst(function () {
+                    return finished;
+                },
+                function (next) {
+                    p.getUnconfirmedTransactions(function (err, transactionsJSON) {
+                        if (err) {
+                            p = app.peerprocessor.getAnyPeer();
+                            return next();
+                        } else {
+                            var trs = [];
+                            try {
+                                trs = JSON.parse(transactionsJSON).peers;
+                            } catch (e) {
+                                p = app.peerprocessor.getAnyPeer();
+                                return next();
+                            }
+
+                            if (trs) {
+                                var error = false;
+                                for (var i = 0; i < trs.length; i++) {
+                                    var t = app.transactionprocessor.fromJSON(trs[i]);
+
+                                    var r = app.transactionprocessor.processTransaction(t);
+
+                                    if (!r) {
+                                        p.setBlacklisted(true);
+                                        error = true;
+                                        break;
+                                    }
+                                }
+
+                                if (error) {
+                                    p = app.peerprocessor.getAnyPeer();
+                                    next();
+                                } else {
+                                    finished = true;
+                                    next();
+                                }
+                            } else {
+                                p = app.peerprocessor.getAnyPeer();
+                                return next();
+                            }
+                        }
+                    });
+                },
+                function () {
+                    unconfirmedTrsRunning = false;
+                });
+        }, 1000 * 5);
+
+        // blocks
+        var blocksRunning = false;
+        setInterval(function () {
+            if (blocksRunning) {
+                return;
+            }
+
+            blocksRunning = true;
+            var newBlocks = [];
+            var p = app.peerprocessor.getAnyPeer();
+
+            async.whilst(function () {
+                    return newBlocks.length == 0;
+                },
+                function (next) {
+                    p = app.peerprocessor.getAnyPeer();
+                    p.getNextBlocks(blockId, function (err, blocksJSON) {
+                        if (err) {
+                            logger.getInstance().info("Error with peer: " + p.id);
+                            p = app.peerprocessor.getAnyPeer();
+                            next();
+                        } else {
+                            try {
+                                newBlocks = JSON.parse(blocksJSON).blocks;
+                            }
+                            catch (e) {
+                                logger.getInstance().info("Error with peer: " + p.id);
+                                p = app.peerprocessor.getAnyPeer();
+                                return next();
+                            }
+
+                            if (bs) {
+                                for (var i = 0; i < bs.length; i++) {
+                                    var b = app.blockchain.fromJSON(newBlocks[i]);
+                                    b.transactions = [];
+                                    b.previousBlock = app.blockchain.getLastBlock().getId();
+                                    var trs = newBlocks[i].transactions;
+                                    var buffer = b.getBytes();
+
+                                    for (var j = 0; j < trs.length; i++) {
+                                        var t = app.transactionprocessor.fromJSON(trs[i]);
+                                        b.transactions.push(t);
+
+                                        buffer = Buffer.concat([buffer, t.getBytes()]);
+                                    }
+
+                                    var r = this.blockchain.pushBlock(buffer, true);
+
+                                    if (!r) {
+                                        p.setBlacklisted(true);
+                                        p = app.peerprocessor.getAnyPeer();
+                                        break;
+                                    }
+                                }
+
+                                next();
+                            } else {
+                                logger.getInstance().info("Error with peer: " + p.id);
+                                p = app.peerprocessor.getAnyPeer();
+                                next();
+                            }
+                        }
+                    });
+                },
+                function (err) {
+                    blocksRunning = false;
+                });
+        }, 1000 * 5);
+
+        cb();
+    }
 ], function (err) {
     if (err) {
         logger.getInstance().info("Crypti stopped!");
@@ -179,6 +570,33 @@ async.series([
             if (config.get("serveHttpApi")) {
                 routes(app);
             }
+
+            app.use(function (req, res, next) {
+                var ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+                var p = app.peerprocessor.getPeer(ip);
+
+                if (!p) {
+                    var platform = req.headers['platform'] || "",
+                        version = parseFloat(req.headers['version']),
+                        port = parseInt(req.headers['port']);
+
+                    if (platform.length == 0 || isNaN(version) || version <= 0 || isNaN(port) || port <= 0) {
+                        return res.json({ success : false, error : "Invalid headers" });
+                    } else {
+                        p = new peer(ip, port, platform, version);
+                        app.peerprocessor.addPeer(p);
+                        req.peer = p;
+                        next();
+                    }
+                } else {
+                    if (p.checkBlacklisted()) {
+                        return res.json({ success : false, error : "Your peer in black list" });
+                    } else {
+                        req.peer = p;
+                        next();
+                    }
+                }
+            });
         });
     }
 });

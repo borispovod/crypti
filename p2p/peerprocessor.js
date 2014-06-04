@@ -1,0 +1,55 @@
+var peer = require("./peer.js"),
+    _ = require("underscore");
+
+var peerprocessor = function () {
+    this.peers = {};
+    this.blockedPeers = {};
+}
+
+peerprocessor.prototype.addPeer = function (peer) {
+    if (this.peers[peer.ip]) {
+        return false;
+    } else {
+        this.peers[peer.ip] = peer;
+        return true;
+    }
+}
+
+peerprocessor.prototype.getPeer = function (ip) {
+    return this.peers[ip];
+}
+
+peerprocessor.prototype.getPeersAsArray = function () {
+    var peers = _.map(this.peers, function (value, key) {
+        return value;
+    });
+
+    return peers;
+}
+
+peerprocessor.prototype.getPeers = function () {
+    return this.peers;
+}
+
+peerprocessor.prototype.getBlockedPeers = function () {
+    return this.blockedPeers;
+}
+
+peerprocessor.prototype.getBlockedPeersAsArray = function () {
+    var peers = _.map(this.blockedPeers, function (value, key) {
+        return value;
+    });
+
+    return peers;
+}
+
+peerprocessor.prototype.getAnyPeer = function (blacklisted) {
+    var peers = this.getPeersAsArray();
+
+    while (true) {
+        var peer = peers[Math.floor(Math.random() * peers.length)];
+        if (!peer.checkBlacklisted()) {
+            return peer;
+        }
+    }
+}
