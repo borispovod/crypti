@@ -62,6 +62,14 @@ transaction.prototype.getBytes = function () {
     return bb.toBuffer();
 }
 
+transaction.prototype.toJSON = function () {
+    var obj = _.extend({}, this);
+    obj.senderPublicKey = new Buffer(this.senderPublicKey, 'hex');
+    obj.signature = new Buffer(this.signature, 'hex');
+
+    return obj;
+}
+
 transaction.prototype.getJSON = function () {
     return JSON.stringify(this);
 }

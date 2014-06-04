@@ -9,6 +9,12 @@ var transactionprocessor = function () {
     this.doubleSpendingTransactions = {};
 }
 
+
+
+transactionprocessor.prototype.fromJSON = function (t) {
+    return new Transaction(t.type, null, t.timestamp, new Buffer(t.senderPublicKey, 'hex'), t.recepientId, t.amount, t.deadline, t.fee, t.referencedTransaction, new Buffer(t.signature, 'hex'));
+}
+
 transactionprocessor.prototype.setApp = function (app) {
     this.app = app;
     this.logger = app.logger;

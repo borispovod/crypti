@@ -6,5 +6,6 @@ module.exports = {
     maxPayloadLength : 255 * 128,
     blockHeaderLength : 224,
     addressLength: 208,
-    maxAddressLength: 208 * 128
+    maxAddressLength: 208 * 128,
+    maxClientConnections: 100
 }
