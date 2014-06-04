@@ -28,6 +28,9 @@ blockchain.prototype.getLastBlock = function () {
     return this.blocks[this.lastBlock];
 }
 
+blockchain.prototype.fromJSON = function (b) {
+    return new Block(b.version, null, b.timestamp, b.previousBlock, [], b.totalAmount, b.totalFee, b.payloadLength, new Buffer(b.payloadHash,'hex'), new Buffer(b.generatorPublicKey, 'hex'), new Buffer(b.generationSignature, 'hex'), new Buffer(b.blockSignature, 'hex'));
+}
 
 blockchain.prototype.blockFromJSON = function (jsonObj) {
     try {
