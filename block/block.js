@@ -47,6 +47,16 @@ block.prototype.setApp = function (app) {
     this.logger = app.logger;
 }
 
+block.prototype.toJSON = function () {
+    var obj = _.extend({}, this);
+    obj.payloadHash = new Buffer(this.payloadHash, 'hex');
+    obj.generatorPublicKey = new Buffer(this.generatorPublicKey, 'hex');
+    obj.generationSignature = new Buffer(this.generationSignature, 'hex');
+    obj.blockSignature = new Buffer(this.blockSignature, 'hex');
+
+    return obj;
+}
+
 block.prototype.analyze = function () {
     if (!this.previousBlock) {
         this.id = genesis.blockId;
