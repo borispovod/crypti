@@ -6,6 +6,10 @@ var peerprocessor = function () {
     this.blockedPeers = {};
 }
 
+peerprocessor.prototype.removePeer = function (ip) {
+    delete this.peers[ip];
+}
+
 peerprocessor.prototype.addPeer = function (peer) {
     if (this.peers[peer.ip]) {
         return false;
@@ -44,6 +48,10 @@ peerprocessor.prototype.getBlockedPeersAsArray = function () {
 }
 
 peerprocessor.prototype.getAnyPeer = function (blacklisted) {
+    if (Object.keys(this.peers).length <= 0) {
+        return null;
+    }
+
     var peers = this.getPeersAsArray();
 
     while (true) {
@@ -53,3 +61,5 @@ peerprocessor.prototype.getAnyPeer = function (blacklisted) {
         }
     }
 }
+
+module.exports = peerprocessor;

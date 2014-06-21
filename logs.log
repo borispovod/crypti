@@ -796,3 +796,653 @@
 {"level":"info","message":"Initializing address processor...","timestamp":"2014-05-24T12:47:01.183Z"}
 {"level":"info","message":"Crypti started: 0.0.0.0:6040","timestamp":"2014-05-24T12:47:01.193Z"}
 {"level":"info","message":"Account unlocked: 12965745748282895962C","timestamp":"2014-05-24T12:47:08.620Z"}
+{"level":"info","message":"Logger initialized","timestamp":"2014-06-20T19:38:50.934Z"}
+{"level":"info","message":"Initializing account processor...","timestamp":"2014-06-20T19:38:50.941Z"}
+{"level":"info","message":"Account processor initialized","timestamp":"2014-06-20T19:38:50.941Z"}
+{"level":"info","message":"Initializing transaction processor...","timestamp":"2014-06-20T19:38:50.941Z"}
+{"level":"info","message":"Transaction processor initialized","timestamp":"2014-06-20T19:38:50.941Z"}
+{"level":"info","message":"Initializing blockchain...","timestamp":"2014-06-20T19:38:50.941Z"}
+{"level":"info","message":"Blockchain is trying to find genesis block...","timestamp":"2014-06-20T19:38:50.949Z"}
+{"level":"info","message":"Genesis block added","timestamp":"2014-06-20T19:38:50.977Z"}
+{"level":"info","message":"Blockchain initialized","timestamp":"2014-06-20T19:38:50.978Z"}
+{"level":"info","message":"Initializing forger processor...","timestamp":"2014-06-20T19:38:50.978Z"}
+{"level":"info","message":"Initializing address processor...","timestamp":"2014-06-20T19:38:50.978Z"}
+{"level":"info","message":"Initializing peer processor...","timestamp":"2014-06-20T19:38:50.978Z"}
+{"level":"info","message":"Load system info...","timestamp":"2014-06-20T19:38:50.978Z"}
+{"level":"info","message":"Logger initialized","timestamp":"2014-06-20T19:39:11.797Z"}
+{"level":"info","message":"Initializing account processor...","timestamp":"2014-06-20T19:39:11.799Z"}
+{"level":"info","message":"Account processor initialized","timestamp":"2014-06-20T19:39:11.799Z"}
+{"level":"info","message":"Initializing transaction processor...","timestamp":"2014-06-20T19:39:11.799Z"}
+{"level":"info","message":"Transaction processor initialized","timestamp":"2014-06-20T19:39:11.800Z"}
+{"level":"info","message":"Initializing blockchain...","timestamp":"2014-06-20T19:39:11.800Z"}
+{"level":"info","message":"Blockchain is trying to find genesis block...","timestamp":"2014-06-20T19:39:11.801Z"}
+{"level":"info","message":"Genesis block added","timestamp":"2014-06-20T19:39:11.810Z"}
+{"level":"info","message":"Blockchain initialized","timestamp":"2014-06-20T19:39:11.811Z"}
+{"level":"info","message":"Initializing forger processor...","timestamp":"2014-06-20T19:39:11.811Z"}
+{"level":"info","message":"Initializing address processor...","timestamp":"2014-06-20T19:39:11.811Z"}
+{"level":"info","message":"Initializing peer processor...","timestamp":"2014-06-20T19:39:11.811Z"}
+{"level":"info","message":"Load system info...","timestamp":"2014-06-20T19:39:11.812Z"}
+{"level":"info","message":"Initializing and scanning database...","timestamp":"2014-06-20T19:39:11.812Z"}
+{"level":"info","message":"Logger initialized","timestamp":"2014-06-20T20:16:45.979Z"}
+{"level":"info","message":"Initializing account processor...","timestamp":"2014-06-20T20:16:45.990Z"}
+{"level":"info","message":"Account processor initialized","timestamp":"2014-06-20T20:16:45.991Z"}
+{"level":"info","message":"Initializing transaction processor...","timestamp":"2014-06-20T20:16:45.991Z"}
+{"level":"info","message":"Transaction processor initialized","timestamp":"2014-06-20T20:16:45.992Z"}
+{"level":"info","message":"Initializing blockchain...","timestamp":"2014-06-20T20:16:45.992Z"}
+{"level":"info","message":"Blockchain is trying to find genesis block...","timestamp":"2014-06-20T20:16:45.997Z"}
+{"level":"info","message":"Genesis block added","timestamp":"2014-06-20T20:16:46.018Z"}
+{"level":"info","message":"Logger initialized","timestamp":"2014-06-20T20:17:17.210Z"}
+{"level":"info","message":"Initializing account processor...","timestamp":"2014-06-20T20:17:17.211Z"}
+{"level":"info","message":"Account processor initialized","timestamp":"2014-06-20T20:17:17.212Z"}
+{"level":"info","message":"Initializing transaction processor...","timestamp":"2014-06-20T20:17:17.212Z"}
+{"level":"info","message":"Transaction processor initialized","timestamp":"2014-06-20T20:17:17.212Z"}
+{"level":"info","message":"Initializing blockchain...","timestamp":"2014-06-20T20:17:17.212Z"}
+{"level":"info","message":"Blockchain is trying to find genesis block...","timestamp":"2014-06-20T20:17:17.213Z"}
+{"level":"info","message":"Genesis block added","timestamp":"2014-06-20T20:17:17.223Z"}
+{"level":"info","message":"Blockchain initialized","timestamp":"2014-06-20T20:17:17.223Z"}
+{"level":"info","message":"Initializing forger processor...","timestamp":"2014-06-20T20:17:17.223Z"}
+{"level":"info","message":"Logger initialized","timestamp":"2014-06-20T20:23:33.034Z"}
+{"level":"info","message":"Initializing account processor...","timestamp":"2014-06-20T20:23:33.036Z"}
+{"level":"info","message":"Account processor initialized","timestamp":"2014-06-20T20:23:33.036Z"}
+{"level":"info","message":"Initializing transaction processor...","timestamp":"2014-06-20T20:23:33.036Z"}
+{"level":"info","message":"Transaction processor initialized","timestamp":"2014-06-20T20:23:33.037Z"}
+{"level":"info","message":"Initializing blockchain...","timestamp":"2014-06-20T20:23:33.037Z"}
+{"level":"info","message":"Blockchain is trying to find genesis block...","timestamp":"2014-06-20T20:23:33.037Z"}
+{"level":"info","message":"Genesis block added","timestamp":"2014-06-20T20:23:33.048Z"}
+{"level":"info","message":"Blockchain initialized","timestamp":"2014-06-20T20:23:33.048Z"}
+{"level":"info","message":"Initializing forger processor...","timestamp":"2014-06-20T20:23:33.048Z"}
+{"level":"info","message":"Initializing address processor...","timestamp":"2014-06-20T20:23:33.048Z"}
+{"level":"info","message":"Initializing peer processor...","timestamp":"2014-06-20T20:23:33.049Z"}
+{"level":"info","message":"Load system info...","timestamp":"2014-06-20T20:23:33.049Z"}
+{"level":"info","message":"Initializing and scanning database...","timestamp":"2014-06-20T20:23:33.049Z"}
+{"level":"info","message":"Logger initialized","timestamp":"2014-06-20T20:31:59.156Z"}
+{"level":"info","message":"Initializing account processor...","timestamp":"2014-06-20T20:31:59.158Z"}
+{"level":"info","message":"Account processor initialized","timestamp":"2014-06-20T20:31:59.158Z"}
+{"level":"info","message":"Initializing transaction processor...","timestamp":"2014-06-20T20:31:59.158Z"}
+{"level":"info","message":"Transaction processor initialized","timestamp":"2014-06-20T20:31:59.158Z"}
+{"level":"info","message":"Initializing blockchain...","timestamp":"2014-06-20T20:31:59.158Z"}
+{"level":"info","message":"Blockchain is trying to find genesis block...","timestamp":"2014-06-20T20:31:59.159Z"}
+{"level":"info","message":"Genesis block added","timestamp":"2014-06-20T20:31:59.171Z"}
+{"level":"info","message":"Blockchain initialized","timestamp":"2014-06-20T20:31:59.171Z"}
+{"level":"info","message":"Initializing forger processor...","timestamp":"2014-06-20T20:31:59.171Z"}
+{"level":"info","message":"Initializing address processor...","timestamp":"2014-06-20T20:31:59.172Z"}
+{"level":"info","message":"Initializing peer processor...","timestamp":"2014-06-20T20:31:59.172Z"}
+{"level":"info","message":"Load system info...","timestamp":"2014-06-20T20:31:59.172Z"}
+{"level":"info","message":"Initializing and scanning database...","timestamp":"2014-06-20T20:31:59.172Z"}
+{"level":"info","message":"Connecting to peers...","timestamp":"2014-06-20T20:31:59.198Z"}
+{"level":"info","message":"Logger initialized","timestamp":"2014-06-20T20:32:24.118Z"}
+{"level":"info","message":"Initializing account processor...","timestamp":"2014-06-20T20:32:24.121Z"}
+{"level":"info","message":"Account processor initialized","timestamp":"2014-06-20T20:32:24.121Z"}
+{"level":"info","message":"Initializing transaction processor...","timestamp":"2014-06-20T20:32:24.121Z"}
+{"level":"info","message":"Transaction processor initialized","timestamp":"2014-06-20T20:32:24.121Z"}
+{"level":"info","message":"Initializing blockchain...","timestamp":"2014-06-20T20:32:24.121Z"}
+{"level":"info","message":"Blockchain is trying to find genesis block...","timestamp":"2014-06-20T20:32:24.122Z"}
+{"level":"info","message":"Logger initialized","timestamp":"2014-06-20T20:32:30.206Z"}
+{"level":"info","message":"Initializing account processor...","timestamp":"2014-06-20T20:32:30.208Z"}
+{"level":"info","message":"Account processor initialized","timestamp":"2014-06-20T20:32:30.209Z"}
+{"level":"info","message":"Initializing transaction processor...","timestamp":"2014-06-20T20:32:30.209Z"}
+{"level":"info","message":"Transaction processor initialized","timestamp":"2014-06-20T20:32:30.209Z"}
+{"level":"info","message":"Initializing blockchain...","timestamp":"2014-06-20T20:32:30.210Z"}
+{"level":"info","message":"Blockchain is trying to find genesis block...","timestamp":"2014-06-20T20:32:30.210Z"}
+{"level":"info","message":"Logger initialized","timestamp":"2014-06-20T20:32:50.487Z"}
+{"level":"info","message":"Initializing account processor...","timestamp":"2014-06-20T20:32:50.502Z"}
+{"level":"info","message":"Account processor initialized","timestamp":"2014-06-20T20:32:50.502Z"}
+{"level":"info","message":"Initializing transaction processor...","timestamp":"2014-06-20T20:32:50.503Z"}
+{"level":"info","message":"Transaction processor initialized","timestamp":"2014-06-20T20:32:50.503Z"}
+{"level":"info","message":"Initializing blockchain...","timestamp":"2014-06-20T20:32:50.503Z"}
+{"level":"info","message":"Blockchain is trying to find genesis block...","timestamp":"2014-06-20T20:32:50.504Z"}
+{"level":"info","message":"Genesis block added","timestamp":"2014-06-20T20:32:50.536Z"}
+{"level":"info","message":"Blockchain initialized","timestamp":"2014-06-20T20:32:50.536Z"}
+{"level":"info","message":"Initializing forger processor...","timestamp":"2014-06-20T20:32:50.536Z"}
+{"level":"info","message":"Initializing address processor...","timestamp":"2014-06-20T20:32:50.536Z"}
+{"level":"info","message":"Initializing peer processor...","timestamp":"2014-06-20T20:32:50.536Z"}
+{"level":"info","message":"Load system info...","timestamp":"2014-06-20T20:32:50.536Z"}
+{"level":"info","message":"Initializing and scanning database...","timestamp":"2014-06-20T20:32:50.537Z"}
+{"level":"info","message":"Connecting to peers...","timestamp":"2014-06-20T20:32:50.556Z"}
+{"level":"info","message":"Logger initialized","timestamp":"2014-06-20T20:33:01.406Z"}
+{"level":"info","message":"Initializing account processor...","timestamp":"2014-06-20T20:33:01.408Z"}
+{"level":"info","message":"Account processor initialized","timestamp":"2014-06-20T20:33:01.409Z"}
+{"level":"info","message":"Initializing transaction processor...","timestamp":"2014-06-20T20:33:01.409Z"}
+{"level":"info","message":"Transaction processor initialized","timestamp":"2014-06-20T20:33:01.409Z"}
+{"level":"info","message":"Initializing blockchain...","timestamp":"2014-06-20T20:33:01.409Z"}
+{"level":"info","message":"Blockchain is trying to find genesis block...","timestamp":"2014-06-20T20:33:01.410Z"}
+{"level":"info","message":"Genesis block added","timestamp":"2014-06-20T20:33:01.420Z"}
+{"level":"info","message":"Blockchain initialized","timestamp":"2014-06-20T20:33:01.421Z"}
+{"level":"info","message":"Initializing forger processor...","timestamp":"2014-06-20T20:33:01.421Z"}
+{"level":"info","message":"Initializing address processor...","timestamp":"2014-06-20T20:33:01.421Z"}
+{"level":"info","message":"Initializing peer processor...","timestamp":"2014-06-20T20:33:01.421Z"}
+{"level":"info","message":"Load system info...","timestamp":"2014-06-20T20:33:01.421Z"}
+{"level":"info","message":"Initializing and scanning database...","timestamp":"2014-06-20T20:33:01.422Z"}
+{"level":"info","message":"Connecting to peers...","timestamp":"2014-06-20T20:33:01.439Z"}
+{"level":"info","message":"Logger initialized","timestamp":"2014-06-20T21:55:01.856Z"}
+{"level":"info","message":"Initializing account processor...","timestamp":"2014-06-20T21:55:01.858Z"}
+{"level":"info","message":"Account processor initialized","timestamp":"2014-06-20T21:55:01.858Z"}
+{"level":"info","message":"Initializing transaction processor...","timestamp":"2014-06-20T21:55:01.860Z"}
+{"level":"info","message":"Transaction processor initialized","timestamp":"2014-06-20T21:55:01.861Z"}
+{"level":"info","message":"Initializing blockchain...","timestamp":"2014-06-20T21:55:01.861Z"}
+{"level":"info","message":"Blockchain is trying to find genesis block...","timestamp":"2014-06-20T21:55:01.862Z"}
+{"level":"info","message":"Genesis block added","timestamp":"2014-06-20T21:55:01.880Z"}
+{"level":"info","message":"Blockchain initialized","timestamp":"2014-06-20T21:55:01.880Z"}
+{"level":"info","message":"Initializing forger processor...","timestamp":"2014-06-20T21:55:01.880Z"}
+{"level":"info","message":"Initializing address processor...","timestamp":"2014-06-20T21:55:01.880Z"}
+{"level":"info","message":"Initializing peer processor...","timestamp":"2014-06-20T21:55:01.880Z"}
+{"level":"info","message":"Load system info...","timestamp":"2014-06-20T21:55:01.881Z"}
+{"level":"info","message":"Initializing and scanning database...","timestamp":"2014-06-20T21:55:01.881Z"}
+{"level":"info","message":"Connecting to peers...","timestamp":"2014-06-20T21:55:01.895Z"}
+{"level":"info","message":"Logger initialized","timestamp":"2014-06-20T22:14:21.206Z"}
+{"level":"info","message":"Initializing account processor...","timestamp":"2014-06-20T22:14:21.209Z"}
+{"level":"info","message":"Account processor initialized","timestamp":"2014-06-20T22:14:21.209Z"}
+{"level":"info","message":"Initializing transaction processor...","timestamp":"2014-06-20T22:14:21.209Z"}
+{"level":"info","message":"Transaction processor initialized","timestamp":"2014-06-20T22:14:21.209Z"}
+{"level":"info","message":"Initializing blockchain...","timestamp":"2014-06-20T22:14:21.210Z"}
+{"level":"info","message":"Blockchain is trying to find genesis block...","timestamp":"2014-06-20T22:14:21.211Z"}
+{"level":"info","message":"Genesis block added","timestamp":"2014-06-20T22:14:21.223Z"}
+{"level":"info","message":"Blockchain initialized","timestamp":"2014-06-20T22:14:21.223Z"}
+{"level":"info","message":"Initializing forger processor...","timestamp":"2014-06-20T22:14:21.223Z"}
+{"level":"info","message":"Initializing address processor...","timestamp":"2014-06-20T22:14:21.223Z"}
+{"level":"info","message":"Initializing peer processor...","timestamp":"2014-06-20T22:14:21.224Z"}
+{"level":"info","message":"Load system info...","timestamp":"2014-06-20T22:14:21.224Z"}
+{"level":"info","message":"Initializing and scanning database...","timestamp":"2014-06-20T22:14:21.224Z"}
+{"level":"info","message":"Connecting to peers...","timestamp":"2014-06-20T22:14:21.246Z"}
+{"level":"info","message":"Logger initialized","timestamp":"2014-06-20T23:16:22.283Z"}
+{"level":"info","message":"Initializing account processor...","timestamp":"2014-06-20T23:16:22.285Z"}
+{"level":"info","message":"Account processor initialized","timestamp":"2014-06-20T23:16:22.285Z"}
+{"level":"info","message":"Initializing transaction processor...","timestamp":"2014-06-20T23:16:22.285Z"}
+{"level":"info","message":"Transaction processor initialized","timestamp":"2014-06-20T23:16:22.285Z"}
+{"level":"info","message":"Initializing blockchain...","timestamp":"2014-06-20T23:16:22.285Z"}
+{"level":"info","message":"Blockchain is trying to find genesis block...","timestamp":"2014-06-20T23:16:22.286Z"}
+{"level":"info","message":"Genesis block added","timestamp":"2014-06-20T23:16:22.298Z"}
+{"level":"info","message":"Blockchain initialized","timestamp":"2014-06-20T23:16:22.298Z"}
+{"level":"info","message":"Initializing forger processor...","timestamp":"2014-06-20T23:16:22.298Z"}
+{"level":"info","message":"Initializing address processor...","timestamp":"2014-06-20T23:16:22.298Z"}
+{"level":"info","message":"Initializing peer processor...","timestamp":"2014-06-20T23:16:22.298Z"}
+{"level":"info","message":"Load system info...","timestamp":"2014-06-20T23:16:22.299Z"}
+{"level":"info","message":"Initializing and scanning database...","timestamp":"2014-06-20T23:16:22.299Z"}
+{"level":"info","message":"Logger initialized","timestamp":"2014-06-20T23:16:36.727Z"}
+{"level":"info","message":"Initializing account processor...","timestamp":"2014-06-20T23:16:36.730Z"}
+{"level":"info","message":"Account processor initialized","timestamp":"2014-06-20T23:16:36.730Z"}
+{"level":"info","message":"Initializing transaction processor...","timestamp":"2014-06-20T23:16:36.730Z"}
+{"level":"info","message":"Transaction processor initialized","timestamp":"2014-06-20T23:16:36.730Z"}
+{"level":"info","message":"Initializing blockchain...","timestamp":"2014-06-20T23:16:36.730Z"}
+{"level":"info","message":"Blockchain is trying to find genesis block...","timestamp":"2014-06-20T23:16:36.731Z"}
+{"level":"info","message":"Genesis block added","timestamp":"2014-06-20T23:16:36.740Z"}
+{"level":"info","message":"Logger initialized","timestamp":"2014-06-20T23:16:54.623Z"}
+{"level":"info","message":"Initializing account processor...","timestamp":"2014-06-20T23:16:54.629Z"}
+{"level":"info","message":"Account processor initialized","timestamp":"2014-06-20T23:16:54.629Z"}
+{"level":"info","message":"Initializing transaction processor...","timestamp":"2014-06-20T23:16:54.630Z"}
+{"level":"info","message":"Transaction processor initialized","timestamp":"2014-06-20T23:16:54.630Z"}
+{"level":"info","message":"Initializing blockchain...","timestamp":"2014-06-20T23:16:54.630Z"}
+{"level":"info","message":"Blockchain is trying to find genesis block...","timestamp":"2014-06-20T23:16:54.630Z"}
+{"level":"info","message":"Logger initialized","timestamp":"2014-06-20T23:17:22.801Z"}
+{"level":"info","message":"Initializing account processor...","timestamp":"2014-06-20T23:17:22.803Z"}
+{"level":"info","message":"Account processor initialized","timestamp":"2014-06-20T23:17:22.803Z"}
+{"level":"info","message":"Initializing transaction processor...","timestamp":"2014-06-20T23:17:22.804Z"}
+{"level":"info","message":"Transaction processor initialized","timestamp":"2014-06-20T23:17:22.804Z"}
+{"level":"info","message":"Initializing blockchain...","timestamp":"2014-06-20T23:17:22.804Z"}
+{"level":"info","message":"Blockchain is trying to find genesis block...","timestamp":"2014-06-20T23:17:22.805Z"}
+{"level":"info","message":"Genesis block added","timestamp":"2014-06-20T23:17:22.818Z"}
+{"level":"info","message":"Blockchain initialized","timestamp":"2014-06-20T23:17:22.818Z"}
+{"level":"info","message":"Initializing forger processor...","timestamp":"2014-06-20T23:17:22.818Z"}
+{"level":"info","message":"Logger initialized","timestamp":"2014-06-20T23:17:29.074Z"}
+{"level":"info","message":"Initializing account processor...","timestamp":"2014-06-20T23:17:29.076Z"}
+{"level":"info","message":"Account processor initialized","timestamp":"2014-06-20T23:17:29.077Z"}
+{"level":"info","message":"Initializing transaction processor...","timestamp":"2014-06-20T23:17:29.077Z"}
+{"level":"info","message":"Transaction processor initialized","timestamp":"2014-06-20T23:17:29.077Z"}
+{"level":"info","message":"Initializing blockchain...","timestamp":"2014-06-20T23:17:29.078Z"}
+{"level":"info","message":"Blockchain is trying to find genesis block...","timestamp":"2014-06-20T23:17:29.078Z"}
+{"level":"info","message":"Genesis block added","timestamp":"2014-06-20T23:17:29.087Z"}
+{"level":"info","message":"Blockchain initialized","timestamp":"2014-06-20T23:17:29.087Z"}
+{"level":"info","message":"Initializing forger processor...","timestamp":"2014-06-20T23:17:29.088Z"}
+{"level":"info","message":"Initializing address processor...","timestamp":"2014-06-20T23:17:29.088Z"}
+{"level":"info","message":"Logger initialized","timestamp":"2014-06-20T23:17:53.137Z"}
+{"level":"info","message":"Initializing account processor...","timestamp":"2014-06-20T23:17:53.138Z"}
+{"level":"info","message":"Account processor initialized","timestamp":"2014-06-20T23:17:53.139Z"}
+{"level":"info","message":"Initializing transaction processor...","timestamp":"2014-06-20T23:17:53.139Z"}
+{"level":"info","message":"Transaction processor initialized","timestamp":"2014-06-20T23:17:53.139Z"}
+{"level":"info","message":"Initializing blockchain...","timestamp":"2014-06-20T23:17:53.139Z"}
+{"level":"info","message":"Blockchain is trying to find genesis block...","timestamp":"2014-06-20T23:17:53.140Z"}
+{"level":"info","message":"Genesis block added","timestamp":"2014-06-20T23:17:53.149Z"}
+{"level":"info","message":"Logger initialized","timestamp":"2014-06-20T23:19:20.430Z"}
+{"level":"info","message":"Initializing account processor...","timestamp":"2014-06-20T23:19:20.433Z"}
+{"level":"info","message":"Account processor initialized","timestamp":"2014-06-20T23:19:20.433Z"}
+{"level":"info","message":"Initializing transaction processor...","timestamp":"2014-06-20T23:19:20.433Z"}
+{"level":"info","message":"Transaction processor initialized","timestamp":"2014-06-20T23:19:20.434Z"}
+{"level":"info","message":"Initializing blockchain...","timestamp":"2014-06-20T23:19:20.434Z"}
+{"level":"info","message":"Blockchain is trying to find genesis block...","timestamp":"2014-06-20T23:19:20.434Z"}
+{"level":"info","message":"Genesis block added","timestamp":"2014-06-20T23:19:20.443Z"}
+{"level":"info","message":"Blockchain initialized","timestamp":"2014-06-20T23:19:20.443Z"}
+{"level":"info","message":"Logger initialized","timestamp":"2014-06-20T23:20:21.574Z"}
+{"level":"info","message":"Initializing account processor...","timestamp":"2014-06-20T23:20:21.575Z"}
+{"level":"info","message":"Account processor initialized","timestamp":"2014-06-20T23:20:21.576Z"}
+{"level":"info","message":"Initializing transaction processor...","timestamp":"2014-06-20T23:20:21.576Z"}
+{"level":"info","message":"Transaction processor initialized","timestamp":"2014-06-20T23:20:21.576Z"}
+{"level":"info","message":"Initializing blockchain...","timestamp":"2014-06-20T23:20:21.577Z"}
+{"level":"info","message":"Blockchain is trying to find genesis block...","timestamp":"2014-06-20T23:20:21.577Z"}
+{"level":"info","message":"Genesis block added","timestamp":"2014-06-20T23:20:21.588Z"}
+{"level":"info","message":"Blockchain initialized","timestamp":"2014-06-20T23:20:21.588Z"}
+{"level":"info","message":"Initializing forger processor...","timestamp":"2014-06-20T23:20:21.588Z"}
+{"level":"info","message":"Initializing address processor...","timestamp":"2014-06-20T23:20:21.588Z"}
+{"level":"info","message":"Initializing peer processor...","timestamp":"2014-06-20T23:20:21.589Z"}
+{"level":"info","message":"Load system info...","timestamp":"2014-06-20T23:20:21.589Z"}
+{"level":"info","message":"Initializing and scanning database...","timestamp":"2014-06-20T23:20:21.589Z"}
+{"level":"info","message":"Connecting to peers...","timestamp":"2014-06-20T23:20:21.599Z"}
+{"level":"info","message":"Logger initialized","timestamp":"2014-06-20T23:20:35.417Z"}
+{"level":"info","message":"Initializing account processor...","timestamp":"2014-06-20T23:20:35.420Z"}
+{"level":"info","message":"Account processor initialized","timestamp":"2014-06-20T23:20:35.421Z"}
+{"level":"info","message":"Initializing transaction processor...","timestamp":"2014-06-20T23:20:35.421Z"}
+{"level":"info","message":"Transaction processor initialized","timestamp":"2014-06-20T23:20:35.421Z"}
+{"level":"info","message":"Initializing blockchain...","timestamp":"2014-06-20T23:20:35.422Z"}
+{"level":"info","message":"Blockchain is trying to find genesis block...","timestamp":"2014-06-20T23:20:35.422Z"}
+{"level":"info","message":"Logger initialized","timestamp":"2014-06-20T23:21:31.073Z"}
+{"level":"info","message":"Initializing account processor...","timestamp":"2014-06-20T23:21:31.076Z"}
+{"level":"info","message":"Account processor initialized","timestamp":"2014-06-20T23:21:31.076Z"}
+{"level":"info","message":"Initializing transaction processor...","timestamp":"2014-06-20T23:21:31.076Z"}
+{"level":"info","message":"Transaction processor initialized","timestamp":"2014-06-20T23:21:31.076Z"}
+{"level":"info","message":"Initializing blockchain...","timestamp":"2014-06-20T23:21:31.076Z"}
+{"level":"info","message":"Blockchain is trying to find genesis block...","timestamp":"2014-06-20T23:21:31.077Z"}
+{"level":"info","message":"Logger initialized","timestamp":"2014-06-20T23:21:44.414Z"}
+{"level":"info","message":"Initializing account processor...","timestamp":"2014-06-20T23:21:44.417Z"}
+{"level":"info","message":"Account processor initialized","timestamp":"2014-06-20T23:21:44.417Z"}
+{"level":"info","message":"Initializing transaction processor...","timestamp":"2014-06-20T23:21:44.417Z"}
+{"level":"info","message":"Logger initialized","timestamp":"2014-06-20T23:21:56.993Z"}
+{"level":"info","message":"Initializing account processor...","timestamp":"2014-06-20T23:21:56.995Z"}
+{"level":"info","message":"Account processor initialized","timestamp":"2014-06-20T23:21:56.996Z"}
+{"level":"info","message":"Initializing transaction processor...","timestamp":"2014-06-20T23:21:56.996Z"}
+{"level":"info","message":"Transaction processor initialized","timestamp":"2014-06-20T23:21:56.996Z"}
+{"level":"info","message":"Initializing blockchain...","timestamp":"2014-06-20T23:21:56.996Z"}
+{"level":"info","message":"Blockchain is trying to find genesis block...","timestamp":"2014-06-20T23:21:56.997Z"}
+{"level":"info","message":"Genesis block added","timestamp":"2014-06-20T23:21:57.007Z"}
+{"level":"info","message":"Blockchain initialized","timestamp":"2014-06-20T23:21:57.007Z"}
+{"level":"info","message":"Logger initialized","timestamp":"2014-06-20T23:22:21.709Z"}
+{"level":"info","message":"Initializing account processor...","timestamp":"2014-06-20T23:22:21.710Z"}
+{"level":"info","message":"Account processor initialized","timestamp":"2014-06-20T23:22:21.711Z"}
+{"level":"info","message":"Initializing transaction processor...","timestamp":"2014-06-20T23:22:21.711Z"}
+{"level":"info","message":"Transaction processor initialized","timestamp":"2014-06-20T23:22:21.711Z"}
+{"level":"info","message":"Initializing blockchain...","timestamp":"2014-06-20T23:22:21.711Z"}
+{"level":"info","message":"Blockchain is trying to find genesis block...","timestamp":"2014-06-20T23:22:21.712Z"}
+{"level":"info","message":"Logger initialized","timestamp":"2014-06-20T23:22:35.287Z"}
+{"level":"info","message":"Initializing account processor...","timestamp":"2014-06-20T23:22:35.290Z"}
+{"level":"info","message":"Account processor initialized","timestamp":"2014-06-20T23:22:35.290Z"}
+{"level":"info","message":"Initializing transaction processor...","timestamp":"2014-06-20T23:22:35.290Z"}
+{"level":"info","message":"Transaction processor initialized","timestamp":"2014-06-20T23:22:35.291Z"}
+{"level":"info","message":"Initializing blockchain...","timestamp":"2014-06-20T23:22:35.291Z"}
+{"level":"info","message":"Blockchain is trying to find genesis block...","timestamp":"2014-06-20T23:22:35.292Z"}
+{"level":"info","message":"Logger initialized","timestamp":"2014-06-20T23:22:52.380Z"}
+{"level":"info","message":"Initializing account processor...","timestamp":"2014-06-20T23:22:52.383Z"}
+{"level":"info","message":"Account processor initialized","timestamp":"2014-06-20T23:22:52.387Z"}
+{"level":"info","message":"Initializing transaction processor...","timestamp":"2014-06-20T23:22:52.387Z"}
+{"level":"info","message":"Transaction processor initialized","timestamp":"2014-06-20T23:22:52.387Z"}
+{"level":"info","message":"Initializing blockchain...","timestamp":"2014-06-20T23:22:52.387Z"}
+{"level":"info","message":"Blockchain is trying to find genesis block...","timestamp":"2014-06-20T23:22:52.388Z"}
+{"level":"info","message":"Genesis block added","timestamp":"2014-06-20T23:22:52.406Z"}
+{"level":"info","message":"Blockchain initialized","timestamp":"2014-06-20T23:22:52.406Z"}
+{"level":"info","message":"Initializing forger processor...","timestamp":"2014-06-20T23:22:52.406Z"}
+{"level":"info","message":"Initializing address processor...","timestamp":"2014-06-20T23:22:52.406Z"}
+{"level":"info","message":"Initializing peer processor...","timestamp":"2014-06-20T23:22:52.406Z"}
+{"level":"info","message":"Load system info...","timestamp":"2014-06-20T23:22:52.408Z"}
+{"level":"info","message":"Initializing and scanning database...","timestamp":"2014-06-20T23:22:52.409Z"}
+{"level":"info","message":"Connecting to peers...","timestamp":"2014-06-20T23:22:52.439Z"}
+{"level":"info","message":"Logger initialized","timestamp":"2014-06-20T23:23:04.208Z"}
+{"level":"info","message":"Initializing account processor...","timestamp":"2014-06-20T23:23:04.210Z"}
+{"level":"info","message":"Account processor initialized","timestamp":"2014-06-20T23:23:04.211Z"}
+{"level":"info","message":"Initializing transaction processor...","timestamp":"2014-06-20T23:23:04.211Z"}
+{"level":"info","message":"Transaction processor initialized","timestamp":"2014-06-20T23:23:04.211Z"}
+{"level":"info","message":"Initializing blockchain...","timestamp":"2014-06-20T23:23:04.211Z"}
+{"level":"info","message":"Blockchain is trying to find genesis block...","timestamp":"2014-06-20T23:23:04.212Z"}
+{"level":"info","message":"Logger initialized","timestamp":"2014-06-20T23:23:17.123Z"}
+{"level":"info","message":"Initializing account processor...","timestamp":"2014-06-20T23:23:17.126Z"}
+{"level":"info","message":"Account processor initialized","timestamp":"2014-06-20T23:23:17.127Z"}
+{"level":"info","message":"Initializing transaction processor...","timestamp":"2014-06-20T23:23:17.127Z"}
+{"level":"info","message":"Transaction processor initialized","timestamp":"2014-06-20T23:23:17.127Z"}
+{"level":"info","message":"Initializing blockchain...","timestamp":"2014-06-20T23:23:17.127Z"}
+{"level":"info","message":"Blockchain is trying to find genesis block...","timestamp":"2014-06-20T23:23:17.128Z"}
+{"level":"info","message":"Logger initialized","timestamp":"2014-06-20T23:23:34.835Z"}
+{"level":"info","message":"Initializing account processor...","timestamp":"2014-06-20T23:23:34.839Z"}
+{"level":"info","message":"Account processor initialized","timestamp":"2014-06-20T23:23:34.839Z"}
+{"level":"info","message":"Initializing transaction processor...","timestamp":"2014-06-20T23:23:34.840Z"}
+{"level":"info","message":"Transaction processor initialized","timestamp":"2014-06-20T23:23:34.840Z"}
+{"level":"info","message":"Initializing blockchain...","timestamp":"2014-06-20T23:23:34.841Z"}
+{"level":"info","message":"Blockchain is trying to find genesis block...","timestamp":"2014-06-20T23:23:34.841Z"}
+{"level":"info","message":"Logger initialized","timestamp":"2014-06-20T23:23:47.903Z"}
+{"level":"info","message":"Initializing account processor...","timestamp":"2014-06-20T23:23:47.907Z"}
+{"level":"info","message":"Account processor initialized","timestamp":"2014-06-20T23:23:47.909Z"}
+{"level":"info","message":"Initializing transaction processor...","timestamp":"2014-06-20T23:23:47.910Z"}
+{"level":"info","message":"Transaction processor initialized","timestamp":"2014-06-20T23:23:47.911Z"}
+{"level":"info","message":"Initializing blockchain...","timestamp":"2014-06-20T23:23:47.911Z"}
+{"level":"info","message":"Blockchain is trying to find genesis block...","timestamp":"2014-06-20T23:23:47.911Z"}
+{"level":"info","message":"Logger initialized","timestamp":"2014-06-20T23:23:55.848Z"}
+{"level":"info","message":"Initializing account processor...","timestamp":"2014-06-20T23:23:55.851Z"}
+{"level":"info","message":"Account processor initialized","timestamp":"2014-06-20T23:23:55.851Z"}
+{"level":"info","message":"Initializing transaction processor...","timestamp":"2014-06-20T23:23:55.851Z"}
+{"level":"info","message":"Transaction processor initialized","timestamp":"2014-06-20T23:23:55.851Z"}
+{"level":"info","message":"Initializing blockchain...","timestamp":"2014-06-20T23:23:55.852Z"}
+{"level":"info","message":"Blockchain is trying to find genesis block...","timestamp":"2014-06-20T23:23:55.852Z"}
+{"level":"info","message":"Logger initialized","timestamp":"2014-06-20T23:24:07.310Z"}
+{"level":"info","message":"Initializing account processor...","timestamp":"2014-06-20T23:24:07.312Z"}
+{"level":"info","message":"Account processor initialized","timestamp":"2014-06-20T23:24:07.312Z"}
+{"level":"info","message":"Initializing transaction processor...","timestamp":"2014-06-20T23:24:07.312Z"}
+{"level":"info","message":"Transaction processor initialized","timestamp":"2014-06-20T23:24:07.313Z"}
+{"level":"info","message":"Initializing blockchain...","timestamp":"2014-06-20T23:24:07.313Z"}
+{"level":"info","message":"Blockchain is trying to find genesis block...","timestamp":"2014-06-20T23:24:07.313Z"}
+{"level":"info","message":"Genesis block added","timestamp":"2014-06-20T23:24:07.322Z"}
+{"level":"info","message":"Blockchain initialized","timestamp":"2014-06-20T23:24:07.322Z"}
+{"level":"info","message":"Initializing forger processor...","timestamp":"2014-06-20T23:24:07.322Z"}
+{"level":"info","message":"Logger initialized","timestamp":"2014-06-20T23:24:40.511Z"}
+{"level":"info","message":"Initializing account processor...","timestamp":"2014-06-20T23:24:40.513Z"}
+{"level":"info","message":"Account processor initialized","timestamp":"2014-06-20T23:24:40.514Z"}
+{"level":"info","message":"Initializing transaction processor...","timestamp":"2014-06-20T23:24:40.514Z"}
+{"level":"info","message":"Transaction processor initialized","timestamp":"2014-06-20T23:24:40.514Z"}
+{"level":"info","message":"Initializing blockchain...","timestamp":"2014-06-20T23:24:40.514Z"}
+{"level":"info","message":"Blockchain is trying to find genesis block...","timestamp":"2014-06-20T23:24:40.515Z"}
+{"level":"info","message":"Genesis block added","timestamp":"2014-06-20T23:24:40.524Z"}
+{"level":"info","message":"Blockchain initialized","timestamp":"2014-06-20T23:24:40.524Z"}
+{"level":"info","message":"Initializing forger processor...","timestamp":"2014-06-20T23:24:40.524Z"}
+{"level":"info","message":"Logger initialized","timestamp":"2014-06-20T23:25:12.375Z"}
+{"level":"info","message":"Initializing account processor...","timestamp":"2014-06-20T23:25:12.378Z"}
+{"level":"info","message":"Account processor initialized","timestamp":"2014-06-20T23:25:12.378Z"}
+{"level":"info","message":"Initializing transaction processor...","timestamp":"2014-06-20T23:25:12.378Z"}
+{"level":"info","message":"Transaction processor initialized","timestamp":"2014-06-20T23:25:12.378Z"}
+{"level":"info","message":"Initializing blockchain...","timestamp":"2014-06-20T23:25:12.378Z"}
+{"level":"info","message":"Blockchain is trying to find genesis block...","timestamp":"2014-06-20T23:25:12.379Z"}
+{"level":"info","message":"Genesis block added","timestamp":"2014-06-20T23:25:12.389Z"}
+{"level":"info","message":"Blockchain initialized","timestamp":"2014-06-20T23:25:12.389Z"}
+{"level":"info","message":"Initializing forger processor...","timestamp":"2014-06-20T23:25:12.389Z"}
+{"level":"info","message":"Initializing address processor...","timestamp":"2014-06-20T23:25:12.390Z"}
+{"level":"info","message":"Logger initialized","timestamp":"2014-06-20T23:26:20.233Z"}
+{"level":"info","message":"Initializing account processor...","timestamp":"2014-06-20T23:26:20.235Z"}
+{"level":"info","message":"Account processor initialized","timestamp":"2014-06-20T23:26:20.235Z"}
+{"level":"info","message":"Initializing transaction processor...","timestamp":"2014-06-20T23:26:20.236Z"}
+{"level":"info","message":"Transaction processor initialized","timestamp":"2014-06-20T23:26:20.236Z"}
+{"level":"info","message":"Initializing blockchain...","timestamp":"2014-06-20T23:26:20.236Z"}
+{"level":"info","message":"Blockchain is trying to find genesis block...","timestamp":"2014-06-20T23:26:20.236Z"}
+{"level":"info","message":"Genesis block added","timestamp":"2014-06-20T23:26:20.246Z"}
+{"level":"info","message":"Blockchain initialized","timestamp":"2014-06-20T23:26:20.247Z"}
+{"level":"info","message":"Initializing forger processor...","timestamp":"2014-06-20T23:26:20.247Z"}
+{"level":"info","message":"Initializing address processor...","timestamp":"2014-06-20T23:26:20.247Z"}
+{"level":"info","message":"Initializing peer processor...","timestamp":"2014-06-20T23:26:20.247Z"}
+{"level":"info","message":"Load system info...","timestamp":"2014-06-20T23:26:20.247Z"}
+{"level":"info","message":"Initializing and scanning database...","timestamp":"2014-06-20T23:26:20.248Z"}
+{"level":"info","message":"Logger initialized","timestamp":"2014-06-20T23:26:29.818Z"}
+{"level":"info","message":"Initializing account processor...","timestamp":"2014-06-20T23:26:29.824Z"}
+{"level":"info","message":"Account processor initialized","timestamp":"2014-06-20T23:26:29.824Z"}
+{"level":"info","message":"Initializing transaction processor...","timestamp":"2014-06-20T23:26:29.824Z"}
+{"level":"info","message":"Transaction processor initialized","timestamp":"2014-06-20T23:26:29.825Z"}
+{"level":"info","message":"Initializing blockchain...","timestamp":"2014-06-20T23:26:29.825Z"}
+{"level":"info","message":"Blockchain is trying to find genesis block...","timestamp":"2014-06-20T23:26:29.826Z"}
+{"level":"info","message":"Genesis block added","timestamp":"2014-06-20T23:26:29.855Z"}
+{"level":"info","message":"Blockchain initialized","timestamp":"2014-06-20T23:26:29.855Z"}
+{"level":"info","message":"Logger initialized","timestamp":"2014-06-20T23:26:46.849Z"}
+{"level":"info","message":"Initializing account processor...","timestamp":"2014-06-20T23:26:46.884Z"}
+{"level":"info","message":"Account processor initialized","timestamp":"2014-06-20T23:26:46.884Z"}
+{"level":"info","message":"Initializing transaction processor...","timestamp":"2014-06-20T23:26:46.884Z"}
+{"level":"info","message":"Transaction processor initialized","timestamp":"2014-06-20T23:26:46.884Z"}
+{"level":"info","message":"Initializing blockchain...","timestamp":"2014-06-20T23:26:46.884Z"}
+{"level":"info","message":"Blockchain is trying to find genesis block...","timestamp":"2014-06-20T23:26:46.885Z"}
+{"level":"info","message":"Genesis block added","timestamp":"2014-06-20T23:26:46.905Z"}
+{"level":"info","message":"Blockchain initialized","timestamp":"2014-06-20T23:26:46.905Z"}
+{"level":"info","message":"Logger initialized","timestamp":"2014-06-20T23:27:02.231Z"}
+{"level":"info","message":"Initializing account processor...","timestamp":"2014-06-20T23:27:02.234Z"}
+{"level":"info","message":"Account processor initialized","timestamp":"2014-06-20T23:27:02.234Z"}
+{"level":"info","message":"Initializing transaction processor...","timestamp":"2014-06-20T23:27:02.234Z"}
+{"level":"info","message":"Transaction processor initialized","timestamp":"2014-06-20T23:27:02.234Z"}
+{"level":"info","message":"Initializing blockchain...","timestamp":"2014-06-20T23:27:02.235Z"}
+{"level":"info","message":"Blockchain is trying to find genesis block...","timestamp":"2014-06-20T23:27:02.235Z"}
+{"level":"info","message":"Genesis block added","timestamp":"2014-06-20T23:27:02.244Z"}
+{"level":"info","message":"Blockchain initialized","timestamp":"2014-06-20T23:27:02.244Z"}
+{"level":"info","message":"Initializing forger processor...","timestamp":"2014-06-20T23:27:02.245Z"}
+{"level":"info","message":"Logger initialized","timestamp":"2014-06-20T23:27:18.937Z"}
+{"level":"info","message":"Initializing account processor...","timestamp":"2014-06-20T23:27:18.940Z"}
+{"level":"info","message":"Account processor initialized","timestamp":"2014-06-20T23:27:18.941Z"}
+{"level":"info","message":"Initializing transaction processor...","timestamp":"2014-06-20T23:27:18.941Z"}
+{"level":"info","message":"Transaction processor initialized","timestamp":"2014-06-20T23:27:18.941Z"}
+{"level":"info","message":"Initializing blockchain...","timestamp":"2014-06-20T23:27:18.942Z"}
+{"level":"info","message":"Blockchain is trying to find genesis block...","timestamp":"2014-06-20T23:27:18.942Z"}
+{"level":"info","message":"Genesis block added","timestamp":"2014-06-20T23:27:18.953Z"}
+{"level":"info","message":"Blockchain initialized","timestamp":"2014-06-20T23:27:18.953Z"}
+{"level":"info","message":"Initializing forger processor...","timestamp":"2014-06-20T23:27:18.953Z"}
+{"level":"info","message":"Initializing address processor...","timestamp":"2014-06-20T23:27:18.954Z"}
+{"level":"info","message":"Initializing peer processor...","timestamp":"2014-06-20T23:27:18.954Z"}
+{"level":"info","message":"Logger initialized","timestamp":"2014-06-20T23:27:26.110Z"}
+{"level":"info","message":"Initializing account processor...","timestamp":"2014-06-20T23:27:26.112Z"}
+{"level":"info","message":"Account processor initialized","timestamp":"2014-06-20T23:27:26.112Z"}
+{"level":"info","message":"Initializing transaction processor...","timestamp":"2014-06-20T23:27:26.112Z"}
+{"level":"info","message":"Transaction processor initialized","timestamp":"2014-06-20T23:27:26.112Z"}
+{"level":"info","message":"Initializing blockchain...","timestamp":"2014-06-20T23:27:26.113Z"}
+{"level":"info","message":"Blockchain is trying to find genesis block...","timestamp":"2014-06-20T23:27:26.113Z"}
+{"level":"info","message":"Genesis block added","timestamp":"2014-06-20T23:27:26.123Z"}
+{"level":"info","message":"Blockchain initialized","timestamp":"2014-06-20T23:27:26.123Z"}
+{"level":"info","message":"Initializing forger processor...","timestamp":"2014-06-20T23:27:26.123Z"}
+{"level":"info","message":"Initializing address processor...","timestamp":"2014-06-20T23:27:26.123Z"}
+{"level":"info","message":"Initializing peer processor...","timestamp":"2014-06-20T23:27:26.123Z"}
+{"level":"info","message":"Load system info...","timestamp":"2014-06-20T23:27:26.124Z"}
+{"level":"info","message":"Initializing and scanning database...","timestamp":"2014-06-20T23:27:26.124Z"}
+{"level":"info","message":"Logger initialized","timestamp":"2014-06-20T23:28:05.628Z"}
+{"level":"info","message":"Initializing account processor...","timestamp":"2014-06-20T23:28:05.630Z"}
+{"level":"info","message":"Account processor initialized","timestamp":"2014-06-20T23:28:05.630Z"}
+{"level":"info","message":"Initializing transaction processor...","timestamp":"2014-06-20T23:28:05.630Z"}
+{"level":"info","message":"Transaction processor initialized","timestamp":"2014-06-20T23:28:05.630Z"}
+{"level":"info","message":"Initializing blockchain...","timestamp":"2014-06-20T23:28:05.630Z"}
+{"level":"info","message":"Blockchain is trying to find genesis block...","timestamp":"2014-06-20T23:28:05.631Z"}
+{"level":"info","message":"Genesis block added","timestamp":"2014-06-20T23:28:05.647Z"}
+{"level":"info","message":"Blockchain initialized","timestamp":"2014-06-20T23:28:05.647Z"}
+{"level":"info","message":"Initializing forger processor...","timestamp":"2014-06-20T23:28:05.648Z"}
+{"level":"info","message":"Initializing address processor...","timestamp":"2014-06-20T23:28:05.648Z"}
+{"level":"info","message":"Logger initialized","timestamp":"2014-06-20T23:28:21.992Z"}
+{"level":"info","message":"Initializing account processor...","timestamp":"2014-06-20T23:28:21.994Z"}
+{"level":"info","message":"Account processor initialized","timestamp":"2014-06-20T23:28:21.994Z"}
+{"level":"info","message":"Initializing transaction processor...","timestamp":"2014-06-20T23:28:21.994Z"}
+{"level":"info","message":"Transaction processor initialized","timestamp":"2014-06-20T23:28:21.995Z"}
+{"level":"info","message":"Initializing blockchain...","timestamp":"2014-06-20T23:28:21.995Z"}
+{"level":"info","message":"Blockchain is trying to find genesis block...","timestamp":"2014-06-20T23:28:21.996Z"}
+{"level":"info","message":"Genesis block added","timestamp":"2014-06-20T23:28:22.006Z"}
+{"level":"info","message":"Blockchain initialized","timestamp":"2014-06-20T23:28:22.006Z"}
+{"level":"info","message":"Initializing forger processor...","timestamp":"2014-06-20T23:28:22.006Z"}
+{"level":"info","message":"Initializing address processor...","timestamp":"2014-06-20T23:28:22.006Z"}
+{"level":"info","message":"Initializing peer processor...","timestamp":"2014-06-20T23:28:22.006Z"}
+{"level":"info","message":"Load system info...","timestamp":"2014-06-20T23:28:22.006Z"}
+{"level":"info","message":"Initializing and scanning database...","timestamp":"2014-06-20T23:28:22.007Z"}
+{"level":"info","message":"Logger initialized","timestamp":"2014-06-20T23:28:36.347Z"}
+{"level":"info","message":"Initializing account processor...","timestamp":"2014-06-20T23:28:36.350Z"}
+{"level":"info","message":"Account processor initialized","timestamp":"2014-06-20T23:28:36.350Z"}
+{"level":"info","message":"Initializing transaction processor...","timestamp":"2014-06-20T23:28:36.350Z"}
+{"level":"info","message":"Transaction processor initialized","timestamp":"2014-06-20T23:28:36.351Z"}
+{"level":"info","message":"Initializing blockchain...","timestamp":"2014-06-20T23:28:36.354Z"}
+{"level":"info","message":"Blockchain is trying to find genesis block...","timestamp":"2014-06-20T23:28:36.355Z"}
+{"level":"info","message":"Genesis block added","timestamp":"2014-06-20T23:28:36.365Z"}
+{"level":"info","message":"Blockchain initialized","timestamp":"2014-06-20T23:28:36.366Z"}
+{"level":"info","message":"Initializing forger processor...","timestamp":"2014-06-20T23:28:36.366Z"}
+{"level":"info","message":"Initializing address processor...","timestamp":"2014-06-20T23:28:36.366Z"}
+{"level":"info","message":"Initializing peer processor...","timestamp":"2014-06-20T23:28:36.366Z"}
+{"level":"info","message":"Load system info...","timestamp":"2014-06-20T23:28:36.367Z"}
+{"level":"info","message":"Initializing and scanning database...","timestamp":"2014-06-20T23:28:36.367Z"}
+{"level":"info","message":"Logger initialized","timestamp":"2014-06-20T23:28:54.534Z"}
+{"level":"info","message":"Initializing account processor...","timestamp":"2014-06-20T23:28:54.537Z"}
+{"level":"info","message":"Account processor initialized","timestamp":"2014-06-20T23:28:54.537Z"}
+{"level":"info","message":"Initializing transaction processor...","timestamp":"2014-06-20T23:28:54.537Z"}
+{"level":"info","message":"Transaction processor initialized","timestamp":"2014-06-20T23:28:54.538Z"}
+{"level":"info","message":"Initializing blockchain...","timestamp":"2014-06-20T23:28:54.538Z"}
+{"level":"info","message":"Blockchain is trying to find genesis block...","timestamp":"2014-06-20T23:28:54.538Z"}
+{"level":"info","message":"Genesis block added","timestamp":"2014-06-20T23:28:54.549Z"}
+{"level":"info","message":"Blockchain initialized","timestamp":"2014-06-20T23:28:54.549Z"}
+{"level":"info","message":"Initializing forger processor...","timestamp":"2014-06-20T23:28:54.549Z"}
+{"level":"info","message":"Initializing address processor...","timestamp":"2014-06-20T23:28:54.550Z"}
+{"level":"info","message":"Initializing peer processor...","timestamp":"2014-06-20T23:28:54.550Z"}
+{"level":"info","message":"Load system info...","timestamp":"2014-06-20T23:28:54.550Z"}
+{"level":"info","message":"Initializing and scanning database...","timestamp":"2014-06-20T23:28:54.551Z"}
+{"level":"info","message":"Connecting to peers...","timestamp":"2014-06-20T23:28:54.566Z"}
+{"level":"info","message":"Scanning peers...","timestamp":"2014-06-20T23:28:54.567Z"}
+{"level":"info","message":"Logger initialized","timestamp":"2014-06-20T23:29:12.884Z"}
+{"level":"info","message":"Initializing account processor...","timestamp":"2014-06-20T23:29:12.886Z"}
+{"level":"info","message":"Account processor initialized","timestamp":"2014-06-20T23:29:12.887Z"}
+{"level":"info","message":"Initializing transaction processor...","timestamp":"2014-06-20T23:29:12.887Z"}
+{"level":"info","message":"Transaction processor initialized","timestamp":"2014-06-20T23:29:12.887Z"}
+{"level":"info","message":"Initializing blockchain...","timestamp":"2014-06-20T23:29:12.887Z"}
+{"level":"info","message":"Blockchain is trying to find genesis block...","timestamp":"2014-06-20T23:29:12.888Z"}
+{"level":"info","message":"Genesis block added","timestamp":"2014-06-20T23:29:12.904Z"}
+{"level":"info","message":"Blockchain initialized","timestamp":"2014-06-20T23:29:12.904Z"}
+{"level":"info","message":"Initializing forger processor...","timestamp":"2014-06-20T23:29:12.904Z"}
+{"level":"info","message":"Initializing address processor...","timestamp":"2014-06-20T23:29:12.905Z"}
+{"level":"info","message":"Initializing peer processor...","timestamp":"2014-06-20T23:29:12.905Z"}
+{"level":"info","message":"Load system info...","timestamp":"2014-06-20T23:29:12.905Z"}
+{"level":"info","message":"Initializing and scanning database...","timestamp":"2014-06-20T23:29:12.905Z"}
+{"level":"info","message":"Logger initialized","timestamp":"2014-06-20T23:29:29.424Z"}
+{"level":"info","message":"Initializing account processor...","timestamp":"2014-06-20T23:29:29.426Z"}
+{"level":"info","message":"Account processor initialized","timestamp":"2014-06-20T23:29:29.426Z"}
+{"level":"info","message":"Initializing transaction processor...","timestamp":"2014-06-20T23:29:29.426Z"}
+{"level":"info","message":"Transaction processor initialized","timestamp":"2014-06-20T23:29:29.426Z"}
+{"level":"info","message":"Initializing blockchain...","timestamp":"2014-06-20T23:29:29.426Z"}
+{"level":"info","message":"Blockchain is trying to find genesis block...","timestamp":"2014-06-20T23:29:29.427Z"}
+{"level":"info","message":"Genesis block added","timestamp":"2014-06-20T23:29:29.436Z"}
+{"level":"info","message":"Blockchain initialized","timestamp":"2014-06-20T23:29:29.436Z"}
+{"level":"info","message":"Initializing forger processor...","timestamp":"2014-06-20T23:29:29.437Z"}
+{"level":"info","message":"Initializing address processor...","timestamp":"2014-06-20T23:29:29.437Z"}
+{"level":"info","message":"Initializing peer processor...","timestamp":"2014-06-20T23:29:29.437Z"}
+{"level":"info","message":"Load system info...","timestamp":"2014-06-20T23:29:29.437Z"}
+{"level":"info","message":"Initializing and scanning database...","timestamp":"2014-06-20T23:29:29.440Z"}
+{"level":"info","message":"Logger initialized","timestamp":"2014-06-20T23:29:45.171Z"}
+{"level":"info","message":"Initializing account processor...","timestamp":"2014-06-20T23:29:45.178Z"}
+{"level":"info","message":"Account processor initialized","timestamp":"2014-06-20T23:29:45.178Z"}
+{"level":"info","message":"Initializing transaction processor...","timestamp":"2014-06-20T23:29:45.178Z"}
+{"level":"info","message":"Transaction processor initialized","timestamp":"2014-06-20T23:29:45.178Z"}
+{"level":"info","message":"Initializing blockchain...","timestamp":"2014-06-20T23:29:45.179Z"}
+{"level":"info","message":"Blockchain is trying to find genesis block...","timestamp":"2014-06-20T23:29:45.179Z"}
+{"level":"info","message":"Genesis block added","timestamp":"2014-06-20T23:29:45.191Z"}
+{"level":"info","message":"Blockchain initialized","timestamp":"2014-06-20T23:29:45.192Z"}
+{"level":"info","message":"Initializing forger processor...","timestamp":"2014-06-20T23:29:45.192Z"}
+{"level":"info","message":"Logger initialized","timestamp":"2014-06-20T23:30:17.015Z"}
+{"level":"info","message":"Initializing account processor...","timestamp":"2014-06-20T23:30:17.017Z"}
+{"level":"info","message":"Account processor initialized","timestamp":"2014-06-20T23:30:17.017Z"}
+{"level":"info","message":"Logger initialized","timestamp":"2014-06-20T23:30:31.370Z"}
+{"level":"info","message":"Initializing account processor...","timestamp":"2014-06-20T23:30:31.371Z"}
+{"level":"info","message":"Account processor initialized","timestamp":"2014-06-20T23:30:31.372Z"}
+{"level":"info","message":"Initializing transaction processor...","timestamp":"2014-06-20T23:30:31.372Z"}
+{"level":"info","message":"Transaction processor initialized","timestamp":"2014-06-20T23:30:31.372Z"}
+{"level":"info","message":"Initializing blockchain...","timestamp":"2014-06-20T23:30:31.372Z"}
+{"level":"info","message":"Blockchain is trying to find genesis block...","timestamp":"2014-06-20T23:30:31.372Z"}
+{"level":"info","message":"Genesis block added","timestamp":"2014-06-20T23:30:31.381Z"}
+{"level":"info","message":"Blockchain initialized","timestamp":"2014-06-20T23:30:31.381Z"}
+{"level":"info","message":"Initializing forger processor...","timestamp":"2014-06-20T23:30:31.382Z"}
+{"level":"info","message":"Logger initialized","timestamp":"2014-06-20T23:30:44.148Z"}
+{"level":"info","message":"Initializing account processor...","timestamp":"2014-06-20T23:30:44.150Z"}
+{"level":"info","message":"Account processor initialized","timestamp":"2014-06-20T23:30:44.150Z"}
+{"level":"info","message":"Initializing transaction processor...","timestamp":"2014-06-20T23:30:44.150Z"}
+{"level":"info","message":"Transaction processor initialized","timestamp":"2014-06-20T23:30:44.151Z"}
+{"level":"info","message":"Initializing blockchain...","timestamp":"2014-06-20T23:30:44.151Z"}
+{"level":"info","message":"Blockchain is trying to find genesis block...","timestamp":"2014-06-20T23:30:44.152Z"}
+{"level":"info","message":"Genesis block added","timestamp":"2014-06-20T23:30:44.240Z"}
+{"level":"info","message":"Blockchain initialized","timestamp":"2014-06-20T23:30:44.240Z"}
+{"level":"info","message":"Logger initialized","timestamp":"2014-06-20T23:30:59.886Z"}
+{"level":"info","message":"Initializing account processor...","timestamp":"2014-06-20T23:30:59.888Z"}
+{"level":"info","message":"Account processor initialized","timestamp":"2014-06-20T23:30:59.888Z"}
+{"level":"info","message":"Initializing transaction processor...","timestamp":"2014-06-20T23:30:59.888Z"}
+{"level":"info","message":"Transaction processor initialized","timestamp":"2014-06-20T23:30:59.889Z"}
+{"level":"info","message":"Initializing blockchain...","timestamp":"2014-06-20T23:30:59.889Z"}
+{"level":"info","message":"Blockchain is trying to find genesis block...","timestamp":"2014-06-20T23:30:59.889Z"}
+{"level":"info","message":"Genesis block added","timestamp":"2014-06-20T23:30:59.899Z"}
+{"level":"info","message":"Blockchain initialized","timestamp":"2014-06-20T23:30:59.899Z"}
+{"level":"info","message":"Initializing forger processor...","timestamp":"2014-06-20T23:30:59.899Z"}
+{"level":"info","message":"Logger initialized","timestamp":"2014-06-20T23:31:25.538Z"}
+{"level":"info","message":"Initializing account processor...","timestamp":"2014-06-20T23:31:25.539Z"}
+{"level":"info","message":"Account processor initialized","timestamp":"2014-06-20T23:31:25.539Z"}
+{"level":"info","message":"Initializing transaction processor...","timestamp":"2014-06-20T23:31:25.539Z"}
+{"level":"info","message":"Transaction processor initialized","timestamp":"2014-06-20T23:31:25.539Z"}
+{"level":"info","message":"Initializing blockchain...","timestamp":"2014-06-20T23:31:25.539Z"}
+{"level":"info","message":"Blockchain is trying to find genesis block...","timestamp":"2014-06-20T23:31:25.539Z"}
+{"level":"info","message":"Genesis block added","timestamp":"2014-06-20T23:31:25.545Z"}
+{"level":"info","message":"Blockchain initialized","timestamp":"2014-06-20T23:31:25.545Z"}
+{"level":"info","message":"Initializing forger processor...","timestamp":"2014-06-20T23:31:25.546Z"}
+{"level":"info","message":"Initializing address processor...","timestamp":"2014-06-20T23:31:25.546Z"}
+{"level":"info","message":"Initializing peer processor...","timestamp":"2014-06-20T23:31:25.546Z"}
+{"level":"info","message":"Load system info...","timestamp":"2014-06-20T23:31:25.546Z"}
+{"level":"info","message":"Initializing and scanning database...","timestamp":"2014-06-20T23:31:25.546Z"}
+{"level":"info","message":"Connecting to peers...","timestamp":"2014-06-20T23:31:25.553Z"}
+{"level":"info","message":"Scanning peers...","timestamp":"2014-06-20T23:31:25.554Z"}
+{"level":"info","message":"Logger initialized","timestamp":"2014-06-20T23:44:04.648Z"}
+{"level":"info","message":"Initializing account processor...","timestamp":"2014-06-20T23:44:04.651Z"}
+{"level":"info","message":"Account processor initialized","timestamp":"2014-06-20T23:44:04.651Z"}
+{"level":"info","message":"Initializing transaction processor...","timestamp":"2014-06-20T23:44:04.651Z"}
+{"level":"info","message":"Transaction processor initialized","timestamp":"2014-06-20T23:44:04.651Z"}
+{"level":"info","message":"Initializing blockchain...","timestamp":"2014-06-20T23:44:04.651Z"}
+{"level":"info","message":"Blockchain is trying to find genesis block...","timestamp":"2014-06-20T23:44:04.652Z"}
+{"level":"info","message":"Genesis block added","timestamp":"2014-06-20T23:44:04.665Z"}
+{"level":"info","message":"Blockchain initialized","timestamp":"2014-06-20T23:44:04.665Z"}
+{"level":"info","message":"Initializing forger processor...","timestamp":"2014-06-20T23:44:04.665Z"}
+{"level":"info","message":"Initializing address processor...","timestamp":"2014-06-20T23:44:04.666Z"}
+{"level":"info","message":"Initializing peer processor...","timestamp":"2014-06-20T23:44:04.666Z"}
+{"level":"info","message":"Load system info...","timestamp":"2014-06-20T23:44:04.666Z"}
+{"level":"info","message":"Initializing and scanning database...","timestamp":"2014-06-20T23:44:04.667Z"}
+{"level":"info","message":"Logger initialized","timestamp":"2014-06-20T23:50:17.748Z"}
+{"level":"info","message":"Initializing account processor...","timestamp":"2014-06-20T23:50:17.753Z"}
+{"level":"info","message":"Account processor initialized","timestamp":"2014-06-20T23:50:17.754Z"}
+{"level":"info","message":"Initializing transaction processor...","timestamp":"2014-06-20T23:50:17.754Z"}
+{"level":"info","message":"Transaction processor initialized","timestamp":"2014-06-20T23:50:17.755Z"}
+{"level":"info","message":"Initializing blockchain...","timestamp":"2014-06-20T23:50:17.755Z"}
+{"level":"info","message":"Blockchain is trying to find genesis block...","timestamp":"2014-06-20T23:50:17.756Z"}
+{"level":"info","message":"Genesis block added","timestamp":"2014-06-20T23:50:17.803Z"}
+{"level":"info","message":"Logger initialized","timestamp":"2014-06-20T23:56:14.274Z"}
+{"level":"info","message":"Initializing account processor...","timestamp":"2014-06-20T23:56:14.276Z"}
+{"level":"info","message":"Account processor initialized","timestamp":"2014-06-20T23:56:14.277Z"}
+{"level":"info","message":"Initializing transaction processor...","timestamp":"2014-06-20T23:56:14.277Z"}
+{"level":"info","message":"Transaction processor initialized","timestamp":"2014-06-20T23:56:14.277Z"}
+{"level":"info","message":"Initializing blockchain...","timestamp":"2014-06-20T23:56:14.277Z"}
+{"level":"info","message":"Blockchain is trying to find genesis block...","timestamp":"2014-06-20T23:56:14.278Z"}
+{"level":"info","message":"Genesis block added","timestamp":"2014-06-20T23:56:14.293Z"}
+{"level":"info","message":"Blockchain initialized","timestamp":"2014-06-20T23:56:14.294Z"}
+{"level":"info","message":"Initializing forger processor...","timestamp":"2014-06-20T23:56:14.294Z"}
+{"level":"info","message":"Initializing address processor...","timestamp":"2014-06-20T23:56:14.294Z"}
+{"level":"info","message":"Initializing peer processor...","timestamp":"2014-06-20T23:56:14.295Z"}
+{"level":"info","message":"Load system info...","timestamp":"2014-06-20T23:56:14.295Z"}
+{"level":"info","message":"Initializing and scanning database...","timestamp":"2014-06-20T23:56:14.295Z"}
+{"level":"info","message":"Connecting to peers...","timestamp":"2014-06-20T23:56:14.311Z"}
+{"level":"info","message":"Scanning peers...","timestamp":"2014-06-20T23:56:14.314Z"}
+{"level":"info","message":"Logger initialized","timestamp":"2014-06-20T23:58:16.651Z"}
+{"level":"info","message":"Initializing account processor...","timestamp":"2014-06-20T23:58:16.653Z"}
+{"level":"info","message":"Account processor initialized","timestamp":"2014-06-20T23:58:16.654Z"}
+{"level":"info","message":"Initializing transaction processor...","timestamp":"2014-06-20T23:58:16.654Z"}
+{"level":"info","message":"Transaction processor initialized","timestamp":"2014-06-20T23:58:16.654Z"}
+{"level":"info","message":"Initializing blockchain...","timestamp":"2014-06-20T23:58:16.655Z"}
+{"level":"info","message":"Blockchain is trying to find genesis block...","timestamp":"2014-06-20T23:58:16.655Z"}
+{"level":"info","message":"Genesis block added","timestamp":"2014-06-20T23:58:16.667Z"}
+{"level":"info","message":"Blockchain initialized","timestamp":"2014-06-20T23:58:16.667Z"}
+{"level":"info","message":"Initializing forger processor...","timestamp":"2014-06-20T23:58:16.667Z"}
+{"level":"info","message":"Initializing address processor...","timestamp":"2014-06-20T23:58:16.667Z"}
+{"level":"info","message":"Initializing peer processor...","timestamp":"2014-06-20T23:58:16.667Z"}
+{"level":"info","message":"Load system info...","timestamp":"2014-06-20T23:58:16.667Z"}
+{"level":"info","message":"Initializing and scanning database...","timestamp":"2014-06-20T23:58:16.668Z"}
+{"level":"info","message":"Logger initialized","timestamp":"2014-06-20T23:58:45.681Z"}
+{"level":"info","message":"Initializing account processor...","timestamp":"2014-06-20T23:58:45.685Z"}
+{"level":"info","message":"Account processor initialized","timestamp":"2014-06-20T23:58:45.685Z"}
+{"level":"info","message":"Initializing transaction processor...","timestamp":"2014-06-20T23:58:45.685Z"}
+{"level":"info","message":"Transaction processor initialized","timestamp":"2014-06-20T23:58:45.685Z"}
+{"level":"info","message":"Initializing blockchain...","timestamp":"2014-06-20T23:58:45.686Z"}
+{"level":"info","message":"Blockchain is trying to find genesis block...","timestamp":"2014-06-20T23:58:45.687Z"}
+{"level":"info","message":"Genesis block added","timestamp":"2014-06-20T23:58:45.726Z"}
+{"level":"info","message":"Blockchain initialized","timestamp":"2014-06-20T23:58:45.727Z"}
+{"level":"info","message":"Initializing forger processor...","timestamp":"2014-06-20T23:58:45.727Z"}
+{"level":"info","message":"Initializing address processor...","timestamp":"2014-06-20T23:58:45.729Z"}
+{"level":"info","message":"Initializing peer processor...","timestamp":"2014-06-20T23:58:45.730Z"}
+{"level":"info","message":"Load system info...","timestamp":"2014-06-20T23:58:45.731Z"}
+{"level":"info","message":"Initializing and scanning database...","timestamp":"2014-06-20T23:58:45.732Z"}
+{"level":"info","message":"Logger initialized","timestamp":"2014-06-20T23:59:21.499Z"}
+{"level":"info","message":"Initializing account processor...","timestamp":"2014-06-20T23:59:21.501Z"}
+{"level":"info","message":"Account processor initialized","timestamp":"2014-06-20T23:59:21.501Z"}
+{"level":"info","message":"Initializing transaction processor...","timestamp":"2014-06-20T23:59:21.501Z"}
+{"level":"info","message":"Transaction processor initialized","timestamp":"2014-06-20T23:59:21.501Z"}
+{"level":"info","message":"Initializing blockchain...","timestamp":"2014-06-20T23:59:21.502Z"}
+{"level":"info","message":"Blockchain is trying to find genesis block...","timestamp":"2014-06-20T23:59:21.502Z"}
+{"level":"info","message":"Genesis block added","timestamp":"2014-06-20T23:59:21.518Z"}
+{"level":"info","message":"Blockchain initialized","timestamp":"2014-06-20T23:59:21.518Z"}
+{"level":"info","message":"Logger initialized","timestamp":"2014-06-21T00:00:16.992Z"}
+{"level":"info","message":"Initializing account processor...","timestamp":"2014-06-21T00:00:16.994Z"}
+{"level":"info","message":"Account processor initialized","timestamp":"2014-06-21T00:00:16.994Z"}
+{"level":"info","message":"Initializing transaction processor...","timestamp":"2014-06-21T00:00:16.994Z"}
+{"level":"info","message":"Transaction processor initialized","timestamp":"2014-06-21T00:00:16.995Z"}
+{"level":"info","message":"Initializing blockchain...","timestamp":"2014-06-21T00:00:16.995Z"}
+{"level":"info","message":"Blockchain is trying to find genesis block...","timestamp":"2014-06-21T00:00:16.995Z"}
+{"level":"info","message":"Genesis block added","timestamp":"2014-06-21T00:00:17.004Z"}
+{"level":"info","message":"Blockchain initialized","timestamp":"2014-06-21T00:00:17.004Z"}
+{"level":"info","message":"Initializing forger processor...","timestamp":"2014-06-21T00:00:17.004Z"}
+{"level":"info","message":"Initializing address processor...","timestamp":"2014-06-21T00:00:17.004Z"}
+{"level":"info","message":"Initializing peer processor...","timestamp":"2014-06-21T00:00:17.004Z"}
+{"level":"info","message":"Load system info...","timestamp":"2014-06-21T00:00:17.005Z"}
+{"level":"info","message":"Initializing and scanning database...","timestamp":"2014-06-21T00:00:17.005Z"}
