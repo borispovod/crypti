@@ -105,11 +105,15 @@ db.prototype.readAllTransactions = function (cb) {
 db.prototype.readAllBlocks = function (cb) {
     this.sql.serialize(function () {
         this.sql.run("SELECT * FROM blocks", function (err, rows) {
+            if (!rows) {
+                rows = [];
+            }
+
             if (cb) {
                 cb(err, rows);
             }
         });
-    });
+    }.bind(this));
 }
 
 db.prototype.readTransaction = function (id, cb) {

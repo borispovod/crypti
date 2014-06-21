@@ -87,6 +87,7 @@ async.series([
     function (cb) {
         logger.getInstance().info("Load system info...");
         app.info = { platform : os.platform, version : config.get('version') };
+        cb();
     },
     function (cb) {
         logger.getInstance().info("Initializing and scanning database...");
@@ -195,19 +196,33 @@ async.series([
     function (cb) {
         logger.getInstance().info("Scanning peers...");
         var p = app.peerprocessor.getAnyPeer();
-        var finished = false;
+        var ip = p.ip;
+        var finished = true;
 
         async.whilst(function () {
                 return finished;
         },
         function (next) {
-            if (Constants.maxClientConnections >= Object.keys(app.peerprocessor.peers)) {
+            if (Constants.maxClientConnections <= Object.keys(app.peerprocessor.peers).length) {
+                finished = false;
                 next(true);
             } else {
+                if (!p) {
+                    finished = false;
+                    return next();
+                }
+
                 p.getPeers(function (err, peersJSON) {
                     if (err) {
+                        app.peerprocessor.removePeer(ip);
                         p = app.peerprocessor.getAnyPeer();
-                        return next();
+
+                        if (p) {
+                            return next();
+                        } else {
+                            finished = false;
+                            return next();
+                        }
                     } else {
                         var ps = [];
                         try {
@@ -248,10 +263,13 @@ async.series([
         var p = app.peerprocessor.getAnyPeer();
 
         async.whilst(function () {
-                return newBlocks.length == 0;
+                return !(newBlocks.length == 0);
             },
             function (next) {
-                p = app.peerprocessor.getAnyPeer();
+                if (!p) {
+                    return next();
+                }
+
                 p.getNextBlocks(blockId, function (err, blocksJSON) {
                     if (err) {
                         logger.getInstance().info("Error with peer: " + p.id);
@@ -305,12 +323,17 @@ async.series([
     function (cb) {
         logger.getInstance().info("Getting unconfirmed blocks...");
         var p = app.peerprocessor.getAnyPeer();
-        var finished = false;
+        var finished = true;
 
         async.whilst(function () {
                 return finished;
             },
             function (next) {
+                if (!p) {
+                    finished = false;
+                    return next();
+                }
+
                 p.getUnconfirmedTransactions(function (err, transactionsJSON) {
                     if (err) {
                         p = app.peerprocessor.getAnyPeer();
@@ -381,15 +404,21 @@ async.series([
 
             peersRunning = true;
             var p = app.peerprocessor.getAnyPeer();
-            var finished = false;
+            var finished = true;
 
             async.whilst(function () {
                     return finished;
                 },
                 function (next) {
-                    if (Constants.maxClientConnections >= Object.keys(app.peerprocessor.peers)) {
+                    if (Constants.maxClientConnections <= Object.keys(app.peerprocessor.peers).length) {
+                        finished = false;
                         next(true);
                     } else {
+                        if (!p) {
+                            finished = false;
+                            return next();
+                        }
+
                         p.getPeers(function (err, peersJSON) {
                             if (err) {
                                 p = app.peerprocessor.getAnyPeer();
@@ -436,12 +465,17 @@ async.series([
 
             unconfirmedTrsRunning = true;
             var p = app.peerprocessor.getAnyPeer();
-            var finished = false;
+            var finished = true;
 
             async.whilst(function () {
                     return finished;
                 },
                 function (next) {
+                    if (!p) {
+                        finished = false;
+                        return next();
+                    }
+
                     p.getUnconfirmedTransactions(function (err, transactionsJSON) {
                         if (err) {
                             p = app.peerprocessor.getAnyPeer();
@@ -500,10 +534,13 @@ async.series([
             var p = app.peerprocessor.getAnyPeer();
 
             async.whilst(function () {
-                    return newBlocks.length == 0;
+                    return !(newBlocks.length == 0);
                 },
                 function (next) {
-                    p = app.peerprocessor.getAnyPeer();
+                    if (!p) {
+                        return next();
+                    }
+
                     p.getNextBlocks(blockId, function (err, blocksJSON) {
                         if (err) {
                             logger.getInstance().info("Error with peer: " + p.id);
