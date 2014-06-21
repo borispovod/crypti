@@ -57,13 +57,18 @@ peer.prototype.setBlacklisted = function (blacklisted) {
 }
 
 peer.prototype.checkBlacklisted = function () {
-    if (this.blacklistedTime > 0 && this.blacklistedTime + 1000 * 60 * 10 < new Date().getTime()) {
-        this.blacklistedTime = 0;
-        this.state = 0;
-        return false;
+    if (this.blacklistedTime > 0) {
+
+        if (this.blacklistedTime + 1000 * 60 * 10 < new Date().getTime()) {
+            this.blacklistedTime = 0;
+            this.state = 0;
+            return false;
+        }
+
+        return true;
     } else {
         this.state = 3;
-        return true;
+        return false;
     }
 }
 
@@ -91,7 +96,14 @@ peer.prototype.getPeers = function (cb) {
         }
     };
 
-    http.get(getOptions, cb);
+    try {
+        var r = http.get(getOptions, cb);
+        r.on('error', function (err) {
+            cb(err, null);
+        });
+    } catch (e) {
+        cb(e, null);
+    }
 }
 
 peer.prototype.getPeer = function (ip, cb) {
@@ -108,7 +120,10 @@ peer.prototype.getPeer = function (ip, cb) {
         }
     };
 
-    http.get(getOptions, cb);
+    var r = http.get(getOptions, cb);
+    r.on('error', function (err) {
+        cb(err, null);
+    });
 }
 
 peer.prototype.getInfo = function (cb) {
@@ -125,7 +140,10 @@ peer.prototype.getInfo = function (cb) {
         }
     };
 
-    http.get(getOptions, cb);
+    var r = http.get(getOptions, cb);
+    r.on('error', function (err) {
+        cb(err, null);
+    });
 }
 
 peer.prototype.getInfo = function (cb) {
@@ -142,7 +160,10 @@ peer.prototype.getInfo = function (cb) {
         }
     };
 
-    http.get(getOptions, cb);
+    var r = http.get(getOptions, cb);
+    r.on('error', function (err) {
+        cb(err, null);
+    });
 }
 
 peer.prototype.getCumulativeDifficulty = function (cb) {
@@ -159,7 +180,10 @@ peer.prototype.getCumulativeDifficulty = function (cb) {
         }
     };
 
-    http.get(getOptions, cb);
+    var r = http.get(getOptions, cb);
+    r.on('error', function (err) {
+        cb(err, null);
+    });
 }
 
 
@@ -177,7 +201,10 @@ peer.prototype.getNextBlockIds = function (blockId, cb) {
         }
     };
 
-    http.get(getOptions, cb);
+    var r = http.get(getOptions, cb);
+    r.on('error', function (err) {
+        cb(err, null);
+    });
 }
 
 peer.prototype.getNextBlocks = function (blockId, cb) {
@@ -194,7 +221,10 @@ peer.prototype.getNextBlocks = function (blockId, cb) {
         }
     };
 
-    http.get(getOptions, cb);
+    var r = http.get(getOptions, cb);
+    r.on('error', function (err) {
+        cb(err, null);
+    });
 }
 
 peer.prototype.processTransactions = function (transactions, cb) {
@@ -217,7 +247,10 @@ peer.prototype.processTransactions = function (transactions, cb) {
         }
     };
 
-    http.get(getOptions, cb);
+    var r = http.get(getOptions, cb);
+    r.on('error', function (err) {
+        cb(err, null);
+    });
 }
 
 peer.prototype.getUnconfirmedTransactions = function (cb) {
@@ -234,7 +267,10 @@ peer.prototype.getUnconfirmedTransactions = function (cb) {
         }
     };
 
-    http.get(getOptions, cb);
+    var r = http.get(getOptions, cb);
+    r.on('error', function (err) {
+        cb(err, null);
+    });
 }
 
 peer.prototype.processBlock = function (block, cb) {
@@ -249,7 +285,10 @@ peer.prototype.processBlock = function (block, cb) {
         }
     };
 
-    http.get(getOptions, cb);
+    var r = http.get(getOptions, cb);
+    r.on('error', function (err) {
+        cb(err, null);
+    });
 }
 
 module.exports = peer;
