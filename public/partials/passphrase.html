@@ -1,0 +1,10 @@
+<div id="pass">
+    <div id="center">
+        <div id="logo-black"></div>
+        <form>
+            <input type="password" id="enter" placeholder="Your secret passphrase" ng-model="pass">
+            <button type="submit" class="button" id="login" ng-click="login(pass)" ng-disabled="!pass || pass.length > 100">Login</button>
+        </form>
+    </div>
+    <p id="message">Please, use only long passphrase, we recommend passphrase in 100 chars. Long passphrase will protect your account from hackers.</p>
+</div>
