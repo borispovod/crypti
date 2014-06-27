@@ -1,0 +1,166 @@
+@images: '/images';
+
+/*JOINT STYLES*/
+/* html5doctor.com Reset v1.6.1 - http://cssreset.com */
+html,body,div,span,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,abbr,address,cite,code,del,dfn,em,img,ins,kbd,q,samp,small,strong,sub,sup,var,b,i,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td,article,aside,canvas,details,figcaption,figure,footer,header,hgroup,menu,nav,section,summary,time,mark,audio,video{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}article,aside,details,figcaption,figure,footer,header,hgroup,menu,nav,section{display:block}nav ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:none}a{margin:0;padding:0;font-size:100%;vertical-align:baseline;background:transparent}ins{background-color:#ff9;color:#000;text-decoration:none}mark{background-color:#ff9;color:#000;font-style:italic;font-weight:bold}del{text-decoration:line-through}abbr[title],dfn[title]{border-bottom:1px dotted;cursor:help}table{border-collapse:collapse;border-spacing:0}hr{display:block;height:1px;border:0;border-top:1px solid #ccc;margin:1em 0;padding:0}input,select{vertical-align:middle}
+
+html,body{
+	height: 100%;
+	position:relative;
+    font-family: "HelveticaNeue-Light", "Helvetica Neue Light", "Helvetica Neue", Helvetica, Arial, "Lucida Grande", sans-serif;
+}
+.height{
+    height: 100%;
+}
+
+.partials-rules{
+    padding: 26px 25px 0 25px;
+}
+
+h1{
+    font-size: 18px;
+    font-weight: bold;
+    color: #4f5051;
+    margin-top: 5px;
+
+    &.heading{
+        float: left;
+    }
+}
+
+h2.account-id{
+    font-size: 15px;
+    font-weight: bold;
+    color: #9b9d9e;
+    float: right;
+    margin-top: 8px;
+}
+
+h3.start-red{
+    font-size: 14px;
+    font-weight: bold;
+    color: #b25b5b;
+    display: inline-block;
+}
+
+h3.start-green{
+  color: #61b26e;
+  font-size: 14px;
+  font-weight: bold;
+  display: inline-block;
+}
+
+.button{
+    border: none;
+    margin: 0 0 0 26px;
+    box-sizing: border-box;
+    padding: 15px 16px 13px 16px;
+    background-color: #fff;
+    color: #9b9d9e;
+    -webkit-border-radius: 3px;
+    -moz-border-radius: 3px;
+    border-radius: 3px;
+    -webkit-box-shadow: 0px 3px 0px #d4d5d6;
+    -moz-box-shadow: 0px 3px 0px #d4d5d6;
+    box-shadow: 0px 3px 0px #d4d5d6;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: bold;
+    position: relative;
+
+    &:first-child{
+        margin: 0;
+    }
+
+    &:focus{
+        outline: none;
+    }
+    &:active{
+        top: 3px;
+        -webkit-box-shadow: 0px 0px 0px #d4d5d6;
+        -moz-box-shadow: 0px 0px 0px #d4d5d6;
+        box-shadow: 0px 0px 0px #d4d5d6;
+    }
+    &.green{
+        background-color: #61b26e;
+        color: #fff;
+        -webkit-box-shadow: 0px 3px 0px #50955c;
+        -moz-box-shadow: 0px 3px 0px #50955c;
+        box-shadow: 0px 3px 0px #50955c;
+
+        &:active{
+            top: 3px;
+            -webkit-box-shadow: 0px 0px 0px #50955c;
+            -moz-box-shadow: 0px 0px 0px #50955c;
+            box-shadow: 0px 0px 0px #50955c;
+        }
+    }
+
+  &.small {
+    font-size: 13px;
+    padding: 7px;
+  }
+
+    span{
+        color: #4f5051;
+    }
+    div.coin{
+        display: inline-block;
+        margin-left: 5px;
+        background-image: url('@{images}/coin.png');
+        background-repeat: no-repeat;
+        height: 15px;
+        width: 10px;
+        vertical-align: middle;
+    }
+}
+
+.raw-buttons{
+    min-width: 835px;
+    height: 56px;
+    margin-top: 26px;
+    margin-bottom: 22px;
+}
+
+.row{
+    height: 31px;
+}
+
+table{
+    margin-top: 25px;
+    background-color: #fff;
+    -webkit-border-radius: 3px;
+    -moz-border-radius: 3px;
+    border-radius: 3px;
+    -webkit-box-shadow: 0px 1px 0px #dbdcdd;
+    -moz-box-shadow: 0px 1px 0px #dbdcdd;
+    box-shadow: 0 1px 0 #dbdcdd;
+
+    th{
+        color: #9b9d9e;
+        vertical-align: middle;
+        font-weight: normal;
+        font-size: 14px;
+        border-bottom: 1px solid #ebeced;
+    }
+
+    td{
+        color: #9b9d9e;
+        vertical-align: middle;
+        font-weight: bold;
+        text-align: center;
+        font-size: 15px;
+    }
+
+    tr{
+        height: 46px;
+    }
+}
+/*END OF JOINT STYLES*/
+
+@import "index";
+@import "account";
+@import "blockchain";
+@import "mining";
+@import "pass";
+@import "modal";
