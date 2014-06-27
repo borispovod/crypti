@@ -1,0 +1,28 @@
+<div id="blockchain">
+    <div class="row">
+        <h1 class="heading">Blockchain</h1>
+        <h2 class="account-id">Your account: {{ address }}</h2>
+    </div>
+    <table border="0" width="100%" cellpadding="0" cellspacing="0">
+        <tr>
+            <th>ID</th>
+            <th>Date & Time</th>
+            <th>Amount</th>
+            <th>Fee</th>
+            <th>Generator</th>
+            <th>Transactions</th>
+        </tr>
+        <tr ng-repeat="item in blockchain">
+            <td>{{item.id}}</td>
+            <td ng-show="item.timestamp > 0">{{item.timestamp | timestampFilter}}</td>
+            <td ng-show="item.timestamp == 0">-</td>
+            <td>{{item.totalAmount}}</td>
+            <td>{{item.totalFee}}</td>
+            <td>{{item.generator}}</td>
+            <td ng-click="showBlock(item)">Click to see</td>
+        </tr>
+        <tr ng-show="blockchain.length == 0">
+            <td colspan="6">No blocks yet</td>
+        </tr>
+    </table>
+</div>
