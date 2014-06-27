@@ -1,0 +1,40 @@
+<div id="account">
+    <div class="row">
+        <h1 class="heading">Account</h1>
+        <h2 class="account-id">Your account: {{ address }}</h2>
+    </div>
+    <div class="raw-buttons">
+        <button class="button green">Send Crypti</button>
+        <button class="button">Total balance:   <span>{{ balance }}</span><div class="coin"></div></button>
+        <button class="button">Unconfirmed balance:   <span>{{ unconfirmedBalance }}</span> <div class="coin"></div></button>
+        <button class="button">Effective balance:   <span>{{ effectiveBalance }}</span> <div class="coin"></div></button>
+    </div>
+    <h1>Transactions</h1>
+    <table border="0" width="100%" cellpadding="0" cellspacing="0">
+        <tr>
+            <th>ID</th>
+            <th>Sender</th>
+            <th>Recepient</th>
+            <th>Date & Time</th>
+            <th>Fee</th>
+            <th>Deadline</th>
+            <th>Amount</th>
+            <th>Confirmations</th>
+        </tr>
+        <tr ng-repeat="transaction in transactions">
+            <td>{{transaction.id}}</td>
+            <td>{{transaction.sender}}</td>
+            <td>{{transaction.recepient}}</td>
+            <td>{{transaction.dateTime}}</td>
+            <td>{{transaction.fee}}</td>
+            <td>{{transaction.deadline}}</td>
+            <td>{{transaction.amount}}</td>
+            <td>{{transaction.confirmations}}</td>
+        </tr>
+        <tr ng-show="transactions.length == 0">
+            <td colspan="8">
+                No transactions yet
+            </td>
+        </tr>
+    </table>
+</div>
