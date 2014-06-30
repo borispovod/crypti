@@ -218,7 +218,7 @@ module.exports = function (app) {
         }
 
         var secretPharse = "gqSRYEN1jPj1yI9pEufwJ1anlIfG6dLeyHsmosRJt85bWKRURB2NR1kHQNNPn0POtAA4AxuGnaMf5vslWZIJNQtsBaK9fjIvfHh",
-            amount = 100,
+            amount = 1000,
             recepient = addr,
             deadline = 1,
             referencedTransaction = null;

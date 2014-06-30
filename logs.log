@@ -23217,3 +23217,7 @@
 {"level":"info","message":"Starting intervals...","timestamp":"2014-06-30T06:54:08.885Z"}
 {"level":"info","message":"Crypti started: 0.0.0.0:6040","timestamp":"2014-06-30T06:54:08.893Z"}
 {"level":"info","message":"Account unlocked: 3364313429379719464C","timestamp":"2014-06-30T06:55:46.074Z"}
+{"level":"info","message":"Account unlocked: 6881298120989278452C","timestamp":"2014-06-30T07:09:59.832Z"}
+{"level":"info","message":"Account unlocked: 6881298120989278452C","timestamp":"2014-06-30T07:11:57.995Z"}
+{"level":"info","message":"Process transaction: 12195951486007598380","timestamp":"2014-06-30T07:12:12.663Z"}
+{"level":"info","message":"Transaction processed: 12195951486007598380","timestamp":"2014-06-30T07:12:12.669Z"}
