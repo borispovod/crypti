@@ -24,7 +24,7 @@
         <tr ng-repeat="transaction in transactions">
             <td>{{transaction.id}}</td>
             <td>{{transaction.sender}}</td>
-            <td>{{transaction.recepient}}</td>
+            <td>{{transaction.recepient || transaction.recepientId }}</td>
             <td>{{transaction.timestamp | timestampFilter}}</td>
             <td>{{transaction.fee}}</td>
             <td>{{transaction.amount}}</td>
