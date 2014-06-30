@@ -55,6 +55,10 @@ module.exports = function (app) {
             return res.json({ success : false, transactions: [] });
         }
 
+        if (!account.publickey) {
+            return res.json({ success : false, transactions: [] });
+        }
+
         var publicKey = account.publickey.toString('hex');
 
         var q = app.db.sql.prepare("SELECT * FROM trs WHERE recepient=? OR senderPublicKey=? ORDER BY timestamp DESC");
