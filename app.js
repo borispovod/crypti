@@ -653,6 +653,8 @@ async.series([
                 var parts = req.url.split('/');
                 var urls = parts.filter(function (v) { return (v!=='' && v!=='/') });
 
+                console.log(urls);
+
                 if (urls[0] == "peer") {
 
                     var ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
