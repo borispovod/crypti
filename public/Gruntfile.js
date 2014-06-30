@@ -45,7 +45,8 @@ module.exports = function (grunt) {
 			release: {
 				options: {
 					preserveComments: false,
-					wrap: false
+					wrap: false,
+                    mangle: false
 				},
 				files: {
 					"static/js/app.js": files
