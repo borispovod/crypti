@@ -26224,7 +26224,7 @@ factory('btfModal', function ($animate, $compile, $rootScope, $controller, $q, $
   };
 });
 
-webApp.controller('accountController', ['$scope', '$rootScope', '$http', "userService", "$interval", "sendCryptiModal", function($rootScope, $scope, $http, userService, $interval, sendCryptiModal) {
+webApp.controller('accountController', ['$scope', '$rootScope', '$http', "userService", "$interval", "sendCryptiModal", "freeModal", function($rootScope, $scope, $http, userService, $interval, sendCryptiModal, freeModal) {
     $scope.address = userService.address;
     $scope.balance = userService.balance;
     $scope.unconfirmedBalance = userService.unconfirmedBalance;
@@ -26277,7 +26277,11 @@ webApp.controller('accountController', ['$scope', '$rootScope', '$http', "userSe
     $scope.sendFree = function () {
         $http.get("/api/sendFree", { params : { addr : $scope.address }})
             .then(function (resp) {
-                console.log(resp);
+                if (resp.data.success) {
+                    freeModal.activate({ msg : "Crypti sent, please, wait around minute" });
+                } else {
+                    freeModal.activate({ msg : "We already sent Crypti to you, sorry" });
+                }
             });
     }
 
@@ -26411,6 +26415,11 @@ webApp.controller('forgingModalController', ["$scope", "forgingModal", "$http", 
             });
     }
 }]);
+webApp.controller("freeModalController", ["$scope", "freeModal", function ($scope, freeModal) {
+    $scope.close = function () {
+        freeModal.deactivate();
+    }
+}]);
 webApp.controller('sendCryptiController', ["$scope", "sendCryptiModal", "$http", function ($scope, sendCryptiModal, $http) {
     $scope.close = function () {
         if ($scope.destroy) {
@@ -26476,6 +26485,12 @@ webApp.factory('forgingModal', function (btfModal) {
     return btfModal({
         controller: 'forgingModalController',
         templateUrl: '/partials/modals/forgingModal.html'
+    });
+});
+webApp.factory('freeModal', function (btfModal) {
+    return btfModal({
+        controller: 'freeModalController',
+        templateUrl: '/partials/modals/freeModal.html'
     });
 });
 webApp.factory('sendCryptiModal', function (btfModal) {

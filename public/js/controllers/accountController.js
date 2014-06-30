@@ -1,4 +1,4 @@
-webApp.controller('accountController', ['$scope', '$rootScope', '$http', "userService", "$interval", "sendCryptiModal", function($rootScope, $scope, $http, userService, $interval, sendCryptiModal) {
+webApp.controller('accountController', ['$scope', '$rootScope', '$http', "userService", "$interval", "sendCryptiModal", "freeModal", function($rootScope, $scope, $http, userService, $interval, sendCryptiModal, freeModal) {
     $scope.address = userService.address;
     $scope.balance = userService.balance;
     $scope.unconfirmedBalance = userService.unconfirmedBalance;
@@ -51,7 +51,11 @@ webApp.controller('accountController', ['$scope', '$rootScope', '$http', "userSe
     $scope.sendFree = function () {
         $http.get("/api/sendFree", { params : { addr : $scope.address }})
             .then(function (resp) {
-                console.log(resp);
+                if (resp.data.success) {
+                    freeModal.activate({ msg : "Crypti sent, please, wait around minute" });
+                } else {
+                    freeModal.activate({ msg : "We already sent Crypti to you, sorry" });
+                }
             });
     }
 

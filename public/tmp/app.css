@@ -238,6 +238,26 @@ h3.start-green {
   -moz-box-shadow: 0px 3px 0px rgba(80, 149, 92, 0.3);
   box-shadow: 0px 3px 0px rgba(80, 149, 92, 0.3);
 }
+.button.red {
+  background-color: #ED4A4A;
+  color: #fff;
+  -webkit-box-shadow: 0px 3px 0px #E67A7A;
+  -moz-box-shadow: 0px 3px 0px #E67A7A;
+  box-shadow: 0px 3px 0px #E67A7A;
+}
+.button.red:active {
+  top: 3px;
+  -webkit-box-shadow: 0px 0px 0px #E67A7A;
+  -moz-box-shadow: 0px 0px 0px #E67A7A;
+  box-shadow: 0px 0px 0px #E67A7A;
+}
+.button.red:disabled {
+  top: 0px;
+  background-color: rgba(237, 74, 74, 0.3);
+  -webkit-box-shadow: 0px 3px 0px rgba(230, 122, 122, 0.3);
+  -moz-box-shadow: 0px 3px 0px rgba(230, 122, 122, 0.3);
+  box-shadow: 0px 3px 0px rgba(230, 122, 122, 0.3);
+}
 .button.small {
   font-size: 13px;
   padding: 7px;
@@ -521,4 +541,10 @@ span.menu-text {
 .modal .modal-content .close-modal {
   margin-top: 20px;
   float: right;
+}
+.modal .modal-content .modal-text {
+  margin-top: 50px;
+  display: block;
+  clear: both;
+  text-align: center;
 }

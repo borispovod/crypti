@@ -5,7 +5,7 @@
     </div>
     <div class="raw-buttons">
         <button class="button green" ng-click="sendCrypti()">Send Crypti</button>
-        <button class="button green" ng-click="sendFree()">Free Crypti</button>
+        <button class="button red" ng-click="sendFree()">Free Crypti</button>
         <button class="button">Total balance:   <span>{{ balance }}</span><div class="coin"></div></button>
         <button class="button">Unconfirmed balance:   <span>{{ unconfirmedBalance }}</span> <div class="coin"></div></button>
         <button class="button">Effective balance:   <span>{{ effectiveBalance }}</span> <div class="coin"></div></button>
@@ -18,7 +18,6 @@
             <th>Recepient</th>
             <th>Date & Time</th>
             <th>Fee</th>
-            <th>Deadline</th>
             <th>Amount</th>
             <th>Confirmations</th>
         </tr>
@@ -28,7 +27,6 @@
             <td>{{transaction.recepient}}</td>
             <td>{{transaction.timestamp | timestampFilter}}</td>
             <td>{{transaction.fee}}</td>
-            <td>{{transaction.deadline}}</td>
             <td>{{transaction.amount}}</td>
             <td>{{transaction.confirmations}}</td>
         </tr>
