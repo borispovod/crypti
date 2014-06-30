@@ -3,3 +3,5 @@
 node_modules
 .idea
 .ed25519-node
+blockchain.db
+addresses.txt
