@@ -154,8 +154,6 @@ blockchain.prototype.pushBlock = function (buffer) {
         return false;
     }
 
-
-
     b.index = Object.keys(this.blocks).length + 1;
 
 
@@ -259,6 +257,12 @@ blockchain.prototype.pushBlock = function (buffer) {
     }
 
     console.log("5");
+    console.log(calculatedTotalAmount);
+    console.log(b.totalAmount);
+    console.log(calculatedTotalFee);
+    console.log(b.totalFee);
+    console.log(i);
+    console.log(b.transactions.length);
 
     if (calculatedTotalAmount != b.totalAmount || calculatedTotalFee != b.totalFee || i != b.transactions.length) {
         return false;
