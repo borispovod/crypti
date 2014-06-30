@@ -72,7 +72,7 @@ module.exports = function (app) {
                 async.forEach(transactions, function (item, cb) {
                     var blockId = item.blockId;
                     item.confirmations = app.blockchain.getLastBlock().height - app.blockchain.blocks[blockId].height;
-                    item.sender = app.accountprocessor.getAddressByPublicKey(item.senderPublicKey);
+                    item.sender = app.accountprocessor.getAddressByPublicKey(new Buffer(item.senderPublicKey, 'hex'));
                     item.timestamp += utils.epochTime();
                     cb();
                 }, function () {
