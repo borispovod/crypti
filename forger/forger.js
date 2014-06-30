@@ -144,6 +144,7 @@ forger.prototype.startForge = function () {
                         continue;
                     }
 
+                    console.log(t);
                     var sender = this.accountprocessor.getAccountByPublicKey(t.senderPublicKey);
 
                     if (!sender) {

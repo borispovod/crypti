@@ -43,6 +43,7 @@ webApp.controller('accountController', ['$scope', '$rootScope', '$http', "userSe
         $scope.sendCryptiModal = sendCryptiModal.activate({
             totalBalance : $scope.balance,
             destroy: function () {
+                $scope.getTransactions();
                 $scope.getBalance();
             }
         });

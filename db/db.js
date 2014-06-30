@@ -107,7 +107,7 @@ db.prototype.readAllTransactions = function (cb) {
 
 db.prototype.readAllBlocks = function (cb) {
     this.sql.serialize(function () {
-        this.sql.all("SELECT * FROM blocks", function (err, rows) {
+        this.sql.all("SELECT * FROM blocks ORDER BY height", function (err, rows) {
             if (!rows) {
                 rows = [];
             }
