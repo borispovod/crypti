@@ -8,6 +8,6 @@ webApp.service('userService', function () {
     }
 
     this.setForging = function (forging) {
-        this.forging;
+        this.forging = forging;
     }
 });

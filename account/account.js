@@ -32,34 +32,22 @@ account.prototype.setUnconfirmedBalance = function(balance) {
 }
 
 account.prototype.getEffectiveBalance = function () {
-    var lastBlock = this.blockchain.getLastBlock();
-    if (lastBlock.height > 1440) {
-        if (lastBlock.height - this.height < 1440) {
-            return 0;
-        }
-
-        var amount = 0;
-        for (var i = 0; i < lastBlock.transactions.length; i++) {
-            var t = lastBlock.transactions[i];
-
-            if (t.recipient == this.address) {
-                amount += t.amount;
-            }
-        }
-
-        return this.balance - amount;
-    } else {
-        var amount = 0;
-        for (var i = 0; i < lastBlock.transactions.length; i++) {
-            var t = lastBlock.transactions[i];
-
-            if (t.recipient == this.address) {
-                amount += t.amount;
-            }
-        }
-
-        return this.balance - amount;
+    var lastBlock = this.app.blockchain.getLastBlock();
+    if (lastBlock.height - this.height < 1440) {
+        return 0;
     }
+
+    var amount = 0;
+    for (var i = 0; i < lastBlock.transactions.length; i++) {
+        var t = lastBlock.transactions[i];
+
+        if (t.recipient == this.address) {
+            amount += t.amount;
+        }
+    }
+
+    return this.balance - amount;
+
 }
 
 

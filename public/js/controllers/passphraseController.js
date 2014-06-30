@@ -5,7 +5,7 @@ webApp.controller('passphraseController', ['$scope', '$rootScope', '$http', "$st
                 .then(function (resp) {
                     if (resp.data.success) {
                         userService.setData(resp.data.address, resp.data.publickey, resp.data.balance, resp.data.unconfirmedBalance, resp.data.effectiveBalance);
-                        userService.setForging(false);
+                        userService.setForging(resp.data.forging);
 
                         $state.go('main.account');
                     } else {

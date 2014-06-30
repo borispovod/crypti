@@ -231,6 +231,13 @@ h3.start-green {
   -moz-box-shadow: 0px 0px 0px #50955c;
   box-shadow: 0px 0px 0px #50955c;
 }
+.button.green:disabled {
+  top: 0px;
+  background-color: rgba(97, 178, 110, 0.3);
+  -webkit-box-shadow: 0px 3px 0px rgba(80, 149, 92, 0.3);
+  -moz-box-shadow: 0px 3px 0px rgba(80, 149, 92, 0.3);
+  box-shadow: 0px 3px 0px rgba(80, 149, 92, 0.3);
+}
 .button.small {
   font-size: 13px;
   padding: 7px;
@@ -282,6 +289,40 @@ table td {
 }
 table tr {
   height: 46px;
+}
+.pointer {
+  cursor: pointer;
+}
+.form {
+  display: block;
+  margin-top: 50px;
+}
+.form .input-text {
+  padding: 5px;
+  border-radius: 5px;
+  font-size: 13px;
+  color: #777;
+  width: 100%;
+  outline: 0;
+  margin-bottom: 10px;
+  -moz-box-sizing: border-box;
+  -ms-box-sizing: border-box;
+  -webkit-box-sizing: border-box;
+  box-sizing: border-box;
+}
+.form .input-text:active {
+  outline: 0;
+}
+.form .button {
+  margin-top: 20px;
+  margin-left: 5px;
+  display: inline-block;
+}
+.pull-left {
+  float: left;
+}
+.pull-right {
+  float: right;
 }
 /*END OF JOINT STYLES*/
 #left-nav {
