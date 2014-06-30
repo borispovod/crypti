@@ -4,7 +4,7 @@
         <h2 class="account-id">Your account: {{ address }}</h2>
     </div>
     <div class="raw-buttons">
-        <button class="button green">Send Crypti</button>
+        <button class="button green" ng-click="sendCrypti()">Send Crypti</button>
         <button class="button">Total balance:   <span>{{ balance }}</span><div class="coin"></div></button>
         <button class="button">Unconfirmed balance:   <span>{{ unconfirmedBalance }}</span> <div class="coin"></div></button>
         <button class="button">Effective balance:   <span>{{ effectiveBalance }}</span> <div class="coin"></div></button>
@@ -25,7 +25,7 @@
             <td>{{transaction.id}}</td>
             <td>{{transaction.sender}}</td>
             <td>{{transaction.recepient}}</td>
-            <td>{{transaction.dateTime}}</td>
+            <td>{{transaction.timestamp | timestampFilter}}</td>
             <td>{{transaction.fee}}</td>
             <td>{{transaction.deadline}}</td>
             <td>{{transaction.amount}}</td>

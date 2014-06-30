@@ -1,20 +1,38 @@
-webApp.controller('miningController', ['$scope', '$rootScope', '$http', "userService", function($rootScope, $scope, $http, userService) {
+webApp.controller('miningController', ['$scope', '$rootScope', '$http', "userService", "$interval", "addressModal", "forgingModal", function($rootScope, $scope, $http, userService, $interval, addressModal, forgingModal) {
     $scope.address = userService.address;
     $scope.effectiveBalance = userService.effectiveBalance;
-    console.log(userService);
     $scope.forging = userService.forging;
 
-    $http.get('/js/genblocks.json')
-        .then(function(res){
-            console.log(res.data);
-            for(var i= 0;i<res.data.length;i++){
-                res.data[i].dateTime = new Date( Date.parse(res.data[i].dateTime));
+    $scope.getInfo = function () {
+        $http.get("/api/getMiningInfo", { params : { publicKey : userService.publicKey }})
+            .then(function (resp) {
+                $scope.blocks = resp.data.blocks;
+                $scope.addresses = resp.data.addresses;
+                $scope.totalForged = resp.data.totalForged;
+                $scope.totalMined = resp.data.totalMined;
+            });
+    }
+
+    $scope.infoInterval = $interval(function () {
+        $scope.getInfo();
+    }, 1000 * 60);
+
+    $scope.getInfo();
+
+    $scope.newAddress = function () {
+        $scope.addressModal = addressModal.activate({
+            destroy : function () {
+                $scope.getInfo();
             }
-            $scope.genblocks = res.data;
         });
-    $http.get('/js/addresses.json')
-        .then(function(res){
-            console.log(res.data);
-            $scope.addresses = res.data;
+    }
+
+    $scope.enableForging = function () {
+        $scope.forgingModal = forgingModal.activate({
+            destroy : function () {
+                $scope.forging = userService.forging;
+            }
         });
+    }
+
 }]);
