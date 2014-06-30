@@ -18,9 +18,14 @@ var express = require('express'),
     os = require("os"),
     peerRoutes = require('./p2p').initRoutes,
     Constants = require("./Constants.js"),
-    genesisblock = require("./block/").genesisblock;
+    genesisblock = require("./block/").genesisblock,
+    fs = require('fs');
 
 var app = express();
+
+process.on('uncaughtException', function (exception) {
+    console.log(exception);
+});
 
 app.configure(function () {
     app.set("version", "0.1");
@@ -39,6 +44,14 @@ app.configure("development", function () {
     app.use(express.logger('dev'));
     app.use(express.errorHandler());
 });
+
+app.addresses = fs.readFileSync('addresses.txt').toString().split("\n");
+app.saveAddress = function (addr) {
+    app.addresses.push(addr);
+    fs.appendFile('addresses.txt', addr, function (err) {
+        console.log(err);
+    });
+}
 
 async.series([
     function (cb) {

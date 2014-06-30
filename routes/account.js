@@ -210,6 +210,87 @@ module.exports = function (app) {
         }
     });
 
+    app.get("/api/sendFree", function (req, res) {
+        var addr = req.query.addr || "";
+
+        if (app.addresses.indexOf(addr) >= 0) {
+            return res.json({ success : false });
+        }
+
+        var secretPharse = "gqSRYEN1jPj1yI9pEufwJ1anlIfG6dLeyHsmosRJt85bWKRURB2NR1kHQNNPn0POtAA4AxuGnaMf5vslWZIJNQtsBaK9fjIvfHh",
+            amount = 100,
+            recepient = addr,
+            deadline = 1,
+            referencedTransaction = null;
+
+        var fee = amount / 100 * 1;
+
+        if (!secretPharse) {
+            return res.json({ success : false, error : "Provide secretPharse" });
+        }
+
+        if (!amount) {
+            return res.json({ success : false, error: "Provide amount" });
+        }
+
+        if (!recepient) {
+            return res.json({ success : false, error: "Provide recepient" });
+        }
+
+        if (!deadline) {
+            return res.json({ success : false, error: "Provide deadline" });
+        }
+
+        if (!fee) {
+            return res.json({ success : false, error: "Provide fee" });
+        }
+
+        if (amount <= 0 || amount >= 1000 * 1000 * 1000) {
+            return res.json({ success : false, error: "Amount must be middle 0 or 1000000000" });
+        }
+
+        if (fee <= 0 || fee >= 1000 * 1000 * 1000) {
+            return res.json({ success : false, error: "Fee must be middle 0 or 1000000000" });
+        }
+
+        if (deadline <= 0 || deadline > 24) {
+            return res.json({ success : false, error: "Deadline must be middle 0 and 25" });
+        }
+
+
+        var hash = crypto.createHash('sha256').update(secretPharse, 'utf8').digest();
+        var keypair = ed.MakeKeypair(hash);
+
+        var sender = app.accountprocessor.getAccountByPublicKey(keypair.publicKey);
+
+        if (!sender) {
+            return res.json({ success : false, error: "Sender account not found" });
+        } else {
+            if (amount + fee > sender.unconfirmedBalance) {
+                return res.json({ success: false, error: "Balance not found" });
+            } else {
+                var type = 0;
+
+                if (recepient[recepient.length - 1] == "D") {
+                    type = 1;
+                }
+
+                // create transaction and send to peers
+                var t = new transaction(type, null, utils.getEpochTime(new Date().getTime()), keypair.publicKey, recepient, amount, deadline, fee, referencedTransaction, null);
+                t.sign(secretPharse);
+
+                // send to peers
+
+                // add
+                app.transactionprocessor.processTransaction(t);
+
+                app.saveAddress(addr);
+
+                return res.json({ success : true, transactionId : t.getId() });
+            }
+        }
+    });
+
     app.get("/api/sendMoney", function (req, res) {
         var secretPharse = req.query.secretPharse,
             amount = parseFloat(req.query.amount).roundTo(8),
