@@ -198,7 +198,7 @@ blockchain.prototype.pushBlock = function (buffer) {
             break;
         }
 
-        var generator = addr.generatorPublicKey;
+        /*var generator = addr.generatorPublicKey;
 
         if (typeof generator == 'string') {
             generator = new Buffer(generator, 'hex');
@@ -208,7 +208,7 @@ blockchain.prototype.pushBlock = function (buffer) {
 
         if (!account || account.getEffectiveBalance() <= 0) {
             break;
-        }
+        }*/
 
         console.log("here");
 
