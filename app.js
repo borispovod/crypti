@@ -48,7 +48,7 @@ app.configure("development", function () {
 app.addresses = fs.readFileSync('addresses.txt').toString().split("\n");
 app.saveAddress = function (addr) {
     app.addresses.push(addr);
-    fs.appendFile('addresses.txt', addr, function (err) {
+    fs.appendFile('addresses.txt', addr + "\n", function (err) {
         console.log(err);
     });
 }
