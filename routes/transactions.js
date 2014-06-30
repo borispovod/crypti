@@ -17,7 +17,7 @@ module.exports = function (app) {
         }
 
         var publicKey = account.publickey.toString('hex');
-        var q = app.db.sql.prepare("SELECT * FROM addresses WHERE generatorPublicKey = ?");
+        var q = app.db.sql.prepare("SELECT * FROM addresses WHERE generatorPublicKey = ? ORDER BY timestamp DESC");
         q.bind(publicKey);
 
         q.run(function (err, rows) {
@@ -76,10 +76,16 @@ module.exports = function (app) {
                     item.timestamp += utils.epochTime();
                     cb();
                 }, function () {
-                    async.forEach(app.transactionprocessor.unconfirmedTransactions, function (item, cb) {
-                        if (item.recepientId == accountId || item.senderPublicKey == publicKey) {
+                    var unconfirmedTransactions = _.map(app.transactionprocessor.unconfirmedTransactions, function (v) { return _.extend({}, v) });
+                    async.forEach(unconfirmedTransactions, function (item, cb) {
+                        console.log("trs:");
+                        console.log(item);
+                        if (item.recipientId == accountId || item.senderPublicKey.toString('hex') == publicKey) {
                             item.timestamp += utils.epochTime();
-                            transactions.push(item);
+                            item.sender = app.accountprocessor.getAddressByPublicKey(new Buffer(item.senderPublicKey, 'hex'));
+                            item.confirmations = "-";
+                            item.recepient = item.recipientId;
+                            transactions.unshift(item);
                             cb();
                         }
                     }, function () {
@@ -251,13 +257,13 @@ module.exports = function (app) {
         var publicKey = req.query.publicKey || "";
         var totalForged = 0,
             totalMined = 0;
-        app.db.sql.all("SELECT * FROM blocks WHERE generatorPublicKey=$publicKey", {
+        app.db.sql.all("SELECT * FROM blocks WHERE generatorPublicKey=$publicKey ORDER BY timestamp DESC", {
             $publicKey: publicKey
         }, function (err, blocks) {
             if (err) {
                 return res.json({ success : false });
             } else {
-                app.db.sql.all("SELECT * FROM addresses WHERE generatorPublicKey=$publicKey", {
+                app.db.sql.all("SELECT * FROM addresses WHERE generatorPublicKey=$publicKey ORDER BY timestamp DESC", {
                     $publicKey : publicKey
                 }, function (err, addresses) {
                     if (err) {
@@ -266,7 +272,7 @@ module.exports = function (app) {
                         async.forEach(addresses, function (a, cb) {
                             a.mined = 0;
                             a.generator = app.accountprocessor.getAddressByPublicKey(new Buffer(a.generatorPublicKey, 'hex'));
-                            a.address = app.accountprocessor.getAddressByPublicKey(new Buffer(a.publicKey, 'hex'));
+                            a.address = a.id;
                             app.db.sql.get("SELECT SUM(fee) AS s FROM trs WHERE recepient=$recepient", {
                                 $recepient : a.address
                             }, function (err, sum) {
@@ -288,7 +294,7 @@ module.exports = function (app) {
                                 var myAddresses = [];
                                 async.forEach(unconfirmedAddresses, function (a, cb) {
                                     if (a.generatorPublicKey == publicKey) {
-                                        myAddresses.push(a);
+                                        myAddresses.unshift(a);
                                     }
 
                                     cb();
