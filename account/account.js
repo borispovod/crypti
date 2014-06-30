@@ -32,7 +32,13 @@ account.prototype.setUnconfirmedBalance = function(balance) {
 }
 
 account.prototype.getEffectiveBalance = function () {
+    if (!this.app.blockchain) {
+        return 0;
+    }
+
     var lastBlock = this.app.blockchain.getLastBlock();
+
+
     if (lastBlock.height > 1440) {
         if (lastBlock.height - this.height < 1440) {
             return 0;
