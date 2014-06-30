@@ -53,6 +53,8 @@ webApp.controller('accountController', ['$scope', '$rootScope', '$http', "userSe
         $http.get("/api/sendFree", { params : { addr : $scope.address }})
             .then(function (resp) {
                 if (resp.data.success) {
+                    $scope.getTransactions();
+                    $scope.getBalance();
                     freeModal.activate({ msg : "Crypti sent, please, wait around minute" });
                 } else {
                     freeModal.activate({ msg : "We already sent Crypti to you, sorry" });
