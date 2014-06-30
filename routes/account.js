@@ -295,7 +295,7 @@ module.exports = function (app) {
         var secretPharse = req.query.secretPharse,
             amount = parseFloat(req.query.amount).roundTo(8),
             recepient = req.query.recepient,
-            deadline = parseInt(req.query.deadline),
+            deadline = 1,
             //fee = parseInt(req.query.fee),
             referencedTransaction = req.query.referencedTransaction;
 
@@ -332,7 +332,6 @@ module.exports = function (app) {
         if (deadline <= 0 || deadline > 24) {
             return res.json({ success : false, error: "Deadline must be middle 0 and 25" });
         }
-
 
         var hash = crypto.createHash('sha256').update(secretPharse, 'utf8').digest();
         var keypair = ed.MakeKeypair(hash);
