@@ -133,6 +133,7 @@ blockchain.prototype.pushBlock = function (buffer) {
         blockSignature[i] = bb.readByte();
     }
 
+
     b.payloadHash = payloadHash;
     b.generatorPublicKey = generatorPublicKey;
     b.generationSignature = generationSignature;
@@ -153,7 +154,13 @@ blockchain.prototype.pushBlock = function (buffer) {
         return false;
     }
 
+
+
     b.index = Object.keys(this.blocks).length + 1;
+
+
+    console.log(b.previousBlock, this.lastBlock);
+    console.log(b.previousBlock != this.lastBlock);
 
     if (b.previousBlock != this.lastBlock || this.getBlock(b.getId()) != null || !b.verifyGenerationSignature() || !b.verifyBlockSignature()) {
         return false;
@@ -191,9 +198,13 @@ blockchain.prototype.pushBlock = function (buffer) {
             break;
         }
 
-        var account = this.accountprocessor.getAccountByPublicKey(addr.generatorPublicKey);
+        var generator = addr.generatorPublicKey;
 
-        console.log("acc" + account);
+        if (typeof generator == 'string') {
+            generator = new Buffer(generator, 'hex');
+        }
+
+        var account = this.app.accountprocessor.getAccountByPublicKey(generator);
 
         if (!account || account.getEffectiveBalance() <= 0) {
             break;

@@ -71,6 +71,7 @@ block.prototype.analyze = function () {
         this.blockchain.lastBlock = this.getId();
 
         var a = new account(this.accountprocessor.getAddressByPublicKey(this.generatorPublicKey), this.generatorPublicKey);
+        a.setApp(this.app);
         a.setHeight(this.blockchain.getLastBlock().height);
         this.accountprocessor.addAccount(a);
 
@@ -81,6 +82,7 @@ block.prototype.analyze = function () {
 
         a.addToBalance(this.totalFee);
         a.addToUnconfirmedBalance(this.totalFee);
+
     } else {
         this.blockchain.getLastBlock().nextBlock = this.getId();
         this.height = this.blockchain.getLastBlock().height + 1;
@@ -89,7 +91,8 @@ block.prototype.analyze = function () {
         this.baseTarget = this.getBaseTarget();
         this.cumulativeDifficulty = this.blockchain.getBlock(this.previousBlock).cumulativeDifficulty.add(bignum(constants.two64).div(bignum(this.baseTarget.toString())));
         var a = this.accountprocessor.getAccountByPublicKey(this.generatorPublicKey);
-
+        a.setApp(this.app);
+        this.accountprocessor.addAccount(a);
 
         a.addToBalance(this.forForger);
         a.addToUnconfirmedBalance(this.forForger);
