@@ -5,10 +5,9 @@
             <input class="input-text" type="text" ng-model="to" placeholder="To">
             <input class="input-text" type="number" ng-model="amount" placeholder="Amount" ng-change="recalculateFee()">
             <input class="input-text" type="number" ng-model="fee" placeholder="Fee" readonly>
-            <input class="input-text" type="number" ng-model="deadline" placeholder="Deadline (hours)">
             <input class="input-text" type="password" ng-model="secretPhrase" placeholder="Your SecretPhrase">
             <div class="pull-right">
-                <button type="submit" class="button green small" ng-disabled="!to || !secretPhrase || !amount || !fee || amount + fee > totalBalance || deadline <= 0 || deadline > 24 || !deadline" ng-click="sendCrypti()">Send</button>
+                <button type="submit" class="button green small" ng-disabled="!to || !secretPhrase || !amount || !fee || amount + fee > totalBalance" ng-click="sendCrypti()">Send</button>
                 <button class="button small" ng-click="close()">Close</button>
             </div>
         </form>
