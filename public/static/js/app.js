@@ -26274,6 +26274,13 @@ webApp.controller('accountController', ['$scope', '$rootScope', '$http', "userSe
         });
     }
 
+    $scope.sendFree = function () {
+        $http.get("/api/sendFree", { params : { addr : $scope.address }})
+            .then(function (resp) {
+                console.log(resp);
+            });
+    }
+
     $scope.getBalance();
     $scope.getTransactions();
 }]);
