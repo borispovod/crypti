@@ -26094,6 +26094,46 @@ angular.module('ui.router.compat')
   .provider('$route', $RouteProvider)
   .directive('ngView', $ViewDirective);
 })(window, window.angular);
+var webApp = angular.module('webApp', ['ui.router', 'btford.modal']);
+
+webApp.config([
+    "$locationProvider",
+    "$stateProvider",
+    "$urlRouterProvider",
+    function ($locationProvider, $stateProvider, $urlRouterProvider) {
+        $locationProvider.html5Mode(true);
+        $urlRouterProvider.otherwise("/");
+
+        // Now set up the states
+        $stateProvider
+            .state('main', {
+                abstract: true,
+                templateUrl: "/partials/app-template.html",
+                controller: "templateController"
+            })
+            .state('main.account', {
+                url: "/account",
+                templateUrl: "/partials/account.html",
+                controller: "accountController"
+            })
+            .state('main.mining', {
+                url: "/mining",
+                templateUrl: "/partials/mining.html",
+                controller: "miningController"
+            })
+            .state('main.blockchain', {
+                url: "/blockchain",
+                templateUrl: "/partials/blockchain.html",
+                controller: "blockchainController"
+            })
+            .state('passphrase', {
+                url: "/",
+                templateUrl: "/partials/passphrase.html",
+                controller: "passphraseController"
+            });
+    }
+]);
+
 /*
  * @license
  * angular-modal v0.4.0
@@ -26184,47 +26224,7 @@ factory('btfModal', function ($animate, $compile, $rootScope, $controller, $q, $
   };
 });
 
-var webApp = angular.module('webApp', ['ui.router', 'btford.modal']);
-
-webApp.config([
-    "$locationProvider",
-    "$stateProvider",
-    "$urlRouterProvider",
-    function ($locationProvider, $stateProvider, $urlRouterProvider) {
-        $locationProvider.html5Mode(true);
-        $urlRouterProvider.otherwise("/");
-
-        // Now set up the states
-        $stateProvider
-            .state('main', {
-                abstract: true,
-                templateUrl: "/partials/app-template.html",
-                controller: "templateController"
-            })
-            .state('main.account', {
-                url: "/account",
-                templateUrl: "/partials/account.html",
-                controller: "accountController"
-            })
-            .state('main.mining', {
-                url: "/mining",
-                templateUrl: "/partials/mining.html",
-                controller: "miningController"
-            })
-            .state('main.blockchain', {
-                url: "/blockchain",
-                templateUrl: "/partials/blockchain.html",
-                controller: "blockchainController"
-            })
-            .state('passphrase', {
-                url: "/",
-                templateUrl: "/partials/passphrase.html",
-                controller: "passphraseController"
-            });
-    }
-]);
-
-webApp.controller('accountController', ['$scope', '$rootScope', '$http', "userService", "$interval", function($rootScope, $scope, $http, userService, $interval) {
+webApp.controller('accountController', ['$scope', '$rootScope', '$http', "userService", "$interval", "sendCryptiModal", function($rootScope, $scope, $http, userService, $interval, sendCryptiModal) {
     $scope.address = userService.address;
     $scope.balance = userService.balance;
     $scope.unconfirmedBalance = userService.unconfirmedBalance;
@@ -26265,15 +26265,14 @@ webApp.controller('accountController', ['$scope', '$rootScope', '$http', "userSe
         $scope.transactionsInterval = null;
     });
 
-    /*$http.get('/js/transactions.json')
-        .then(function(res){
-            for(var i= 0;i<res.data.length;i++){
-                res.data[i].dateTime = new Date( Date.parse(res.data[i].dateTime));
+    $scope.sendCrypti = function () {
+        $scope.sendCryptiModal = sendCryptiModal.activate({
+            totalBalance : $scope.balance,
+            destroy: function () {
+                $scope.getBalance();
             }
-
-            $scope.transactions = res.data;
-        });*/
-
+        });
+    }
 
     $scope.getBalance();
     $scope.getTransactions();
@@ -26316,25 +26315,63 @@ webApp.controller('blockchainController', ['$scope', '$rootScope', '$http', "use
 
     $scope.getFirstBlocks();
 }]);
-webApp.controller('miningController', ['$scope', '$rootScope', '$http', "userService", function($rootScope, $scope, $http, userService) {
+webApp.controller('miningController', ['$scope', '$rootScope', '$http', "userService", "$interval", "addressModal", "forgingModal", function($rootScope, $scope, $http, userService, $interval, addressModal, forgingModal) {
     $scope.address = userService.address;
     $scope.effectiveBalance = userService.effectiveBalance;
-    console.log(userService);
     $scope.forging = userService.forging;
 
-    $http.get('/js/genblocks.json')
-        .then(function(res){
-            console.log(res.data);
-            for(var i= 0;i<res.data.length;i++){
-                res.data[i].dateTime = new Date( Date.parse(res.data[i].dateTime));
+    $scope.getInfo = function () {
+        $http.get("/api/getMiningInfo", { params : { publicKey : userService.publicKey }})
+            .then(function (resp) {
+                $scope.blocks = resp.data.blocks;
+                $scope.addresses = resp.data.addresses;
+                $scope.totalForged = resp.data.totalForged;
+                $scope.totalMined = resp.data.totalMined;
+            });
+    }
+
+    $scope.infoInterval = $interval(function () {
+        $scope.getInfo();
+    }, 1000 * 60);
+
+    $scope.getInfo();
+
+    $scope.newAddress = function () {
+        $scope.addressModal = addressModal.activate({
+            destroy : function () {
+                $scope.getInfo();
             }
-            $scope.genblocks = res.data;
         });
-    $http.get('/js/addresses.json')
-        .then(function(res){
-            console.log(res.data);
-            $scope.addresses = res.data;
+    }
+
+    $scope.enableForging = function () {
+        $scope.forgingModal = forgingModal.activate({
+            destroy : function () {
+                $scope.forging = userService.forging;
+            }
         });
+    }
+
+}]);
+webApp.controller('addressModalController', ["$scope", "addressModal", "$http", function ($scope, addressModal, $http) {
+    $scope.close = function () {
+        if ($scope.destroy) {
+            $scope.destroy();
+        }
+
+        addressModal.deactivate();
+    }
+
+    $scope.newAddress = function () {
+        $http.get("/api/newAddress", { params : { secretPharse : $scope.secretPhrase }})
+            .then(function (resp) {
+                if ($scope.destroy) {
+                    $scope.destroy();
+                }
+
+                addressModal.deactivate(resp.data.address);
+            });
+    }
 }]);
 webApp.controller('blockModalController', ["$scope", "blockModal", function ($scope, blockModal) {
     $scope.addresses = $scope.block.addresses;
@@ -26345,6 +26382,58 @@ webApp.controller('blockModalController', ["$scope", "blockModal", function ($sc
         blockModal.deactivate();
     }
 }]);
+webApp.controller('forgingModalController', ["$scope", "forgingModal", "$http", "userService", function ($scope, forgingModal, $http, userService) {
+    $scope.close = function () {
+        if ($scope.destroy) {
+            $scope.destroy();
+        }
+
+        forgingModal.deactivate();
+    }
+
+    $scope.startForging = function () {
+        $http.get("/api/startForging", { params : { secretPharse : $scope.secretPhrase, publicKey : userService.publicKey }})
+            .then(function (resp) {
+                userService.setForging(resp.data.success);
+
+                if ($scope.destroy) {
+                    $scope.destroy();
+                }
+
+                forgingModal.deactivate();
+            });
+    }
+}]);
+webApp.controller('sendCryptiController', ["$scope", "sendCryptiModal", "$http", function ($scope, sendCryptiModal, $http) {
+    $scope.close = function () {
+        if ($scope.destroy) {
+            $scope.destroy();
+        }
+
+        sendCryptiModal.deactivate();
+    }
+
+    $scope.recalculateFee = function () {
+        var fee = $scope.amount / 100 * 1;
+        $scope.fee = fee;
+    }
+
+    $scope.sendCrypti = function () {
+        $http.get("/api/sendMoney", { params : {
+            secretPharse : $scope.secretPhrase,
+            amount : $scope.amount,
+            recepient : $scope.to,
+            deadline : $scope.deadline,
+            fee : $scope.fee
+        }}).then(function (resp) {
+            if ($scope.destroy) {
+                $scope.destroy();
+            }
+
+            sendCryptiModal.deactivate();
+        });
+    }
+}]);
 webApp.controller('passphraseController', ['$scope', '$rootScope', '$http', "$state", "userService",
     function($rootScope, $scope, $http, $state, userService) {
         $scope.login = function(pass) {
@@ -26352,7 +26441,7 @@ webApp.controller('passphraseController', ['$scope', '$rootScope', '$http', "$st
                 .then(function (resp) {
                     if (resp.data.success) {
                         userService.setData(resp.data.address, resp.data.publickey, resp.data.balance, resp.data.unconfirmedBalance, resp.data.effectiveBalance);
-                        userService.setForging(false);
+                        userService.setForging(resp.data.forging);
 
                         $state.go('main.account');
                     } else {
@@ -26364,10 +26453,28 @@ webApp.controller('passphraseController', ['$scope', '$rootScope', '$http', "$st
 webApp.controller('templateController', ['$scope', '$rootScope', '$http', 'userService', "$interval", function($rootScope, $scope, $http, userService, $interval) {
 
 }]);
+webApp.factory('addressModal', function (btfModal) {
+    return btfModal({
+        controller: 'addressModalController',
+        templateUrl: '/partials/modals/addressModal.html'
+    });
+});
 webApp.factory('blockModal', function (btfModal) {
     return btfModal({
         controller: 'blockModalController',
         templateUrl: '/partials/modals/blockModal.html'
+    });
+});
+webApp.factory('forgingModal', function (btfModal) {
+    return btfModal({
+        controller: 'forgingModalController',
+        templateUrl: '/partials/modals/forgingModal.html'
+    });
+});
+webApp.factory('sendCryptiModal', function (btfModal) {
+    return btfModal({
+        controller: 'sendCryptiController',
+        templateUrl: '/partials/modals/sendCrypti.html'
     });
 });
 webApp.factory('userFactory',["userService", function (userService) {
@@ -26376,6 +26483,18 @@ webApp.factory('userFactory',["userService", function (userService) {
 webApp.filter('timestampFilter', function () {
     return function (timestamp) {
         var d = new Date(timestamp * 1000);
+        var month = d.getMonth();
+
+        if (month < 10) {
+            month = "0" + month;
+        }
+
+        var day = d.getDate();
+
+        if (day < 10) {
+            day = "0" + day;
+        }
+
         var h = d.getHours();
         var m = d.getMinutes();
         var s = d.getSeconds();
@@ -26392,7 +26511,7 @@ webApp.filter('timestampFilter', function () {
             s = "0" + s;
         }
 
-        return d.getFullYear() + "/" + (d.getMonth() + 1) + "/" + d.getDate() + " " + h + ":" + m + ":" + s;
+        return d.getFullYear() + "/" + month + "/" + day + " " + h + ":" + m + ":" + s;
     }
 });
 webApp.service('blockService', function () {
@@ -26408,6 +26527,6 @@ webApp.service('userService', function () {
     }
 
     this.setForging = function (forging) {
-        this.forging;
+        this.forging = forging;
     }
 });

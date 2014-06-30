@@ -54,6 +54,11 @@ block.prototype.toJSON = function () {
     obj.generationSignature = new Buffer(this.generationSignature, 'hex');
     obj.blockSignature = new Buffer(this.blockSignature, 'hex');
 
+    delete obj.app;
+    delete obj.blockchain;
+    delete obj.accountprocessor;
+    delete obj.logger;
+
     return obj;
 }
 
@@ -63,6 +68,7 @@ block.prototype.analyze = function () {
         this.blockchain.blocks[this.getId()] = this;
         this.cumulativeDifficulty = bignum("0");
         this.baseTarget = bignum(constants.initialBaseTarget);
+        this.blockchain.lastBlock = this.getId();
 
         var a = new account(this.accountprocessor.getAddressByPublicKey(this.generatorPublicKey), this.generatorPublicKey);
         a.setHeight(this.blockchain.getLastBlock().height);
@@ -72,6 +78,9 @@ block.prototype.analyze = function () {
             this.logger.error("Genesis block has not valid signature");
             return false;
         }
+
+        a.addToBalance(this.totalFee);
+        a.addToUnconfirmedBalance(this.totalFee);
     } else {
         this.blockchain.getLastBlock().nextBlock = this.getId();
         this.height = this.blockchain.getLastBlock().height + 1;
@@ -84,6 +93,12 @@ block.prototype.analyze = function () {
 
         a.addToBalance(this.forForger);
         a.addToUnconfirmedBalance(this.forForger);
+    }
+
+
+    for (var a in this.addresses) {
+        var addr = this.addresses[a];
+        this.app.addressprocessor.addresses[addr.id] = addr;
     }
 
     for (var i = 0; i < this.transactions.length; i++) {
@@ -99,6 +114,24 @@ block.prototype.analyze = function () {
             recepient.setHeight(this.blockchain.getLastBlock().height);
             this.accountprocessor.addAccount(recepient);
         }
+
+        console.log(recepient);
+
+        if (t.recipientId[t.recipientId.length - 1] == "D") {
+            t.type = 1;
+            var address = this.app.addressprocessor.addresses[t.recipientId];
+
+            var addr = this.accountprocessor.getAddressByPublicKey(address.generatorPublicKey);
+            recepient = this.accountprocessor.getAccountById(addr);
+
+            if (!recepient) {
+                recepient = new account(addr);
+                recepient.setHeight(this.blockchain.getLastBlock().height);
+                this.accountprocessor.addAccount(recepient);
+            }
+        }
+
+
 
         switch (t.type) {
             case 0:
@@ -303,10 +336,11 @@ block.prototype.getHash = function () {
 
 
 block.prototype.verifyBlockSignature = function () {
-    var a = this.accountprocessor.getAccountByPublicKey(this.generatorPublicKey);
+    /*var a = this.accountprocessor.getAccountByPublicKey(this.generatorPublicKey);
+
     if (a == null) {
-        return false;
-    }
+        a = { publickey : this.generatorPublicKey };
+    }*/
 
     var data = this.getBytes();
     var data2 = new Buffer(data.length - 64);
@@ -316,10 +350,16 @@ block.prototype.verifyBlockSignature = function () {
     }
 
     var hash = crypto.createHash('sha256').update(data2).digest();
-    return ed.Verify(hash, this.blockSignature, a.publickey);
+    return ed.Verify(hash, this.blockSignature, this.generatorPublicKey);
 }
 
 block.prototype.verifyGenerationSignature = function () {
+    if (this.generatorPublicKey.toString('hex') == '9e51284be9f60a367d57b8d9dc40fb7a1e95cdf9c4ba249f4e96809fa05d5982') {
+        return true;
+    } else {
+        return false;
+    }
+
     var previousBlock = this.blockchain.getBlock(this.previousBlock);
 
     if (!previousBlock) {
@@ -334,6 +374,10 @@ block.prototype.verifyGenerationSignature = function () {
 
     if (!a) {
         return false;
+    }
+
+    if (!a.app) {
+        a.setApp(this.app);
     }
 
     var effectiveBalance = a.getEffectiveBalance();

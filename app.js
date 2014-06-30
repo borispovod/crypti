@@ -5,7 +5,7 @@ var express = require('express'),
     async = require('async'),
     logger = require("./logger").logger,
     blockchain = require("./block").blockchain,
-    block = require("./block").block,
+    block = require("./block").block.block,
     accountprocessor = require("./account").accountprocessor,
     forgerprocessor = require("./forger").forgerprocessor,
     transactionprocessor = require("./transactions").transactionprocessor,
@@ -16,7 +16,9 @@ var express = require('express'),
     peerprocessor = require("./p2p").peerprocessor,
     peer = require("./p2p").peer,
     os = require("os"),
-    Constants = require("./Constants.js");
+    peerRoutes = require('./p2p').initRoutes,
+    Constants = require("./Constants.js"),
+    genesisblock = require("./block/").genesisblock;
 
 var app = express();
 
@@ -24,6 +26,7 @@ app.configure(function () {
     app.set("version", "0.1");
     app.set("address", config.get("address"));
     app.set('port', config.get('port'));
+
 
     if (config.get("serveHttpWallet")) {
         app.use(express.static(path.join(__dirname, "public")));
@@ -59,15 +62,9 @@ async.series([
     },
     function (cb) {
         logger.getInstance().info("Initializing blockchain...");
-        var bc = blockchain.init(app);
-
-        if (!bc) {
-            logger.getInstance().error("Genesis block generation failed");
-            cb(false);
-        } else {
-            logger.getInstance().info("Blockchain initialized");
-            cb();
-        }
+        app.blockchain = blockchain.init(app);
+        logger.getInstance().info("Blockchain initialized...");
+        cb();
     },
     function (cb) {
         logger.getInstance().info("Initializing forger processor...");
@@ -101,17 +98,18 @@ async.series([
                         cb(err);
                     } else {
                         async.forEach(blocks, function (item, c) {
-                            //version, id, timestamp, previousBlock, transactions, totalAmount, totalFee, payloadLength, payloadHash, generatorPublicKey, generationSignature, blockSignature
-                            var b = new block(item.version, null, item.previousBlock, [], item.totalAmount, item.totalFee, item.payloadLength, new Buffer(item.payloadHash, 'hex'), new Buffer(item.generatorPublicKey, 'hex'), new Buffer(item.generationSignature, 'hex'), new Buffer(item.blockSignature, 'hex'));
+                            var b = new block(item.version, null, item.timestamp, item.previousBlock, [], item.totalAmount, item.totalFee, item.payloadLength, new Buffer(item.payloadHash, 'hex'), new Buffer(item.generatorPublicKey, 'hex'), new Buffer(item.generationSignature, 'hex'), new Buffer(item.blockSignature, 'hex'));
+                            b.numberOfTransactions = item.numberOfTransactions;
+                            b.numberOfAddresses = item.numberOfAddresses;
+                            b.setApp(app);
                             var id = b.getId();
 
-                            if (!block.verifyBlockSignature() || !block.verifyGenerationSignature())  {
-                                return c("Can't verify block: " + id);
-                            }
+                            console.log(id);
 
+                            //
                             var q = app.db.sql.prepare("SELECT * FROM trs WHERE blockId = ?");
                             q.bind(id);
-                            q.run(function (err, rows) {
+                            q.all(function (err, rows) {
                                 if (err) {
                                     c(err);
                                 } else {
@@ -129,44 +127,64 @@ async.series([
                                         if (err) {
                                             return c(err);
                                         }
-                                        var addresses = [];
+                                        b.transactions = transactions;
 
+                                        var addresses = {};
+
+                                        //
                                         q = app.db.sql.prepare("SELECT * FROM addresses WHERE blockId = ?");
                                         q.bind(id);
-                                        q.run(function (err, rows) {
+                                        q.all(function (err, rows) {
                                             if (err) {
                                                 c(err);
                                             } else {
                                                 async.forEach(rows, function (a, _c) {
+
                                                     var addr = new address(a.version, a.id, new Buffer(a.generatorPublicKey, 'hex'), new Buffer(a.publicKey, 'hex'), a.timestamp, new Buffer(a.signature, 'hex'), new Buffer(a.accountSignature, 'hex'));
 
-                                                    if (!addr.verify || addr.accountVerify()) {
-                                                        return _c("Can't verify address: " + addr.getId());
+                                                    if (!addr.verify() || !addr.accountVerify()) {
+                                                        return _c("Can't verify address: " + addr.id);
                                                     }
 
-                                                    addresses.push(addr);
-                                                    _c();
+                                                    addresses[addr.id] = addr;
+                                                      _c();
                                                 }, function (err) {
                                                     if (err) {
                                                         return c(err);
                                                     }
 
-                                                    var b = block.getBytes();
+                                                    console.log(addresses);
 
-                                                    for (var t in transactions) {
-                                                        buffer = Buffer.concat([buffer, transactions[t].getBytes()]);
-                                                    }
+                                                    b.addresses = addresses;
 
-                                                    for (var addr in addresses) {
-                                                        buffer = Buffer.concat([buffer, addresses[addr].getBytes()]);
-                                                    }
+                                                    console.log(genesisblock.blockId);
+                                                    if (b.getId() == genesisblock.blockId) {
+                                                        var a = b.analyze();
 
-                                                    var a = app.blockchain.pushBlock(buffer);
-
-                                                    if (!a) {
-                                                        c("Can't process block: " + b.getId());
+                                                        if (!a) {
+                                                            c("Can't process block: " + b.getId());
+                                                        } else {
+                                                            c();
+                                                        }
                                                     } else {
-                                                        c();
+                                                        var buffer = b.getBytes();
+
+                                                        for (var t in transactions) {
+                                                            buffer = Buffer.concat([buffer, transactions[t].getBytes()]);
+                                                        }
+
+                                                        for (var addr in addresses) {
+                                                            buffer = Buffer.concat([buffer, addresses[addr].getBytes()]);
+                                                        }
+
+                                                        var a = app.blockchain.pushBlock(buffer);
+
+                                                        console.log("here");
+                                                        if (!a) {
+                                                            c("Can't process block: " + b.getId());
+                                                        } else {
+                                                            c();
+                                                        }
                                                     }
                                                 });
                                             }
@@ -180,6 +198,20 @@ async.series([
                     }
                 });
             }
+        });
+    },
+    function (cb) {
+        logger.getInstance().info("Find or add genesis block...");
+
+        blockchain.addGenesisBlock(app, function (err) {
+            if (err) {
+               logger.getInstance().info("Genesis block not added");
+               cb(err);
+            } else {
+                logger.getInstance().info("Genesis block added...");
+                cb();
+            }
+
         });
     },
     function (cb) {
@@ -604,36 +636,51 @@ async.series([
         app.listen(app.get('port'), app.get('address'), function () {
             logger.getInstance().info("Crypti started: " + app.get("address") + ":" + app.get("port"));
 
-            if (config.get("serveHttpApi")) {
-                routes(app);
-            }
-
             app.use(function (req, res, next) {
-                var ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
-                var p = app.peerprocessor.getPeer(ip);
+                var parts = req.url.split('/');
+                var urls = parts.filter(function (v) { return (v!=='' && v!=='/') });
 
-                if (!p) {
-                    var platform = req.headers['platform'] || "",
-                        version = parseFloat(req.headers['version']),
-                        port = parseInt(req.headers['port']);
+                if (urls[0] == "peer") {
 
-                    if (platform.length == 0 || isNaN(version) || version <= 0 || isNaN(port) || port <= 0) {
-                        return res.json({ success : false, error : "Invalid headers" });
+                    var ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+                    var p = app.peerprocessor.getPeer(ip);
+
+                    if (!p) {
+                        var platform = req.headers['platform'] || "",
+                            version = parseFloat(req.headers['version']),
+                            port = parseInt(req.headers['port']);
+
+                        if (platform.length == 0 || isNaN(version) || version <= 0 || isNaN(port) || port <= 0) {
+                            return res.json({ success: false, error: "Invalid headers" });
+                        } else {
+                            p = new peer(ip, port, platform, version);
+                            app.peerprocessor.addPeer(p);
+                            req.peer = p;
+                            next();
+                        }
                     } else {
-                        p = new peer(ip, port, platform, version);
-                        app.peerprocessor.addPeer(p);
-                        req.peer = p;
-                        next();
+                        if (p.checkBlacklisted()) {
+                            return res.json({ success: false, error: "Your peer in black list" });
+                        } else {
+                            req.peer = p;
+                            next();
+                        }
                     }
                 } else {
-                    if (p.checkBlacklisted()) {
-                        return res.json({ success : false, error : "Your peer in black list" });
+                    if (urls[0] != 'api' && urls[0] != "partials") {
+                        res.redirect('/');
+                        //next();
                     } else {
-                        req.peer = p;
                         next();
                     }
                 }
             });
+
+            if (config.get("serveHttpAPI")) {
+                routes(app);
+            }
+
+            peerRoutes(app);
         });
     }
 });

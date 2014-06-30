@@ -1,4 +1,4 @@
-webApp.controller('accountController', ['$scope', '$rootScope', '$http', "userService", "$interval", function($rootScope, $scope, $http, userService, $interval) {
+webApp.controller('accountController', ['$scope', '$rootScope', '$http', "userService", "$interval", "sendCryptiModal", function($rootScope, $scope, $http, userService, $interval, sendCryptiModal) {
     $scope.address = userService.address;
     $scope.balance = userService.balance;
     $scope.unconfirmedBalance = userService.unconfirmedBalance;
@@ -39,15 +39,14 @@ webApp.controller('accountController', ['$scope', '$rootScope', '$http', "userSe
         $scope.transactionsInterval = null;
     });
 
-    /*$http.get('/js/transactions.json')
-        .then(function(res){
-            for(var i= 0;i<res.data.length;i++){
-                res.data[i].dateTime = new Date( Date.parse(res.data[i].dateTime));
+    $scope.sendCrypti = function () {
+        $scope.sendCryptiModal = sendCryptiModal.activate({
+            totalBalance : $scope.balance,
+            destroy: function () {
+                $scope.getBalance();
             }
-
-            $scope.transactions = res.data;
-        });*/
-
+        });
+    }
 
     $scope.getBalance();
     $scope.getTransactions();

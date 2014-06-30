@@ -4,7 +4,8 @@ var ByteBuffer = require("ByteBuffer"),
     ecparams = require('ecurve-names')('secp256k1'),
     ECDSA = require('ecdsa'),
     BigInteger = require('bigi'),
-    bignum = require('bignum');
+    bignum = require('bignum'),
+    _ = require('underscore');
 
 var address = function (version, id, generatorPublicKey, publicKey, timestamp, signature, accountSignature) {
     this.version = version;
@@ -14,6 +15,18 @@ var address = function (version, id, generatorPublicKey, publicKey, timestamp, s
     this.timestamp = timestamp;
     this.signature = signature;
     this.accountSignature = accountSignature;
+}
+
+address.prototype.toJSON = function () {
+    var jsonObj = _.extend({}, this);
+    jsonObj.address = this.id;
+    jsonObj.publicKey = this.publicKey.toString('hex');
+    jsonObj.signature = this.signature.toString('hex');
+    jsonObj.accountSignature = this.accountSignature.toString('hex');
+    jsonObj.generatorPublicKey = this.generatorPublicKey.toString('hex');
+
+
+    return jsonObj;
 }
 
 address.prototype.getHash = function () {
@@ -46,6 +59,7 @@ address.prototype.getBytes = function () {
         bb.writeByte(this.publicKey[i]);
     }
 
+    console.log(this.generatorPublicKey);
     for (var i = 0; i < this.generatorPublicKey.length; i++) {
         bb.writeByte(this.generatorPublicKey[i]);
     }

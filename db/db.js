@@ -7,7 +7,7 @@ var db = function (sql) {
     this.sql = sql;
 }
 
-db.prototype.writeAddresses = function (address, cb) {
+db.prototype.writeAddress = function (address, cb) {
     this.sql.serialize(function () {
         var q = this.sql.prepare("INSERT INTO addresses VALUES($id, $blockId, $version, $timestamp, $publicKey, $generatorPublicKey, $signature, $accountSignature)");
         q.bind({
@@ -23,6 +23,7 @@ db.prototype.writeAddresses = function (address, cb) {
 
         q.run(function (err) {
             if (cb) {
+                console.log(err);
                 cb(err);
             }
         });
@@ -40,7 +41,7 @@ db.prototype.writeTransaction = function (t, cb) {
             $timestamp: t.timestamp,
             $deadline: t.deadline,
             $senderPublicKey: t.senderPublicKey.toString('hex'),
-            $recepient: t.recepient,
+            $recepient: t.recipientId,
             $amount: t.amount,
             $fee: t.fee,
             $referencedTransaction: t.referencedTransaction? t.referencedTransaction : null,
@@ -57,7 +58,7 @@ db.prototype.writeTransaction = function (t, cb) {
 
 db.prototype.writeBlock = function (block, cb) {
     this.sql.serialize(function () {
-        var q = this.sql.prepare("INSERT INTO blocks VALUES($id, $version, $timestamp, $previousBlock, $numberOfAddresses, $numberOfTransactions, $totalAmount, $totalFee, $payloadLength, $payloadHash, $generatorPublicKey, $generationSignature, $blockSignature)");
+        var q = this.sql.prepare("INSERT INTO blocks VALUES($id, $version, $timestamp, $previousBlock, $numberOfAddresses, $numberOfTransactions, $totalAmount, $totalFee, $payloadLength, $payloadHash, $generatorPublicKey, $generationSignature, $blockSignature, $height)");
         q.bind({
             $id: block.getId(),
             $version: block.version,
@@ -71,11 +72,13 @@ db.prototype.writeBlock = function (block, cb) {
             $payloadHash: block.payloadHash.toString('hex'),
             $generatorPublicKey: block.generatorPublicKey.toString('hex'),
             $generationSignature: block.generationSignature.toString('hex'),
-            $blockSignature: block.blockSignature.toString('hex')
+            $blockSignature: block.blockSignature.toString('hex'),
+            $height : block.height
         });
 
         q.run(function (err) {
             if (cb) {
+                console.log(err);
                 cb(err);
             }
         });
@@ -84,7 +87,7 @@ db.prototype.writeBlock = function (block, cb) {
 
 db.prototype.readAllAddresses = function (cb) {
     this.sql.serialize(function () {
-        this.sql.run("SELECT * FROM addresses", function (err, rows) {
+        this.sql.all("SELECT * FROM addresses", function (err, rows) {
             if (cb) {
                 cb(err, rows);
             }
@@ -94,7 +97,7 @@ db.prototype.readAllAddresses = function (cb) {
 
 db.prototype.readAllTransactions = function (cb) {
     this.sql.serialize(function () {
-        this.sql.run("SELECT * FROM trs", function (err, rows) {
+        this.sql.all("SELECT * FROM trs", function (err, rows) {
             if (cb) {
                 cb(err, rows);
             }
@@ -104,7 +107,7 @@ db.prototype.readAllTransactions = function (cb) {
 
 db.prototype.readAllBlocks = function (cb) {
     this.sql.serialize(function () {
-        this.sql.run("SELECT * FROM blocks", function (err, rows) {
+        this.sql.all("SELECT * FROM blocks", function (err, rows) {
             if (!rows) {
                 rows = [];
             }
@@ -120,7 +123,7 @@ db.prototype.readTransaction = function (id, cb) {
     this.sql.serialize(function () {
         var q = this.sql.prepare("SELECT * FROM trs WHERE id = ?");
         q.bind(id);
-        q.run(function (err, rows) {
+        q.get(function (err, rows) {
             if (cb) {
                 cb(err, rows);
             }
@@ -144,7 +147,7 @@ db.prototype.readBlock = function (id, cb) {
     this.sql.serialize(function () {
         var q = this.sql.prepare("SELECT * FROM blocks WHERE id = ?");
         q.bind(id);
-        q.run(function (err, rows) {
+        q.get(function (err, rows) {
             if (cb) {
                 cb(err, rows);
             }
@@ -157,10 +160,10 @@ module.exports.initDb = function (callback) {
     d.sql.serialize(function () {
         async.series([
             function (cb) {
-                d.sql.run("CREATE TABLE IF NOT EXISTS blocks (id CHAR(25) NOT NULL, version INT NOT NULL, timestamp TIMESTAMP NOT NULL, previousBlock VARCHAR(25), numberOfAddresses INT NOT NULL, numberOfTransactions INT NOT NULL, totalAmount FLOAT NOT NULL, totalFee FLOAT NOT NULL, payloadLength INT NOT NULL, payloadHash VARCHAR(128) NOT NULL, generatorPublicKey VARCHAR(128) NOT NULL, generationSignature VARCHAR(128) NOT NULL, blockSignature VARCHAR(128) NOT NULL, PRIMARY KEY(id))", cb);
+                d.sql.run("CREATE TABLE IF NOT EXISTS blocks (id CHAR(25) NOT NULL, version INT NOT NULL, timestamp TIMESTAMP NOT NULL, previousBlock VARCHAR(25), numberOfAddresses INT NOT NULL, numberOfTransactions INT NOT NULL, totalAmount FLOAT NOT NULL, totalFee FLOAT NOT NULL, payloadLength INT NOT NULL, payloadHash VARCHAR(255) NOT NULL, generatorPublicKey VARCHAR(255) NOT NULL, generationSignature VARCHAR(255) NOT NULL, blockSignature VARCHAR(255) NOT NULL, height INT NOT NULL, PRIMARY KEY(id))", cb);
             },
             function (cb) {
-                d.sql.run("CREATE TABLE IF NOT EXISTS trs (id CHAR(25) NOT NULL, blockId CHAR(25) NOT NULL, type INT NOT NULL, subtype INT NOT NULL, timestamp TIMESTAMP NOT NULL, deadline INT NO NULL, senderPublicKey VARCHAR(128) NOT NULL, recepient VARCHAR(25) NOT NULL, amount FLOAT NOT NULL, fee FLOAT NOT NULL, referencedTransaction CHAR(128), signature CHAR(255) NOT NULL, PRIMARY KEY(id))", cb);
+                d.sql.run("CREATE TABLE IF NOT EXISTS trs (id CHAR(25) NOT NULL, blockId CHAR(25) NOT NULL, type INT NOT NULL, subtype INT NOT NULL, timestamp TIMESTAMP NOT NULL, deadline INT NO NULL, senderPublicKey VARCHAR(128) NOT NULL, recepient VARCHAR(25) NOT NULL, amount FLOAT NOT NULL, fee FLOAT NOT NULL, referencedTransaction CHAR(255), signature CHAR(255) NOT NULL, PRIMARY KEY(id))", cb);
             },
             function (cb) {
                 d.sql.run("CREATE TABLE IF NOT EXISTS addresses (id CHAR(25) NOT NULL, blockId CHAR(25) NOT NULL, version INT NOT NULL, timestamp TIMESTAMP NOT NULL, publicKey VARCHAR(128) NOT NULL, generatorPublicKey VARCHAR(128) NOT NULL, signature VARCHAR(128) NOT NULL, accountSignature VARCHAR(128) NOT NULL, PRIMARY KEY(id))", cb);

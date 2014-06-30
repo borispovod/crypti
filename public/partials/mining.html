@@ -1,16 +1,16 @@
 <div id="mining">
     <div class="row">
         <h1 class="heading">Mining / Forging</h1>
-        <h2 class="account-id">Your account: {{ address }}</h2>
+        <h2 class="account-id">Address: {{ address }}</h2>
     </div>
     <div class="raw-buttons">
         <button class="button">Effective Balance: <span>{{ effectiveBalance }}</span><div class="coin"></div></button>
-        <button class="button">Forged:   <span>1 000</span><div class="coin"></div></button>
-        <button class="button">Mined:   <span>5 000</span><div class="coin"></div></button>
+        <button class="button">Forged:   <span>{{ totalForged }}</span><div class="coin"></div></button>
+        <button class="button">Mined:   <span>Soon</span><div class="coin"></div></button>
         <div id="forging">
             <h3 class="start-red" ng-show="!forging">Forging not started</h3>
             <h3 class="start-green" ng-show="forging">Forging started</h3>
-            <button class="button green">Press to start</button>
+            <button ng-show="!forging" class="button green" ng-disabled="effectiveBalance <= 0" ng-click="enableForging()">Press to start</button>
         </div>
     </div>
     <div id="columns">
@@ -23,11 +23,16 @@
                     <th>Amount</th>
                     <th>Fee / Forged</th>
                 </tr>
-                <tr ng-repeat="item in genblocks">
-                    <td>{{item.block}}</td>
-                    <td>{{item.dateTime}}</td>
-                    <td>{{item.amount}}</td>
-                    <td>{{item.feeForged}}</td>
+                <tr ng-repeat="item in blocks">
+                    <td>{{item.id}}</td>
+                    <td ng-show="item.timestamp > 0">{{item.timestamp | timestampFilter}}</td>
+                    <td>{{item.totalAmount}}</td>
+                    <td>{{item.totalFee}}</td>
+                </tr>
+                <tr ng-show="!blocks || blocks.length == 0">
+                    <td colspan="4">
+                        No blocks generated
+                    </td>
                 </tr>
             </table>
         </div>
@@ -41,10 +46,15 @@
                 </tr>
                 <tr ng-repeat="item in addresses">
                     <td>{{item.address}}</td>
-                    <td>{{item.total}}</td>
+                    <td>Soon</td>
+                </tr>
+                <tr ng-show="!addresses || addresses.length == 0">
+                    <td colspan="2">
+                        No addresses generated
+                    </td>
                 </tr>
             </table>
-            <button class="button green small" id="newAddress">New address</button>
+            <button class="button green small" id="newAddress" ng-click="newAddress()" ng-disabled="effectiveBalance <= 0">New address</button>
         </div>
     </div>
 </div>

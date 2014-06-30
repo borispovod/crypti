@@ -1,0 +1,14 @@
+<div class="modal">
+    <div class="modal-content">
+        <h1 class="heading">Start forging</h1>
+        <form class="form">
+            <input class="input-text" type="password" ng-model="secretPhrase" placeholder="Your SecretPhrase">
+            <div class="pull-right">
+                <button type="submit" class="button green small" ng-disabled="!secretPhrase" ng-click="startForging()">Start</button>
+                <button class="button small" ng-click="close()">Close</button>
+            </div>
+        </form>
+
+    </div>
+
+</div>

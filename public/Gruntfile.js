@@ -4,8 +4,8 @@ module.exports = function (grunt) {
 		"bower_components/angular/angular.js",
 		"bower_components/angular-ui-router/release/angular-ui-router.js",
         "bower_components/angular-resource/angular-resource.js",
-        "bower_components/angular-modal/modal.js",
 		"js/app.js",
+        "js/modal.js",
 		"js/**/*.js"
 	];
 
