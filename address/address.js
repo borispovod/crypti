@@ -1,4 +1,4 @@
-var ByteBuffer = require("ByteBuffer"),
+var ByteBuffer = require("bytebuffer"),
     ed = require('ed25519'),
     crypto = require('crypto'),
     ecparams = require('ecurve-names')('secp256k1'),
