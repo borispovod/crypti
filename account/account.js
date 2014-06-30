@@ -32,7 +32,7 @@ account.prototype.setUnconfirmedBalance = function(balance) {
 }
 
 account.prototype.getEffectiveBalance = function () {
-    if (!this.app.blockchain) {
+    if (!this.app || !this.app.blockchain) {
         return 0;
     }
 
