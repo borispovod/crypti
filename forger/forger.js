@@ -224,8 +224,7 @@ forger.prototype.startForge = function () {
             }
 
             payloadLength += addressesLength;
-            console.log(payloadLength);
-            console.log("addr len: " + addressesLength);
+
 
             var publicKey = account.publickey;
             var hash = crypto.createHash('sha256');
@@ -240,8 +239,6 @@ forger.prototype.startForge = function () {
             var previousBlock = this.blockchain.getLastBlock();
             hash = crypto.createHash('sha256').update(previousBlock.generationSignature).update(publicKey);
             var generationSignature = hash.digest();
-
-            console.log("here 2");
 
             var previousBlockHash = crypto.createHash('sha256').update(previousBlock.getBytes()).digest();
 

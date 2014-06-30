@@ -24824,3 +24824,1075 @@
 {"level":"info","message":"Starting intervals...","timestamp":"2014-06-30T09:01:12.485Z"}
 {"level":"info","message":"Crypti started: 0.0.0.0:6040","timestamp":"2014-06-30T09:01:12.494Z"}
 {"level":"info","message":"Account unlocked: 3364313429379719464C","timestamp":"2014-06-30T09:01:20.506Z"}
+{"level":"info","message":"Logger initialized","timestamp":"2014-06-30T10:23:09.939Z"}
+{"level":"info","message":"Initializing account processor...","timestamp":"2014-06-30T10:23:09.942Z"}
+{"level":"info","message":"Account processor initialized","timestamp":"2014-06-30T10:23:09.943Z"}
+{"level":"info","message":"Initializing transaction processor...","timestamp":"2014-06-30T10:23:09.943Z"}
+{"level":"info","message":"Transaction processor initialized","timestamp":"2014-06-30T10:23:09.943Z"}
+{"level":"info","message":"Initializing blockchain...","timestamp":"2014-06-30T10:23:09.943Z"}
+{"level":"info","message":"Blockchain initialized...","timestamp":"2014-06-30T10:23:09.943Z"}
+{"level":"info","message":"Initializing forger processor...","timestamp":"2014-06-30T10:23:09.944Z"}
+{"level":"info","message":"Initializing address processor...","timestamp":"2014-06-30T10:23:09.944Z"}
+{"level":"info","message":"Initializing peer processor...","timestamp":"2014-06-30T10:23:09.944Z"}
+{"level":"info","message":"Load system info...","timestamp":"2014-06-30T10:23:09.944Z"}
+{"level":"info","message":"Initializing and scanning database...","timestamp":"2014-06-30T10:23:09.945Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:23:10.017Z"}
+{"level":"info","message":"Block processed: 11503230778728489576","timestamp":"2014-06-30T10:23:10.024Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:23:10.030Z"}
+{"level":"info","message":"Block processed: 13095351901952319655","timestamp":"2014-06-30T10:23:10.061Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:23:10.063Z"}
+{"level":"info","message":"Block processed: 12973771565709687027","timestamp":"2014-06-30T10:23:10.065Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:23:10.071Z"}
+{"level":"info","message":"Block processed: 3583341303787745587","timestamp":"2014-06-30T10:23:10.085Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:23:10.088Z"}
+{"level":"info","message":"Block processed: 12581382455466270594","timestamp":"2014-06-30T10:23:10.091Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:23:10.095Z"}
+{"level":"info","message":"Block processed: 16107447385929840407","timestamp":"2014-06-30T10:23:10.098Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:23:10.099Z"}
+{"level":"info","message":"Block processed: 2051769759411931349","timestamp":"2014-06-30T10:23:10.101Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:23:10.102Z"}
+{"level":"info","message":"Block processed: 15023499197761908881","timestamp":"2014-06-30T10:23:10.103Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:23:10.104Z"}
+{"level":"info","message":"Block processed: 11763412792418661048","timestamp":"2014-06-30T10:23:10.110Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:23:10.119Z"}
+{"level":"info","message":"Block processed: 1170281110315611772","timestamp":"2014-06-30T10:23:10.124Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:23:10.221Z"}
+{"level":"info","message":"Block processed: 555186132833326610","timestamp":"2014-06-30T10:23:10.398Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:23:10.412Z"}
+{"level":"info","message":"Block processed: 15401581592807741258","timestamp":"2014-06-30T10:23:10.554Z"}
+{"level":"info","message":"Find or add genesis block...","timestamp":"2014-06-30T10:23:10.557Z"}
+{"level":"info","message":"Blockchain is trying to find genesis block...","timestamp":"2014-06-30T10:23:10.558Z"}
+{"level":"info","message":"Genesis block is found!","timestamp":"2014-06-30T10:23:10.558Z"}
+{"level":"info","message":"Genesis block added...","timestamp":"2014-06-30T10:23:10.736Z"}
+{"level":"info","message":"Connecting to peers...","timestamp":"2014-06-30T10:23:10.736Z"}
+{"level":"info","message":"Scanning peers...","timestamp":"2014-06-30T10:23:10.756Z"}
+{"level":"info","message":"Scanning blockchain...","timestamp":"2014-06-30T10:23:10.807Z"}
+{"level":"info","message":"Getting unconfirmed blocks...","timestamp":"2014-06-30T10:23:10.807Z"}
+{"level":"info","message":"Starting intervals...","timestamp":"2014-06-30T10:23:10.808Z"}
+{"level":"info","message":"Crypti started: 0.0.0.0:6040","timestamp":"2014-06-30T10:23:10.823Z"}
+{"level":"info","message":"Account unlocked: 6881298120989278452C","timestamp":"2014-06-30T10:23:38.130Z"}
+{"level":"info","message":"Start forging: 6881298120989278452C","timestamp":"2014-06-30T10:23:44.623Z"}
+{"level":"info","message":"Forger started: 6881298120989278452C","timestamp":"2014-06-30T10:23:44.625Z"}
+{"level":"info","message":"Logger initialized","timestamp":"2014-06-30T10:35:14.719Z"}
+{"level":"info","message":"Initializing account processor...","timestamp":"2014-06-30T10:35:14.721Z"}
+{"level":"info","message":"Account processor initialized","timestamp":"2014-06-30T10:35:14.721Z"}
+{"level":"info","message":"Initializing transaction processor...","timestamp":"2014-06-30T10:35:14.721Z"}
+{"level":"info","message":"Transaction processor initialized","timestamp":"2014-06-30T10:35:14.721Z"}
+{"level":"info","message":"Initializing blockchain...","timestamp":"2014-06-30T10:35:14.722Z"}
+{"level":"info","message":"Blockchain initialized...","timestamp":"2014-06-30T10:35:14.722Z"}
+{"level":"info","message":"Initializing forger processor...","timestamp":"2014-06-30T10:35:14.722Z"}
+{"level":"info","message":"Initializing address processor...","timestamp":"2014-06-30T10:35:14.722Z"}
+{"level":"info","message":"Initializing peer processor...","timestamp":"2014-06-30T10:35:14.722Z"}
+{"level":"info","message":"Load system info...","timestamp":"2014-06-30T10:35:14.723Z"}
+{"level":"info","message":"Initializing and scanning database...","timestamp":"2014-06-30T10:35:14.724Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:35:15.379Z"}
+{"level":"info","message":"Block processed: 14200190477137330543","timestamp":"2014-06-30T10:35:15.393Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:35:15.396Z"}
+{"level":"info","message":"Block processed: 8475860048123872954","timestamp":"2014-06-30T10:35:15.475Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:35:15.567Z"}
+{"level":"info","message":"Block processed: 9827309632302513154","timestamp":"2014-06-30T10:35:15.598Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:35:15.600Z"}
+{"level":"info","message":"Block processed: 7722055884279238468","timestamp":"2014-06-30T10:35:15.626Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:35:15.638Z"}
+{"level":"info","message":"Block processed: 726903697063313020","timestamp":"2014-06-30T10:35:15.643Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:35:15.647Z"}
+{"level":"info","message":"Block processed: 15162756934566269033","timestamp":"2014-06-30T10:35:15.649Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:35:15.653Z"}
+{"level":"info","message":"Block processed: 10515640313767814753","timestamp":"2014-06-30T10:35:15.657Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:35:15.658Z"}
+{"level":"info","message":"Block processed: 3768692307740563664","timestamp":"2014-06-30T10:35:15.667Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:35:15.668Z"}
+{"level":"info","message":"Block processed: 8084061322025394216","timestamp":"2014-06-30T10:35:15.672Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:35:15.673Z"}
+{"level":"info","message":"Block processed: 15834810551086897014","timestamp":"2014-06-30T10:35:15.675Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:35:15.677Z"}
+{"level":"info","message":"Block processed: 1849033398271420307","timestamp":"2014-06-30T10:35:15.682Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:35:15.683Z"}
+{"level":"info","message":"Block processed: 1891680170551625300","timestamp":"2014-06-30T10:35:15.702Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:35:15.703Z"}
+{"level":"info","message":"Block processed: 4672804958248220661","timestamp":"2014-06-30T10:35:15.705Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:35:15.707Z"}
+{"level":"info","message":"Block processed: 15120533016568649770","timestamp":"2014-06-30T10:35:15.709Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:35:15.710Z"}
+{"level":"info","message":"Block processed: 3722533090875760695","timestamp":"2014-06-30T10:35:15.712Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:35:15.715Z"}
+{"level":"info","message":"Block processed: 13577012685653902375","timestamp":"2014-06-30T10:35:15.716Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:35:15.717Z"}
+{"level":"info","message":"Block processed: 1213939167486369042","timestamp":"2014-06-30T10:35:15.719Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:35:15.720Z"}
+{"level":"info","message":"Block processed: 437248490375720968","timestamp":"2014-06-30T10:35:15.722Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:35:15.723Z"}
+{"level":"info","message":"Block processed: 15347226958779113492","timestamp":"2014-06-30T10:35:15.725Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:35:15.729Z"}
+{"level":"info","message":"Block processed: 1627525660346001757","timestamp":"2014-06-30T10:35:16.621Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:35:16.622Z"}
+{"level":"info","message":"Block processed: 3056987979242299062","timestamp":"2014-06-30T10:35:16.625Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:35:16.628Z"}
+{"level":"info","message":"Block processed: 7742291531453911175","timestamp":"2014-06-30T10:35:16.630Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:35:16.636Z"}
+{"level":"info","message":"Block processed: 15038624086871505593","timestamp":"2014-06-30T10:35:16.638Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:35:16.642Z"}
+{"level":"info","message":"Block processed: 18112236314091324763","timestamp":"2014-06-30T10:35:16.644Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:35:16.646Z"}
+{"level":"info","message":"Block processed: 2213948058966451229","timestamp":"2014-06-30T10:35:16.648Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:35:16.651Z"}
+{"level":"info","message":"Block processed: 2468909620229128838","timestamp":"2014-06-30T10:35:16.668Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:35:16.671Z"}
+{"level":"info","message":"Block processed: 6346349227990864774","timestamp":"2014-06-30T10:35:16.696Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:35:16.718Z"}
+{"level":"info","message":"Block processed: 1864814576524934853","timestamp":"2014-06-30T10:35:16.721Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:35:16.722Z"}
+{"level":"info","message":"Block processed: 5945330632663119812","timestamp":"2014-06-30T10:35:16.738Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:35:16.775Z"}
+{"level":"info","message":"Block processed: 7711357718614829723","timestamp":"2014-06-30T10:35:16.806Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:35:16.807Z"}
+{"level":"info","message":"Block processed: 5978519623765541188","timestamp":"2014-06-30T10:35:16.810Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:35:16.812Z"}
+{"level":"info","message":"Block processed: 4483108737773097597","timestamp":"2014-06-30T10:35:16.816Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:35:16.818Z"}
+{"level":"info","message":"Block processed: 12189395298533431198","timestamp":"2014-06-30T10:35:16.824Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:35:16.833Z"}
+{"level":"info","message":"Block processed: 10537292268063979786","timestamp":"2014-06-30T10:35:16.837Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:35:16.838Z"}
+{"level":"info","message":"Block processed: 866946284853631293","timestamp":"2014-06-30T10:35:16.841Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:35:16.871Z"}
+{"level":"info","message":"Block processed: 10628326729128721928","timestamp":"2014-06-30T10:35:16.874Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:35:16.875Z"}
+{"level":"info","message":"Block processed: 14238025358709979400","timestamp":"2014-06-30T10:35:16.877Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:35:16.878Z"}
+{"level":"info","message":"Block processed: 699275096598125217","timestamp":"2014-06-30T10:35:16.880Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:35:16.883Z"}
+{"level":"info","message":"Block processed: 9839890440770938261","timestamp":"2014-06-30T10:35:16.886Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:35:16.887Z"}
+{"level":"info","message":"Block processed: 2677877641444217981","timestamp":"2014-06-30T10:35:16.889Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:35:16.891Z"}
+{"level":"info","message":"Block processed: 1784706419554697209","timestamp":"2014-06-30T10:35:16.936Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:35:16.938Z"}
+{"level":"info","message":"Block processed: 8168728453073556488","timestamp":"2014-06-30T10:35:16.978Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:35:16.980Z"}
+{"level":"info","message":"Block processed: 2126267207629523125","timestamp":"2014-06-30T10:35:16.988Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:35:17.050Z"}
+{"level":"info","message":"Block processed: 8469757079325968633","timestamp":"2014-06-30T10:35:17.053Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:35:17.195Z"}
+{"level":"info","message":"Block processed: 8938253744259900646","timestamp":"2014-06-30T10:35:17.227Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:35:17.235Z"}
+{"level":"info","message":"Block processed: 8797401267927767545","timestamp":"2014-06-30T10:35:17.244Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:35:17.245Z"}
+{"level":"info","message":"Block processed: 4541207131190086412","timestamp":"2014-06-30T10:35:17.252Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:35:17.254Z"}
+{"level":"info","message":"Block processed: 12140927165006206550","timestamp":"2014-06-30T10:35:17.258Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:35:17.287Z"}
+{"level":"info","message":"Block processed: 14266474378534420451","timestamp":"2014-06-30T10:35:17.296Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:35:17.298Z"}
+{"level":"info","message":"Block processed: 18318740857780778587","timestamp":"2014-06-30T10:35:17.367Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:35:17.387Z"}
+{"level":"info","message":"Block processed: 13845885805581513849","timestamp":"2014-06-30T10:35:17.420Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:35:17.462Z"}
+{"level":"info","message":"Block processed: 14845641043598471093","timestamp":"2014-06-30T10:35:17.491Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:35:17.502Z"}
+{"level":"info","message":"Block processed: 16959676332601072049","timestamp":"2014-06-30T10:35:17.514Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:35:17.584Z"}
+{"level":"info","message":"Block processed: 10213979526834555247","timestamp":"2014-06-30T10:35:17.707Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:35:17.716Z"}
+{"level":"info","message":"Block processed: 10048573570057340217","timestamp":"2014-06-30T10:35:17.818Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:35:17.820Z"}
+{"level":"info","message":"Block processed: 2709030405613739712","timestamp":"2014-06-30T10:35:17.824Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:35:17.826Z"}
+{"level":"info","message":"Crypti stopped!","timestamp":"2014-06-30T10:35:17.828Z"}
+{"level":"error","message":"Error: Can't process block: 14227985241676340303","timestamp":"2014-06-30T10:35:17.830Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:35:17.830Z"}
+{"level":"info","message":"Block processed: 7874003539891594166","timestamp":"2014-06-30T10:35:17.833Z"}
+{"level":"info","message":"Logger initialized","timestamp":"2014-06-30T10:35:57.118Z"}
+{"level":"info","message":"Initializing account processor...","timestamp":"2014-06-30T10:35:57.121Z"}
+{"level":"info","message":"Account processor initialized","timestamp":"2014-06-30T10:35:57.121Z"}
+{"level":"info","message":"Initializing transaction processor...","timestamp":"2014-06-30T10:35:57.121Z"}
+{"level":"info","message":"Transaction processor initialized","timestamp":"2014-06-30T10:35:57.125Z"}
+{"level":"info","message":"Initializing blockchain...","timestamp":"2014-06-30T10:35:57.125Z"}
+{"level":"info","message":"Blockchain initialized...","timestamp":"2014-06-30T10:35:57.125Z"}
+{"level":"info","message":"Initializing forger processor...","timestamp":"2014-06-30T10:35:57.126Z"}
+{"level":"info","message":"Initializing address processor...","timestamp":"2014-06-30T10:35:57.127Z"}
+{"level":"info","message":"Initializing peer processor...","timestamp":"2014-06-30T10:35:57.131Z"}
+{"level":"info","message":"Load system info...","timestamp":"2014-06-30T10:35:57.131Z"}
+{"level":"info","message":"Initializing and scanning database...","timestamp":"2014-06-30T10:35:57.132Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:35:57.818Z"}
+{"level":"info","message":"Block processed: 14200190477137330543","timestamp":"2014-06-30T10:35:57.830Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:35:57.834Z"}
+{"level":"info","message":"Block processed: 8475860048123872954","timestamp":"2014-06-30T10:35:57.849Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:35:57.858Z"}
+{"level":"info","message":"Block processed: 9827309632302513154","timestamp":"2014-06-30T10:35:57.862Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:35:57.865Z"}
+{"level":"info","message":"Block processed: 7722055884279238468","timestamp":"2014-06-30T10:35:57.875Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:35:57.877Z"}
+{"level":"info","message":"Crypti stopped!","timestamp":"2014-06-30T10:35:57.881Z"}
+{"level":"error","message":"Error: Can't process block: 15162756934566269033","timestamp":"2014-06-30T10:35:57.883Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:35:57.884Z"}
+{"level":"info","message":"Block processed: 726903697063313020","timestamp":"2014-06-30T10:35:57.888Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:35:57.890Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:35:57.894Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:35:57.894Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:35:57.895Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:35:57.895Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:35:57.896Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:35:57.897Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:35:57.898Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:35:57.898Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:35:57.900Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:35:57.901Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:35:57.903Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:35:57.903Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:35:57.904Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:35:57.915Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:35:57.918Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:35:57.918Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:35:57.919Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:35:57.920Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:35:57.920Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:35:57.927Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:35:57.928Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:35:57.930Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:35:57.931Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:35:57.932Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:35:57.933Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:35:57.935Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:35:57.936Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:35:57.938Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:35:57.939Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:35:57.940Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:35:57.943Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:35:57.945Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:35:57.945Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:35:57.947Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:35:57.948Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:35:57.949Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:35:57.950Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:35:57.951Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:35:57.951Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:35:57.953Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:35:57.962Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:35:57.964Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:35:57.966Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:35:57.971Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:35:57.973Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:35:57.974Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:35:57.979Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:35:57.981Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:35:57.982Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:35:57.985Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:35:57.987Z"}
+{"level":"info","message":"Logger initialized","timestamp":"2014-06-30T10:40:22.164Z"}
+{"level":"info","message":"Initializing account processor...","timestamp":"2014-06-30T10:40:22.165Z"}
+{"level":"info","message":"Account processor initialized","timestamp":"2014-06-30T10:40:22.166Z"}
+{"level":"info","message":"Initializing transaction processor...","timestamp":"2014-06-30T10:40:22.166Z"}
+{"level":"info","message":"Transaction processor initialized","timestamp":"2014-06-30T10:40:22.166Z"}
+{"level":"info","message":"Initializing blockchain...","timestamp":"2014-06-30T10:40:22.166Z"}
+{"level":"info","message":"Blockchain initialized...","timestamp":"2014-06-30T10:40:22.167Z"}
+{"level":"info","message":"Initializing forger processor...","timestamp":"2014-06-30T10:40:22.167Z"}
+{"level":"info","message":"Initializing address processor...","timestamp":"2014-06-30T10:40:22.167Z"}
+{"level":"info","message":"Initializing peer processor...","timestamp":"2014-06-30T10:40:22.167Z"}
+{"level":"info","message":"Load system info...","timestamp":"2014-06-30T10:40:22.168Z"}
+{"level":"info","message":"Initializing and scanning database...","timestamp":"2014-06-30T10:40:22.168Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:40:22.315Z"}
+{"level":"info","message":"Block processed: 14200190477137330543","timestamp":"2014-06-30T10:40:22.340Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:40:22.344Z"}
+{"level":"info","message":"Block processed: 8475860048123872954","timestamp":"2014-06-30T10:40:22.360Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:40:22.365Z"}
+{"level":"info","message":"Block processed: 9827309632302513154","timestamp":"2014-06-30T10:40:22.369Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:40:22.374Z"}
+{"level":"info","message":"Block processed: 7722055884279238468","timestamp":"2014-06-30T10:40:22.383Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:40:22.386Z"}
+{"level":"info","message":"Block processed: 726903697063313020","timestamp":"2014-06-30T10:40:22.390Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:40:22.392Z"}
+{"level":"info","message":"Block processed: 15162756934566269033","timestamp":"2014-06-30T10:40:22.395Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:40:22.397Z"}
+{"level":"info","message":"Block processed: 10515640313767814753","timestamp":"2014-06-30T10:40:22.463Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:40:22.468Z"}
+{"level":"info","message":"Block processed: 3768692307740563664","timestamp":"2014-06-30T10:40:22.516Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:40:22.518Z"}
+{"level":"info","message":"Block processed: 8084061322025394216","timestamp":"2014-06-30T10:40:22.546Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:40:22.548Z"}
+{"level":"info","message":"Block processed: 15834810551086897014","timestamp":"2014-06-30T10:40:22.581Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:40:22.582Z"}
+{"level":"info","message":"Block processed: 1849033398271420307","timestamp":"2014-06-30T10:40:22.586Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:40:22.587Z"}
+{"level":"info","message":"Block processed: 1891680170551625300","timestamp":"2014-06-30T10:40:22.893Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:40:22.894Z"}
+{"level":"info","message":"Block processed: 4672804958248220661","timestamp":"2014-06-30T10:40:22.900Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:40:22.901Z"}
+{"level":"info","message":"Block processed: 15120533016568649770","timestamp":"2014-06-30T10:40:22.904Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:40:22.905Z"}
+{"level":"info","message":"Block processed: 3722533090875760695","timestamp":"2014-06-30T10:40:22.914Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:40:22.936Z"}
+{"level":"info","message":"Block processed: 13577012685653902375","timestamp":"2014-06-30T10:40:22.941Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:40:22.945Z"}
+{"level":"info","message":"Block processed: 1213939167486369042","timestamp":"2014-06-30T10:40:22.948Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:40:22.949Z"}
+{"level":"info","message":"Block processed: 437248490375720968","timestamp":"2014-06-30T10:40:22.952Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:40:22.956Z"}
+{"level":"info","message":"Block processed: 15347226958779113492","timestamp":"2014-06-30T10:40:22.959Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:40:22.960Z"}
+{"level":"info","message":"Block processed: 1627525660346001757","timestamp":"2014-06-30T10:40:22.968Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:40:22.969Z"}
+{"level":"info","message":"Block processed: 3056987979242299062","timestamp":"2014-06-30T10:40:22.986Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:40:22.987Z"}
+{"level":"info","message":"Block processed: 7742291531453911175","timestamp":"2014-06-30T10:40:23.012Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:40:23.015Z"}
+{"level":"info","message":"Block processed: 15038624086871505593","timestamp":"2014-06-30T10:40:23.019Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:40:23.023Z"}
+{"level":"info","message":"Block processed: 18112236314091324763","timestamp":"2014-06-30T10:40:23.026Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:40:23.053Z"}
+{"level":"info","message":"Block processed: 2213948058966451229","timestamp":"2014-06-30T10:40:23.056Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:40:23.057Z"}
+{"level":"info","message":"Block processed: 2468909620229128838","timestamp":"2014-06-30T10:40:23.074Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:40:23.085Z"}
+{"level":"info","message":"Block processed: 6346349227990864774","timestamp":"2014-06-30T10:40:23.107Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:40:23.112Z"}
+{"level":"info","message":"Block processed: 1864814576524934853","timestamp":"2014-06-30T10:40:23.114Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:40:23.115Z"}
+{"level":"info","message":"Block processed: 5945330632663119812","timestamp":"2014-06-30T10:40:23.118Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:40:23.121Z"}
+{"level":"info","message":"Block processed: 7711357718614829723","timestamp":"2014-06-30T10:40:23.125Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:40:23.128Z"}
+{"level":"info","message":"Block processed: 5978519623765541188","timestamp":"2014-06-30T10:40:23.140Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:40:23.144Z"}
+{"level":"info","message":"Block processed: 4483108737773097597","timestamp":"2014-06-30T10:40:23.152Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:40:23.157Z"}
+{"level":"info","message":"Block processed: 12189395298533431198","timestamp":"2014-06-30T10:40:23.165Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:40:23.169Z"}
+{"level":"info","message":"Block processed: 10537292268063979786","timestamp":"2014-06-30T10:40:23.188Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:40:23.192Z"}
+{"level":"info","message":"Block processed: 866946284853631293","timestamp":"2014-06-30T10:40:23.194Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:40:23.196Z"}
+{"level":"info","message":"Block processed: 10628326729128721928","timestamp":"2014-06-30T10:40:23.208Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:40:23.216Z"}
+{"level":"info","message":"Block processed: 14238025358709979400","timestamp":"2014-06-30T10:40:23.218Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:40:23.219Z"}
+{"level":"info","message":"Block processed: 699275096598125217","timestamp":"2014-06-30T10:40:23.221Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:40:23.222Z"}
+{"level":"info","message":"Block processed: 9839890440770938261","timestamp":"2014-06-30T10:40:23.249Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:40:23.269Z"}
+{"level":"info","message":"Block processed: 2677877641444217981","timestamp":"2014-06-30T10:40:23.271Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:40:23.288Z"}
+{"level":"info","message":"Block processed: 1784706419554697209","timestamp":"2014-06-30T10:40:23.290Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:40:23.291Z"}
+{"level":"info","message":"Block processed: 8168728453073556488","timestamp":"2014-06-30T10:40:23.294Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:40:23.314Z"}
+{"level":"info","message":"Block processed: 2126267207629523125","timestamp":"2014-06-30T10:40:23.343Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:40:23.350Z"}
+{"level":"info","message":"Block processed: 8469757079325968633","timestamp":"2014-06-30T10:40:23.353Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:40:23.356Z"}
+{"level":"info","message":"Block processed: 8938253744259900646","timestamp":"2014-06-30T10:40:23.358Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:40:23.363Z"}
+{"level":"info","message":"Block processed: 8797401267927767545","timestamp":"2014-06-30T10:40:23.372Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:40:23.375Z"}
+{"level":"info","message":"Block processed: 4541207131190086412","timestamp":"2014-06-30T10:40:23.384Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:40:23.391Z"}
+{"level":"info","message":"Block processed: 12140927165006206550","timestamp":"2014-06-30T10:40:23.398Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:40:23.404Z"}
+{"level":"info","message":"Block processed: 14266474378534420451","timestamp":"2014-06-30T10:40:23.407Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:40:23.409Z"}
+{"level":"info","message":"Block processed: 18318740857780778587","timestamp":"2014-06-30T10:40:23.422Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:40:23.452Z"}
+{"level":"info","message":"Block processed: 13845885805581513849","timestamp":"2014-06-30T10:40:23.461Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:40:23.470Z"}
+{"level":"info","message":"Block processed: 14845641043598471093","timestamp":"2014-06-30T10:40:23.504Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:40:23.509Z"}
+{"level":"info","message":"Block processed: 16959676332601072049","timestamp":"2014-06-30T10:40:23.514Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:40:23.517Z"}
+{"level":"info","message":"Block processed: 10213979526834555247","timestamp":"2014-06-30T10:40:23.605Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:40:23.607Z"}
+{"level":"info","message":"Block processed: 10048573570057340217","timestamp":"2014-06-30T10:40:23.612Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:40:23.614Z"}
+{"level":"info","message":"Block processed: 2709030405613739712","timestamp":"2014-06-30T10:40:23.620Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:40:23.622Z"}
+{"level":"info","message":"Block processed: 7874003539891594166","timestamp":"2014-06-30T10:40:23.623Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:40:23.628Z"}
+{"level":"info","message":"Block processed: 14227985241676340303","timestamp":"2014-06-30T10:40:23.638Z"}
+{"level":"info","message":"Find or add genesis block...","timestamp":"2014-06-30T10:40:23.640Z"}
+{"level":"info","message":"Blockchain is trying to find genesis block...","timestamp":"2014-06-30T10:40:23.641Z"}
+{"level":"info","message":"Genesis block is found!","timestamp":"2014-06-30T10:40:23.641Z"}
+{"level":"info","message":"Genesis block added...","timestamp":"2014-06-30T10:40:23.642Z"}
+{"level":"info","message":"Connecting to peers...","timestamp":"2014-06-30T10:40:23.644Z"}
+{"level":"info","message":"Scanning peers...","timestamp":"2014-06-30T10:40:23.645Z"}
+{"level":"info","message":"Scanning blockchain...","timestamp":"2014-06-30T10:40:23.686Z"}
+{"level":"info","message":"Getting unconfirmed blocks...","timestamp":"2014-06-30T10:40:23.687Z"}
+{"level":"info","message":"Starting intervals...","timestamp":"2014-06-30T10:40:23.694Z"}
+{"level":"info","message":"Crypti started: 0.0.0.0:6040","timestamp":"2014-06-30T10:40:23.715Z"}
+{"level":"info","message":"Logger initialized","timestamp":"2014-06-30T10:41:28.143Z"}
+{"level":"info","message":"Initializing account processor...","timestamp":"2014-06-30T10:41:28.145Z"}
+{"level":"info","message":"Account processor initialized","timestamp":"2014-06-30T10:41:28.146Z"}
+{"level":"info","message":"Initializing transaction processor...","timestamp":"2014-06-30T10:41:28.146Z"}
+{"level":"info","message":"Transaction processor initialized","timestamp":"2014-06-30T10:41:28.146Z"}
+{"level":"info","message":"Initializing blockchain...","timestamp":"2014-06-30T10:41:28.146Z"}
+{"level":"info","message":"Blockchain initialized...","timestamp":"2014-06-30T10:41:28.146Z"}
+{"level":"info","message":"Initializing forger processor...","timestamp":"2014-06-30T10:41:28.146Z"}
+{"level":"info","message":"Initializing address processor...","timestamp":"2014-06-30T10:41:28.147Z"}
+{"level":"info","message":"Initializing peer processor...","timestamp":"2014-06-30T10:41:28.147Z"}
+{"level":"info","message":"Load system info...","timestamp":"2014-06-30T10:41:28.147Z"}
+{"level":"info","message":"Initializing and scanning database...","timestamp":"2014-06-30T10:41:28.148Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:41:28.236Z"}
+{"level":"info","message":"Block processed: 14200190477137330543","timestamp":"2014-06-30T10:41:28.242Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:41:28.244Z"}
+{"level":"info","message":"Block processed: 8475860048123872954","timestamp":"2014-06-30T10:41:28.254Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:41:28.259Z"}
+{"level":"info","message":"Block processed: 9827309632302513154","timestamp":"2014-06-30T10:41:28.262Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:41:28.264Z"}
+{"level":"info","message":"Block processed: 7722055884279238468","timestamp":"2014-06-30T10:41:28.267Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:41:28.269Z"}
+{"level":"info","message":"Block processed: 726903697063313020","timestamp":"2014-06-30T10:41:28.271Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:41:28.273Z"}
+{"level":"info","message":"Block processed: 15162756934566269033","timestamp":"2014-06-30T10:41:28.274Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:41:28.275Z"}
+{"level":"info","message":"Block processed: 10515640313767814753","timestamp":"2014-06-30T10:41:28.277Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:41:28.278Z"}
+{"level":"info","message":"Block processed: 3768692307740563664","timestamp":"2014-06-30T10:41:28.280Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:41:28.281Z"}
+{"level":"info","message":"Block processed: 8084061322025394216","timestamp":"2014-06-30T10:41:28.283Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:41:28.284Z"}
+{"level":"info","message":"Block processed: 15834810551086897014","timestamp":"2014-06-30T10:41:28.286Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:41:28.287Z"}
+{"level":"info","message":"Block processed: 1849033398271420307","timestamp":"2014-06-30T10:41:28.289Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:41:28.290Z"}
+{"level":"info","message":"Block processed: 1891680170551625300","timestamp":"2014-06-30T10:41:28.297Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:41:28.299Z"}
+{"level":"info","message":"Block processed: 4672804958248220661","timestamp":"2014-06-30T10:41:28.301Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:41:28.302Z"}
+{"level":"info","message":"Block processed: 15120533016568649770","timestamp":"2014-06-30T10:41:28.304Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:41:28.305Z"}
+{"level":"info","message":"Block processed: 3722533090875760695","timestamp":"2014-06-30T10:41:28.308Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:41:28.310Z"}
+{"level":"info","message":"Block processed: 13577012685653902375","timestamp":"2014-06-30T10:41:28.312Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:41:28.313Z"}
+{"level":"info","message":"Block processed: 1213939167486369042","timestamp":"2014-06-30T10:41:28.315Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:41:28.316Z"}
+{"level":"info","message":"Block processed: 437248490375720968","timestamp":"2014-06-30T10:41:28.319Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:41:28.320Z"}
+{"level":"info","message":"Block processed: 15347226958779113492","timestamp":"2014-06-30T10:41:28.322Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:41:28.323Z"}
+{"level":"info","message":"Block processed: 1627525660346001757","timestamp":"2014-06-30T10:41:28.327Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:41:28.334Z"}
+{"level":"info","message":"Block processed: 3056987979242299062","timestamp":"2014-06-30T10:41:28.337Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:41:28.338Z"}
+{"level":"info","message":"Block processed: 7742291531453911175","timestamp":"2014-06-30T10:41:28.340Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:41:28.341Z"}
+{"level":"info","message":"Block processed: 15038624086871505593","timestamp":"2014-06-30T10:41:28.343Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:41:28.344Z"}
+{"level":"info","message":"Block processed: 18112236314091324763","timestamp":"2014-06-30T10:41:28.347Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:41:28.349Z"}
+{"level":"info","message":"Block processed: 2213948058966451229","timestamp":"2014-06-30T10:41:28.351Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:41:28.353Z"}
+{"level":"info","message":"Block processed: 2468909620229128838","timestamp":"2014-06-30T10:41:28.363Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:41:28.364Z"}
+{"level":"info","message":"Block processed: 6346349227990864774","timestamp":"2014-06-30T10:41:28.373Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:41:28.380Z"}
+{"level":"info","message":"Block processed: 1864814576524934853","timestamp":"2014-06-30T10:41:28.383Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:41:28.384Z"}
+{"level":"info","message":"Block processed: 5945330632663119812","timestamp":"2014-06-30T10:41:28.387Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:41:28.388Z"}
+{"level":"info","message":"Block processed: 7711357718614829723","timestamp":"2014-06-30T10:41:28.394Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:41:28.395Z"}
+{"level":"info","message":"Block processed: 5978519623765541188","timestamp":"2014-06-30T10:41:28.398Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:41:28.399Z"}
+{"level":"info","message":"Block processed: 4483108737773097597","timestamp":"2014-06-30T10:41:28.403Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:41:28.405Z"}
+{"level":"info","message":"Block processed: 12189395298533431198","timestamp":"2014-06-30T10:41:28.407Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:41:28.415Z"}
+{"level":"info","message":"Block processed: 10537292268063979786","timestamp":"2014-06-30T10:41:28.417Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:41:28.419Z"}
+{"level":"info","message":"Block processed: 866946284853631293","timestamp":"2014-06-30T10:41:28.421Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:41:28.422Z"}
+{"level":"info","message":"Block processed: 10628326729128721928","timestamp":"2014-06-30T10:41:28.426Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:41:28.427Z"}
+{"level":"info","message":"Block processed: 14238025358709979400","timestamp":"2014-06-30T10:41:28.429Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:41:28.430Z"}
+{"level":"info","message":"Block processed: 699275096598125217","timestamp":"2014-06-30T10:41:28.431Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:41:28.433Z"}
+{"level":"info","message":"Block processed: 9839890440770938261","timestamp":"2014-06-30T10:41:28.435Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:41:28.463Z"}
+{"level":"info","message":"Block processed: 2677877641444217981","timestamp":"2014-06-30T10:41:28.466Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:41:28.467Z"}
+{"level":"info","message":"Block processed: 1784706419554697209","timestamp":"2014-06-30T10:41:28.470Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:41:28.471Z"}
+{"level":"info","message":"Block processed: 8168728453073556488","timestamp":"2014-06-30T10:41:28.473Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:41:28.476Z"}
+{"level":"info","message":"Block processed: 2126267207629523125","timestamp":"2014-06-30T10:41:28.478Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:41:28.480Z"}
+{"level":"info","message":"Block processed: 8469757079325968633","timestamp":"2014-06-30T10:41:28.482Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:41:28.483Z"}
+{"level":"info","message":"Block processed: 8938253744259900646","timestamp":"2014-06-30T10:41:28.485Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:41:28.487Z"}
+{"level":"info","message":"Block processed: 8797401267927767545","timestamp":"2014-06-30T10:41:28.490Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:41:28.491Z"}
+{"level":"info","message":"Block processed: 4541207131190086412","timestamp":"2014-06-30T10:41:28.493Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:41:28.494Z"}
+{"level":"info","message":"Block processed: 12140927165006206550","timestamp":"2014-06-30T10:41:28.497Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:41:28.499Z"}
+{"level":"info","message":"Block processed: 14266474378534420451","timestamp":"2014-06-30T10:41:28.501Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:41:28.502Z"}
+{"level":"info","message":"Block processed: 18318740857780778587","timestamp":"2014-06-30T10:41:28.517Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:41:28.518Z"}
+{"level":"info","message":"Block processed: 13845885805581513849","timestamp":"2014-06-30T10:41:28.521Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:41:28.525Z"}
+{"level":"info","message":"Block processed: 14845641043598471093","timestamp":"2014-06-30T10:41:28.530Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:41:28.532Z"}
+{"level":"info","message":"Block processed: 16959676332601072049","timestamp":"2014-06-30T10:41:28.535Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:41:28.536Z"}
+{"level":"info","message":"Block processed: 10213979526834555247","timestamp":"2014-06-30T10:41:28.539Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:41:28.541Z"}
+{"level":"info","message":"Block processed: 10048573570057340217","timestamp":"2014-06-30T10:41:28.544Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:41:28.546Z"}
+{"level":"info","message":"Block processed: 2709030405613739712","timestamp":"2014-06-30T10:41:28.549Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:41:28.551Z"}
+{"level":"info","message":"Block processed: 7874003539891594166","timestamp":"2014-06-30T10:41:28.553Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:41:28.554Z"}
+{"level":"info","message":"Block processed: 14227985241676340303","timestamp":"2014-06-30T10:41:28.559Z"}
+{"level":"info","message":"Find or add genesis block...","timestamp":"2014-06-30T10:41:28.566Z"}
+{"level":"info","message":"Blockchain is trying to find genesis block...","timestamp":"2014-06-30T10:41:28.566Z"}
+{"level":"info","message":"Genesis block is found!","timestamp":"2014-06-30T10:41:28.566Z"}
+{"level":"info","message":"Genesis block added...","timestamp":"2014-06-30T10:41:28.568Z"}
+{"level":"info","message":"Connecting to peers...","timestamp":"2014-06-30T10:41:28.568Z"}
+{"level":"info","message":"Scanning peers...","timestamp":"2014-06-30T10:41:28.569Z"}
+{"level":"info","message":"Scanning blockchain...","timestamp":"2014-06-30T10:41:28.592Z"}
+{"level":"info","message":"Getting unconfirmed blocks...","timestamp":"2014-06-30T10:41:28.592Z"}
+{"level":"info","message":"Starting intervals...","timestamp":"2014-06-30T10:41:28.593Z"}
+{"level":"info","message":"Crypti started: 0.0.0.0:6040","timestamp":"2014-06-30T10:41:28.603Z"}
+{"level":"info","message":"Account unlocked: 3364313429379719464C","timestamp":"2014-06-30T10:42:25.448Z"}
+{"level":"info","message":"Start forging: 3364313429379719464C","timestamp":"2014-06-30T10:42:39.848Z"}
+{"level":"info","message":"Generating block...","timestamp":"2014-06-30T10:42:39.854Z"}
+{"level":"info","message":"Block generated: 9783028833498274511","timestamp":"2014-06-30T10:42:39.880Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:42:39.881Z"}
+{"level":"info","message":"Block processed: 9783028833498274511","timestamp":"2014-06-30T10:42:39.890Z"}
+{"level":"info","message":"Forger started: 3364313429379719464C","timestamp":"2014-06-30T10:42:39.901Z"}
+{"level":"info","message":"Generating block...","timestamp":"2014-06-30T10:43:40.991Z"}
+{"level":"info","message":"Block generated: 8645532531988038733","timestamp":"2014-06-30T10:43:41.026Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:43:41.027Z"}
+{"level":"info","message":"Block processed: 8645532531988038733","timestamp":"2014-06-30T10:43:41.035Z"}
+{"level":"info","message":"Generating block...","timestamp":"2014-06-30T10:44:41.532Z"}
+{"level":"info","message":"Block generated: 16824417181481286162","timestamp":"2014-06-30T10:44:41.563Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:44:41.564Z"}
+{"level":"info","message":"Block processed: 16824417181481286162","timestamp":"2014-06-30T10:44:41.582Z"}
+{"level":"info","message":"Generating block...","timestamp":"2014-06-30T10:45:42.694Z"}
+{"level":"info","message":"Block generated: 9669298177918955378","timestamp":"2014-06-30T10:45:42.769Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:45:42.770Z"}
+{"level":"info","message":"Block processed: 9669298177918955378","timestamp":"2014-06-30T10:45:42.786Z"}
+{"level":"info","message":"Generating block...","timestamp":"2014-06-30T10:46:43.995Z"}
+{"level":"info","message":"Block generated: 13971140244093106824","timestamp":"2014-06-30T10:46:44.047Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:46:44.048Z"}
+{"level":"info","message":"Block processed: 13971140244093106824","timestamp":"2014-06-30T10:46:44.108Z"}
+{"level":"info","message":"Account unlocked: 3364313429379719464C","timestamp":"2014-06-30T10:46:53.080Z"}
+{"level":"info","message":"Account unlocked: 6881298120989278452C","timestamp":"2014-06-30T10:47:07.309Z"}
+{"level":"info","message":"Process transaction: 5386800555845852292","timestamp":"2014-06-30T10:47:21.864Z"}
+{"level":"info","message":"Transaction processed: 5386800555845852292","timestamp":"2014-06-30T10:47:21.865Z"}
+{"level":"info","message":"Process transaction: 4025705724083391361","timestamp":"2014-06-30T10:47:42.245Z"}
+{"level":"info","message":"Transaction processed: 4025705724083391361","timestamp":"2014-06-30T10:47:42.260Z"}
+{"level":"info","message":"Generating block...","timestamp":"2014-06-30T10:47:44.456Z"}
+{"level":"info","message":"Block generated: 9554079981334664587","timestamp":"2014-06-30T10:47:44.496Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:47:44.533Z"}
+{"level":"info","message":"Block processed: 9554079981334664587","timestamp":"2014-06-30T10:47:44.831Z"}
+{"level":"info","message":"Generating block...","timestamp":"2014-06-30T10:48:45.939Z"}
+{"level":"info","message":"Block generated: 2310875593064174468","timestamp":"2014-06-30T10:48:45.959Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:48:45.965Z"}
+{"level":"info","message":"Block processed: 2310875593064174468","timestamp":"2014-06-30T10:48:45.987Z"}
+{"level":"info","message":"Generating block...","timestamp":"2014-06-30T10:49:46.685Z"}
+{"level":"info","message":"Block generated: 1883753577655385299","timestamp":"2014-06-30T10:49:46.916Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:49:46.918Z"}
+{"level":"info","message":"Block processed: 1883753577655385299","timestamp":"2014-06-30T10:49:46.958Z"}
+{"level":"info","message":"Generating block...","timestamp":"2014-06-30T10:50:47.023Z"}
+{"level":"info","message":"Block generated: 9881478555155975911","timestamp":"2014-06-30T10:50:47.029Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:50:47.030Z"}
+{"level":"info","message":"Block processed: 9881478555155975911","timestamp":"2014-06-30T10:50:47.033Z"}
+{"level":"info","message":"Generating block...","timestamp":"2014-06-30T10:51:48.126Z"}
+{"level":"info","message":"Block generated: 7042483147189321798","timestamp":"2014-06-30T10:51:48.132Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:51:48.133Z"}
+{"level":"info","message":"Block processed: 7042483147189321798","timestamp":"2014-06-30T10:51:48.136Z"}
+{"level":"info","message":"Generating block...","timestamp":"2014-06-30T10:52:49.389Z"}
+{"level":"info","message":"Block generated: 9213431455434038804","timestamp":"2014-06-30T10:52:49.401Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:52:49.401Z"}
+{"level":"info","message":"Block processed: 9213431455434038804","timestamp":"2014-06-30T10:52:49.409Z"}
+{"level":"info","message":"Generating block...","timestamp":"2014-06-30T10:53:50.614Z"}
+{"level":"info","message":"Block generated: 13162093978983531207","timestamp":"2014-06-30T10:53:50.636Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:53:50.637Z"}
+{"level":"info","message":"Block processed: 13162093978983531207","timestamp":"2014-06-30T10:53:50.639Z"}
+{"level":"info","message":"Account unlocked: 6881298120989278452C","timestamp":"2014-06-30T10:54:41.091Z"}
+{"level":"info","message":"Generating block...","timestamp":"2014-06-30T10:54:51.738Z"}
+{"level":"info","message":"Block generated: 9282870188101949577","timestamp":"2014-06-30T10:54:51.755Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:54:51.755Z"}
+{"level":"info","message":"Block processed: 9282870188101949577","timestamp":"2014-06-30T10:54:51.768Z"}
+{"level":"info","message":"Generating block...","timestamp":"2014-06-30T10:55:52.854Z"}
+{"level":"info","message":"Block generated: 5968261474755895304","timestamp":"2014-06-30T10:55:52.871Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:55:52.871Z"}
+{"level":"info","message":"Block processed: 5968261474755895304","timestamp":"2014-06-30T10:55:52.874Z"}
+{"level":"info","message":"Start forging: 6881298120989278452C","timestamp":"2014-06-30T10:56:18.581Z"}
+{"level":"info","message":"Forger started: 6881298120989278452C","timestamp":"2014-06-30T10:56:18.581Z"}
+{"level":"info","message":"Generating block...","timestamp":"2014-06-30T10:56:53.025Z"}
+{"level":"info","message":"Block generated: 10513064219022040495","timestamp":"2014-06-30T10:56:53.030Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:56:53.031Z"}
+{"level":"info","message":"Block processed: 10513064219022040495","timestamp":"2014-06-30T10:56:53.033Z"}
+{"level":"info","message":"Generating block...","timestamp":"2014-06-30T10:57:54.211Z"}
+{"level":"info","message":"Block generated: 17873742051554001288","timestamp":"2014-06-30T10:57:54.226Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:57:54.230Z"}
+{"level":"info","message":"Block processed: 17873742051554001288","timestamp":"2014-06-30T10:57:54.287Z"}
+{"level":"info","message":"Generating block...","timestamp":"2014-06-30T10:58:55.352Z"}
+{"level":"info","message":"Block generated: 15524131865846084048","timestamp":"2014-06-30T10:58:55.360Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:58:55.360Z"}
+{"level":"info","message":"Block processed: 15524131865846084048","timestamp":"2014-06-30T10:58:55.366Z"}
+{"level":"info","message":"Generating block...","timestamp":"2014-06-30T10:59:56.433Z"}
+{"level":"info","message":"Block generated: 11103085436821484139","timestamp":"2014-06-30T10:59:56.440Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T10:59:56.441Z"}
+{"level":"info","message":"Block processed: 11103085436821484139","timestamp":"2014-06-30T10:59:56.454Z"}
+{"level":"info","message":"Generating block...","timestamp":"2014-06-30T11:00:57.505Z"}
+{"level":"info","message":"Block generated: 7086133135331832051","timestamp":"2014-06-30T11:00:57.512Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:00:57.513Z"}
+{"level":"info","message":"Block processed: 7086133135331832051","timestamp":"2014-06-30T11:00:57.515Z"}
+{"level":"info","message":"Generating block...","timestamp":"2014-06-30T11:01:58.623Z"}
+{"level":"info","message":"Block generated: 837657126988903920","timestamp":"2014-06-30T11:01:58.640Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:01:58.641Z"}
+{"level":"info","message":"Block processed: 837657126988903920","timestamp":"2014-06-30T11:01:58.644Z"}
+{"level":"info","message":"Generating block...","timestamp":"2014-06-30T11:02:59.556Z"}
+{"level":"info","message":"Block generated: 407508426470305010","timestamp":"2014-06-30T11:02:59.571Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:02:59.572Z"}
+{"level":"info","message":"Block processed: 407508426470305010","timestamp":"2014-06-30T11:02:59.576Z"}
+{"level":"info","message":"Generating block...","timestamp":"2014-06-30T11:04:00.864Z"}
+{"level":"info","message":"Block generated: 2345788019487801692","timestamp":"2014-06-30T11:04:00.887Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:04:00.888Z"}
+{"level":"info","message":"Block processed: 2345788019487801692","timestamp":"2014-06-30T11:04:00.892Z"}
+{"level":"info","message":"Generating block...","timestamp":"2014-06-30T11:05:01.945Z"}
+{"level":"info","message":"Block generated: 10132169735467807971","timestamp":"2014-06-30T11:05:01.961Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:05:01.962Z"}
+{"level":"info","message":"Block processed: 10132169735467807971","timestamp":"2014-06-30T11:05:01.966Z"}
+{"level":"info","message":"Generating block...","timestamp":"2014-06-30T11:06:02.053Z"}
+{"level":"info","message":"Block generated: 7889482840082482853","timestamp":"2014-06-30T11:06:02.066Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:06:02.067Z"}
+{"level":"info","message":"Block processed: 7889482840082482853","timestamp":"2014-06-30T11:06:02.071Z"}
+{"level":"info","message":"Generating block...","timestamp":"2014-06-30T11:07:03.154Z"}
+{"level":"info","message":"Block generated: 5694889459582459042","timestamp":"2014-06-30T11:07:03.169Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:07:03.170Z"}
+{"level":"info","message":"Block processed: 5694889459582459042","timestamp":"2014-06-30T11:07:03.174Z"}
+{"level":"info","message":"Generating block...","timestamp":"2014-06-30T11:08:04.248Z"}
+{"level":"info","message":"Block generated: 11690088500966826810","timestamp":"2014-06-30T11:08:04.331Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:08:04.332Z"}
+{"level":"info","message":"Block processed: 11690088500966826810","timestamp":"2014-06-30T11:08:04.336Z"}
+{"level":"info","message":"Generating block...","timestamp":"2014-06-30T11:09:05.411Z"}
+{"level":"info","message":"Block generated: 226050021945138755","timestamp":"2014-06-30T11:09:05.418Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:09:05.419Z"}
+{"level":"info","message":"Block processed: 226050021945138755","timestamp":"2014-06-30T11:09:05.421Z"}
+{"level":"info","message":"Generating block...","timestamp":"2014-06-30T11:10:06.639Z"}
+{"level":"info","message":"Block generated: 6241678902322036648","timestamp":"2014-06-30T11:10:06.655Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:10:06.655Z"}
+{"level":"info","message":"Block processed: 6241678902322036648","timestamp":"2014-06-30T11:10:06.658Z"}
+{"level":"info","message":"Generating block...","timestamp":"2014-06-30T11:11:07.714Z"}
+{"level":"info","message":"Block generated: 12667251362907679835","timestamp":"2014-06-30T11:11:07.733Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:11:07.733Z"}
+{"level":"info","message":"Block processed: 12667251362907679835","timestamp":"2014-06-30T11:11:07.735Z"}
+{"level":"info","message":"Generating block...","timestamp":"2014-06-30T11:12:08.782Z"}
+{"level":"info","message":"Block generated: 5493460556797967027","timestamp":"2014-06-30T11:12:08.789Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:12:08.789Z"}
+{"level":"info","message":"Block processed: 5493460556797967027","timestamp":"2014-06-30T11:12:08.792Z"}
+{"level":"info","message":"Generating block...","timestamp":"2014-06-30T11:13:09.855Z"}
+{"level":"info","message":"Block generated: 13622576286796365383","timestamp":"2014-06-30T11:13:09.860Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:13:09.861Z"}
+{"level":"info","message":"Block processed: 13622576286796365383","timestamp":"2014-06-30T11:13:09.863Z"}
+{"level":"info","message":"Generating block...","timestamp":"2014-06-30T11:14:10.918Z"}
+{"level":"info","message":"Block generated: 4057605263916373707","timestamp":"2014-06-30T11:14:10.924Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:14:10.924Z"}
+{"level":"info","message":"Block processed: 4057605263916373707","timestamp":"2014-06-30T11:14:10.927Z"}
+{"level":"info","message":"Generating block...","timestamp":"2014-06-30T11:15:11.988Z"}
+{"level":"info","message":"Block generated: 1291720547263576121","timestamp":"2014-06-30T11:15:11.999Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:15:11.999Z"}
+{"level":"info","message":"Block processed: 1291720547263576121","timestamp":"2014-06-30T11:15:12.003Z"}
+{"level":"info","message":"Generating block...","timestamp":"2014-06-30T11:16:12.049Z"}
+{"level":"info","message":"Block generated: 3801201525268643839","timestamp":"2014-06-30T11:16:12.056Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:16:12.056Z"}
+{"level":"info","message":"Block processed: 3801201525268643839","timestamp":"2014-06-30T11:16:12.059Z"}
+{"level":"info","message":"Generating block...","timestamp":"2014-06-30T11:17:13.106Z"}
+{"level":"info","message":"Block generated: 1418554719956551924","timestamp":"2014-06-30T11:17:13.119Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:17:13.119Z"}
+{"level":"info","message":"Block processed: 1418554719956551924","timestamp":"2014-06-30T11:17:13.123Z"}
+{"level":"info","message":"Generating block...","timestamp":"2014-06-30T11:18:14.181Z"}
+{"level":"info","message":"Block generated: 1966560392894076694","timestamp":"2014-06-30T11:18:14.189Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:18:14.189Z"}
+{"level":"info","message":"Block processed: 1966560392894076694","timestamp":"2014-06-30T11:18:14.192Z"}
+{"level":"info","message":"Generating block...","timestamp":"2014-06-30T11:19:15.339Z"}
+{"level":"info","message":"Block generated: 16562541335477372209","timestamp":"2014-06-30T11:19:15.376Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:19:15.377Z"}
+{"level":"info","message":"Block processed: 16562541335477372209","timestamp":"2014-06-30T11:19:15.382Z"}
+{"level":"info","message":"Generating block...","timestamp":"2014-06-30T11:20:16.511Z"}
+{"level":"info","message":"Block generated: 3207653519238900184","timestamp":"2014-06-30T11:20:16.518Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:20:16.519Z"}
+{"level":"info","message":"Block processed: 3207653519238900184","timestamp":"2014-06-30T11:20:16.521Z"}
+{"level":"info","message":"Generating block...","timestamp":"2014-06-30T11:21:17.352Z"}
+{"level":"info","message":"Block generated: 7146690109548260538","timestamp":"2014-06-30T11:21:17.379Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:21:17.455Z"}
+{"level":"info","message":"Block processed: 7146690109548260538","timestamp":"2014-06-30T11:21:17.462Z"}
+{"level":"info","message":"Generating block...","timestamp":"2014-06-30T11:22:18.553Z"}
+{"level":"info","message":"Block generated: 16375707840112703119","timestamp":"2014-06-30T11:22:18.565Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:22:18.565Z"}
+{"level":"info","message":"Block processed: 16375707840112703119","timestamp":"2014-06-30T11:22:18.567Z"}
+{"level":"info","message":"Generating block...","timestamp":"2014-06-30T11:23:19.635Z"}
+{"level":"info","message":"Block generated: 566002422540022488","timestamp":"2014-06-30T11:23:19.641Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:23:19.641Z"}
+{"level":"info","message":"Block processed: 566002422540022488","timestamp":"2014-06-30T11:23:19.643Z"}
+{"level":"info","message":"Generating block...","timestamp":"2014-06-30T11:24:20.722Z"}
+{"level":"info","message":"Block generated: 9506985332671629219","timestamp":"2014-06-30T11:24:20.728Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:24:20.729Z"}
+{"level":"info","message":"Block processed: 9506985332671629219","timestamp":"2014-06-30T11:24:20.731Z"}
+{"level":"info","message":"Generating block...","timestamp":"2014-06-30T11:25:21.790Z"}
+{"level":"info","message":"Block generated: 7356354869703543539","timestamp":"2014-06-30T11:25:21.816Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:25:21.817Z"}
+{"level":"info","message":"Block processed: 7356354869703543539","timestamp":"2014-06-30T11:25:21.819Z"}
+{"level":"info","message":"Generating block...","timestamp":"2014-06-30T11:26:22.927Z"}
+{"level":"info","message":"Block generated: 16526179195111644789","timestamp":"2014-06-30T11:26:22.933Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:26:22.933Z"}
+{"level":"info","message":"Block processed: 16526179195111644789","timestamp":"2014-06-30T11:26:22.936Z"}
+{"level":"info","message":"Generating block...","timestamp":"2014-06-30T11:27:23.072Z"}
+{"level":"info","message":"Block generated: 14451500151654914767","timestamp":"2014-06-30T11:27:23.086Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:27:23.087Z"}
+{"level":"info","message":"Block processed: 14451500151654914767","timestamp":"2014-06-30T11:27:23.091Z"}
+{"level":"info","message":"Generating block...","timestamp":"2014-06-30T11:28:24.177Z"}
+{"level":"info","message":"Block generated: 3035756188886157169","timestamp":"2014-06-30T11:28:24.192Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:28:24.192Z"}
+{"level":"info","message":"Block processed: 3035756188886157169","timestamp":"2014-06-30T11:28:24.197Z"}
+{"level":"info","message":"Generating block...","timestamp":"2014-06-30T11:29:25.261Z"}
+{"level":"info","message":"Block generated: 15321145939717595766","timestamp":"2014-06-30T11:29:25.268Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:29:25.268Z"}
+{"level":"info","message":"Block processed: 15321145939717595766","timestamp":"2014-06-30T11:29:25.271Z"}
+{"level":"info","message":"Generating block...","timestamp":"2014-06-30T11:30:26.784Z"}
+{"level":"info","message":"Block generated: 10163566013737671921","timestamp":"2014-06-30T11:30:26.808Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:30:26.809Z"}
+{"level":"info","message":"Block processed: 10163566013737671921","timestamp":"2014-06-30T11:30:26.812Z"}
+{"level":"info","message":"Generating block...","timestamp":"2014-06-30T11:31:27.871Z"}
+{"level":"info","message":"Block generated: 9408827174197568407","timestamp":"2014-06-30T11:31:27.886Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:31:27.887Z"}
+{"level":"info","message":"Block processed: 9408827174197568407","timestamp":"2014-06-30T11:31:27.889Z"}
+{"level":"info","message":"Generating block...","timestamp":"2014-06-30T11:32:28.955Z"}
+{"level":"info","message":"Block generated: 10569835091965180639","timestamp":"2014-06-30T11:32:29.000Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:32:29.005Z"}
+{"level":"info","message":"Block processed: 10569835091965180639","timestamp":"2014-06-30T11:32:29.008Z"}
+{"level":"info","message":"Generating block...","timestamp":"2014-06-30T11:33:29.124Z"}
+{"level":"info","message":"Block generated: 10717346207066957246","timestamp":"2014-06-30T11:33:29.177Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:33:29.185Z"}
+{"level":"info","message":"Block processed: 10717346207066957246","timestamp":"2014-06-30T11:33:29.189Z"}
+{"level":"info","message":"Generating block...","timestamp":"2014-06-30T11:34:30.290Z"}
+{"level":"info","message":"Block generated: 15239193202829008890","timestamp":"2014-06-30T11:34:30.296Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:34:30.301Z"}
+{"level":"info","message":"Block processed: 15239193202829008890","timestamp":"2014-06-30T11:34:30.309Z"}
+{"level":"info","message":"Generating block...","timestamp":"2014-06-30T11:35:31.441Z"}
+{"level":"info","message":"Block generated: 6971639221716875741","timestamp":"2014-06-30T11:35:31.596Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:35:31.596Z"}
+{"level":"info","message":"Block processed: 6971639221716875741","timestamp":"2014-06-30T11:35:31.605Z"}
+{"level":"info","message":"Generating block...","timestamp":"2014-06-30T11:36:32.701Z"}
+{"level":"info","message":"Block generated: 12777444184243124066","timestamp":"2014-06-30T11:36:32.737Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:36:32.738Z"}
+{"level":"info","message":"Block processed: 12777444184243124066","timestamp":"2014-06-30T11:36:32.746Z"}
+{"level":"info","message":"Generating block...","timestamp":"2014-06-30T11:37:33.842Z"}
+{"level":"info","message":"Block generated: 7900804921923763885","timestamp":"2014-06-30T11:37:34.034Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:37:34.034Z"}
+{"level":"info","message":"Block processed: 7900804921923763885","timestamp":"2014-06-30T11:37:34.055Z"}
+{"level":"info","message":"Generating block...","timestamp":"2014-06-30T11:38:34.172Z"}
+{"level":"info","message":"Block generated: 6956665729131868600","timestamp":"2014-06-30T11:38:34.206Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:38:34.213Z"}
+{"level":"info","message":"Block processed: 6956665729131868600","timestamp":"2014-06-30T11:38:34.215Z"}
+{"level":"info","message":"Generating block...","timestamp":"2014-06-30T11:39:35.351Z"}
+{"level":"info","message":"Block generated: 12199674065375733021","timestamp":"2014-06-30T11:39:35.376Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:39:35.382Z"}
+{"level":"info","message":"Block processed: 12199674065375733021","timestamp":"2014-06-30T11:39:35.392Z"}
+{"level":"info","message":"Generating block...","timestamp":"2014-06-30T11:40:36.620Z"}
+{"level":"info","message":"Block generated: 12594344298548551273","timestamp":"2014-06-30T11:40:36.658Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:40:36.671Z"}
+{"level":"info","message":"Block processed: 12594344298548551273","timestamp":"2014-06-30T11:40:36.727Z"}
+{"level":"info","message":"Generating block...","timestamp":"2014-06-30T11:41:37.904Z"}
+{"level":"info","message":"Block generated: 3623447640110679337","timestamp":"2014-06-30T11:41:37.938Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:41:37.952Z"}
+{"level":"info","message":"Block processed: 3623447640110679337","timestamp":"2014-06-30T11:41:37.996Z"}
+{"level":"info","message":"Generating block...","timestamp":"2014-06-30T11:42:38.062Z"}
+{"level":"info","message":"Block generated: 2751461583146193007","timestamp":"2014-06-30T11:42:38.128Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:42:38.129Z"}
+{"level":"info","message":"Block processed: 2751461583146193007","timestamp":"2014-06-30T11:42:38.137Z"}
+{"level":"info","message":"Generating block...","timestamp":"2014-06-30T11:43:39.235Z"}
+{"level":"info","message":"Block generated: 3779589877326791212","timestamp":"2014-06-30T11:43:39.318Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:43:39.324Z"}
+{"level":"info","message":"Block processed: 3779589877326791212","timestamp":"2014-06-30T11:43:39.456Z"}
+{"level":"info","message":"Generating block...","timestamp":"2014-06-30T11:44:40.757Z"}
+{"level":"info","message":"Block generated: 7379125954000092408","timestamp":"2014-06-30T11:44:40.789Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:44:40.794Z"}
+{"level":"info","message":"Block processed: 7379125954000092408","timestamp":"2014-06-30T11:44:40.801Z"}
+{"level":"info","message":"Generating block...","timestamp":"2014-06-30T11:45:41.953Z"}
+{"level":"info","message":"Block generated: 17999179614772536675","timestamp":"2014-06-30T11:45:41.985Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:45:41.985Z"}
+{"level":"info","message":"Block processed: 17999179614772536675","timestamp":"2014-06-30T11:45:42.019Z"}
+{"level":"info","message":"Generating block...","timestamp":"2014-06-30T11:46:42.782Z"}
+{"level":"info","message":"Block generated: 15282385360240253296","timestamp":"2014-06-30T11:46:42.844Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:46:42.856Z"}
+{"level":"info","message":"Block processed: 15282385360240253296","timestamp":"2014-06-30T11:46:42.891Z"}
+{"level":"info","message":"Generating block...","timestamp":"2014-06-30T11:47:44.589Z"}
+{"level":"info","message":"Block generated: 8832825327090915156","timestamp":"2014-06-30T11:47:44.673Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:47:44.678Z"}
+{"level":"info","message":"Block processed: 8832825327090915156","timestamp":"2014-06-30T11:47:44.727Z"}
+{"level":"info","message":"Logger initialized","timestamp":"2014-06-30T11:48:05.800Z"}
+{"level":"info","message":"Initializing account processor...","timestamp":"2014-06-30T11:48:05.803Z"}
+{"level":"info","message":"Account processor initialized","timestamp":"2014-06-30T11:48:05.803Z"}
+{"level":"info","message":"Initializing transaction processor...","timestamp":"2014-06-30T11:48:05.803Z"}
+{"level":"info","message":"Transaction processor initialized","timestamp":"2014-06-30T11:48:05.804Z"}
+{"level":"info","message":"Initializing blockchain...","timestamp":"2014-06-30T11:48:05.804Z"}
+{"level":"info","message":"Blockchain initialized...","timestamp":"2014-06-30T11:48:05.804Z"}
+{"level":"info","message":"Initializing forger processor...","timestamp":"2014-06-30T11:48:05.804Z"}
+{"level":"info","message":"Initializing address processor...","timestamp":"2014-06-30T11:48:05.804Z"}
+{"level":"info","message":"Initializing peer processor...","timestamp":"2014-06-30T11:48:05.804Z"}
+{"level":"info","message":"Load system info...","timestamp":"2014-06-30T11:48:05.805Z"}
+{"level":"info","message":"Initializing and scanning database...","timestamp":"2014-06-30T11:48:05.805Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:48:06.457Z"}
+{"level":"info","message":"Block processed: 14200190477137330543","timestamp":"2014-06-30T11:48:06.465Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:48:06.469Z"}
+{"level":"info","message":"Block processed: 8475860048123872954","timestamp":"2014-06-30T11:48:06.525Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:48:06.540Z"}
+{"level":"info","message":"Block processed: 9827309632302513154","timestamp":"2014-06-30T11:48:06.545Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:48:06.550Z"}
+{"level":"info","message":"Block processed: 7722055884279238468","timestamp":"2014-06-30T11:48:06.563Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:48:06.570Z"}
+{"level":"info","message":"Block processed: 726903697063313020","timestamp":"2014-06-30T11:48:06.591Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:48:06.597Z"}
+{"level":"info","message":"Block processed: 15162756934566269033","timestamp":"2014-06-30T11:48:06.599Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:48:06.600Z"}
+{"level":"info","message":"Block processed: 10515640313767814753","timestamp":"2014-06-30T11:48:06.827Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:48:06.828Z"}
+{"level":"info","message":"Block processed: 3768692307740563664","timestamp":"2014-06-30T11:48:06.847Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:48:06.856Z"}
+{"level":"info","message":"Block processed: 8084061322025394216","timestamp":"2014-06-30T11:48:06.867Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:48:06.876Z"}
+{"level":"info","message":"Block processed: 15834810551086897014","timestamp":"2014-06-30T11:48:06.879Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:48:06.880Z"}
+{"level":"info","message":"Block processed: 1849033398271420307","timestamp":"2014-06-30T11:48:06.883Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:48:06.884Z"}
+{"level":"info","message":"Block processed: 1891680170551625300","timestamp":"2014-06-30T11:48:06.906Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:48:06.907Z"}
+{"level":"info","message":"Block processed: 4672804958248220661","timestamp":"2014-06-30T11:48:06.910Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:48:06.914Z"}
+{"level":"info","message":"Block processed: 15120533016568649770","timestamp":"2014-06-30T11:48:06.919Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:48:06.924Z"}
+{"level":"info","message":"Block processed: 3722533090875760695","timestamp":"2014-06-30T11:48:06.927Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:48:06.928Z"}
+{"level":"info","message":"Block processed: 13577012685653902375","timestamp":"2014-06-30T11:48:06.933Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:48:06.934Z"}
+{"level":"info","message":"Block processed: 1213939167486369042","timestamp":"2014-06-30T11:48:06.936Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:48:06.937Z"}
+{"level":"info","message":"Block processed: 437248490375720968","timestamp":"2014-06-30T11:48:06.941Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:48:06.942Z"}
+{"level":"info","message":"Block processed: 15347226958779113492","timestamp":"2014-06-30T11:48:06.944Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:48:06.946Z"}
+{"level":"info","message":"Block processed: 1627525660346001757","timestamp":"2014-06-30T11:48:06.948Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:48:06.948Z"}
+{"level":"info","message":"Block processed: 3056987979242299062","timestamp":"2014-06-30T11:48:06.950Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:48:06.951Z"}
+{"level":"info","message":"Block processed: 7742291531453911175","timestamp":"2014-06-30T11:48:06.953Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:48:06.955Z"}
+{"level":"info","message":"Block processed: 15038624086871505593","timestamp":"2014-06-30T11:48:06.957Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:48:06.960Z"}
+{"level":"info","message":"Block processed: 18112236314091324763","timestamp":"2014-06-30T11:48:06.962Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:48:06.964Z"}
+{"level":"info","message":"Block processed: 2213948058966451229","timestamp":"2014-06-30T11:48:06.966Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:48:06.967Z"}
+{"level":"info","message":"Block processed: 2468909620229128838","timestamp":"2014-06-30T11:48:06.981Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:48:06.982Z"}
+{"level":"info","message":"Block processed: 6346349227990864774","timestamp":"2014-06-30T11:48:07.041Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:48:07.061Z"}
+{"level":"info","message":"Block processed: 1864814576524934853","timestamp":"2014-06-30T11:48:07.071Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:48:07.113Z"}
+{"level":"info","message":"Block processed: 5945330632663119812","timestamp":"2014-06-30T11:48:07.125Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:48:07.129Z"}
+{"level":"info","message":"Block processed: 7711357718614829723","timestamp":"2014-06-30T11:48:07.142Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:48:07.144Z"}
+{"level":"info","message":"Block processed: 5978519623765541188","timestamp":"2014-06-30T11:48:07.146Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:48:07.147Z"}
+{"level":"info","message":"Block processed: 4483108737773097597","timestamp":"2014-06-30T11:48:07.149Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:48:07.161Z"}
+{"level":"info","message":"Block processed: 12189395298533431198","timestamp":"2014-06-30T11:48:07.175Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:48:07.483Z"}
+{"level":"info","message":"Block processed: 10537292268063979786","timestamp":"2014-06-30T11:48:07.579Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:48:07.580Z"}
+{"level":"info","message":"Block processed: 866946284853631293","timestamp":"2014-06-30T11:48:07.609Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:48:07.662Z"}
+{"level":"info","message":"Block processed: 10628326729128721928","timestamp":"2014-06-30T11:48:07.843Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:48:07.844Z"}
+{"level":"info","message":"Block processed: 14238025358709979400","timestamp":"2014-06-30T11:48:07.846Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:48:07.847Z"}
+{"level":"info","message":"Block processed: 699275096598125217","timestamp":"2014-06-30T11:48:07.850Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:48:07.851Z"}
+{"level":"info","message":"Block processed: 9839890440770938261","timestamp":"2014-06-30T11:48:07.859Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:48:07.860Z"}
+{"level":"info","message":"Block processed: 2677877641444217981","timestamp":"2014-06-30T11:48:07.866Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:48:07.870Z"}
+{"level":"info","message":"Block processed: 1784706419554697209","timestamp":"2014-06-30T11:48:07.881Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:48:07.882Z"}
+{"level":"info","message":"Block processed: 8168728453073556488","timestamp":"2014-06-30T11:48:07.999Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:48:08.100Z"}
+{"level":"info","message":"Block processed: 2126267207629523125","timestamp":"2014-06-30T11:48:08.153Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:48:08.258Z"}
+{"level":"info","message":"Block processed: 8469757079325968633","timestamp":"2014-06-30T11:48:08.278Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:48:08.308Z"}
+{"level":"info","message":"Block processed: 8938253744259900646","timestamp":"2014-06-30T11:48:08.313Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:48:08.405Z"}
+{"level":"info","message":"Block processed: 8797401267927767545","timestamp":"2014-06-30T11:48:08.408Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:48:08.409Z"}
+{"level":"info","message":"Block processed: 4541207131190086412","timestamp":"2014-06-30T11:48:08.411Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:48:08.416Z"}
+{"level":"info","message":"Block processed: 12140927165006206550","timestamp":"2014-06-30T11:48:08.505Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:48:08.511Z"}
+{"level":"info","message":"Block processed: 14266474378534420451","timestamp":"2014-06-30T11:48:08.525Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:48:08.562Z"}
+{"level":"info","message":"Block processed: 18318740857780778587","timestamp":"2014-06-30T11:48:08.585Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:48:08.597Z"}
+{"level":"info","message":"Block processed: 13845885805581513849","timestamp":"2014-06-30T11:48:08.620Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:48:08.640Z"}
+{"level":"info","message":"Block processed: 14845641043598471093","timestamp":"2014-06-30T11:48:08.654Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:48:08.658Z"}
+{"level":"info","message":"Block processed: 16959676332601072049","timestamp":"2014-06-30T11:48:08.661Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:48:08.664Z"}
+{"level":"info","message":"Block processed: 10213979526834555247","timestamp":"2014-06-30T11:48:08.708Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:48:08.710Z"}
+{"level":"info","message":"Block processed: 10048573570057340217","timestamp":"2014-06-30T11:48:08.776Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:48:08.779Z"}
+{"level":"info","message":"Block processed: 2709030405613739712","timestamp":"2014-06-30T11:48:08.782Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:48:08.795Z"}
+{"level":"info","message":"Block processed: 7874003539891594166","timestamp":"2014-06-30T11:48:08.797Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:48:08.799Z"}
+{"level":"info","message":"Block processed: 14227985241676340303","timestamp":"2014-06-30T11:48:08.805Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:48:08.811Z"}
+{"level":"info","message":"Block processed: 9783028833498274511","timestamp":"2014-06-30T11:48:08.816Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:48:08.818Z"}
+{"level":"info","message":"Block processed: 8645532531988038733","timestamp":"2014-06-30T11:48:08.821Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:48:08.823Z"}
+{"level":"info","message":"Block processed: 16824417181481286162","timestamp":"2014-06-30T11:48:08.827Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:48:08.828Z"}
+{"level":"info","message":"Block processed: 9669298177918955378","timestamp":"2014-06-30T11:48:08.830Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:48:08.831Z"}
+{"level":"info","message":"Block processed: 13971140244093106824","timestamp":"2014-06-30T11:48:08.833Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:48:08.835Z"}
+{"level":"info","message":"Block processed: 9554079981334664587","timestamp":"2014-06-30T11:48:08.839Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:48:08.851Z"}
+{"level":"info","message":"Block processed: 2310875593064174468","timestamp":"2014-06-30T11:48:08.863Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:48:08.866Z"}
+{"level":"info","message":"Block processed: 1883753577655385299","timestamp":"2014-06-30T11:48:08.871Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:48:08.872Z"}
+{"level":"info","message":"Block processed: 9881478555155975911","timestamp":"2014-06-30T11:48:08.874Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:48:08.875Z"}
+{"level":"info","message":"Block processed: 7042483147189321798","timestamp":"2014-06-30T11:48:08.878Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:48:08.879Z"}
+{"level":"info","message":"Block processed: 9213431455434038804","timestamp":"2014-06-30T11:48:08.881Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:48:08.882Z"}
+{"level":"info","message":"Block processed: 13162093978983531207","timestamp":"2014-06-30T11:48:08.884Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:48:08.885Z"}
+{"level":"info","message":"Block processed: 9282870188101949577","timestamp":"2014-06-30T11:48:08.888Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:48:08.889Z"}
+{"level":"info","message":"Block processed: 5968261474755895304","timestamp":"2014-06-30T11:48:08.892Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:48:08.893Z"}
+{"level":"info","message":"Block processed: 10513064219022040495","timestamp":"2014-06-30T11:48:08.895Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:48:08.922Z"}
+{"level":"info","message":"Block processed: 17873742051554001288","timestamp":"2014-06-30T11:48:08.936Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:48:08.939Z"}
+{"level":"info","message":"Block processed: 15524131865846084048","timestamp":"2014-06-30T11:48:08.940Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:48:08.941Z"}
+{"level":"info","message":"Block processed: 11103085436821484139","timestamp":"2014-06-30T11:48:08.943Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:48:08.944Z"}
+{"level":"info","message":"Block processed: 7086133135331832051","timestamp":"2014-06-30T11:48:08.945Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:48:08.946Z"}
+{"level":"info","message":"Block processed: 837657126988903920","timestamp":"2014-06-30T11:48:08.947Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:48:08.948Z"}
+{"level":"info","message":"Block processed: 407508426470305010","timestamp":"2014-06-30T11:48:08.950Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:48:08.951Z"}
+{"level":"info","message":"Block processed: 2345788019487801692","timestamp":"2014-06-30T11:48:08.952Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:48:08.953Z"}
+{"level":"info","message":"Block processed: 10132169735467807971","timestamp":"2014-06-30T11:48:08.955Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:48:08.956Z"}
+{"level":"info","message":"Block processed: 7889482840082482853","timestamp":"2014-06-30T11:48:08.957Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:48:08.958Z"}
+{"level":"info","message":"Block processed: 5694889459582459042","timestamp":"2014-06-30T11:48:08.959Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:48:08.960Z"}
+{"level":"info","message":"Block processed: 11690088500966826810","timestamp":"2014-06-30T11:48:08.962Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:48:08.965Z"}
+{"level":"info","message":"Block processed: 226050021945138755","timestamp":"2014-06-30T11:48:08.967Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:48:08.968Z"}
+{"level":"info","message":"Block processed: 6241678902322036648","timestamp":"2014-06-30T11:48:08.970Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:48:08.970Z"}
+{"level":"info","message":"Block processed: 12667251362907679835","timestamp":"2014-06-30T11:48:08.972Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:48:08.973Z"}
+{"level":"info","message":"Block processed: 5493460556797967027","timestamp":"2014-06-30T11:48:08.974Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:48:08.975Z"}
+{"level":"info","message":"Block processed: 13622576286796365383","timestamp":"2014-06-30T11:48:08.977Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:48:08.978Z"}
+{"level":"info","message":"Block processed: 4057605263916373707","timestamp":"2014-06-30T11:48:08.979Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:48:08.980Z"}
+{"level":"info","message":"Block processed: 1291720547263576121","timestamp":"2014-06-30T11:48:08.982Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:48:08.983Z"}
+{"level":"info","message":"Block processed: 3801201525268643839","timestamp":"2014-06-30T11:48:08.984Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:48:08.985Z"}
+{"level":"info","message":"Block processed: 1418554719956551924","timestamp":"2014-06-30T11:48:08.988Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:48:08.988Z"}
+{"level":"info","message":"Block processed: 1966560392894076694","timestamp":"2014-06-30T11:48:08.990Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:48:08.991Z"}
+{"level":"info","message":"Block processed: 16562541335477372209","timestamp":"2014-06-30T11:48:08.992Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:48:08.993Z"}
+{"level":"info","message":"Block processed: 3207653519238900184","timestamp":"2014-06-30T11:48:08.995Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:48:08.995Z"}
+{"level":"info","message":"Block processed: 7146690109548260538","timestamp":"2014-06-30T11:48:08.997Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:48:08.998Z"}
+{"level":"info","message":"Block processed: 16375707840112703119","timestamp":"2014-06-30T11:48:08.999Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:48:09.000Z"}
+{"level":"info","message":"Block processed: 566002422540022488","timestamp":"2014-06-30T11:48:09.002Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:48:09.003Z"}
+{"level":"info","message":"Block processed: 9506985332671629219","timestamp":"2014-06-30T11:48:09.004Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:48:09.005Z"}
+{"level":"info","message":"Block processed: 7356354869703543539","timestamp":"2014-06-30T11:48:09.007Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:48:09.007Z"}
+{"level":"info","message":"Block processed: 16526179195111644789","timestamp":"2014-06-30T11:48:09.009Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:48:09.013Z"}
+{"level":"info","message":"Block processed: 14451500151654914767","timestamp":"2014-06-30T11:48:09.014Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:48:09.015Z"}
+{"level":"info","message":"Block processed: 3035756188886157169","timestamp":"2014-06-30T11:48:09.017Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:48:09.018Z"}
+{"level":"info","message":"Block processed: 15321145939717595766","timestamp":"2014-06-30T11:48:09.019Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:48:09.020Z"}
+{"level":"info","message":"Block processed: 10163566013737671921","timestamp":"2014-06-30T11:48:09.022Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:48:09.023Z"}
+{"level":"info","message":"Block processed: 9408827174197568407","timestamp":"2014-06-30T11:48:09.025Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:48:09.026Z"}
+{"level":"info","message":"Block processed: 10569835091965180639","timestamp":"2014-06-30T11:48:09.028Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:48:09.029Z"}
+{"level":"info","message":"Block processed: 10717346207066957246","timestamp":"2014-06-30T11:48:09.031Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:48:09.032Z"}
+{"level":"info","message":"Block processed: 15239193202829008890","timestamp":"2014-06-30T11:48:09.033Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:48:09.034Z"}
+{"level":"info","message":"Block processed: 6971639221716875741","timestamp":"2014-06-30T11:48:09.036Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:48:09.037Z"}
+{"level":"info","message":"Block processed: 12777444184243124066","timestamp":"2014-06-30T11:48:09.038Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:48:09.039Z"}
+{"level":"info","message":"Block processed: 7900804921923763885","timestamp":"2014-06-30T11:48:09.041Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:48:09.042Z"}
+{"level":"info","message":"Block processed: 6956665729131868600","timestamp":"2014-06-30T11:48:09.043Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:48:09.044Z"}
+{"level":"info","message":"Block processed: 12199674065375733021","timestamp":"2014-06-30T11:48:09.046Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:48:09.046Z"}
+{"level":"info","message":"Block processed: 12594344298548551273","timestamp":"2014-06-30T11:48:09.048Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:48:09.049Z"}
+{"level":"info","message":"Block processed: 3623447640110679337","timestamp":"2014-06-30T11:48:09.050Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:48:09.051Z"}
+{"level":"info","message":"Block processed: 2751461583146193007","timestamp":"2014-06-30T11:48:09.053Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:48:09.053Z"}
+{"level":"info","message":"Block processed: 3779589877326791212","timestamp":"2014-06-30T11:48:09.055Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:48:09.056Z"}
+{"level":"info","message":"Block processed: 7379125954000092408","timestamp":"2014-06-30T11:48:09.057Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:48:09.061Z"}
+{"level":"info","message":"Block processed: 17999179614772536675","timestamp":"2014-06-30T11:48:09.062Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:48:09.063Z"}
+{"level":"info","message":"Block processed: 15282385360240253296","timestamp":"2014-06-30T11:48:09.065Z"}
+{"level":"info","message":"Processing new block...","timestamp":"2014-06-30T11:48:09.066Z"}
+{"level":"info","message":"Block processed: 8832825327090915156","timestamp":"2014-06-30T11:48:09.068Z"}
+{"level":"info","message":"Find or add genesis block...","timestamp":"2014-06-30T11:48:09.068Z"}
+{"level":"info","message":"Blockchain is trying to find genesis block...","timestamp":"2014-06-30T11:48:09.069Z"}
+{"level":"info","message":"Genesis block is found!","timestamp":"2014-06-30T11:48:09.069Z"}
+{"level":"info","message":"Genesis block added...","timestamp":"2014-06-30T11:48:09.069Z"}
+{"level":"info","message":"Connecting to peers...","timestamp":"2014-06-30T11:48:09.069Z"}
+{"level":"info","message":"Scanning peers...","timestamp":"2014-06-30T11:48:09.070Z"}
+{"level":"info","message":"Scanning blockchain...","timestamp":"2014-06-30T11:48:11.612Z"}
+{"level":"info","message":"Getting unconfirmed blocks...","timestamp":"2014-06-30T11:48:11.613Z"}
+{"level":"info","message":"Starting intervals...","timestamp":"2014-06-30T11:48:11.613Z"}
+{"level":"info","message":"Crypti started: 0.0.0.0:6040","timestamp":"2014-06-30T11:48:11.649Z"}
+{"level":"info","message":"Account unlocked: 3364313429379719464C","timestamp":"2014-06-30T11:49:38.298Z"}
