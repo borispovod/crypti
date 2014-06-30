@@ -73,7 +73,7 @@ addressprocessor.prototype.fromBytes = function (buffer) {
         id[i] = bb.readByte();
     }
 
-    address.id = id + "D";
+    address.id = bignum.fromBuffer(id).toString() + "D";
 
     var publicKey = new Buffer(32);
 
@@ -88,6 +88,8 @@ addressprocessor.prototype.fromBytes = function (buffer) {
     for (var i = 0; i < 32; i++) {
         generatorPublicKey[i] = bb.readByte();
     }
+
+    address.generatorPublicKey = generatorPublicKey;
 
     var signatureBuffer = new Buffer(64);
 
@@ -119,7 +121,7 @@ addressprocessor.prototype.fromByteBuffer = function (bb) {
         id[i] = bb.readByte();
     }
 
-    address.id = id;
+    address.id = bignum.fromBuffer(id).toString() + "D";
 
     var publicKey = new Buffer(32);
 
@@ -134,6 +136,8 @@ addressprocessor.prototype.fromByteBuffer = function (bb) {
     for (var i = 0; i < 32; i++) {
         generatorPublicKey[i] = bb.readByte();
     }
+
+    address.generatorPublicKey = generatorPublicKey;
 
     var signatureBuffer = new Buffer(64);
 
