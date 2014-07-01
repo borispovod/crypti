@@ -72,26 +72,30 @@ module.exports = function (app) {
                     rows = [];
                 }
 
-                var transactions = rows;
-                async.forEach(transactions, function (item, cb) {
+                var transactions = [];
+                async.eachSeries(rows, function (item, cb) {
                     var blockId = item.blockId;
-                    item.confirmations = app.blockchain.getLastBlock().height - app.blockchain.blocks[blockId].height;
-                    item.sender = app.accountprocessor.getAddressByPublicKey(new Buffer(item.senderPublicKey, 'hex'));
-                    item.timestamp += utils.epochTime();
-                    cb();
+                    if (!app.blockchain.blocks[blockId]) {
+                        cb();
+                    } else {
+                        item.confirmations = app.blockchain.getLastBlock().height - app.blockchain.blocks[blockId].height;
+                        item.sender = app.accountprocessor.getAddressByPublicKey(new Buffer(item.senderPublicKey, 'hex'));
+                        item.timestamp += utils.epochTime();
+                        transactions.push(item);
+                        cb();
+                    }
                 }, function () {
                     var unconfirmedTransactions = _.map(app.transactionprocessor.unconfirmedTransactions, function (v) { return _.extend({}, v) });
-                    async.forEach(unconfirmedTransactions, function (item, cb) {
-                        console.log("trs:");
-                        console.log(item);
+                    async.eachSeries(unconfirmedTransactions, function (item, с) {
                         if (item.recipientId == accountId || item.senderPublicKey.toString('hex') == publicKey) {
                             item.timestamp += utils.epochTime();
                             item.sender = app.accountprocessor.getAddressByPublicKey(new Buffer(item.senderPublicKey, 'hex'));
                             item.confirmations = "-";
                             item.recepient = item.recipientId;
                             transactions.unshift(item);
-                            cb();
                         }
+
+                        с();
                     }, function () {
                         return res.json({ success : true, transactions : transactions });
                     });

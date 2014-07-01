@@ -118,8 +118,6 @@ block.prototype.analyze = function () {
             this.accountprocessor.addAccount(recepient);
         }
 
-        console.log(recepient);
-
         if (t.recipientId[t.recipientId.length - 1] == "D") {
             t.type = 1;
             var address = this.app.addressprocessor.addresses[t.recipientId];
