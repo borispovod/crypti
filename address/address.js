@@ -1,9 +1,6 @@
 var ByteBuffer = require("bytebuffer"),
     ed = require('ed25519'),
     crypto = require('crypto'),
-    ecparams = require('ecurve-names')('secp256k1'),
-    ECDSA = require('ecdsa'),
-    BigInteger = require('bigi'),
     bignum = require('bignum'),
     _ = require('underscore');
 
