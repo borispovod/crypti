@@ -274,10 +274,10 @@ blockchain.prototype.pushBlock = function (buffer) {
         }
     }
 
-    if (b.previousBlock != this.getLastBlock().getId()) {
-        this.logger.error("Previous block not valid: " + b.getId() + ", " + b.previousBlock() + " must be " + this.getLastBlock().getId());
+    /*if (b.previousBlock != this.getLastBlock().getId()) {
+        this.logger.error("Previous block not valid: " + b.getId() + ", " + b.previousBlock + " must be " + this.getLastBlock().getId());
         return false;
-    }
+    }*/
 
     if (!b.analyze()) {
         this.logger.error("Block can't be analyzed: " + b.getId());
