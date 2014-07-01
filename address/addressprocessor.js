@@ -1,14 +1,9 @@
-var ecparams = require('ecurve-names')('secp256k1'),
-    ECDSA = require('ecdsa'),
-    ed  = require('ed25519'),
+var ed  = require('ed25519'),
     bignum = require('bignum'),
     Account = require("../account").account,
     crypto = require("crypto"),
-    BigInteger = require('bigi'),
-    secureRandom = require('secure-random'),
     getSECCurveByName = require('../ec').sec,
     ripemd160 = require("../ec").ripemd160,
-    base58 = require('base58-native'),
     Address = require("./address.js"),
     utils = require("../utils.js");
 

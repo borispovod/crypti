@@ -4,9 +4,9 @@
         <h2 class="account-id">Address: {{ address }}</h2>
     </div>
     <div class="raw-buttons">
-        <button class="button">Effective Balance: <span>{{ effectiveBalance }}</span><div class="coin"></div></button>
-        <button class="button">Forged:   <span>{{ totalForged }}</span><div class="coin"></div></button>
-        <button class="button">Mined:   <span>Soon</span><div class="coin"></div></button>
+        <button class="button static">Effective Balance: <span>{{ effectiveBalance }}</span><div class="coin"></div></button>
+        <button class="button static">Forged:   <span>{{ totalForged }}</span><div class="coin"></div></button>
+        <button class="button static">Mined:   <span>Soon</span><div class="coin"></div></button>
         <div id="forging">
             <h3 class="start-red" ng-show="!forging">Forging not started</h3>
             <h3 class="start-green" ng-show="forging">Forging started</h3>

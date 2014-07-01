@@ -258,6 +258,15 @@ h3.start-green {
   -moz-box-shadow: 0px 3px 0px rgba(230, 122, 122, 0.3);
   box-shadow: 0px 3px 0px rgba(230, 122, 122, 0.3);
 }
+.button.static {
+  cursor: default;
+}
+.button.static:active {
+  top: 0;
+  -webkit-box-shadow: 0px 3px 0px #d4d5d6;
+  -moz-box-shadow: 0px 3px 0px #d4d5d6;
+  box-shadow: 0px 3px 0px #d4d5d6;
+}
 .button.small {
   font-size: 13px;
   padding: 7px;
@@ -312,6 +321,10 @@ table tr {
 }
 .pointer {
   cursor: pointer;
+  text-decoration: underline;
+}
+.pointer:hover {
+  color: black;
 }
 .form {
   display: block;
@@ -494,10 +507,10 @@ span.menu-text {
   width: 350px;
   border: 1.5px solid #777;
   display: block;
-  height: 25px;
+  height: 40px;
   box-sizing: border-box;
   margin-top: 25px;
-  padding: 15px;
+  padding: 0 15px;
   color: #777;
   border-radius: 9px;
 }
@@ -507,7 +520,7 @@ span.menu-text {
 #login {
   margin: 10px 0 0 282px;
   font-size: 13px;
-  padding: 15px;
+  padding: 9px 12px;
 }
 #message {
   display: block;
