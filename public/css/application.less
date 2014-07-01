@@ -104,28 +104,37 @@ h3.start-green{
         }
     }
 
-  &.red {
-    background-color: #ED4A4A;
-    color: #fff;
-    -webkit-box-shadow: 0px 3px 0px #E67A7A;
-    -moz-box-shadow: 0px 3px 0px #E67A7A;
-    box-shadow: 0px 3px 0px #E67A7A;
+    &.red {
+        background-color: #ED4A4A;
+        color: #fff;
+        -webkit-box-shadow: 0px 3px 0px #E67A7A;
+        -moz-box-shadow: 0px 3px 0px #E67A7A;
+        box-shadow: 0px 3px 0px #E67A7A;
 
-    &:active{
-      top: 3px;
-      -webkit-box-shadow: 0px 0px 0px #E67A7A;
-      -moz-box-shadow: 0px 0px 0px #E67A7A;
-      box-shadow: 0px 0px 0px #E67A7A;
-    }
+        &:active{
+            top: 3px;
+            -webkit-box-shadow: 0px 0px 0px #E67A7A;
+            -moz-box-shadow: 0px 0px 0px #E67A7A;
+            box-shadow: 0px 0px 0px #E67A7A;
+        }
 
-    &:disabled {
-      top: 0px;
-      background-color: rgba(237, 74, 74, 0.3);
-      -webkit-box-shadow: 0px 3px 0px rgba(230, 122, 122, 0.3);
-      -moz-box-shadow: 0px 3px 0px rgba(230, 122, 122, 0.3);
-      box-shadow: 0px 3px 0px rgba(230, 122, 122, 0.3);
+        &:disabled {
+            top: 0px;
+            background-color: rgba(237, 74, 74, 0.3);
+            -webkit-box-shadow: 0px 3px 0px rgba(230, 122, 122, 0.3);
+            -moz-box-shadow: 0px 3px 0px rgba(230, 122, 122, 0.3);
+            box-shadow: 0px 3px 0px rgba(230, 122, 122, 0.3);
+        }
     }
-  }
+    &.static{
+        cursor: default;
+        &:active{
+            top: 0;
+            -webkit-box-shadow: 0px 3px 0px #d4d5d6;
+            -moz-box-shadow: 0px 3px 0px #d4d5d6;
+            box-shadow: 0px 3px 0px #d4d5d6;
+        }
+    }
 
 
 
@@ -192,45 +201,50 @@ table{
 }
 
 .pointer {
-  cursor: pointer;
+    cursor: pointer;
+    text-decoration: underline;
+
+    &:hover {
+        color: black;
+    }
 }
 
 .form {
-  display: block;
-  margin-top: 50px;
+    display: block;
+    margin-top: 50px;
 
-  .input-text {
-    padding: 5px;
-    border-radius: 5px;
-    font-size: 13px;
-    color: #777;
-    width: 100%;
-    outline: 0;
-    margin-bottom: 10px;
+    .input-text {
+        padding: 5px;
+        border-radius: 5px;
+        font-size: 13px;
+        color: #777;
+        width: 100%;
+        outline: 0;
+        margin-bottom: 10px;
 
-    -moz-box-sizing: border-box;
-    -ms-box-sizing: border-box;
-    -webkit-box-sizing: border-box;
-    box-sizing: border-box;
+        -moz-box-sizing: border-box;
+        -ms-box-sizing: border-box;
+        -webkit-box-sizing: border-box;
+        box-sizing: border-box;
 
-    &:active {
-      outline: 0;
+        &:active {
+            outline: 0;
+        }
     }
-  }
 
-  .button {
-    margin-top: 20px;
-    margin-left: 5px;
-    display: inline-block;
-  }
+    .button {
+        margin-top: 20px;
+        margin-left: 5px;
+        display: inline-block;
+    }
 }
 
 .pull-left {
-  float: left;
+    float: left;
 }
 
 .pull-right {
-  float: right;
+    float: right;
 }
 
 /*END OF JOINT STYLES*/
