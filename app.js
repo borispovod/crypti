@@ -110,16 +110,16 @@ async.series([
                     if (err) {
                         cb(err);
                     } else {
-                        async.forEach(blocks, function (item, c) {
+                        async.eachSeries(blocks, function (item, c) {
                             var b = new block(item.version, null, item.timestamp, item.previousBlock, [], item.totalAmount, item.totalFee, item.payloadLength, new Buffer(item.payloadHash, 'hex'), new Buffer(item.generatorPublicKey, 'hex'), new Buffer(item.generationSignature, 'hex'), new Buffer(item.blockSignature, 'hex'));
                             b.numberOfTransactions = item.numberOfTransactions;
                             b.numberOfAddresses = item.numberOfAddresses;
                             b.setApp(app);
+                            b.height = item.height;
                             var id = b.getId();
 
-                            console.log(id);
+                            logger.getInstance().info("Load block: " + b.getId() + ", height: " + b.height);
 
-                            //
                             var q = app.db.sql.prepare("SELECT * FROM trs WHERE blockId = ?");
                             q.bind(id);
                             q.all(function (err, rows) {
@@ -127,7 +127,7 @@ async.series([
                                     c(err);
                                 } else {
                                     var transactions = [];
-                                    async.forEach(rows, function (t, _c) {
+                                    async.eachSeries(rows, function (t, _c) {
                                         var tr = new transaction(t.type, t.id, t.timestamp, new Buffer(t.senderPublicKey, 'hex'), t.recepient, t.amount, t.deadline, t.fee, t.referencedTransaction, new Buffer(t.signature, 'hex'));
 
                                         if (!tr.verify()) {
@@ -144,14 +144,13 @@ async.series([
 
                                         var addresses = {};
 
-                                        //
                                         q = app.db.sql.prepare("SELECT * FROM addresses WHERE blockId = ?");
                                         q.bind(id);
                                         q.all(function (err, rows) {
                                             if (err) {
                                                 c(err);
                                             } else {
-                                                async.forEach(rows, function (a, _c) {
+                                                async.eachSeries(rows, function (a, _c) {
 
                                                     var addr = new address(a.version, a.id, new Buffer(a.generatorPublicKey, 'hex'), new Buffer(a.publicKey, 'hex'), a.timestamp, new Buffer(a.signature, 'hex'), new Buffer(a.accountSignature, 'hex'));
 
@@ -166,11 +165,9 @@ async.series([
                                                         return c(err);
                                                     }
 
-                                                    console.log(addresses);
 
                                                     b.addresses = addresses;
 
-                                                    console.log(genesisblock.blockId);
                                                     if (b.getId() == genesisblock.blockId) {
                                                         var a = b.analyze();
 
@@ -192,7 +189,6 @@ async.series([
 
                                                         var a = app.blockchain.pushBlock(buffer);
 
-                                                        console.log("here");
                                                         if (!a) {
                                                             c("Can't process block: " + b.getId());
                                                         } else {
@@ -652,8 +648,6 @@ async.series([
             app.use(function (req, res, next) {
                 var parts = req.url.split('/');
                 var urls = parts.filter(function (v) { return (v!=='' && v!=='/') });
-
-                console.log(urls);
 
                 if (urls[0] == "peer") {
 

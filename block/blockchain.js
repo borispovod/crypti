@@ -142,55 +142,49 @@ blockchain.prototype.pushBlock = function (buffer) {
     b.setApp(this.app);
 
     if (this.getLastBlock().previousBlock == b.previousBlock) {
+        this.logger.error("Invalid previous block: " + b.getId() + ", " + b.previousBlock + " must be " + this.getLastBlock().previousBlock);
         return false;
     }
 
     var curTime = utils.getEpochTime(new Date().getTime());
     if (b.timestamp > curTime || b.timestamp < this.getLastBlock().timestamp) {
+        this.logger.error("Invalid block (" + b.getId() + ") time: " + b.timestamp + ", current time: " + curTime + ", last block time: " + this.getLastBlock().timestamp);
         return false;
     }
 
     if (b.payloadLength > constants.maxPayloadLength || b.payloadLength + constants.blockHeaderLength != buffer.length) {
+        console.log(b.transactions);
+        console.log(b.addresses);
+        this.logger.error("Invalid payload length: " + b.getId(), " length: " + (b.payloadLength + constants.blockHeaderLength), "buffer length: " + buffer.length);
         return false;
     }
 
     b.index = Object.keys(this.blocks).length + 1;
 
-
-    console.log(b.previousBlock, this.lastBlock);
-    console.log(b.previousBlock != this.lastBlock);
-
     if (b.previousBlock != this.lastBlock || this.getBlock(b.getId()) != null || !b.verifyGenerationSignature() || !b.verifyBlockSignature()) {
+        this.logger.error("Invalid block signatures: " + b.getId() + ", previous block: " + b.previousBlock + "/" + this.lastBlock + ", generation signature verification: " + b.verifyGenerationSignature() + ", block signature verification: " + b.verifyBlockSignature());
         return false;
     }
 
+    this.logger.info("Load addresses and transactions from block: " + b.getId());
 
     b.transactions = [];
     for (var i = 0; i < b.numberOfTransactions; i++) {
         b.transactions.push(this.transactionprocessor.transactionFromBuffer(bb));
     }
 
-
-    console.log("read addresses");
-    console.log(b.numberOfAddresses);
     b.addresses = {};
     for (var i = 0; i < b.numberOfAddresses; i++) {
         var addr = this.app.addressprocessor.fromByteBuffer(bb);
-        console.log(addr);
         addr.blockId = b.getId();
         b.addresses[addr.id] = addr;
     }
 
     b.forForger = 0;
 
-    console.log(b.addresses);
-
     var c = 0;
     for (var a in b.addresses) {
-        console.log(a);
         var addr = b.addresses[a];
-
-        console.log(curTime);
 
         if (addr.timestamp > curTime ||  !addr.verify() || !addr.accountVerify()) {
             break;
@@ -208,19 +202,15 @@ blockchain.prototype.pushBlock = function (buffer) {
             break;
         }*/
 
-        console.log("here");
-
         c++;
     }
 
-    console.log(c);
-
     if (c != b.numberOfAddresses) {
+        this.logger.error("Invalid addresses count, mistake in addresses: " + b.getId() + ", number of addresses: " + b.numberOfAddresses + ", processed: " + c);
         return false;
     }
 
-    console.log("2");
-
+    this.logger.info("Process transactions in block: " + b.getId());
     var accumulatedAmounts = {};
     var i, calculatedTotalAmount = 0, calculatedTotalFee = 0;
     for (i = 0; i < b.transactions.length; i++) {
@@ -256,20 +246,10 @@ blockchain.prototype.pushBlock = function (buffer) {
         calculatedTotalFee += t.fee;
     }
 
-    console.log("5");
-    console.log(calculatedTotalAmount);
-    console.log(b.totalAmount);
-    console.log(calculatedTotalFee);
-    console.log(b.totalFee);
-    console.log(i);
-    console.log(b.transactions.length);
-
     if (calculatedTotalAmount != b.totalAmount || calculatedTotalFee != b.totalFee || i != b.transactions.length) {
+        this.logger.error("Total amount, fee, transactions count invalid: " + b.getId() + ", total amount: " + calculatedTotalAmount + "/" + b.totalAmount + ", total fee: " + calculatedTotalFee + "/" + b.totalFee + ", transactions count: " + i + "/" + b.transactions.length);
         return false;
     }
-
-    console.log("6");
-
 
     var hash = crypto.createHash('sha256');
 
@@ -280,42 +260,37 @@ blockchain.prototype.pushBlock = function (buffer) {
     var a = hash.digest();
 
     if (!bufferEqual(a, b.payloadHash)) {
+        this.logger.error("Payload hash invalid: " + b.getId());
         return false;
     }
-
-    console.log("6");
 
     for (var a in accumulatedAmounts) {
         var account = this.accountprocessor.getAccountById(a);
 
         if (account.balance < accumulatedAmounts[a]) {
+            this.logger.error("Amount not valid: " + b.getId() + ", with account: " + account.address + ", amount: " + account.balance + "/" + accumulatedAmounts[a]);
             return false;
         }
     }
 
-    console.log("6");
-
     if (b.previousBlock != this.getLastBlock().getId()) {
+        this.logger.error("Previous block not valid: " + b.getId() + ", " + b.previousBlock() + " must be " + this.getLastBlock().getId());
         return false;
     }
-
-    console.log("6");
 
     if (!b.analyze()) {
+        this.logger.error("Block can't be analyzed: " + b.getId());
         return false;
     }
-
-    console.log("5");
 
     for (var i = 0; i < b.transactions.length; i++) {
         b.transactions[i].blockId = b.getId();
 
         if (!this.transactionprocessor.addTransaction(b.transactions[i])) {
+            this.logger.error("Can't add transaction: " + b.getId() + ", transaction: " + b.transactions[i].getId());
             return false;
         }
     }
-
-    console.log("5");
 
     for (var i = 0; i < b.transactions.length; i++) {
         var r = this.transactionprocessor.removeUnconfirmedTransaction(b.transactions[i]);
@@ -327,8 +302,6 @@ blockchain.prototype.pushBlock = function (buffer) {
 
         this.transactionprocessor.getTransaction(b.transactions[i].getId()).blockId = b.getId();
     }
-
-    console.log("5");
 
     for (var i in b.addresses) {
         /*var addr = b.addresses[i];
@@ -347,8 +320,6 @@ blockchain.prototype.pushBlock = function (buffer) {
         delete this.app.addressprocessor.unconfirmedAddresses[addr.id];
     }
 
-    console.log("3");
-
     this.lastBlock = b.getId();
     this.logger.info("Block processed: " + b.getId());
 
@@ -360,7 +331,6 @@ blockchain.prototype.pushBlock = function (buffer) {
     }
 
     for (var a in b.addresses) {
-        console.log("save address");
         this.app.db.writeAddress(b.addresses[a]);
     }
 

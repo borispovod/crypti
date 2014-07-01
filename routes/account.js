@@ -301,6 +301,10 @@ module.exports = function (app) {
 
         var fee = amount / 100 * 1;
 
+        if (fee % 1 != 0) {
+            fee = fee.roundTo(8);
+        }
+
         if (!secretPharse) {
             return res.json({ success : false, error : "Provide secretPharse" });
         }

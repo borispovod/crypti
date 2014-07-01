@@ -59,7 +59,6 @@ address.prototype.getBytes = function () {
         bb.writeByte(this.publicKey[i]);
     }
 
-    console.log(this.generatorPublicKey);
     for (var i = 0; i < this.generatorPublicKey.length; i++) {
         bb.writeByte(this.generatorPublicKey[i]);
     }

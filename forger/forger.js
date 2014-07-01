@@ -144,7 +144,6 @@ forger.prototype.startForge = function () {
                         continue;
                     }
 
-                    console.log(t);
                     var sender = this.accountprocessor.getAccountByPublicKey(t.senderPublicKey);
 
                     if (!sender) {
@@ -252,11 +251,7 @@ forger.prototype.startForge = function () {
 
             block.generationSignature = ed.Sign(generationSignature, keypair);
 
-            console.log(this.secretPharse);
             block.sign(this.secretPharse);
-
-            console.log(block.verifyGenerationSignature());
-            console.log(block.verifyBlockSignature());
 
             if (block.verifyBlockSignature() && block.verifyGenerationSignature()) {
                 this.logger.info("Block generated: " + block.getId());
@@ -267,11 +262,8 @@ forger.prototype.startForge = function () {
                 }
 
                 for (var addr in newAddresses) {
-                    console.log(newAddresses[addr]);
                     buffer = Buffer.concat([buffer, newAddresses[addr].getBytes()]);
                 }
-
-                console.log("addrs count: " + block.numberOfAddresses);
 
                 this.blockchain.pushBlock(buffer, true);
             } else {
