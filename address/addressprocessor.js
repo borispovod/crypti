@@ -117,6 +117,7 @@ addressprocessor.prototype.fromByteBuffer = function (bb) {
 
     var id = new Buffer(8);
 
+
     for (var i = 0; i < 8; i++) {
         id[i] = bb.readByte();
     }
