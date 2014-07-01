@@ -161,7 +161,8 @@ blockchain.prototype.pushBlock = function (buffer) {
 
     b.index = Object.keys(this.blocks).length + 1;
 
-    if (b.previousBlock != this.lastBlock || this.getBlock(b.getId()) != null || !b.verifyGenerationSignature() || !b.verifyBlockSignature()) {
+    //b.previousBlock != this.lastBlock - removed
+    if (this.getBlock(b.getId()) != null || !b.verifyGenerationSignature() || !b.verifyBlockSignature()) {
         this.logger.error("Invalid block signatures: " + b.getId() + ", previous block: " + b.previousBlock + "/" + this.lastBlock + ", generation signature verification: " + b.verifyGenerationSignature() + ", block signature verification: " + b.verifyBlockSignature());
         return false;
     }
