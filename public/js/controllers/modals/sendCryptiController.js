@@ -12,6 +12,15 @@ webApp.controller('sendCryptiController', ["$scope", "sendCryptiModal", "$http",
         $scope.fee = fee;
     }
 
+    $scope.accountChanged = function () {
+        console.log("test");
+        if($scope.to.slice(-1)!='C' || $scope.to.slice(-1)!='D'){
+            if($scope.to.slice(0, -1).length>=1 && $scope.to.slice(0, -1).length<=20){
+                $scope.accountValid = true;
+            }
+        }
+    }
+
     $scope.sendCrypti = function () {
         $http.get("/api/sendMoney", { params : {
             secretPharse : $scope.secretPhrase,
