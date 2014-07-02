@@ -2,12 +2,12 @@
     <div class="modal-content">
         <h1 class="heading">Send Crypti</h1>
         <form class="form">
-            <input class="input-text" type="text" ng-model="to" placeholder="To">
-            <input class="input-text" type="number" ng-model="amount" placeholder="Amount" ng-change="recalculateFee()">
+            <input class="input-text" ng-class="{err: accountValid == false}" type="text" ng-model="to" placeholder="To" ng-change="accountChanged()">
+            <input class="input-text" ng-class="{err: amount < 0}" type="number" ng-model="amount"placeholder="Amount" ng-change="recalculateFee()">
             <input class="input-text" type="number" ng-model="fee" placeholder="Fee" readonly>
             <input class="input-text" type="password" ng-model="secretPhrase" placeholder="Your SecretPhrase">
             <div class="pull-right">
-                <button type="submit" class="button green small" ng-disabled="!to || !secretPhrase || !amount || !fee || amount + fee > totalBalance" ng-click="sendCrypti()">Send</button>
+                <button type="submit" class="button green small" ng-disabled="!to || !secretPhrase || !amount || !fee || amount + fee > totalBalance || amount < 0 || !accountValid" ng-click="sendCrypti()">Send</button>
                 <button class="button small" ng-click="close()">Close</button>
             </div>
         </form>
