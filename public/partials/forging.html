@@ -1,16 +1,15 @@
 <div id="mining">
     <div class="row">
-        <h1 class="heading">Mining / Forging</h1>
-        <h2 class="account-id">Address: {{ address }}</h2>
+        <h1 class="heading">Forging</h1>
+        <h2 class="account-id">Your Account: {{ address }}</h2>
     </div>
     <div class="raw-buttons">
-        <button class="button">Effective Balance: <span>{{ effectiveBalance }}</span><div class="coin"></div></button>
-        <button class="button">Forged:   <span>{{ totalForged }}</span><div class="coin"></div></button>
-        <button class="button">Mined:   <span>Soon</span><div class="coin"></div></button>
+        <button class="button static">Effective Balance: <span>{{ effectiveBalance }}</span><div class="coin"></div></button>
+        <button class="button static">Forged:   <span>{{ totalForged }}</span><div class="coin"></div></button>
+        <!--<button class="button static">Mined:   <span>Soon</span><div class="coin"></div></button>-->
         <div id="forging">
             <h3 class="start-red" ng-show="!forging">Forging not started</h3>
-            <h3 class="start-green" ng-show="forging">Forging started</h3>
-            <button ng-show="!forging" class="button green" ng-disabled="effectiveBalance <= 0" ng-click="enableForging()">Press to start</button>
+            <button class="button static" ng-show="forging">Time to generate block: - mins</button>
         </div>
     </div>
     <div id="columns">

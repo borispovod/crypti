@@ -296,6 +296,7 @@ module.exports = function (app) {
             amount = parseFloat(req.query.amount).roundTo(8),
             recepient = req.query.recepient,
             deadline = 1,
+            accountAddress = req.query.accountAddress,
             //fee = parseInt(req.query.fee),
             referencedTransaction = req.query.referencedTransaction;
 
@@ -337,8 +338,14 @@ module.exports = function (app) {
             return res.json({ success : false, error: "Deadline must be middle 0 and 25" });
         }
 
+
         var hash = crypto.createHash('sha256').update(secretPharse, 'utf8').digest();
         var keypair = ed.MakeKeypair(hash);
+
+        var address = app.accountprocessor.getAddressByPublicKey(keypair.publicKey);
+        if (accountAddress != address) {
+            return res.json({ success : false, error: "Invalid passphrase, check your passphrase please" });
+        }
 
         var sender = app.accountprocessor.getAccountByPublicKey(keypair.publicKey);
 
