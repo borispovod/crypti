@@ -293,7 +293,7 @@ module.exports = function (app) {
 
     app.get("/api/sendMoney", function (req, res) {
         var secretPharse = req.query.secretPharse,
-            amount = parseFloat(req.query.amount).roundTo(8),
+            amount = parseFloat(req.query.amount).roundTo(8).valueOf(),
             recepient = req.query.recepient,
             deadline = 1,
             accountAddress = req.query.accountAddress,
@@ -303,7 +303,7 @@ module.exports = function (app) {
         var fee = amount / 100 * 1;
 
         if (fee % 1 != 0) {
-            fee = fee.roundTo(8);
+            fee = fee.roundTo(8).valueOf();
         }
 
         if (!secretPharse) {
@@ -342,9 +342,11 @@ module.exports = function (app) {
         var hash = crypto.createHash('sha256').update(secretPharse, 'utf8').digest();
         var keypair = ed.MakeKeypair(hash);
 
-        var address = app.accountprocessor.getAddressByPublicKey(keypair.publicKey);
-        if (accountAddress != address) {
-            return res.json({ success : false, error: "Invalid passphrase, check your passphrase please" });
+        if (accountAddress) {
+            var address = app.accountprocessor.getAddressByPublicKey(keypair.publicKey);
+            if (accountAddress != address) {
+                return res.json({ success : false, error: "Invalid passphrase, check your passphrase please" });
+            }
         }
 
         var sender = app.accountprocessor.getAccountByPublicKey(keypair.publicKey);

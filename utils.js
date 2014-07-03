@@ -33,10 +33,10 @@ Number.prototype.roundTo = function( digitsCount ){
     var d = Number(s.substr(0,e) + s.substr(e+1, digitsCount));
     if( s[e1] > 4 ) d += 1;
     d /= Math.pow(10, digitsCount);
-    return d;
+    return d.valueOf();
 }
 
 Math.roundTo = function( number ,digitsCount){
     number = Number(number);
-    return number.roundTo(digitsCount);
+    return number.roundTo(digitsCount).valueOf();
 }
