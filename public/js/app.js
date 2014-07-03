@@ -20,10 +20,10 @@ webApp.config([
                 templateUrl: "/partials/account.html",
                 controller: "accountController"
             })
-            .state('main.mining', {
-                url: "/mining",
-                templateUrl: "/partials/mining.html",
-                controller: "miningController"
+            .state('main.forging', {
+                url: "/forging",
+                templateUrl: "/partials/forging.html",
+                controller: "forgingController"
             })
             .state('main.blockchain', {
                 url: "/blockchain",

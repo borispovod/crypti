@@ -1,4 +1,5 @@
 webApp.controller('sendCryptiController', ["$scope", "sendCryptiModal", "$http", function ($scope, sendCryptiModal, $http) {
+    $scope.accountValid = true;
     $scope.close = function () {
         if ($scope.destroy) {
             $scope.destroy();
@@ -12,12 +13,19 @@ webApp.controller('sendCryptiController', ["$scope", "sendCryptiModal", "$http",
         $scope.fee = fee;
     }
 
-    $scope.accountChanged = function () {
-        console.log("test");
-        if($scope.to.slice(-1)!='C' || $scope.to.slice(-1)!='D'){
-            if($scope.to.slice(0, -1).length>=1 && $scope.to.slice(0, -1).length<=20){
+    $scope.accountChanged = function (e) {
+        var string = $scope.to;
+        if(string[string.length - 1] == "D" || string[string.length - 1] == "C"){
+            var isnum = /^\d+$/.test(string.substring(0,string.length-1));
+            if(isnum && string.length-1>=1 && string.length-1<=20){
                 $scope.accountValid = true;
             }
+            else{
+                $scope.accountValid = false;
+            }
+        }
+        else{
+            $scope.accountValid = false;
         }
     }
 
