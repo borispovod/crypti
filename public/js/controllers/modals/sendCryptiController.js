@@ -1,4 +1,4 @@
-webApp.controller('sendCryptiController', ["$scope", "sendCryptiModal", "$http", function ($scope, sendCryptiModal, $http) {
+webApp.controller('sendCryptiController', ["$scope", "sendCryptiModal", "$http", "userService", function ($scope, sendCryptiModal, $http, userService) {
     $scope.accountValid = true;
     $scope.close = function () {
         if ($scope.destroy) {
@@ -34,9 +34,11 @@ webApp.controller('sendCryptiController', ["$scope", "sendCryptiModal", "$http",
             secretPharse : $scope.secretPhrase,
             amount : $scope.amount,
             recepient : $scope.to,
+            accountAddress : userService.address,
             deadline : $scope.deadline,
             fee : $scope.fee
         }}).then(function (resp) {
+            console.log(resp);
             if ($scope.destroy) {
                 $scope.destroy();
             }

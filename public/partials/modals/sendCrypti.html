@@ -6,6 +6,7 @@
             <input class="input-text" ng-class="{err: amount < 0}" type="number" ng-model="amount"placeholder="Amount" ng-change="recalculateFee()">
             <input class="input-text" ng-class="{err: fee < 0}" type="number" ng-model="fee" placeholder="Fee" readonly>
             <input class="input-text" type="password" ng-model="secretPhrase" placeholder="Your SecretPhrase">
+            <p>{{fromServer}}</p>
             <div class="pull-right">
                 <button type="submit" class="button green small" ng-disabled="!to || !secretPhrase || !amount || !fee || amount + fee > totalBalance || amount < 0 || !accountValid" ng-click="sendCrypti()">Send</button>
                 <button class="button small" ng-click="close()">Close</button>
