@@ -258,6 +258,15 @@ h3.start-green {
   -moz-box-shadow: 0px 3px 0px rgba(230, 122, 122, 0.3);
   box-shadow: 0px 3px 0px rgba(230, 122, 122, 0.3);
 }
+.button.static {
+  cursor: default;
+}
+.button.static:active {
+  top: 0;
+  -webkit-box-shadow: 0px 3px 0px #d4d5d6;
+  -moz-box-shadow: 0px 3px 0px #d4d5d6;
+  box-shadow: 0px 3px 0px #d4d5d6;
+}
 .button.small {
   font-size: 13px;
   padding: 7px;
@@ -312,6 +321,10 @@ table tr {
 }
 .pointer {
   cursor: pointer;
+  text-decoration: underline;
+}
+.pointer:hover {
+  color: black;
 }
 .form {
   display: block;
@@ -401,8 +414,8 @@ span.menu-text {
   width: 38px;
   float: left;
 }
-#mining-icon {
-  background-image: url('/images/mining.png');
+#forging-icon {
+  background-image: url('/images/forging.png');
   background-repeat: no-repeat;
   height: 30px;
   width: 38px;
@@ -470,56 +483,60 @@ span.menu-text {
   float: right;
 }
 #pass {
-  background-color: #35393b;
+  background-color: #ebeced;
   height: 100%;
 }
-#logo-black {
-  background-image: url('/images/logo.png');
+#logo-grey {
+  background-image: url('/images/logo_grey.png');
   background-repeat: no-repeat;
-  height: 37px;
-  width: 126px;
-  margin: 0 auto;
+  height: 33px;
+  width: 94px;
+  margin: 0 auto 42px auto;
+}
+#login-form {
+  width: 526px;
+  height: 220px;
+  background-color: #fff;
+  border-radius: 3px;
+  box-shadow: 0 1px rgba(0, 0, 0, 0.07);
 }
 #center {
   position: absolute;
-  width: 400px;
-  height: 188px;
-  margin-top: -94px;
-  margin-left: -200px;
+  width: 526px;
+  height: 295px;
+  margin-top: -210px;
+  margin-left: -263px;
   left: 50%;
   top: 50%;
 }
 #enter {
   font-size: 13px;
-  width: 350px;
-  border: 1.5px solid #777;
-  display: block;
-  height: 25px;
+  width: 492px;
+  border: 1px solid #ebeced;
+  height: 44px;
   box-sizing: border-box;
-  margin-top: 25px;
-  padding: 15px;
-  color: #777;
+  padding: 0 15px;
+  color: #8e8e8e;
+  margin: 16px 16px 0 16px;
+  display: inline-block;
   border-radius: 9px;
 }
 #enter:focus {
   outline: none;
 }
 #login {
-  margin: 10px 0 0 282px;
+  display: block;
+  margin: 40px auto 0 auto;
   font-size: 13px;
-  padding: 15px;
+  padding: 15px 23px 13px 20px;
 }
 #message {
   display: block;
-  position: absolute;
-  top: 80%;
-  left: 50%;
-  width: 500px;
-  text-align: center;
-  margin-top: 50px;
+  width: 492px;
+  line-height: 1.6;
+  margin: 15px auto 0 auto;
   font-size: 13px;
-  margin-left: -250px;
-  color: #777;
+  color: #d3d4d5;
 }
 .modal {
   width: 100%;
@@ -547,4 +564,7 @@ span.menu-text {
   display: block;
   clear: both;
   text-align: center;
+}
+.modal .err {
+  border: 1px solid red;
 }
