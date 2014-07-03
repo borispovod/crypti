@@ -35622,6 +35622,7 @@ webApp.controller("freeModalController", ["$scope", "freeModal", function ($scop
 }]);
 webApp.controller('sendCryptiController', ["$scope", "sendCryptiModal", "$http", "userService", function ($scope, sendCryptiModal, $http, userService) {
     $scope.accountValid = true;
+    $scope.fromServer = "";
     $scope.close = function () {
         if ($scope.destroy) {
             $scope.destroy();
@@ -35660,7 +35661,9 @@ webApp.controller('sendCryptiController', ["$scope", "sendCryptiModal", "$http",
             deadline : $scope.deadline,
             fee : $scope.fee
         }}).then(function (resp) {
-            console.log(resp);
+            if(resp.data.error){
+                $scope.fromServer = resp.data.error;
+            }
             if ($scope.destroy) {
                 $scope.destroy();
             }
