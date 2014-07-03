@@ -1,6 +1,6 @@
 module.exports = function (grunt) {
 	var files = [
-		"bower_components/jquery/jquery.js",
+		"bower_components/jquery/dist/jquery.js",
 		"bower_components/angular/angular.js",
 		"bower_components/angular-ui-router/release/angular-ui-router.js",
         "bower_components/angular-resource/angular-resource.js",

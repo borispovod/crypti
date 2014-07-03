@@ -1,7 +1,7 @@
 webApp.filter('timestampFilter', function () {
     return function (timestamp) {
         var d = new Date(timestamp * 1000);
-        var month = d.getMonth();
+        var month = d.getMonth() + 1;
 
         if (month < 10) {
             month = "0" + month;
