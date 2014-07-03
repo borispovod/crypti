@@ -1,4 +1,4 @@
-webApp.controller('miningController', ['$scope', '$rootScope', '$http', "userService", "$interval", "addressModal", "forgingModal", function($rootScope, $scope, $http, userService, $interval, addressModal, forgingModal) {
+webApp.controller('forgingController', ['$scope', '$rootScope', '$http', "userService", "$interval", "addressModal", "forgingModal", function($rootScope, $scope, $http, userService, $interval, addressModal, forgingModal) {
     $scope.address = userService.address;
     $scope.effectiveBalance = userService.effectiveBalance;
     $scope.forging = userService.forging;
