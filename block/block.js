@@ -282,8 +282,8 @@ block.prototype.getBytes = function () {
 
     bb.writeInt(this.numberOfAddresses);
     bb.writeInt(this.numberOfTransactions);
-    bb.writeFloat(this.totalAmount);
-    bb.writeFloat(this.totalFee);
+    bb.writeFloat64(this.totalAmount);
+    bb.writeFloat64(this.totalFee);
     bb.writeInt(this.payloadLength);
 
     for (var i = 0; i < this.payloadHash.length; i++) {
