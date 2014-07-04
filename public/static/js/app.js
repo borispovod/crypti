@@ -35623,6 +35623,26 @@ webApp.controller("freeModalController", ["$scope", "freeModal", function ($scop
 webApp.controller('sendCryptiController', ["$scope", "sendCryptiModal", "$http", "userService", function ($scope, sendCryptiModal, $http, userService) {
     $scope.accountValid = true;
     $scope.fromServer = "";
+
+    Number.prototype.roundTo = function( digitsCount ){
+        var digitsCount = typeof digitsCount !== 'undefined' ? digitsCount : 2;
+        var s = String(this);
+        var e = s.indexOf('.');
+        if( e == -1 ) return this;
+        var c = s.length - e - 1;
+        if( c < digitsCount ) digitsCount = c;
+        var e1 = e + 1 + digitsCount;
+        var d = Number(s.substr(0,e) + s.substr(e+1, digitsCount));
+        if( s[e1] > 4 ) d += 1;
+        d /= Math.pow(10, digitsCount);
+        return d.valueOf();
+    }
+
+    Math.roundTo = function( number ,digitsCount){
+        number = Number(number);
+        return number.roundTo(digitsCount).valueOf();
+    }
+
     $scope.close = function () {
         if ($scope.destroy) {
             $scope.destroy();
@@ -35631,10 +35651,30 @@ webApp.controller('sendCryptiController', ["$scope", "sendCryptiModal", "$http",
         sendCryptiModal.deactivate();
     }
 
-    $scope.recalculateFee = function () {
-        var fee = $scope.amount / 100 * 1;
-        $scope.fee = fee;
+    $scope.moreThanEightDigits = function(number) {
+        if (number.toString().indexOf(".") < 0) {
+            return false;
+        }
+        else{
+            if(number.toString().split('.')[1].length>8){
+                return true;
+            }
+            else{
+                return false;
+            }
+        }
     }
+
+    $scope.recalculateFee = function () {
+        if($scope.moreThanEightDigits($scope.amount)){
+            $scope.amount = $scope.amount.roundTo(8);
+        }
+        if($scope.currentFee){
+            var fee = $scope.amount * $scope.currentFee * 0.01;
+        }
+        $scope.fee = fee.roundTo(8);
+    }
+
 
     $scope.accountChanged = function (e) {
         var string = $scope.to;
@@ -35652,6 +35692,27 @@ webApp.controller('sendCryptiController', ["$scope", "sendCryptiModal", "$http",
         }
     }
 
+    $scope.moreThanEightDigits = function (number) {
+        if (number.toString().indexOf(".") < 0) {
+            return false;
+        }
+        else{
+            if(number.toString().split('.')[1].length>8){
+                return true;
+            }
+            else{
+                return false;
+            }
+        }
+    }
+
+    $scope.getCurrentFee = function () {
+        $http.get("/api/getCurrentFee", { params : { accountId : userService.address }})
+            .then(function (resp) {
+                $scope.currentFee = resp.data.currentFee;
+            });
+    }
+
     $scope.sendCrypti = function () {
         $http.get("/api/sendMoney", { params : {
             secretPharse : $scope.secretPhrase,
@@ -35662,6 +35723,7 @@ webApp.controller('sendCryptiController', ["$scope", "sendCryptiModal", "$http",
             fee : $scope.fee
         }}).then(function (resp) {
             if(resp.data.error){
+                console.log(resp.data.error);
                 $scope.fromServer = resp.data.error;
             }
             if ($scope.destroy) {
@@ -35671,6 +35733,7 @@ webApp.controller('sendCryptiController', ["$scope", "sendCryptiModal", "$http",
             sendCryptiModal.deactivate();
         });
     }
+    $scope.getCurrentFee();
 }]);
 webApp.controller('passphraseController', ['$scope', '$rootScope', '$http', "$state", "userService",
     function($rootScope, $scope, $http, $state, userService) {
