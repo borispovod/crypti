@@ -50,8 +50,8 @@ blockchain.prototype.blockFromBytes = function (buffer) {
     b.timestamp = bb.readInt();
     b.previousBlock = bb.readLong();
     b.numbersOfTransactions = bb.readInt();
-    b.totalAmount = bb.readFloat();
-    b.totalFee = bb.readFloat();
+    b.totalAmount = bb.readFloat64();
+    b.totalFee = bb.readFloat64();
     b.payloadLength = bb.readInt();
 
     var payloadHash = new Buffer(32);
@@ -104,8 +104,8 @@ blockchain.prototype.pushBlock = function (buffer) {
     b.previousBlock = bignum.fromBuffer(pb).toString();
     b.numberOfAddresses = bb.readInt();
     b.numberOfTransactions = bb.readInt();
-    b.totalAmount = bb.readFloat();
-    b.totalFee = bb.readFloat();
+    b.totalAmount = bb.readFloat64();
+    b.totalFee = bb.readFloat64();
     b.payloadLength = bb.readInt();
 
     var payloadHash = new Buffer(32);
@@ -375,8 +375,6 @@ module.exports.addGenesisBlock = function (app, cb) {
         bc.lastBlock = b.getId();
         t.blockId = genesisblock.blockId;
 
-        //b.sign("nY4NxXNd9velmtPxRN6TS8JLDR2dMGzkyL51p1sTPefA3tY9SzWBZT6GYlxyUgCQhSrJsoLiXHiuGqFVZTEObqI5BWgua6i5MAk");
-        //console.log(b.blockSignature.toString('hex'), b.getId());
         b.setApp(app);
 
         var r = b.analyze();
