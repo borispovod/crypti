@@ -10,7 +10,7 @@ var genesisblock = require("./genesisblock.js"),
     bufferEqual = require('buffer-equal');
 
 var blockchain = function (app) {
-    this.app = app;
+     this.app = app;
     this.accountprocessor = this.app.accountprocessor;
     this.transactionprocessor = this.app.transactionprocessor;
     this.logger = this.app.logger;
@@ -18,6 +18,7 @@ var blockchain = function (app) {
     this.db = this.app.db;
     this.blocks = {};
     this.lastBlock = null;
+    this.fee = 1;
 }
 
 blockchain.prototype.getBlock = function (id) {
@@ -232,11 +233,18 @@ blockchain.prototype.pushBlock = function (buffer) {
         }
 
         if (utils.moreThanEightDigits(t.amount)) {
-            return res.json({ success : false, error: "Amount must have less than 8 digits after the dot" });
+            this.logger.error("Amount must have less than 8 digits after the dot");
+            return false;
         }
 
         if (utils.moreThanEightDigits(t.fee)) {
-            return res.json({ success : false, error: "Fee must have less than 8 digits after the dot" });
+            this.logger.error("Fee must have less than 8 digits after the dot");
+            return false;
+        }
+
+        if (t.amount * app.transactions.fee * 0.01 != t.fee){
+            this.logger.error("Fee is not correct");
+            return false;
         }
 
         var sender = this.accountprocessor.getAccountByPublicKey(t.senderPublicKey);
