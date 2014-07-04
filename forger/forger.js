@@ -241,6 +241,7 @@ forger.prototype.startForge = function () {
 
             var previousBlockHash = crypto.createHash('sha256').update(previousBlock.getBytes()).digest();
 
+            console.log(previousBlock.getId());
             var block = new Block(1, null, blockTimestamp, previousBlock.getId(), null, totalAmount, totalFee, payloadLength, payloadHash, publicKey, generationSignature, null);
             block.numberOfAddresses = Object.keys(newAddresses).length;
             block.setApp(this.app);
