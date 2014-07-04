@@ -38,8 +38,8 @@ transaction.prototype.getBytes = function () {
         bb.writeByte(recepient[i] || 0);
     }
 
-    bb.writeFloat(this.amount);
-    bb.writeFloat(this.fee);
+    bb.writeFloat64(this.amount);
+    bb.writeFloat64(this.fee);
 
     if (this.referencedTransaction) {
         var referncedTransactionBuffer = bignum(this.referencedTransaction).toBuffer();
