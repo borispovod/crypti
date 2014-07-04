@@ -156,7 +156,7 @@ blockchain.prototype.pushBlock = function (buffer) {
         console.log(b.transactions);
         console.log(b.addresses);
         this.logger.error("Invalid payload length: " + b.getId(), " length: " + (b.payloadLength + constants.blockHeaderLength), "buffer length: " + buffer.length);
-        return false;
+        //return false;
     }
 
     b.index = Object.keys(this.blocks).length + 1;
