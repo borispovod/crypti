@@ -18,6 +18,20 @@ module.exports = {
         var t = parseInt(d.getTime() / 1000);
 
         return t;
+    },
+
+    moreThanEightDigits : function (number) {
+        if (number.toString().indexOf(".") < 0) {
+            return false;
+        }
+        else{
+            if(number.toString().split('.')[1].length>8){
+                return true;
+            }
+            else{
+                return false;
+            }
+        }
     }
 
 }

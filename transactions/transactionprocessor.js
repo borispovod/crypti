@@ -1,7 +1,8 @@
 var transaction = require("./transactions.js"),
     epochTime = require('../utils.js').getEpochTime,
     accountprocessor = require("../account").accountprocessor,
-    bignum = require('bignum');
+    bignum = require('bignum'),
+    utils = require("../utils.js");
 
 var transactionprocessor = function () {
     this.transactions = {};
@@ -41,6 +42,14 @@ transactionprocessor.prototype.processTransaction = function (transaction) {
     var id = transaction.getId();
     if (this.transactions[id] || this.unconfirmedTransactions[id] || this.doubleSpendingTransactions[id] || !transaction.verify()) {
         return false;
+    }
+
+    if (utils.moreThanEightDigits(transaction.amount)) {
+        return res.json({ success : false, error: "Amount must have less than 8 digits after the dot" });
+    }
+
+    if (utils.moreThanEightDigits(transaction.fee)) {
+        return res.json({ success : false, error: "Fee must have less than 8 digits after the dot" });
     }
 
     var isDoubleSpending = false;
