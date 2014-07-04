@@ -156,7 +156,7 @@ blockchain.prototype.pushBlock = function (buffer) {
         console.log(b.transactions);
         console.log(b.addresses);
         this.logger.error("Invalid payload length: " + b.getId(), " length: " + (b.payloadLength + constants.blockHeaderLength), "buffer length: " + buffer.length);
-        //return false;
+        return false;
     }
 
     b.index = Object.keys(this.blocks).length + 1;
@@ -165,6 +165,16 @@ blockchain.prototype.pushBlock = function (buffer) {
     if (this.getBlock(b.getId()) != null || !b.verifyGenerationSignature() || !b.verifyBlockSignature()) {
         this.logger.error("Invalid block signatures: " + b.getId() + ", previous block: " + b.previousBlock + "/" + this.lastBlock + ", generation signature verification: " + b.verifyGenerationSignature() + ", block signature verification: " + b.verifyBlockSignature());
         return false;
+    }
+
+    if (utils.moreThanEightDigits(b.totalAmount)) {
+        this.logger.error ("Amount must have less than 8 digits after the dot");
+        return false;
+    }
+
+    if (utils.moreThanEightDigits(b.totalFee)) {
+        this.logger.error ("Fee must have less than 8 digits after the dot");
+        return false
     }
 
     this.logger.info("Load addresses and transactions from block: " + b.getId());
@@ -219,6 +229,14 @@ blockchain.prototype.pushBlock = function (buffer) {
 
         if (t.timestamp > curTime || t.deadline < 1 || t.deadline > 24 || t.timestamp + (t.deadline * 60 * 60) < b.timestamp || t.fee < 0 || t.fee >= 99999999 || this.transactionprocessor.getTransaction(t.getId()) || (t.referencedTransaction != "0" && this.transactionprocessor.getTransaction(t.referencedTransaction) == null || (this.transactionprocessor.getUnconfirmedTransaction(t.getId()) && !t.verify()))) {
             break;
+        }
+
+        if (utils.moreThanEightDigits(t.amount)) {
+            return res.json({ success : false, error: "Amount must have less than 8 digits after the dot" });
+        }
+
+        if (utils.moreThanEightDigits(t.fee)) {
+            return res.json({ success : false, error: "Fee must have less than 8 digits after the dot" });
         }
 
         var sender = this.accountprocessor.getAccountByPublicKey(t.senderPublicKey);
