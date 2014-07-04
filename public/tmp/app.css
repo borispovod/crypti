@@ -568,3 +568,6 @@ span.menu-text {
 .modal .err {
   border: 1px solid red;
 }
+.modal p.fee {
+  margin: 0 0 10px 5px;
+}
