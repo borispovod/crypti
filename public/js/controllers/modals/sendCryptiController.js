@@ -40,6 +40,7 @@ webApp.controller('sendCryptiController', ["$scope", "sendCryptiModal", "$http",
             fee : $scope.fee
         }}).then(function (resp) {
             if(resp.data.error){
+                console.log(resp.data.error);
                 $scope.fromServer = resp.data.error;
             }
             if ($scope.destroy) {

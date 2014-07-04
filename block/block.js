@@ -262,7 +262,7 @@ block.prototype.getBaseTarget = function (previousBlock) {
 }*/
 
 block.prototype.getBytes = function () {
-    var size = 4 + 4 + 8 + 4 + 4 + 4 + 4 + 4 + 32 + 32 + 64 + 64;
+    var size = 4 + 4 + 8 + 4 + 4 + 8 + 8 + 4 + 32 + 32 + 64 + 64;
 
     var bb = new ByteBuffer(size, true);
     bb.writeInt(this.version);
