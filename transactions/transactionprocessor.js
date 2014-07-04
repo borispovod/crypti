@@ -45,11 +45,13 @@ transactionprocessor.prototype.processTransaction = function (transaction) {
     }
 
     if (utils.moreThanEightDigits(transaction.amount)) {
-        return res.json({ success : false, error: "Amount must have less than 8 digits after the dot" });
+        this.logger.error("Amount must have less than 8 digits after the dot");
+        return false;
     }
 
     if (utils.moreThanEightDigits(transaction.fee)) {
-        return res.json({ success : false, error: "Fee must have less than 8 digits after the dot" });
+        this.logger.error("Fee must have less than 8 digits after the dot" );
+        return false;
     }
 
     var isDoubleSpending = false;
