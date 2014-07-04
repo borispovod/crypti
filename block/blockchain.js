@@ -42,7 +42,7 @@ blockchain.prototype.blockFromJSON = function (jsonObj) {
 }
 
 blockchain.prototype.blockFromBytes = function (buffer) {
-    var bb = ByteBuffer.wrap(buffer);
+    var bb = ByteBuffer.wrap(buffer, true);
     bb.flip();
     var b = new block();
 
@@ -87,6 +87,7 @@ blockchain.prototype.blockFromBytes = function (buffer) {
 }
 
 blockchain.prototype.pushBlock = function (buffer) {
+    console.log(buffer.length);
     this.logger.info("Processing new block...");
     var bb = ByteBuffer.wrap(buffer, true);
     bb.flip();
@@ -101,7 +102,7 @@ blockchain.prototype.pushBlock = function (buffer) {
         pb[i] = bb.readByte();
     }
 
-    b.previousBlock = bignum.fromBuffer(pb).toString();
+    b.previousBlock = bignum.fromBuffer(pb, { size : 'auto' }).toString();
     b.numberOfAddresses = bb.readInt();
     b.numberOfTransactions = bb.readInt();
     b.totalAmount = bb.readFloat64();
@@ -153,16 +154,13 @@ blockchain.prototype.pushBlock = function (buffer) {
     }
 
     if (b.payloadLength > constants.maxPayloadLength || b.payloadLength + constants.blockHeaderLength != buffer.length) {
-        console.log(b.transactions);
-        console.log(b.addresses);
         this.logger.error("Invalid payload length: " + b.getId(), " length: " + (b.payloadLength + constants.blockHeaderLength), "buffer length: " + buffer.length);
-        //return false;
+        return false;
     }
 
     b.index = Object.keys(this.blocks).length + 1;
 
-    //b.previousBlock != this.lastBlock - removed
-    if (this.getBlock(b.getId()) != null || !b.verifyGenerationSignature() || !b.verifyBlockSignature()) {
+    if (b.previousBlock != this.lastBlock || this.getBlock(b.getId()) != null || !b.verifyGenerationSignature() || !b.verifyBlockSignature()) {
         this.logger.error("Invalid block signatures: " + b.getId() + ", previous block: " + b.previousBlock + "/" + this.lastBlock + ", generation signature verification: " + b.verifyGenerationSignature() + ", block signature verification: " + b.verifyBlockSignature());
         return false;
     }
@@ -274,10 +272,10 @@ blockchain.prototype.pushBlock = function (buffer) {
         }
     }
 
-    /*if (b.previousBlock != this.getLastBlock().getId()) {
+    if (b.previousBlock != this.getLastBlock().getId()) {
         this.logger.error("Previous block not valid: " + b.getId() + ", " + b.previousBlock + " must be " + this.getLastBlock().getId());
         return false;
-    }*/
+    }
 
     if (!b.analyze()) {
         this.logger.error("Block can't be analyzed: " + b.getId());
@@ -354,6 +352,9 @@ module.exports.addGenesisBlock = function (app, cb) {
     if (!b) {
         var t = new transaction(0, null, 0, new Buffer(genesisblock.sender, 'hex'), genesisblock.recipient, 99999999, 0, 1, null, new Buffer(genesisblock.trSignature, 'hex'));
 
+        //t.sign("nY4NxXNd9velmtPxRN6TS8JLDR2dMGzkyL51p1sTPefA3tY9SzWBZT6GYlxyUgCQhSrJsoLiXHiuGqFVZTEObqI5BWgua6i5MAk");
+        //console.log(t.signature.toString('hex'));
+
         if (!t.verify()) {
             app.logger.error("Genesis transaction has not valid signature")
             return null;
@@ -374,6 +375,10 @@ module.exports.addGenesisBlock = function (app, cb) {
         b.numberOfTransactions = 1;
         bc.lastBlock = b.getId();
         t.blockId = genesisblock.blockId;
+
+        //b.sign("nY4NxXNd9velmtPxRN6TS8JLDR2dMGzkyL51p1sTPefA3tY9SzWBZT6GYlxyUgCQhSrJsoLiXHiuGqFVZTEObqI5BWgua6i5MAk");
+        //console.log(b.blockSignature.toString('hex'));
+        //console.log(b.getId());
 
         b.setApp(app);
 

@@ -89,7 +89,7 @@ block.prototype.analyze = function () {
         this.blockchain.blocks[this.getId()] = this;
 
         this.baseTarget = this.getBaseTarget();
-        this.cumulativeDifficulty = this.blockchain.getBlock(this.previousBlock).cumulativeDifficulty.add(bignum(constants.two64).div(bignum(this.baseTarget.toString())));
+        //this.cumulativeDifficulty = this.blockchain.getBlock(this.previousBlock).cumulativeDifficulty.add(bignum(constants.two64).div(bignum(this.baseTarget.toString())));
         var a = this.accountprocessor.getAccountByPublicKey(this.generatorPublicKey);
         a.setApp(this.app);
         this.accountprocessor.addAccount(a);
@@ -269,10 +269,10 @@ block.prototype.getBytes = function () {
     bb.writeInt(this.timestamp);
 
     if (this.previousBlock) {
-        var pb = bignum(this.previousBlock).toBuffer();
+        var pb = bignum(this.previousBlock).toBuffer({ size : '8' });
 
         for (var i = 0; i < 8; i++) {
-            bb.writeByte(pb[i] || 0);
+            bb.writeByte(pb[i]);
         }
     } else {
         for (var i = 0; i < 8; i++) {
