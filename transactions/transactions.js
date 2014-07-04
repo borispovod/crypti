@@ -20,7 +20,7 @@ var transaction = function(type, id, timestamp, senderPublicKey, recipientId, am
 }
 
 transaction.prototype.getBytes = function () {
-    var bb = new ByteBuffer(1 + 1 + 4 + 2 + 32 + 8 + 4 + 4 + 8 + 64, true);
+    var bb = new ByteBuffer(1 + 1 + 4 + 2 + 32 + 8 + 8 + 8 + 8 + 64, true);
     bb.writeByte(this.type);
     bb.writeByte(this.subtype);
     bb.writeInt(this.timestamp);
