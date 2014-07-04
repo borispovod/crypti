@@ -293,7 +293,7 @@ module.exports = function (app) {
 
     app.get("/api/sendMoney", function (req, res) {
         var secretPharse = req.query.secretPharse,
-            amount = parseFloat(req.query.amount).roundTo(8).valueOf(),
+            amount = parseFloat(req.query.amount).valueOf(),
             recepient = req.query.recepient,
             deadline = 1,
             accountAddress = req.query.accountAddress,
@@ -303,7 +303,7 @@ module.exports = function (app) {
         var fee = amount / 100 * 1;
 
         if (fee % 1 != 0) {
-            fee = fee.roundTo(8).valueOf();
+            fee = fee.valueOf();
         }
 
         if (!secretPharse) {
@@ -332,6 +332,14 @@ module.exports = function (app) {
 
         if (fee <= 0 || fee >= 1000 * 1000 * 1000) {
             return res.json({ success : false, error: "Fee must be middle 0 or 1000000000" });
+        }
+
+        if (utils.moreThanEightDigits(amount)) {
+            return res.json({ success : false, error: "Amount must have less than 8 digits after the dot" });
+        }
+
+        if (utils.moreThanEightDigits(fee)) {
+            return res.json({ success : false, error: "Fee must have less than 8 digits after the dot" });
         }
 
         if (deadline <= 0 || deadline > 24) {
