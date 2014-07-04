@@ -47,7 +47,9 @@ webApp.controller('sendCryptiController', ["$scope", "sendCryptiModal", "$http",
         if($scope.moreThanEightDigits($scope.amount)){
             $scope.amount = $scope.amount.roundTo(8);
         }
-        var fee = $scope.amount / 100 * 1;
+        if($scope.currentFee){
+            var fee = $scope.amount * $scope.currentFee * 0.01;
+        }
         $scope.fee = fee.roundTo(8);
     }
 
@@ -82,6 +84,13 @@ webApp.controller('sendCryptiController', ["$scope", "sendCryptiModal", "$http",
         }
     }
 
+    $scope.getCurrentFee = function () {
+        $http.get("/api/getCurrentFee", { params : { accountId : userService.address }})
+            .then(function (resp) {
+                $scope.currentFee = resp.data.currentFee;
+            });
+    }
+
     $scope.sendCrypti = function () {
         $http.get("/api/sendMoney", { params : {
             secretPharse : $scope.secretPhrase,
@@ -102,4 +111,5 @@ webApp.controller('sendCryptiController', ["$scope", "sendCryptiModal", "$http",
             sendCryptiModal.deactivate();
         });
     }
+    $scope.getCurrentFee();
 }]);
