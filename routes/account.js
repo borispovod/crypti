@@ -384,4 +384,8 @@ module.exports = function (app) {
             }
         }
     });
+
+    app.get("/api/getCurrentFee", function (req, res) {
+        return res.json ({currentFee : app.blockchain.fee});
+    });
 }
