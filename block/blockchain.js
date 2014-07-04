@@ -10,7 +10,7 @@ var genesisblock = require("./genesisblock.js"),
     bufferEqual = require('buffer-equal');
 
 var blockchain = function (app) {
-    this.app = app;
+     this.app = app;
     this.accountprocessor = this.app.accountprocessor;
     this.transactionprocessor = this.app.transactionprocessor;
     this.logger = this.app.logger;
@@ -18,6 +18,7 @@ var blockchain = function (app) {
     this.db = this.app.db;
     this.blocks = {};
     this.lastBlock = null;
+    this.fee = 0.00025;
 }
 
 blockchain.prototype.getBlock = function (id) {
@@ -165,6 +166,16 @@ blockchain.prototype.pushBlock = function (buffer) {
         return false;
     }
 
+    if (utils.moreThanEightDigits(b.totalAmount)) {
+        this.logger.error ("Amount must have less than 8 digits after the dot");
+        return false;
+    }
+
+    if (utils.moreThanEightDigits(b.totalFee)) {
+        this.logger.error ("Fee must have less than 8 digits after the dot");
+        return false
+    }
+
     this.logger.info("Load addresses and transactions from block: " + b.getId());
 
     b.transactions = [];
@@ -217,6 +228,21 @@ blockchain.prototype.pushBlock = function (buffer) {
 
         if (t.timestamp > curTime || t.deadline < 1 || t.deadline > 24 || t.timestamp + (t.deadline * 60 * 60) < b.timestamp || t.fee < 0 || t.fee >= 99999999 || this.transactionprocessor.getTransaction(t.getId()) || (t.referencedTransaction != "0" && this.transactionprocessor.getTransaction(t.referencedTransaction) == null || (this.transactionprocessor.getUnconfirmedTransaction(t.getId()) && !t.verify()))) {
             break;
+        }
+
+        if (utils.moreThanEightDigits(t.amount)) {
+            this.logger.error("Amount must have less than 8 digits after the dot");
+            return false;
+        }
+
+        if (utils.moreThanEightDigits(t.fee)) {
+            this.logger.error("Fee must have less than 8 digits after the dot");
+            return false;
+        }
+
+        if (t.amount * app.transactions.fee * 0.01 != t.fee){
+            this.logger.error("Fee is not correct");
+            return false;
         }
 
         var sender = this.accountprocessor.getAccountByPublicKey(t.senderPublicKey);
