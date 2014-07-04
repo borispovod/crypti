@@ -18,7 +18,7 @@ var blockchain = function (app) {
     this.db = this.app.db;
     this.blocks = {};
     this.lastBlock = null;
-    this.fee = 1;
+    this.fee = 0.00025;
 }
 
 blockchain.prototype.getBlock = function (id) {
