@@ -138,15 +138,16 @@ webApp.controller('sendCryptiController', ["$scope", "sendCryptiModal", "$http",
             deadline : $scope.deadline,
             fee : $scope.fee
         }}).then(function (resp) {
-            if(resp.data.error){
-                console.log(resp.data.error);
+            if(resp.data.error == "Invalid passphrase, check your passphrase please"){
                 $scope.fromServer = resp.data.error;
             }
-            if ($scope.destroy) {
-                $scope.destroy();
-            }
+            else{
+                if ($scope.destroy) {
+                    $scope.destroy();
+                }
 
-            sendCryptiModal.deactivate();
+                sendCryptiModal.deactivate();
+            }
         });
     }
     $scope.getCurrentFee();
