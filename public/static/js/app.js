@@ -35437,12 +35437,12 @@ webApp.controller('accountController', ['$scope', '$rootScope', '$http', "userSe
                 $scope.balance = userService.balance;
                 $scope.unconfirmedBalance = userService.unconfirmedBalance;
                 $scope.effectiveBalance = userService.effectiveBalance;
-                if($scope.balance>9999 || $scope.unconfirmedBalance>9999 || effectiveBalance>9999){
+                /*if($scope.balance>9999 || $scope.unconfirmedBalance>9999 || effectiveBalance>9999){
                     $(".button").css({
                         "margin": "0",
                         "padding": "15px 13px 13px"
                     });
-                }
+                }*/
             });
     }
 
@@ -35623,19 +35623,24 @@ webApp.controller("freeModalController", ["$scope", "freeModal", function ($scop
 webApp.controller('sendCryptiController', ["$scope", "sendCryptiModal", "$http", "userService", function ($scope, sendCryptiModal, $http, userService) {
     $scope.accountValid = true;
     $scope.fromServer = "";
+    $scope.maxlength = 8;
 
     Number.prototype.roundTo = function( digitsCount ){
         var digitsCount = typeof digitsCount !== 'undefined' ? digitsCount : 2;
         var s = String(this);
-        var e = s.indexOf('.');
-        if( e == -1 ) return this;
-        var c = s.length - e - 1;
-        if( c < digitsCount ) digitsCount = c;
-        var e1 = e + 1 + digitsCount;
-        var d = Number(s.substr(0,e) + s.substr(e+1, digitsCount));
-        if( s[e1] > 4 ) d += 1;
-        d /= Math.pow(10, digitsCount);
-        return d.valueOf();
+        if (s.indexOf('e') < 0) {
+            var e = s.indexOf('.');
+            if (e == -1) return this;
+            var c = s.length - e - 1;
+            if (c < digitsCount) digitsCount = c;
+            var e1 = e + 1 + digitsCount;
+            var d = Number(s.substr(0, e) + s.substr(e + 1, digitsCount));
+            if (s[e1] > 4) d += 1;
+            d /= Math.pow(10, digitsCount);
+            return d.valueOf();
+        } else {
+            return this.toFixed(digitsCount);
+        }
     }
 
     Math.roundTo = function( number ,digitsCount){
@@ -35652,11 +35657,11 @@ webApp.controller('sendCryptiController', ["$scope", "sendCryptiModal", "$http",
     }
 
     $scope.moreThanEightDigits = function(number) {
-        if (number.toString().indexOf(".") < 0) {
+        if (number.indexOf(".") < 0) {
             return false;
         }
         else{
-            if(number.toString().split('.')[1].length>8){
+            if(number.split('.')[1].length > 8){
                 return true;
             }
             else{
@@ -35665,19 +35670,52 @@ webApp.controller('sendCryptiController', ["$scope", "sendCryptiModal", "$http",
         }
     }
 
-    $scope.recalculateFee = function () {
-        if($scope.moreThanEightDigits($scope.amount)){
-            $scope.amount = $scope.amount.roundTo(8);
+    $scope.recalculateFee = function ($event) {
+        if (!$scope.amount || $scope.amount == 0) {
+            $scope.fee = "";
+        } else {
+            if ($scope.amount.indexOf('.') >= 0) {
+                var strs = $scope.amount.split('.');
+                $scope.maxlength = strs[0].length + 9;
+            }
+            // calculate fee.
+            var fee = ($scope.amount / 100 * $scope.currentFee).roundTo(8);
+            if (parseFloat(fee) == 0) {
+                fee = "0.00000001";
+
+            }
+
+            $scope.fee = fee;
+        }
+
+        /*
+        if (!$scope.amount) {
+            $scope.fee = "";
+            return;
+        }
+
+        if($scope.moreThanEightDigits(parseFloat($scope.amount))){
+            console.log('fee');
+            $scope.amount = parseFloat($scope.amount).roundTo(8).toString();
+            console.log($scope.amount);
         }
         if($scope.currentFee){
             var fee = $scope.amount * $scope.currentFee * 0.01;
         }
+
+
         $scope.fee = fee.roundTo(8);
+        */
     }
 
 
     $scope.accountChanged = function (e) {
         var string = $scope.to;
+
+        if (!string) {
+            return;
+        }
+
         if(string[string.length - 1] == "D" || string[string.length - 1] == "C"){
             var isnum = /^\d+$/.test(string.substring(0,string.length-1));
             if(isnum && string.length-1>=1 && string.length-1<=20){
