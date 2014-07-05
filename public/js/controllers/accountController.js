@@ -20,7 +20,7 @@ webApp.controller('accountController', ['$scope', '$rootScope', '$http', "userSe
                 $scope.balance = userService.balance;
                 $scope.unconfirmedBalance = userService.unconfirmedBalance;
                 $scope.effectiveBalance = userService.effectiveBalance;
-                /*if($scope.balance>9999 || $scope.unconfirmedBalance>9999 || effectiveBalance>9999){
+                /*if($scope.balance > 9999 || $scope.unconfirmedBalance > 9999 || $scope.effectiveBalance > 9999){
                     $(".button").css({
                         "margin": "0",
                         "padding": "15px 13px 13px"

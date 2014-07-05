@@ -9,7 +9,7 @@
             <input class="input-text" type="password" ng-model="secretPhrase" placeholder="Your SecretPhrase">
             <p>{{fromServer}}</p>
             <div class="pull-right">
-                <button type="submit" class="button green small" ng-disabled="!to || !secretPhrase || !amount || !fee || amount + fee > totalBalance || amount < 0 || !accountValid" ng-click="sendCrypti()">Send</button>
+                <button type="submit" class="button green small" ng-disabled="!to || !secretPhrase || !amount || !fee || parseInt(amount + fee) > totalBalance || parseInt(amount) < 0 || !accountValid" ng-click="sendCrypti()">Send</button>
                 <button class="button small" ng-click="close()">Close</button>
             </div>
         </form>
