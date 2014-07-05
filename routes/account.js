@@ -116,6 +116,7 @@ module.exports = function (app) {
 
     app.get("/api/getAddress", function (req, res) {
         var secretPharse = req.query.secretPharse || "";
+        var accountAddress = req.query.accountAddress || "";
 
         if (secretPharse.length == 0) {
             return res.json({ success : false, error : "SecretPharse not provided" })
