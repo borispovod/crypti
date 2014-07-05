@@ -3,8 +3,8 @@
         <h1 class="heading">Send Crypti</h1>
         <form class="form">
             <input class="input-text" ng-class="{err: !accountValid}" type="text" ng-model="to" placeholder="To" ng-blur="accountChanged($event)">
-            <input class="input-text" ng-class="{err: amount < 0}" type="number" ng-model="amount"placeholder="Amount" ng-change="recalculateFee()">
-            <input class="input-text" ng-class="{err: fee < 0}" type="number" ng-model="fee" placeholder="Network fee percent: {{currentFee}}%" readonly>
+            <input class="input-text" ng-class="{err: amount < 0}" type="text" ng-model="amount"placeholder="Amount" ng-change="recalculateFee($event)" maxlength="{{ maxlength }}">
+            <input class="input-text" ng-class="{err: fee < 0}" type="text" ng-model="fee" placeholder="Network fee percent: {{currentFee}}%" readonly>
             <!--<p class="fee">{{currentFee}}%</p>-->
             <input class="input-text" type="password" ng-model="secretPhrase" placeholder="Your SecretPhrase">
             <p>{{fromServer}}</p>
