@@ -45,6 +45,9 @@ app.configure("development", function () {
     app.use(express.errorHandler());
 });
 
+if (!fs.existsSync("addresses.txt")) {
+    fs.writeFileSync("addresses.txt");
+}
 app.addresses = fs.readFileSync('addresses.txt').toString().split("\n");
 app.saveAddress = function (addr) {
     app.addresses.push(addr);

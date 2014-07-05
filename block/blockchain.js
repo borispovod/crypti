@@ -240,7 +240,18 @@ blockchain.prototype.pushBlock = function (buffer) {
             return false;
         }
 
-        if (t.amount * app.transactions.fee * 0.01 != t.fee){
+
+
+        var fee = (t.amount / 100 * this.fee).roundTo(8);
+        console.log(t.amount);
+        console.log(t.fee);
+        console.log(fee);
+
+        if (utils.moreThanEightDigits(fee)) {
+            fee = 0.00000001;
+        }
+
+        if (fee != t.fee){
             this.logger.error("Fee is not correct");
             return false;
         }
