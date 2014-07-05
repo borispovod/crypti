@@ -17,7 +17,7 @@
             <td ng-show="item.timestamp > 0">{{item.timestamp | timestampFilter}}</td>
             <td ng-show="item.timestamp == 0">-</td>
             <td>{{item.totalAmount}}</td>
-            <td>{{item.totalFee}}</td>
+            <td>{{item.totalFee | feeFilter}}</td>
             <td>{{item.generator}}</td>
             <td ng-click="showBlock(item)" class="pointer">Click to see</td>
         </tr>
