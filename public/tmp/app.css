@@ -467,6 +467,10 @@ span.menu-text {
   height: 100%;
   overflow-y: scroll;
 }
+#account #paddingFix .button {
+  margin: 0px;
+  padding: 15px 13px 13px;
+}
 #forging {
   float: right;
 }
