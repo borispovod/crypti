@@ -471,6 +471,12 @@ span.menu-text {
   margin: 0px;
   padding: 15px 13px 13px;
 }
+#account #transactions {
+  margin-bottom: 20px;
+}
+#blockchain #blocks {
+  margin-bottom: 20px;
+}
 #forging {
   float: right;
 }
@@ -484,7 +490,11 @@ span.menu-text {
 }
 #newAddress {
   margin-top: 20px;
+  margin-bottom: 20px;
   float: right;
+}
+#blocks {
+  margin-bottom: 20px;
 }
 #pass {
   background-color: #ebeced;

@@ -210,57 +210,6 @@ module.exports = function (app) {
         });
     });
 
-    app.get('/api/getLastBlocks', function (req, res) {
-        app.db.sql.all("SELECT * FROM blocks ORDER BY timestamp DESC LIMIT 100", function (err, rows) {
-            if (err) {
-                app.logger.error(err);
-                return res.json({ success : false, blocks : [] });
-            } else {
-                async.forEach(rows, function (item, callback) {
-                    item.timestamp += utils.epochTime();
-                    item.generator = app.accountprocessor.getAddressByPublicKey(new Buffer(item.generatorPublicKey, 'hex'));
-
-                    app.db.sql.all("SELECT * FROM trs WHERE blockId='" + item.id + "'", function (err, rows) {
-                        if (err) {
-                            callback(err);
-                        } else {
-                            item.transactions = rows;
-
-                            async.forEach(item.transactions, function (t, cb) {
-                                t.sender = app.accountprocessor.getAddressByPublicKey(new Buffer(t.senderPublicKey, 'hex'));
-                                t.timestamp += utils.epochTime();
-                                cb();
-                            }, function () {
-                                app.db.sql.all("SELECT * FROM addresses WHERE blockId='" + item.id + "'", function (err, rows) {
-                                    if (err) {
-                                        callback(err);
-                                    } else {
-                                        item.addresses = rows;
-
-                                        async.forEach(item.addresses, function (a, c) {
-                                            a.generator = app.accountprocessor.getAddressByPublicKey(new Buffer(a.generatorPublicKey, 'hex'));
-                                            a.address = app.accountprocessor.getAddressByPublicKey(new Buffer(a.publicKey, 'hex'));
-                                            c();
-                                        }, function () {
-                                            callback();
-                                        });
-                                    }
-                                });
-                            });
-                        }
-                    });
-                }, function (err) {
-                    if (err) {
-                        app.logger.error(err);
-                    }
-
-                    return res.json({ success : true, blocks : rows });
-                });
-            }
-        });
-    });
-
-
     app.get('/api/getMiningInfo', function (req, res) {
         var publicKey = req.query.publicKey || "";
         var totalForged = 0,
@@ -313,6 +262,56 @@ module.exports = function (app) {
                             });
                         });
                     }
+                });
+            }
+        });
+    });
+
+    app.get('/api/getLastBlocks', function (req, res) {
+        app.db.sql.all("SELECT * FROM blocks ORDER BY timestamp DESC LIMIT 20", function (err, rows) {
+            if (err) {
+                app.logger.error(err);
+                return res.json({ success : false, blocks : [] });
+            } else {
+                async.forEach(rows, function (item, callback) {
+                    item.timestamp += utils.epochTime();
+                    item.generator = app.accountprocessor.getAddressByPublicKey(new Buffer(item.generatorPublicKey, 'hex'));
+
+                    app.db.sql.all("SELECT * FROM trs WHERE blockId='" + item.id + "'", function (err, rows) {
+                        if (err) {
+                            callback(err);
+                        } else {
+                            item.transactions = rows;
+
+                            async.forEach(item.transactions, function (t, cb) {
+                                t.sender = app.accountprocessor.getAddressByPublicKey(new Buffer(t.senderPublicKey, 'hex'));
+                                t.timestamp += utils.epochTime();
+                                cb();
+                            }, function () {
+                                app.db.sql.all("SELECT * FROM addresses WHERE blockId='" + item.id + "'", function (err, rows) {
+                                    if (err) {
+                                        callback(err);
+                                    } else {
+                                        item.addresses = rows;
+
+                                        async.forEach(item.addresses, function (a, c) {
+                                            a.generator = app.accountprocessor.getAddressByPublicKey(new Buffer(a.generatorPublicKey, 'hex'));
+                                            a.address = app.accountprocessor.getAddressByPublicKey(new Buffer(a.publicKey, 'hex'));
+                                            c();
+                                        }, function () {
+                                            callback();
+                                        });
+                                    }
+                                });
+                            });
+                        }
+                    });
+                }, function (err) {
+                    if (err) {
+                        app.logger.error(err);
+                    }
+
+                    return res.json({ success : true, blocks : rows });
                 });
             }
         });
