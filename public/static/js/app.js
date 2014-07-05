@@ -35437,7 +35437,7 @@ webApp.controller('accountController', ['$scope', '$rootScope', '$http', "userSe
                 $scope.balance = userService.balance;
                 $scope.unconfirmedBalance = userService.unconfirmedBalance;
                 $scope.effectiveBalance = userService.effectiveBalance;
-                /*if($scope.balance>9999 || $scope.unconfirmedBalance>9999 || effectiveBalance>9999){
+                /*if($scope.balance > 9999 || $scope.unconfirmedBalance > 9999 || $scope.effectiveBalance > 9999){
                     $(".button").css({
                         "margin": "0",
                         "padding": "15px 13px 13px"
@@ -35825,6 +35825,30 @@ webApp.factory('sendCryptiModal', function (btfModal) {
 webApp.factory('userFactory',["userService", function (userService) {
     return {};
 }]);
+webApp.filter('feeFilter', function () {
+    return function (fee) {
+        var r = fee.toFixed(8);
+        var clear = "";
+        var findValue = false;
+        for (var i = r.length - 1; i >= 0; i--) {
+            if (findValue) {
+                clear += r[i];
+            } else {
+                if (r[i] != '0') {
+                    findValue = true;
+                    clear += r[i];
+                }
+            }
+        }
+
+        var result = clear.split("").reverse().join("");
+        if (result[result.length - 1] == '.') {
+            result = result.substr(0, result.length - 2);
+        }
+
+        return result;
+    }
+});
 webApp.filter('timestampFilter', function () {
     return function (timestamp) {
         var d = new Date(timestamp * 1000);

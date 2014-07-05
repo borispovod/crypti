@@ -3,12 +3,12 @@
         <h1 class="heading">Account</h1>
         <h2 class="account-id">Your account: {{ address }}</h2>
     </div>
-    <div class="raw-buttons">
+    <div class="raw-buttons" id="paddingFix">
         <button class="button green" ng-click="sendCrypti()">Send Crypti</button>
         <button class="button red" ng-click="sendFree()">Free Crypti</button>
-        <button class="button static">Total balance:   <span>{{ balance }}</span><div class="coin"></div></button>
-        <button class="button static">Unconfirmed balance:   <span>{{ unconfirmedBalance }}</span> <div class="coin"></div></button>
-        <button class="button static">Effective balance:   <span>{{ effectiveBalance }}</span> <div class="coin"></div></button>
+        <button class="button static">Total balance:   <span>{{ balance | feeFilter }}</span><div class="coin"></div></button>
+        <button class="button static">Unconfirmed balance:   <span>{{ unconfirmedBalance | feeFilter }}</span> <div class="coin"></div></button>
+        <button class="button static">Effective balance:   <span>{{ effectiveBalance | feeFilter }}</span> <div class="coin"></div></button>
     </div>
     <h1>Transactions</h1>
     <table border="0" width="100%" cellpadding="0" cellspacing="0">
@@ -26,7 +26,7 @@
             <td>{{transaction.sender}}</td>
             <td>{{transaction.recepient || transaction.recepientId }}</td>
             <td>{{transaction.timestamp | timestampFilter}}</td>
-            <td>{{transaction.fee}}</td>
+            <td>{{transaction.fee | feeFilter}}</td>
             <td>{{transaction.amount}}</td>
             <td>{{transaction.confirmations}}</td>
         </tr>

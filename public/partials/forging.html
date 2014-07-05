@@ -4,8 +4,8 @@
         <h2 class="account-id">Your Account: {{ address }}</h2>
     </div>
     <div class="raw-buttons">
-        <button class="button static">Effective Balance: <span>{{ effectiveBalance }}</span><div class="coin"></div></button>
-        <button class="button static">Forged:   <span>{{ totalForged }}</span><div class="coin"></div></button>
+        <button class="button static">Effective Balance: <span>{{ effectiveBalance | feeFilter }}</span><div class="coin"></div></button>
+        <button class="button static">Forged:   <span>{{ totalForged | feeFilter }}</span><div class="coin"></div></button>
         <!--<button class="button static">Mined:   <span>Soon</span><div class="coin"></div></button>-->
         <div id="forging">
             <h3 class="start-red" ng-show="!forging">Forging not started</h3>
@@ -26,7 +26,7 @@
                     <td>{{item.id}}</td>
                     <td ng-show="item.timestamp > 0">{{item.timestamp | timestampFilter}}</td>
                     <td>{{item.totalAmount}}</td>
-                    <td>{{item.totalFee}}</td>
+                    <td>{{item.totalFee | feeFilter}}</td>
                 </tr>
                 <tr ng-show="!blocks || blocks.length == 0">
                     <td colspan="4">
