@@ -35564,7 +35564,7 @@ webApp.controller('forgingController', ['$scope', '$rootScope', '$http', "userSe
     }
 
 }]);
-webApp.controller('addressModalController', ["$scope", "addressModal", "$http", function ($scope, addressModal, $http) {
+webApp.controller('addressModalController', ["$scope", "addressModal", "$http", "userService", function ($scope, addressModal, $http, userService) {
     $scope.close = function () {
         if ($scope.destroy) {
             $scope.destroy();
@@ -35574,14 +35574,20 @@ webApp.controller('addressModalController', ["$scope", "addressModal", "$http", 
     }
 
     $scope.newAddress = function () {
-        $http.get("/api/newAddress", { params : { secretPharse : $scope.secretPhrase }})
-            .then(function (resp) {
+        $http.get("/api/newAddress", { params : {
+            secretPharse : $scope.secretPhrase,
+            accountAddress : userService.address
+        }}).then(function (resp) {
+            if(resp.data.error == "Invalid passphrase, check your passphrase please"){
+                $scope.fromServer = resp.data.error;
+            }
+            else{
                 if ($scope.destroy) {
                     $scope.destroy();
                 }
-
                 addressModal.deactivate(resp.data.address);
-            });
+            }
+           });
     }
 }]);
 webApp.controller('blockModalController', ["$scope", "blockModal", function ($scope, blockModal) {
@@ -35760,15 +35766,16 @@ webApp.controller('sendCryptiController', ["$scope", "sendCryptiModal", "$http",
             deadline : $scope.deadline,
             fee : $scope.fee
         }}).then(function (resp) {
-            if(resp.data.error){
-                console.log(resp.data.error);
+            if(resp.data.error == "Invalid passphrase, check your passphrase please"){
                 $scope.fromServer = resp.data.error;
             }
-            if ($scope.destroy) {
-                $scope.destroy();
-            }
+            else{
+                if ($scope.destroy) {
+                    $scope.destroy();
+                }
 
-            sendCryptiModal.deactivate();
+                sendCryptiModal.deactivate();
+            }
         });
     }
     $scope.getCurrentFee();

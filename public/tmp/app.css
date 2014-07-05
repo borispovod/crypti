@@ -585,3 +585,6 @@ span.menu-text {
 .modal p.fee {
   margin: 0 0 10px 5px;
 }
+.modal p.error {
+  color: #ed4a4a;
+}
