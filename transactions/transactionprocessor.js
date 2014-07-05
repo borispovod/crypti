@@ -36,11 +36,23 @@ transactionprocessor.prototype.processTransaction = function (transaction) {
 
     var currentTime = epochTime(new Date().getTime());
     if (transaction.timestamp > currentTime || transaction.deadline < 1 || transaction.timestamp + transaction.deadline < currentTime || transaction.fee <= 0) {
+        this.logger.error("Can't verify transaction: " + transaction.getId());
         return false;
     }
 
     var id = transaction.getId();
     if (this.transactions[id] || this.unconfirmedTransactions[id] || this.doubleSpendingTransactions[id] || !transaction.verify()) {
+        this.logger.error("Can't verify transaction: " + transaction.getId() + ", it's already exist");
+        return false;
+    }
+
+    var fee = (transaction.amount / 100 * this.app.blockchain.fee).roundTo(8);
+    if (fee == 0) {
+        fee = 0.00000001;
+    }
+
+    if (fee != transaction.fee) {
+        this.logger.error("Transaction has not valid fee");
         return false;
     }
 

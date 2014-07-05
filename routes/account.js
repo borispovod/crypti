@@ -57,18 +57,18 @@ module.exports = function (app) {
 
                 if (result) {
                     app.logger.info("Forger started: " + address);
-                    res.json({ success : true, address : address, publickey : account.publickey.toString('hex'), balance : account.balance, unconfirmedBalance : account.unconfirmedBalance, effectiveBalance : account.getEffectiveBalance(), forging : { success : true } });
+                    res.json({ success : true, address : address, publickey : account.publickey.toString('hex'), balance : account.balance.roundTo(8), unconfirmedBalance : account.unconfirmedBalance.roundTo(8), effectiveBalance : account.getEffectiveBalance().roundTo(8), forging : { success : true } });
                 } else {
                     app.logger.info("Forger can't start, it's already working: " + address);
-                    res.json({ success : true, address : address, publickey : account.publickey.toString('hex'), balance : account.balance, unconfirmedBalance : account.unconfirmedBalance, effectiveBalance : account.getEffectiveBalance(), forging : { error : "Forger can't start, it's already working: " + address, success : false } });
+                    res.json({ success : true, address : address, publickey : account.publickey.toString('hex'), balance : account.balance.roundTo(8), unconfirmedBalance : account.unconfirmedBalance.roundTo(8), effectiveBalance : account.getEffectiveBalance().roundTo(8), forging : { error : "Forger can't start, it's already working: " + address, success : false } });
 
                 }
             } else {
                 app.logger.info("Can't start forging, effective balance equal to 0: " + address);
-                res.json({ success : true, address : address, publickey : account.publickey.toString('hex'), balance : account.balance, unconfirmedBalance : account.unconfirmedBalance, effectiveBalance : account.getEffectiveBalance(), forging : { error : "Can't start forging, effective balance equal to 0: " + address, success : false } });
+                res.json({ success : true, address : address, publickey : account.publickey.toString('hex'), balance : account.balance.roundTo(8), unconfirmedBalance : account.unconfirmedBalance.roundTo(8), effectiveBalance : account.getEffectiveBalance().roundTo(8), forging : { error : "Can't start forging, effective balance equal to 0: " + address, success : false } });
             }
         } else {
-            var info = { success : true, address : address, publickey : account.publickey.toString('hex'), balance : account.balance, unconfirmedBalance : account.unconfirmedBalance, effectiveBalance : account.getEffectiveBalance() };
+            var info = { success : true, address : address, publickey : account.publickey.toString('hex'), balance : account.balance.roundTo(8), unconfirmedBalance : account.unconfirmedBalance.roundTo(8), effectiveBalance : account.getEffectiveBalance().roundTo(8) };
 
             if (app.forgerprocessor.getForgers(account.address)) {
                 info.forging = true;
@@ -95,7 +95,7 @@ module.exports = function (app) {
             info.unconfirmedBalance = 0;
             info.effectiveBalance = 0;
         } else {
-            info = { success : true, balance : account.balance, unconfirmedBalance : account.unconfirmedBalance, effectiveBalance : account.getEffectiveBalance() };
+            info = { success : true, balance : account.balance.roundTo(8), unconfirmedBalance : account.unconfirmedBalance.roundTo(8), effectiveBalance : account.getEffectiveBalance().roundTo(8) };
         }
 
         return res.json(info);
@@ -293,18 +293,30 @@ module.exports = function (app) {
 
     app.get("/api/sendMoney", function (req, res) {
         var secretPharse = req.query.secretPharse,
-            amount = parseFloat(req.query.amount).valueOf(),
+            amount = parseFloat(req.query.amount).roundTo(8),
             recepient = req.query.recepient,
             deadline = 1,
             accountAddress = req.query.accountAddress,
             //fee = parseInt(req.query.fee),
             referencedTransaction = req.query.referencedTransaction;
 
-        var fee = amount / 100 * 1;
 
-        if (fee % 1 != 0) {
+        var fee = amount / 100 * app.blockchain.fee;
+        fee = fee.roundTo(8);
+
+        if (fee == 0) {
+            fee = 0.00000001;
+        }
+
+        if (fee.valueOf) {
             fee = fee.valueOf();
         }
+
+        if (amount.valueOf) {
+            amount = amount.valueOf();
+        }
+
+        console.log(amount, fee);
 
         if (!secretPharse) {
             return res.json({ success : false, error : "Provide secretPharse" });
