@@ -7,10 +7,11 @@ var genesisblock = require("./genesisblock.js"),
     constants = require("../Constants.js"),
     ByteBuffer = require("bytebuffer"),
     bignum = require('bignum'),
-    bufferEqual = require('buffer-equal');
+    bufferEqual = require('buffer-equal'),
+    Long = require("long");
 
 var blockchain = function (app) {
-     this.app = app;
+    this.app = app;
     this.accountprocessor = this.app.accountprocessor;
     this.transactionprocessor = this.app.transactionprocessor;
     this.logger = this.app.logger;
@@ -18,7 +19,10 @@ var blockchain = function (app) {
     this.db = this.app.db;
     this.blocks = {};
     this.lastBlock = null;
-    this.fee = 1;
+
+    this.fee = constants.feeStart;
+    this.nextFeeVolume = constants.feeStartVolume;
+    this.actualFeeVolume = 0;
 }
 
 blockchain.prototype.getBlock = function (id) {
@@ -51,8 +55,8 @@ blockchain.prototype.blockFromBytes = function (buffer) {
     b.timestamp = bb.readInt();
     b.previousBlock = bb.readLong();
     b.numbersOfTransactions = bb.readInt();
-    b.totalAmount = bb.readFloat64();
-    b.totalFee = bb.readFloat64();
+    b.totalAmount = bb.readInt();
+    b.totalFee = bb.readInt();
     b.payloadLength = bb.readInt();
 
     var payloadHash = new Buffer(32);
@@ -88,7 +92,6 @@ blockchain.prototype.blockFromBytes = function (buffer) {
 }
 
 blockchain.prototype.pushBlock = function (buffer) {
-    console.log(buffer.length);
     this.logger.info("Processing new block...");
     var bb = ByteBuffer.wrap(buffer, true);
     bb.flip();
@@ -106,8 +109,12 @@ blockchain.prototype.pushBlock = function (buffer) {
     b.previousBlock = bignum.fromBuffer(pb, { size : 'auto' }).toString();
     b.numberOfAddresses = bb.readInt();
     b.numberOfTransactions = bb.readInt();
-    b.totalAmount = bb.readFloat64();
-    b.totalFee = bb.readFloat64();
+
+    var amountLong = bb.readLong();
+    b.totalAmount  = new Long(amountLong.low, amountLong.high, false).toNumber();
+    var feeLong = bb.readLong();
+    b.totalFee = new Long(feeLong.low, feeLong.high, false).toNumber();
+
     b.payloadLength = bb.readInt();
 
     var payloadHash = new Buffer(32);
@@ -166,7 +173,7 @@ blockchain.prototype.pushBlock = function (buffer) {
         return false;
     }
 
-    if (utils.moreThanEightDigits(b.totalAmount)) {
+    /*if (utils.moreThanEightDigits(b.totalAmount)) {
         this.logger.error ("Amount must have less than 8 digits after the dot");
         return false;
     }
@@ -174,7 +181,7 @@ blockchain.prototype.pushBlock = function (buffer) {
     if (utils.moreThanEightDigits(b.totalFee)) {
         this.logger.error ("Fee must have less than 8 digits after the dot");
         return false
-    }
+    }*/
 
     this.logger.info("Load addresses and transactions from block: " + b.getId());
 
@@ -195,22 +202,31 @@ blockchain.prototype.pushBlock = function (buffer) {
     var c = 0;
     for (var a in b.addresses) {
         var addr = b.addresses[a];
+        addr.height = b.height;
+        addr.blockId = b.getId();
 
         if (addr.timestamp > curTime ||  !addr.verify() || !addr.accountVerify()) {
             break;
         }
 
-        /*var generator = addr.generatorPublicKey;
-
-        if (typeof generator == 'string') {
-            generator = new Buffer(generator, 'hex');
+        if (!addr.verify() || !addr.accountVerify()) {
+            this.logger.error("Invalid addr signatures: " + addr.id + ", " + addr.verify() + "/" + addr.accountVerify());
+            return false;
         }
 
-        var account = this.app.accountprocessor.getAccountByPublicKey(generator);
+        if (this.app.addressprocessor.addresses[addr.id]) {
+            this.logger.error("Address already exists: " + addr.id);
+            return false;
+        }
+
+        this.app.addressprocessor.addresses[addr.id] = addr;
+
+        var account = this.app.accountprocessor.getAccountByPublicKey(addr.generatorPublicKey);
 
         if (!account || account.getEffectiveBalance() <= 0) {
+            this.logger.error("Account not found or effective balance equal 0: " + account.address + "/" + account.getEffectiveBalance() + " for address: " + addr.id);
             break;
-        }*/
+        }
 
         c++;
     }
@@ -226,33 +242,23 @@ blockchain.prototype.pushBlock = function (buffer) {
     for (i = 0; i < b.transactions.length; i++) {
         var t = b.transactions[i];
 
-        if (t.timestamp > curTime || t.deadline < 1 || t.deadline > 24 || t.timestamp + (t.deadline * 60 * 60) < b.timestamp || t.fee < 0 || t.fee >= 99999999 || this.transactionprocessor.getTransaction(t.getId()) || (t.referencedTransaction != "0" && this.transactionprocessor.getTransaction(t.referencedTransaction) == null || (this.transactionprocessor.getUnconfirmedTransaction(t.getId()) && !t.verify()))) {
+        if (t.timestamp > curTime || t.deadline < 1 || t.deadline > 24 || t.timestamp + (t.deadline * 60 * 60) < b.timestamp || t.fee < 0 || t.fee >= 99999999 * constants.numberLength || this.transactionprocessor.getTransaction(t.getId()) || (t.referencedTransaction != "0" && this.transactionprocessor.getTransaction(t.referencedTransaction) == null || (this.transactionprocessor.getUnconfirmedTransaction(t.getId()) && !t.verify()))) {
             break;
         }
 
-        if (utils.moreThanEightDigits(t.amount)) {
-            this.logger.error("Amount must have less than 8 digits after the dot");
-            return false;
+        var fee = parseInt(t.amount / 100.00 * this.fee);
+
+        /*
+        if (parseInt(fee) != fee) {
+            fee = 1;
+        }*/
+
+        if (fee == 0) {
+            fee = 1;
         }
 
-        if (utils.moreThanEightDigits(t.fee)) {
-            this.logger.error("Fee must have less than 8 digits after the dot");
-            return false;
-        }
-
-
-
-        var fee = (t.amount / 100 * this.fee).roundTo(8);
-        console.log(t.amount);
-        console.log(t.fee);
-        console.log(fee);
-
-        if (utils.moreThanEightDigits(fee)) {
-            fee = 0.00000001;
-        }
-
-        if (fee != t.fee){
-            this.logger.error("Fee is not correct");
+        if (fee != t.fee) {
+            this.logger.error("Fee is not correct: " + fee + "/" + t.fee);
             return false;
         }
 
@@ -261,17 +267,42 @@ blockchain.prototype.pushBlock = function (buffer) {
             accumulatedAmounts[sender.address] = 0;
         }
 
+        if (t.type == 1 && t.recipientId[t.recipientId.length - 1] != "D") {
+            break;
+        }
+
+        if (t.type == 0 && t.recipientId[t.recipientId.length - 1] != "C") {
+            break;
+        }
+
+        if (t.type == 1) {
+            if (!this.app.addressprocessor.addresses[t.recipientId]) {
+                break;
+            }
+        }
+
         accumulatedAmounts[sender.address] += t.amount + t.fee;
         if (t.type == 0) {
             if (t.subtype == 0) {
                 calculatedTotalAmount += t.amount;
+                b.forForger += t.fee;
             } else {
                 break;
             }
         } else if (t.type == 1) {
             if (t.subtype == 0) {
                 calculatedTotalAmount += t.amount;
-                b.forForger += t.fee / 2;
+
+                if (t.fee >= 2) {
+                    if (t.fee % 2 != 0) {
+                        var r = t.fee % 2;
+                        b.forForger += t.fee / 2 + r;
+                    } else {
+                        b.forForger += t.fee / 2;
+                    }
+                } else {
+                    b.forForger += t.fee;
+                }
             } else {
                 break;
             }
@@ -281,6 +312,7 @@ blockchain.prototype.pushBlock = function (buffer) {
 
         calculatedTotalFee += t.fee;
     }
+
 
     if (calculatedTotalAmount != b.totalAmount || calculatedTotalFee != b.totalFee || i != b.transactions.length) {
         this.logger.error("Total amount, fee, transactions count invalid: " + b.getId() + ", total amount: " + calculatedTotalAmount + "/" + b.totalAmount + ", total fee: " + calculatedTotalFee + "/" + b.totalFee + ", transactions count: " + i + "/" + b.transactions.length);
@@ -339,20 +371,8 @@ blockchain.prototype.pushBlock = function (buffer) {
         this.transactionprocessor.getTransaction(b.transactions[i].getId()).blockId = b.getId();
     }
 
+
     for (var i in b.addresses) {
-        /*var addr = b.addresses[i];
-        addr.height = b.height;
-        addr.blockId = b.getId();
-
-        if (this.app.addressprocessor.addresses[addr.id]) {
-            return false;
-        }
-
-        this.app.addressprocessor.addresses[addr.id] = addr;*/
-        /*if (!this.app.addressprocessor.unconfirmedAddresses[addr.id]) {
-            return false;
-        }*/
-
         delete this.app.addressprocessor.unconfirmedAddresses[addr.id];
     }
 
@@ -368,6 +388,14 @@ blockchain.prototype.pushBlock = function (buffer) {
 
     for (var a in b.addresses) {
         this.app.db.writeAddress(b.addresses[a]);
+    }
+
+    this.actualFeeVolume += b.totalAmount + b.totalFee;
+
+    if (this.nextFeeVolume <= this.actualFeeVolume) {
+        this.fee -= this.fee / 100 * 25;
+        this.nextFeeVolume *= 2;
+        this.actualFeeVolume = 0;
     }
 
     /*for (var i = 0; i < b.addresses.length; i++) {
@@ -387,7 +415,7 @@ module.exports.addGenesisBlock = function (app, cb) {
     var b = bc.getBlock(genesisblock.blockId);
 
     if (!b) {
-        var t = new transaction(0, null, 0, new Buffer(genesisblock.sender, 'hex'), genesisblock.recipient, 99999999, 0, 1, null, new Buffer(genesisblock.trSignature, 'hex'));
+        var t = new transaction(0, null, 0, new Buffer(genesisblock.sender, 'hex'), genesisblock.recipient, genesisblock.amount * constants.numberLength, 0, 1 * constants.numberLength, null, new Buffer(genesisblock.trSignature, 'hex'));
 
         //t.sign("nY4NxXNd9velmtPxRN6TS8JLDR2dMGzkyL51p1sTPefA3tY9SzWBZT6GYlxyUgCQhSrJsoLiXHiuGqFVZTEObqI5BWgua6i5MAk");
         //console.log(t.signature.toString('hex'));
@@ -405,7 +433,7 @@ module.exports.addGenesisBlock = function (app, cb) {
         var blockSignature = new Buffer(64);
         blockSignature.fill(0);
 
-        b = new block(1, null, 0, null, [t], 99999999, 1, t.getSize(), payloadHash, new Buffer(genesisblock.sender, 'hex'), generationSignature, new Buffer(genesisblock.blockSignature, 'hex'));
+        b = new block(1, null, 0, null, [t], 99999999 * constants.numberLength, 1 * constants.numberLength, t.getSize(), payloadHash, new Buffer(genesisblock.sender, 'hex'), generationSignature, new Buffer(genesisblock.blockSignature, 'hex'));
 
         b.baseTarget = bignum(constants.initialBaseTarget);
         b.cumulativeDifficulty = 0;

@@ -47,6 +47,19 @@ addressprocessor.prototype.processAddress = function (addr) {
     if (this.unconfirmedAddresses[addr.id] || this.addresses[addr.id]) {
         return false;
     } else {
+        if (!addr.verify() || !addr.accountVerify()) {
+            this.app.logger.error("Address not verified: " + addr.id + ", verify: " + addr.verify() + "/" + addr.accountVerify());
+            return false;
+        }
+
+        var account = this.app.accountprocessor.getAccountByPublicKey(addr.generatorPublicKey);
+
+        if (!account || account.getEffectiveBalance() <= 0) {
+            this.logger.error("Account not found or effective balance equal 0: " + account.address + "/" + account.getEffectiveBalance() + " for address: " + addr.id);
+            return false;
+        }
+
+
         this.unconfirmedAddresses[addr.id] = addr;
 
         // send to peers

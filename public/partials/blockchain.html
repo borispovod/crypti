@@ -16,8 +16,8 @@
             <td>{{item.id}}</td>
             <td ng-show="item.timestamp > 0">{{item.timestamp | timestampFilter}}</td>
             <td ng-show="item.timestamp == 0">-</td>
-            <td>{{item.totalAmount | feeFilter}}</td>
-            <td>{{item.totalFee | feeFilter}}</td>
+            <td>{{item.totalAmount / 100000000 | feeFilter}}</td>
+            <td>{{item.totalFee / 100000000 | feeFilter}}</td>
             <td>{{item.generator}}</td>
             <td ng-click="showBlock(item)" class="pointer">Click to see</td>
         </tr>

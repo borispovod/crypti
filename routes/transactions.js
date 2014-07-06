@@ -61,8 +61,8 @@ module.exports = function (app) {
 
         var publicKey = account.publickey.toString('hex');
 
-        var q = app.db.sql.prepare("SELECT * FROM trs WHERE recepient=? OR senderPublicKey=? ORDER BY timestamp DESC");
-        q.bind([accountId, publicKey]);
+        var q = app.db.sql.prepare("SELECT * FROM trs WHERE (recepient=? OR senderPublicKey=? OR recepient IN (SELECT id FROM addresses WHERE generatorPublicKey=?)) ORDER BY timestamp DESC");
+        q.bind([accountId, publicKey, publicKey]);
         q.all(function (err, rows) {
             if (err) {
                 app.logger.error(err);
@@ -87,7 +87,7 @@ module.exports = function (app) {
                 }, function () {
                     var unconfirmedTransactions = _.map(app.transactionprocessor.unconfirmedTransactions, function (v) { return _.extend({}, v) });
                     async.eachSeries(unconfirmedTransactions, function (item, с) {
-                        if (item.recipientId == accountId || item.senderPublicKey.toString('hex') == publicKey) {
+                        if (item.recipientId == accountId || item.senderPublicKey.toString('hex') == publicKey || (item.type == 1 && app.addressprocessor.addresses[item.recipientId].generatorPublicKey.toString('hex') == publicKey)) {
                             item.timestamp += utils.epochTime();
                             item.sender = app.accountprocessor.getAddressByPublicKey(new Buffer(item.senderPublicKey, 'hex'));
                             item.confirmations = "-";
@@ -220,48 +220,89 @@ module.exports = function (app) {
             if (err) {
                 return res.json({ success : false });
             } else {
-                app.db.sql.all("SELECT * FROM addresses WHERE generatorPublicKey=$publicKey ORDER BY timestamp DESC", {
-                    $publicKey : publicKey
-                }, function (err, addresses) {
-                    if (err) {
-                        return res.json({ success : false });
-                    } else {
-                        async.forEach(addresses, function (a, cb) {
-                            a.mined = 0;
-                            a.generator = app.accountprocessor.getAddressByPublicKey(new Buffer(a.generatorPublicKey, 'hex'));
-                            a.address = a.id;
-                            app.db.sql.get("SELECT SUM(fee) AS s FROM trs WHERE recepient=$recepient", {
-                                $recepient : a.address
-                            }, function (err, sum) {
-                                if (sum.s) {
-                                    a.mined = sum / 2;
-                                } else {
-                                    a.mined = 0;
-                                }
-                                totalMined += a.mined;
-                                cb();
-                            });
-                        }, function () {
-                            async.forEach(blocks, function (b, cb) {
-                                totalForged += b.totalFee;
-                                b.timestamp += utils.epochTime();
-                                cb();
-                            }, function () {
-                                var unconfirmedAddresses = _.map(app.addressprocessor.unconfirmedAddresses, function (value) { var a =  value.toJSON(); a.mined = 0; return a; });
-                                var myAddresses = [];
-                                async.forEach(unconfirmedAddresses, function (a, cb) {
-                                    if (a.generatorPublicKey == publicKey) {
-                                        myAddresses.unshift(a);
-                                    }
+                async.eachSeries(blocks, function (item, cb) {
+                    app.db.sql.all("SELECT * FROM trs WHERE blockId=$blockId", {
+                        $blockId: item.id
+                    }, function (err, trs) {
+                        item.forged = 0;
 
+                        async.eachSeries(trs, function (t, c) {
+                            if (t.type == 1) {
+                                if (t.fee >= 2) {
+                                    if (t.fee % 2 != 0) {
+                                        var r = t.fee % 2;
+                                        item.forged += t.fee / 2 + r;
+                                    } else {
+                                        item.forged += t.fee / 2;
+                                    }
+                                } else {
+                                    item.forged += t.fee;
+                                }
+                            } else if (t.type == 0) {
+                                item.forged += t.fee;
+                            }
+
+                            c();
+                        }, function () {
+                            cb();
+                        });
+                    });
+                }, function () {
+                    app.db.sql.all("SELECT * FROM addresses WHERE generatorPublicKey=$publicKey ORDER BY timestamp DESC", {
+                        $publicKey : publicKey
+                    }, function (err, addresses) {
+                        if (err) {
+                            return res.json({ success : false });
+                        } else {
+                            async.forEach(addresses, function (a, cb) {
+                                a.mined = 0;
+                                a.generator = app.accountprocessor.getAddressByPublicKey(new Buffer(a.generatorPublicKey, 'hex'));
+                                a.address = a.id;
+                                app.db.sql.all("SELECT * FROM trs WHERE recepient=$recepient", {
+                                    $recepient : a.address
+                                }, function (err, trs) {
+                                    async.eachSeries(trs, function (t, c) {
+                                        if (t.fee >= 2) {
+                                            if (t.fee % 2 != 0) {
+                                                var r = t.fee % 2;
+                                                a.mined = t.fee / 2 - r;
+                                                totalMined += a.mined;
+                                            } else {
+                                                a.mined = t.fee / 2;
+                                                totalMined += a.mined;
+                                            }
+                                        }
+
+                                        c();
+                                    }, function () {
+                                        cb();
+                                    })
+
+                                    //totalMined += a.mined;
+                                    //cb();
+                                });
+                            }, function () {
+                                async.forEach(blocks, function (b, cb) {
+                                    totalForged += b.forged;
+                                    b.timestamp += utils.epochTime();
                                     cb();
                                 }, function () {
-                                    addresses = addresses.concat(myAddresses);
-                                    return res.json({ success : true, blocks : blocks, addresses : addresses, totalMined : totalMined, totalForged : totalForged });
+                                    var unconfirmedAddresses = _.map(app.addressprocessor.unconfirmedAddresses, function (value) { var a =  value.toJSON(); a.mined = 0; return a; });
+                                    var myAddresses = [];
+                                    async.forEach(unconfirmedAddresses, function (a, cb) {
+                                        if (a.generatorPublicKey == publicKey) {
+                                            myAddresses.unshift(a);
+                                        }
+
+                                        cb();
+                                    }, function () {
+                                        addresses = addresses.concat(myAddresses);
+                                        return res.json({ success : true, blocks : blocks, addresses : addresses, totalMined : totalMined, totalForged : totalForged });
+                                    });
                                 });
                             });
-                        });
-                    }
+                        }
+                    });
                 });
             }
         });

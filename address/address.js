@@ -46,10 +46,12 @@ address.prototype.getBytes = function () {
     bb.writeInt(this.timestamp);
 
     var id = this.id.slice(0, -1);
-    id = bignum(id).toBuffer();
+    id = bignum(id).toBuffer({
+        size: '8'
+    });
 
     for (var i = 0; i < 8; i++) {
-        bb.writeByte(id[i] || 0);
+        bb.writeByte(id[i]);
     }
 
     for (var i = 0; i < this.publicKey.length; i++) {
