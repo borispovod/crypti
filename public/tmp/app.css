@@ -154,6 +154,9 @@ body {
   position: relative;
   font-family: "HelveticaNeue-Light", "Helvetica Neue Light", "Helvetica Neue", Helvetica, Arial, "Lucida Grande", sans-serif;
 }
+body {
+  overflow: scroll;
+}
 .height {
   height: 100%;
 }
@@ -466,6 +469,9 @@ span.menu-text {
   background-color: #ebeced;
   height: 100%;
   overflow-y: scroll;
+}
+#account #paddingFix {
+  min-width: 1024px;
 }
 #account #paddingFix .button {
   margin: 0px;
