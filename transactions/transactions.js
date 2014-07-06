@@ -38,8 +38,8 @@ transaction.prototype.getBytes = function () {
         bb.writeByte(recepient[i] || 0);
     }
 
-    bb.writeFloat64(this.amount);
-    bb.writeFloat64(this.fee);
+    bb.writeLong(this.amount);
+    bb.writeLong(this.fee);
 
     if (this.referencedTransaction) {
         var referncedTransactionBuffer = bignum(this.referencedTransaction).toBuffer();
@@ -116,8 +116,8 @@ transaction.prototype.fromBytes = function (buffer) {
 
     var recepient = bb.readLong();
     t.recipientId = recepient + "C";
-    t.amount = bb.readInt();
-    t.fee = bb.readInt();
+    t.amount = bb.readUint64();
+    t.fee = bb.readUint64();
     t.referencedTransaction = bb.readLong();
 
     var signature = new Buffer(64);

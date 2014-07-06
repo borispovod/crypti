@@ -13,8 +13,8 @@
                 <td>{{transaction.id}}</td>
                 <td>{{transaction.sender}}</td>
                 <td>{{transaction.recepient}}</td>
-                <td>{{transaction.fee | feeFilter}}</td>
-                <td>{{transaction.amount | feeFilter}}</td>
+                <td>{{transaction.fee / 100000000 | feeFilter}}</td>
+                <td>{{transaction.amount / 100000000 | feeFilter}}</td>
             </tr>
             <tr ng-show="!transactions || transactions.length == 0">
                 <td colspan="5">
@@ -31,7 +31,7 @@
                 <th>Owner</th>
             </tr>
             <tr ng-repeat="item in addresses">
-                <td>{{item.address}}</td>
+                <td>{{item.id}}</td>
                 <td>{{item.generator}}</td>
             </tr>
             <tr ng-show="!addresses || addresses.length == 0">

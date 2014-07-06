@@ -502,6 +502,14 @@ span.menu-text {
 #blocks {
   margin-bottom: 20px;
 }
+#feeForged {
+  width: 106px;
+  max-width: 106px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
 #pass {
   background-color: #ebeced;
   height: 100%;
@@ -593,6 +601,7 @@ span.menu-text {
 }
 .modal p.error {
   color: #ed4a4a;
+  font-size: 13px;
 }
 #block-modal .modal-content {
   position: fixed;
