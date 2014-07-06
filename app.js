@@ -90,6 +90,7 @@ async.series([
     function (cb) {
         logger.getInstance().info("Initializing address processor...");
         app.addressprocessor = new addressprocessor();
+        app.addressprocessor.setApp(app);
         cb();
     },
     function (cb) {

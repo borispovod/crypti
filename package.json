@@ -6,17 +6,18 @@
     "start": "node app.js"
   },
   "dependencies": {
-    "express": "https://github.com/crypti/express/tarball/3.x",
-    "nconf": "https://github.com/crypti/nconf/tarball/master",
-    "sqlite3": "https://github.com/crypti/node-sqlite3/tarball/master",
-    "winston": "https://github.com/crypti/winston/tarball/master",
-    "bignum": "https://github.com/crypti/node-bignum/tarball/master",
-    "underscore": "https://github.com/crypti/underscore/tarball/master",
-    "request": "https://github.com/crypti/request/tarball/master",
     "async": "https://github.com/crypti/async/tarball/master",
-    "bytebuffer": "https://github.com/crypti/ByteBuffer.js/tarball/master",
+    "bignum": "https://github.com/crypti/node-bignum/tarball/master",
     "buffer-equal": "https://github.com/crypti/node-buffer-equal/tarball/master",
+    "bytebuffer": "https://github.com/crypti/ByteBuffer.js/tarball/master",
+    "ed25519": "https://github.com/crypti/Ed25519/tarball/master",
+    "express": "https://github.com/crypti/express/tarball/3.x",
     "keep-alive-agent": "https://github.com/crypti/keep-alive-agent/tarball/master",
-    "ed25519": "https://github.com/crypti/Ed25519/tarball/master"
+    "long": "^1.1.5",
+    "nconf": "https://github.com/crypti/nconf/tarball/master",
+    "request": "https://github.com/crypti/request/tarball/master",
+    "sqlite3": "https://github.com/crypti/node-sqlite3/tarball/master",
+    "underscore": "https://github.com/crypti/underscore/tarball/master",
+    "winston": "https://github.com/crypti/winston/tarball/master"
   }
 }

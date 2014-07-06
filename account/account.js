@@ -64,7 +64,7 @@ account.prototype.getEffectiveBalance = function () {
             }
         }
 
-        return this.balance - amount;
+        return  this.balance - amount;
     }
 }
 

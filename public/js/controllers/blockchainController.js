@@ -7,9 +7,10 @@ webApp.controller('blockchainController', ['$scope', '$rootScope', '$http', "use
             params.blockId = blockService.lastBlockId;
         }
 
-        $http.get("/api/lastBlock", { params: params })
+        $http.get("/api/getLastBlocks")
             .then(function (resp) {
-                $scope.blockchain = $scope.blockchain.concat(resp.data.blocks);
+                $scope.blockchain = resp.data.blocks;
+                blockService.lastBlockId = resp.data.blocks[resp.data.blocks.length - 1].id;
             });
     }
 

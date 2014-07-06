@@ -6,7 +6,8 @@ var crypto = require('crypto'),
     account = require("../account").account,
     constants = require("../Constants.js"),
     ByteBuffer = require("bytebuffer"),
-    bufferEqual = require('buffer-equal');
+    bufferEqual = require('buffer-equal'),
+    utils = require('../utils.js');
 
 var block = function (version, id, timestamp, previousBlock, transactions, totalAmount, totalFee, payloadLength, payloadHash, generatorPublicKey, generationSignature, blockSignature) {
     this.version = version;
@@ -72,6 +73,7 @@ block.prototype.analyze = function () {
 
         var a = new account(this.accountprocessor.getAddressByPublicKey(this.generatorPublicKey), this.generatorPublicKey);
         a.setApp(this.app);
+        a.app.blockchain = this.blockchain;
         a.setHeight(this.blockchain.getLastBlock().height);
         this.accountprocessor.addAccount(a);
 
@@ -114,12 +116,13 @@ block.prototype.analyze = function () {
 
         if (!recepient) {
             recepient = new account(t.recipientId);
+            recepient.setApp(this.app);
             recepient.setHeight(this.blockchain.getLastBlock().height);
             this.accountprocessor.addAccount(recepient);
         }
 
         if (t.recipientId[t.recipientId.length - 1] == "D") {
-            t.type = 1;
+            //t.type = 1;
             var address = this.app.addressprocessor.addresses[t.recipientId];
 
             var addr = this.accountprocessor.getAddressByPublicKey(address.generatorPublicKey);
@@ -132,14 +135,13 @@ block.prototype.analyze = function () {
             }
         }
 
-
-
         switch (t.type) {
             case 0:
                 switch (t.subtype) {
                     case 0:
                         recepient.addToBalance(t.amount);
                         recepient.addToUnconfirmedBalance(t.amount);
+                        console.log("recepient: " + recepient.address + " " + recepient.balance);
                         break;
                 }
                 break;
@@ -147,8 +149,19 @@ block.prototype.analyze = function () {
             case 1:
                 switch (t.subtype) {
                     case 0:
-                        recepient.addToBalance(t.amount + t.fee / 2);
-                        recepient.addToUnconfirmedBalance(t.amount + t.fee / 2);
+                        var value = 0;
+
+                        if (t.fee >= 2) {
+                            if (t.fee % 2 != 0) {
+                                var r = t.fee % 2;
+                                value = t.fee / 2 - r;
+                            } else {
+                                value = t.fee / 2;
+                            }
+                        }
+
+                        recepient.addToBalance(t.amount + value);
+                        recepient.addToUnconfirmedBalance(t.amount + value);
                         break;
                 }
                 break;
@@ -282,8 +295,8 @@ block.prototype.getBytes = function () {
 
     bb.writeInt(this.numberOfAddresses);
     bb.writeInt(this.numberOfTransactions);
-    bb.writeFloat64(this.totalAmount);
-    bb.writeFloat64(this.totalFee);
+    bb.writeLong(this.totalAmount);
+    bb.writeLong(this.totalFee);
     bb.writeInt(this.payloadLength);
 
     for (var i = 0; i < this.payloadHash.length; i++) {

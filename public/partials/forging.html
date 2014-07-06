@@ -4,9 +4,9 @@
         <h2 class="account-id">Your Account: {{ address }}</h2>
     </div>
     <div class="raw-buttons">
-        <button class="button static">Effective Balance: <span>{{ effectiveBalance | feeFilter }}</span><div class="coin"></div></button>
-        <button class="button static">Forged:   <span>{{ totalForged | feeFilter }}</span><div class="coin"></div></button>
-        <!--<button class="button static">Mined:   <span>Soon</span><div class="coin"></div></button>-->
+        <button class="button static">Effective Balance: <span>{{ effectiveBalance | feeFilter }}</span></button>
+        <button class="button static">Forged:   <span>{{ totalForged / 100000000 | feeFilter }}</span></button>
+        <button class="button static">Forged by addresses:   <span>{{ totalMined / 100000000 | feeFilter }}</span></button>
         <div id="forging">
             <h3 class="start-red" ng-show="false && !forging">Forging not started</h3>
             <button class="button static" ng-show="false && forging">Time to generate block: - mins</button>
@@ -25,8 +25,8 @@
                 <tr ng-repeat="item in blocks">
                     <td>{{item.id}}</td>
                     <td ng-show="item.timestamp > 0">{{item.timestamp | timestampFilter}}</td>
-                    <td>{{item.totalAmount | feeFilter}}</td>
-                    <td>{{item.totalFee | feeFilter}}</td>
+                    <td>{{item.totalAmount / 100000000 | feeFilter}}</td>
+                    <td id="feeForged" title="{{item.totalFee / 100000000 | feeFilter}} / {{item.forged / 100000000 | feeFilter}}">{{item.totalFee / 100000000 | feeFilter}} / {{item.forged / 100000000 | feeFilter}}</td>
                 </tr>
                 <tr ng-show="!blocks || blocks.length == 0">
                     <td colspan="4">
@@ -45,7 +45,7 @@
                 </tr>
                 <tr ng-repeat="item in addresses">
                     <td>{{item.address}}</td>
-                    <td>Soon</td>
+                    <td>{{item.mined / 100000000 | feeFilter}}</td>
                 </tr>
                 <tr ng-show="!addresses || addresses.length == 0">
                     <td colspan="2">

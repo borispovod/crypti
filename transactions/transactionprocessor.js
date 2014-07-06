@@ -2,7 +2,8 @@ var transaction = require("./transactions.js"),
     epochTime = require('../utils.js').getEpochTime,
     accountprocessor = require("../account").accountprocessor,
     bignum = require('bignum'),
-    utils = require("../utils.js");
+    utils = require("../utils.js"),
+    Long = require('long');
 
 var transactionprocessor = function () {
     this.transactions = {};
@@ -33,6 +34,7 @@ transactionprocessor.prototype.getUnconfirmedTransaction = function (id) {
 
 transactionprocessor.prototype.processTransaction = function (transaction) {
     this.logger.info("Process transaction: " + transaction.getId());
+    console.log(transaction);
 
     var currentTime = epochTime(new Date().getTime());
     if (transaction.timestamp > currentTime || transaction.deadline < 1 || transaction.timestamp + transaction.deadline < currentTime || transaction.fee <= 0) {
@@ -46,9 +48,14 @@ transactionprocessor.prototype.processTransaction = function (transaction) {
         return false;
     }
 
-    var fee = (transaction.amount / 100 * this.app.blockchain.fee).roundTo(8);
+    var fee = parseInt(transaction.amount / 100 * this.app.blockchain.fee);
+
+    if (parseInt(fee) != fee) {
+        fee = 1;
+    }
+
     if (fee == 0) {
-        fee = 0.00000001;
+        fee = 1;
     }
 
     if (fee != transaction.fee) {
@@ -56,7 +63,7 @@ transactionprocessor.prototype.processTransaction = function (transaction) {
         return false;
     }
 
-    if (utils.moreThanEightDigits(transaction.amount)) {
+    /*if (utils.moreThanEightDigits(transaction.amount)) {
         this.logger.error("Amount must have less than 8 digits after the dot");
         return false;
     }
@@ -64,6 +71,23 @@ transactionprocessor.prototype.processTransaction = function (transaction) {
     if (utils.moreThanEightDigits(transaction.fee)) {
         this.logger.error("Fee must have less than 8 digits after the dot" );
         return false;
+    }*/
+
+    if (transaction.type == 1 && transaction.recipientId[transaction.recipientId.length - 1] != "D") {
+        this.logger.error("Type of transaction and account end not valid: " + transaction.getId() + ", " + transaction.type + "/" + transaction.recipientId);
+        return false;
+    }
+
+    if (transaction.type == 0 && transaction.recipientId[transaction.recipientId.length - 1] != "C") {
+        this.logger.error("Type of transaction and account end not valid: " + transaction.getId() + ", " + transaction.type + "/" + transaction.recipientId);
+        return false;
+    }
+
+    if (transaction.type == 1) {
+        if (!this.app.addressprocessor.addresses[transaction.recipientId]) {
+            this.logger.error("Invalid recepient, merchant address not found: " + transaction.getId() + ", address: " + transaction.recipientId);
+            return false;
+        }
     }
 
     var isDoubleSpending = false;
@@ -149,8 +173,10 @@ transactionprocessor.prototype.transactionFromBuffer = function (bb) {
         t.recipientId = recepient + "C";
     }
 
-    t.amount = bb.readFloat64();
-    t.fee = bb.readFloat64();
+    var amountLong = bb.readLong();
+    t.amount = new Long(amountLong.low, amountLong.high, false).toNumber();
+    var feeLong = bb.readLong();
+    t.fee = new Long(feeLong.low, feeLong.high, false).toNumber();
 
     var referencedTransactionBuffer = new Buffer(8);
 
@@ -200,8 +226,8 @@ transactionprocessor.prototype.transactionFromBytes = function (bytes) {
         t.recipientId = recepient + "C";
     }
 
-    t.amount = bb.readFloat64();
-    t.fee = bb.readFloat64();
+    t.amount = bb.readUint32();
+    t.fee = bb.readUint32();
 
     var referencedTransactionBuffer = new Buffer(8);
 
