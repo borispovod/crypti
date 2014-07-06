@@ -472,7 +472,7 @@ span.menu-text {
   padding: 15px 13px 13px;
 }
 #account #paddingFix .button.label {
-  width: 300px;
+  width: 250px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -539,15 +539,16 @@ span.menu-text {
 }
 #enter {
   font-size: 13px;
-  width: 492px;
+  width: 490px;
   border: 1px solid #ebeced;
   height: 44px;
-  box-sizing: border-box;
   padding: 0 15px;
   color: #8e8e8e;
   margin: 16px 16px 0 16px;
   display: inline-block;
   border-radius: 9px;
+  -moz-box-sizing: border-box;
+  box-sizing: border-box;
 }
 #enter:focus {
   outline: none;
