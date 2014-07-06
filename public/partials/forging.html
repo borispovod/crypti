@@ -8,8 +8,8 @@
         <button class="button static">Forged:   <span>{{ totalForged | feeFilter }}</span><div class="coin"></div></button>
         <!--<button class="button static">Mined:   <span>Soon</span><div class="coin"></div></button>-->
         <div id="forging">
-            <h3 class="start-red" ng-show="!forging">Forging not started</h3>
-            <button class="button static" ng-show="forging">Time to generate block: - mins</button>
+            <h3 class="start-red" ng-show="false && !forging">Forging not started</h3>
+            <button class="button static" ng-show="false && forging">Time to generate block: - mins</button>
         </div>
     </div>
     <div id="columns">
@@ -25,7 +25,7 @@
                 <tr ng-repeat="item in blocks">
                     <td>{{item.id}}</td>
                     <td ng-show="item.timestamp > 0">{{item.timestamp | timestampFilter}}</td>
-                    <td>{{item.totalAmount}}</td>
+                    <td>{{item.totalAmount | feeFilter}}</td>
                     <td>{{item.totalFee | feeFilter}}</td>
                 </tr>
                 <tr ng-show="!blocks || blocks.length == 0">
