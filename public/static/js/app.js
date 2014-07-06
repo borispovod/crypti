@@ -35630,6 +35630,7 @@ webApp.controller('sendCryptiController', ["$scope", "sendCryptiModal", "$http",
     $scope.accountValid = true;
     $scope.fromServer = "";
     $scope.maxlength = 8;
+    $scope.onlyNumbers = /^-?\d*(\.\d+)?$/;
 
     Number.prototype.roundTo = function( digitsCount ){
         var digitsCount = typeof digitsCount !== 'undefined' ? digitsCount : 2;
@@ -35677,16 +35678,20 @@ webApp.controller('sendCryptiController', ["$scope", "sendCryptiModal", "$http",
     }
 
     $scope.recalculateFee = function ($event) {
-        if (!$scope.amount || $scope.amount == 0) {
+        if (!$scope.amount || isNaN(parseFloat($scope.amount))) {
             $scope.fee = "";
         } else {
             if ($scope.amount.indexOf('.') >= 0) {
                 var strs = $scope.amount.split('.');
                 $scope.maxlength = strs[0].length + 9;
+                console.log($scope.maxlength);
             }
             // calculate fee.
             var fee = ($scope.amount / 100 * $scope.currentFee).roundTo(8);
-            if (parseFloat(fee) == 0) {
+
+            if ($scope.amount == 0) {
+                fee = 0;
+            } else if (parseFloat(fee) == 0) {
                 fee = "0.00000001";
 
             }
@@ -35758,25 +35763,29 @@ webApp.controller('sendCryptiController', ["$scope", "sendCryptiModal", "$http",
     }
 
     $scope.sendCrypti = function () {
-        $http.get("/api/sendMoney", { params : {
-            secretPharse : $scope.secretPhrase,
-            amount : $scope.amount,
-            recepient : $scope.to,
-            accountAddress : userService.address,
-            deadline : $scope.deadline,
-            fee : $scope.fee
-        }}).then(function (resp) {
-            if(resp.data.error == "Invalid passphrase, check your passphrase please"){
-                $scope.fromServer = resp.data.error;
-            }
-            else{
-                if ($scope.destroy) {
-                    $scope.destroy();
-                }
+        $scope.amountError = parseFloat($scope.fee) + parseFloat($scope.amount) > $scope.totalBalance;
 
-                sendCryptiModal.deactivate();
-            }
-        });
+        if (!$scope.amountError) {
+            $http.get("/api/sendMoney", { params: {
+                secretPharse: $scope.secretPhrase,
+                amount: $scope.amount,
+                recepient: $scope.to,
+                accountAddress: userService.address,
+                deadline: $scope.deadline,
+                fee: $scope.fee
+            }}).then(function (resp) {
+                if (resp.data.error == "Invalid passphrase, check your passphrase please") {
+                    $scope.fromServer = resp.data.error;
+                }
+                else {
+                    if ($scope.destroy) {
+                        $scope.destroy();
+                    }
+
+                    sendCryptiModal.deactivate();
+                }
+            });
+        }
     }
     $scope.getCurrentFee();
 }]);
@@ -35834,9 +35843,15 @@ webApp.factory('userFactory',["userService", function (userService) {
 }]);
 webApp.filter('feeFilter', function () {
     return function (fee) {
+        if (!fee) {
+            return 0;
+        }
+
         var r = fee.toFixed(8);
+
         var clear = "";
         var findValue = false;
+
         for (var i = r.length - 1; i >= 0; i--) {
             if (findValue) {
                 clear += r[i];
@@ -35850,7 +35865,7 @@ webApp.filter('feeFilter', function () {
 
         var result = clear.split("").reverse().join("");
         if (result[result.length - 1] == '.') {
-            result = result.substr(0, result.length - 2);
+            result = result.substr(0, result.length - 1);
         }
 
         return result;
