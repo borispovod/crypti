@@ -6,3 +6,6 @@ node_modules
 .ed25519-node
 blockchain.db
 addresses.txt
+./public/bower_components
+./public/static
+./public/node_modules
