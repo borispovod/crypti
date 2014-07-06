@@ -471,6 +471,12 @@ span.menu-text {
   margin: 0px;
   padding: 15px 13px 13px;
 }
+#account #paddingFix .button.label {
+  width: 300px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 #account #transactions {
   margin-bottom: 20px;
 }
@@ -587,4 +593,14 @@ span.menu-text {
 }
 .modal p.error {
   color: #ed4a4a;
+}
+#block-modal .modal-content {
+  position: fixed;
+  top: 10%;
+  left: 50%;
+  width: 1000px;
+  margin-left: -500px;
+  background: #ffffff;
+  padding: 25px;
+  border-radius: 8px;
 }
