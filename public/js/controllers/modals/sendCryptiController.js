@@ -146,7 +146,7 @@ webApp.controller('sendCryptiController', ["$scope", "sendCryptiModal", "$http",
                 deadline: $scope.deadline,
                 fee: $scope.fee
             }}).then(function (resp) {
-                if (resp.data.error == "Invalid passphrase, check your passphrase please") {
+                if (resp.data.error == "Invalid passphrase, check your passphrase please" || resp.data.error == "Invalid merchant address, check it again please") {
                     $scope.fromServer = resp.data.error;
                 }
                 else {

@@ -8,5 +8,8 @@ module.exports = {
     blockHeaderLength : 236,
     addressLength: 208,
     maxAddressLength: 208 * 128,
-    maxClientConnections: 100
+    maxClientConnections: 100,
+    numberLength : 100000000,
+    feeStartVolume: 10000 * 100000000,
+    feeStart : 1
 }

@@ -4,7 +4,8 @@ var crypto = require('crypto'),
     Account = require("../account").account,
     Forger = require("../forger").forger,
     transaction = require("../transactions").transaction,
-    utils = require("../utils.js");
+    utils = require("../utils.js"),
+    constants = require('../Constants.js');
 
 module.exports = function (app) {
     app.get("/api/unlock", function (req, res) {
@@ -57,18 +58,18 @@ module.exports = function (app) {
 
                 if (result) {
                     app.logger.info("Forger started: " + address);
-                    res.json({ success : true, address : address, publickey : account.publickey.toString('hex'), balance : account.balance.roundTo(8), unconfirmedBalance : account.unconfirmedBalance.roundTo(8), effectiveBalance : account.getEffectiveBalance().roundTo(8), forging : { success : true } });
+                    res.json({ success : true, address : address, publickey : account.publickey.toString('hex'), balance : account.balance / constants.numberLength, unconfirmedBalance : account.unconfirmedBalance / constants.numberLength, effectiveBalance : account.getEffectiveBalance() / constants.numberLength, forging : { success : true } });
                 } else {
                     app.logger.info("Forger can't start, it's already working: " + address);
-                    res.json({ success : true, address : address, publickey : account.publickey.toString('hex'), balance : account.balance.roundTo(8), unconfirmedBalance : account.unconfirmedBalance.roundTo(8), effectiveBalance : account.getEffectiveBalance().roundTo(8), forging : { error : "Forger can't start, it's already working: " + address, success : false } });
+                    res.json({ success : true, address : address, publickey : account.publickey.toString('hex'), balance : account.balance / constants.numberLength, unconfirmedBalance : account.unconfirmedBalance / constants.numberLength, effectiveBalance : account.getEffectiveBalance() / constants.numberLength, forging : { error : "Forger can't start, it's already working: " + address, success : false } });
 
                 }
             } else {
                 app.logger.info("Can't start forging, effective balance equal to 0: " + address);
-                res.json({ success : true, address : address, publickey : account.publickey.toString('hex'), balance : account.balance.roundTo(8), unconfirmedBalance : account.unconfirmedBalance.roundTo(8), effectiveBalance : account.getEffectiveBalance().roundTo(8), forging : { error : "Can't start forging, effective balance equal to 0: " + address, success : false } });
+                res.json({ success : true, address : address, publickey : account.publickey.toString('hex'), balance : account.balance / constants.numberLength, unconfirmedBalance : account.unconfirmedBalance / constants.numberLength, effectiveBalance : account.getEffectiveBalance() / constants.numberLength, forging : { error : "Can't start forging, effective balance equal to 0: " + address, success : false } });
             }
         } else {
-            var info = { success : true, address : address, publickey : account.publickey.toString('hex'), balance : account.balance.roundTo(8), unconfirmedBalance : account.unconfirmedBalance.roundTo(8), effectiveBalance : account.getEffectiveBalance().roundTo(8) };
+            var info = { success : true, address : address, publickey : account.publickey.toString('hex'), balance : account.balance / constants.numberLength, unconfirmedBalance : account.unconfirmedBalance / constants.numberLength, effectiveBalance : account.getEffectiveBalance() / constants.numberLength };
 
             if (app.forgerprocessor.getForgers(account.address)) {
                 info.forging = true;
@@ -95,7 +96,7 @@ module.exports = function (app) {
             info.unconfirmedBalance = 0;
             info.effectiveBalance = 0;
         } else {
-            info = { success : true, balance : account.balance.roundTo(8), unconfirmedBalance : account.unconfirmedBalance.roundTo(8), effectiveBalance : account.getEffectiveBalance().roundTo(8) };
+            info = { success : true, balance : account.balance / constants.numberLength, unconfirmedBalance : account.unconfirmedBalance / constants.numberLength, effectiveBalance : account.getEffectiveBalance() / constants.numberLength };
         }
 
         return res.json(info);
@@ -219,12 +220,24 @@ module.exports = function (app) {
         }
 
         var secretPharse = "gqSRYEN1jPj1yI9pEufwJ1anlIfG6dLeyHsmosRJt85bWKRURB2NR1kHQNNPn0POtAA4AxuGnaMf5vslWZIJNQtsBaK9fjIvfHh",
-            amount = 1000,
+            amount = 1000 * constants.numberLength,
             recepient = addr,
             deadline = 1,
             referencedTransaction = null;
 
-        var fee = amount / 100 * 1;
+        var fee = parseInt(amount / 100 * app.blockchain.fee);
+
+        /*if (parseInt(fee) != fee) {
+         fee = 1;
+         }*/
+
+        if (fee == 0) {
+            fee = 1;
+        }
+
+        if (isNaN(amount) || isNaN(fee)) {
+            return res.json({ success : false, error : "Invalid amount or fee" });
+        }
 
         if (!secretPharse) {
             return res.json({ success : false, error : "Provide secretPharse" });
@@ -246,12 +259,12 @@ module.exports = function (app) {
             return res.json({ success : false, error: "Provide fee" });
         }
 
-        if (amount <= 0 || amount >= 1000 * 1000 * 1000) {
-            return res.json({ success : false, error: "Amount must be middle 0 or 1000000000" });
+        if (amount <= 0 || amount >= 1000 * 1000 * 1000 * constants.numberLength) {
+            return res.json({ success : false, error: "Amount must be middle 0 or 99999999" });
         }
 
-        if (fee <= 0 || fee >= 1000 * 1000 * 1000) {
-            return res.json({ success : false, error: "Fee must be middle 0 or 1000000000" });
+        if (fee <= 0 || fee >= 1000 * 1000 * 1000 * constants.numberLength) {
+            return res.json({ success : false, error: "Fee must be middle 0 or 99999999" });
         }
 
         if (deadline <= 0 || deadline > 24) {
@@ -294,30 +307,26 @@ module.exports = function (app) {
 
     app.get("/api/sendMoney", function (req, res) {
         var secretPharse = req.query.secretPharse,
-            amount = parseFloat(req.query.amount).roundTo(8),
+            amount = req.query.amount * constants.numberLength,
             recepient = req.query.recepient,
             deadline = 1,
             accountAddress = req.query.accountAddress,
             //fee = parseInt(req.query.fee),
             referencedTransaction = req.query.referencedTransaction;
 
+        var fee = parseInt(amount / 100 * app.blockchain.fee);
 
-        var fee = amount / 100 * app.blockchain.fee;
-        fee = fee.roundTo(8);
+        /*if (parseInt(fee) != fee) {
+            fee = 1;
+        }*/
 
         if (fee == 0) {
-            fee = 0.00000001;
+            fee = 1;
         }
 
-        if (fee.valueOf) {
-            fee = fee.valueOf();
+        if (isNaN(amount) || isNaN(fee)) {
+            return res.json({ success : false, error : "Invalid amount or fee" });
         }
-
-        if (amount.valueOf) {
-            amount = amount.valueOf();
-        }
-
-        console.log(amount, fee);
 
         if (!secretPharse) {
             return res.json({ success : false, error : "Provide secretPharse" });
@@ -339,21 +348,21 @@ module.exports = function (app) {
             return res.json({ success : false, error: "Provide fee" });
         }
 
-        if (amount <= 0 || amount >= 1000 * 1000 * 1000) {
-            return res.json({ success : false, error: "Amount must be middle 0 or 1000000000" });
+        if (amount <= 0 || amount >= 1000 * 1000 * 1000 * constants.numberLength) {
+            return res.json({ success : false, error: "Amount must be middle 0 or 99999999" });
         }
 
-        if (fee <= 0 || fee >= 1000 * 1000 * 1000) {
-            return res.json({ success : false, error: "Fee must be middle 0 or 1000000000" });
+        if (fee <= 0 || fee >= 1000 * 1000 * 1000 * constants.numberLength) {
+            return res.json({ success : false, error: "Fee must be middle 0 or 99999999" });
         }
 
-        if (utils.moreThanEightDigits(amount)) {
+        /*if (utils.moreThanEightDigits(amount)) {
             return res.json({ success : false, error: "Amount must have less than 8 digits after the dot" });
         }
 
         if (utils.moreThanEightDigits(fee)) {
             return res.json({ success : false, error: "Fee must have less than 8 digits after the dot" });
-        }
+        }*/
 
         if (deadline <= 0 || deadline > 24) {
             return res.json({ success : false, error: "Deadline must be middle 0 and 25" });
@@ -382,6 +391,12 @@ module.exports = function (app) {
 
                 if (recepient[recepient.length - 1] == "D") {
                     type = 1;
+                }
+
+                if (type == 1) {
+                    if (!app.addressprocessor.addresses[recepient]) {
+                        return res.json({ success : false, error : "Invalid merchant address, check it again please" });
+                    }
                 }
 
                 // create transaction and send to peers

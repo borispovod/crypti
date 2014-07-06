@@ -35497,9 +35497,10 @@ webApp.controller('blockchainController', ['$scope', '$rootScope', '$http', "use
             params.blockId = blockService.lastBlockId;
         }
 
-        $http.get("/api/lastBlock", { params: params })
+        $http.get("/api/getLastBlocks")
             .then(function (resp) {
-                $scope.blockchain = $scope.blockchain.concat(resp.data.blocks);
+                $scope.blockchain = resp.data.blocks;
+                blockService.lastBlockId = resp.data.blocks[resp.data.blocks.length - 1].id;
             });
     }
 
@@ -35774,7 +35775,7 @@ webApp.controller('sendCryptiController', ["$scope", "sendCryptiModal", "$http",
                 deadline: $scope.deadline,
                 fee: $scope.fee
             }}).then(function (resp) {
-                if (resp.data.error == "Invalid passphrase, check your passphrase please") {
+                if (resp.data.error == "Invalid passphrase, check your passphrase please" || resp.data.error == "Invalid merchant address, check it again please") {
                     $scope.fromServer = resp.data.error;
                 }
                 else {

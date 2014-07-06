@@ -109,6 +109,10 @@ forger.prototype.startForge = function () {
             return false;
         }*/
 
+        if (!account || !account.publickey) {
+            return;
+        }
+
         //bignum.fromBuffer(new Buffer(this.forgerprocessor.hits[account.address], 'hex')).lt(target)
         if (account.publickey.toString('hex') == "9e51284be9f60a367d57b8d9dc40fb7a1e95cdf9c4ba249f4e96809fa05d5982") {
             this.logger.info("Generating block...");
@@ -241,7 +245,6 @@ forger.prototype.startForge = function () {
 
             var previousBlockHash = crypto.createHash('sha256').update(previousBlock.getBytes()).digest();
 
-            console.log(previousBlock.getId());
             var block = new Block(1, null, blockTimestamp, previousBlock.getId(), null, totalAmount, totalFee, payloadLength, payloadHash, publicKey, generationSignature, null);
             block.numberOfAddresses = Object.keys(newAddresses).length;
             block.setApp(this.app);
@@ -266,7 +269,13 @@ forger.prototype.startForge = function () {
                     buffer = Buffer.concat([buffer, newAddresses[addr].getBytes()]);
                 }
 
-                this.blockchain.pushBlock(buffer, true);
+                var result = this.blockchain.pushBlock(buffer, true);
+
+                if (!result) {
+                    this.transactionprocessor.unconfirmedTransactions = {};
+                    this.addressprocessor.unconfirmedAddresses = {};
+                }
+
             } else {
                 this.logger.error("Can't verify new generated block");
             }
