@@ -18,7 +18,7 @@ var express = require('express'),
     os = require("os"),
     peerRoutes = require('./p2p').initRoutes,
     Constants = require("./Constants.js"),
-    genesisblock = require("./block/").genesisblock,
+    genesisblock = require("./block").genesisblock,
     fs = require('fs');
 
 var app = express();
