@@ -286,12 +286,6 @@ h3.start-green {
   width: 10px;
   vertical-align: middle;
 }
-.raw-buttons {
-  min-width: 835px;
-  height: 56px;
-  margin-top: 26px;
-  margin-bottom: 22px;
-}
 .row {
   height: 31px;
 }
@@ -470,9 +464,6 @@ span.menu-text {
   height: 100%;
   overflow-y: scroll;
 }
-#account #paddingFix {
-  min-width: 1024px;
-}
 #account #paddingFix .button {
   margin: 0px;
   padding: 15px 13px 13px;
@@ -482,6 +473,22 @@ span.menu-text {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+#account .raw-buttons {
+  min-width: 986px;
+  height: 56px;
+  margin-top: 26px;
+  margin-bottom: 22px;
+}
+#account .raw-buttons #buttons {
+  display: inline-block;
+}
+#account .raw-buttons #buttons .container {
+  display: inline-block;
+}
+#account .raw-buttons .send,
+#account .raw-buttons .free {
+  width: 116px;
 }
 #account #transactions {
   margin-bottom: 20px;
