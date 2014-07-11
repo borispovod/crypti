@@ -1,20 +1,37 @@
 #account{
-  #paddingFix {
-    min-width: 1024px;
-    .button {
-      margin: 0px;
-      padding: 15px 13px 13px;
+    #paddingFix {
+        .button {
+            margin: 0px;
+            padding: 15px 13px 13px;
 
-      &.label {
-        width: 250px;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-      }
+            &.label {
+            width: 250px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            }
+        }
     }
-  }
 
-  #transactions {
-    margin-bottom: 20px;
-  }
+    .raw-buttons{
+        min-width: 986px;
+        height: 56px;
+        margin-top: 26px;
+        margin-bottom: 22px;
+
+        #buttons{
+            display: inline-block;
+
+            .container{
+                display: inline-block;
+            }
+        }
+        .send, .free{
+            width: 116px;
+        }
+    }
+
+    #transactions {
+        margin-bottom: 20px;
+    }
 }
