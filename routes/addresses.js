@@ -2,8 +2,8 @@ var ed  = require('ed25519'),
     bignum = require('bignum'),
     Account = require("../account").account,
     crypto = require("crypto"),
-    getSECCurveByName = require('../ec').sec,
-    ripemd160 = require("../ec").ripemd160,
+    /*getSECCurveByName = require('../ec').sec,
+    ripemd160 = require("../ec").ripemd160,*/
     Address = require("../address").address,
     utils = require("../utils.js");
 
