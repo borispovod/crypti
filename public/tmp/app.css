@@ -191,6 +191,12 @@ h3.start-green {
   font-weight: bold;
   display: inline-block;
 }
+.raw-buttons {
+  min-width: 986px;
+  height: 56px;
+  margin-top: 26px;
+  margin-bottom: 22px;
+}
 .button {
   border: none;
   margin: 0 0 0 26px;
@@ -473,12 +479,6 @@ span.menu-text {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-#account .raw-buttons {
-  min-width: 986px;
-  height: 56px;
-  margin-top: 26px;
-  margin-bottom: 22px;
 }
 #account .raw-buttons #buttons {
   display: inline-block;
