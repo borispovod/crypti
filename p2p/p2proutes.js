@@ -13,8 +13,8 @@ module.exports = function (app) {
 
     app.get("/peer/getPeer", function (req, res) {
         var ip = req.query.ip;
-        var peer = peerprocessor.getPeer(ip);
-        return res.json({ success : true, peer : perr });
+        var peer = app.peerprocessor.getPeer(ip);
+        return res.json({ success : true, peer : peer });
     });
 
     app.get("/peer/getInfo", function (req, res) {
