@@ -95,8 +95,6 @@ peer.prototype.getPeers = function (cb) {
             "version" : this._version
         }
     };
-
-
     var r = http.get(getOptions, cb);
     r.on('error', function (err) {
         cb(err, null);

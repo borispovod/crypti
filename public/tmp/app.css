@@ -191,6 +191,12 @@ h3.start-green {
   font-weight: bold;
   display: inline-block;
 }
+.raw-buttons {
+  min-width: 986px;
+  height: 56px;
+  margin-top: 26px;
+  margin-bottom: 22px;
+}
 .button {
   border: none;
   margin: 0 0 0 26px;
@@ -285,12 +291,6 @@ h3.start-green {
   height: 15px;
   width: 10px;
   vertical-align: middle;
-}
-.raw-buttons {
-  min-width: 835px;
-  height: 56px;
-  margin-top: 26px;
-  margin-bottom: 22px;
 }
 .row {
   height: 31px;
@@ -470,18 +470,25 @@ span.menu-text {
   height: 100%;
   overflow-y: scroll;
 }
-#account #paddingFix {
-  min-width: 1024px;
-}
 #account #paddingFix .button {
   margin: 0px;
   padding: 15px 13px 13px;
 }
 #account #paddingFix .button.label {
-  width: 250px;
+  width: 235px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+#account .raw-buttons #buttons {
+  display: inline-block;
+}
+#account .raw-buttons #buttons .container {
+  display: inline-block;
+}
+#account .raw-buttons .send,
+#account .raw-buttons .free {
+  width: 141px;
 }
 #account #transactions {
   margin-bottom: 20px;
