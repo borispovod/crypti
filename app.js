@@ -240,65 +240,38 @@ async.series([
     },
     function (cb) {
         logger.getInstance().info("Scanning peers...");
-        var p = app.peerprocessor.getAnyPeer();
-        var ip = p.ip;
-        var finished = true;
+        var peers = {};
+        peers = app.peerprocessor.getPeersAsArray() ;
 
-        async.whilst(function () {
-                return finished;
-        },
-        function (next) {
-            if (Constants.maxClientConnections <= Object.keys(app.peerprocessor.peers).length) {
-                finished = false;
-                next(true);
-            } else {
-                if (!p) {
-                    finished = false;
-                    return next();
-                }
-
-                p.getPeers(function (err, peersJSON) {
-                    if (err) {
-                        app.peerprocessor.removePeer(ip);
-                        p = app.peerprocessor.getAnyPeer();
-
-                        if (p) {
-                            return next();
-                        } else {
-                            finished = false;
-                            return next();
-                        }
-                    } else {
-                        var ps = [];
-                        try {
-                            ps = JSON.parse(peersJSON).peers;
-                        } catch (e) {
-                            p = app.peerprocessor.getAnyPeer();
-                            return next();
-                        }
-
-                        if (ps) {
-                            for (var i = 0; i < ps.length; i++) {
-                                var p = new peer(ps[i].ip, ps[i].port, ps[i].platform, ps[i].version);
-
-                                if (!app.peerprocessor.peers[p.ip]) {
-                                    app.peerprocessor.addPeer(p);
-                                }
-                            }
-
-                            finished = true;
-                            next();
-                        } else {
-                            p = app.peerprocessor.getAnyPeer();
-                            return next();
-                        }
+        async.eachSeries(peers, function (peer, callback) {
+            peer.getPeers(function (err, peersJSON) {
+                if (err) {
+                    app.peerprocessor.removePeer(peer.ip);
+                    callback();
+                } else {
+                    var ps = [];
+                    var peer = new peer(ps[i].ip, ps[i].port, ps[i].platform, ps[i].version);
+                    try {
+                        ps = JSON.parse(peersJSON).peers;
+                    } catch (e) {
+                        return callback();
                     }
-                });
-            }
-        },
-        function () {
-            cb();
-        });
+
+                    if (ps) {
+                        for (var i = 0; i < ps.length; i++) {
+                            var peer = new peer(ps[i].ip, ps[i].port, ps[i].platform, ps[i].version);
+
+                            if (!app.peerprocessor.peers[peer.ip]) {
+                                app.peerprocessor.addPeer(peer);
+                            }
+                        }
+                        callback();
+                    } else {
+                        return callback();
+                    }
+                }
+            });
+        }, function () { cb(); });
     },
     function (cb) {
         logger.getInstance().info("Scanning blockchain...");
