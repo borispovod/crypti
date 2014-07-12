@@ -243,14 +243,14 @@ async.series([
         var peers = {};
         peers = app.peerprocessor.getPeersAsArray() ;
 
-        async.eachSeries(peers, function (peer, callback) {
-            peer.getPeers(function (err, peersJSON) {
+        async.eachSeries(peers, function (p, callback) {
+            p.getPeers(function (err, peersJSON) {
                 if (err) {
-                    app.peerprocessor.removePeer(peer.ip);
+                    app.peerprocessor.removePeer(p.ip);
                     callback();
                 } else {
                     var ps = [];
-                    var peer = new peer(ps[i].ip, ps[i].port, ps[i].platform, ps[i].version);
+
                     try {
                         ps = JSON.parse(peersJSON).peers;
                     } catch (e) {
@@ -259,10 +259,10 @@ async.series([
 
                     if (ps) {
                         for (var i = 0; i < ps.length; i++) {
-                            var peer = new peer(ps[i].ip, ps[i].port, ps[i].platform, ps[i].version);
+                            var newPeer = new peer(ps[i].ip, ps[i].port, ps[i].platform, ps[i].version);
 
-                            if (!app.peerprocessor.peers[peer.ip]) {
-                                app.peerprocessor.addPeer(peer);
+                            if (!app.peerprocessor.peers[newPeer.ip]) {
+                                app.peerprocessor.addPeer(newPeer);
                             }
                         }
                         callback();
