@@ -4,11 +4,13 @@
         <h2 class="account-id">Your account: {{ address }}</h2>
     </div>
     <div class="raw-buttons" id="paddingFix">
-        <button class="button green" ng-click="sendCrypti()">Send Crypti</button>
-        <button class="button red" ng-click="sendFree()">Free Crypti</button>
-        <button class="button static label" title="{{ balance | feeFilter }}">Total balance:   <span>{{ balance | feeFilter }}</span></button>
-        <button class="button static label" title="{{ unconfirmedBalance | feeFilter }}">Unconfirmed balance:   <span>{{ unconfirmedBalance | feeFilter }}</span></button>
-        <button class="button static label" title="{{ effectiveBalance | feeFilter }}">Effective balance:   <span>{{ effectiveBalance | feeFilter }}</span></button>
+        <button class="button green send" ng-click="sendCrypti()">Send Crypti</button>
+        <button class="button red free" ng-click="sendFree()">Get Free Crypti</button>
+        <div id="buttons">
+            <div class="container"><button class="button static label" title="{{ balance | feeFilter }}">Balance:   <span>{{ balance | feeFilter }}</span></button></div>
+            <div class="container"><button class="button static label" title="{{ unconfirmedBalance | feeFilter }}">Unconfirmed:   <span>{{ unconfirmedBalance | feeFilter }}</span></button></div>
+            <div class="container"><button class="button static label" title="{{ effectiveBalance | feeFilter }}">Effective:   <span>{{ effectiveBalance | feeFilter }}</span></button></div>
+        </div>
     </div>
     <h1>Transactions</h1>
     <table border="0" width="100%" cellpadding="0" cellspacing="0" id="transactions">
