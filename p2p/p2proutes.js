@@ -7,13 +7,16 @@ var peer = require("./peer.js"),
 
 module.exports = function (app) {
     app.get("/peer/getPeers", function (req, res) {
-        var peers = peerprocessor.getPeersAsArray();
+        var peers = new peerprocessor();
+        peers = peers.getPeersAsArray();
+//        var peers = peerprocessor.getPeersAsArray();
         return res.json({ success : true, peers : peer });
     });
 
     app.get("/peer/getPeer", function (req, res) {
         var ip = req.query.ip;
-        var peer = peerprocessor.getPeer(ip);
+        var peer = new peerprocessor();
+        peer = peer.getPeer(ip);
         return res.json({ success : true, peer : perr });
     });
 
