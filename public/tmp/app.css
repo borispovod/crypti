@@ -475,7 +475,7 @@ span.menu-text {
   padding: 15px 13px 13px;
 }
 #account #paddingFix .button.label {
-  width: 250px;
+  width: 235px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -488,7 +488,7 @@ span.menu-text {
 }
 #account .raw-buttons .send,
 #account .raw-buttons .free {
-  width: 116px;
+  width: 141px;
 }
 #account #transactions {
   margin-bottom: 20px;
