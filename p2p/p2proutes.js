@@ -7,8 +7,8 @@ var peer = require("./peer.js"),
 
 module.exports = function (app) {
     app.get("/peer/getPeers", function (req, res) {
-        var peers = peerprocessor.getPeersAsArray();
-        return res.json({ success : true, peers : peer });
+        var peers = app.peerprocessor.getPeersAsArray();
+        return res.json({ success : true, peers : peers });
     });
 
     app.get("/peer/getPeer", function (req, res) {
