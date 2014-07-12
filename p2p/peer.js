@@ -96,14 +96,10 @@ peer.prototype.getPeers = function (cb) {
         }
     };
 
-    try {
-        var r = http.get(getOptions, cb);
-        r.on('error', function (err) {
-            cb(err, null);
-        });
-    } catch (e) {
-        cb(e, null);
-    }
+    var r = http.get(getOptions, cb);
+    r.on('error', function (err) {
+        cb(err, null);
+    });
 }
 
 peer.prototype.getPeer = function (ip, cb) {

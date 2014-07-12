@@ -53,13 +53,17 @@ peerprocessor.prototype.getAnyPeer = function (blacklisted) {
     }
 
     var peers = this.getPeersAsArray();
+    var toReturn = null;
 
     while (true) {
         var peer = peers[Math.floor(Math.random() * peers.length)];
         if (!peer.checkBlacklisted()) {
-            return peer;
+            toReturn = peer;
+            break;
         }
     }
+
+    return toReturn;
 }
 
 module.exports = peerprocessor;
