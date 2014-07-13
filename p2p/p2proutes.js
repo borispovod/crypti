@@ -229,7 +229,7 @@ module.exports = function (app) {
             return res.json({ success : false, error : "JSON parser error" });
         }
 
-        var tr = new Transaction(t.type, null, t.timestamp, new Buffer(t.senderPublicKey, 'hex'), t.recepient, t.amount, t.deadline, t.fee, t.referencedTransaction, new Buffer(t.signature, 'hex'));
+        var tr = new Transaction(t.type, null, t.timestamp, new Buffer(t.senderPublicKey, 'hex'), t.recipientId, t.amount, t.deadline, t.fee, t.referencedTransaction, new Buffer(t.signature, 'hex'));
         var r = app.transactionprocessor.processTransaction(tr);
 
         if (r) {

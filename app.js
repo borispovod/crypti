@@ -630,7 +630,7 @@ async.series([
 
                         if (answer.success) {
                             async.eachSeries(answer.transactions, function (t, cb) {
-                                var tr = new transaction(t.type, t.id, t.timestamp, new Buffer(t.senderPublicKey, 'hex'), t.recepient, t.amount, t.deadline, t.fee, t.referencedTransaction, new Buffer(t.signature, 'hex'));
+                                var tr = new transaction(t.type, t.id, t.timestamp, new Buffer(t.senderPublicKey, 'hex'), t.recipientId, t.amount, t.deadline, t.fee, t.referencedTransaction, new Buffer(t.signature, 'hex'));
 
                                 if (!tr.verify()) {
                                     return cb("Can't verify transaction: " + tr.getId());
