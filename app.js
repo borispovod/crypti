@@ -273,7 +273,7 @@ async.series([
             });
         }, function () { cb(); });
     },
-    function (cb) {
+    /*function (cb) {
         logger.getInstance().info("Scanning blockchain...");
         var lastId = app.blockchain.getLastBlock().getId();
 
@@ -395,7 +395,7 @@ async.series([
             function () {
                 cb();
             });
-    },
+    },*/
     function (cb) {
         logger.getInstance().info("Starting intervals...");
         setInterval(function () {
@@ -475,7 +475,7 @@ async.series([
         }, 1000 * 5);
 
         // unconfirmed
-        var unconfirmedTrsRunning = false;
+        /*var unconfirmedTrsRunning = false;
         setInterval(function () {
             if (unconfirmedTrsRunning) {
                 return;
@@ -610,7 +610,7 @@ async.series([
                 function (err) {
                     blocksRunning = false;
                 });
-        }, 1000 * 5);
+        }, 1000 * 5);*/
 
         cb();
     }
