@@ -241,7 +241,7 @@ async.series([
     function (cb) {
         logger.getInstance().info("Scanning peers...");
         var peers = {};
-        peers = app.peerprocessor.getPeersAsArray() ;
+        peers = app.peerprocessor.getPeersAsArray();
 
         async.eachSeries(peers, function (p, callback) {
             p.getPeers(function (err, peersJSON) {
@@ -271,7 +271,9 @@ async.series([
                     }
                 }
             });
-        }, function () { cb(); });
+        }, function () {
+            cb();
+        });
     },
     function (cb) {
         logger.getInstance().info("Scanning blockchain...");
