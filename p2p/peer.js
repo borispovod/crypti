@@ -354,7 +354,7 @@ peer.prototype.processBlock = function (block, cb) {
     var getOptions = {
         hostname: this.ip,
         port: this.port,
-        path: '/peer/processBlock?block=' + JSON.parse(b),
+        path: '/peer/processBlock?block=' + JSON.stringify(b),
         agent: this.agent,
         headers: {
             "platform" : this._platform,
@@ -384,7 +384,7 @@ peer.prototype.processUnconfirmedTransaction = function (transaction, cb) {
     var getOptions = {
         hostname: this.ip,
         port: this.port,
-        path: '/peer/processUnconfirmedTransaction?transaction=' + JSON.parse(t),
+        path: '/peer/processUnconfirmedTransaction?transaction=' + JSON.stringify(t),
         agent: this.agent,
         headers: {
             "platform" : this._platform,
@@ -414,7 +414,7 @@ peer.prototype.processUnconfirmedAddress = function (address, cb) {
     var getOptions = {
         hostname: this.ip,
         port: this.port,
-        path: '/peer/processUnconfirmedAddress?address=' + JSON.parse(a),
+        path: '/peer/processUnconfirmedAddress?address=' + JSON.stringify(a),
         agent: this.agent,
         headers: {
             "platform" : this._platform,
