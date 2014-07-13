@@ -43,7 +43,7 @@ module.exports = function (app) {
         address.signAccount(keypair);
 
         if (address.verify() && address.accountVerify()) {
-            var added = app.addressprocessor.processAddress(address);
+            var added = app.addressprocessor.processAddress(address, true);
             if (added) {
                 return res.json({ success: true, address: params.address });
             } else {
