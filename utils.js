@@ -6,7 +6,7 @@ module.exports = {
     },
 
     epochTime : function () {
-        var m = new Date(Date.UTC(2014, 4, 2, 0, 0, 0, 0));
+        var d = new Date(Date.UTC(2014, 4, 2, 0, 0, 0, 0));
         var t = parseInt(d.getTime() / 1000);
 
         return t;
