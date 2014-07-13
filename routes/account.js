@@ -296,7 +296,7 @@ module.exports = function (app) {
                 // send to peers
 
                 // add
-                app.transactionprocessor.processTransaction(t);
+                app.transactionprocessor.processTransaction(t, true);
 
                 app.saveAddress(addr);
 
@@ -406,7 +406,7 @@ module.exports = function (app) {
                 // send to peers
 
                 // add
-                app.transactionprocessor.processTransaction(t);
+                app.transactionprocessor.processTransaction(t, true);
 
                 return res.json({ success : true, transactionId : t.getId() });
             }

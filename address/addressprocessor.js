@@ -62,7 +62,7 @@ addressprocessor.prototype.processAddress = function (addr, sendToPeers) {
         this.unconfirmedAddresses[addr.id] = addr;
 
         if (sendToPeers) {
-            app.peerprocessor.sendBlockToAll(b);
+            app.peerprocessor.sendUnconfirmedAddressToAll(addr);
         }
 
         return true;
