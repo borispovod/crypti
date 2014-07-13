@@ -3,7 +3,8 @@ var peer = require("./peer.js"),
     Constants = require("../Constants.js"),
     Block = require('../block').block,
     Transaction = require("../transactions").transaction,
-    async = require('async');
+    async = require('async'),
+    _ = require('underscore');
 
 module.exports = function (app) {
     app.get("/peer/getPeers", function (req, res) {
@@ -21,11 +22,99 @@ module.exports = function (app) {
         return res.json({ platform : app.info.platform, version : app.info.version });
     });
 
-    app.get("/peer/getCumulativeDifficulty", function (req, res) {
+    /*app.get("/peer/getCumulativeDifficulty", function (req, res) {
         var lastBlock = app.blockchain.getLastBlock();
         return res.json({ success : true, cumulativeDifficulty : lastBlock.cumulativeDifficulty.toString() });
+    });*/
+
+    app.get("/peer/getNextBlocksIds", function (req, res) {
+        var blockId = req.query.blockId || "";
+
+        if (blockId.length == 0) {
+            return res.json({ success : false, error : "Provide block id" });
+        }
+
+        var r = app.db.sql.prepare("SELECT id FROM blocks WHERE height > (SELECT height FROM blocks WHERE id=$id LIMIT 1)");
+        r.bind({
+            $id: blockId
+        });
+        r.all(function (err, all) {
+            if (err) {
+                return res.json({ success : false, error : "SQL error" });
+            } else {
+                return res.json({ success : true, blockIds : all });
+            }
+        });
     });
 
+    app.get("/peer/getNextBlocks", function (req, res) {
+        var blockId = req.query.blockId || "";
+
+        if (blockId.length == 0) {
+            return res.json({ success : false, error : "Provide block id" });
+        }
+
+        var r = app.db.sql.prepare("SELECT * FROM blocks WHERE height > (SELECT height FROM blocks WHERE id=$id LIMIT 1) LIMIT 60");
+        r.bind({
+            $id: blockId
+        });
+
+        r.all(function (err, blocks) {
+            if (err) {
+                app.logger.error("Sqlite error: " + err);
+                return res.json({ success : false, error : "SQL error" });
+            } else {
+                async.eachSeries(blocks, function (item, cb) {
+                    app.db.sql.all("SELECT * FROM trs WHERE blockId=$id", {
+                        $id: blockId
+                    }, function (err, trs) {
+                        if (err) {
+                            cb(err);
+                        } else {
+                            item.trs = trs;
+                            app.db.sql.all("SELECT * FROM addresses WHERE blockId=$id", {
+                                $id : blockId
+                            }, function (err, addresses) {
+                                if (err) {
+                                    cb(err);
+                                } else {
+                                    item.addresses = addresses;
+                                    cb();
+                                }
+                            });
+                        }
+                    });
+                }, function (err) {
+                    if (err) {
+                        app.logger.error("SQL error");
+                        return res.json({ success : false, error : "SQL error" });
+                    } else {
+                        return res.json({ success : true, blocks : blocks });
+                    }
+                });
+            }
+        })
+    });
+
+    app.get('/peer/getUnconfirmedTransactions', function (req, res) {
+        var results = [];
+        for (var t in app.transactionprocessor.unconfirmedTransactions) {
+            results.push(app.transactionprocessor.unconfirmedTransactions[t].toJSON());
+        }
+
+        return res.json({ success : true, transactions : results });
+    });
+
+    app.get('/peer/getUnconfirmedAddresses', function (req, res) {
+        var addresses = [];
+        for (var t in app.addressprocessor.unconfirmedAddresses) {
+            adresses.push(app.addressprocessor.unconfirmedAddresses[t]);
+        }
+
+        return res.json({ success : true, addresses : addresses });
+    });
+
+    /*
     app.get("/peer/getNextBlockIds", function (req, res) {
         var blockId = req.query.blockId || "";
 
@@ -49,7 +138,9 @@ module.exports = function (app) {
 
         return res.json({ success : true, blockIds : r });
     });
+    */
 
+    /*
     app.get("/peer/getNextBlocks", function (req, res) {
         var blockId = req.query.blockId || "";
 
@@ -92,7 +183,7 @@ module.exports = function (app) {
         }
 
         return res.json({ success : true, blocks : nextBlocks });
-    });
+    });*/
 
     app.get("/peer/processTransactions", function (req, res) {
         var transactions = null;
@@ -125,15 +216,6 @@ module.exports = function (app) {
 
             return res.json({ success : true });
         });
-    });
-
-    app.get('/peer/getUnconfirmedTransactions', function (req, res) {
-        var results = [];
-        for (var t in app.transactionprocessor.unconfirmedTransactions) {
-            results.push(app.transactionprocessor.unconfirmedTransactions[t].toJSON());
-        }
-
-        return res.json({ success : true, transactions : results });
     });
 
     app.get("/peer/processBlock", function (req, res) {
