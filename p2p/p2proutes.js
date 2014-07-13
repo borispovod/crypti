@@ -1,8 +1,9 @@
 var peer = require("./peer.js"),
     peerprocessor = require("./peerprocessor.js"),
     Constants = require("../Constants.js"),
-    Block = require('../block').block,
+    Block = require('../block').block.block,
     Transaction = require("../transactions").transaction,
+    Address = require("../address").address,
     async = require('async'),
     _ = require('underscore');
 
@@ -247,7 +248,7 @@ module.exports = function (app) {
             return res.json({ success : false, error : "JSON parse error" });
         }
 
-        var addr = new address(a.version, a.id, new Buffer(a.generatorPublicKey, 'hex'), new Buffer(a.publicKey, 'hex'), a.timestamp, new Buffer(a.signature, 'hex'), new Buffer(a.accountSignature, 'hex'));
+        var addr = new Address(a.version, a.id, new Buffer(a.generatorPublicKey, 'hex'), new Buffer(a.publicKey, 'hex'), a.timestamp, new Buffer(a.signature, 'hex'), new Buffer(a.accountSignature, 'hex'));
         var r = app.addressprocessor.processAddress(addr);
         if (r) {
             return res.json({ success : true, accepted : true });

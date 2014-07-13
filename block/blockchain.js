@@ -405,7 +405,7 @@ blockchain.prototype.pushBlock = function (buffer, sendToPeers) {
 
 
     if (sendToPeers) {
-        app.peerprocessor.sendBlockToAll(b);
+        this.app.peerprocessor.sendBlockToAll(b);
     }
 
     return true;
