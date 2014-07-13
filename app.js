@@ -483,14 +483,14 @@ async.series([
                             p = app.peerprocessor.getAnyPeer();
                         } else {
                             try {
-                                blocks = JSON.parse(blocks).blocks;
+                                blocks = JSON.parse(blocks);
                             } catch (e) {
                                 app.peerprocessor.removePeer(p.ip);
                                 p = app.peerprocessor.getAnyPeer();
                             }
 
 
-                            console.log("blocks: " + blocks);
+                            console.log("blocks: " + blocks.blocks.lenght);
                             if (blocks.length) {
                             }
 
