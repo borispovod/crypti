@@ -96,8 +96,12 @@ peer.prototype.getPeers = function (cb) {
         }
     };
     var r = http.get(getOptions, function (res) {
+        var data = "";
         res.on("data", function(body) {
-            cb(null, body);
+            data += body;
+        });
+        res.on('end', function () {
+            cb(null, data);
         });
     });
     r.on('error', function (err) {
@@ -119,7 +123,15 @@ peer.prototype.getPeer = function (ip, cb) {
         }
     };
 
-    var r = http.get(getOptions, cb);
+    var r = http.get(getOptions, function (res) {
+        var data = "";
+        res.on("data", function(body) {
+            data += body;
+        });
+        res.on('end', function () {
+            cb(null, data);
+        });
+    });
     r.on('error', function (err) {
         cb(err, null);
     });
@@ -139,7 +151,15 @@ peer.prototype.getInfo = function (cb) {
         }
     };
 
-    var r = http.get(getOptions, cb);
+    var r = http.get(getOptions, function (res) {
+        var data = "";
+        res.on("data", function(body) {
+            data += body;
+        });
+        res.on('end', function () {
+            cb(null, data);
+        });
+    });
     r.on('error', function (err) {
         cb(err, null);
     });
@@ -159,7 +179,15 @@ peer.prototype.getInfo = function (cb) {
         }
     };
 
-    var r = http.get(getOptions, cb);
+    var r = http.get(getOptions, function (res) {
+        var data = "";
+        res.on("data", function(body) {
+            data += body;
+        });
+        res.on('end', function () {
+            cb(null, data);
+        });
+    });
     r.on('error', function (err) {
         cb(err, null);
     });
@@ -179,7 +207,15 @@ peer.prototype.getCumulativeDifficulty = function (cb) {
         }
     };
 
-    var r = http.get(getOptions, cb);
+    var r = http.get(getOptions, function (res) {
+        var data = "";
+        res.on("data", function(body) {
+            data += body;
+        });
+        res.on('end', function () {
+            cb(null, data);
+        });
+    });
     r.on('error', function (err) {
         cb(err, null);
     });
@@ -200,7 +236,15 @@ peer.prototype.getNextBlockIds = function (blockId, cb) {
         }
     };
 
-    var r = http.get(getOptions, cb);
+    var r = http.get(getOptions, function (res) {
+        var data = "";
+        res.on("data", function(body) {
+            data += body;
+        });
+        res.on('end', function () {
+            cb(null, data);
+        });
+    });
     r.on('error', function (err) {
         cb(err, null);
     });
@@ -220,7 +264,15 @@ peer.prototype.getNextBlocks = function (blockId, cb) {
         }
     };
 
-    var r = http.get(getOptions, cb);
+    var r = http.get(getOptions, function (res) {
+        var data = "";
+        res.on("data", function(body) {
+            data += body;
+        });
+        res.on('end', function () {
+            cb(null, data);
+        });
+    });
     r.on('error', function (err) {
         cb(err, null);
     });
@@ -246,7 +298,15 @@ peer.prototype.processTransactions = function (transactions, cb) {
         }
     };
 
-    var r = http.get(getOptions, cb);
+    var r = http.get(getOptions, function (res) {
+        var data = "";
+        res.on("data", function(body) {
+            data += body;
+        });
+        res.on('end', function () {
+            cb(null, data);
+        });
+    });
     r.on('error', function (err) {
         cb(err, null);
     });
@@ -266,7 +326,15 @@ peer.prototype.getUnconfirmedTransactions = function (cb) {
         }
     };
 
-    var r = http.get(getOptions, cb);
+    var r = http.get(getOptions, function (res) {
+        var data = "";
+        res.on("data", function(body) {
+            data += body;
+        });
+        res.on('end', function () {
+            cb(null, data);
+        });
+    });
     r.on('error', function (err) {
         cb(err, null);
     });
@@ -284,7 +352,15 @@ peer.prototype.processBlock = function (block, cb) {
         }
     };
 
-    var r = http.get(getOptions, cb);
+    var r = http.get(getOptions, function (res) {
+        var data = "";
+        res.on("data", function(body) {
+            data += body;
+        });
+        res.on('end', function () {
+            cb(null, data);
+        });
+    });
     r.on('error', function (err) {
         cb(err, null);
     });
