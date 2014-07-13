@@ -240,7 +240,7 @@ async.series([
     },
     function (cb) {
         logger.getInstance().info("Scanning peers...");
-        var peers = {};
+        var peers = [];
         peers = app.peerprocessor.getPeersAsArray();
 
         async.eachSeries(peers, function (p, callback) {
@@ -342,6 +342,7 @@ async.series([
     },
     function (cb) {
         logger.getInstance().info("Getting unconfirmed blocks...");
+        return cb();
         var p = app.peerprocessor.getAnyPeer();
         var finished = true;
 
@@ -423,57 +424,39 @@ async.series([
             }
 
             peersRunning = true;
-            var p = app.peerprocessor.getAnyPeer();
-            var finished = true;
+            var peers = [];
+            peers = app.peerprocessor.getPeersAsArray();
 
-            async.whilst(function () {
-                    return finished;
-                },
-                function (next) {
-                    if (Constants.maxClientConnections <= Object.keys(app.peerprocessor.peers).length) {
-                        finished = false;
-                        next(true);
+            async.eachSeries(peers, function (p, callback) {
+                p.getPeers(function (err, peersJSON) {
+                    if (err) {
+                        p = app.peerprocessor.getAnyPeer();
+                        return callback();
                     } else {
-                        if (!p) {
-                            finished = false;
-                            return next();
+                        var ps = [];
+                        try {
+                            ps = JSON.parse(peersJSON).peers;
+                        } catch (e) {
+                            p = app.peerprocessor.getAnyPeer();
+                            return callback();
                         }
 
-                        p.getPeers(function (err, peersJSON) {
-                            if (err) {
-                                p = app.peerprocessor.getAnyPeer();
-                                return next();
-                            } else {
-                                var ps = [];
-                                try {
-                                    ps = JSON.parse(peersJSON).peers;
-                                } catch (e) {
-                                    p = app.peerprocessor.getAnyPeer();
-                                    return next();
-                                }
+                        if (ps) {
+                            for (var i = 0; i < ps.length; i++) {
+                                var p = new peer(ps[i].ip, ps[i].port, ps[i].platform, ps[i].version);
 
-                                if (ps) {
-                                    for (var i = 0; i < ps.length; i++) {
-                                        var p = new peer(ps[i].ip, ps[i].port, ps[i].platform, ps[i].version);
-
-                                        if (!app.peerprocessor.peers[p.ip]) {
-                                            app.peerprocessor.addPeer(p);
-                                        }
-                                    }
-
-                                    finished = true;
-                                    next();
-                                } else {
-                                    p = app.peerprocessor.getAnyPeer();
-                                    return next();
+                                if (!app.peerprocessor.peers[p.ip]) {
+                                    app.peerprocessor.addPeer(p);
                                 }
                             }
-                        });
+                            callback();
+                        } else {
+                            p = app.peerprocessor.getAnyPeer();
+                            return callback();
+                        }
                     }
-                },
-                function () {
-                    peersRunning = false;
                 });
+            });
         }, 1000 * 5);
 
         // unconfirmed
