@@ -32,9 +32,8 @@ transactionprocessor.prototype.getUnconfirmedTransaction = function (id) {
     return this.unconfirmedTransactions[id];
 }
 
-transactionprocessor.prototype.processTransaction = function (transaction) {
+transactionprocessor.prototype.processTransaction = function (transaction, sendToPeers) {
     this.logger.info("Process transaction: " + transaction.getId());
-    console.log(transaction);
 
     var currentTime = epochTime(new Date().getTime());
     if (transaction.timestamp > currentTime || transaction.deadline < 1 || transaction.timestamp + transaction.deadline < currentTime || transaction.fee <= 0) {
@@ -123,7 +122,11 @@ transactionprocessor.prototype.processTransaction = function (transaction) {
         this.logger.info("Transaction processed: " + transaction.getId());
     }
 
-    // send to users
+    if (sendToPeers) {
+        app.peerprocessor.sendUnconfirmedTransactionToAll(transaction);
+    }
+
+    return true;
 }
 
 transactionprocessor.prototype.addTransaction = function (t) {
