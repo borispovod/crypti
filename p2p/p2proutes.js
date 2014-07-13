@@ -89,6 +89,7 @@ module.exports = function (app) {
                         app.logger.error("SQL error");
                         return res.json({ success : false, error : "SQL error" });
                     } else {
+                        console.log(blocks);
                         return res.json({ success : true, blocks : blocks });
                     }
                 });
