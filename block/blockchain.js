@@ -91,7 +91,7 @@ blockchain.prototype.blockFromBytes = function (buffer) {
     return b;
 }
 
-blockchain.prototype.pushBlock = function (buffer) {
+blockchain.prototype.pushBlock = function (buffer, sendToPeers) {
     this.logger.info("Processing new block...");
     var bb = ByteBuffer.wrap(buffer, true);
     bb.flip();
@@ -404,7 +404,9 @@ blockchain.prototype.pushBlock = function (buffer) {
     }*/
 
 
-    // send to users.
+    if (sendToPeers) {
+        app.peerprocessor.sendBlockToAll(b);
+    }
 
     return true;
 }

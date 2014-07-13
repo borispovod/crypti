@@ -43,7 +43,7 @@ addressprocessor.prototype.setApp = function (app) {
     this.app = app;
 }
 
-addressprocessor.prototype.processAddress = function (addr) {
+addressprocessor.prototype.processAddress = function (addr, sendToPeers) {
     if (this.unconfirmedAddresses[addr.id] || this.addresses[addr.id]) {
         return false;
     } else {
@@ -59,10 +59,12 @@ addressprocessor.prototype.processAddress = function (addr) {
             return false;
         }
 
-
         this.unconfirmedAddresses[addr.id] = addr;
 
-        // send to peers
+        if (sendToPeers) {
+            app.peerprocessor.sendBlockToAll(b);
+        }
+
         return true;
     }
 }
