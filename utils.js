@@ -5,7 +5,7 @@ module.exports = {
         d.setDate(2);
         d.setHours(0, 0, 0, 0);
         d.setFullYear(2014);
-        var t = d.getTime();
+        var t = parseInt(d.getTime() + (d.getTimezoneOffset() * 60000));
         return parseInt((time - t) / 1000);
     },
 
@@ -15,7 +15,8 @@ module.exports = {
         d.setDate(2);
         d.setHours(0, 0, 0, 0);
         d.setFullYear(2014);
-        var t = parseInt(d.getTime() / 1000);
+        var t = parseInt(d.getTime() + (d.getTimezoneOffset() * 60000));
+        t = t / 1000;
 
         return t;
     },
