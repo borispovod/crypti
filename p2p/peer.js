@@ -1,5 +1,6 @@
 var http = require('http'),
-    keepAliveAgent = require('keep-alive-agent');
+    keepAliveAgent = require('keep-alive-agent'),
+    _ = require('underscore');
 
 var peer = function (address, port, platform, version) {
     this.ip = address;
@@ -278,40 +279,6 @@ peer.prototype.getNextBlocks = function (blockId, cb) {
     });
 }
 
-peer.prototype.processTransactions = function (transactions, cb) {
-
-    var newTransactions = [];
-    for (var i = 0; i < transactions.length; i++) {
-        newTransactions.push(transactions[i].toJSON());
-    }
-
-    this.checkAgent();
-
-    var getOptions = {
-        hostname: this.ip,
-        port: this.port,
-        path: '/peer/processTransactions?transactions=' + JSON.parse(newTransactions),
-        agent: this.agent,
-        headers: {
-            "platform" : this._platform,
-            "version" : this._version
-        }
-    };
-
-    var r = http.get(getOptions, function (res) {
-        var data = "";
-        res.on("data", function(body) {
-            data += body;
-        });
-        res.on('end', function () {
-            cb(null, data);
-        });
-    });
-    r.on('error', function (err) {
-        cb(err, null);
-    });
-}
-
 peer.prototype.getUnconfirmedAddresses = function (cb) {
     this.checkAgent();
 
@@ -369,10 +336,85 @@ peer.prototype.getUnconfirmedTransactions = function (cb) {
 }
 
 peer.prototype.processBlock = function (block, cb) {
+    var b = block.toJSON();
+    var transactions = [];
+
+    for (var i = 0; i < block.transactions.length; i++) {
+        transactions.push(block.transactions[i].toJSON());
+    }
+
+    var addresses = [];
+    for (var i = 0; i < block.addresses.length; i++) {
+        addresses.push(block.addresses[i].toJSON());
+    }
+
+    b.transactions = transactions;
+    b.addresses = addresses;
+
     var getOptions = {
         hostname: this.ip,
         port: this.port,
-        path: '/peer/processBlock?block=' + JSON.parse(block.toJSON()),
+        path: '/peer/processBlock?block=' + JSON.parse(b),
+        agent: this.agent,
+        headers: {
+            "platform" : this._platform,
+            "version" : this._version
+        }
+    };
+
+    var r = http.get(getOptions, function (res) {
+        var data = "";
+        res.on("data", function(body) {
+            data += body;
+        });
+        res.on('end', function () {
+            cb(null, data);
+        });
+    });
+    r.on('error', function (err) {
+        cb(err, null);
+    });
+}
+
+peer.prototype.processUnconfirmedTransaction = function (transaction, cb) {
+    var t = transaction.toJSON();
+
+    this.checkAgent();
+
+    var getOptions = {
+        hostname: this.ip,
+        port: this.port,
+        path: '/peer/processUnconfirmedTransaction?transaction=' + JSON.parse(t),
+        agent: this.agent,
+        headers: {
+            "platform" : this._platform,
+            "version" : this._version
+        }
+    };
+
+    var r = http.get(getOptions, function (res) {
+        var data = "";
+        res.on("data", function(body) {
+            data += body;
+        });
+        res.on('end', function () {
+            cb(null, data);
+        });
+    });
+    r.on('error', function (err) {
+        cb(err, null);
+    });
+}
+
+peer.prototype.processUnconfirmedAddress = function (address, cb) {
+    var a = address.toJSON();
+
+    this.checkAgent();
+
+    var getOptions = {
+        hostname: this.ip,
+        port: this.port,
+        path: '/peer/processUnconfirmedAddress?address=' + JSON.parse(a),
         agent: this.agent,
         headers: {
             "platform" : this._platform,

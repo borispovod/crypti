@@ -1,9 +1,55 @@
 var peer = require("./peer.js"),
-    _ = require("underscore");
+    _ = require("underscore"),
+    async = require('async');
 
 var peerprocessor = function () {
     this.peers = {};
     this.blockedPeers = {};
+}
+
+peerprocessor.prototype.sendUnconfirmedTransactionToAll = function (transaction, cb) {
+    var peers = this.getPeersAsArray();
+    async.forEach(peers, function (peer, callback) {
+        if (!peer.checkBlacklisted()) {
+            peer.processUnconfirmedTransaction(transaction, function () {
+                callback();
+            });
+        }
+    }, function () {
+        if (cb) {
+            cb(true);
+        }
+    });
+}
+
+peerprocessor.prototype.sendUnconfirmedAddressToAll = function (address, cb) {
+    var peers = this.getPeersAsArray();
+    async.forEach(peers, function (peer, callback) {
+        if (!peer.checkBlacklisted()) {
+            peer.processUnconfirmedAddress(address, function () {
+                callback();
+            });
+        }
+    }, function () {
+        if (cb) {
+            cb(true);
+        }
+    });
+}
+
+peerprocessor.prototype.sendBlockToAll = function (block, cb) {
+    var peers = this.getPeersAsArray();
+    async.forEach(peers, function (peer, callback) {
+        if (!peer.checkBlacklisted()) {
+            peer.processBlock(block, function () {
+                callback();
+            });
+        }
+    }, function () {
+        if (cb) {
+            cb(true);
+        }
+    });
 }
 
 peerprocessor.prototype.removePeer = function (ip) {
