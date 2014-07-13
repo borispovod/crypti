@@ -457,7 +457,8 @@ async.series([
                     }
                 });
             });
-        }, 1000 * 5);
+            peersRunning = false;
+        }, 1000 * 60);
 
         // unconfirmed
         var unconfirmedTrsRunning = false;
@@ -534,67 +535,61 @@ async.series([
 
             blocksRunning = true;
             var newBlocks = [];
-            var p = app.peerprocessor.getAnyPeer();
+            while (true) {
+                var p = app.peerprocessor.getAnyPeer();
+                if (!p) {
+                    break;
+                }
 
-            async.whilst(function () {
-                    return !(newBlocks.length == 0);
-                },
-                function (next) {
-                    if (!p) {
-                        return next();
-                    }
-
-                    p.getNextBlocks(blockId, function (err, blocksJSON) {
-                        if (err) {
+                p.getNextBlocks(blockId, function (err, blocksJSON) {
+                    if (err) {
+                        logger.getInstance().info("Error with peer: " + p.id);
+                        p = app.peerprocessor.getAnyPeer();
+                        break;
+                    } else {
+                        try {
+                            newBlocks = JSON.parse(blocksJSON).blocks;
+                        }
+                        catch (e) {
                             logger.getInstance().info("Error with peer: " + p.id);
                             p = app.peerprocessor.getAnyPeer();
-                            next();
-                        } else {
-                            try {
-                                newBlocks = JSON.parse(blocksJSON).blocks;
-                            }
-                            catch (e) {
-                                logger.getInstance().info("Error with peer: " + p.id);
-                                p = app.peerprocessor.getAnyPeer();
-                                return next();
-                            }
+                            return break;
+                        }
 
-                            if (bs) {
-                                for (var i = 0; i < bs.length; i++) {
-                                    var b = app.blockchain.fromJSON(newBlocks[i]);
-                                    b.transactions = [];
-                                    b.previousBlock = app.blockchain.getLastBlock().getId();
-                                    var trs = newBlocks[i].transactions;
-                                    var buffer = b.getBytes();
+                        if (bs) {
+                            for (var i = 0; i < bs.length; i++) {
+                                var b = app.blockchain.fromJSON(newBlocks[i]);
+                                b.transactions = [];
+                                b.previousBlock = app.blockchain.getLastBlock().getId();
+                                var trs = newBlocks[i].transactions;
+                                var buffer = b.getBytes();
 
-                                    for (var j = 0; j < trs.length; i++) {
-                                        var t = app.transactionprocessor.fromJSON(trs[i]);
-                                        b.transactions.push(t);
+                                for (var j = 0; j < trs.length; i++) {
+                                    var t = app.transactionprocessor.fromJSON(trs[i]);
+                                    b.transactions.push(t);
 
-                                        buffer = Buffer.concat([buffer, t.getBytes()]);
-                                    }
-
-                                    var r = this.blockchain.pushBlock(buffer, true);
-
-                                    if (!r) {
-                                        p.setBlacklisted(true);
-                                        p = app.peerprocessor.getAnyPeer();
-                                        break;
-                                    }
+                                    buffer = Buffer.concat([buffer, t.getBytes()]);
                                 }
 
-                                next();
-                            } else {
-                                logger.getInstance().info("Error with peer: " + p.id);
-                                p = app.peerprocessor.getAnyPeer();
-                                next();
+                                var r = this.blockchain.pushBlock(buffer, true);
+
+                                if (!r) {
+                                    p.setBlacklisted(true);
+                                    p = app.peerprocessor.getAnyPeer();
+                                    break;
+                                }
                             }
+
+                            continue;
+                        } else {
+                            logger.getInstance().info("Error with peer: " + p.id);
+                            p = app.peerprocessor.getAnyPeer();
+                            break;
                         }
-                    });
-                },
-                function (err) {
-                    blocksRunning = false;
+                    }
                 });
+                blocksRunning = false;
+            }
         }, 1000 * 5);
 
         cb();
