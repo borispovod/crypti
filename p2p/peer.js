@@ -312,6 +312,34 @@ peer.prototype.processTransactions = function (transactions, cb) {
     });
 }
 
+peer.prototype.getUnconfirmedAddresses = function (cb) {
+    this.checkAgent();
+
+    var getOptions = {
+        hostname: this.ip,
+        port: this.port,
+        path: '/peer/getUnconfirmedAddresses',
+        agent: this.agent,
+        headers: {
+            "platform" : this._platform,
+            "version" : this._version
+        }
+    };
+
+    var r = http.get(getOptions, function (res) {
+        var data = "";
+        res.on("data", function(body) {
+            data += body;
+        });
+        res.on('end', function () {
+            cb(null, data);
+        });
+    });
+    r.on('error', function (err) {
+        cb(err, null);
+    });
+}
+
 peer.prototype.getUnconfirmedTransactions = function (cb) {
     this.checkAgent();
 
