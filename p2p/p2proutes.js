@@ -186,7 +186,7 @@ module.exports = function (app) {
         return res.json({ success : true, blocks : nextBlocks });
     });*/
 
-    app.get("/peer/processTransactions", function (req, res) {
+    /*app.get("/peer/processUnconfirmedTransaction", function (req, res) {
         var transactions = null;
         try {
             transactions = JSON.parse(req.query.transactions);
@@ -217,6 +217,43 @@ module.exports = function (app) {
 
             return res.json({ success : true });
         });
+    });*/
+
+    app.get("/peer/processUnconfirmedTransaction", function (req, res) {
+        var t = null;
+
+        try {
+            t = JSON.parse(req.query.transaction);
+        } catch (e) {
+            return res.json({ success : false, error : "JSON parser error" });
+        }
+
+        var tr = new Transaction(t.type, null, t.timestamp, new Buffer(t.senderPublicKey, 'hex'), t.recepient, t.amount, t.deadline, t.fee, t.referencedTransaction, new Buffer(t.signature, 'hex'));
+        var r = app.transactionprocessor.processTransaction(tr);
+
+        if (r) {
+            return res.json({ success : true, accepted : true });
+        } else {
+            return res.json({ success : false, accepted : false });
+        }
+    });
+
+    app.get("/peer/processUnconfirmedAddress", function (req, res) {
+        var a = null;
+
+        try {
+            a = JSON.parse(req.query.address);
+        } catch (e) {
+            return res.json({ success : false, error : "JSON parse error" });
+        }
+
+        var addr = new address(a.version, a.id, new Buffer(a.generatorPublicKey, 'hex'), new Buffer(a.publicKey, 'hex'), a.timestamp, new Buffer(a.signature, 'hex'), new Buffer(a.accountSignature, 'hex'));
+        var r = app.addressprocessor.processAddress(addr);
+        if (r) {
+            return res.json({ success : true, accepted : true });
+        } else {
+            return res.json({ success : false, accepted : false });
+        }
     });
 
     app.get("/peer/processBlock", function (req, res) {
@@ -230,10 +267,6 @@ module.exports = function (app) {
         var block = new Block(b.version, null, b.timestamp, b.previousBlock, [], b.totalAmount, b.totalFee, b.payloadLength, new Buffer(b.payloadHash,'hex'), new Buffer(b.generatorPublicKey, 'hex'), new Buffer(b.generationSignature, 'hex'), new Buffer(b.blockSignature, 'hex'));
         var previousBlock = b.previousBlock;
 
-        if (previousBlock != app.blockchain.getLastBlock().getId()) {
-            return res.json({ success : false, accepted : false });
-        }
-
         var transactions = [];
         for (var i = 0; i < b.transactions.length; i++) {
             var t = b.transactions[i];
@@ -241,9 +274,20 @@ module.exports = function (app) {
             transactions.push(transaction);
         }
 
+        var addresses = [];
+        for (var i = 0; i < b.addresses.length; i++) {
+            var a = b.addresses[i];
+            var addr = new address(a.version, a.id, new Buffer(a.generatorPublicKey, 'hex'), new Buffer(a.publicKey, 'hex'), a.timestamp, new Buffer(a.signature, 'hex'), new Buffer(a.accountSignature, 'hex'));
+            addresses.push(addr);
+        }
+
         var buffer = block.getBytes();
         for (var i = 0; i < transactions.length; i++) {
             buffer = Buffer.concat([buffer, transactions[i].getBytes()]);
+        }
+
+        for (var i = 0; i < addresses.length; i++) {
+            buffer = Buffer.concat([buffer, addresses[i].getBytes()]);
         }
 
         var r = app.blockchain.pushBlock(buffer);
