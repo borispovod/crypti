@@ -123,7 +123,7 @@ transactionprocessor.prototype.processTransaction = function (transaction, sendT
     }
 
     if (sendToPeers) {
-        app.peerprocessor.sendUnconfirmedTransactionToAll(transaction);
+        this.app.peerprocessor.sendUnconfirmedTransactionToAll(transaction);
     }
 
     return true;
