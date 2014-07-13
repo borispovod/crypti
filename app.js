@@ -430,7 +430,10 @@ async.series([
                 app.logger.info("Get peers from " + p.ip);
                 p.getPeers(function (err, peersJSON) {
                     if (err) {
-                        app.peerprocessor.removePeer(p.ip);
+                        if (p) {
+                            app.peerprocessor.removePeer(p.ip);
+                        }
+
                         p = app.peerprocessor.getAnyPeer();
                         return callback();
                     } else {
@@ -478,7 +481,10 @@ async.series([
                 function (next) {
                     p.getNextBlocks(app.blockchain.getLastBlock().getId(), function (err, blocks) {
                         if (err) {
-                            app.peerprocessor.removePeer(p.ip);
+                            if (p) {
+                                app.peerprocessor.removePeer(p.ip);
+                            }
+
                             p = app.peerprocessor.getAnyPeer();
                             next();
                         } else {
@@ -605,7 +611,10 @@ async.series([
             }, function (next) {
                 p.getUnconfirmedTransactions(function (err, trs) {
                     if (err) {
-                        app.peerprocessor.removePeer(p.ip);
+                        if (p) {
+                            app.peerprocessor.removePeer(p.ip);
+                        }
+
                         p = app.peerprocessor.getAnyPeer();
                         next();
                     } else {
