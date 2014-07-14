@@ -507,7 +507,7 @@ async.series([
 
                                     logger.getInstance().info("Load block from peer: " + b.getId() + ", height: " + b.height);
                                     var transactions = [];
-                                    async.eachSeries(block.trs, function (t, _c) {
+                                    async.eachSeries(item.trs, function (t, _c) {
                                         var tr = new transaction(t.type, t.id, t.timestamp, new Buffer(t.senderPublicKey, 'hex'), t.recepient, t.amount, t.deadline, t.fee, t.referencedTransaction, new Buffer(t.signature, 'hex'));
 
                                         if (!tr.verify()) {
@@ -524,7 +524,7 @@ async.series([
                                         b.transactions = transactions;
                                         var addresses = {};
 
-                                        async.eachSeries(block.addresses, function (a, _c) {
+                                        async.eachSeries(item.addresses, function (a, _c) {
                                             var addr = new address(a.version, a.id, new Buffer(a.generatorPublicKey, 'hex'), new Buffer(a.publicKey, 'hex'), a.timestamp, new Buffer(a.signature, 'hex'), new Buffer(a.accountSignature, 'hex'));
 
                                             if (!addr.verify() || !addr.accountVerify()) {
