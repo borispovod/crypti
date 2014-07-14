@@ -56,7 +56,7 @@ webApp.controller('accountController', ['$scope', '$rootScope', '$http', "userSe
     }
 
     $scope.sendFree = function () {
-        $http.get("/api/sendFree", { params : { addr : $scope.address }})
+        $http.post("/api/sendFree",{}, { params : { addr : $scope.address }})
             .then(function (resp) {
                 if (resp.data.success) {
                     $scope.getTransactions();
