@@ -285,6 +285,7 @@ module.exports = function (app) {
         block.numberOfTransactions = transactions.length;
         block.numberOfAddresses = addresses.length;
 
+        console.log(block);
 
         var buffer = block.getBytes();
         for (var i = 0; i < transactions.length; i++) {
