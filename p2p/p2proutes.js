@@ -268,10 +268,12 @@ module.exports = function (app) {
         var block = new Block(b.version, null, b.timestamp, b.previousBlock, [], b.totalAmount, b.totalFee, b.payloadLength, new Buffer(b.payloadHash,'hex'), new Buffer(b.generatorPublicKey, 'hex'), new Buffer(b.generationSignature, 'hex'), new Buffer(b.blockSignature, 'hex'));
         var previousBlock = b.previousBlock;
 
+
         var transactions = [];
         for (var i = 0; i < b.transactions.length; i++) {
             var t = b.transactions[i];
-            var transaction = new Transaction(t.type, null, t.timestamp, new Buffer(t.senderPublicKey, 'hex'), t.recepientId, t.amount, t.deadline, t.fee, t.referencedTransaction, new Buffer(t.signature, 'hex'));
+            var transaction = new Transaction(t.type, null, t.timestamp, new Buffer(t.senderPublicKey, 'hex'), t.recipientId, t.amount, t.deadline, t.fee, t.referencedTransaction, new Buffer(t.signature, 'hex'));
+            console.log(transaction);
             transactions.push(transaction);
         }
 
@@ -281,6 +283,7 @@ module.exports = function (app) {
             var addr = new address(a.version, a.id, new Buffer(a.generatorPublicKey, 'hex'), new Buffer(a.publicKey, 'hex'), a.timestamp, new Buffer(a.signature, 'hex'), new Buffer(a.accountSignature, 'hex'));
             addresses.push(addr);
         }
+
 
         var buffer = block.getBytes();
         for (var i = 0; i < transactions.length; i++) {
