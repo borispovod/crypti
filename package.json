@@ -18,7 +18,7 @@
     "long": "^1.1.5",
     "nconf": "https://github.com/crypti/nconf/tarball/master",
     "request": "https://github.com/crypti/request/tarball/master",
-    "sqlite3": "https://github.com/crypti/node-sqlite3/tarball/master",
+    "sqlite3": "2.2.0",
     "underscore": "https://github.com/crypti/underscore/tarball/master",
     "winston": "https://github.com/crypti/winston/tarball/master"
   }
