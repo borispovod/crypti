@@ -109,7 +109,7 @@ module.exports = function (app) {
     app.get('/peer/getUnconfirmedAddresses', function (req, res) {
         var addresses = [];
         for (var t in app.addressprocessor.unconfirmedAddresses) {
-            adresses.push(app.addressprocessor.unconfirmedAddresses[t].toJSON());
+            addresses.push(app.addressprocessor.unconfirmedAddresses[t].toJSON());
         }
 
         return res.json({ success : true, addresses : addresses });
