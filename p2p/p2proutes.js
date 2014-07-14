@@ -55,7 +55,7 @@ module.exports = function (app) {
             return res.json({ success : false, error : "Provide block id" });
         }
 
-        var r = app.db.sql.prepare("SELECT * FROM blocks WHERE height > (SELECT height FROM blocks WHERE id=$id LIMIT 1) LIMIT 60");
+        var r = app.db.sql.prepare("SELECT * FROM blocks WHERE height > (SELECT height FROM blocks WHERE id=$id LIMIT 1) LIMIT 60 ORDER BY height DESC");
         r.bind({
             $id: blockId
         });
@@ -67,14 +67,14 @@ module.exports = function (app) {
             } else {
                 async.eachSeries(blocks, function (item, cb) {
                     app.db.sql.all("SELECT * FROM trs WHERE blockId=$id", {
-                        $id: blockId
+                        $id: item.id
                     }, function (err, trs) {
                         if (err) {
                             cb(err);
                         } else {
                             item.trs = trs;
                             app.db.sql.all("SELECT * FROM addresses WHERE blockId=$id", {
-                                $id : blockId
+                                $id : item.id
                             }, function (err, addresses) {
                                 if (err) {
                                     cb(err);
@@ -103,7 +103,6 @@ module.exports = function (app) {
             results.push(app.transactionprocessor.unconfirmedTransactions[t].toJSON());
         }
 
-        console.log(results);
         return res.json({ success : true, transactions : results });
     });
 

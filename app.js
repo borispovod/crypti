@@ -498,6 +498,7 @@ async.series([
 
                             if (answer.success) {
                                 async.eachSeries(answer.blocks, function (item, c) {
+                                    console.log(item);
                                     var b = new block(item.version, null, item.timestamp, item.previousBlock, [], item.totalAmount, item.totalFee, item.payloadLength, new Buffer(item.payloadHash, 'hex'), new Buffer(item.generatorPublicKey, 'hex'), new Buffer(item.generationSignature, 'hex'), new Buffer(item.blockSignature, 'hex'));
                                     b.numberOfTransactions = item.numberOfTransactions;
                                     b.numberOfAddresses = item.numberOfAddresses;
@@ -515,7 +516,7 @@ async.series([
                                         }
 
                                         transactions.push(tr);
-                                        c();
+                                        _c();
                                     }, function (err) {
                                         if (err) {
                                             return c(err);
@@ -524,15 +525,15 @@ async.series([
                                         b.transactions = transactions;
                                         var addresses = {};
 
-                                        async.eachSeries(item.addresses, function (a, _c) {
+                                        async.eachSeries(item.addresses, function (a, __c) {
                                             var addr = new address(a.version, a.id, new Buffer(a.generatorPublicKey, 'hex'), new Buffer(a.publicKey, 'hex'), a.timestamp, new Buffer(a.signature, 'hex'), new Buffer(a.accountSignature, 'hex'));
 
                                             if (!addr.verify() || !addr.accountVerify()) {
-                                                return _c("Can't verify address: " + addr.id);
+                                                return __c("Can't verify address: " + addr.id);
                                             }
 
                                             addresses[addr.id] = addr;
-                                            _c();
+                                            __c();
                                         }, function (err) {
                                             if (err) {
                                                 return c(err);
@@ -541,7 +542,7 @@ async.series([
                                             b.addresses = addresses;
 
                                             b.numberOfTransactions = transactions.length;
-                                            b.numberOfAddresses = addresses.length;
+                                            b.numberOfAddresses = Object.keys(addresses).length;
 
                                             var buffer = b.getBytes();
 
@@ -632,7 +633,6 @@ async.series([
 
                         if (answer.success) {
                             async.eachSeries(answer.transactions, function (t, cb) {
-                                console.log(t);
                                 var tr = new transaction(t.type, t.id, t.timestamp, new Buffer(t.senderPublicKey, 'hex'), t.recipientId, t.amount, t.deadline, t.fee, t.referencedTransaction, new Buffer(t.signature, 'hex'));
 
                                 if (!tr.verify()) {
