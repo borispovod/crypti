@@ -55,7 +55,7 @@ module.exports = function (app) {
             return res.json({ success : false, error : "Provide block id" });
         }
 
-        var r = app.db.sql.prepare("SELECT * FROM blocks WHERE height > (SELECT height FROM blocks WHERE id=$id LIMIT 1) ORDER BY height DESC LIMIT 60");
+        var r = app.db.sql.prepare("SELECT * FROM blocks WHERE height > (SELECT height FROM blocks WHERE id=$id LIMIT 1) ORDER BY height LIMIT 60");
         r.bind({
             $id: blockId
         });
