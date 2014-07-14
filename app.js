@@ -636,6 +636,10 @@ async.series([
                                     return cb("Can't verify transaction: " + tr.getId());
                                 }
 
+                                if (app.transactionprocessor.getUnconfirmedTransaction(tr.getId()) != null) {
+                                    return cb();
+                                }
+
                                 var r = app.transactionprocessor.processTransaction(tr);
 
 
@@ -707,6 +711,10 @@ async.series([
 
                                 if (!addr.verify() || !addr.accountVerify()) {
                                     return cb("Can't verify address: " + addr.id);
+                                }
+
+                                if (app.addressprocessor.unconfirmedAddresses[addr.id] != null) {
+                                    return cb();
                                 }
 
                                 var r = app.addressprocessor.processAddress(addr);
