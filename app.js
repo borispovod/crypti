@@ -698,6 +698,7 @@ async.series([
                         p = app.peerprocessor.getAnyPeer();
                         return next();
                     } else {
+                        console.log(json);
                         var answer = null;
 
                         try {
