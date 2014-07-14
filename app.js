@@ -632,6 +632,7 @@ async.series([
 
                         if (answer.success) {
                             async.eachSeries(answer.transactions, function (t, cb) {
+                                console.log(t);
                                 var tr = new transaction(t.type, t.id, t.timestamp, new Buffer(t.senderPublicKey, 'hex'), t.recipientId, t.amount, t.deadline, t.fee, t.referencedTransaction, new Buffer(t.signature, 'hex'));
 
                                 if (!tr.verify()) {
