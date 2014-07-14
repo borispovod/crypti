@@ -348,6 +348,8 @@ peer.prototype.processBlock = function (block, cb) {
         addresses.push(block.addresses[i].toJSON());
     }
 
+    console.log("sent " + JSON.stringify(b));
+
     b.transactions = transactions;
     b.addresses = addresses;
 
