@@ -50,10 +50,15 @@ block.prototype.setApp = function (app) {
 
 block.prototype.toJSON = function () {
     var obj = _.extend({}, this);
-    obj.payloadHash = new Buffer(this.payloadHash, 'hex');
+    /*obj.payloadHash = new Buffer(this.payloadHash, 'hex');
     obj.generatorPublicKey = new Buffer(this.generatorPublicKey, 'hex');
     obj.generationSignature = new Buffer(this.generationSignature, 'hex');
-    obj.blockSignature = new Buffer(this.blockSignature, 'hex');
+    obj.blockSignature = new Buffer(this.blockSignature, 'hex');*/
+
+    obj.payloadHash = this.payloadHash.toString('hex');
+    obj.generatorPublicKey = this.generatorPublicKey.toString('hex');
+    obj.generationSignature = this.generationSignature.toString('hex');
+    obj.blockSignature = this.blockSignature.toString('hex');
 
     delete obj.app;
     delete obj.blockchain;
