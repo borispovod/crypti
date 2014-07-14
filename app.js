@@ -497,7 +497,7 @@ async.series([
                             }
 
                             if (answer.success) {
-                                async.eachSeries(answer.blocks, function (block, c) {
+                                async.eachSeries(answer.blocks, function (item, c) {
                                     var b = new block(item.version, null, item.timestamp, item.previousBlock, [], item.totalAmount, item.totalFee, item.payloadLength, new Buffer(item.payloadHash, 'hex'), new Buffer(item.generatorPublicKey, 'hex'), new Buffer(item.generationSignature, 'hex'), new Buffer(item.blockSignature, 'hex'));
                                     b.numberOfTransactions = item.numberOfTransactions;
                                     b.numberOfAddresses = item.numberOfAddresses;
@@ -540,6 +540,8 @@ async.series([
 
                                             b.addresses = addresses;
 
+                                            b.numberOfTransactions = transactions.length;
+                                            b.numberOfAddresses = addresses.length;
 
                                             var buffer = b.getBytes();
 
