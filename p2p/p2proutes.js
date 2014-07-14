@@ -273,7 +273,6 @@ module.exports = function (app) {
         for (var i = 0; i < b.transactions.length; i++) {
             var t = b.transactions[i];
             var transaction = new Transaction(t.type, null, t.timestamp, new Buffer(t.senderPublicKey, 'hex'), t.recipientId, t.amount, t.deadline, t.fee, t.referencedTransaction, new Buffer(t.signature, 'hex'));
-            console.log(transaction);
             transactions.push(transaction);
         }
 
@@ -283,6 +282,9 @@ module.exports = function (app) {
             var addr = new address(a.version, a.id, new Buffer(a.generatorPublicKey, 'hex'), new Buffer(a.publicKey, 'hex'), a.timestamp, new Buffer(a.signature, 'hex'), new Buffer(a.accountSignature, 'hex'));
             addresses.push(addr);
         }
+
+        block.numberOfTransactions = transactions.length;
+        block.numberOfAddresses = addresses.length;
 
 
         var buffer = block.getBytes();
