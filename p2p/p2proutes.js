@@ -278,7 +278,7 @@ module.exports = function (app) {
         var addresses = [];
         for (var i = 0; i < b.addresses.length; i++) {
             var a = b.addresses[i];
-            var addr = new address(a.version, a.id, new Buffer(a.generatorPublicKey, 'hex'), new Buffer(a.publicKey, 'hex'), a.timestamp, new Buffer(a.signature, 'hex'), new Buffer(a.accountSignature, 'hex'));
+            var addr = new Address(a.version, a.id, new Buffer(a.generatorPublicKey, 'hex'), new Buffer(a.publicKey, 'hex'), a.timestamp, new Buffer(a.signature, 'hex'), new Buffer(a.accountSignature, 'hex'));
             addresses.push(addr);
         }
 
