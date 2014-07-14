@@ -8,7 +8,7 @@ var crypto = require('crypto'),
     constants = require('../Constants.js');
 
 module.exports = function (app) {
-    app.get("/api/unlock", function (req, res) {
+    app.post("/api/unlock", function (req, res) {
         var secretPharse = req.query.secretPhrase || "",
             startForging = req.query.startForging;
 
@@ -212,7 +212,7 @@ module.exports = function (app) {
         }
     });
 
-    app.get("/api/sendFree", function (req, res) {
+    app.post("/api/sendFree", function (req, res) {
         var addr = req.query.addr || "";
 
         if (app.addresses.indexOf(addr) >= 0) {
@@ -305,7 +305,7 @@ module.exports = function (app) {
         }
     });
 
-    app.get("/api/sendMoney", function (req, res) {
+    app.post("/api/sendMoney", function (req, res) {
         var secretPharse = req.query.secretPharse,
             amount = req.query.amount * constants.numberLength,
             recepient = req.query.recepient,
