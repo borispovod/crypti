@@ -23,9 +23,11 @@ var express = require('express'),
 
 var app = express();
 
-/*process.on('uncaughtException', function (exception) {
-    console.log(exception);
-});*/
+if (process.env.PRODUCTION) {
+    process.on('uncaughtException', function (exception) {
+        console.log(exception);
+    });
+}
 
 app.configure(function () {
     app.set("version", "0.1");
