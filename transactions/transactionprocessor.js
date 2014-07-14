@@ -36,7 +36,7 @@ transactionprocessor.prototype.processTransaction = function (transaction, sendT
     this.logger.info("Process transaction: " + transaction.getId());
 
     var currentTime = epochTime(new Date().getTime());
-    if (transaction.timestamp > currentTime || transaction.deadline < 1 || transaction.timestamp + transaction.deadline < currentTime || transaction.fee <= 0) {
+    if (transaction.timestamp > currentTime || transaction.deadline < 1 || transaction.timestamp + (transaction.deadline * 3600) < currentTime || transaction.fee <= 0) {
         this.logger.error("Can't verify transaction: " + transaction.getId());
         return false;
     }
