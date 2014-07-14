@@ -90,7 +90,6 @@ module.exports = function (app) {
                         app.logger.error("SQL error");
                         return res.json({ success : false, error : "SQL error" });
                     } else {
-                        console.log(blocks);
                         return res.json({ success : true, blocks : blocks });
                     }
                 });
@@ -104,6 +103,7 @@ module.exports = function (app) {
             results.push(app.transactionprocessor.unconfirmedTransactions[t].toJSON());
         }
 
+        console.log(results);
         return res.json({ success : true, transactions : results });
     });
 
