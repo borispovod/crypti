@@ -64,8 +64,11 @@ transaction.prototype.getBytes = function () {
 
 transaction.prototype.toJSON = function () {
     var obj = _.extend({}, this);
-    obj.senderPublicKey = new Buffer(this.senderPublicKey, 'hex');
-    obj.signature = new Buffer(this.signature, 'hex');
+    /*obj.senderPublicKey = new Buffer(this.senderPublicKey, 'hex');
+    obj.signature = new Buffer(this.signature, 'hex');*/
+
+    obj.senderPublicKey = this.senderPublicKey.toString('hex');
+    obj.signature = this.signature.toString('hex');
 
     return obj;
 }
