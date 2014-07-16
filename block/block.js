@@ -126,9 +126,15 @@ block.prototype.analyze = function () {
             this.accountprocessor.addAccount(recepient);
         }
 
+
+
         if (t.recipientId[t.recipientId.length - 1] == "D") {
             //t.type = 1;
             var address = this.app.addressprocessor.addresses[t.recipientId];
+
+            /*if (!address) {
+                address = this.app.addressprocessor.unconfirmedAddresses[t.recipientId];
+            }*/
 
             var addr = this.accountprocessor.getAddressByPublicKey(address.generatorPublicKey);
             recepient = this.accountprocessor.getAccountById(addr);
@@ -146,7 +152,6 @@ block.prototype.analyze = function () {
                     case 0:
                         recepient.addToBalance(t.amount);
                         recepient.addToUnconfirmedBalance(t.amount);
-                        console.log("recepient: " + recepient.address + " " + recepient.balance);
                         break;
                 }
                 break;
