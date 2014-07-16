@@ -242,7 +242,7 @@ blockchain.prototype.pushBlock = function (buffer, sendToPeers) {
     for (i = 0; i < b.transactions.length; i++) {
         var t = b.transactions[i];
 
-        if (t.timestamp > curTime || t.deadline < 1 || t.deadline > 24 || t.timestamp + (t.deadline * 60 * 60) < b.timestamp || t.fee < 0 || t.fee >= 99999999 * constants.numberLength || this.transactionprocessor.getTransaction(t.getId()) || (t.referencedTransaction != "0" && this.transactionprocessor.getTransaction(t.referencedTransaction) == null || (this.transactionprocessor.getUnconfirmedTransaction(t.getId()) && !t.verify()))) {
+        if (t.timestamp > curTime || t.fee < 0 || t.fee >= 99999999 * constants.numberLength || this.transactionprocessor.getTransaction(t.getId()) || (this.transactionprocessor.getUnconfirmedTransaction(t.getId()) && !t.verify())) {
             break;
         }
 
@@ -268,10 +268,14 @@ blockchain.prototype.pushBlock = function (buffer, sendToPeers) {
         }
 
         if (t.type == 1 && t.recipientId[t.recipientId.length - 1] != "D") {
+            this.app.logger.error("Can't process transaction: " + t.getId() + ", because invalid type: 0/1");
+
             break;
         }
 
         if (t.type == 0 && t.recipientId[t.recipientId.length - 1] != "C") {
+            this.app.logger.error("Can't process transaction: " + t.getId() + ", because invalid type: 1/0");
+
             break;
         }
 
@@ -417,7 +421,7 @@ module.exports.addGenesisBlock = function (app, cb) {
     var b = bc.getBlock(genesisblock.blockId);
 
     if (!b) {
-        var t = new transaction(0, null, 0, new Buffer(genesisblock.sender, 'hex'), genesisblock.recipient, genesisblock.amount * constants.numberLength, 0, 1 * constants.numberLength, null, new Buffer(genesisblock.trSignature, 'hex'));
+        var t = new transaction(0, null, 0, new Buffer(genesisblock.sender, 'hex'), genesisblock.recipient, genesisblock.amount * constants.numberLength, 1 * constants.numberLength, new Buffer(genesisblock.trSignature, 'hex'));
 
         //t.sign("nY4NxXNd9velmtPxRN6TS8JLDR2dMGzkyL51p1sTPefA3tY9SzWBZT6GYlxyUgCQhSrJsoLiXHiuGqFVZTEObqI5BWgua6i5MAk");
         //console.log(t.signature.toString('hex'));
