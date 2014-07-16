@@ -9,8 +9,8 @@ var crypto = require('crypto'),
 
 module.exports = function (app) {
     app.post("/api/unlock", function (req, res) {
-        var secretPharse = req.query.secretPhrase || "",
-            startForging = req.query.startForging;
+        var secretPharse = req.body.secretPhrase || "",
+            startForging = req.body.startForging;
 
         if (startForging == "true") {
             startForging = true;
@@ -213,7 +213,7 @@ module.exports = function (app) {
     });
 
     app.post("/api/sendFree", function (req, res) {
-        var addr = req.query.addr || "";
+        var addr = req.body.addr || "";
 
         if (app.addresses.indexOf(addr) >= 0) {
             return res.json({ success : false });
@@ -306,13 +306,13 @@ module.exports = function (app) {
     });
 
     app.post("/api/sendMoney", function (req, res) {
-        var secretPharse = req.query.secretPharse,
-            amount = req.query.amount * constants.numberLength,
-            recepient = req.query.recepient,
+        var secretPharse = req.body.secretPharse,
+            amount = req.body.amount * constants.numberLength,
+            recepient = req.body.recepient,
             deadline = 1,
-            accountAddress = req.query.accountAddress,
-            //fee = parseInt(req.query.fee),
-            referencedTransaction = req.query.referencedTransaction;
+            accountAddress = req.body.accountAddress,
+            //fee = parseInt(req.body.fee),
+            referencedTransaction = req.body.referencedTransaction;
 
         var fee = parseInt(amount / 100 * app.blockchain.fee);
 
