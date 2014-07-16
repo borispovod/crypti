@@ -18,6 +18,7 @@
     "long": "^1.1.5",
     "nconf": "https://github.com/crypti/nconf/tarball/master",
     "request": "https://github.com/crypti/request/tarball/master",
+    "sendgrid": "^1.1.0",
     "sqlite3": "2.2.0",
     "underscore": "https://github.com/crypti/underscore/tarball/master",
     "winston": "https://github.com/crypti/winston/tarball/master"
