@@ -12,9 +12,8 @@ var transactionprocessor = function () {
 }
 
 
-
 transactionprocessor.prototype.fromJSON = function (t) {
-    return new Transaction(t.type, null, t.timestamp, new Buffer(t.senderPublicKey, 'hex'), t.recepientId, t.amount, t.deadline, t.fee, t.referencedTransaction, new Buffer(t.signature, 'hex'));
+    return new Transaction(t.type, null, t.timestamp, new Buffer(t.senderPublicKey, 'hex'), t.recepientId, t.amount,t.fee, new Buffer(t.signature, 'hex'));
 }
 
 transactionprocessor.prototype.setApp = function (app) {
@@ -83,7 +82,7 @@ transactionprocessor.prototype.processTransaction = function (transaction, sendT
     }
 
     if (transaction.type == 1) {
-        if (!this.app.addressprocessor.addresses[transaction.recipientId]) {
+        if (!this.app.addressprocessor.addresses[transaction.recipientId] && !this.app.addressprocessor.unconfirmedAddresses[transaction.recipientId]) {
             this.logger.error("Invalid recepient, merchant address not found: " + transaction.getId() + ", address: " + transaction.recipientId);
             return false;
         }
@@ -152,7 +151,6 @@ transactionprocessor.prototype.transactionFromBuffer = function (bb) {
     t.type = bb.readByte();
     t.subtype = bb.readByte();
     t.timestamp = bb.readInt();
-    t.deadline = bb.readShort();
 
     var buffer = new Buffer(32);
     for (var i = 0; i < 32; i++) {
@@ -181,14 +179,6 @@ transactionprocessor.prototype.transactionFromBuffer = function (bb) {
     var feeLong = bb.readLong();
     t.fee = new Long(feeLong.low, feeLong.high, false).toNumber();
 
-    var referencedTransactionBuffer = new Buffer(8);
-
-    for (var i = 0; i < 8; i++) {
-        referencedTransactionBuffer[i] = bb.readByte();
-    }
-
-    t.referencedTransaction = bignum.fromBuffer(referencedTransactionBuffer).toString();
-
     var signature = new Buffer(64);
     for (var i = 0; i < 64; i++) {
         signature[i] = bb.readByte();
@@ -206,7 +196,6 @@ transactionprocessor.prototype.transactionFromBytes = function (bytes) {
     t.type = bb.readByte();
     t.subtype = bb.readByte();
     t.timestamp = bb.readInt();
-    t.deadline = bb.readShort();
 
     var buffer = new Buffer(32);
     for (var i = 0; i < 32; i++) {
@@ -232,14 +221,6 @@ transactionprocessor.prototype.transactionFromBytes = function (bytes) {
     t.amount = bb.readUint32();
     t.fee = bb.readUint32();
 
-    var referencedTransactionBuffer = new Buffer(8);
-
-    for (var i = 0; i < 8; i++) {
-        referencedTransactionBuffer[i] = bb.readByte();
-    }
-
-    t.referencedTransaction = bignum.fromBuffer(referencedTransactionBuffer).toString();
-
     var signature = new Buffer(64);
     for (var i = 0; i < 64; i++) {
         signature[i] = bb.readByte();
@@ -252,7 +233,7 @@ transactionprocessor.prototype.transactionFromBytes = function (bytes) {
 transactionprocessor.prototype.transactionFromJSON = function (transaction) {
     try {
         var json = JSON.parse(JSON);
-        return new transaction(json.type, json.id, json.timestamp, json.senderPublicKey, json.recipientId, json.amount, json.deadline, json.fee, json.referencedTransaction, json.signature);
+        return new transaction(json.type, json.id, json.timestamp, json.senderPublicKey, json.recipientId, json.amount, json.fee, json.signature);
     } catch (e) {
         return null;
     }

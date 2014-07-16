@@ -134,7 +134,7 @@ async.series([
                                 } else {
                                     var transactions = [];
                                     async.eachSeries(rows, function (t, _c) {
-                                        var tr = new transaction(t.type, t.id, t.timestamp, new Buffer(t.senderPublicKey, 'hex'), t.recepient, t.amount, t.deadline, t.fee, t.referencedTransaction, new Buffer(t.signature, 'hex'));
+                                        var tr = new transaction(t.type, t.id, t.timestamp, new Buffer(t.senderPublicKey, 'hex'), t.recepient, t.amount, t.fee, new Buffer(t.signature, 'hex'));
 
                                         if (!tr.verify()) {
                                             return _c("Can't verify transaction: " + tr.getId());
@@ -511,7 +511,7 @@ async.series([
                                     logger.getInstance().info("Load block from peer: " + b.getId() + ", height: " + b.height);
                                     var transactions = [];
                                     async.eachSeries(item.trs, function (t, _c) {
-                                        var tr = new transaction(t.type, t.id, t.timestamp, new Buffer(t.senderPublicKey, 'hex'), t.recepient, t.amount, t.deadline, t.fee, t.referencedTransaction, new Buffer(t.signature, 'hex'));
+                                        var tr = new transaction(t.type, t.id, t.timestamp, new Buffer(t.senderPublicKey, 'hex'), t.recepient, t.amount, t.fee, new Buffer(t.signature, 'hex'));
 
                                         if (!tr.verify()) {
                                             return _c("Can't verify transaction: " + tr.getId());
@@ -635,7 +635,7 @@ async.series([
 
                         if (answer.success) {
                             async.eachSeries(answer.transactions, function (t, cb) {
-                                var tr = new transaction(t.type, t.id, t.timestamp, new Buffer(t.senderPublicKey, 'hex'), t.recipientId, t.amount, t.deadline, t.fee, t.referencedTransaction, new Buffer(t.signature, 'hex'));
+                                var tr = new transaction(t.type, t.id, t.timestamp, new Buffer(t.senderPublicKey, 'hex'), t.recipientId, t.amount, t.fee, new Buffer(t.signature, 'hex'));
 
                                 if (!tr.verify()) {
                                     return cb("Can't verify transaction: " + tr.getId());
