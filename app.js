@@ -33,7 +33,7 @@ app.configure(function () {
     app.set("version", "0.1");
     app.set("address", config.get("address"));
     app.set('port', config.get('port'));
-
+    app.use(express.bodyParser());
 
     if (config.get("serveHttpWallet")) {
         app.use(express.static(path.join(__dirname, "public")));
