@@ -228,7 +228,7 @@ module.exports = function (app) {
             return res.json({ success : false, error : "JSON parser error" });
         }
 
-        var tr = new Transaction(t.type, null, t.timestamp, new Buffer(t.senderPublicKey, 'hex'), t.recipientId, t.amount, t.deadline, t.fee, t.referencedTransaction, new Buffer(t.signature, 'hex'));
+        var tr = new Transaction(t.type, null, t.timestamp, new Buffer(t.senderPublicKey, 'hex'), t.recipientId, t.amount, t.fee, new Buffer(t.signature, 'hex'));
         var r = app.transactionprocessor.processTransaction(tr);
 
         if (r) {
@@ -271,7 +271,7 @@ module.exports = function (app) {
         var transactions = [];
         for (var i = 0; i < b.transactions.length; i++) {
             var t = b.transactions[i];
-            var transaction = new Transaction(t.type, null, t.timestamp, new Buffer(t.senderPublicKey, 'hex'), t.recipientId, t.amount, t.deadline, t.fee, t.referencedTransaction, new Buffer(t.signature, 'hex'));
+            var transaction = new Transaction(t.type, null, t.timestamp, new Buffer(t.senderPublicKey, 'hex'), t.recipientId, t.amount, t.fee, new Buffer(t.signature, 'hex'));
             transactions.push(transaction);
         }
 

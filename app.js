@@ -33,7 +33,7 @@ app.configure(function () {
     app.set("version", "0.1");
     app.set("address", config.get("address"));
     app.set('port', config.get('port'));
-
+    app.use(express.bodyParser());
 
     if (config.get("serveHttpWallet")) {
         app.use(express.static(path.join(__dirname, "public")));
@@ -135,7 +135,7 @@ async.series([
                                 } else {
                                     var transactions = [];
                                     async.eachSeries(rows, function (t, _c) {
-                                        var tr = new transaction(t.type, t.id, t.timestamp, new Buffer(t.senderPublicKey, 'hex'), t.recepient, t.amount, t.deadline, t.fee, t.referencedTransaction, new Buffer(t.signature, 'hex'));
+                                        var tr = new transaction(t.type, t.id, t.timestamp, new Buffer(t.senderPublicKey, 'hex'), t.recepient, t.amount, t.fee, new Buffer(t.signature, 'hex'));
 
                                         if (!tr.verify()) {
                                             return _c("Can't verify transaction: " + tr.getId());
@@ -234,6 +234,10 @@ async.series([
         logger.getInstance().info("Connecting to peers...");
         var peers = config.get("peers").list;
         async.forEach(peers, function (p , callback) {
+            if (!p.ip || !p.port || isNaN(p.port) || p.port <= 0 || p.port >= 65500) {
+                return callback();
+            }
+
             p = new peer(p.ip, p.port);
             app.peerprocessor.addPeer(p);
             callback();
@@ -485,6 +489,8 @@ async.series([
                     p.getNextBlocks(app.blockchain.getLastBlock().getId(), function (err, blocks) {
                         if (err) {
                             if (p) {
+                                app.logger.error(err);
+                                app.logger.error("Remove ip: " + p.ip);
                                 app.peerprocessor.removePeer(p.ip);
                             }
 
@@ -501,7 +507,6 @@ async.series([
 
                             if (answer.success) {
                                 async.eachSeries(answer.blocks, function (item, c) {
-                                    console.log(item);
                                     var b = new block(item.version, null, item.timestamp, item.previousBlock, [], item.totalAmount, item.totalFee, item.payloadLength, new Buffer(item.payloadHash, 'hex'), new Buffer(item.generatorPublicKey, 'hex'), new Buffer(item.generationSignature, 'hex'), new Buffer(item.blockSignature, 'hex'));
                                     b.numberOfTransactions = item.numberOfTransactions;
                                     b.numberOfAddresses = item.numberOfAddresses;
@@ -512,7 +517,7 @@ async.series([
                                     logger.getInstance().info("Load block from peer: " + b.getId() + ", height: " + b.height);
                                     var transactions = [];
                                     async.eachSeries(item.trs, function (t, _c) {
-                                        var tr = new transaction(t.type, t.id, t.timestamp, new Buffer(t.senderPublicKey, 'hex'), t.recepient, t.amount, t.deadline, t.fee, t.referencedTransaction, new Buffer(t.signature, 'hex'));
+                                        var tr = new transaction(t.type, t.id, t.timestamp, new Buffer(t.senderPublicKey, 'hex'), t.recepient, t.amount, t.fee, new Buffer(t.signature, 'hex'));
 
                                         if (!tr.verify()) {
                                             return _c("Can't verify transaction: " + tr.getId());
@@ -618,6 +623,8 @@ async.series([
                 p.getUnconfirmedTransactions(function (err, trs) {
                     if (err) {
                         if (p) {
+                            app.logger.error(err);
+                            app.logger.error("Remove ip: " + p.ip);
                             app.peerprocessor.removePeer(p.ip);
                         }
 
@@ -636,7 +643,7 @@ async.series([
 
                         if (answer.success) {
                             async.eachSeries(answer.transactions, function (t, cb) {
-                                var tr = new transaction(t.type, t.id, t.timestamp, new Buffer(t.senderPublicKey, 'hex'), t.recipientId, t.amount, t.deadline, t.fee, t.referencedTransaction, new Buffer(t.signature, 'hex'));
+                                var tr = new transaction(t.type, t.id, t.timestamp, new Buffer(t.senderPublicKey, 'hex'), t.recipientId, t.amount, t.fee, new Buffer(t.signature, 'hex'));
 
                                 if (!tr.verify()) {
                                     return cb("Can't verify transaction: " + tr.getId());
@@ -701,7 +708,6 @@ async.series([
                         p = app.peerprocessor.getAnyPeer();
                         return next();
                     } else {
-                        console.log(json);
                         var answer = null;
 
                         try {

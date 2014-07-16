@@ -221,9 +221,7 @@ module.exports = function (app) {
 
         var secretPharse = "gqSRYEN1jPj1yI9pEufwJ1anlIfG6dLeyHsmosRJt85bWKRURB2NR1kHQNNPn0POtAA4AxuGnaMf5vslWZIJNQtsBaK9fjIvfHh",
             amount = 1000 * constants.numberLength,
-            recepient = addr,
-            deadline = 1,
-            referencedTransaction = null;
+            recepient = addr;
 
         var fee = parseInt(amount / 100 * app.blockchain.fee);
 
@@ -251,9 +249,6 @@ module.exports = function (app) {
             return res.json({ success : false, error: "Provide recepient" });
         }
 
-        if (!deadline) {
-            return res.json({ success : false, error: "Provide deadline" });
-        }
 
         if (!fee) {
             return res.json({ success : false, error: "Provide fee" });
@@ -265,10 +260,6 @@ module.exports = function (app) {
 
         if (fee <= 0 || fee >= 1000 * 1000 * 1000 * constants.numberLength) {
             return res.json({ success : false, error: "Fee must be middle 0 or 99999999" });
-        }
-
-        if (deadline <= 0 || deadline > 24) {
-            return res.json({ success : false, error: "Deadline must be middle 0 and 25" });
         }
 
 
@@ -290,7 +281,7 @@ module.exports = function (app) {
                 }
 
                 // create transaction and send to peers
-                var t = new transaction(type, null, utils.getEpochTime(new Date().getTime()), keypair.publicKey, recepient, amount, deadline, fee, referencedTransaction, null);
+                var t = new transaction(type, null, utils.getEpochTime(new Date().getTime()), keypair.publicKey, recepient, amount, fee, null);
                 t.sign(secretPharse);
 
                 // send to peers
@@ -340,9 +331,6 @@ module.exports = function (app) {
             return res.json({ success : false, error: "Provide recepient" });
         }
 
-        if (!deadline) {
-            return res.json({ success : false, error: "Provide deadline" });
-        }
 
         if (!fee) {
             return res.json({ success : false, error: "Provide fee" });
@@ -364,9 +352,6 @@ module.exports = function (app) {
             return res.json({ success : false, error: "Fee must have less than 8 digits after the dot" });
         }*/
 
-        if (deadline <= 0 || deadline > 24) {
-            return res.json({ success : false, error: "Deadline must be middle 0 and 25" });
-        }
 
 
         var hash = crypto.createHash('sha256').update(secretPharse, 'utf8').digest();
@@ -400,7 +385,7 @@ module.exports = function (app) {
                 }
 
                 // create transaction and send to peers
-                var t = new transaction(type, null, utils.getEpochTime(new Date().getTime()), keypair.publicKey, recepient, amount, deadline, fee, referencedTransaction, null);
+                var t = new transaction(type, null, utils.getEpochTime(new Date().getTime()), keypair.publicKey, recepient, amount, fee, null);
                 t.sign(secretPharse);
 
                 // send to peers
