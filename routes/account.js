@@ -9,8 +9,8 @@ var crypto = require('crypto'),
 
 module.exports = function (app) {
     app.post("/api/unlock", function (req, res) {
-        var secretPharse = req.query.secretPhrase || "",
-            startForging = req.query.startForging;
+        var secretPharse = req.body.secretPhrase || "",
+            startForging = req.body.startForging;
 
         if (startForging == "true") {
             startForging = true;
@@ -297,10 +297,10 @@ module.exports = function (app) {
     });
 
     app.post("/api/sendMoney", function (req, res) {
-        var secretPharse = req.query.secretPharse,
-            amount = req.query.amount * constants.numberLength,
-            recepient = req.query.recepient,
-            accountAddress = req.query.accountAddress;
+        var secretPharse = req.body.secretPharse,
+            amount = req.body.amount * constants.numberLength,
+            recepient = req.body.recepient,
+            accountAddress = req.body.accountAddress;
             //fee = parseInt(req.query.fee),
 
         var fee = parseInt(amount / 100 * app.blockchain.fee);
