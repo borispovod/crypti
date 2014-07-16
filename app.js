@@ -233,6 +233,10 @@ async.series([
         logger.getInstance().info("Connecting to peers...");
         var peers = config.get("peers").list;
         async.forEach(peers, function (p , callback) {
+            if (!p.ip || !p.port || isNaN(p.port) || p.port <= 0 || p.port >= 65500) {
+                return callback();
+            }
+
             p = new peer(p.ip, p.port);
             app.peerprocessor.addPeer(p);
             callback();
@@ -484,6 +488,8 @@ async.series([
                     p.getNextBlocks(app.blockchain.getLastBlock().getId(), function (err, blocks) {
                         if (err) {
                             if (p) {
+                                app.logger.error(err);
+                                app.logger.error("Remove ip: " + p.ip);
                                 app.peerprocessor.removePeer(p.ip);
                             }
 
@@ -500,7 +506,6 @@ async.series([
 
                             if (answer.success) {
                                 async.eachSeries(answer.blocks, function (item, c) {
-                                    console.log(item);
                                     var b = new block(item.version, null, item.timestamp, item.previousBlock, [], item.totalAmount, item.totalFee, item.payloadLength, new Buffer(item.payloadHash, 'hex'), new Buffer(item.generatorPublicKey, 'hex'), new Buffer(item.generationSignature, 'hex'), new Buffer(item.blockSignature, 'hex'));
                                     b.numberOfTransactions = item.numberOfTransactions;
                                     b.numberOfAddresses = item.numberOfAddresses;
@@ -617,6 +622,8 @@ async.series([
                 p.getUnconfirmedTransactions(function (err, trs) {
                     if (err) {
                         if (p) {
+                            app.logger.error(err);
+                            app.logger.error("Remove ip: " + p.ip);
                             app.peerprocessor.removePeer(p.ip);
                         }
 
@@ -700,7 +707,6 @@ async.series([
                         p = app.peerprocessor.getAnyPeer();
                         return next();
                     } else {
-                        console.log(json);
                         var answer = null;
 
                         try {
