@@ -90,7 +90,7 @@ peer.prototype.getPeers = function (cb) {
         hostname: this.ip,
         port: this.port,
         path: '/peer/getPeers',
-        agent: this.agent,
+        //agent: this.agent,
         headers: {
             "platform" : this._platform,
             "version" : this._version
@@ -117,7 +117,7 @@ peer.prototype.getPeer = function (ip, cb) {
         hostname: this.ip,
         port: this.port,
         path: '/peer/getPeer?ip=' + ip,
-        agent: this.agent,
+        //agent: this.agent,
         headers: {
             "platform" : this._platform,
             "version" : this._version
@@ -145,7 +145,7 @@ peer.prototype.getInfo = function (cb) {
         hostname: this.ip,
         port: this.port,
         path: '/peer/getInfo',
-        agent: this.agent,
+        //agent: this.agent,
         headers: {
             "platform" : this._platform,
             "version" : this._version
@@ -173,7 +173,7 @@ peer.prototype.getInfo = function (cb) {
         hostname: this.ip,
         port: this.port,
         path: '/peer/getInfo',
-        agent: this.agent,
+        //agent: this.agent,
         headers: {
             "platform" : this._platform,
             "version" : this._version
@@ -201,7 +201,7 @@ peer.prototype.getCumulativeDifficulty = function (cb) {
         hostname: this.ip,
         port: this.port,
         path: '/peer/getCumulativeDifficulty',
-        agent: this.agent,
+        ///agent: this.agent,
         headers: {
             "platform" : this._platform,
             "version" : this._version
@@ -230,7 +230,7 @@ peer.prototype.getNextBlockIds = function (blockId, cb) {
         hostname: this.ip,
         port: this.port,
         path: '/peer/getNextBlockIds?blockId=' + blockId,
-        agent: this.agent,
+        //agent: this.agent,
         headers: {
             "platform" : this._platform,
             "version" : this._version
@@ -258,7 +258,7 @@ peer.prototype.getNextBlocks = function (blockId, cb) {
         hostname: this.ip,
         port: this.port,
         path: '/peer/getNextBlocks?blockId=' + blockId,
-        agent: this.agent,
+        ///agent: this.agent,
         headers: {
             "platform" : this._platform,
             "version" : this._version
@@ -286,7 +286,7 @@ peer.prototype.getUnconfirmedAddresses = function (cb) {
         hostname: this.ip,
         port: this.port,
         path: '/peer/getUnconfirmedAddresses',
-        agent: this.agent,
+        //agent: this.agent,
         headers: {
             "platform" : this._platform,
             "version" : this._version
@@ -314,7 +314,7 @@ peer.prototype.getUnconfirmedTransactions = function (cb) {
         hostname: this.ip,
         port: this.port,
         path: '/peer/getUnconfirmedTransactions',
-        agent: this.agent,
+        //agent: this.agent,
         headers: {
             "platform" : this._platform,
             "version" : this._version
@@ -355,7 +355,7 @@ peer.prototype.processBlock = function (block, cb) {
         hostname: this.ip,
         port: this.port,
         path: '/peer/processBlock?block=' + JSON.stringify(b),
-        agent: this.agent,
+        //agent: this.agent,
         headers: {
             "platform" : this._platform,
             "version" : this._version
@@ -385,7 +385,7 @@ peer.prototype.processUnconfirmedTransaction = function (transaction, cb) {
         hostname: this.ip,
         port: this.port,
         path: '/peer/processUnconfirmedTransaction?transaction=' + JSON.stringify(t),
-        agent: this.agent,
+        //agent: this.agent,
         headers: {
             "platform" : this._platform,
             "version" : this._version
@@ -415,7 +415,7 @@ peer.prototype.processUnconfirmedAddress = function (address, cb) {
         hostname: this.ip,
         port: this.port,
         path: '/peer/processUnconfirmedAddress?address=' + JSON.stringify(a),
-        agent: this.agent,
+        //agent: this.agent,
         headers: {
             "platform" : this._platform,
             "version" : this._version
