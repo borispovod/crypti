@@ -38,13 +38,12 @@ module.exports = function (app) {
                 $publicKey : params.publicKey
             });
 
-            console.log("here");
 
-            q.get(function (err, peer) {
+            q.get(function (err, pr) {
                 if (err) {
                     app.logger.error(err);
                     return res.json({ success : false });
-                } else if (peer) {
+                } else if (pr) {
                     q = app.db.sql.prepare("UPDATE peer SET timestamp=$timestamp AND blocked=0 AND ip=$ip WHERE publicKey=$publicKey");
                     q.bind({
                         $timestamp : timestamp,
@@ -65,9 +64,7 @@ module.exports = function (app) {
                         }
                     });
                 } else {
-                    console.log("here 2");
                     var p = new peer(params.ip, params.port, params.platform, params.version, timestamp, new Buffer(params.publicKey, 'hex'), false);
-                    console.log(app.db.writePeer);
 
                     app.db.writePeer(p, function (err) {
                         if (err) {
