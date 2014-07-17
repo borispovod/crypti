@@ -19,7 +19,9 @@ var express = require('express'),
     peerRoutes = require('./p2p').initRoutes,
     Constants = require("./Constants.js"),
     genesisblock = require("./block").genesisblock,
-    fs = require('fs');
+    fs = require('fs'),
+    Forger = require("./forger").forger,
+    utils = require("./utils.js");
 
 var app = express();
 
@@ -34,6 +36,7 @@ app.configure(function () {
     app.set("address", config.get("address"));
     app.set('port', config.get('port'));
     app.use(express.bodyParser());
+
 
     if (config.get("serveHttpWallet")) {
         app.use(express.static(path.join(__dirname, "public")));
@@ -85,11 +88,6 @@ async.series([
         cb();
     },
     function (cb) {
-        logger.getInstance().info("Initializing forger processor...");
-        app.forgerprocessor = forgerprocessor.init(app);
-        cb();
-    },
-    function (cb) {
         logger.getInstance().info("Initializing address processor...");
         app.addressprocessor = new addressprocessor();
         app.addressprocessor.setApp(app);
@@ -103,6 +101,35 @@ async.series([
     function (cb) {
         logger.getInstance().info("Load system info...");
         app.info = { platform : os.platform, version : config.get('version') };
+        cb();
+    },
+    function (cb) {
+        logger.getInstance().info("Initializing forger processor...");
+        app.forgerprocessor = forgerprocessor.init(app);
+
+        logger.getInstance().info("Initialize forger...");
+        // get public key
+
+        var forgerPassphrase = config.get("forging").secretPhrase;
+
+        if (forgerPassphrase && forgerPassphrase.length > 0) {
+            var keypair = app.accountprocessor.getKeyPair(forgerPassphrase);
+            app.forgerKey = keypair;
+            app.forgerSecretPhrase = forgerPassphrase;
+            app.synchronized = false;
+            app.forgerAccountId = app.accountprocessor.getAddressByPublicKey(app.forgerKey.publicKey);
+
+            logger.getInstance().info("Forger public key: " + keypair.publicKey.toString('hex'));
+            logger.getInstance().info("Forger public key: " + app.forgerAccountId);
+            logger.getInstance().info("Forging enabled...");
+
+            var forger = new Forger(app.forgerAccountId, keypair.publicKey, forgerPassphrase);
+            forger.setApp(app);
+            var result = app.forgerprocessor.startForger(forger);
+        } else {
+            logger.getInstance().info("Forging not enabled...");
+        }
+
         cb();
     },
     function (cb) {
@@ -231,6 +258,39 @@ async.series([
     },
     function (cb) {
         logger.getInstance().info("Connecting to peers...");
+
+        app.db.sql.serialize(function () {
+            app.db.sql.all("SELECT * FROM peer", function (err, peers) {
+                if (err) {
+                    cb(err);
+                } else if (peers.length == 0) {
+                    cb();
+                } else {
+                    async.forEach(peers, function (pr, callback) {
+                        if (!pr.ip || isNaN(parseInt(pr.port)) || !pr.version || !pr.platform || isNaN(parseInt(pr.timestamp)) || !pr.publicKey) {
+                            return callback();
+                        }
+
+                        var p = new peer(pr.ip, pr.port, pr.platform, pr.version, pr.timestamp, pr.publicKey, pr.blocked);
+                        app.peerprocessor.addPeer(p);
+                        callback();
+                    }, function () {
+                        if (app.forgerKey) {
+                            app.peerprocessor.sendHelloToAll({
+                                timestamp: utils.getEpochTime(new Date().getTime()),
+                                platform: app.info.platform,
+                                version: app.info.version,
+                                publicKey: app.forgerKey.publicKey.toString('hex'),
+                                port: config.get("port")
+                            });
+                        }
+
+                        cb();
+                    });
+                }
+            });
+        });
+        /*
         var peers = config.get("peers").list;
         async.forEach(peers, function (p , callback) {
             if (!p.ip || !p.port || isNaN(p.port) || p.port <= 0 || p.port >= 65500) {
@@ -241,8 +301,9 @@ async.series([
             app.peerprocessor.addPeer(p);
             callback();
         }, function () {
+            app.peerprocessor.sendHelloToAll();
             cb();
-        });
+        });*/
     },
     function (cb) {
         logger.getInstance().info("Scanning peers...");
@@ -265,12 +326,17 @@ async.series([
 
                     if (ps) {
                         for (var i = 0; i < ps.length; i++) {
-                            var newPeer = new peer(ps[i].ip, ps[i].port, ps[i].platform, ps[i].version);
+                            if (!pr.ip || isNaN(parseInt(pr.port)) || !pr.version || !pr.platform || isNaN(parseInt(pr.timestamp)) || !pr.publicKey) {
+                                return callback();
+                            }
+
+                            var newPeer = new peer(ps[i].ip, ps[i].port, ps[i].platform, ps[i].version, ps[i].timestamp, ps[i].publicKey, ps[i].blocked);
 
                             if (!app.peerprocessor.peers[newPeer.ip]) {
                                 app.peerprocessor.addPeer(newPeer);
                             }
                         }
+
                         callback();
                     } else {
                         return callback();
@@ -278,6 +344,15 @@ async.series([
                 }
             });
         }, function () {
+            if (app.forgerKey) {
+                app.peerprocessor.sendHelloToAll({
+                    timestamp: utils.getEpochTime(new Date().getTime()),
+                    platform: app.info.platform,
+                    version: app.info.version,
+                    publicKey: app.forgerKey.publicKey.toString('hex'),
+                    port: config.get("port")
+                });
+            }
             cb();
         });
     },
@@ -407,7 +482,7 @@ async.series([
     },*/
     function (cb) {
         logger.getInstance().info("Starting intervals...");
-        setInterval(function () {
+        /*setInterval(function () {
             var peers = app.peerprocessor.getPeersAsArray();
             async.forEach(peers, function (p, callback) {
                 var i = p.checkBlacklisted();
@@ -420,7 +495,7 @@ async.series([
             }, function () {
 
             });
-        }, 1000 * 60);
+        }, 1000 * 60);*/
 
         var peersRunning = false;
         // peers
@@ -599,6 +674,7 @@ async.series([
                         app.logger.info("Blocks processed from " + p.ip);
                     }
 
+                    app.synchronized = true;
                     blocksInterval = false;
                 }
             );

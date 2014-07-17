@@ -1,5 +1,6 @@
 var account = require('./account.js'),
     crypto = require('crypto'),
+    ed  = require('ed25519'),
     bignum = require('bignum');
 
 var accountprocessor = function (db) {
@@ -35,6 +36,12 @@ accountprocessor.prototype.getAddressByPublicKey = function (publicKey) {
 
     var address = bignum.fromBuffer(temp).toString() + "C";
     return address;
+}
+
+accountprocessor.prototype.getKeyPair = function (secretPhrase) {
+    var hash = crypto.createHash('sha256').update(secretPhrase, 'utf8').digest();
+    var keypair = ed.MakeKeypair(hash);
+    return keypair;
 }
 
 

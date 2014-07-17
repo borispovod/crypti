@@ -7,6 +7,31 @@ var db = function (sql) {
     this.sql = sql;
 }
 
+db.prototype.writePeer = function (peer, cb) {
+    this.sql.serialize(function () {
+        var q = this.sql.prepare("INSERT INTO peer VALUES($ip, $port, $version, $platform, $timestamp, $publicKey, $blocked");
+        q.bind({
+            $ip : peer.ip,
+            $port : peer.port,
+            $version : peer.version,
+            $platform: peer.platform,
+            $timestamp: peer.timestamp,
+            $publicKey : peer.publicKey,
+            $blocked : peer.blocked
+        });
+
+        q.run(function (err) {
+            if (cb) {
+                if (err) {
+                    console.log(err);
+                }
+
+                cb(err);
+            }
+        });
+    }.bind(this));
+}
+
 db.prototype.writeAddress = function (address, cb) {
     this.sql.serialize(function () {
         var q = this.sql.prepare("INSERT INTO addresses VALUES($id, $blockId, $version, $timestamp, $publicKey, $generatorPublicKey, $signature, $accountSignature)");
@@ -165,6 +190,9 @@ module.exports.initDb = function (callback) {
             },
             function (cb) {
                 d.sql.run("CREATE TABLE IF NOT EXISTS addresses (id CHAR(25) NOT NULL, blockId CHAR(25) NOT NULL, version INT NOT NULL, timestamp TIMESTAMP NOT NULL, publicKey VARCHAR(128) NOT NULL, generatorPublicKey VARCHAR(128) NOT NULL, signature VARCHAR(128) NOT NULL, accountSignature VARCHAR(128) NOT NULL, PRIMARY KEY(id))", cb);
+            },
+            function (cb) {
+                d.sql.run("CREATE TABLE IF NOT EXISTS peer (ip CHAR(20) NOT NULL, port INT NOT NULL, version VARCHAR(10) NOT NULL, platform VARCHAR(255), timestamp TIMESTAMP NOT NULL, publicKey VARCHAR(128) NOT NULL, blocked BOOL NOT NULL DEFAULT 0, PRIMARY KEY(ip))", cb);
             }
         ], function (err) {
             callback(err, d);
