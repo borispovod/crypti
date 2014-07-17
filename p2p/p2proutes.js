@@ -38,6 +38,8 @@ module.exports = function (app) {
                 $publicKey : params.publicKey
             });
 
+            console.log("here");
+
             q.get(function (err, peer) {
                 if (err) {
                     app.logger.error(err);
@@ -63,6 +65,7 @@ module.exports = function (app) {
                         }
                     });
                 } else {
+                    console.log("here 2");
                     var p = new peer(params.ip, params.port, params.platform, params.version, timestamp, new Buffer(params.publicKey, 'hex'), false);
                     console.log(app.db.writePeer);
 
