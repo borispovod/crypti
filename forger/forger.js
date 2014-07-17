@@ -7,9 +7,10 @@ var crypto = require('crypto'),
     ed  = require('ed25519'),
     async = require('async');
 
-var forger = function (accountId, secretPharse) {
+var forger = function (accountId, publicKey, secretPharse) {
     this.accountId = accountId;
     this.secretPharse = secretPharse;
+    this.publicKey = publicKey;
 }
 
 forger.prototype.setApp = function (app) {
@@ -23,6 +24,13 @@ forger.prototype.setApp = function (app) {
 }
 
 forger.prototype.startForge = function () {
+    if (!this.app.synchronized) {
+        this.app.logger.warn("Can't forge, node not synchronized!");
+        return false;
+    }
+
+    return false;
+
     var account = this.accountprocessor.getAccountById(this.accountId);
 
     if (!account) {
@@ -34,74 +42,27 @@ forger.prototype.startForge = function () {
         return false;
     }
 
-
-
-    /*if (lastBlock != this.forgerprocessor.lastBlocks[account.address]) {
-        // find max amount
-        var s = this.app.db.prepare("SELECT * FROM ")
-    }*/
-
-
-    /*if (lastBlock != this.forgerprocessor.lastBlocks[account.address]) {
-
-        var hash = crypto.createHash("sha256").update(lastBlock.generationSignature).update(account.publickey);
-        var generationSignatureHash = hash.digest();
-
-        var temp = new Buffer(8);
-        for (var i = 0; i < 8; i++) {
-            temp[i] = generationSignatureHash[7 - i];
-        }
-
-        var hit = bignum.fromBuffer(temp);
-
-        // let's get last payments by address
-        var s = this.app.db.sql.prepare("SELECT * FROM blocks WHERE generatorPublicKey=?");
-        s.bind([account.publickey.toString('hex')]);
-        s.get(function (err, block) {
-            if (err) {
-                this.logger.error(err);
-            } else {
-                var timestamp = 0;
-
-                if (block) {
-                    timestamp = block.timestamp;
-                }
-
-                s = this.app.db.sql.prepare("SELECT senderPublicKey, SUM(amount) as s FROM trs WHERE type=1 AND timestamp > ? ORDER BY s DESC LIMIT 1");
-                s.bind([timestamp]);
-                s.get(function (err, trs) {
-                    if (err) {
-                        this.logger(err);
-                    } else {
-                        if (trs.s) {
-
-                        }
-                        var amount = 0;
-                        // add node time
-                        var nodeTime = bignum(600 / 60 + 1).pow(10);
-                        console.log("node time: " + nodeTime.toString());
-
-                        var totalWeight = bignum(totalAmount).add(nodeTime);
-                        account.weight = totalWeight;
-
-                        this.forgerprocessor.lastBlocks[account.address] = lastBlock;
-                        this.forgerprocessor.hits[account.address] = temp.toString('hex');
-
-                        //account.getEffectiveBalance()
-                        var total = hit.div(bignum(lastBlock.getBaseTarget()).mul(totalWeight)).toNumber();
-
-                        var elapsed = utils.getEpochTime(new Date().getTime()) - lastBlock.timestamp;
-
-                        this.deadline = Math.max(total - elapsed, 0);
-                    }
-                }.bind(this));
-            }
-        }.bind(this));
-    }*/
-
     var lastBlock = this.blockchain.getLastBlock();
     var elapsedTime = utils.getEpochTime(new Date().getTime()) - lastBlock.timestamp;
+
+    /*this.app.db.sql.serialize(function () {
+        // get max weight and my weight, elapsed time.
+        this.app.db.sql.get("SELECT * FROM peer WHERE blocked=0 ORDER BY timestamp LIMIT 1", function (err, peer) {
+            if (err) {
+                this.app.logger.error(err);
+            } else if (peer) {
+                var maxWeight = peer.timestamp - lastBlock.timestamp;
+                var target = maxWeight + 60 - elaspedTime;
+
+                console.log("target: " + target);
+            } else {
+
+            }
+        }.bind(this));
+    }.bind(this));*/
+
     //elapsedTime > 0 & account.weight
+
     if (elapsedTime > 60) {
         /*var target = bignum(lastBlock.getBaseTarget()).mul(account.weight).mul(elapsedTime);
 
@@ -109,13 +70,12 @@ forger.prototype.startForge = function () {
             return false;
         }*/
 
-        if (!account || !account.publickey) {
+        if (!account || !this.publicKey) {
             return;
         }
 
         //bignum.fromBuffer(new Buffer(this.forgerprocessor.hits[account.address], 'hex')).lt(target)
-        if (account.publickey.toString('hex') == "9e51284be9f60a367d57b8d9dc40fb7a1e95cdf9c4ba249f4e96809fa05d5982") {
-            this.logger.info("Generating block...");
+        this.logger.info("Generating block...");
 
             var sortedTransactions = [];
             var transactions = _.map(this.transactionprocessor.unconfirmedTransactions, function (obj, key) { return obj });
@@ -229,7 +189,7 @@ forger.prototype.startForge = function () {
             payloadLength += addressesLength;
 
 
-            var publicKey = account.publickey;
+            var publicKey = this.publicKey;
             var hash = crypto.createHash('sha256');
 
             for (var t in newTransactions) {
@@ -279,7 +239,6 @@ forger.prototype.startForge = function () {
             } else {
                 this.logger.error("Can't verify new generated block");
             }
-        }
     }
 }
 

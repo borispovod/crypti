@@ -7,10 +7,25 @@ var peerprocessor = function () {
     this.blockedPeers = {};
 }
 
+peerprocessor.prototype.sendHelloToAll = function (params, cb) {
+    var peers = this.getPeersAsArray();
+    async.forEach(peers, function (peer, callback) {
+        if (!peer.blocked) {
+            peer.sendHello(params, function () {
+                callback();
+            });
+        }
+    }, function () {
+        if (cb) {
+            cb(true);
+        }
+    });
+}
+
 peerprocessor.prototype.sendUnconfirmedTransactionToAll = function (transaction, cb) {
     var peers = this.getPeersAsArray();
     async.forEach(peers, function (peer, callback) {
-        if (!peer.checkBlacklisted()) {
+        if (!peer.blocked) {
             peer.processUnconfirmedTransaction(transaction, function () {
                 callback();
             });
@@ -25,7 +40,7 @@ peerprocessor.prototype.sendUnconfirmedTransactionToAll = function (transaction,
 peerprocessor.prototype.sendUnconfirmedAddressToAll = function (address, cb) {
     var peers = this.getPeersAsArray();
     async.forEach(peers, function (peer, callback) {
-        if (!peer.checkBlacklisted()) {
+        if (!peer.blocked) {
             peer.processUnconfirmedAddress(address, function () {
                 callback();
             });
@@ -40,7 +55,7 @@ peerprocessor.prototype.sendUnconfirmedAddressToAll = function (address, cb) {
 peerprocessor.prototype.sendBlockToAll = function (block, cb) {
     var peers = this.getPeersAsArray();
     async.forEach(peers, function (peer, callback) {
-        if (!peer.checkBlacklisted()) {
+        if (!peer.blocked) {
             peer.processBlock(block, function () {
                 callback();
             });
@@ -62,6 +77,18 @@ peerprocessor.prototype.addPeer = function (peer) {
     } else {
         this.peers[peer.ip] = peer;
         return true;
+    }
+}
+
+peerprocessor.prototype.getPeerByPublicKey = function (publicKey) {
+    var peers = _.map(this.peers, function (value, key) {
+        return value;
+    });
+
+    for (var i = 0; i < peers.length; i++) {
+        if (peers[i].publicKey.toString('hex') == publicKey) {
+            return peers[i];
+        }
     }
 }
 
@@ -103,7 +130,7 @@ peerprocessor.prototype.getAnyPeer = function (blacklisted) {
 
     while (true) {
         var peer = peers[Math.floor(Math.random() * peers.length)];
-        if (!peer.checkBlacklisted()) {
+        if (!peer.blocked) {
             toReturn = peer;
             break;
         }
