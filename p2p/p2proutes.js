@@ -5,18 +5,108 @@ var peer = require("./peer.js"),
     Transaction = require("../transactions").transaction,
     Address = require("../address").address,
     async = require('async'),
+    utils = require("../utils.js"),
     _ = require('underscore');
 
 module.exports = function (app) {
+    app.get("/peer/hello", function (req, res) {
+        var params = req.query.params || "";
+
+        if (params.length == 0) {
+            return res.json({ success : false });
+        }
+
+        try {
+            params = JSON.parse(params);
+        } catch (e) {
+            app.logger.error(e);
+            return res.json({ success : false });
+        }
+
+        var timestamp = params.timestamp - 10;
+        if (timestamp > utils.getEpochTime(new Date().getTime())) {
+            return res.json({ success : false });
+        }
+
+        app.db.sql.serialize(function () {
+            var q = app.db.sql.prepare("SELECT * FROM peer WHERE publicKey=$publicKey LIMIT 1");
+            q.bind({
+                $publicKey : params.publicKey
+            });
+
+            q.get(function (err, peer) {
+                if (err) {
+                    app.logger.error(err);
+                    return res.json({ success : false });
+                } else if (peer) {
+                    q = app.db.sql.prepare("UPDATE peer SET timestamp=$timestamp AND blocked=0 AND ip=$ip WHERE publicKey=$publicKey");
+                    q.bind({
+                        $timestamp : timestamp,
+                        $publicKey : params.publicKey,
+                        $ip : params.ip
+                    });
+                    q.run(function (err) {
+                        if (err) {
+                            return res.json({ success: false });
+                        } else {
+                            var p = app.peerprocessor.getPeerByPublicKey(params.publicKey);
+                            p.publicKey = new Buffer(params.publicKey, 'hex');
+                            p.timestamp = timestamp;
+                            p.blocked = false;
+                            p.ip = params.ip;
+
+                            return res.json({ success : true });
+                        }
+                    });
+                } else {
+                    app.db.writePeer(peer, function (err) {
+                        if (err) {
+                            app.logger.error(err);
+                            return res.json({ success : false });
+                        } else {
+                            var p = new peer(params.ip, params.port, params.platform, params.version, timestamp, new Buffer(params.publicKey, 'hex'), false);
+                            app.peerprocessor.addPeer(p);
+                            return res.json({ success : true });
+                        }
+                    });
+                }
+            });
+        });
+    });
+
     app.get("/peer/getPeers", function (req, res) {
+        app.db.sql.serialize(function () {
+            app.db.sql.all("SELECT * FROM peer ORDER BY timestamp", function (err, rows) {
+               if (err) {
+                   return res.json({ success : false, error : "SQL error" });
+               }  else {
+                   return res.json({ success : true, peers : rows });
+               }
+            });
+        });
+        /*
         var peers = app.peerprocessor.getPeersAsArray();
         return res.json({ success : true, peers : peers });
+        */
     });
 
     app.get("/peer/getPeer", function (req, res) {
         var ip = req.query.ip;
+
+        app.db.sql.serialize(function () {
+            app.db.sql.get("SELECT * FROM peer WHERE ip=$ip", {
+                $ip : ip
+            }, function (err, peer) {
+                if (err) {
+                    return res.json({ success : false, error : "SQL error" });
+                } else {
+                    return res.json({ success : true, peer : peer });
+                }
+            });
+        });
+        /*var ip = req.query.ip;
         var peer = app.peerprocessor.getPeer(ip);
-        return res.json({ success : true, peer : peer });
+        return res.json({ success : true, peer : peer });*/
     });
 
     app.get("/peer/getInfo", function (req, res) {

@@ -138,14 +138,13 @@ webApp.controller('sendCryptiController', ["$scope", "sendCryptiModal", "$http",
         $scope.amountError = parseFloat($scope.fee) + parseFloat($scope.amount) > $scope.totalBalance;
 
         if (!$scope.amountError) {
-            $http.post("/api/sendMoney",{}, { params: {
+            $http.post("/api/sendMoney", {
                 secretPharse: $scope.secretPhrase,
                 amount: $scope.amount,
                 recepient: $scope.to,
                 accountAddress: userService.address,
-                deadline: $scope.deadline,
                 fee: $scope.fee
-            }},{}).then(function (resp) {
+            }).then(function (resp) {
                 if (resp.data.error == "Invalid passphrase, check your passphrase please" || resp.data.error == "Invalid merchant address, check it again please") {
                     $scope.fromServer = resp.data.error;
                 }
