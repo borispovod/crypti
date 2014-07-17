@@ -23,6 +23,10 @@ module.exports = function (app) {
             return res.json({ success : false });
         }
 
+        if (!params) {
+            return res.json({ success : false });
+        }
+
         var timestamp = params.timestamp - 10;
         if (timestamp > utils.getEpochTime(new Date().getTime())) {
             return res.json({ success : false });
@@ -59,12 +63,13 @@ module.exports = function (app) {
                         }
                     });
                 } else {
-                    app.db.writePeer(peer, function (err) {
+                    var p = new peer(params.ip, params.port, params.platform, params.version, timestamp, new Buffer(params.publicKey, 'hex'), false);
+
+                    app.db.writePeer(p, function (err) {
                         if (err) {
                             app.logger.error(err);
                             return res.json({ success : false });
                         } else {
-                            var p = new peer(params.ip, params.port, params.platform, params.version, timestamp, new Buffer(params.publicKey, 'hex'), false);
                             app.peerprocessor.addPeer(p);
                             return res.json({ success : true });
                         }
