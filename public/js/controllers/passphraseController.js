@@ -1,6 +1,7 @@
 webApp.controller('passphraseController', ['$scope', '$rootScope', '$http', "$state", "userService",
     function($rootScope, $scope, $http, $state, userService) {
         $scope.login = function(pass) {
+            var data = {secretPhrase: pass};
             if (!pass || pass.length > 100){
             }
             else{

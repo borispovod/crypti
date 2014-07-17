@@ -213,7 +213,7 @@ module.exports = function (app) {
     });
 
     app.post("/api/sendFree", function (req, res) {
-        var addr = req.query.addr || "";
+        var addr = req.body.addr || "";
 
         if (app.addresses.indexOf(addr) >= 0) {
             return res.json({ success : false });
@@ -300,8 +300,10 @@ module.exports = function (app) {
         var secretPharse = req.body.secretPharse,
             amount = req.body.amount * constants.numberLength,
             recepient = req.body.recepient,
-            accountAddress = req.body.accountAddress;
-            //fee = parseInt(req.query.fee),
+            deadline = 1,
+            accountAddress = req.body.accountAddress,
+            //fee = parseInt(req.body.fee),
+            referencedTransaction = req.body.referencedTransaction;
 
         var fee = parseInt(amount / 100 * app.blockchain.fee);
 
