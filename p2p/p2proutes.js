@@ -64,6 +64,7 @@ module.exports = function (app) {
                     });
                 } else {
                     var p = new peer(params.ip, params.port, params.platform, params.version, timestamp, new Buffer(params.publicKey, 'hex'), false);
+                    console.log(app.db.writePeer);
 
                     app.db.writePeer(p, function (err) {
                         if (err) {
