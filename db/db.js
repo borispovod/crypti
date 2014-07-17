@@ -9,7 +9,7 @@ var db = function (sql) {
 
 db.prototype.writePeer = function (peer, cb) {
     this.sql.serialize(function () {
-        var q = this.sql.prepare("INSERT INTO peer VALUES($ip, $port, $version, $platform, $timestamp, $publicKey, $blocked");
+        var q = this.sql.prepare("INSERT INTO peer VALUES($ip, $port, $version, $platform, $timestamp, $publicKey, $blocked)");
         q.bind({
             $ip : peer.ip,
             $port : peer.port,
