@@ -2,7 +2,7 @@ var http = require('http'),
     keepAliveAgent = require('keep-alive-agent'),
     _ = require('underscore');
 
-var peer = function (address, port, platform, version) {
+var peer = function (address, port, platform, version, timestamp, publicKey, blocked) {
     this.ip = address;
     this.port = port;
     this.version = version;
@@ -10,6 +10,9 @@ var peer = function (address, port, platform, version) {
     this.shareAddress = true;
     this.platform = "";
     this.version =  1;
+    this.timestamp = timestamp;
+    this.publicKey = publicKey;
+    this.blocked = blocked;
     this.downloadedVolume = 0;
     this.uploadedVolume = 0;
     this.blacklistedTime = 0;
@@ -433,6 +436,36 @@ peer.prototype.processUnconfirmedAddress = function (address, cb) {
     });
     r.on('error', function (err) {
         cb(err, null);
+    });
+}
+
+peer.prototype.sendHello = function (params, cb) {
+    var getOptions = {
+        hostname: this.ip,
+        port: this.port,
+        path: '/peer/hello?params=' + JSON.stringify(params),
+        //agent: this.agent,
+        headers: {
+            "platform" : this._platform,
+            "version" : this._version
+        }
+    };
+
+    var r = http.get(getOptions, function (res) {
+        var data = "";
+        res.on("data", function(body) {
+            data += body;
+        });
+        res.on('end', function () {
+            if (cb) {
+                cb(null, data);
+            }
+        });
+    });
+    r.on('error', function (err) {
+        if (cb) {
+            cb(err, null);
+        }
     });
 }
 
