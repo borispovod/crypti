@@ -136,7 +136,14 @@ webApp.controller('sendCryptiController', ["$scope", "sendCryptiModal", "$http",
 
     $scope.sendCrypti = function () {
         $scope.amountError = parseFloat($scope.fee) + parseFloat($scope.amount) > $scope.totalBalance;
-
+        var data = {
+            secretPharse: $scope.secretPhrase,
+            amount: $scope.amount,
+            recepient: $scope.to,
+            accountAddress: userService.address,
+            deadline: $scope.deadline,
+            fee: $scope.fee
+        };
         if (!$scope.amountError) {
             $http.post("/api/sendMoney", {
                 secretPharse: $scope.secretPhrase,
