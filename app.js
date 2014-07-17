@@ -264,7 +264,28 @@ async.series([
                 if (err) {
                     cb(err);
                 } else if (peers.length == 0) {
-                    cb();
+                    var peers = config.get("peers").list;
+                    async.forEach(peers, function (p , callback) {
+                        if (!p.ip || !p.port || isNaN(p.port) || p.port <= 0 || p.port >= 65500) {
+                            return callback();
+                        }
+
+                        p = new peer(p.ip, p.port);
+                        app.peerprocessor.addPeer(p);
+                        callback();
+                    }, function () {
+                        if (app.forgerKey) {
+                            app.peerprocessor.sendHelloToAll({
+                                timestamp: utils.getEpochTime(new Date().getTime()),
+                                platform: app.info.platform,
+                                version: app.info.version,
+                                publicKey: app.forgerKey.publicKey.toString('hex'),
+                                port: config.get("port")
+                            });
+                        }
+
+                        cb();
+                    });
                 } else {
                     async.forEach(peers, function (pr, callback) {
                         if (!pr.ip || isNaN(parseInt(pr.port)) || !pr.version || !pr.platform || isNaN(parseInt(pr.timestamp)) || !pr.publicKey) {
@@ -976,7 +997,7 @@ async.series([
         app.listen(app.get('port'), app.get('address'), function () {
             logger.getInstance().info("Crypti started: " + app.get("address") + ":" + app.get("port"));
 
-            app.use(function (req, res, next) {
+            /*app.use(function (req, res, next) {
                 var parts = req.url.split('/');
                 var urls = parts.filter(function (v) { return (v!=='' && v!=='/') });
 
@@ -1017,7 +1038,7 @@ async.series([
                         next();
                     }
                 }
-            });
+            });*/
 
             if (config.get("serveHttpAPI")) {
                 routes(app);
