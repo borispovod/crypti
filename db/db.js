@@ -16,7 +16,7 @@ db.prototype.writePeer = function (peer, cb) {
             $version : peer.version,
             $platform: peer.platform,
             $timestamp: peer.timestamp,
-            $publicKey : peer.publicKey,
+            $publicKey : peer.publicKey.toString('hex'),
             $blocked : peer.blocked
         });
 
