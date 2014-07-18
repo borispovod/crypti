@@ -114,9 +114,6 @@ peer.prototype.getPeers = function (cb) {
 
     timeout = setTimeout(function () {
         r.abort();
-        if (cb) {
-            cb("Can't connect to peer " + this.ip, null);
-        }
     }, 5000);
 
     r.on('error', function (err) {
@@ -153,9 +150,6 @@ peer.prototype.getPeer = function (ip, cb) {
 
     timeout = setTimeout(function () {
         r.abort();
-        if (cb) {
-            cb("Can't connect to peer " + this.ip, null);
-        }
     }, 5000);
 
     r.on('error', function (err) {
@@ -192,9 +186,6 @@ peer.prototype.getInfo = function (cb) {
 
     timeout = setTimeout(function () {
         r.abort();
-        if (cb) {
-            cb("Can't connect to peer " + this.ip, null);
-        }
     }, 5000);
 
     r.on('error', function (err) {
@@ -231,9 +222,6 @@ peer.prototype.getInfo = function (cb) {
 
     timeout = setTimeout(function () {
         r.abort();
-        if (cb) {
-            cb("Can't connect to peer " + this.ip, null);
-        }
     }, 5000);
 
     r.on('error', function (err) {
@@ -270,9 +258,6 @@ peer.prototype.getCumulativeDifficulty = function (cb) {
 
     timeout = setTimeout(function () {
         r.abort();
-        if (cb) {
-            cb("Can't connect to peer " + this.ip, null);
-        }
     }, 5000);
 
     r.on('error', function (err) {
@@ -310,9 +295,6 @@ peer.prototype.getNextBlockIds = function (blockId, cb) {
 
     timeout = setTimeout(function () {
         r.abort();
-        if (cb) {
-            cb("Can't connect to peer " + this.ip, null);
-        }
     }, 5000);
 
     r.on('error', function (err) {
@@ -349,9 +331,6 @@ peer.prototype.getNextBlocks = function (blockId, cb) {
 
     timeout = setTimeout(function () {
         r.abort();
-        if (cb) {
-            cb("Can't connect to peer " + this.ip, null);
-        }
     }, 5000);
 
     r.on('error', function (err) {
@@ -388,9 +367,6 @@ peer.prototype.getUnconfirmedAddresses = function (cb) {
 
     timeout = setTimeout(function () {
         r.abort();
-        if (cb) {
-            cb("Can't connect to peer " + this.ip, null);
-        }
     }, 5000);
 
     r.on('error', function (err) {
@@ -427,9 +403,6 @@ peer.prototype.getUnconfirmedTransactions = function (cb) {
 
     timeout = setTimeout(function () {
         r.abort();
-        if (cb) {
-            cb("Can't connect to peer " + this.ip, null);
-        }
     }, 5000);
 
     r.on('error', function (err) {
@@ -479,9 +452,6 @@ peer.prototype.processBlock = function (block, cb) {
 
     timeout = setTimeout(function () {
         r.abort();
-        if (cb) {
-            cb("Can't connect to peer " + this.ip, null);
-        }
     }, 5000);
 
     r.on('error', function (err) {
@@ -520,9 +490,6 @@ peer.prototype.processUnconfirmedTransaction = function (transaction, cb) {
 
     timeout = setTimeout(function () {
         r.abort();
-        if (cb) {
-            cb("Can't connect to peer " + this.ip, null);
-        }
     }, 5000);
 
     r.on('error', function (err) {
@@ -561,9 +528,6 @@ peer.prototype.processUnconfirmedAddress = function (address, cb) {
 
     timeout = setTimeout(function () {
         r.abort();
-        if (cb) {
-            cb("Can't connect to peer " + this.ip, null);
-        }
     }, 5000);
 
     r.on('error', function (err) {
@@ -595,16 +559,13 @@ peer.prototype.sendHello = function (params, cb) {
         });
         res.on('end', function () {
             if (cb) {
-                cb(null, data);
+                //cb(null, data);
             }
         });
     });
 
     timeout = setTimeout(function () {
         r.abort();
-        if (cb) {
-            cb("Can't connect to peer " + this.ip, null);
-        }
     }, 5000);
 
     r.on('error', function (err) {
