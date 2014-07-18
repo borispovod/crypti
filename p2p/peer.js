@@ -115,7 +115,7 @@ peer.prototype.getPeers = function (cb) {
     timeout = setTimeout(function () {
         r.abort();
         if (cb) {
-            cb(err, null);
+            cb("Can't connect to peer " + this.ip, null);
         }
     }, 5000);
 
@@ -154,7 +154,7 @@ peer.prototype.getPeer = function (ip, cb) {
     timeout = setTimeout(function () {
         r.abort();
         if (cb) {
-            cb(err, null);
+            cb("Can't connect to peer " + this.ip, null);
         }
     }, 5000);
 
@@ -193,7 +193,7 @@ peer.prototype.getInfo = function (cb) {
     timeout = setTimeout(function () {
         r.abort();
         if (cb) {
-            cb(err, null);
+            cb("Can't connect to peer " + this.ip, null);
         }
     }, 5000);
 
@@ -232,7 +232,7 @@ peer.prototype.getInfo = function (cb) {
     timeout = setTimeout(function () {
         r.abort();
         if (cb) {
-            cb(err, null);
+            cb("Can't connect to peer " + this.ip, null);
         }
     }, 5000);
 
@@ -271,7 +271,7 @@ peer.prototype.getCumulativeDifficulty = function (cb) {
     timeout = setTimeout(function () {
         r.abort();
         if (cb) {
-            cb(err, null);
+            cb("Can't connect to peer " + this.ip, null);
         }
     }, 5000);
 
@@ -311,7 +311,7 @@ peer.prototype.getNextBlockIds = function (blockId, cb) {
     timeout = setTimeout(function () {
         r.abort();
         if (cb) {
-            cb(err, null);
+            cb("Can't connect to peer " + this.ip, null);
         }
     }, 5000);
 
@@ -350,7 +350,7 @@ peer.prototype.getNextBlocks = function (blockId, cb) {
     timeout = setTimeout(function () {
         r.abort();
         if (cb) {
-            cb(err, null);
+            cb("Can't connect to peer " + this.ip, null);
         }
     }, 5000);
 
@@ -389,7 +389,7 @@ peer.prototype.getUnconfirmedAddresses = function (cb) {
     timeout = setTimeout(function () {
         r.abort();
         if (cb) {
-            cb(err, null);
+            cb("Can't connect to peer " + this.ip, null);
         }
     }, 5000);
 
@@ -428,7 +428,7 @@ peer.prototype.getUnconfirmedTransactions = function (cb) {
     timeout = setTimeout(function () {
         r.abort();
         if (cb) {
-            cb(err, null);
+            cb("Can't connect to peer " + this.ip, null);
         }
     }, 5000);
 
@@ -480,7 +480,7 @@ peer.prototype.processBlock = function (block, cb) {
     timeout = setTimeout(function () {
         r.abort();
         if (cb) {
-            cb(err, null);
+            cb("Can't connect to peer " + this.ip, null);
         }
     }, 5000);
 
@@ -521,7 +521,7 @@ peer.prototype.processUnconfirmedTransaction = function (transaction, cb) {
     timeout = setTimeout(function () {
         r.abort();
         if (cb) {
-            cb(err, null);
+            cb("Can't connect to peer " + this.ip, null);
         }
     }, 5000);
 
@@ -562,7 +562,7 @@ peer.prototype.processUnconfirmedAddress = function (address, cb) {
     timeout = setTimeout(function () {
         r.abort();
         if (cb) {
-            cb(err, null);
+            cb("Can't connect to peer " + this.ip, null);
         }
     }, 5000);
 
@@ -603,7 +603,7 @@ peer.prototype.sendHello = function (params, cb) {
     timeout = setTimeout(function () {
         r.abort();
         if (cb) {
-            cb(err, null);
+            cb("Can't connect to peer " + this.ip, null);
         }
     }, 5000);
 
