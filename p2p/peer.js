@@ -99,15 +99,26 @@ peer.prototype.getPeers = function (cb) {
             "version" : this._version
         }
     };
+    var timeout = null;
+
     var r = http.get(getOptions, function (res) {
         var data = "";
         res.on("data", function(body) {
+            clearTimeout(timeout);
             data += body;
         });
         res.on('end', function () {
             cb(null, data);
         });
     });
+
+    timeout = setTimeout(function () {
+        r.abort();
+        if (cb) {
+            cb(err, null);
+        }
+    }, 5000);
+
     r.on('error', function (err) {
         cb(err, null);
     });
@@ -127,15 +138,26 @@ peer.prototype.getPeer = function (ip, cb) {
         }
     };
 
+    var timeout = null;
+
     var r = http.get(getOptions, function (res) {
         var data = "";
         res.on("data", function(body) {
+            clearTimeout(timeout);
             data += body;
         });
         res.on('end', function () {
             cb(null, data);
         });
     });
+
+    timeout = setTimeout(function () {
+        r.abort();
+        if (cb) {
+            cb(err, null);
+        }
+    }, 5000);
+
     r.on('error', function (err) {
         cb(err, null);
     });
@@ -155,15 +177,26 @@ peer.prototype.getInfo = function (cb) {
         }
     };
 
+    var timeout = null;
+
     var r = http.get(getOptions, function (res) {
         var data = "";
         res.on("data", function(body) {
+            clearTimeout(timeout);
             data += body;
         });
         res.on('end', function () {
             cb(null, data);
         });
     });
+
+    timeout = setTimeout(function () {
+        r.abort();
+        if (cb) {
+            cb(err, null);
+        }
+    }, 5000);
+
     r.on('error', function (err) {
         cb(err, null);
     });
@@ -183,15 +216,26 @@ peer.prototype.getInfo = function (cb) {
         }
     };
 
+    var timeout = null;
+
     var r = http.get(getOptions, function (res) {
         var data = "";
         res.on("data", function(body) {
+            clearTimeout(timeout);
             data += body;
         });
         res.on('end', function () {
             cb(null, data);
         });
     });
+
+    timeout = setTimeout(function () {
+        r.abort();
+        if (cb) {
+            cb(err, null);
+        }
+    }, 5000);
+
     r.on('error', function (err) {
         cb(err, null);
     });
@@ -211,15 +255,26 @@ peer.prototype.getCumulativeDifficulty = function (cb) {
         }
     };
 
+    var timeout = null;
+
     var r = http.get(getOptions, function (res) {
         var data = "";
         res.on("data", function(body) {
+            clearTimeout(timeout);
             data += body;
         });
         res.on('end', function () {
             cb(null, data);
         });
     });
+
+    timeout = setTimeout(function () {
+        r.abort();
+        if (cb) {
+            cb(err, null);
+        }
+    }, 5000);
+
     r.on('error', function (err) {
         cb(err, null);
     });
@@ -240,15 +295,26 @@ peer.prototype.getNextBlockIds = function (blockId, cb) {
         }
     };
 
+    var timeout = null;
+
     var r = http.get(getOptions, function (res) {
         var data = "";
         res.on("data", function(body) {
+            clearTimeout(timeout);
             data += body;
         });
         res.on('end', function () {
             cb(null, data);
         });
     });
+
+    timeout = setTimeout(function () {
+        r.abort();
+        if (cb) {
+            cb(err, null);
+        }
+    }, 5000);
+
     r.on('error', function (err) {
         cb(err, null);
     });
@@ -268,15 +334,26 @@ peer.prototype.getNextBlocks = function (blockId, cb) {
         }
     };
 
+    var timeout = null;
+
     var r = http.get(getOptions, function (res) {
         var data = "";
         res.on("data", function(body) {
+            clearTimeout(timeout);
             data += body;
         });
         res.on('end', function () {
             cb(null, data);
         });
     });
+
+    timeout = setTimeout(function () {
+        r.abort();
+        if (cb) {
+            cb(err, null);
+        }
+    }, 5000);
+
     r.on('error', function (err) {
         cb(err, null);
     });
@@ -296,15 +373,26 @@ peer.prototype.getUnconfirmedAddresses = function (cb) {
         }
     };
 
+    var timeout = null;
+
     var r = http.get(getOptions, function (res) {
         var data = "";
         res.on("data", function(body) {
+            clearTimeout(timeout);
             data += body;
         });
         res.on('end', function () {
             cb(null, data);
         });
     });
+
+    timeout = setTimeout(function () {
+        r.abort();
+        if (cb) {
+            cb(err, null);
+        }
+    }, 5000);
+
     r.on('error', function (err) {
         cb(err, null);
     });
@@ -324,15 +412,26 @@ peer.prototype.getUnconfirmedTransactions = function (cb) {
         }
     };
 
+    var timeout = null;
+
     var r = http.get(getOptions, function (res) {
         var data = "";
         res.on("data", function(body) {
+            clearTimeout(timeout);
             data += body;
         });
         res.on('end', function () {
             cb(null, data);
         });
     });
+
+    timeout = setTimeout(function () {
+        r.abort();
+        if (cb) {
+            cb(err, null);
+        }
+    }, 5000);
+
     r.on('error', function (err) {
         cb(err, null);
     });
@@ -365,15 +464,26 @@ peer.prototype.processBlock = function (block, cb) {
         }
     };
 
+    var timeout = null;
+
     var r = http.get(getOptions, function (res) {
         var data = "";
         res.on("data", function(body) {
+            clearTimeout(timeout);
             data += body;
         });
         res.on('end', function () {
             cb(null, data);
         });
     });
+
+    timeout = setTimeout(function () {
+        r.abort();
+        if (cb) {
+            cb(err, null);
+        }
+    }, 5000);
+
     r.on('error', function (err) {
         cb(err, null);
     });
@@ -395,15 +505,26 @@ peer.prototype.processUnconfirmedTransaction = function (transaction, cb) {
         }
     };
 
+    var timeout = null;
+
     var r = http.get(getOptions, function (res) {
         var data = "";
         res.on("data", function(body) {
+            clearTimeout(timeout);
             data += body;
         });
         res.on('end', function () {
             cb(null, data);
         });
     });
+
+    timeout = setTimeout(function () {
+        r.abort();
+        if (cb) {
+            cb(err, null);
+        }
+    }, 5000);
+
     r.on('error', function (err) {
         cb(err, null);
     });
@@ -425,21 +546,34 @@ peer.prototype.processUnconfirmedAddress = function (address, cb) {
         }
     };
 
+    var timeout = null;
+
     var r = http.get(getOptions, function (res) {
         var data = "";
         res.on("data", function(body) {
+            clearTimeout(timeout);
             data += body;
         });
         res.on('end', function () {
             cb(null, data);
         });
     });
+
+    timeout = setTimeout(function () {
+        r.abort();
+        if (cb) {
+            cb(err, null);
+        }
+    }, 5000);
+
     r.on('error', function (err) {
         cb(err, null);
     });
 }
 
 peer.prototype.sendHello = function (params, cb) {
+
+
     var getOptions = {
         hostname: this.ip,
         port: this.port,
@@ -451,9 +585,12 @@ peer.prototype.sendHello = function (params, cb) {
         }
     };
 
+    var timeount = null;
+
     var r = http.get(getOptions, function (res) {
         var data = "";
         res.on("data", function(body) {
+            clearTimeout(timeout);
             data += body;
         });
         res.on('end', function () {
@@ -462,6 +599,14 @@ peer.prototype.sendHello = function (params, cb) {
             }
         });
     });
+
+    timeout = setTimeout(function () {
+        r.abort();
+        if (cb) {
+            cb(err, null);
+        }
+    }, 5000);
+
     r.on('error', function (err) {
         if (cb) {
             cb(err, null);
