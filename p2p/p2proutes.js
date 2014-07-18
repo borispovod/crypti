@@ -30,6 +30,7 @@ module.exports = function (app) {
         var ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
         params.ip = ip;
 
+        console.log("time stamp: " + params.timestamp);
         var timestamp = params.timestamp - 10;
         if (timestamp > utils.getEpochTime(new Date().getTime())) {
             return res.json({ success : false });
