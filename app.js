@@ -348,6 +348,7 @@ async.series([
 
                     if (ps) {
                         for (var i = 0; i < ps.length; i++) {
+                            var pr = ps[i];
                             if (!pr.ip || isNaN(parseInt(pr.port)) || !pr.version || !pr.platform || isNaN(parseInt(pr.timestamp)) || !pr.publicKey) {
                                 return callback();
                             }
