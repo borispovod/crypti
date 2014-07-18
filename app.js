@@ -589,8 +589,8 @@ async.series([
                     p.getNextBlocks(app.blockchain.getLastBlock().getId(), function (err, blocks) {
                         if (err) {
                             if (p) {
-                                app.logger.error(err);
-                                app.logger.error("Remove ip: " + p.ip);
+                                //app.logger.error(err);
+                                //app.logger.error("Remove ip: " + p.ip);
                                 //app.peerprocessor.removePeer(p.ip);
                                 return next(true);
                             }
@@ -725,8 +725,8 @@ async.series([
                 p.getUnconfirmedTransactions(function (err, trs) {
                     if (err) {
                         if (p) {
-                            app.logger.error(err);
-                            app.logger.error("Remove ip: " + p.ip);
+                            //app.logger.error(err);
+                            //app.logger.error("Remove ip: " + p.ip);
                             //app.peerprocessor.removePeer(p.ip);
                         }
 
@@ -805,7 +805,7 @@ async.series([
             }, function (next) {
                 p.getUnconfirmedAddresses(function (err, json) {
                     if (err) {
-                        app.logger.error(err);
+                        //app.logger.error(err);
                         //app.peerprocessor.removePeer(p.ip);
                         p = app.peerprocessor.getAnyPeer();
                         return next(true);
