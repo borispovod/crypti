@@ -58,10 +58,16 @@ module.exports = function (app) {
                             return res.json({ success: false });
                         } else {
                             var p = app.peerprocessor.getPeerByPublicKey(params.publicKey);
-                            p.publicKey = new Buffer(params.publicKey, 'hex');
-                            p.timestamp = timestamp;
-                            p.blocked = false;
-                            p.ip = params.ip;
+
+                            if (!p) {
+                                var p = new peer(params.ip, params.port, params.platform, params.version, timestamp, new Buffer(params.publicKey, 'hex'), false);
+                                app.peerprocessor.addPeer(p);
+                            } else {
+                                p.publicKey = new Buffer(params.publicKey, 'hex');
+                                p.timestamp = timestamp;
+                                p.blocked = false;
+                                p.ip = params.ip;
+                            }
 
                             return res.json({ success : true });
                         }
