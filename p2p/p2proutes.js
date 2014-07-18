@@ -27,6 +27,9 @@ module.exports = function (app) {
             return res.json({ success : false });
         }
 
+        var ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+        params.ip = ip;
+
         var timestamp = params.timestamp - 10;
         if (timestamp > utils.getEpochTime(new Date().getTime())) {
             return res.json({ success : false });
@@ -37,7 +40,6 @@ module.exports = function (app) {
             q.bind({
                 $publicKey : params.publicKey
             });
-
 
             q.get(function (err, pr) {
                 if (err) {
