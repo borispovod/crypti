@@ -47,7 +47,7 @@ module.exports = function (app) {
                     app.logger.error(err);
                     return res.json({ success : false });
                 } else if (pr) {
-                    q = app.db.sql.prepare("UPDATE peer SET timestamp=$timestamp AND blocked=0 AND ip=$ip WHERE publicKey=$publicKey");
+                    q = app.db.sql.prepare("UPDATE peer SET timestamp=$timestamp, blocked=0, ip=$ip WHERE publicKey=$publicKey");
                     q.bind({
                         $timestamp : timestamp,
                         $publicKey : params.publicKey,
