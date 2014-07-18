@@ -289,7 +289,7 @@ async.series([
                     });
                 } else {
                     async.forEach(peers, function (pr, callback) {
-                        if (!pr.ip || isNaN(parseInt(pr.port)) || !pr.version || !pr.platform || isNaN(parseInt(pr.timestamp)) || !pr.publicKey) {
+                        if (!pr.ip || isNaN(pr.port) || isNaN(pr.timestamp) || !pr.publicKey) {
                             console.log("not loaded: ");
                             console.log(pr);
                             return callback();
