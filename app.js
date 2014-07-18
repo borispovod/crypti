@@ -290,10 +290,12 @@ async.series([
                 } else {
                     async.forEach(peers, function (pr, callback) {
                         if (!pr.ip || isNaN(parseInt(pr.port)) || !pr.version || !pr.platform || isNaN(parseInt(pr.timestamp)) || !pr.publicKey) {
+                            console.log("not loaded: ");
+                            console.log(pr);
                             return callback();
                         }
 
-                        var p = new peer(pr.ip, pr.port, pr.platform, pr.version, pr.timestamp, pr.publicKey, pr.blocked);
+                        var p = new peer(pr.ip, pr.port, pr.platform, pr.version, pr.timestamp, new Buffer(pr.publicKey, 'hex'), pr.blocked);
                         app.peerprocessor.addPeer(p);
                         callback();
                     }, function () {
