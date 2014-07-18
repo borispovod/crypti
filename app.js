@@ -538,7 +538,7 @@ async.series([
                 p.getPeers(function (err, peersJSON) {
                     if (err) {
                         if (p) {
-                            app.peerprocessor.removePeer(p.ip);
+                            //app.peerprocessor.removePeer(p.ip);
                         }
 
                         p = app.peerprocessor.getAnyPeer();
@@ -591,7 +591,8 @@ async.series([
                             if (p) {
                                 app.logger.error(err);
                                 app.logger.error("Remove ip: " + p.ip);
-                                app.peerprocessor.removePeer(p.ip);
+                                //app.peerprocessor.removePeer(p.ip);
+                                return next(true);
                             }
 
                             p = app.peerprocessor.getAnyPeer();
@@ -600,9 +601,9 @@ async.series([
                             try {
                                 answer = JSON.parse(blocks);
                             } catch (e) {
-                                app.peerprocessor.removePeer(p.ip);
+                                //app.peerprocessor.removePeer(p.ip);
                                 p = app.peerprocessor.getAnyPeer();
-                                return next();
+                                return next(true);
                             }
 
                             if (answer.success) {
@@ -674,9 +675,9 @@ async.series([
                                 }, function (err) {
                                     if (err) {
                                         app.logger.error(err);
-                                        app.peerprocessor.removePeer(p.ip);
+                                        //app.peerprocessor.removePeer(p.ip);
                                         p = app.peerprocessor.getAnyPeer();
-                                        return next();
+                                        return next(true);
                                     }
 
                                     app.logger.info("Processed blocks from " + p.ip);
@@ -690,7 +691,7 @@ async.series([
                             } else {
                                 app.peerprocessor.removePeer(p.ip);
                                 p = app.peerprocessor.getAnyPeer();
-                                next();
+                                next(true);
                             }
                         }
                     });
@@ -726,20 +727,20 @@ async.series([
                         if (p) {
                             app.logger.error(err);
                             app.logger.error("Remove ip: " + p.ip);
-                            app.peerprocessor.removePeer(p.ip);
+                            //app.peerprocessor.removePeer(p.ip);
                         }
 
                         p = app.peerprocessor.getAnyPeer();
-                        next();
+                        next(true);
                     } else {
                         var answer = null;
 
                         try {
                             answer = JSON.parse(trs);
                         } catch (e) {
-                            app.peerprocessor.removePeer(p.ip);
+                            //app.peerprocessor.removePeer(p.ip);
                             p = app.peerprocessor.getAnyPeer();
-                            return next();
+                            return next(true);
                         }
 
                         if (answer.success) {
@@ -765,9 +766,9 @@ async.series([
                             }, function (err) {
                                 if (err) {
                                     app.logger.error(err);
-                                    app.peerprocessor.removePeer(p.ip);
+                                    //app.peerprocessor.removePeer(p.ip);
                                     p = app.peerprocessor.getAnyPeer();
-                                    return next();
+                                    return next(true);
                                 }
 
                                 next(true);
@@ -775,7 +776,7 @@ async.series([
                         } else {
                             app.peerprocessor.removePeer(p.ip);
                             p = app.peerprocessor.getAnyPeer();
-                            return next();
+                            return next(true);
                         }
                     }
                 });
@@ -805,18 +806,18 @@ async.series([
                 p.getUnconfirmedAddresses(function (err, json) {
                     if (err) {
                         app.logger.error(err);
-                        app.peerprocessor.removePeer(p.ip);
+                        //app.peerprocessor.removePeer(p.ip);
                         p = app.peerprocessor.getAnyPeer();
-                        return next();
+                        return next(true);
                     } else {
                         var answer = null;
 
                         try {
                             answer = JSON.parse(json);
                         } catch (e) {
-                            app.peerprocessor.removePeer(p.ip);
+                            //app.peerprocessor.removePeer(p.ip);
                             p = app.peerprocessor.getAnyPeer();
-                            return next();
+                            return next(true);
                         }
 
                         if (answer.success) {
@@ -839,17 +840,17 @@ async.series([
                                 }
                             }, function (err) {
                                 if (err) {
-                                    app.peerprocessor.removePeer(p.ip);
+                                    //app.peerprocessor.removePeer(p.ip);
                                     p = app.peerprocessor.getAnyPeer();
-                                    return next();
+                                    return next(true);
                                 }
 
                                 return next(true);
                             });
                         } else {
-                            app.peerprocessor.removePeer(p.ip);
+                            //app.peerprocessor.removePeer(p.ip);
                             p = app.peerprocessor.getAnyPeer();
-                            return next();
+                            return next(true);
                         }
                     }
                 });
