@@ -337,7 +337,7 @@ async.series([
         async.eachSeries(peers, function (p, callback) {
             p.getPeers(function (err, peersJSON) {
                 if (err) {
-                    app.peerprocessor.removePeer(p.ip);
+                    //app.peerprocessor.removePeer(p.ip);
                     callback();
                 } else {
                     var ps = [];
@@ -378,6 +378,7 @@ async.series([
                     port: config.get("port")
                 });
             }
+
             cb();
         });
     },
