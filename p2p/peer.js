@@ -550,7 +550,7 @@ peer.prototype.sendHello = function (params, cb) {
     };
 
     var timeount = null;
-
+    var self = this;
     var r = http.get(getOptions, function (res) {
         var data = "";
         res.on("data", function(body) {
@@ -560,6 +560,19 @@ peer.prototype.sendHello = function (params, cb) {
         res.on('end', function () {
             if (cb) {
                 //cb(null, data);
+            }
+
+            var json = null;
+
+            try {
+                json = JSON.parse(data);
+            } catch (e) {
+                return;
+            }
+
+            if (json.forger) {
+                self.timestamp = json.forger.timestamp;
+                self.publicKey = json.forger.publicKey;
             }
         });
     });

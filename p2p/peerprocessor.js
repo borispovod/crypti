@@ -7,8 +7,13 @@ var peerprocessor = function () {
     this.blockedPeers = {};
 }
 
+peerprocessor.prototype.setApp = function (app) {
+    this.app = app;
+}
+
 peerprocessor.prototype.sendHelloToAll = function (params, cb) {
     var peers = this.getPeersAsArray();
+    var self = this;
     async.forEach(peers, function (peer, callback) {
         if (!peer.blocked) {
             peer.sendHello(params, function () {
@@ -16,9 +21,19 @@ peerprocessor.prototype.sendHelloToAll = function (params, cb) {
             });
         }
     }, function () {
-        if (cb) {
-            cb(true);
-        }
+       async.eachSeries(peers, function (item, callback) {
+           if (!item.timestamp || !item.publicKey) {
+               return callback();
+           }
+
+           self.app.db.writePeer(item, function () {
+               callback();
+           })
+       }, function () {
+           if (cb) {
+               cb(true);
+           }
+       });
     });
 }
 
