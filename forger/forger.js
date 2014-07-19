@@ -60,7 +60,7 @@ forger.prototype.startForge = function () {
                 this.app.logger.error(err);
             } else if (peer) {
                 var maxWeight = peer.timestamp - lastBlock.timestamp;
-                var target = maxWeight + 60 - elaspedTime;
+                var target = maxWeight + 60 - elapsedTime;
 
                 console.log("target: " + target);
                 this.workingForger = false;
