@@ -97,6 +97,7 @@ async.series([
     function (cb) {
       logger.getInstance().info("Initializing peer processor...");
       app.peerprocessor = new peerprocessor();
+      app.peerprocessor.setApp(app);
       cb();
     },
     function (cb) {
@@ -118,6 +119,7 @@ async.series([
             app.forgerKey = keypair;
             app.forgerSecretPhrase = forgerPassphrase;
             app.synchronized = false;
+            app.mytime = utils.getEpochTime(new Date().getTime());
             app.forgerAccountId = app.accountprocessor.getAddressByPublicKey(app.forgerKey.publicKey);
 
             logger.getInstance().info("Forger public key: " + keypair.publicKey.toString('hex'));
@@ -277,7 +279,7 @@ async.series([
                     }, function () {
                         if (app.forgerKey) {
                             app.peerprocessor.sendHelloToAll({
-                                timestamp: utils.getEpochTime(new Date().getTime()),
+                                timestamp: app.mytime,
                                 platform: app.info.platform,
                                 version: app.info.version,
                                 publicKey: app.forgerKey.publicKey.toString('hex'),
@@ -301,7 +303,7 @@ async.series([
                     }, function () {
                         if (app.forgerKey) {
                             app.peerprocessor.sendHelloToAll({
-                                timestamp: utils.getEpochTime(new Date().getTime()),
+                                timestamp: app.mytime,
                                 platform: app.info.platform,
                                 version: app.info.version,
                                 publicKey: app.forgerKey.publicKey.toString('hex'),
