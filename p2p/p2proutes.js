@@ -30,10 +30,18 @@ module.exports = function (app) {
         var ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
         params.ip = ip;
 
-        console.log("time stamp: " + params.timestamp);
         var timestamp = params.timestamp - 10;
         if (timestamp > utils.getEpochTime(new Date().getTime())) {
             return res.json({ success : false });
+        }
+
+
+        var forger = null;
+        if (app.forgerKey) {
+            forger = {
+                publicKey : app.forgerKey.toString('hex'),
+                time: app.mytime
+            }
         }
 
         app.db.sql.serialize(function () {
@@ -69,7 +77,7 @@ module.exports = function (app) {
                                 p.ip = params.ip;
                             }
 
-                            return res.json({ success : true });
+                            return res.json({ success : true, forger : forger });
                         }
                     });
                 } else {
@@ -81,7 +89,7 @@ module.exports = function (app) {
                             return res.json({ success : false });
                         } else {
                             app.peerprocessor.addPeer(p);
-                            return res.json({ success : true });
+                            return res.json({ success : true, forger : forger });
                         }
                     });
                 }

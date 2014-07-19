@@ -21,6 +21,7 @@ forger.prototype.setApp = function (app) {
     this.forgerprocessor = app.forgerprocessor;
     this.logger = app.logger;
     this.addressprocessor = app.addressprocessor;
+    this.workingForger = false;
 }
 
 forger.prototype.startForge = function () {
@@ -29,7 +30,13 @@ forger.prototype.startForge = function () {
         return false;
     }
 
-    return false;
+    if (this.workingForger) {
+        return false;
+    }
+
+    this.workingForger = true;
+
+    //return false;
 
     var account = this.accountprocessor.getAccountById(this.accountId);
 
@@ -45,9 +52,10 @@ forger.prototype.startForge = function () {
     var lastBlock = this.blockchain.getLastBlock();
     var elapsedTime = utils.getEpochTime(new Date().getTime()) - lastBlock.timestamp;
 
-    /*this.app.db.sql.serialize(function () {
+    this.app.db.sql.serialize(function () {
         // get max weight and my weight, elapsed time.
         this.app.db.sql.get("SELECT * FROM peer WHERE blocked=0 ORDER BY timestamp LIMIT 1", function (err, peer) {
+            console.log(peer);
             if (err) {
                 this.app.logger.error(err);
             } else if (peer) {
@@ -55,11 +63,12 @@ forger.prototype.startForge = function () {
                 var target = maxWeight + 60 - elaspedTime;
 
                 console.log("target: " + target);
+                this.workingForger = false;
             } else {
-
+                console.log("peer not found");
             }
         }.bind(this));
-    }.bind(this));*/
+    }.bind(this));
 
     //elapsedTime > 0 & account.weight
 
