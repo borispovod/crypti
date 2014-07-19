@@ -63,23 +63,25 @@ forger.prototype.startForge = function () {
                 var target = maxWeight + 60 - elapsedTime;
 
                 console.log("target: " + target);
+
+
                 this.workingForger = false;
             } else {
-                console.log("peer not found");
+                this.workingForger = false;
             }
         }.bind(this));
     }.bind(this));
 
     //elapsedTime > 0 & account.weight
 
-    if (elapsedTime > 60) {
+    /*if (elapsedTime > 60) {
         /*var target = bignum(lastBlock.getBaseTarget()).mul(account.weight).mul(elapsedTime);
 
         if (!this.forgerprocessor.hits[account.address]) {
             return false;
         }*/
 
-        if (!account || !this.publicKey) {
+        /*if (!account || !this.publicKey) {
             return;
         }
 
@@ -248,7 +250,7 @@ forger.prototype.startForge = function () {
             } else {
                 this.logger.error("Can't verify new generated block");
             }
-    }
+    }*/
 }
 
 module.exports = forger;
