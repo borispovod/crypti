@@ -22,9 +22,36 @@ forger.prototype.setApp = function (app) {
     this.logger = app.logger;
     this.addressprocessor = app.addressprocessor;
     this.workingForger = false;
+    this.sending = false;
+}
+
+forger.prototype.sendRequest = function () {
+    if (this.sending) {
+        return false;
+    }
+
+    this.sending = true;
+    var passHash = crypto.createHash('sha256').update(this.secretPharse, 'utf8').digest();
+    var keypair = ed.MakeKeypair(passHash);
+
+    var timestamp = utils.getEpochTime(new Date().getTime());
+    var hash = crypto.createHash('sha256').update(timestamp.toString(), 'utf8').digest();
+    var signature = ed.Sign(hash, keypair);
+
+    var request = {
+        timestamp : timestamp,
+        publicKey : keypair.publicKey.toString('hex'),
+        signature : signature.toString('hex')
+    };
+
+    this.app.peerprocessor.sendRequestToAll(request);
+
+    this.sending = true;
 }
 
 forger.prototype.startForge = function () {
+    return;
+
     if (!this.app.synchronized) {
         this.app.logger.warn("Can't forge, node not synchronized!");
         return false;
@@ -67,6 +94,7 @@ forger.prototype.startForge = function () {
 
                 this.workingForger = false;
             } else {
+                console.log("peers not found...");
                 this.workingForger = false;
             }
         }.bind(this));

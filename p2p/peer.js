@@ -2,7 +2,7 @@ var http = require('http'),
     keepAliveAgent = require('keep-alive-agent'),
     _ = require('underscore');
 
-var peer = function (address, port, platform, version, timestamp, publicKey, blocked) {
+var peer = function (address, port, platform, version) {
     this.ip = address;
     this.port = port;
     this.version = version;
@@ -10,9 +10,9 @@ var peer = function (address, port, platform, version, timestamp, publicKey, blo
     this.shareAddress = true;
     this.platform = "";
     this.version =  1;
-    this.timestamp = timestamp;
-    this.publicKey = publicKey;
-    this.blocked = blocked;
+    //this.timestamp = timestamp;
+    //this.publicKey = publicKey;
+    //this.blocked = blocked;
     this.downloadedVolume = 0;
     this.uploadedVolume = 0;
     this.blacklistedTime = 0;
@@ -468,6 +468,78 @@ peer.prototype.processUnconfirmedTransaction = function (transaction, cb) {
         hostname: this.ip,
         port: this.port,
         path: '/peer/processUnconfirmedTransaction?transaction=' + JSON.stringify(t),
+        //agent: this.agent,
+        headers: {
+            "platform" : this._platform,
+            "version" : this._version
+        }
+    };
+
+    var timeout = null;
+
+    var r = http.get(getOptions, function (res) {
+        var data = "";
+        res.on("data", function(body) {
+            clearTimeout(timeout);
+            data += body;
+        });
+        res.on('end', function () {
+            cb(null, data);
+        });
+    });
+
+    timeout = setTimeout(function () {
+        r.abort();
+    }, 5000);
+
+    r.on('error', function (err) {
+        cb(err, null);
+    });
+}
+
+peer.prototype.getRequests = function (cb) {
+    this.checkAgent();
+
+    var getOptions = {
+        hostname: this.ip,
+        port: this.port,
+        path: '/peer/getRequests',
+        //agent: this.agent,
+        headers: {
+            "platform" : this._platform,
+            "version" : this._version
+        }
+    };
+
+    var timeout = null;
+
+    var r = http.get(getOptions, function (res) {
+        var data = "";
+        res.on("data", function(body) {
+            clearTimeout(timeout);
+            data += body;
+        });
+        res.on('end', function () {
+            cb(null, data);
+        });
+    });
+
+    timeout = setTimeout(function () {
+        r.abort();
+    }, 5000);
+
+    r.on('error', function (err) {
+        cb(err, null);
+    });
+}
+
+peer.prototype.sendRequest = function (request, cb) {
+    this.checkAgent();
+
+    var getOptions = {
+        hostname: this.ip,
+        port: this.port,
+        path: '/peer/alive?timestamp=' + request.timestamp + '&publicKey=' + request.publicKey + "&signature=" + request.signature,
         //agent: this.agent,
         headers: {
             "platform" : this._platform,

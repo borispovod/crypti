@@ -6,10 +6,96 @@ var peer = require("./peer.js"),
     Address = require("../address").address,
     async = require('async'),
     utils = require("../utils.js"),
-    _ = require('underscore');
+    _ = require('underscore'),
+    ed = require('ed25519'),
+    crypto = require('crypto');
 
 module.exports = function (app) {
-    app.get("/peer/hello", function (req, res) {
+    app.get("/peer/getRequests", function (req, res) {
+        return res.json({ success : true, requests : app.accountprocessor.requests });
+    });
+
+    app.get("/peer/alive", function (req, res) {
+        var publicKey = req.query.publicKey,
+            timestamp = parseInt(req.query.timestamp),
+            signature = req.query.signature;
+            //ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+
+        if (!publicKey || !timestamp || isNaN(timestamp) || !signature) {
+            return res.json({ success : false, error : "Parameters missed" });
+        }
+
+        var time = utils.getEpochTime(new Date().getTime()) - 60;
+        if (timestamp < time || timestamp > utils.getEpochTime(new Date().getTime())) {
+            return res.json({ success : false, error : "Invalid timestamp" });
+        }
+
+        var hash = crypto.createHash('sha256').update(timestamp.toString(), 'utf8').digest();
+        var verify = ed.Verify(hash, new Buffer(signature, 'hex'), new Buffer(publicKey, 'hex'));
+
+        if (!verify) {
+            return res.json({ success : false, error : "Can't verify signature" });
+        }
+
+        var account = app.accountprocessor.getAccountByPublicKey(new Buffer(publicKey, 'hex'));
+        if (!account) {
+            return res.json({ success : false, error : "Account not found" });
+        }
+
+        if (account.getEffectiveBalance() <= 0) {
+            return res.json({ success : false, error : "Account effective balance is empty" });
+        }
+
+
+        var now = utils.getEpochTime(new Date().getTime());
+        var alive = app.accountprocessor.getAliveAccountTime(account.address);
+
+        if (now - alive < 10) {
+            return res.json({ success : false, error : "You already added weight in this 10 seconds" });
+        }
+
+        var requests = app.accountprocessor.getRequests(account.address);
+        async.forEach(requests, function (item, cb) {
+            if (item.timestamp == timestamp) {
+                return cb(true);
+            }
+
+            /*if ((item.ip == ip && item.publicKey != publicKey) || (item.publicKey == publicKey && item.ip != ip)) {
+                return cb(true);
+            }*/
+
+            cb();
+        }, function (found) {
+            if (found) {
+                return res.json({ success : false, error : "Request with this timestamp already existing "});
+            } else {
+                var request = {
+                    timestamp : timestamp,
+                    publicKey : publicKey,
+                    signature : signature,
+                    time : now
+                    //ip : ip
+                };
+
+                app.accountprocessor.addRequest(account, request);
+
+                if (account.weight > 0) {
+                    account.weight += 10;
+                    app.accountprocessor.addAliveAccounts(account, now);
+                    return res.json({ success : true });
+                } else {
+                    account.weight = 10;
+                    app.accountprocessor.addAliveAccounts(account, now);
+                    return res.json({ success : true });
+                }
+
+                // send to another nodes
+                app.peerprocessor.sendRequestToAll(request);
+            }
+        });
+    });
+
+    /*app.get("/peer/hello", function (req, res) {
         var params = req.query.params || "";
 
         if (params.length == 0) {
@@ -95,41 +181,17 @@ module.exports = function (app) {
                 }
             });
         });
-    });
+    });*/
 
     app.get("/peer/getPeers", function (req, res) {
-        app.db.sql.serialize(function () {
-            app.db.sql.all("SELECT * FROM peer ORDER BY timestamp", function (err, rows) {
-               if (err) {
-                   return res.json({ success : false, error : "SQL error" });
-               }  else {
-                   return res.json({ success : true, peers : rows });
-               }
-            });
-        });
-        /*
         var peers = app.peerprocessor.getPeersAsArray();
         return res.json({ success : true, peers : peers });
-        */
     });
 
     app.get("/peer/getPeer", function (req, res) {
         var ip = req.query.ip;
-
-        app.db.sql.serialize(function () {
-            app.db.sql.get("SELECT * FROM peer WHERE ip=$ip", {
-                $ip : ip
-            }, function (err, peer) {
-                if (err) {
-                    return res.json({ success : false, error : "SQL error" });
-                } else {
-                    return res.json({ success : true, peer : peer });
-                }
-            });
-        });
-        /*var ip = req.query.ip;
         var peer = app.peerprocessor.getPeer(ip);
-        return res.json({ success : true, peer : peer });*/
+        return res.json({ success : true, peer : peer });
     });
 
     app.get("/peer/getInfo", function (req, res) {
