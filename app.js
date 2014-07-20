@@ -21,7 +21,8 @@ var express = require('express'),
     genesisblock = require("./block").genesisblock,
     fs = require('fs'),
     Forger = require("./forger").forger,
-    utils = require("./utils.js");
+    utils = require("./utils.js"),
+    _ = require('underscore');
 
 var app = express();
 
