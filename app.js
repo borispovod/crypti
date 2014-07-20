@@ -73,6 +73,7 @@ async.series([
     function (cb) {
         logger.getInstance().info("Initializing account processor...");
         app.accountprocessor = accountprocessor.init();
+        app.accountprocessor.setApp(app);
         logger.getInstance().info("Account processor initialized");
         cb();
     },
