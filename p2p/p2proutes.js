@@ -28,7 +28,7 @@ module.exports = function (app) {
             return res.json({ success : false, error : "Parameters missed" });
         }
 
-        var time = utils.getEpochTime(new Date().getTime()) - 60;
+        var time = utils.getEpochTime(new Date().getTime()) - 10;
         if (timestamp < time || timestamp > utils.getEpochTime(new Date().getTime())) {
             app.logger.error("Peer timestamp not valid: " + timestamp + "/" + time);
             return res.json({ success : false, error : "Invalid timestamp" });
@@ -52,7 +52,6 @@ module.exports = function (app) {
             app.logger.error("Effective balance is empty");
             return res.json({ success : false, error : "Account effective balance is empty" });
         }
-
 
         var now = utils.getEpochTime(new Date().getTime());
         var alive = app.accountprocessor.getAliveAccountTime(account.address);
@@ -89,11 +88,11 @@ module.exports = function (app) {
                 app.accountprocessor.addRequest(account, request);
 
                 if (account.weight > 0) {
-                    account.weight += 10;
+                    account.weight += timestamp / 1000;
                     app.accountprocessor.addAliveAccounts(account, now);
                     return res.json({ success : true });
                 } else {
-                    account.weight = 10;
+                    account.weight = timestamp / 1000;
                     app.accountprocessor.addAliveAccounts(account, now);
                     return res.json({ success : true });
                 }
