@@ -534,6 +534,7 @@ peer.prototype.getRequests = function (cb) {
 }
 
 peer.prototype.sendRequest = function (request, cb) {
+    console.log("send request");
     this.checkAgent();
 
     var getOptions = {
@@ -556,6 +557,7 @@ peer.prototype.sendRequest = function (request, cb) {
             data += body;
         });
         res.on('end', function () {
+            console.log(data);
             cb(null, data);
         });
     });
