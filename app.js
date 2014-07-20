@@ -565,8 +565,14 @@ async.series([
                            }
 
                            if (answer.success) {
-                               async.eachSeries(answer.requests, function (item, c) {
-                                   var r = app.accountprocessor.processRequest(item, function () {
+                               var requests = [];
+                               var r = _.map(answer.requests, function (v) {
+                                   requests = requests.concat(v);
+                               });
+
+                               async.eachSeries(requests, function (item, c) {
+                                   var r = app.accountprocessor.processRequest(item, function (r) {
+                                       console.log("request processed: " + r);
                                       c();
                                    });
                                }, function () {
