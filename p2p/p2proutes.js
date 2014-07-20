@@ -48,10 +48,10 @@ module.exports = function (app) {
             return res.json({ success : false, error : "Account not found" });
         }
 
-        if (account.getEffectiveBalance() <= 0) {
+        /*if (account.getEffectiveBalance() <= 0) {
             app.logger.error("Effective balance is empty");
             return res.json({ success : false, error : "Account effective balance is empty" });
-        }
+        }*/
 
         var now = utils.getEpochTime(new Date().getTime());
         var alive = app.accountprocessor.getAliveAccountTime(account.address);

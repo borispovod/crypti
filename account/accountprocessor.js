@@ -52,10 +52,10 @@ accountprocessor.prototype.processRequest = function (request, callback) {
         return callback(false);
     }
 
-    if (account.getEffectiveBalance() <= 0) {
+    /*if (account.getEffectiveBalance() <= 0) {
         this.app.logger.error("Effective balance is empty");
         return callback(false);
-    }
+    }*/
 
 
     var now = utils.getEpochTime(new Date().getTime());
