@@ -1,6 +1,7 @@
 var peer = require("./peer.js"),
     _ = require("underscore"),
-    async = require('async');
+    async = require('async'),
+    io = require('socket.io-client');
 
 var peerprocessor = function () {
     this.peers = {};
@@ -11,8 +12,35 @@ peerprocessor.prototype.setApp = function (app) {
     this.app = app;
 }
 
-peerprocessor.prototype.sendHelloToAll = function (params, cb) {
+peerprocessor.prototype.connectToPeer = function (peer, cb) {
+    /*var socket = io.connect(peer.ip, {
+        port: peer.port
+    });
+
+    socket.on('connect', function() {
+        socket.on('disconnected?', function () {
+
+        });
+    });*/
+}
+
+peerprocessor.prototype.sendRequestToAll = function (request, cb) {
     var peers = this.getPeersAsArray();
+    async.forEach(peers, function (peer, callback) {
+        if (!peer.blocked) {
+            peer.sendRequest(request, function () {
+                callback();
+            });
+        }
+    }, function () {
+        if (cb) {
+            cb(true);
+        }
+    });
+}
+
+peerprocessor.prototype.sendHelloToAll = function (params, cb) {
+    /*var peers = this.getPeersAsArray();
     var self = this;
     async.forEach(peers, function (peer, callback) {
         if (!peer.blocked) {
@@ -34,7 +62,7 @@ peerprocessor.prototype.sendHelloToAll = function (params, cb) {
                cb(true);
            }
        });
-    });
+    });*/
 }
 
 peerprocessor.prototype.sendUnconfirmedTransactionToAll = function (transaction, cb) {

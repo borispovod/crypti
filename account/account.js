@@ -4,6 +4,8 @@ var account = function (address, publickey, balance, unconfirmedBalance) {
     this.balance = 0;
     this.unconfirmedBalance = 0;
     this.height = 0;
+    this.weight = 0;
+    this.unconfirmedWeight = 0;
 }
 
 account.prototype.setApp = function (app) {
