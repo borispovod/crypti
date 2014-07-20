@@ -8,6 +8,22 @@ var crypto = require('crypto'),
     constants = require('../Constants.js');
 
 module.exports = function (app) {
+    app.get("/api/getWeight", function (req, res) {
+        var address = req.query.account;
+
+        if (!address) {
+            return res.json({ success : false, error : "Provide account" });
+        }
+
+        var account = app.accountprocessor.getAccountById(address);
+
+        if (account && account.weight) {
+            return res.json({ success : true, weight : account.weight });
+        } else {
+            return res.json({ success : true, weight : 0 });
+        }
+    });
+
     app.post("/api/unlock", function (req, res) {
         var secretPharse = req.body.secretPhrase || "",
             startForging = req.body.startForging;
