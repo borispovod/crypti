@@ -44,9 +44,13 @@ forger.prototype.sendRequest = function () {
         signature : signature.toString('hex')
     };
 
-    this.app.peerprocessor.sendRequestToAll(request);
+    var r = this.app.accountprocessor.processRequest(request, function (r) {
+       if (r) {
+           this.app.peerprocessor.sendRequestToAll(request);
+       }
 
-    this.sending = true;
+       this.sending = false;
+    }.bind(this));
 }
 
 forger.prototype.startForge = function () {
