@@ -32,7 +32,7 @@ accountprocessor.prototype.processRequest = function (request, callback) {
         return callback(false);
     }
 
-    var time = utils.getEpochTime(new Date().getTime()) - 60;
+    var time = utils.getEpochTime(new Date().getTime()) - 10;
     if (timestamp < time || timestamp > utils.getEpochTime(new Date().getTime())) {
         this.app.logger.error("Invalid timestamp in request");
         return callback(false);
@@ -93,11 +93,11 @@ accountprocessor.prototype.processRequest = function (request, callback) {
             self.addRequest(account, request);
 
             if (account.weight > 0) {
-                account.weight += 10;
+                account.weight += timestamp / 1000;
                 self.addAliveAccounts(account, now);
                 return callback(true);
             } else {
-                account.weight = 10;
+                account.weight = timestamp / 1000;
                 self.addAliveAccounts(account, now);
                 return callback(true);
             }
