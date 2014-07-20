@@ -11,6 +11,10 @@ var accountprocessor = function (db) {
     this.requests = {};
 }
 
+accountprocessor.prototype.setApp = function (app) {
+    this.app = app;
+}
+
 accountprocessor.prototype.addAccount = function (account) {
     this.accounts[account.address] = account;
 }
@@ -24,11 +28,13 @@ accountprocessor.prototype.processRequest = function (request, callback) {
     //ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
 
     if (!publicKey || !timestamp || isNaN(timestamp) || !signature) {
+        this.app.logger.error("Missed parameters in request");
         return callback(false);
     }
 
     var time = utils.getEpochTime(new Date().getTime()) - 60;
     if (timestamp < time || timestamp > utils.getEpochTime(new Date().getTime())) {
+        this.app.logger.error("Invalid timestamp in request");
         return callback(false);
     }
 
@@ -36,15 +42,18 @@ accountprocessor.prototype.processRequest = function (request, callback) {
     var verify = ed.Verify(hash, new Buffer(signature, 'hex'), new Buffer(publicKey, 'hex'));
 
     if (!verify) {
+        this.app.logger.error("Invalid signatures in request");
         return callback(false);
     }
 
     var account = self.getAccountByPublicKey(new Buffer(publicKey, 'hex'));
     if (!account) {
+        this.app.logger.error("Account not found in request");
         return callback(false);
     }
 
     if (account.getEffectiveBalance() <= 0) {
+        this.app.logger.error("Effective balance is empty");
         return callback(false);
     }
 
@@ -52,9 +61,11 @@ accountprocessor.prototype.processRequest = function (request, callback) {
     var now = utils.getEpochTime(new Date().getTime());
     var alive = self.getAliveAccountTime(account.address);
 
-    if (now - alive < 10) {
+    // need to fix
+    /*if (now - alive < 10) {
+        this.app.logger.error("Last request was late then 10 seconds");
         return callback(false);
-    }
+    }*/
 
     var requests = self.getRequests(account.address);
     async.forEach(requests, function (item, cb) {
