@@ -21,12 +21,16 @@ module.exports = function (app) {
             signature = req.query.signature;
             //ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
 
+        app.logger.info("Process peer...");
+
         if (!publicKey || !timestamp || isNaN(timestamp) || !signature) {
+            app.logger.error("Peer parameters missed");
             return res.json({ success : false, error : "Parameters missed" });
         }
 
         var time = utils.getEpochTime(new Date().getTime()) - 60;
         if (timestamp < time || timestamp > utils.getEpochTime(new Date().getTime())) {
+            app.logger.error("Peer timestamp not valid: " + timestamp + "/" + time);
             return res.json({ success : false, error : "Invalid timestamp" });
         }
 
@@ -34,15 +38,18 @@ module.exports = function (app) {
         var verify = ed.Verify(hash, new Buffer(signature, 'hex'), new Buffer(publicKey, 'hex'));
 
         if (!verify) {
+            app.logger.error("Peer has not valid signature");
             return res.json({ success : false, error : "Can't verify signature" });
         }
 
         var account = app.accountprocessor.getAccountByPublicKey(new Buffer(publicKey, 'hex'));
         if (!account) {
+            app.logger.error("Account not found...");
             return res.json({ success : false, error : "Account not found" });
         }
 
         if (account.getEffectiveBalance() <= 0) {
+            app.logger.error("Effective balance is empty");
             return res.json({ success : false, error : "Account effective balance is empty" });
         }
 
@@ -51,6 +58,7 @@ module.exports = function (app) {
         var alive = app.accountprocessor.getAliveAccountTime(account.address);
 
         if (now - alive < 10) {
+            app.logger.error("Forging value already added");
             return res.json({ success : false, error : "You already added weight in this 10 seconds" });
         }
 
@@ -67,6 +75,7 @@ module.exports = function (app) {
             cb();
         }, function (found) {
             if (found) {
+                app.logger.error("Request found");
                 return res.json({ success : false, error : "Request with this timestamp already existing "});
             } else {
                 var request = {
