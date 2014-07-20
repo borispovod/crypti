@@ -8,6 +8,7 @@ var forgerprocessor = function (app) {
     this.lastBlocks = {};
     this.hits = {};
     this.timers = {};
+    this.sendingTimers = {};
 }
 
 forgerprocessor.prototype.getForgers = function (id) {
@@ -26,15 +27,21 @@ forgerprocessor.prototype.startForger = function (forger) {
         forger.startForge();
     }, 1000);
 
+    this.sendingTimers[forger.accountId] = setInterval(function () {
+        forger.sendRequest();
+    }, 1000 * 10);
+
     return true;
 }
 
 forgerprocessor.prototype.stopForger = function (accountId) {
     if (this.forgers[accountId]) {
         clearInterval(this.timers[accountId]);
+        clearInterval(this.sendingTimers[accountId]);
 
         delete this.timers[accountId];
         delete this.forgers[accountId];
+        delete this.sendingTimers[accountId];
         return true;
     } else {
         return false;

@@ -1,3 +1,5 @@
+var crypto = require('crypto');
+
 module.exports = {
     getEpochTime: function (time) {
         var d = new Date(Date.UTC(2014, 4, 2, 0, 0, 0, 0));
@@ -24,6 +26,10 @@ module.exports = {
                 return false;
             }
         }
+    },
+
+    randomBytes : function () {
+        return crypto.randomBytes(10);
     }
 
 }
