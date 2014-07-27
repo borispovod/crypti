@@ -26,7 +26,7 @@ forger.prototype.setApp = function (app) {
 }
 
 forger.prototype.sendRequest = function () {
-    if (this.sending) {
+    if (this.sending || !this.synchronizedRequests) {
         return false;
     }
 
@@ -34,27 +34,20 @@ forger.prototype.sendRequest = function () {
     var passHash = crypto.createHash('sha256').update(this.secretPharse, 'utf8').digest();
     var keypair = ed.MakeKeypair(passHash);
 
-    var timestamp = utils.getEpochTime(new Date().getTime());
-    var hash = crypto.createHash('sha256').update(timestamp.toString(), 'utf8').digest();
+    var hash = crypto.createHash('sha256').update(keypair.publicKey).digest();
     var signature = ed.Sign(hash, keypair);
 
     var request = {
-        timestamp : timestamp,
         publicKey : keypair.publicKey.toString('hex'),
         signature : signature.toString('hex')
-    };
+    }
 
-    var r = this.app.accountprocessor.processRequest(request, function (r) {
-       if (r) {
-           this.app.peerprocessor.sendRequestToAll(request);
-       }
-
-       this.sending = false;
-    }.bind(this));
+    this.app.peerprocessor.sendRequestToAll(request);
+    this.sending = false;
 }
 
 forger.prototype.startForge = function () {
-    if (!this.app.synchronizedBlocks || !this.app.synchronizedPeers) {
+    if (!this.app.synchronizedBlocks || !this.synchronizedRequests) {
         this.app.logger.warn("Can't forge, node not synchronized!");
         return false;
     }
@@ -65,19 +58,112 @@ forger.prototype.startForge = function () {
 
     this.workingForger = true;
 
-    var account = this.accountprocessor.getAccountById(this.accountId);
+    var myAccount = this.accountprocessor.getAccountById(this.accountId);
 
-    if (!account) {
+    if (!myAccount) {
+        this.workingForger = false;
         return false;
     }
 
-    var effectiveBalance = account.getEffectiveBalance();
+    var effectiveBalance = myAccount.getEffectiveBalance();
     if (effectiveBalance <= 0) {
+        this.workingForger = false;
         return false;
     }
 
-    var lastBlock = this.blockchain.getLastBlock();
-    var elapsedTime = utils.getEpochTime(new Date().getTime()) - lastBlock.timestamp;
+    // calculate need weight
+    var powNumber = 0;
+    var needWeight = bignum(0);
+    var blockGenerationSignature = app.blockchain.getLastBlock().generationSignature.toString('base64');
+
+    for (var i = 0; i < blockGenerationSignature.length; i++) {
+        var charCode = blockGenerationSignature.charCodeAt(i);
+        if (charCode <= 0) {
+            charCode = 1;
+        } else if (powNumber == 0) {
+            powNumber = charCode;
+        }
+
+        needWeight = needWeight.mul(charCode);
+    }
+
+    needWeight = needWeight.pow(powNumber);
+
+    var elapsedTime = utils.getEpochTime(new Date().getTime()) - app.blockchain.getLastBlock().timestamp;
+
+    if (elapsedTime < 60) {
+        return false;
+    }
+
+    var cycle = elapsedTime / 60;
+
+    this.app.db.sql.serialize(function () {
+        this.app.db.sql.all("SELECT * FROM peerRequests lastAliveBlock=$lastAliveBlock", {
+            $lastAliveBlock: app.blockchain.getLastBlock().getId()
+        }, function (err, requests) {
+            if (err) {
+                this.app.logger.error(err);
+                this.workingForger = false;
+            } else {
+                var accounts = [];
+
+                async.eachSeries(requests, function (item, cb) {
+                    var accountWeight = bignum(0);
+                    var accountPow = 0;
+
+                    var account = this.app.accountprocessor.getAccountByPublicKey(new Buffer(item.publicKey, 'hex'));
+
+                    if (!account || account.getEffectiveBalance() <= 0 || account.last) {
+                        return cb();
+                    }
+
+                    item.publicKey = item.publicKey.toString('base64');
+
+                    for (var i = 0; i < item.publicKey.length; i++) {
+                        var charCode = item.publicKey.charCodeAt(i);
+
+                        if (charCode <= 0) {
+                            charCode = 1;
+                        } else if (accountPow == 0) {
+                            accountPow = charCode;
+                        }
+
+                        accountWeight = accountWeight.mul(charCode);
+                    }
+
+                    accountWeight = accountWeight.pow(accountPow);
+                    var different = 0;
+
+                    if (accountWeight.gt(needWeight)) {
+                        different = accountWeight.sub(needWeight);
+                    } else {
+                        different = needWeight.sub(accountWeight);
+                    }
+
+                    different = different.add(account.popWeight);
+
+                    accounts.push({ weight : different, address : account.address });
+                    cb();
+                }.bind(this), function () {
+                    accounts.sort(function compare(a,b) {
+                        if (a.weight.lt(b.weight))
+                            return -1;
+
+                        if (a.weight.gt(b.weight))
+                            return 1;
+
+                        return 0;
+                    });
+
+                    var generator = accounts[account.length - cycle];
+                    if (generator.address == myAccount.address) {
+                        // let's generate block
+
+                    }
+                });
+            }
+        }.bind(this));
+    }.bind(this));
 
     this.app.db.sql.serialize(function () {
         // get max weight and my weight, elapsed time.
@@ -88,9 +174,6 @@ forger.prototype.startForge = function () {
             } else if (peer) {
                 var maxWeight = peer.timestamp - lastBlock.timestamp;
                 var target = maxWeight + 60 - elapsedTime;
-
-                console.log("target: " + target);
-
 
                 this.workingForger = false;
             } else {
