@@ -112,6 +112,7 @@ async.series([
         app.forgerprocessor = forgerprocessor.init(app);
         app.synchronizedBlock = false;
         app.synchronizedPeers = false;
+        app.synchronizedRequests = false;
 
         logger.getInstance().info("Initialize forger...");
         // get public key
@@ -542,7 +543,7 @@ async.series([
 
         var requestsInterval = false;
         setInterval(function () {
-            if (requestsInterval) {
+            if (requestsInterval || app.synchronizedBlock) {
                 return;
             }
 
@@ -567,16 +568,24 @@ async.series([
                            }
 
                            if (answer.success) {
-                               var requests = [];
-                               var r = _.map(answer.requests, function (v) {
-                                   requests = requests.concat(v);
-                               });
+                               requests = answer.requests;
 
                                async.eachSeries(requests, function (item, c) {
-                                   var r = app.accountprocessor.processRequest(item, function (r) {
-                                       console.log("request processed: " + r);
-                                      c();
-                                   });
+                                   var account = app.accountprocessor.processRequest(item);
+                                   if (!account) {
+                                       app.logger.error("Can't process request of: " + item.ip);
+                                       c();
+                                   } else {
+                                       app.db.writePeerRequest(item, function (err) {
+                                           if (err) {
+                                               app.logger.error(err.toString(), "error");
+                                               c();
+                                           } else {
+                                               account.lastAliveBlock = app.blockchain.getLastBlock().getId();
+                                               c();
+                                           }
+                                       });
+                                   }
                                }, function () {
                                    next(true);
                                });
@@ -587,7 +596,7 @@ async.series([
                     });
                 },
                 function () {
-                    app.synchronizedPeers = true;
+                    app.synchronizedRequests = true;
                     requestsInterval = false;
                 });
         }, 1000 * 3);

@@ -19,93 +19,45 @@ accountprocessor.prototype.addAccount = function (account) {
     this.accounts[account.address] = account;
 }
 
-accountprocessor.prototype.processRequest = function (request, callback) {
-    var self = this;
-
+accountprocessor.prototype.processRequest = function (request) {
     var publicKey = request.publicKey,
-        timestamp = parseInt(request.timestamp),
-        signature = request.signature;
-    //ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+        signature = request.signature,
+        ip = request.ip;
 
-    if (!publicKey || !timestamp || isNaN(timestamp) || !signature) {
-        this.app.logger.error("Missed parameters in request");
-        return callback(false);
+    if (!publicKey || !ip || !signature) {
+        app.logger.error("Peer parameters missed: " + ip);
+        return false;
     }
 
-    var time = utils.getEpochTime(new Date().getTime()) - 10;
-    if (timestamp < time || timestamp > utils.getEpochTime(new Date().getTime())) {
-        this.app.logger.error("Invalid timestamp in request");
-        return callback(false);
-    }
+    var publicKeyHash = new Buffer(publicKey, 'hex');
+    var signatureHash = new Buffer(signature, 'hex');
 
-    var hash = crypto.createHash('sha256').update(timestamp.toString(), 'utf8').digest();
-    var verify = ed.Verify(hash, new Buffer(signature, 'hex'), new Buffer(publicKey, 'hex'));
+    var hash = crypto.createHash('sha256').update(publicKeyHash).digest();
+    var verify = ed.Verify(hash, signatureHash, publicKeyHash);
 
     if (!verify) {
-        this.app.logger.error("Invalid signatures in request");
-        return callback(false);
+        app.logger.error("Can't verify signature: " + ip);
+        return false;
     }
 
-    var account = self.getAccountByPublicKey(new Buffer(publicKey, 'hex'));
+    var account = this.getAccountByPublicKey(publicKeyHash);
+
     if (!account) {
-        this.app.logger.error("Account not found in request");
-        return callback(false);
+        app.logger.error("Can't find account: " + ip);
+        return false;
     }
 
-    /*if (account.getEffectiveBalance() <= 0) {
-        this.app.logger.error("Effective balance is empty");
-        return callback(false);
-    }*/
+    if (account.getEffectiveBalance() <= 0) {
+        app.logger.error("Can't accept request, effective balance equal 0: "+ ip + "/" + account.address);
+        return false;
+    }
 
+    if (account.lastAliveBlock == this.app.blockchain.getLastBlock().getId()) {
+        app.logger.error("Can't accept request, request already processed in this block: " + ip + "/" + account.address);
+        return false;
+    }
 
-    var now = utils.getEpochTime(new Date().getTime());
-    var alive = self.getAliveAccountTime(account.address);
-
-    // need to fix
-    /*if (now - alive < 10) {
-        this.app.logger.error("Last request was late then 10 seconds");
-        return callback(false);
-    }*/
-
-    var requests = self.getRequests(account.address);
-    async.forEach(requests, function (item, cb) {
-        if (item.timestamp == timestamp) {
-            return callback(true);
-        }
-
-        /*if ((item.ip == ip && item.publicKey != publicKey) || (item.publicKey == publicKey && item.ip != ip)) {
-         return cb(true);
-         }*/
-
-        cb();
-    }, function (found) {
-        if (found) {
-            return callback(false);
-        } else {
-            var request = {
-                timestamp : timestamp,
-                publicKey : publicKey,
-                signature : signature,
-                time : now
-                //ip : ip
-            };
-
-            self.addRequest(account, request);
-
-            if (account.weight > 0) {
-                account.weight += timestamp / 1000;
-                self.addAliveAccounts(account, now);
-                return callback(true);
-            } else {
-                account.weight = timestamp / 1000;
-                self.addAliveAccounts(account, now);
-                return callback(true);
-            }
-
-            // send to another nodes
-            //app.peerprocessor.sendRequestToAll(request);
-        }
-    });
+    return account;
 }
 
 accountprocessor.prototype.getAccountById = function (address) {
