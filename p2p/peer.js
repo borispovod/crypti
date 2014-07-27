@@ -540,7 +540,7 @@ peer.prototype.sendRequest = function (request, cb) {
     var getOptions = {
         hostname: this.ip,
         port: this.port,
-        path: '/peer/alive?timestamp=' + request.timestamp + '&publicKey=' + request.publicKey + "&signature=" + request.signature,
+        path: '/peer/alive?&publicKey=' + request.publicKey + "&signature=" + request.signature,
         //agent: this.agent,
         headers: {
             "platform" : this._platform,
