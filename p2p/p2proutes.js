@@ -12,14 +12,65 @@ var peer = require("./peer.js"),
 
 module.exports = function (app) {
     app.get("/peer/getRequests", function (req, res) {
-        return res.json({ success : true, requests : app.accountprocessor.requests });
+        if (app.synchronizedBlock) {
+            return res.json({ success : false });
+        }
+
+        app.db.sql.serialize(function () {
+            var r  = app.db.sql.prepare("SELECT * FROM peerRequests WHERE lastAliveBlock=$lastAliveBlock");
+            r.bind({
+                $lastAliveBlock : app.blockchain.getLastBlock().getId()
+            });
+            r.all(function (err, requests) {
+                if (err) {
+                    app.logger.error(err.toString(), "error");
+                    return res.json({ success : false, error : "SQL error" });
+                } else {
+                    return res.json({ success : true, requests : requests });
+                }
+            });
+        });
     });
 
     app.get("/peer/alive", function (req, res) {
+        if (!app.synchronizedBlock) {
+            return res.json({ success : false, error : "Node not synchronized" });
+        }
+
+        var publicKey = req.query.publicKey,
+            signature = req.query.signature,
+            ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+
+        var request = {
+            publicKey : publicKey,
+            signature : signature,
+            ip : ip
+        };
+
+        var account = app.accountprocessor.processRequest(request);
+
+        if (!account) {
+            return res.json({ success : false });
+        }
+
+        app.db.writePeerRequest(request, function (err) {
+            if (err) {
+                app.logger.error(err.toString(), "error");
+                return res.json({ success : false });
+            } else {
+                account.lastAliveBlock = app.blockchain.getLastBlock().getId();
+                return res.json({ success : true });
+            }
+        });
+
+/*
+        return res.json({ success : true });
+
+
         var publicKey = req.query.publicKey,
             timestamp = parseInt(req.query.timestamp),
-            signature = req.query.signature;
-            //ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+            signature = req.query.signature,
+            ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
 
         app.logger.info("Process peer...");
 
@@ -28,7 +79,7 @@ module.exports = function (app) {
             return res.json({ success : false, error : "Parameters missed" });
         }
 
-        var time = utils.getEpochTime(new Date().getTime()) - 10;
+        var time = utils.getEpochTime(new Date().getTime()) - 60;
         if (timestamp < time || timestamp > utils.getEpochTime(new Date().getTime())) {
             app.logger.error("Peer timestamp not valid: " + timestamp + "/" + time);
             return res.json({ success : false, error : "Invalid timestamp" });
@@ -52,11 +103,12 @@ module.exports = function (app) {
             app.logger.error("Effective balance is empty");
             return res.json({ success : false, error : "Account effective balance is empty" });
         }*/
+        /*
 
         var now = utils.getEpochTime(new Date().getTime());
         var alive = app.accountprocessor.getAliveAccountTime(account.address);
 
-        if (now - alive < 10) {
+        if (now - alive < 30) {
             app.logger.error("Forging value already added");
             return res.json({ success : false, error : "You already added weight in this 10 seconds" });
         }
@@ -70,6 +122,7 @@ module.exports = function (app) {
             /*if ((item.ip == ip && item.publicKey != publicKey) || (item.publicKey == publicKey && item.ip != ip)) {
                 return cb(true);
             }*/
+        /*
 
             cb();
         }, function (found) {
@@ -100,7 +153,7 @@ module.exports = function (app) {
                 // send to another nodes
                 app.peerprocessor.sendRequestToAll(request);
             }
-        });
+        });*/
     });
 
     /*app.get("/peer/hello", function (req, res) {

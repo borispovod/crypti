@@ -178,6 +178,50 @@ db.prototype.readBlock = function (id, cb) {
     }.bind(this));
 }
 
+db.prototype.writePeerRequest = function (peerRequest, callback) {
+    this.sql.serialize(function () {
+        var r = this.sql.prepare("SELECT ip FROM peerRequests WHERE id=$ip");
+
+        r.bind({
+            $ip : peerRequest.ip
+        });
+
+        r.get(function (err, peerRequest) {
+            if (err) {
+                callback(err);
+            } else {
+                if (peerRequest) {
+                    r = this.sql.prepare("UPDATE peerRequests SET ip=$ip, lastAliveBlock=$lastAliveBlock, publicKey=$publicKey, signature=$signature");
+
+                    r.bind({
+                        $ip : peerRequest.ip,
+                        $lastAliveBlock : peerRequest.lastAliveBlock,
+                        $publicKey : $peerRequest.pubicKey,
+                        $signature : $peerRequest.signature
+                    });
+
+                    r.run(function (err) {
+                        callback(err);
+                    });
+                } else {
+                    r = this.sql.prepare("INSERT INTO peerRequest VALUES($ip, $lastActiveBlock, $publicKey, $signature)");
+
+                    r.bind({
+                        $ip : peerRequest.ip,
+                        $lastAliveBlock : peerRequest.lastAliveBlock,
+                        $publicKey : peerRequest.publicKey,
+                        $signature : peerRequest.signature
+                    });
+
+                    r.run(function (err) {
+                        callback(err);
+                    });
+                }
+            }
+        }.bind(this));
+    }.bind(this));
+}
+
 module.exports.initDb = function (callback) {
     var d = new db(sql);
     d.sql.serialize(function () {
@@ -189,8 +233,11 @@ module.exports.initDb = function (callback) {
                 d.sql.run("CREATE TABLE IF NOT EXISTS trs (id CHAR(25) NOT NULL, blockId CHAR(25) NOT NULL, type INT NOT NULL, subtype INT NOT NULL, timestamp TIMESTAMP NOT NULL, senderPublicKey VARCHAR(128) NOT NULL, recepient VARCHAR(25) NOT NULL, amount INTEGER NOT NULL, fee INTEGER NOT NULL, signature CHAR(255) NOT NULL, PRIMARY KEY(id))", cb);
             },
             function (cb) {
-                d.sql.run("CREATE TABLE IF NOT EXISTS addresses (id CHAR(25) NOT NULL, blockId CHAR(25) NOT NULL, version INT NOT NULL, timestamp TIMESTAMP NOT NULL, publicKey VARCHAR(128) NOT NULL, generatorPublicKey VARCHAR(128) NOT NULL, signature VARCHAR(128) NOT NULL, accountSignature VARCHAR(128) NOT NULL, PRIMARY KEY(id))", cb);
+                d.sql.run("CREATE TABLE IF NOT EXISTS addresses (id CHAR(25) NOT NULL, blockId CHAR(25) NOT NULL, version INT NOT NULL, timestamp TIMESTAMP NOT NULL, publicKey VARCHAR(128) NOT NULL, generatorPublicKey VARCHAR(128) NOT NULL, signature VARCHAR(255) NOT NULL, accountSignature VARCHAR(255) NOT NULL, PRIMARY KEY(id))", cb);
             },
+            function (cb) {
+                d.sql.run("CREATE TABLE IF NOT EXISTS peerRequests (ip VARCHAR(20) NOT NULL, lastAliveBlock VARCHAR(25) NOT NULL, publicKey VARCHAR(128) NOT NULL, signature VARCHAR(255) NOT NULL, PRIMARY KEY(ip))", cb);
+            }
             /*function (cb) {
                 d.sql.run("CREATE TABLE IF NOT EXISTS peer (ip CHAR(20) NOT NULL, port INT NOT NULL, version VARCHAR(10) NOT NULL, platform VARCHAR(255), timestamp TIMESTAMP NOT NULL, publicKey VARCHAR(128) NOT NULL UNIQUE, blocked BOOL NOT NULL DEFAULT 0, PRIMARY KEY(ip))", cb);
             }*/
