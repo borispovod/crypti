@@ -54,9 +54,7 @@ forger.prototype.sendRequest = function () {
 }
 
 forger.prototype.startForge = function () {
-    return;
-
-    if (!this.app.synchronized) {
+    if (!this.app.synchronizedBlocks || !this.app.synchronizedPeers) {
         this.app.logger.warn("Can't forge, node not synchronized!");
         return false;
     }
@@ -66,8 +64,6 @@ forger.prototype.startForge = function () {
     }
 
     this.workingForger = true;
-
-    //return false;
 
     var account = this.accountprocessor.getAccountById(this.accountId);
 
