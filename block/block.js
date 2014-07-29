@@ -26,6 +26,7 @@ var block = function (version, id, timestamp, previousBlock, transactions, total
     this.nextBlock = null;
     this.height = 0;
     this.baseTarget = 0;
+    this.numberOfRequests = 0;
 
     if (this.transactions) {
         this.numberOfTransactions = this.transactions.length;
@@ -285,7 +286,7 @@ block.prototype.getBaseTarget = function (previousBlock) {
 }*/
 
 block.prototype.getBytes = function () {
-    var size = 4 + 4 + 8 + 4 + 4 + 8 + 8 + 4 + 32 + 32 + 64 + 64;
+    var size = 4 + 4 + 8 + 4 + 4 + 4 + 8 + 8 + 4 + 32 + 32 + 64 + 64;
 
     var bb = new ByteBuffer(size, true);
     bb.writeInt(this.version);
@@ -305,6 +306,7 @@ block.prototype.getBytes = function () {
 
     bb.writeInt(this.numberOfAddresses);
     bb.writeInt(this.numberOfTransactions);
+    bb.writeInt(this.numberOfRequests);
     bb.writeLong(this.totalAmount);
     bb.writeLong(this.totalFee);
     bb.writeInt(this.payloadLength);
