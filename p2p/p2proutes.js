@@ -41,11 +41,15 @@ module.exports = function (app) {
             signature = req.query.signature,
             ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
 
+        var lastAliveBlock = this.app.blockchain.getLastBlock().getId();
+
         var request = {
             publicKey : publicKey,
             signature : signature,
-            ip : ip
+            ip : ip,
+            lastAliveBlock: lastAliveBlock
         };
+
 
         var account = app.accountprocessor.processRequest(request);
 
@@ -53,12 +57,16 @@ module.exports = function (app) {
             return res.json({ success : false });
         }
 
+        if (app.forgerprocessor.getForgers(account.address)) {
+            return res.json({ success : true });
+        }
+
         app.db.writePeerRequest(request, function (err) {
             if (err) {
                 app.logger.error(err.toString(), "error");
                 return res.json({ success : false });
             } else {
-                account.lastAliveBlock = app.blockchain.getLastBlock().getId();
+                account.lastAliveBlock = lastAliveBlock
                 return res.json({ success : true });
             }
         });

@@ -180,35 +180,41 @@ db.prototype.readBlock = function (id, cb) {
 
 db.prototype.writePeerRequest = function (peerRequest, callback) {
     this.sql.serialize(function () {
-        var r = this.sql.prepare("SELECT ip FROM peerRequests WHERE id=$ip");
+        var r = this.sql.prepare("SELECT * FROM peerRequests WHERE ip=$ip");
 
         r.bind({
             $ip : peerRequest.ip
         });
 
-        r.get(function (err, peerRequest) {
+        r.get(function (err, req) {
+            console.log(req);
             if (err) {
                 callback(err);
             } else {
-                if (peerRequest) {
-                    r = this.sql.prepare("UPDATE peerRequests SET ip=$ip, lastAliveBlock=$lastAliveBlock, publicKey=$publicKey, signature=$signature");
+                if (req && req.id) {
+                    r = this.sql.prepare("UPDATE peerRequests SET ip=$ip, lastAliveBlock=$lastAliveBlock, publicKey=$publicKey, signature=$signature WHERE id=$id");
+
+                    console.log(peerRequest);
+                    console.log(req);
 
                     r.bind({
                         $ip : peerRequest.ip,
                         $lastAliveBlock : peerRequest.lastAliveBlock,
-                        $publicKey : $peerRequest.pubicKey,
-                        $signature : $peerRequest.signature
+                        $publicKey : peerRequest.publicKey,
+                        $signature : peerRequest.signature,
+                        $id : req.id
                     });
 
                     r.run(function (err) {
+                        console.log("error here");
                         callback(err);
                     });
                 } else {
-                    r = this.sql.prepare("INSERT INTO peerRequest VALUES($ip, $lastActiveBlock, $publicKey, $signature)");
+                    r = this.sql.prepare("INSERT INTO peerRequests (ip, lastAliveBlock, publicKey, signature) VALUES($ip, $lastActiveBlock, $publicKey, $signature)");
 
                     r.bind({
                         $ip : peerRequest.ip,
-                        $lastAliveBlock : peerRequest.lastAliveBlock,
+                        $lastActiveBlock : peerRequest.lastAliveBlock,
                         $publicKey : peerRequest.publicKey,
                         $signature : peerRequest.signature
                     });
@@ -236,7 +242,10 @@ module.exports.initDb = function (callback) {
                 d.sql.run("CREATE TABLE IF NOT EXISTS addresses (id CHAR(25) NOT NULL, blockId CHAR(25) NOT NULL, version INT NOT NULL, timestamp TIMESTAMP NOT NULL, publicKey VARCHAR(128) NOT NULL, generatorPublicKey VARCHAR(128) NOT NULL, signature VARCHAR(255) NOT NULL, accountSignature VARCHAR(255) NOT NULL, PRIMARY KEY(id))", cb);
             },
             function (cb) {
-                d.sql.run("CREATE TABLE IF NOT EXISTS peerRequests (ip VARCHAR(20) NOT NULL, lastAliveBlock VARCHAR(25) NOT NULL, publicKey VARCHAR(128) NOT NULL, signature VARCHAR(255) NOT NULL, PRIMARY KEY(ip))", cb);
+                d.sql.run("DROP TABLE IF EXISTS peerRequests", cb);
+            },
+            function (cb) {
+                d.sql.run("CREATE TABLE IF NOT EXISTS peerRequests (id INTEGER PRIMARY KEY, ip VARCHAR(20) NOT NULL UNIQUE, lastAliveBlock VARCHAR(25) NOT NULL, publicKey TEXT NOT NULL UNIQUE, signature TEXT NOT NULL)", cb);
             }
             /*function (cb) {
                 d.sql.run("CREATE TABLE IF NOT EXISTS peer (ip CHAR(20) NOT NULL, port INT NOT NULL, version VARCHAR(10) NOT NULL, platform VARCHAR(255), timestamp TIMESTAMP NOT NULL, publicKey VARCHAR(128) NOT NULL UNIQUE, blocked BOOL NOT NULL DEFAULT 0, PRIMARY KEY(ip))", cb);
