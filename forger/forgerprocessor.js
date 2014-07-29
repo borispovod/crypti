@@ -29,7 +29,9 @@ forgerprocessor.prototype.startForger = function (forger) {
 
     this.sendingTimers[forger.accountId] = setInterval(function () {
         forger.sendRequest();
-    }, 1000 * 30);
+    }, 1000 * 10);
+
+    //forger.sendRequest();
 
     return true;
 }

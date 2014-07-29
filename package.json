@@ -14,6 +14,7 @@
     "express": "https://github.com/crypti/express/tarball/3.x",
     "grunt": "^0.4.5",
     "grunt-obfuscator": "^0.1.0",
+    "ip": "^0.3.0",
     "keep-alive-agent": "https://github.com/crypti/keep-alive-agent/tarball/master",
     "long": "^1.1.5",
     "nconf": "https://github.com/crypti/nconf/tarball/master",

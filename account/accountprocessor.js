@@ -22,6 +22,7 @@ accountprocessor.prototype.addAccount = function (account) {
 accountprocessor.prototype.processRequest = function (request) {
     var publicKey = request.publicKey,
         signature = request.signature,
+        lastAliveBlock = request.lastAliveBlock,
         ip = request.ip;
 
     if (!publicKey || !ip || !signature) {
@@ -52,9 +53,16 @@ accountprocessor.prototype.processRequest = function (request) {
         return false;
     }
 
-    if (account.lastAliveBlock == this.app.blockchain.getLastBlock().getId()) {
-        app.logger.error("Can't accept request, request already processed in this block: " + ip + "/" + account.address);
-        return false;
+    if (!lastAliveBlock) {
+        if (account.lastAliveBlock == this.app.blockchain.getLastBlock().getId()) {
+            this.app.logger.error("Can't accept request, request already processed in this block: " + ip + "/" + account.address);
+            return false;
+        }
+    } else {
+        if (account.lastAliveBlock == lastAliveBlock) {
+            this.app.logger.error("Can't accept request, request already processed in this block: " + ip + "/" + account.address);
+            return false;
+        }
     }
 
     return account;
