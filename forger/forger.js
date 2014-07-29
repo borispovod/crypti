@@ -6,6 +6,7 @@ var crypto = require('crypto'),
     Block = require("../block").block.block,
     ed  = require('ed25519'),
     async = require('async'),
+    request = require('../request').request,
     ip = require('ip');
 
 var forger = function (accountId, publicKey, secretPharse) {
@@ -40,7 +41,19 @@ forger.prototype.sendRequest = function () {
 
     var lastAliveBlock = this.app.blockchain.getLastBlock().getId();
 
-    console.log("Last block id: " + lastAliveBlock);
+    var r = new request(null, null, "127.0.0.1", keypair.publicKey, lastAliveBlock, false);
+    r.sign(this.secretPharse);
+
+    var added = this.app.requestprocessor.processTransaction(r);
+
+    if (!added) {
+        this.sending = false;
+        return false;
+    }
+
+
+/*
+    var blockId
 
     var request = {
         publicKey : keypair.publicKey.toString('hex'),
@@ -65,7 +78,7 @@ forger.prototype.sendRequest = function () {
             this.sending = false;
             this.sent = true;
         }
-    }.bind(this));
+    }.bind(this));*/
 }
 
 forger.prototype.startForge = function () {
