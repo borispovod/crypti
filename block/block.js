@@ -413,8 +413,6 @@ block.prototype.verifyGenerationSignature = function () {
 
     var needWeight = bignum.fromBuffer(needWeightBuffer);
 
-    console.log(this.app.requestprocessor.unconfirmedRequests);
-
     var requests = _.map(this.app.requestprocessor.unconfirmedRequests, function (v) { return v; });
     var accounts = [];
 
@@ -423,7 +421,7 @@ block.prototype.verifyGenerationSignature = function () {
 
         var account = this.app.accountprocessor.getAccountByPublicKey(item.publicKey);
 
-        if (!account || account.getEffectiveBalance() <= 0) {
+        if (!account || account.getEffectiveBalance() < 10000) {
             return cb();
         }
 
@@ -471,6 +469,9 @@ block.prototype.verifyGenerationSignature = function () {
     }
 
     var generator = accounts[cycle];
+
+    console.log(this.generationWeight.toString());
+    console.log(generator.weight.toString());
 
     if (this.generationWeight.toString() == generator.weight.toString()) {
         return true;

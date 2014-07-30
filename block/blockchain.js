@@ -347,18 +347,15 @@ blockchain.prototype.pushBlock = function (buffer, sendToPeers) {
         var request = b.requests[r];
 
         if (request.lastAliveBlock != this.getLastBlock().getId()) {
-            console.log("2");
             break;
         }
 
         if (!request.verify()) {
-            console.log("1");
             break;
         }
 
         var account = this.app.accountprocessor.getAccountByPublicKey(request.publicKey);
         if (!account || account.getEffectiveBalance() < 10000) {
-            console.log("3");
             break;
         }
 
