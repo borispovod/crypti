@@ -27,6 +27,9 @@ var block = function (version, id, timestamp, previousBlock, transactions, total
     this.height = 0;
     this.baseTarget = 0;
     this.numberOfRequests = 0;
+    this.addressesLength = 0;
+    this.requestsLength = 0;
+    this.generationWeight = bignum(0);
 
     if (this.transactions) {
         this.numberOfTransactions = this.transactions.length;
@@ -138,6 +141,7 @@ block.prototype.analyze = function () {
             }*/
 
             var addr = this.accountprocessor.getAddressByPublicKey(address.generatorPublicKey);
+            addr.popWeight = t.amount;
             recepient = this.accountprocessor.getAccountById(addr);
 
             if (!recepient) {
@@ -286,7 +290,7 @@ block.prototype.getBaseTarget = function (previousBlock) {
 }*/
 
 block.prototype.getBytes = function () {
-    var size = 4 + 4 + 8 + 4 + 4 + 4 + 8 + 8 + 4 + 32 + 32 + 64 + 64;
+    var size = 4 + 4 + 8 + 4 + 4 + 4 + 8 + 8 + 8 + 4 + 4 + 4 + 32 + 32 + 64 + 64;
 
     var bb = new ByteBuffer(size, true);
     bb.writeInt(this.version);
@@ -309,7 +313,16 @@ block.prototype.getBytes = function () {
     bb.writeInt(this.numberOfRequests);
     bb.writeLong(this.totalAmount);
     bb.writeLong(this.totalFee);
+
+    var generationWeightBuffer = this.generationWeight.toBuffer();
+
+    for (var i = 0; i < 8; i++) {
+        bb.writeByte(generationWeightBuffer[i]);
+    }
+
     bb.writeInt(this.payloadLength);
+    bb.writeInt(this.addressesLength);
+    bb.writeInt(this.requestsLength);
 
     for (var i = 0; i < this.payloadHash.length; i++) {
         bb.writeByte(this.payloadHash[i]);
@@ -375,59 +388,107 @@ block.prototype.verifyBlockSignature = function () {
         data2[i] = data[i];
     }
 
+    //console.log(this.generatorPublicKey);
+
     var hash = crypto.createHash('sha256').update(data2).digest();
     return ed.Verify(hash, this.blockSignature, this.generatorPublicKey);
 }
 
 block.prototype.verifyGenerationSignature = function () {
-    if (this.generatorPublicKey.toString('hex') == '9e51284be9f60a367d57b8d9dc40fb7a1e95cdf9c4ba249f4e96809fa05d5982') {
-        return true;
-    } else {
-        return false;
-    }
-
     var previousBlock = this.blockchain.getBlock(this.previousBlock);
+    var needWeightBuffer = new Buffer(8);
 
-    if (!previousBlock) {
+    var elapsedTime = utils.getEpochTime(new Date().getTime()) - previousBlock.timestamp;
+
+    if (elapsedTime < 60) {
         return false;
     }
 
-    if (ed.Verify(this.generationSignature, previousBlock.generationSignature, this.generatorPublicKey)) {
-        return false;
-    }
-
-    var a = this.accountprocessor.getAccountByPublicKey(this.generatorPublicKey);
-
-    if (!a) {
-        return false;
-    }
-
-    if (!a.app) {
-        a.setApp(this.app);
-    }
-
-    var effectiveBalance = a.getEffectiveBalance();
-
-    if (effectiveBalance <= 0) {
-        return false;
-    }
-
-    var elapsedTime = this.timestamp - previousBlock.timestamp;
-    var target = bignum(this.blockchain.getLastBlock().getBaseTarget()).mul(bignum(effectiveBalance)).mul(bignum(elapsedTime));
-    var generationSignatureHash = crypto.createHash('sha256').update(previousBlock.generationSignature).update(this.generatorPublicKey).digest();
+    var cycle = parseInt(elapsedTime / 60);
 
 
-    var temp = new Buffer(8);
     for (var i = 0; i < 8; i++) {
-        temp[i] = generationSignatureHash[7 - i];
+        needWeightBuffer[i] = previousBlock.generationSignature[i];
     }
 
-    var hit = bignum.fromBuffer(temp);
+    var needWeight = bignum.fromBuffer(needWeightBuffer);
 
-    if (hit.lt(target)) {
+    console.log(this.app.requestprocessor.unconfirmedRequests);
+
+    var requests = _.map(this.app.requestprocessor.unconfirmedRequests, function (v) { return v; });
+    var accounts = [];
+
+    for (var i = 0; i < requests.length; i++) {
+        var item = requests[i];
+
+        var account = this.app.accountprocessor.getAccountByPublicKey(item.publicKey);
+
+        if (!account || account.getEffectiveBalance() <= 0) {
+            return cb();
+        }
+
+        var buffer = new Buffer(8);
+        for (var i = 0; i < 8; i++) {
+            buffer[i] = item.signature[i];
+        }
+
+        accountWeight = bignum.fromBuffer(buffer);
+        var different = bignum(0);
+
+        if (accountWeight.gt(needWeight)) {
+            accountWeight = accountWeight.sub(account.popWeight);
+
+            if (accountWeight.lt(needWeight)) {
+                accountWeight = bignum(needWeight);
+            }
+
+            different = different.add(accountWeight.sub(needWeight));
+        } else {
+            accountWeight = accountWeight.add(account.popWeight);
+
+            if (accountWeight.gt(needWeight)) {
+                accountWeight = bignum(needWeight);
+            }
+
+            different = different.add(needWeight.sub(accountWeight));
+        }
+
+        accounts.push({ weight : different, address : account.address });
+    }
+
+    accounts.sort(function compare(a,b) {
+        if (a.weight.lt(b.weight))
+            return -1;
+
+        if (a.weight.gt(b.weight))
+            return 1;
+
+        return 0;
+    });
+
+    if (cycle + 1 > accounts.length) {
+        cycle = accounts.length - 1;
+    }
+
+    var generator = accounts[cycle];
+
+    if (this.generationWeight.toString() == generator.weight.toString()) {
         return true;
     } else {
         return false;
+        // проверяем предыдущие аккаунты, в будующем надо добавить от форков
+        /*var i = 0;
+        for (var i = 0; accounts.length < 0; i++) {
+            if (accountss[i].publicKey.toString ('hex') == this.generatorPublicKey.toString('hex')) {
+                break;
+            }
+        }
+
+        if (i < cycle) {
+            return true;
+        } else {
+            return false;
+        }*/
     }
 }
 
