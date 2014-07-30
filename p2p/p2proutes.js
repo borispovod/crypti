@@ -47,6 +47,8 @@ module.exports = function (app) {
             return res.json({ success : false });
         }
 
+        console.log(request);
+
         var ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
 
         var r = new Request(null, null, ip, new Buffer(request.publicKey, 'hex'), request.lastAliveBlock, new Buffer(request.siganture, 'hex'));

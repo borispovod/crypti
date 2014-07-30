@@ -67,7 +67,7 @@ blockchain.prototype.blockFromBytes = function (buffer) {
         generationWeightBuffer[i] = bb.readByte();
     }
 
-    b.generationWeight = bignum.fromBuffe(generationWeightBuffer);
+    b.generationWeight = bignum.fromBuffer(generationWeightBuffer);
 
     b.payloadLength = bb.readInt();
     b.addressesLength = bb.readInt();
