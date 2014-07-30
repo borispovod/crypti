@@ -423,6 +423,12 @@ peer.prototype.processBlock = function (block, cb) {
         addresses.push(block.addresses[a].toJSON());
     }
 
+    var requests = [];
+    for (var r in b.requests) {
+        requests.push(b.requests[r].toJSON());
+    }
+
+    b.requests = requests;
     b.transactions = transactions;
     b.addresses = addresses;
 

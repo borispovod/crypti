@@ -81,13 +81,14 @@ db.prototype.writeTransaction = function (t, cb) {
 
 db.prototype.writeBlock = function (block, cb) {
     this.sql.serialize(function () {
-        var q = this.sql.prepare("INSERT INTO blocks VALUES($id, $version, $timestamp, $previousBlock, $numberOfAddresses, $numberOfTransactions, $totalAmount, $totalFee, $payloadLength, $payloadHash, $generatorPublicKey, $generationSignature, $blockSignature, $height)");
+        var q = this.sql.prepare("INSERT INTO blocks VALUES($id, $version, $timestamp, $previousBlock, $numberOfAddresses, $numberOfRequests, $numberOfTransactions, $totalAmount, $totalFee, $payloadLength, $addressesLength, $requestsLength, $payloadHash, $generationWeight, $generatorPublicKey, $generationSignature, $blockSignature, $height)");
         q.bind({
             $id: block.getId(),
             $version: block.version,
             $timestamp: block.timestamp,
             $previousBlock: block.previousBlock,
             $numberOfAddresses: block.numberOfAddresses,
+            $numberOfRequests : block.numberOfRequests,
             $numberOfTransactions: block.numberOfTransactions,
             $totalAmount: block.totalAmount,
             $totalFee: block.totalFee,
@@ -96,7 +97,10 @@ db.prototype.writeBlock = function (block, cb) {
             $generatorPublicKey: block.generatorPublicKey.toString('hex'),
             $generationSignature: block.generationSignature.toString('hex'),
             $blockSignature: block.blockSignature.toString('hex'),
-            $height : block.height
+            $height : block.height,
+            $addressesLength : block.addressesLength,
+            $requestsLength : block.requestsLength,
+            $generationWeight : block.generationWeight.toString()
         });
 
         q.run(function (err) {
@@ -179,19 +183,21 @@ db.prototype.readBlock = function (id, cb) {
 }
 
 db.prototype.writePeerRequest = function (request, callback) {
+    console.log("write to db: " + request.blockId);
     this.sql.serialize(function () {
-        var r = this.sql.prepare("INSERT INTO requests (id, blockId, ip, lastAliveBlock, publicKey, verified, signature) VALUES($id, $blockId, $ip, $lastAliveBlock, $publicKey, $signature");
+        var r = this.sql.prepare("INSERT INTO requests (id, blockId, lastAliveBlock, publicKey, signature) VALUES($id, $blockId, $lastAliveBlock, $publicKey, $signature)");
         r.bind({
             $id : request.getId(),
             $blockId : request.blockId,
-            $ip : request.ip,
             $lastAliveBlock: request.lastAliveBlock,
-            $publicKey : request.publicKey,
-            $signature : request.signature
+            $publicKey : request.publicKey.toString('hex'),
+            $signature : request.signature.toString('hex')
         });
 
         r.run(function (err) {
-            callback(err);
+           if (callback) {
+                callback(err);
+            }
         });
     }.bind(this));
 }
@@ -201,7 +207,7 @@ module.exports.initDb = function (callback) {
     d.sql.serialize(function () {
         async.series([
             function (cb) {
-                d.sql.run("CREATE TABLE IF NOT EXISTS blocks (id CHAR(25) NOT NULL, version INT NOT NULL, timestamp TIMESTAMP NOT NULL, previousBlock VARCHAR(25), numberOfAddresses INT NOT NULL, numberOfTransactions INT NOT NULL, totalAmount INTEGER NOT NULL, totalFee INTEGER NOT NULL, payloadLength INT NOT NULL, payloadHash VARCHAR(255) NOT NULL, generatorPublicKey VARCHAR(255) NOT NULL, generationSignature VARCHAR(255) NOT NULL, blockSignature VARCHAR(255) NOT NULL, height INT NOT NULL, PRIMARY KEY(id))", cb);
+                d.sql.run("CREATE TABLE IF NOT EXISTS blocks (id CHAR(25) NOT NULL, version INT NOT NULL, timestamp TIMESTAMP NOT NULL, previousBlock VARCHAR(25), numberOfAddresses INT NOT NULL, numberOfRequests INT NOT NULL, numberOfTransactions INT NOT NULL, totalAmount INTEGER NOT NULL, totalFee INTEGER NOT NULL, payloadLength INT NOT NULL, addressesLength INT NOT NULL, requestsLength INT NOT NULL, payloadHash VARCHAR(255) NOT NULL, generationWeight VARCHAR(25) NOT NULL, generatorPublicKey VARCHAR(255) NOT NULL, generationSignature VARCHAR(255) NOT NULL, blockSignature VARCHAR(255) NOT NULL, height INT NOT NULL, PRIMARY KEY(id))", cb);
             },
             function (cb) {
                 d.sql.run("CREATE TABLE IF NOT EXISTS trs (id CHAR(25) NOT NULL, blockId CHAR(25) NOT NULL, type INT NOT NULL, subtype INT NOT NULL, timestamp TIMESTAMP NOT NULL, senderPublicKey VARCHAR(128) NOT NULL, recepient VARCHAR(25) NOT NULL, amount INTEGER NOT NULL, fee INTEGER NOT NULL, signature CHAR(255) NOT NULL, PRIMARY KEY(id))", cb);
@@ -210,7 +216,7 @@ module.exports.initDb = function (callback) {
                 d.sql.run("CREATE TABLE IF NOT EXISTS addresses (id CHAR(25) NOT NULL, blockId CHAR(25) NOT NULL, version INT NOT NULL, timestamp TIMESTAMP NOT NULL, publicKey VARCHAR(128) NOT NULL, generatorPublicKey VARCHAR(128) NOT NULL, signature VARCHAR(255) NOT NULL, accountSignature VARCHAR(255) NOT NULL, PRIMARY KEY(id))", cb);
             },
             function (cb) {
-                d.sql.run("CREATE TABLE IF NOT EXISTS requests (id CHAR(25) NOT NULL, blockId CHAR(25) NOT NULL, ip VARCHAR(20) NOT NULL, lastAliveBlock VARCHAR(25) NOT NULL, publicKey VARCHAR(128) NOT NULL, verified TINYINT(1), signature VARCHAR(255) NOT NULL, PRIMARY KEY(id))", cb);
+                d.sql.run("CREATE TABLE IF NOT EXISTS requests (id CHAR(25) NOT NULL, blockId CHAR(25) NOT NULL, lastAliveBlock VARCHAR(25) NOT NULL, publicKey VARCHAR(128) NOT NULL, verified TINYINT(1), signature VARCHAR(255) NOT NULL, PRIMARY KEY(id))", cb);
             }
             /*function (cb) {
                 d.sql.run("CREATE TABLE IF NOT EXISTS peer (ip CHAR(20) NOT NULL, port INT NOT NULL, version VARCHAR(10) NOT NULL, platform VARCHAR(255), timestamp TIMESTAMP NOT NULL, publicKey VARCHAR(128) NOT NULL UNIQUE, blocked BOOL NOT NULL DEFAULT 0, PRIMARY KEY(ip))", cb);
