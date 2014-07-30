@@ -45,6 +45,11 @@ forger.prototype.sendRequest = function () {
     r.sign(this.secretPharse);
 
     var added = this.app.requestprocessor.processRequest(r);
+
+    if (added) {
+        this.app.peerprocessor.sendRequestToAll(r);
+    }
+
     this.sending = false;
     this.sent = true;
     return false;
@@ -185,6 +190,8 @@ forger.prototype.startForge = function () {
 
             return 0;
         });
+
+        console.log(accounts);
 
         if (cycle + 1 > accounts.length) {
             cycle = accounts.length - 1;
@@ -370,6 +377,7 @@ forger.prototype.startForge = function () {
             block.generationSignature = ed.Sign(generationSignature, keypair);
             block.sign(this.secretPharse);
 
+            console.log(this.secretPhrase);
 
             if (block.verifyBlockSignature() && block.verifyGenerationSignature()) {
                 this.logger.info("Block generated: " + block.getId());
@@ -393,14 +401,16 @@ forger.prototype.startForge = function () {
                     this.transactionprocessor.unconfirmedTransactions = {};
                     this.addressprocessor.unconfirmedAddresses = {};
                     this.app.requestprocessor.unconfirmedRequests = {};
-                } else {
-                    this.workingForger = false;
                 }
+
+                this.workingForger = false;
 
             } else {
                 this.logger.error("Can't verify new generated block");
             }
 
+        } else {
+            this.workingForger = false;
         }
     }.bind(this));
 }
