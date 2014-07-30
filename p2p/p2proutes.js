@@ -127,7 +127,7 @@ module.exports = function (app) {
                                     item.addresses = addresses;
                                     app.db.sql.all("SELECT * FROM requests WHERE blockId=$id", {
                                         $id : item.id
-                                    }, function (err, trs) {
+                                    }, function (err, requests) {
                                        if (err) {
                                            cb(err);
                                        }  else {
