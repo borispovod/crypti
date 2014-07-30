@@ -381,6 +381,8 @@ forger.prototype.startForge = function () {
                     buffer = Buffer.concat([buffer, requests[i].getBytes()]);
                 }
 
+                console.log(JSON.stringify(block.toJSON()));
+
                 var result = this.blockchain.pushBlock(buffer, true);
 
                 if (!result) {
