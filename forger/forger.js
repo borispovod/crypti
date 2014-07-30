@@ -45,10 +45,8 @@ forger.prototype.sendRequest = function () {
     r.sign(this.secretPharse);
 
     var added = this.app.requestprocessor.processRequest(r);
+    this.app.peerprocessor.sendRequestToAll(r);
 
-    if (added) {
-        this.app.peerprocessor.sendRequestToAll(r);
-    }
 
     this.sending = false;
     this.sent = true;
