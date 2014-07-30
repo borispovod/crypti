@@ -14,7 +14,7 @@ var peer = require("./peer.js"),
 
 module.exports = function (app) {
     app.get("/peer/getRequests", function (req, res) {
-        if (app.synchronizedBlock) {
+        if (!app.synchronizedBlocks) {
             return res.json({ success : false });
         }
 
@@ -26,7 +26,7 @@ module.exports = function (app) {
     });
 
     app.get("/peer/alive", function (req, res) {
-        if (!app.synchronizedBlock) {
+        if (!app.synchronizedBlocks) {
             return res.json({ success : false, error : "Node not synchronized" });
         }
 
@@ -41,8 +41,6 @@ module.exports = function (app) {
         } catch (e) {
             return res.json({ success : false });
         }
-
-        console.log(request);
 
         if (!request.publicKey || !request.lastAliveBlock || !request.signature) {
 
