@@ -477,6 +477,7 @@ block.prototype.verifyGenerationSignature = function () {
     console.log(this.generationWeight.toString());
     console.log(generator.weight.toString());
 
+    console.log(accounts);
 
     if (this.generationWeight.toString() == generator.weight.toString()) {
         return true;
