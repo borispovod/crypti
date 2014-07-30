@@ -178,9 +178,14 @@ forger.prototype.startForge = function () {
             return 0;
         });
 
+        accounts = accounts.reverse();
+
         if (cycle + 1 > accounts.length) {
             cycle = accounts.length - 1;
         }
+
+        console.log("cycle: " + cycle);
+        console.log(accounts[cycle]);
 
         var generator = accounts[cycle];
         if (generator.address == myAccount.address) {

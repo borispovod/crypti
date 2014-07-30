@@ -401,6 +401,7 @@ block.prototype.verifyGenerationSignature = function () {
     var elapsedTime = utils.getEpochTime(new Date().getTime()) - previousBlock.timestamp;
 
     if (elapsedTime < 60) {
+        console.log("Block timestamp not valid");
         return false;
     }
 
@@ -422,7 +423,7 @@ block.prototype.verifyGenerationSignature = function () {
         var account = this.app.accountprocessor.getAccountByPublicKey(item.publicKey);
 
         if (!account || account.getEffectiveBalance() < 10000) {
-            return cb();
+            continue;
         }
 
         var buffer = new Buffer(8);
@@ -464,6 +465,8 @@ block.prototype.verifyGenerationSignature = function () {
         return 0;
     });
 
+    accounts = accounts.reverse();
+
     if (cycle + 1 > accounts.length) {
         cycle = accounts.length - 1;
     }
@@ -473,9 +476,11 @@ block.prototype.verifyGenerationSignature = function () {
     console.log(this.generationWeight.toString());
     console.log(generator.weight.toString());
 
+
     if (this.generationWeight.toString() == generator.weight.toString()) {
         return true;
     } else {
+        console.log("generator not valid");
         return false;
         // проверяем предыдущие аккаунты, в будующем надо добавить от форков
         /*var i = 0;
