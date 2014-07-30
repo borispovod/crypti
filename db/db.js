@@ -183,7 +183,6 @@ db.prototype.readBlock = function (id, cb) {
 }
 
 db.prototype.writePeerRequest = function (request, callback) {
-    console.log("write to db: " + request.blockId);
     this.sql.serialize(function () {
         var r = this.sql.prepare("INSERT INTO requests (id, blockId, lastAliveBlock, publicKey, signature) VALUES($id, $blockId, $lastAliveBlock, $publicKey, $signature)");
         r.bind({

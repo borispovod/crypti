@@ -67,8 +67,6 @@ forger.prototype.startForge = function () {
 
     var myAccount = this.accountprocessor.getAccountById(this.accountId);
 
-    console.log(this.accountId);
-
     if (!myAccount) {
         this.workingForger = false;
         return false;
@@ -93,8 +91,6 @@ forger.prototype.startForge = function () {
 
     needWeight = bignum.fromBuffer(needWeightBuffer);
 
-    console.log("need weight: " + needWeight);
-
     var elapsedTime = utils.getEpochTime(new Date().getTime()) - lastAliveBlock.timestamp;
 
     if (elapsedTime < 60) {
@@ -103,8 +99,6 @@ forger.prototype.startForge = function () {
     }
 
     var cycle = parseInt(elapsedTime / 60);
-
-    console.log("Last alive block: " + lastAliveBlock.getId());
 
     var requests = _.map(this.app.requestprocessor.unconfirmedRequests, function (v) { return v; });
     var accounts = [];
@@ -126,9 +120,6 @@ forger.prototype.startForge = function () {
         accountWeight = bignum.fromBuffer(buffer);
         var different = bignum(0);
 
-        console.log("account weight: " + accountWeight.toString() + "/" + account.address);
-
-
         if (accountWeight.gt(needWeight)) {
             accountWeight = accountWeight.sub(account.popWeight);
 
@@ -148,8 +139,6 @@ forger.prototype.startForge = function () {
         }
 
         // проверяем popWeight
-
-        console.log("different: " + different.toString() + "/"  + account.address);
         accounts.push({ weight : different, address : account.address });
         cb();
 
@@ -188,8 +177,6 @@ forger.prototype.startForge = function () {
 
             return 0;
         });
-
-        console.log(accounts);
 
         if (cycle + 1 > accounts.length) {
             cycle = accounts.length - 1;
@@ -358,8 +345,6 @@ forger.prototype.startForge = function () {
 
             var previousBlockHash = crypto.createHash('sha256').update(previousBlock.getBytes()).digest();
 
-            console.log("length: " + requestsLength);
-
             var block = new Block(1, null, blockTimestamp, previousBlock.getId(), null, totalAmount, totalFee, payloadLength, payloadHash, publicKey, generationSignature, null);
             block.addressesLength = addressesLength;
             block.requestsLength = requestsLength;
@@ -374,8 +359,6 @@ forger.prototype.startForge = function () {
             block.generationWeight = generator.weight;
             block.generationSignature = ed.Sign(generationSignature, keypair);
             block.sign(this.secretPharse);
-
-            console.log(this.secretPhrase);
 
             if (block.verifyBlockSignature() && block.verifyGenerationSignature()) {
                 this.logger.info("Block generated: " + block.getId());

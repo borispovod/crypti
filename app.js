@@ -228,11 +228,9 @@ async.series([
                                                        }  else {
                                                            var requests = [];
                                                            async.eachSeries(rows, function (r, _c) {
-                                                               console.log(r);
                                                                var request = new Request(null, r.blockId, r.ip, new Buffer(r.publicKey, 'hex'), r.lastAliveBlock, new Buffer(r.signature, 'hex'));
                                                                var address = app.accountprocessor.getAccountByPublicKey(request.publicKey).address;
                                                                requests.push(request);
-                                                               console.log(address);
                                                                app.requestprocessor.unconfirmedRequests[address] = request;
                                                                _c();
                                                            }.bind(this), function (err) {
