@@ -17,7 +17,7 @@ module.exports = function (app) {
             return res.json({ success : false });
         }
 
-        var requests = _.map(app.requestprocessor.confirmedRequests, function (v) {
+        var requests = _.map(app.requestprocessor.unconfirmedRequests, function (v) {
             return v;
         });
 
