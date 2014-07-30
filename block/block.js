@@ -432,7 +432,7 @@ block.prototype.verifyGenerationSignature = function () {
 
         var buffer = new Buffer(8);
         for (var j = 0; j < 8; j++) {
-            buffer[i] = item.signature[i];
+            buffer[j] = item.signature[j];
         }
 
         accountWeight = bignum.fromBuffer(buffer);
