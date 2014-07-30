@@ -423,12 +423,15 @@ block.prototype.verifyGenerationSignature = function () {
 
         var account = this.app.accountprocessor.getAccountByPublicKey(item.publicKey);
 
+        console.log(account.address + "/" + account.getEffectiveBalance());
+
         if (!account || account.getEffectiveBalance() < 10000) {
+            console.log("here");
             continue;
         }
 
         var buffer = new Buffer(8);
-        for (var i = 0; i < 8; i++) {
+        for (var j = 0; j < 8; j++) {
             buffer[i] = item.signature[i];
         }
 
@@ -466,7 +469,9 @@ block.prototype.verifyGenerationSignature = function () {
         return 0;
     });
 
+
     accounts = accounts.reverse();
+
 
     if (cycle + 1 > accounts.length) {
         cycle = accounts.length - 1;
