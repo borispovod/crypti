@@ -42,7 +42,10 @@ module.exports = function (app) {
             return res.json({ success : false });
         }
 
+        console.log(request);
+
         if (!request.publicKey || !request.lastAliveBlock || !request.signature) {
+
             return res.json({ success : false });
         }
 
@@ -52,9 +55,11 @@ module.exports = function (app) {
 
         var added = app.requestprocessor.processRequest(r);
 
+
         if (added) {
             return res.json({ success : true });
         } else {
+            console.log("request not processed");
             return res.json({ success : false });
         }
     });
