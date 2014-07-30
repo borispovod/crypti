@@ -28,7 +28,7 @@ request.prototype.getBytes = function () {
         bb.writeByte(this.publicKey[i]);
     }
 
-    var blockBuffer = bignum(lastAliveBlock).toBuffer();
+    var blockBuffer = bignum(this.lastAliveBlock).toBuffer();
 
     for (var i = 0; i < 8; i++) {
         bb.writeByte(blockBuffer[i] || 0);
@@ -36,7 +36,7 @@ request.prototype.getBytes = function () {
 
     if (this.signature) {
         for (var i = 0; i < this.signature.length; i++) {
-            bb.writeByter(this.signature[i]);
+            bb.writeByte(this.signature[i]);
         }
     }
 

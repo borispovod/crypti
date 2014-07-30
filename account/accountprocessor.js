@@ -115,6 +115,12 @@ accountprocessor.prototype.getAddressByPublicKey = function (publicKey) {
     return address;
 }
 
+accountprocessor.prototype.resetPopWeight = function () {
+    for (var a in this.accounts) {
+        this.accounts[a].popWeight = 0;
+    }
+}
+
 accountprocessor.prototype.getKeyPair = function (secretPhrase) {
     var hash = crypto.createHash('sha256').update(secretPhrase, 'utf8').digest();
     var keypair = ed.MakeKeypair(hash);
