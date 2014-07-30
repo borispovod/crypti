@@ -93,32 +93,39 @@ requestprocessor.prototype.processRequest = function (request) {
     var elapsedTime = lastBlock.timestamp - now;
 
     if (elapsedTime > 50) {
+        console.log("elapsed time passed");
         return false;
     }
 
     if (!request.verify()) {
+        console.log("can't verify request signature");
         return false;
     }
 
     if (request.lastAliveBlock != lastBlock.getId()) {
+        console.log("request last block not valid");
         return false;
     }
 
     var account = this.app.accountprocessor.getAccountByPublicKey(request.publicKey);
 
     if (!account) {
+        console.log("request account not found");
         return false;
     }
 
     if (account.getEffectiveBalance() < 10000) {
+        console.log("request not have effective balance");
         return false;
     }
 
     if (this.unconfirmedRequests[account.address]) {
+        console.log("request already added");
         return false;
     }
 
     this.unconfirmedRequests[account.address] = request;
+    console.log("request added");
     return true;
 }
 
