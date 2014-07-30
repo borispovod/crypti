@@ -534,13 +534,13 @@ peer.prototype.getRequests = function (cb) {
 }
 
 peer.prototype.sendRequest = function (request, cb) {
-    console.log("send request");
     this.checkAgent();
+
 
     var getOptions = {
         hostname: this.ip,
         port: this.port,
-        path: '/peer/alive?&publicKey=' + request.publicKey + "&signature=" + request.signature,
+        path: '/peer/alive?&request=' + JSON.stringify(request.toJSON()),
         //agent: this.agent,
         headers: {
             "platform" : this._platform,

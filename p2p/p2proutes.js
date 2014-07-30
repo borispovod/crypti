@@ -8,7 +8,8 @@ var peer = require("./peer.js"),
     utils = require("../utils.js"),
     _ = require('underscore'),
     ed = require('ed25519'),
-    crypto = require('crypto');
+    crypto = require('crypto'),
+    Request = require("../request").request;
 
 module.exports = function (app) {
     app.get("/peer/getRequests", function (req, res) {
@@ -16,6 +17,13 @@ module.exports = function (app) {
             return res.json({ success : false });
         }
 
+        var requests = _.map(app.requestprocessor.confirmedRequests, function (v) {
+            return v;
+        });
+
+        return res.json({ success : true, requests : requests });
+
+        /*
         app.db.sql.serialize(function () {
             var r  = app.db.sql.prepare("SELECT * FROM peerRequests WHERE lastAliveBlock=$lastAliveBlock");
             r.bind({
@@ -29,7 +37,7 @@ module.exports = function (app) {
                     return res.json({ success : true, requests : requests });
                 }
             });
-        });
+        });*/
     });
 
     app.get("/peer/alive", function (req, res) {
@@ -37,6 +45,35 @@ module.exports = function (app) {
             return res.json({ success : false, error : "Node not synchronized" });
         }
 
+        var request = req.query.request || "";
+
+        if (request.length == 0) {
+            return res.json({ success : false });
+        }
+
+        try {
+            request = JSON.parse(request);
+        } catch (e) {
+            return res.json({ success : false });
+        }
+
+        if (!request.publicKey || !request.lastAliveBlock || !request.signature) {
+            return res.json({ success : false });
+        }
+
+        var ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+
+        var r = new Request(null, null, ip, new Buffer(request.publicKey, 'hex'), request.lastAliveBlock, new Buffer(request.siganture, 'hex'));
+
+        var added = app.requestprocessor.processRequest(r);
+
+        if (added) {
+            return res.json({ success : true });
+        } else {
+            return res.json({ success : false });
+        }
+
+        /*
         var publicKey = req.query.publicKey,
             signature = req.query.signature,
             ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
@@ -69,7 +106,7 @@ module.exports = function (app) {
                 account.lastAliveBlock = lastAliveBlock
                 return res.json({ success : true });
             }
-        });
+        });*/
 
 /*
         return res.json({ success : true });

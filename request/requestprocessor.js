@@ -25,7 +25,7 @@ requestprocessor.prototype.getRequest = function (id) {
 }
 
 requestprocessor.prototype.fromJSON = function (JSON) {
-    return new request(null, JSON.ip, new Buffer(JSON.publicKey, 'hex'), JSON.lastAliveBlock, new Buffer(JSON.signature, 'hex'));
+    return new request(null, JSON.id, JSON.ip, new Buffer(JSON.publicKey, 'hex'), JSON.lastAliveBlock, new Buffer(JSON.signature, 'hex'));
 }
 
 requestprocessor.prototype.transactionFromBuffer = function (bb) {
