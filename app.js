@@ -21,6 +21,7 @@ var express = require('express'),
     genesisblock = require("./block").genesisblock,
     fs = require('fs'),
     Forger = require("./forger").forger,
+    requestprocessor = require("./request").requestprocessor,
     utils = require("./utils.js"),
     _ = require('underscore');
 
@@ -101,6 +102,12 @@ async.series([
       app.peerprocessor = new peerprocessor();
       app.peerprocessor.setApp(app);
       cb();
+    },
+    function (cb) {
+        logger.getInstance().info("Initialize request processor...");
+        app.requestprocessor = new requestprocessor();
+        app.requestprocessor.setApp(app);
+        cb();
     },
     function (cb) {
         logger.getInstance().info("Load system info...");
@@ -571,21 +578,11 @@ async.series([
                                requests = answer.requests;
 
                                async.eachSeries(requests, function (item, c) {
-                                   var account = app.accountprocessor.processRequest(item);
-                                   if (!account) {
-                                       app.logger.error("Can't process request of: " + item.ip);
-                                       c();
-                                   } else {
-                                       app.db.writePeerRequest(item, function (err) {
-                                           if (err) {
-                                               app.logger.error(err.toString(), "error");
-                                               c();
-                                           } else {
-                                               account.lastAliveBlock = app.blockchain.getLastBlock().getId();
-                                               c();
-                                           }
-                                       });
-                                   }
+                                   var r = app.requestprocessor.fromJSON(item);
+                                   delete r.blockId;
+
+                                   var added = app.requestprocessor.processRequest(r);
+                                   c();
                                }, function () {
                                    next(true);
                                });

@@ -4,14 +4,13 @@ var ed = require('ed25519'),
     crypto = require('crypto'),
     bignum = require('bignum');
 
-var request = function (id, blockId, ip, publicKey, lastAliveBlock, verified, signature) {
+var request = function (id, blockId, ip, publicKey, lastAliveBlock, signature) {
     this.id = id;
     this.ip = ip;
     this.publicKey = publicKey;
     this.lastAliveBlock = lastAliveBlock;
     this.signature = signature;
     this.blockId = blockId;
-    this.verified = verified;
 }
 
 request.prototype.toJSON = function () {
