@@ -55,8 +55,8 @@ module.exports = function (app) {
 
         var added = app.requestprocessor.processRequest(r);
 
-
         if (added) {
+            console.log("request processed");
             return res.json({ success : true });
         } else {
             console.log("request not processed");
