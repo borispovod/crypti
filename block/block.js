@@ -63,6 +63,7 @@ block.prototype.toJSON = function () {
     obj.generatorPublicKey = this.generatorPublicKey.toString('hex');
     obj.generationSignature = this.generationSignature.toString('hex');
     obj.blockSignature = this.blockSignature.toString('hex');
+    obj.generationWeight = this.generationWeight.toString();
 
     delete obj.app;
     delete obj.blockchain;
