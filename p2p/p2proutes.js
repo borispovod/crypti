@@ -9,7 +9,8 @@ var peer = require("./peer.js"),
     _ = require('underscore'),
     ed = require('ed25519'),
     crypto = require('crypto'),
-    Request = require("../request").request;
+    Request = require("../request").request,
+    bignum = require('bignum');
 
 module.exports = function (app) {
     app.get("/peer/getRequests", function (req, res) {
