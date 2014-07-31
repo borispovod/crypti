@@ -399,7 +399,7 @@ block.prototype.verifyGenerationSignature = function () {
     var previousBlock = this.blockchain.getBlock(this.previousBlock);
     var needWeightBuffer = new Buffer(8);
 
-    var elapsedTime = utils.getEpochTime(new Date().getTime()) - previousBlock.timestamp;
+    var elapsedTime = this.timestamp - previousBlock.timestamp;
 
     if (elapsedTime < 60) {
         console.log("Block timestamp not valid");
@@ -407,7 +407,6 @@ block.prototype.verifyGenerationSignature = function () {
     }
 
     var cycle = parseInt(elapsedTime / 60);
-
 
     for (var i = 0; i < 8; i++) {
         needWeightBuffer[i] = previousBlock.generationSignature[i];
@@ -477,10 +476,11 @@ block.prototype.verifyGenerationSignature = function () {
         cycle = accounts.length - 1;
     }
 
+    console.log(cycle);
     var generator = accounts[cycle];
 
-    console.log(this.generationWeight.toString());
-    console.log(generator.weight.toString());
+    console.log("generator: " + this.generationWeight.toString());
+    console.log("to generate: " + generator.weight.toString());
 
     console.log(accounts);
 
