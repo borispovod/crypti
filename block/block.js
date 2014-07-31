@@ -315,7 +315,7 @@ block.prototype.getBytes = function () {
     bb.writeLong(this.totalAmount);
     bb.writeLong(this.totalFee);
 
-    var generationWeightBuffer = this.generationWeight.toBuffer();
+    var generationWeightBuffer = this.generationWeight.toBuffer({ size : '8' });
 
     for (var i = 0; i < 8; i++) {
         bb.writeByte(generationWeightBuffer[i]);
@@ -425,7 +425,7 @@ block.prototype.verifyGenerationSignature = function () {
 
         console.log(account.address + "/" + account.getEffectiveBalance());
 
-        if (!account || account.getEffectiveBalance() < 10000) {
+        if (!account || account.getEffectiveBalance() < 10000 * constants.numberLength) {
             console.log("here");
             continue;
         }
