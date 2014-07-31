@@ -45,7 +45,7 @@ requestprocessor.prototype.fromByteBuffer = function (bb) {
         lastAliveBlockBuffer[i] = bb.readByte();
     }
 
-    r.lastAliveBlock = bignum.fromBuffer(lastAliveBlockBuffer, { size : 'auto' }).toString();
+    r.lastAliveBlock = bignum.fromBuffer(lastAliveBlockBuffer, { size : '8' }).toString();
 
 
     var signature = new Buffer(64);
