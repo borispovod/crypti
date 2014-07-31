@@ -4,7 +4,8 @@ var ed = require('ed25519'),
     ByteBuffer = require("bytebuffer"),
     crypto = require('crypto'),
     bignum = require('bignum'),
-    utils = require("../utils.js");
+    utils = require("../utils.js"),
+    Constants = require("../Constants.js");
 
 
 var requestprocessor = function () {
@@ -44,7 +45,7 @@ requestprocessor.prototype.fromByteBuffer = function (bb) {
         lastAliveBlockBuffer[i] = bb.readByte();
     }
 
-    r.lastAliveBlock = bignum.fromBuffer(lastAliveBlockBuffer).toString();
+    r.lastAliveBlock = bignum.fromBuffer(lastAliveBlockBuffer, { size : 'auto' }).toString();
 
 
     var signature = new Buffer(64);
@@ -75,7 +76,7 @@ requestprocessor.prototype.transactionFromBytes = function (buffer) {
         lastAliveBlockBuffer[i] = bb.readByte();
     }
 
-    r.lastAliveBlock = bignum.fromBuffer(lastAliveBlockBuffer).toString();
+    r.lastAliveBlock = bignum.fromBuffer(lastAliveBlockBuffer, { size : 'auto' }).toString();
 
 
     var signature = new Buffer(64);
@@ -114,7 +115,7 @@ requestprocessor.prototype.processRequest = function (request) {
         return false;
     }
 
-    if (account.getEffectiveBalance() < 10000) {
+    if (account.getEffectiveBalance() < 10000 * Constants.numberLength) {
         console.log("request not have effective balance");
         return false;
     }

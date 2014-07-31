@@ -28,10 +28,10 @@ request.prototype.getBytes = function () {
         bb.writeByte(this.publicKey[i]);
     }
 
-    var blockBuffer = bignum(this.lastAliveBlock).toBuffer();
+    var blockBuffer = bignum(this.lastAliveBlock).toBuffer({ size : '8' });
 
     for (var i = 0; i < 8; i++) {
-        bb.writeByte(blockBuffer[i] || 0);
+        bb.writeByte(blockBuffer[i]);
     }
 
     if (this.signature) {
