@@ -1,7 +1,6 @@
 var peer = require("./peer.js"),
     _ = require("underscore"),
-    async = require('async'),
-    io = require('socket.io-client');
+    async = require('async');
 
 var peerprocessor = function () {
     this.peers = {};

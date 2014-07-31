@@ -125,6 +125,7 @@ blockchain.prototype.pushBlock = function (buffer, sendToPeers) {
     b.numberOfTransactions = bb.readInt();
     b.numberOfRequests = bb.readInt();
 
+
     var amountLong = bb.readLong();
     b.totalAmount  = new Long(amountLong.low, amountLong.high, false).toNumber();
     var feeLong = bb.readLong();
@@ -135,7 +136,7 @@ blockchain.prototype.pushBlock = function (buffer, sendToPeers) {
         generationWeightBuffer[i] = bb.readByte();
     }
 
-    b.generationWeight = bignum.fromBuffer(generationWeightBuffer);
+    b.generationWeight = bignum.fromBuffer(generationWeightBuffer, { size : 'auto' });
 
     b.payloadLength = bb.readInt();
     b.addressesLength = bb.readInt();
@@ -346,7 +347,10 @@ blockchain.prototype.pushBlock = function (buffer, sendToPeers) {
     for (var r in b.requests) {
         var request = b.requests[r];
 
+        console.log(request.lastAliveBlock);
+
         if (request.lastAliveBlock != this.getLastBlock().getId()) {
+            console.log("olololololololo");
             break;
         }
 
@@ -355,7 +359,7 @@ blockchain.prototype.pushBlock = function (buffer, sendToPeers) {
         }
 
         var account = this.app.accountprocessor.getAccountByPublicKey(request.publicKey);
-        if (!account || account.getEffectiveBalance() < 10000) {
+        if (!account || account.getEffectiveBalance() < 10000 * constants.numberLength) {
             break;
         }
 
