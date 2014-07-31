@@ -6,8 +6,7 @@ var crypto = require('crypto'),
     Block = require("../block").block.block,
     ed  = require('ed25519'),
     async = require('async'),
-    request = require('../request').request,
-    ip = require('ip');
+    request = require('../request').request;
 
 var forger = function (accountId, publicKey, secretPharse) {
     this.accountId = accountId;
@@ -40,6 +39,7 @@ forger.prototype.sendRequest = function () {
     var signature = ed.Sign(hash, keypair);
 
     var lastAliveBlock = this.app.blockchain.getLastBlock().getId();
+    console.log(lastAliveBlock);
 
     var r = new request(null, null, "127.0.0.1", keypair.publicKey, lastAliveBlock);
     r.sign(this.secretPharse);
@@ -73,7 +73,7 @@ forger.prototype.startForge = function () {
     }
 
     var effectiveBalance = myAccount.getEffectiveBalance();
-    if (effectiveBalance < 10000) {
+    if (effectiveBalance < 10000 * constants.numberLength) {
         this.workingForger = false;
         return false;
     }
@@ -99,6 +99,9 @@ forger.prototype.startForge = function () {
     }
 
     var cycle = parseInt(elapsedTime / 60);
+
+
+
 
     var requests = _.map(this.app.requestprocessor.unconfirmedRequests, function (v) { return v; });
     var accounts = [];
@@ -318,7 +321,7 @@ forger.prototype.startForge = function () {
 
                 var account = this.app.accountprocessor.getAccountByPublicKey(requests[i].publicKey);
 
-                if (!account || account.getEffectiveBalance() < 10000) {
+                if (!account || account.getEffectiveBalance() < 10000 * constants.numberLength) {
                     continue;
                 }
 
@@ -377,11 +380,9 @@ forger.prototype.startForge = function () {
                     buffer = Buffer.concat([buffer, newAddresses[addr].getBytes()]);
                 }
 
-                for (var i = 0; i < requests.length; i++) {
-                    buffer = Buffer.concat([buffer, requests[i].getBytes()]);
+                for (var i = 0; i < newRequests.length; i++) {
+                    buffer = Buffer.concat([buffer, newRequests[i].getBytes()]);
                 }
-
-                console.log(JSON.stringify(block.toJSON()));
 
                 var result = this.blockchain.pushBlock(buffer, true);
 

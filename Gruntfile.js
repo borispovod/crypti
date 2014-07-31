@@ -40,7 +40,10 @@ module.exports = function (grunt) {
                 'utils/convert.js',
                 'utils/loader.js',
                 'Constants.js',
-                "utils.js"
+                'utils.js',
+                'request/index.js',
+                'request/request.js',
+                'request/requestprocessor.js'
             ],
             entry: 'app.js',
             out: 'builded/app.js',
