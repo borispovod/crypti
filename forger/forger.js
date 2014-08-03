@@ -73,7 +73,7 @@ forger.prototype.startForge = function () {
     }
 
     var effectiveBalance = myAccount.getEffectiveBalance();
-    if (effectiveBalance < 10000 * constants.numberLength) {
+    if (effectiveBalance <= 0 * constants.numberLength) {
         this.workingForger = false;
         return false;
     }
@@ -99,9 +99,7 @@ forger.prototype.startForge = function () {
     }
 
     var cycle = parseInt(elapsedTime / 60);
-
-
-
+    cycle -= 1;
 
     var requests = _.map(this.app.requestprocessor.unconfirmedRequests, function (v) { return v; });
     var accounts = [];
@@ -141,47 +139,18 @@ forger.prototype.startForge = function () {
             different = different.add(needWeight.sub(accountWeight));
         }
 
-        // проверяем popWeight
         accounts.push({ weight : different, address : account.address });
         cb();
-
-        /*item.signature = item.signature.toString('base64');
-
-        for (var i = 0; i < item.signature.length; i++) {
-            var charCode = item.signature.charCodeAt(i);
-
-            if (charCode <= 0) {
-                charCode = 1;
-            } else if (accountPow == 0) {
-                accountPow = charCode;
-            }
-
-            accountWeight = accountWeight.mul(charCode);
-        }
-
-        accountWeight = accountWeight.pow(accountPow);
-        var different = bignum(0);
-
-        if (accountWeight.gt(needWeight)) {
-            different = different.add(accountWeight.sub(needWeight));
-        } else {
-            different = different.add(needWeight.sub(accountWeight));
-        }
-
-        accounts.push({ weight : different, address : account.address });
-        cb();*/
     }.bind(this), function () {
         accounts.sort(function compare(a,b) {
-            if (a.weight.lt(b.weight))
+            if (a.weight.gt(b.weight))
                 return -1;
 
-            if (a.weight.gt(b.weight))
+            if (a.weight.lt(b.weight))
                 return 1;
 
             return 0;
         });
-
-        accounts = accounts.reverse();
 
         if (cycle + 1 > accounts.length) {
             cycle = accounts.length - 1;
