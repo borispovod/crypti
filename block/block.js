@@ -131,8 +131,6 @@ block.prototype.analyze = function () {
             this.accountprocessor.addAccount(recepient);
         }
 
-
-
         if (t.recipientId[t.recipientId.length - 1] == "D") {
             //t.type = 1;
             var address = this.app.addressprocessor.addresses[t.recipientId];
@@ -176,6 +174,19 @@ block.prototype.analyze = function () {
                             }
                         }
 
+                        var blockId = this.getId();
+
+                        if (!this.app.accountprocessor.purchases[blockId]) {
+                            this.app.accountprocessor.purchases[blockId] = {};
+                        }
+
+                        if (!this.app.accountprocessor.purchases[blockId][sender.address]) {
+                            this.app.accountprocessor.purchases[blockId][sender.address] = 0;
+                        }
+
+                        this.app.accountprocessor.purchases[blockId][sender.address] += t.amount;
+
+                        this.app.blockchain.totalPurchaseAmount =  this.app.blockchain.totalPurchaseAmount.add(t.amount);
                         recepient.addToBalance(t.amount + value);
                         recepient.addToUnconfirmedBalance(t.amount + value);
                         break;
@@ -396,113 +407,155 @@ block.prototype.verifyBlockSignature = function () {
 }
 
 block.prototype.verifyGenerationSignature = function () {
-    var previousBlock = this.blockchain.getBlock(this.previousBlock);
-    var needWeightBuffer = new Buffer(8);
+    var lastAliveBlock = this.app.blockchain.getLastBlock();
 
-    var elapsedTime = this.timestamp - previousBlock.timestamp;
+    var elapsedTime = this.timestamp - lastAliveBlock.timestamp;
 
     if (elapsedTime < 60) {
-        console.log("Block timestamp not valid");
+        this.app.logger.error("Block generation signature time not valid " + this.getId() + " must be > 60, but result is: " + elapsedTime);
         return false;
     }
-
-    var cycle = parseInt(elapsedTime / 60);
-    cycle -= 1;
-
-    for (var i = 0; i < 8; i++) {
-        needWeightBuffer[i] = previousBlock.generationSignature[i];
-    }
-
-    var needWeight = bignum.fromBuffer(needWeightBuffer);
 
     var requests = _.map(this.app.requestprocessor.unconfirmedRequests, function (v) { return v; });
     var accounts = [];
 
     for (var i = 0; i < requests.length; i++) {
-        var item = requests[i];
+        var request = requests[i];
+        var account = this.app.accountprocessor.getAccountByPublicKey(request.publicKey);
 
-        var account = this.app.accountprocessor.getAccountByPublicKey(item.publicKey);
-
-        console.log(account.address + "/" + account.getEffectiveBalance());
-
-        if (!account || account.getEffectiveBalance() < 10000 * constants.numberLength) {
-            console.log("here");
+        if (!account || account.getEffectiveBalance() <= 1000 * constants.numberLength) {
             continue;
         }
 
-        var buffer = new Buffer(8);
-        for (var j = 0; j < 8; j++) {
-            buffer[j] = item.signature[j];
+        var address = account.address;
+
+        var confirmedRequests = this.app.requestprocessor.confirmedRequests[address];
+
+        if (!confirmedRequests) {
+            confirmedRequests = [];
         }
 
-        accountWeight = bignum.fromBuffer(buffer);
-        var different = bignum(0);
+        var accountWeightTimestamps = bignum(lastAliveBlock.timestamp);
+        var popWeightAmount = bignum(0);
 
-        if (accountWeight.gt(needWeight)) {
-            accountWeight = accountWeight.sub(account.popWeight);
+        var previousBlock = this.app.blockchain.getBlock(lastAliveBlock.previousBlock);
+        for (var j = confirmedRequests.length - 1; j >= 0; j--) {
+            var block = this.app.blockchain.getBlock(confirmedRequests[j].lastAliveBlock);
 
-            if (accountWeight.lt(needWeight)) {
-                accountWeight = bignum(needWeight);
+            if (this.app.accountprocessor.getAccountByPublicKey(block.generatorPublicKey).address == account.address) {
+                break;
             }
 
-            different = different.add(accountWeight.sub(needWeight));
-        } else {
-            accountWeight = accountWeight.add(account.popWeight);
+            if (block.getId() != previousBlock.getId()) {
+                break;
+            } else {
+                accountWeightTimestamps = accountWeightTimestamps.add(previousBlock.timestamp);
+                var purchases = this.app.accountprocessor.purchases[previousBlock.getId()];
 
-            if (accountWeight.gt(needWeight)) {
-                accountWeight = bignum(needWeight);
+                if (purchases) {
+                    if (purchases[address]) {
+                        popWeightAmount = popWeightAmount.add(purchases[address]);
+                    }
+                }
+
+                // get account purcashes in this block
+                previousBlock = this.app.blockchain.getBlock(previousBlock.previousBlock);
             }
-
-            different = different.add(needWeight.sub(accountWeight));
         }
 
-        accounts.push({ weight : different, address : account.address });
+        accountWeightTimestamps = accountWeightTimestamps.div(lastAliveBlock.height);
+        popWeightAmount = popWeightAmount.div(this.app.blockchain.totalPurchaseAmount);
+
+        this.app.logger.info("Account " + address + " PoT weight " + accountWeightTimestamps.toString());
+        this.app.logger.info("Account " + address + " PoP weight " + popWeightAmount.toString());
+
+        var accountTotalWeight = accountWeightTimestamps.add(popWeightAmount);
+        accounts.push({ address : address, weight : accountTotalWeight });
+
+        this.app.logger.info("Account " + address + " weight " + accountTotalWeight.toString());
     }
 
     accounts.sort(function compare(a,b) {
-        if (a.weight.lt(b.weight))
+        if (a.weight.gt(b.weight))
             return -1;
 
-        if (a.weight.gt(b.weight))
+        if (a.weight.lt(b.weight))
             return 1;
 
         return 0;
     });
 
+    var cycle = elapsedTime / 60 - 1;
 
-    //accounts = accounts.reverse();
-
-
-    if (cycle + 1 > accounts.length) {
+    if (cycle > accounts.length - 1) {
         cycle = accounts.length - 1;
     }
 
-    console.log(cycle);
-    var generator = accounts[cycle];
+    // ищем похожий вес
+    var winner = accounts[cycle];
+    var sameWeights = [winner];
 
-    console.log("generator: " + this.generationWeight.toString());
-    console.log("to generate: " + generator.weight.toString());
+    for (var i = cycle + 1; i < accounts.length; i++) {
+        var accountWeight = accounts[i];
 
-    console.log(accounts);
+        if (winner.weight.eq(accountWeight.weight)) {
+            sameWeights.push(accountWeight);
+        } else {
+            break;
+        }
+    }
 
-    if (this.generationWeight.toString() == generator.weight.toString()) {
-        return true;
-    } else {
-        console.log("generator not valid");
-        return false;
-        // проверяем предыдущие аккаунты, в будующем надо добавить от форков
-        /*var i = 0;
-        for (var i = 0; accounts.length < 0; i++) {
-            if (accountss[i].publicKey.toString ('hex') == this.generatorPublicKey.toString('hex')) {
-                break;
+
+    if (sameWeights.length > 1) {
+        this.app.logger.info("Accounts with same weight founds, count: " + sameWeights.length);
+
+        var randomWinners = [];
+        for (var i = 0; i < sameWeights.length; i++) {
+            var a = sameWeights[i];
+            var hash = crypto.createHash('sha256').update(a.weight.toBuffer({ size : '8' })).update(this.app.requestprocessor.unconfirmedRequests[a.address].publicKey).digest();
+
+            var result = new Buffer(8);
+            for (var j = 0; j < 8; j++) {
+                result[j] = hash[j];
             }
+
+            this.app.logger.info("Account with same weight " + a.address + " new weight: " + bignum.fromBuffer(result, { size : '8'}));
+            randomWinners.push({ address : a.address, weight : bignum.fromBuffer(result, { size : '8'})});
         }
 
-        if (i < cycle) {
-            return true;
-        } else {
+        randomWinners.sort(function compare(a,b) {
+            if (a.weight.gt(b.weight))
+                return -1;
+
+            if (a.weight.lt(b.weight))
+                return 1;
+
+            return 0;
+        });
+
+        winner = randomWinners[0];
+    }
+
+    this.app.logger.info("Winner " + winner.address + " with weight " + winner.weight.toString());
+    if (this.generationWeight.eq(winner.weight)) {
+        this.app.logger.info("Valid generator " + this.getId());
+
+        var hash = crypto.createHash('sha256').update(lastAliveBlock.generationSignature).update(this.app.requestprocessor.unconfirmedRequests[winner.address].publicKey);
+        var generationSignature = hash.digest();
+
+        // check
+        var verify = ed.Verify(generationSignature, this.generationSignature, this.app.requestprocessor.unconfirmedRequests[winner.address].publicKey);
+
+        if (!verify) {
+            this.app.logger.error("Can't verify generation signature: " + this.getId());
             return false;
-        }*/
+        } else {
+            this.app.logger.info("Generation signature verfied: " + this.getId());
+            return true;
+        }
+    } else {
+        this.app.logger.error("Generator of block not valid: " + winner.weight + "/" + this.generationWeight);
+        return false;
     }
 }
 
