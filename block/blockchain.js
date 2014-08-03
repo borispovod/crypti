@@ -23,6 +23,7 @@ var blockchain = function (app) {
     this.fee = constants.feeStart;
     this.nextFeeVolume = constants.feeStartVolume;
     this.actualFeeVolume = 0;
+    this.totalPurchaseAmount = bignum(0);
 }
 
 blockchain.prototype.getBlock = function (id) {
@@ -446,7 +447,13 @@ blockchain.prototype.pushBlock = function (buffer, sendToPeers) {
 
 
     for (var r in b.requests) {
-        this.app.requestprocessor.confirmedRequests[b.requests[r].getId()] = r;
+        var request = b.requests[r];
+        var address = this.app.accountprocessor.getAccountByPublicKey(request.publicKey).address;
+        if (!this.app.requestprocessor.confirmedRequests[address]) {
+            this.app.requestprocessor.confirmedRequests[address] = [];
+        }
+
+        this.app.requestprocessor.confirmedRequests[address].push(request);
     }
 
 

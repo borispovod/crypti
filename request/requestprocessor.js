@@ -115,7 +115,7 @@ requestprocessor.prototype.processRequest = function (request) {
         return false;
     }
 
-    if (account.getEffectiveBalance() < 10000 * Constants.numberLength) {
+    if (account.getEffectiveBalance() < 1000 * Constants.numberLength) {
         console.log("request not have effective balance");
         return false;
     }
