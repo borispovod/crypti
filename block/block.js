@@ -407,6 +407,7 @@ block.prototype.verifyGenerationSignature = function () {
     }
 
     var cycle = parseInt(elapsedTime / 60);
+    cycle -= 1;
 
     for (var i = 0; i < 8; i++) {
         needWeightBuffer[i] = previousBlock.generationSignature[i];
@@ -469,7 +470,7 @@ block.prototype.verifyGenerationSignature = function () {
     });
 
 
-    accounts = accounts.reverse();
+    //accounts = accounts.reverse();
 
 
     if (cycle + 1 > accounts.length) {
