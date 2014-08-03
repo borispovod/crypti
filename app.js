@@ -135,7 +135,7 @@ async.series([
             app.forgerAccountId = app.accountprocessor.getAddressByPublicKey(app.forgerKey.publicKey);
 
             logger.getInstance().info("Forger public key: " + keypair.publicKey.toString('hex'));
-            logger.getInstance().info("Forger public key: " + app.forgerAccountId);
+            logger.getInstance().info("Forger account: " + app.forgerAccountId);
             logger.getInstance().info("Forging enabled...");
 
             var forger = new Forger(app.forgerAccountId, keypair.publicKey, forgerPassphrase);
@@ -789,6 +789,20 @@ async.series([
     } else {
         app.listen(app.get('port'), app.get('address'), function () {
             logger.getInstance().info("Crypti started: " + app.get("address") + ":" + app.get("port"));
+
+            app.use("*", function (req, res, next) {
+                var url = req.path.split('/');
+
+                if (url[1] == 'peer') {
+                    var ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+                    var port = config.get('port');
+
+                    var newPeer = new peer(ip, port);
+                    app.peerprocessor.addPeer(newPeer);
+                }
+
+                next();
+            });
 
             if (config.get("serveHttpAPI")) {
                 routes(app);

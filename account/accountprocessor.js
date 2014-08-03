@@ -9,6 +9,7 @@ var accountprocessor = function (db) {
     this.accounts = {};
     this.aliveAccounts = {};
     this.requests = {};
+    this.purchases = {};
 }
 
 accountprocessor.prototype.setApp = function (app) {
