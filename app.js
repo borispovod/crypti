@@ -478,7 +478,7 @@ async.series([
             async.whilst(
                 function (_break) { if (_break) return false; return p; },
                 function (next) {
-                    console.log(app.blockchain.getLastBlock().getId());
+                    app.logger.info("From ip: " + p.ip);
                     p.getNextBlocks(app.blockchain.getLastBlock().getId(), function (err, blocks) {
                         if (err) {
                             if (p) {
