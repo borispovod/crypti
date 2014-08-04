@@ -423,7 +423,7 @@ block.prototype.verifyGenerationSignature = function () {
         var request = requests[i];
         var account = this.app.accountprocessor.getAccountByPublicKey(request.publicKey);
 
-        if (!account || account.getEffectiveBalance() <= 1000 * constants.numberLength) {
+        if (!account || account.getEffectiveBalance() < 1000 * constants.numberLength) {
             continue;
         }
 
@@ -435,32 +435,42 @@ block.prototype.verifyGenerationSignature = function () {
             confirmedRequests = [];
         }
 
+        confirmedRequests = confirmedRequests.slice(0);
+        //confirmedRequests.push(request);
+
+        console.log(confirmedRequests);
+
         var accountWeightTimestamps = bignum(lastAliveBlock.timestamp);
         var popWeightAmount = bignum(0);
 
+
         var previousBlock = this.app.blockchain.getBlock(lastAliveBlock.previousBlock);
         for (var j = confirmedRequests.length - 1; j >= 0; j--) {
-            var block = this.app.blockchain.getBlock(confirmedRequests[j].lastAliveBlock);
-
-            if (this.app.accountprocessor.getAccountByPublicKey(block.generatorPublicKey).address == account.address) {
+            if (!previousBlock) {
                 break;
             }
 
-            if (block.getId() != previousBlock.getId()) {
-                break;
-            } else {
-                accountWeightTimestamps = accountWeightTimestamps.add(previousBlock.timestamp);
-                var purchases = this.app.accountprocessor.purchases[previousBlock.getId()];
+            var confirmedRequest = confirmedRequests[j];
+            var block = this.app.blockchain.getBlock(confirmedRequest.lastAliveBlock);
 
-                if (purchases) {
-                    if (purchases[address]) {
-                        popWeightAmount = popWeightAmount.add(purchases[address]);
-                    }
+            console.log(previousBlock.getId());
+            console.log(block.getId());
+            if (previousBlock.getId() != block.getId() || request.publicKey.toString('hex') == block.generatorPublicKey.toString('hex')) {
+                console.log("break here");
+                break;
+            }
+
+            accountWeightTimestamps = accountWeightTimestamps.add(previousBlock.timestamp);
+            var purchases = this.app.accountprocessor.purchases[previousBlock.getId()];
+
+            if (purchases) {
+                if (purchases[address]) {
+                    popWeightAmount = popWeightAmount.add(purchases[address]);
                 }
-
-                // get account purcashes in this block
-                previousBlock = this.app.blockchain.getBlock(previousBlock.previousBlock);
             }
+
+            // get account purcashes in this block
+            previousBlock = this.app.blockchain.getBlock(previousBlock.previousBlock);
         }
 
         accountWeightTimestamps = accountWeightTimestamps.div(lastAliveBlock.height);
@@ -485,11 +495,13 @@ block.prototype.verifyGenerationSignature = function () {
         return 0;
     });
 
-    var cycle = elapsedTime / 60 - 1;
+    var cycle = parseInt(elapsedTime / 60) - 1;
 
     if (cycle > accounts.length - 1) {
         cycle = accounts.length - 1;
     }
+
+    this.logger.info("Winner number: " + cycle);
 
     // ищем похожий вес
     var winner = accounts[cycle];
