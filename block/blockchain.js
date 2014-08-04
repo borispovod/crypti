@@ -360,7 +360,7 @@ blockchain.prototype.pushBlock = function (buffer, sendToPeers) {
         }
 
         var account = this.app.accountprocessor.getAccountByPublicKey(request.publicKey);
-        if (!account || account.getEffectiveBalance() < 10000 * constants.numberLength) {
+        if (!account || account.getEffectiveBalance() < 1000 * constants.numberLength) {
             break;
         }
 
