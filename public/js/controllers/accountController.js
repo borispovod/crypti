@@ -1,8 +1,9 @@
-webApp.controller('accountController', ['$scope', '$rootScope', '$http', "userService", "$interval", "sendCryptiModal", "freeModal", function($rootScope, $scope, $http, userService, $interval, sendCryptiModal, freeModal) {
+webApp.controller('accountController', ['$scope', '$rootScope', '$http', "userService", "$interval", "sendCryptiModal", "freeModal", "secondPassphraseModal", function($rootScope, $scope, $http, userService, $interval, sendCryptiModal, freeModal, secondPassphraseModal) {
     $scope.address = userService.address;
     $scope.balance = userService.balance;
     $scope.unconfirmedBalance = userService.unconfirmedBalance;
     $scope.effectiveBalance = userService.effectiveBalance ;
+    $scope.secondPassphrase = userService.secondPassphrase;
 
     $scope.getTransactions = function () {
         $http.get("/api/getAllTransactions", { params : { accountId : userService.address }})
@@ -17,25 +18,21 @@ webApp.controller('accountController', ['$scope', '$rootScope', '$http', "userSe
                 userService.balance = resp.data.balance;
                 userService.unconfirmedBalance = resp.data.unconfirmedBalance;
                 userService.effectiveBalance = resp.data.effectiveBalance;
+                userService.secondPassphrase = resp.data.secondPassPhrase;
                 $scope.balance = userService.balance;
                 $scope.unconfirmedBalance = userService.unconfirmedBalance;
                 $scope.effectiveBalance = userService.effectiveBalance;
-                /*if($scope.balance > 9999 || $scope.unconfirmedBalance > 9999 || $scope.effectiveBalance > 9999){
-                    $(".button").css({
-                        "margin": "0",
-                        "padding": "15px 13px 13px"
-                    });
-                }*/
+                $scope.secondPassphrase = userService.secondPassphrase;
             });
     }
 
     $scope.balanceInterval = $interval(function () {
         $scope.getBalance();
-    }, 1000 * 60);
+    }, 1000 * 10);
 
     $scope.transactionsInterval = $interval(function () {
         $scope.getTransactions();
-    }, 1000 * 60);
+    }, 1000 * 10);
 
     $scope.$on('$destroy', function() {
         $interval.cancel($scope.balanceInterval);
@@ -47,11 +44,17 @@ webApp.controller('accountController', ['$scope', '$rootScope', '$http', "userSe
 
     $scope.sendCrypti = function () {
         $scope.sendCryptiModal = sendCryptiModal.activate({
-            totalBalance : $scope.balance,
+            totalBalance : $scope.unconfirmedBalance,
             destroy: function () {
                 $scope.getTransactions();
                 $scope.getBalance();
             }
+        });
+    }
+
+    $scope.addSecondPassphrase = function () {
+        $scope.secondPassphraseModal = secondPassphraseModal.activate({
+            totalBalance : $scope.unconfirmedBalance
         });
     }
 

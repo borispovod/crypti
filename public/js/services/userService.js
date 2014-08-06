@@ -10,4 +10,8 @@ webApp.service('userService', function () {
     this.setForging = function (forging) {
         this.forging = forging;
     }
+
+    this.setSecondPassphrase = function (secondPassPhrase) {
+        this.secondPassphrase = secondPassPhrase;
+    }
 });
