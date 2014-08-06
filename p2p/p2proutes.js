@@ -10,7 +10,9 @@ var peer = require("./peer.js"),
     ed = require('ed25519'),
     crypto = require('crypto'),
     Request = require("../request").request,
-    bignum = require('bignum');
+    bignum = require('bignum'),
+    signature = require('../signature').signature,
+    signatureprocessor = require("../signature").signatureprocessor;
 
 module.exports = function (app) {
     app.get("/peer/getRequests", function (req, res) {
@@ -51,7 +53,7 @@ module.exports = function (app) {
 
         var r = new Request(null, null, ip, new Buffer(request.publicKey, 'hex'), request.lastAliveBlock, new Buffer(request.signature, 'hex'));
 
-        var added = app.requestprocessor.processRequest(r);
+        var added = app.requestprocessor.processRequest(r, true);
 
         if (added) {
             console.log("request processed");
@@ -121,25 +123,48 @@ module.exports = function (app) {
                         if (err) {
                             cb(err);
                         } else {
-                            item.trs = trs;
-                            app.db.sql.all("SELECT * FROM addresses WHERE blockId=$id", {
-                                $id : item.id
-                            }, function (err, addresses) {
-                                if (err) {
-                                    cb(err);
+                            async.forEach(trs, function (t, cb) {
+                                if (t.type == 2) {
+                                    if (t.subtype == 0) {
+                                        app.db.sql.get("SELECT * FROM signatures WHERE transactionId=$transactionId", {
+                                            $transactionId : t.id
+                                        }, function (err, asset) {
+                                            if (err) {
+                                                cb(err);
+                                            } else {
+                                                trs.asset = asset;
+                                                cb();
+                                            }
+                                        });
+                                    }
                                 } else {
-                                    item.addresses = addresses;
-                                    app.db.sql.all("SELECT * FROM requests WHERE blockId=$id", {
-                                        $id : item.id
-                                    }, function (err, requests) {
-                                       if (err) {
-                                           cb(err);
-                                       }  else {
-                                           item.requests = requests;
-                                           cb();
-                                       }
-                                    });
+                                    cb();
                                 }
+                            }, function (err) {
+                                if (err) {
+                                    return cb(err);
+                                }
+
+                                item.trs = trs;
+                                app.db.sql.all("SELECT * FROM addresses WHERE blockId=$id", {
+                                    $id : item.id
+                                }, function (err, addresses) {
+                                    if (err) {
+                                        cb(err);
+                                    } else {
+                                        item.addresses = addresses;
+                                        app.db.sql.all("SELECT * FROM requests WHERE blockId=$id", {
+                                            $id : item.id
+                                        }, function (err, requests) {
+                                            if (err) {
+                                                cb(err);
+                                            }  else {
+                                                item.requests = requests;
+                                                cb();
+                                            }
+                                        });
+                                    }
+                                });
                             });
                         }
                     });
@@ -183,7 +208,19 @@ module.exports = function (app) {
         }
 
         var tr = new Transaction(t.type, null, t.timestamp, new Buffer(t.senderPublicKey, 'hex'), t.recipientId, t.amount, t.fee, new Buffer(t.signature, 'hex'));
-        var r = app.transactionprocessor.processTransaction(tr);
+
+        switch (t.type) {
+            case 2:
+                switch (t.subtype) {
+                    case 0:
+                        tr.asset = signatureprocessor.fromJSON(t.asset);
+                        break;
+                }
+                break;
+        }
+
+
+        var r = app.transactionprocessor.processTransaction(tr, true);
 
         if (r) {
             return res.json({ success : true, accepted : true });
@@ -230,6 +267,10 @@ module.exports = function (app) {
         for (var i = 0; i < b.transactions.length; i++) {
             var t = b.transactions[i];
             var transaction = new Transaction(t.type, null, t.timestamp, new Buffer(t.senderPublicKey, 'hex'), t.recipientId, t.amount, t.fee, new Buffer(t.signature, 'hex'));
+            if (t.signSignature) {
+                transaction.signSignature = new Buffer(t.signSignature, 'hex');
+            }
+
             transactions.push(transaction);
         }
 
@@ -263,7 +304,12 @@ module.exports = function (app) {
             buffer = Buffer.concat([buffer, requests[i].getBytes()]);
         }
 
-        var r = app.blockchain.pushBlock(buffer);
+        try {
+            var r = app.blockchain.pushBlock(buffer, true);
+        } catch (e) {
+            r = false;
+            this.app.logger.error(e.toString());
+        }
 
         return res.json({ success : true, accepted : r });
     });
