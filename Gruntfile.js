@@ -41,7 +41,10 @@ module.exports = function (grunt) {
                 'utils.js',
                 'request/index.js',
                 'request/request.js',
-                'request/requestprocessor.js'
+                'request/requestprocessor.js',
+                'signature/index.js',
+                'signature/signature.js',
+                'signature/signatureprocessor.js'
             ],
             entry: 'app.js',
             out: 'builded/app.js',

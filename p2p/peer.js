@@ -428,9 +428,15 @@ peer.prototype.processBlock = function (block, cb) {
         requests.push(b.requests[r].toJSON());
     }
 
+    var signatures = [];
+    for (var i = 0; i < b.signatures.length; i++) {
+        signatures.push(b.signatures[i].toJSON());
+    }
+
     b.requests = requests;
     b.transactions = transactions;
     b.addresses = addresses;
+    b.signatures = signatures;
 
     var getOptions = {
         hostname: this.ip,
