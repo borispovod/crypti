@@ -25,7 +25,9 @@ var express = require('express'),
     Request = require('./request').request,
     utils = require("./utils.js"),
     _ = require('underscore'),
-    bignum = require('bignum');
+    bignum = require('bignum'),
+    signatureprocessor = require('./signature').signatureprocessor,
+    signature = require('./signature').signature;
 
 var app = express();
 
@@ -112,6 +114,12 @@ async.series([
         cb();
     },
     function (cb) {
+        logger.getInstance().info("Initialize signature processor...");
+        app.signatureprocessor = new signatureprocessor();
+        app.signatureprocessor.setApp(app);
+        cb();
+    },
+    function (cb) {
         logger.getInstance().info("Load system info...");
         app.info = { platform : os.platform, version : config.get('version') };
         cb();
@@ -182,12 +190,44 @@ async.series([
                                     async.eachSeries(rows, function (t, _c) {
                                         var tr = new transaction(t.type, t.id, t.timestamp, new Buffer(t.senderPublicKey, 'hex'), t.recepient, t.amount, t.fee, new Buffer(t.signature, 'hex'));
 
-                                        if (!tr.verify()) {
-                                            return _c("Can't verify transaction: " + tr.getId());
+                                        if (t.signSignature) {
+                                            tr.signSignature = new Buffer(t.signSignature, 'hex');
                                         }
 
-                                        transactions.push(tr);
-                                        _c();
+                                        /*if (!tr.verify()) {
+                                            return _c("Can't verify transaction: " + tr.getId());
+                                        }*/
+
+                                        // load assets
+                                        if (tr.type == 2) {
+                                            if (tr.subtype == 0) {
+                                                var req = app.db.sql.prepare("SELECT * FROM signatures WHERE blockId=$blockId AND transactionId=$transactionId");
+                                                req.bind({
+                                                    $blockId: id,
+                                                    $transactionId: t.id
+                                                });
+                                                req.get(function (err, asset) {
+                                                    console.log(err);
+                                                    console.log(asset);
+                                                    if (err) {
+                                                        _c(err);
+                                                    } else {
+                                                        tr.asset = new signature(new Buffer(asset.publicKey, 'hex'), new Buffer(asset.generatorPublicKey, 'hex'), asset.timestamp, new Buffer(asset.signature, 'hex'), new Buffer(asset.generationSignature, 'hex'));
+                                                        tr.asset.blockId = asset.blockId;
+                                                        tr.asset.transactionId = asset.transactionId;
+
+                                                        transactions.push(tr);
+                                                        _c();
+                                                    }
+                                                });
+                                            } else {
+                                                transactions.push(tr);
+                                                _c();
+                                            }
+                                        } else {
+                                            transactions.push(tr);
+                                            _c();
+                                        }
                                     }, function (err) {
                                         if (err) {
                                             return c(err);
@@ -235,7 +275,7 @@ async.series([
                                                                _c();
                                                            }.bind(this), function (err) {
                                                               if (err) {
-                                                                  return _c(err);
+                                                                  return c(err);
                                                               }
 
                                                                b.requests = requests;
@@ -263,7 +303,12 @@ async.series([
                                                                        buffer = Buffer.concat([buffer, requests[i].getBytes()]);
                                                                    }
 
-                                                                   var a = app.blockchain.pushBlock(buffer);
+                                                                   try {
+                                                                       var a = app.blockchain.pushBlock(buffer);
+                                                                   } catch (e) {
+                                                                       a = null;
+                                                                       app.logger.error(e.toString());
+                                                                   }
 
                                                                    if (!a) {
                                                                        c("Can't process block: " + b.getId());
@@ -515,6 +560,16 @@ async.series([
                                     async.eachSeries(item.trs, function (t, _c) {
                                         var tr = new transaction(t.type, t.id, t.timestamp, new Buffer(t.senderPublicKey, 'hex'), t.recepient, t.amount, t.fee, new Buffer(t.signature, 'hex'));
 
+                                        if (t.signSignature) {
+                                            tr.signSignature = new Buffer(t.signSignature, 'hex');
+                                        }
+
+                                        if (tr.type == 2) {
+                                            if (tr.subtype == 0) {
+                                                tr.asset = signatureprocessor.fromJSON(t.asset);
+                                            }
+                                        }
+
                                         if (!tr.verify()) {
                                             return _c("Can't verify transaction: " + tr.getId());
                                         }
@@ -579,7 +634,12 @@ async.series([
                                                     buffer = Buffer.concat([buffer, requests[i].getBytes()]);
                                                 }
 
-                                                var a = app.blockchain.pushBlock(buffer);
+                                                try {
+                                                    var a = app.blockchain.pushBlock(buffer);
+                                                } catch (e) {
+                                                    a = null;
+                                                    app.logger.error(e.toString());
+                                                }
 
                                                 if (!a) {
                                                     c("Can't process block: " + b.getId());
@@ -663,6 +723,10 @@ async.series([
                         if (answer.success) {
                             async.eachSeries(answer.transactions, function (t, cb) {
                                 var tr = new transaction(t.type, t.id, t.timestamp, new Buffer(t.senderPublicKey, 'hex'), t.recipientId, t.amount, t.fee, new Buffer(t.signature, 'hex'));
+
+                                if (t.signSignature) {
+                                    tr.signSignature = new Buffer(t.signSignature, 'hex');
+                                }
 
                                 if (!tr.verify()) {
                                     return cb("Can't verify transaction: " + tr.getId());

@@ -7,31 +7,6 @@ var db = function (sql) {
     this.sql = sql;
 }
 
-/*db.prototype.writePeer = function (peer, cb) {
-    this.sql.serialize(function () {
-        var q = this.sql.prepare("INSERT INTO peer VALUES($ip, $port, $version, $platform, $timestamp, $publicKey, $blocked)");
-        q.bind({
-            $ip : peer.ip,
-            $port : peer.port,
-            $version : peer.version,
-            $platform: peer.platform,
-            $timestamp: peer.timestamp,
-            $publicKey : peer.publicKey.toString('hex'),
-            $blocked : peer.blocked
-        });
-
-        q.run(function (err) {
-            if (cb) {
-                if (err) {
-                    console.log(err);
-                }
-
-                cb(err);
-            }
-        });
-    }.bind(this));
-}*/
-
 db.prototype.writeAddress = function (address, cb) {
     this.sql.serialize(function () {
         var q = this.sql.prepare("INSERT INTO addresses VALUES($id, $blockId, $version, $timestamp, $publicKey, $generatorPublicKey, $signature, $accountSignature)");
@@ -57,7 +32,13 @@ db.prototype.writeAddress = function (address, cb) {
 
 db.prototype.writeTransaction = function (t, cb) {
     this.sql.serialize(function () {
-        var q = this.sql.prepare("INSERT INTO trs VALUES($id, $blockId, $type, $subtype, $timestamp, $senderPublicKey, $recepient, $amount, $fee, $signature)");
+        var signSignature = t.signSignature;
+
+        if (signSignature) {
+            signSignature = t.signSignature.toString('hex')
+        }
+
+        var q = this.sql.prepare("INSERT INTO trs VALUES($id, $blockId, $type, $subtype, $timestamp, $senderPublicKey, $recepient, $amount, $fee, $signature, $signSignature)");
         q.bind({
             $id: t.getId(),
             $blockId: t.blockId,
@@ -68,7 +49,8 @@ db.prototype.writeTransaction = function (t, cb) {
             $recepient: t.recipientId,
             $amount: t.amount,
             $fee: t.fee,
-            $signature: t.signature.toString('hex')
+            $signature: t.signature.toString('hex'),
+            $signSignature : signSignature
         });
 
         q.run(function (err) {
@@ -201,6 +183,27 @@ db.prototype.writePeerRequest = function (request, callback) {
     }.bind(this));
 }
 
+db.prototype.writeSignature = function (signature, callback) {
+    this.sql.serialize(function () {
+        var r = this.sql.prepare("INSERT INTO signatures (id, blockId, transactionId, timestamp, publicKey, generatorPublicKey, signature, generationSignature) VALUES ($id, $blockId, $transactionId, $timestamp, $publicKey, $generatorPublicKey, $signature, $generationSignature)");
+        r.bind({
+            $id : signature.getId(),
+            $blockId : signature.blockId,
+            $transactionId : signature.transactionId,
+            $timestamp : signature.timestamp,
+            $publicKey : signature.publicKey.toString('hex'),
+            $generatorPublicKey : signature.generatorPublicKey.toString('hex'),
+            $signature : signature.signature.toString('hex'),
+            $generationSignature : signature.generationSignature.toString('hex')
+        });
+        r.run(function (err) {
+            if (callback) {
+                callback(err);
+            }
+        })
+    }.bind(this));
+}
+
 module.exports.initDb = function (callback) {
     var d = new db(sql);
     d.sql.serialize(function () {
@@ -209,17 +212,17 @@ module.exports.initDb = function (callback) {
                 d.sql.run("CREATE TABLE IF NOT EXISTS blocks (id CHAR(25) NOT NULL, version INT NOT NULL, timestamp TIMESTAMP NOT NULL, previousBlock VARCHAR(25), numberOfAddresses INT NOT NULL, numberOfRequests INT NOT NULL, numberOfTransactions INT NOT NULL, totalAmount INTEGER NOT NULL, totalFee INTEGER NOT NULL, payloadLength INT NOT NULL, addressesLength INT NOT NULL, requestsLength INT NOT NULL, payloadHash VARCHAR(255) NOT NULL, generationWeight VARCHAR(25) NOT NULL, generatorPublicKey VARCHAR(255) NOT NULL, generationSignature VARCHAR(255) NOT NULL, blockSignature VARCHAR(255) NOT NULL, height INT NOT NULL, PRIMARY KEY(id))", cb);
             },
             function (cb) {
-                d.sql.run("CREATE TABLE IF NOT EXISTS trs (id CHAR(25) NOT NULL, blockId CHAR(25) NOT NULL, type INT NOT NULL, subtype INT NOT NULL, timestamp TIMESTAMP NOT NULL, senderPublicKey VARCHAR(128) NOT NULL, recepient VARCHAR(25) NOT NULL, amount INTEGER NOT NULL, fee INTEGER NOT NULL, signature CHAR(255) NOT NULL, PRIMARY KEY(id))", cb);
+                d.sql.run("CREATE TABLE IF NOT EXISTS trs (id CHAR(25) NOT NULL, blockId CHAR(25) NOT NULL, type INT NOT NULL, subtype INT NOT NULL, timestamp TIMESTAMP NOT NULL, senderPublicKey VARCHAR(128) NOT NULL, recepient VARCHAR(25) NOT NULL, amount INTEGER NOT NULL, fee INTEGER NOT NULL, signature CHAR(255) NOT NULL, signSignature CHAR(255), PRIMARY KEY(id))", cb);
             },
             function (cb) {
                 d.sql.run("CREATE TABLE IF NOT EXISTS addresses (id CHAR(25) NOT NULL, blockId CHAR(25) NOT NULL, version INT NOT NULL, timestamp TIMESTAMP NOT NULL, publicKey VARCHAR(128) NOT NULL, generatorPublicKey VARCHAR(128) NOT NULL, signature VARCHAR(255) NOT NULL, accountSignature VARCHAR(255) NOT NULL, PRIMARY KEY(id))", cb);
             },
             function (cb) {
                 d.sql.run("CREATE TABLE IF NOT EXISTS requests (id CHAR(25) NOT NULL, blockId CHAR(25) NOT NULL, lastAliveBlock VARCHAR(25) NOT NULL, publicKey VARCHAR(128) NOT NULL, verified TINYINT(1), signature VARCHAR(255) NOT NULL, PRIMARY KEY(id))", cb);
+            },
+            function (cb) {
+                d.sql.run("CREATE TABLE IF NOT EXISTS signatures (id CHAR(25) NOT NULL, blockId CHAR(25) NOT NULL, transactionId VARCHAR(25) NOT NULL, timestamp TIMESTAMP NOT NULL, publicKey VARCHAR(128) NOT NULL, generatorPublicKey VARCHAR(128) NOT NULL, signature VARCHAR(255) NOT NULL, generationSignature VARCHAR(255) NOT NULL, PRIMARY KEY(id))", cb);
             }
-            /*function (cb) {
-                d.sql.run("CREATE TABLE IF NOT EXISTS peer (ip CHAR(20) NOT NULL, port INT NOT NULL, version VARCHAR(10) NOT NULL, platform VARCHAR(255), timestamp TIMESTAMP NOT NULL, publicKey VARCHAR(128) NOT NULL UNIQUE, blocked BOOL NOT NULL DEFAULT 0, PRIMARY KEY(ip))", cb);
-            }*/
         ], function (err) {
             callback(err, d);
         });

@@ -81,6 +81,7 @@ block.prototype.analyze = function () {
         this.baseTarget = bignum(constants.initialBaseTarget);
         this.blockchain.lastBlock = this.getId();
 
+
         var a = new account(this.accountprocessor.getAddressByPublicKey(this.generatorPublicKey), this.generatorPublicKey);
         a.setApp(this.app);
         a.app.blockchain = this.blockchain;
@@ -122,35 +123,50 @@ block.prototype.analyze = function () {
         sender.setBalance(sender.balance - (t.amount + t.fee));
         sender.setUnconfirmedBalance(sender.unconfirmedBalance - (t.amount + t.fee));
 
-        var recepient = this.accountprocessor.getAccountById(t.recipientId);
+        var recepient = null;
 
-        if (!recepient) {
-            recepient = new account(t.recipientId);
-            recepient.setApp(this.app);
-            recepient.setHeight(this.blockchain.getLastBlock().height);
-            this.accountprocessor.addAccount(recepient);
-        }
-
-        if (t.recipientId[t.recipientId.length - 1] == "D") {
-            //t.type = 1;
-            var address = this.app.addressprocessor.addresses[t.recipientId];
-
-            /*if (!address) {
-                address = this.app.addressprocessor.unconfirmedAddresses[t.recipientId];
-            }*/
-
-            var addr = this.accountprocessor.getAddressByPublicKey(address.generatorPublicKey);
-            addr.popWeight = t.amount;
-            recepient = this.accountprocessor.getAccountById(addr);
+        if ((t.type == 0 || t.type == 1) && t.subtype == 0) {
+            recepient = this.accountprocessor.getAccountById(t.recipientId);
 
             if (!recepient) {
-                recepient = new account(addr);
+                recepient = new account(t.recipientId);
+                recepient.setApp(this.app);
                 recepient.setHeight(this.blockchain.getLastBlock().height);
                 this.accountprocessor.addAccount(recepient);
+            }
+
+            if (t.recipientId[t.recipientId.length - 1] == "D") {
+                //t.type = 1;
+                var address = this.app.addressprocessor.addresses[t.recipientId];
+
+                /*if (!address) {
+                 address = this.app.addressprocessor.unconfirmedAddresses[t.recipientId];
+                 }*/
+
+                var addr = this.accountprocessor.getAddressByPublicKey(address.generatorPublicKey);
+                addr.popWeight = t.amount;
+                recepient = this.accountprocessor.getAccountById(addr);
+
+                if (!recepient) {
+                    recepient = new account(addr);
+                    recepient.setHeight(this.blockchain.getLastBlock().height);
+                    this.accountprocessor.addAccount(recepient);
+                }
             }
         }
 
         switch (t.type) {
+            case 2:
+                switch (t.subtype) {
+                    case 0:
+                        var signature = t.asset;
+                        var a = this.app.accountprocessor.getAccountByPublicKey(signature.generatorPublicKey);
+                        this.app.signatureprocessor.removeUnconfirmedSignature(a.address);
+                        this.app.signatureprocessor.addSignature(a.address, signature);
+                        break;
+                }
+                break;
+
             case 0:
                 switch (t.subtype) {
                     case 0:
@@ -184,9 +200,12 @@ block.prototype.analyze = function () {
                             this.app.accountprocessor.purchases[blockId][sender.address] = 0;
                         }
 
-                        this.app.accountprocessor.purchases[blockId][sender.address] += t.amount;
+                        this.app.accountprocessor.purchases[blockId][sender.address] += t.amount / constants.numberLength;
 
-                        this.app.blockchain.totalPurchaseAmount =  this.app.blockchain.totalPurchaseAmount.add(t.amount);
+                        console.log("purchases");
+                        console.log(this.app.accountprocessor.purchases);
+
+                        this.app.blockchain.totalPurchaseAmount += t.amount / constants.numberLength;
                         recepient.addToBalance(t.amount + value);
                         recepient.addToUnconfirmedBalance(t.amount + value);
                         break;
@@ -302,7 +321,7 @@ block.prototype.getBaseTarget = function (previousBlock) {
 }*/
 
 block.prototype.getBytes = function () {
-    var size = 4 + 4 + 8 + 4 + 4 + 4 + 8 + 8 + 8 + 4 + 4 + 4 + 32 + 32 + 64 + 64;
+    var size = 4 + 4 + 8 + 4 + 4 + 4 + 8 + 8 + 8 + 4 + 4 + 4  + 32 + 32 + 64 + 64;
 
     var bb = new ByteBuffer(size, true);
     bb.writeInt(this.version);
@@ -438,46 +457,50 @@ block.prototype.verifyGenerationSignature = function () {
         confirmedRequests = confirmedRequests.slice(0);
         //confirmedRequests.push(request);
 
-        console.log(confirmedRequests);
-
         var accountWeightTimestamps = bignum(lastAliveBlock.timestamp);
-        var popWeightAmount = bignum(0);
+        var popWeightAmount = 0;
 
 
         var previousBlock = this.app.blockchain.getBlock(lastAliveBlock.previousBlock);
-        for (var j = confirmedRequests.length - 1; j >= 0; j--) {
-            if (!previousBlock) {
-                break;
-            }
+        if (lastAliveBlock.generatorPublicKey.toString('hex') != request.publicKey.toString('hex')) {
 
-            var confirmedRequest = confirmedRequests[j];
-            var block = this.app.blockchain.getBlock(confirmedRequest.lastAliveBlock);
-
-            console.log(previousBlock.getId());
-            console.log(block.getId());
-            if (previousBlock.getId() != block.getId() || request.publicKey.toString('hex') == block.generatorPublicKey.toString('hex')) {
-                console.log("break here");
-                break;
-            }
-
-            accountWeightTimestamps = accountWeightTimestamps.add(previousBlock.timestamp);
-            var purchases = this.app.accountprocessor.purchases[previousBlock.getId()];
-
-            if (purchases) {
-                if (purchases[address]) {
-                    popWeightAmount = popWeightAmount.add(purchases[address]);
+            for (var j = confirmedRequests.length - 1; j >= 0; j--) {
+                if (!previousBlock) {
+                    break;
                 }
-            }
 
-            // get account purcashes in this block
-            previousBlock = this.app.blockchain.getBlock(previousBlock.previousBlock);
+                var confirmedRequest = confirmedRequests[j];
+                var block = this.app.blockchain.getBlock(confirmedRequest.lastAliveBlock);
+
+
+                if (previousBlock.getId() != block.getId()) {
+                    break;
+                }
+
+                accountWeightTimestamps = accountWeightTimestamps.add(previousBlock.timestamp);
+                var purchases = this.app.accountprocessor.purchases[previousBlock.getId()];
+
+                if (purchases) {
+                    if (purchases[address]) {
+                        popWeightAmount += purchases[address];
+                    }
+                }
+
+                if (request.publicKey.toString('hex') == block.generatorPublicKey.toString('hex')) {
+                    break;
+                }
+
+                // get account purcashes in this block
+                previousBlock = this.app.blockchain.getBlock(previousBlock.previousBlock);
+            }
         }
 
         accountWeightTimestamps = accountWeightTimestamps.div(lastAliveBlock.height);
-        popWeightAmount = popWeightAmount.div(this.app.blockchain.totalPurchaseAmount);
+        //popWeightAmount = Math.log(1 + popWeightAmount) / Math.LN10;
+        //popWeightAmount /= Math.log(1 + this.app.blockchain.totalPurchaseAmount) /  Math.LN10;
 
         this.app.logger.info("Account " + address + " PoT weight " + accountWeightTimestamps.toString());
-        this.app.logger.info("Account " + address + " PoP weight " + popWeightAmount.toString());
+        this.app.logger.info("Account " + address + " PoP weight " + popWeightAmount);
 
         var accountTotalWeight = accountWeightTimestamps.add(popWeightAmount);
         accounts.push({ address : address, weight : accountTotalWeight });

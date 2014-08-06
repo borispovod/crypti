@@ -26,7 +26,7 @@ module.exports = function (app) {
 
     app.post("/api/unlock", function (req, res) {
         var secretPharse = req.body.secretPhrase || "",
-            startForging = req.body.startForging;
+            startForging = false;
 
         if (startForging == "true") {
             startForging = true;
@@ -63,6 +63,12 @@ module.exports = function (app) {
 
         account.publickey = keypair.publicKey;
 
+        if (app.signatureprocessor.getSignatureByAddress(account.address) || app.signatureprocessor.getUnconfirmedSignatureByAddress(account.address)) {
+            account.secondPassPhrase = true;
+        } else {
+            account.secondPassPhrase = false;
+        }
+
         app.logger.info("Account unlocked: " + address);
 
         if (startForging) {
@@ -74,18 +80,18 @@ module.exports = function (app) {
 
                 if (result) {
                     app.logger.info("Forger started: " + address);
-                    res.json({ success : true, address : address, publickey : account.publickey.toString('hex'), balance : account.balance / constants.numberLength, unconfirmedBalance : account.unconfirmedBalance / constants.numberLength, effectiveBalance : account.getEffectiveBalance() / constants.numberLength, forging : { success : true } });
+                    res.json({ success : true, secondPassPhrase : account.secondPassPhrase, address : address, publickey : account.publickey.toString('hex'), balance : account.balance / constants.numberLength, unconfirmedBalance : account.unconfirmedBalance / constants.numberLength, effectiveBalance : account.getEffectiveBalance() / constants.numberLength, forging : { success : true } });
                 } else {
                     app.logger.info("Forger can't start, it's already working: " + address);
-                    res.json({ success : true, address : address, publickey : account.publickey.toString('hex'), balance : account.balance / constants.numberLength, unconfirmedBalance : account.unconfirmedBalance / constants.numberLength, effectiveBalance : account.getEffectiveBalance() / constants.numberLength, forging : { error : "Forger can't start, it's already working: " + address, success : false } });
+                    res.json({ success : true, secondPassPhrase : account.secondPassPhrase, address : address, publickey : account.publickey.toString('hex'), balance : account.balance / constants.numberLength, unconfirmedBalance : account.unconfirmedBalance / constants.numberLength, effectiveBalance : account.getEffectiveBalance() / constants.numberLength, forging : { error : "Forger can't start, it's already working: " + address, success : false } });
 
                 }
             } else {
                 app.logger.info("Can't start forging, effective balance equal to 0: " + address);
-                res.json({ success : true, address : address, publickey : account.publickey.toString('hex'), balance : account.balance / constants.numberLength, unconfirmedBalance : account.unconfirmedBalance / constants.numberLength, effectiveBalance : account.getEffectiveBalance() / constants.numberLength, forging : { error : "Can't start forging, effective balance equal to 0: " + address, success : false } });
+                res.json({ success : true, secondPassPhrase : account.secondPassPhrase, address : address, publickey : account.publickey.toString('hex'), balance : account.balance / constants.numberLength, unconfirmedBalance : account.unconfirmedBalance / constants.numberLength, effectiveBalance : account.getEffectiveBalance() / constants.numberLength, forging : { error : "Can't start forging, effective balance equal to 0: " + address, success : false } });
             }
         } else {
-            var info = { success : true, address : address, publickey : account.publickey.toString('hex'), balance : account.balance / constants.numberLength, unconfirmedBalance : account.unconfirmedBalance / constants.numberLength, effectiveBalance : account.getEffectiveBalance() / constants.numberLength };
+            var info = { success : true, secondPassPhrase : account.secondPassPhrase, address : address, publickey : account.publickey.toString('hex'), balance : account.balance / constants.numberLength, unconfirmedBalance : account.unconfirmedBalance / constants.numberLength, effectiveBalance : account.getEffectiveBalance() / constants.numberLength };
 
             if (app.forgerprocessor.getForgers(account.address)) {
                 info.forging = true;
@@ -105,6 +111,8 @@ module.exports = function (app) {
         }
 
         var account = app.accountprocessor.getAccountById(address);
+
+
         var info = {};
 
         if (!account) {
@@ -112,7 +120,13 @@ module.exports = function (app) {
             info.unconfirmedBalance = 0;
             info.effectiveBalance = 0;
         } else {
-            info = { success : true, balance : account.balance / constants.numberLength, unconfirmedBalance : account.unconfirmedBalance / constants.numberLength, effectiveBalance : account.getEffectiveBalance() / constants.numberLength };
+            if (app.signatureprocessor.getSignatureByAddress(account.address) || app.signatureprocessor.getUnconfirmedSignatureByAddress(account.address)) {
+                account.secondPassPhrase = true;
+            } else {
+                account.secondPassPhrase = false;
+            }
+
+            info = { success : true, secondPassPhrase : account.secondPassPhrase, balance : account.balance / constants.numberLength, unconfirmedBalance : account.unconfirmedBalance / constants.numberLength, effectiveBalance : account.getEffectiveBalance() / constants.numberLength };
         }
 
         return res.json(info);
@@ -312,12 +326,59 @@ module.exports = function (app) {
         }
     });
 
+    app.all("/api/addPassPhrase", function (req, res) {
+        var secretPhrase = req.query.secretPhrase || req.body.secretPhrase || null,
+            newPhrase = req.query.newPhrase || req.body.newPhrase || null,
+            accountAddress = req.query.accountAddress || req.body.accountAddress || null;
+
+        if (!secretPhrase || !newPhrase) {
+            return res.json({ success : false, error : "Provide your secret phrase, your  new second secret phrase"});
+        }
+
+        var hash = crypto.createHash('sha256').update(secretPhrase, 'utf8').digest();
+        var keypair = ed.MakeKeypair(hash);
+
+        if (accountAddress) {
+            var address = app.accountprocessor.getAddressByPublicKey(keypair.publicKey);
+            if (accountAddress != address) {
+                return res.json({ success : false, error: "Invalid passphrase, check your passphrase please" });
+            }
+        }
+
+        var fee = 100 * constants.numberLength;
+        var totalAmount = 0 + fee;
+
+        var sender = app.accountprocessor.getAccountByPublicKey(keypair.publicKey);
+
+        if (!sender) {
+            return res.json({ success : false, error: "Sender account not found" });
+        } else {
+            if (totalAmount > sender.unconfirmedBalance) {
+                return res.json({ success: false, error: "Balance not found" });
+            } else {
+
+
+                var t = new transaction(2, null, utils.getEpochTime(new Date().getTime()), keypair.publicKey, null, 0, fee, null);
+                t.asset = app.signatureprocessor.generateNewSignature(utils.getEpochTime(new Date().getTime()), secretPhrase, newPhrase);
+                t.sign(secretPhrase);
+
+                var r = app.transactionprocessor.processTransaction(t, true);
+                if (r) {
+                    return res.json({ success: true, transactionId: t.getId() });
+                } else {
+                    return res.json({ success : false, error : "Second passphrase already added" });
+                }
+            }
+        }
+    });
+
     app.post("/api/sendMoney", function (req, res) {
         var secretPharse = req.body.secretPharse,
             amount = req.body.amount * constants.numberLength,
             recepient = req.body.recepient,
             deadline = 1,
             accountAddress = req.body.accountAddress,
+            secondPhrase = req.body.secondPhrase || null,
             //fee = parseInt(req.body.fee),
             referencedTransaction = req.body.referencedTransaction;
 
@@ -368,8 +429,6 @@ module.exports = function (app) {
             return res.json({ success : false, error: "Fee must have less than 8 digits after the dot" });
         }*/
 
-
-
         var hash = crypto.createHash('sha256').update(secretPharse, 'utf8').digest();
         var keypair = ed.MakeKeypair(hash);
 
@@ -404,12 +463,33 @@ module.exports = function (app) {
                 var t = new transaction(type, null, utils.getEpochTime(new Date().getTime()), keypair.publicKey, recepient, amount, fee, null);
                 t.sign(secretPharse);
 
+                var signature = app.signatureprocessor.getSignatureByAddress(sender.address);
+
+                if (signature) {
+                    if (!secondPhrase) {
+                        return res.json({ success : false, error : "Provide second secret phrase" });
+                    }
+
+                    var secondHash = crypto.createHash('sha256').update(secondPhrase, 'utf8').digest();
+                    var secondKeypair = ed.MakeKeypair(secondHash);
+
+                    if (signature.publicKey.toString('hex') != secondKeypair.publicKey.toString('hex')) {
+                        return res.json({ success : false, error : "Second signature not valid" });
+                    }
+
+                    t.signSignatureGeneration(secondPhrase);
+                }
+
                 // send to peers
 
                 // add
-                app.transactionprocessor.processTransaction(t, true);
+                var r = app.transactionprocessor.processTransaction(t, true);
 
-                return res.json({ success : true, transactionId : t.getId() });
+                if (r) {
+                    return res.json({ success: true, transactionId: t.getId() });
+                } else {
+                    return res.json({ success : false });
+                }
             }
         }
     });

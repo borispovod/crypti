@@ -3,7 +3,9 @@ var transaction = require("./transactions.js"),
     accountprocessor = require("../account").accountprocessor,
     bignum = require('bignum'),
     utils = require("../utils.js"),
-    Long = require('long');
+    Long = require('long'),
+    signatureprocessor = require('../signature').signatureprocessor,
+    constants = require("../Constants.js");
 
 var transactionprocessor = function () {
     this.transactions = {};
@@ -35,41 +37,91 @@ transactionprocessor.prototype.processTransaction = function (transaction, sendT
     this.logger.info("Process transaction: " + transaction.getId());
 
     var currentTime = epochTime(new Date().getTime());
-    if (transaction.timestamp > currentTime || transaction.deadline < 1 || transaction.timestamp + (transaction.deadline * 3600) < currentTime || transaction.fee <= 0) {
+    if (transaction.timestamp > currentTime || transaction.fee <= 0) {
         this.logger.error("Can't verify transaction: " + transaction.getId());
         return false;
     }
 
     var id = transaction.getId();
     if (this.transactions[id] || this.unconfirmedTransactions[id] || this.doubleSpendingTransactions[id] || !transaction.verify()) {
+        console.log(transaction.verify());
         this.logger.error("Can't verify transaction: " + transaction.getId() + ", it's already exist");
         return false;
     }
 
-    var fee = parseInt(transaction.amount / 100 * this.app.blockchain.fee);
+    var fee = 0;
 
-    if (parseInt(fee) != fee) {
-        fee = 1;
+    switch (transaction.type) {
+        case 0:
+            switch (transaction.subtype) {
+                case 0:
+                    if (transaction.asset) {
+                        return false;
+                    }
+
+                    fee = parseInt(transaction.amount / 100 * this.app.blockchain.fee);
+
+                    if (parseInt(fee) != fee) {
+                        fee = 1;
+                    }
+
+                    if (fee == 0) {
+                        fee = 1;
+                    }
+
+                    if (fee != transaction.fee) {
+                        this.logger.error("Transaction has not valid fee");
+                        return false;
+                    }
+                    break;
+            }
+            break;
+        case 1:
+            switch (transaction.subtype) {
+                case 0:
+                    if (transaction.asset) {
+                        return false;
+                    }
+
+                    fee = parseInt(transaction.amount / 100 * this.app.blockchain.fee);
+
+                    if (parseInt(fee) != fee) {
+                        fee = 1;
+                    }
+
+                    if (fee == 0) {
+                        fee = 1;
+                    }
+
+                    if (fee != transaction.fee) {
+                        this.logger.error("Transaction has not valid fee");
+                        return false;
+                    }
+                    break;
+            }
+            break;
+        case 2:
+            switch (transaction.subtype) {
+                case 0:
+                    if (!transaction.asset) {
+                        return false;
+                    }
+
+                    fee = 100 * constants.numberLength;
+
+                    if (fee != transaction.fee) {
+                        this.logger.error("Transaction has not valid fee");
+                        return false;
+                    }
+
+                    if (transaction.amount > 0) {
+                        this.logger.error("Transaction has not valid amount");
+                        return false;
+                    }
+                    break;
+            }
+            break;
     }
-
-    if (fee == 0) {
-        fee = 1;
-    }
-
-    if (fee != transaction.fee) {
-        this.logger.error("Transaction has not valid fee");
-        return false;
-    }
-
-    /*if (utils.moreThanEightDigits(transaction.amount)) {
-        this.logger.error("Amount must have less than 8 digits after the dot");
-        return false;
-    }
-
-    if (utils.moreThanEightDigits(transaction.fee)) {
-        this.logger.error("Fee must have less than 8 digits after the dot" );
-        return false;
-    }*/
 
     if (transaction.type == 1 && transaction.recipientId[transaction.recipientId.length - 1] != "D") {
         this.logger.error("Type of transaction and account end not valid: " + transaction.getId() + ", " + transaction.type + "/" + transaction.recipientId);
@@ -91,14 +143,40 @@ transactionprocessor.prototype.processTransaction = function (transaction, sendT
     var isDoubleSpending = false;
     var a = this.accountprocessor.getAccountByPublicKey(transaction.senderPublicKey);
 
+
     if (!a) {
         isDoubleSpending = true;
     } else {
+        var signature = this.app.signatureprocessor.getSignatureByAddress(a.address);
+
+        if (signature) {
+            if (!transaction.verifySignature(signature.publicKey)) {
+                this.logger.error("Can't verify second segnature: " + transaction.getId());
+                return false;
+            }
+        }
+
         var amount = transaction.amount + transaction.fee;
 
-        if (amount.unconfirmedBalance < amount) {
+        if (a.unconfirmedBalance < amount) {
             isDoubleSpending = true;
         } else {
+            switch (transaction.type) {
+                case 2:
+                    switch (transaction.subtype) {
+                        case 0:
+                            var r = this.app.signatureprocessor.processSignature(transaction.asset);
+
+                            if (!r) {
+                                this.app.logger.error("Can't process signature: " + transaction.asset.getId());
+                                return false;
+                            }
+
+                            break;
+                    }
+                    break;
+            }
+
             a.setUnconfirmedBalance(a.unconfirmedBalance - amount);
         }
 
@@ -111,9 +189,8 @@ transactionprocessor.prototype.processTransaction = function (transaction, sendT
         this.doubleSpendingTransactions[id] = transaction;
     } else {
         this.unconfirmedTransactions[id] = transaction;
-    }
 
-    var msg = "";
+    }
 
     if (isDoubleSpending) {
         this.logger.info("Double spending transaction processed: " + transaction.getId());
@@ -150,6 +227,19 @@ transactionprocessor.prototype.transactionFromBuffer = function (bb) {
     var t = new transaction();
     t.type = bb.readByte();
     t.subtype = bb.readByte();
+
+    var assetSize = 0;
+
+    switch (t.type) {
+        case 2:
+            switch (t.subtype) {
+                case 0:
+                    assetSize = 196;
+                    break;
+            }
+            break;
+    }
+
     t.timestamp = bb.readInt();
 
     var buffer = new Buffer(32);
@@ -158,6 +248,13 @@ transactionprocessor.prototype.transactionFromBuffer = function (bb) {
     }
 
     t.senderPublicKey = buffer;
+
+    var account = this.app.accountprocessor.getAccountByPublicKey(t.senderPublicKey);
+    var readSignature = false;
+    if (this.app.signatureprocessor.getSignatureByAddress(account.address)) {
+        console.log("signature found");
+        readSignature = true;
+    }
 
     var recepientBuffer = new Buffer(8);
 
@@ -178,9 +275,35 @@ transactionprocessor.prototype.transactionFromBuffer = function (bb) {
     var feeLong = bb.readLong();
     t.fee = new Long(feeLong.low, feeLong.high, false).toNumber();
 
+    if (assetSize > 0) {
+        var assetBuffer = new Buffer(assetSize);
+        for (var i = 0; i < assetSize; i++) {
+            assetBuffer[i] = bb.readByte();
+        }
+
+        switch (t.type) {
+            case 2:
+                switch (t.subtype) {
+                    case 0:
+                        t.asset = this.app.signatureprocessor.fromBytes(assetBuffer);
+                        break;
+                }
+                break;
+        }
+    }
+
     var signature = new Buffer(64);
     for (var i = 0; i < 64; i++) {
         signature[i] = bb.readByte();
+    }
+
+    if (readSignature) {
+        t.signSignature = new Buffer(64);
+        for (var i = 0; i < 64; i++) {
+            t.signSignature[i] = bb.readByte();
+        }
+    } else {
+        t.signSignature = null;
     }
 
     t.signature = signature;
@@ -220,9 +343,31 @@ transactionprocessor.prototype.transactionFromBytes = function (bytes) {
     t.amount = bb.readUint32();
     t.fee = bb.readUint32();
 
+    if (assetSize > 0) {
+        var assetBuffer = new Buffer(assetSize);
+        for (var i = 0; i < assetSize; i++) {
+            assetBuffer[i] = bb.readByte();
+        }
+
+        switch (t.type) {
+            case 2:
+                switch (t.subtype) {
+                    case 0:
+                        t.asset = this.app.signatureprocessor.fromBytes(assetBuffer);
+                        break;
+                }
+                break;
+        }
+    }
+
     var signature = new Buffer(64);
     for (var i = 0; i < 64; i++) {
         signature[i] = bb.readByte();
+    }
+
+    t.signSignature = new Buffer(64);
+    for (var i = 0; i < 64; i++) {
+        t.signSignature[i] = bb.readByte();
     }
 
     t.signature = signature;
