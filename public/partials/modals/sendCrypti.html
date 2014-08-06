@@ -5,10 +5,11 @@
             <input class="input-text" ng-class="{err: !accountValid}" type="text" ng-model="to" placeholder="To" ng-blur="accountChanged($event)">
             <input class="input-text" ng-class="{err: amount < 0 || amountError }" type="text" ng-model="amount"placeholder="Amount" ng-change="recalculateFee($event)" ng-pattern="onlyNumbers" maxlength="{{ maxlength }}">
             <input class="input-text" ng-class="{err: fee < 0 || amountError }" type="text" ng-model="fee" placeholder="Network fee percent: {{currentFee}}%" readonly>
-            <input class="input-text" type="password" ng-model="secretPhrase" placeholder="Your SecretPhrase">
+            <input class="input-text" type="password" ng-model="secretPhrase" placeholder="Your secretPhrase">
+            <input class="input-text" type="password" ng-model="secondPhrase" placeholder="Your second secretPhrase" ng-show="secondPassphrase">
             <p class="error">{{fromServer}}.</p>
             <div class="pull-right">
-                <button type="submit" class="button green small" ng-disabled="!to || !secretPhrase || !amount || !fee || amount < 0 || fee < 0 || !accountValid" ng-click="sendCrypti()">Send</button>
+                <button type="submit" class="button green small" ng-disabled="!to || !secretPhrase || !amount || !fee || amount < 0 || fee < 0 || !accountValid || (secondPassphrase && !secondPhrase)" ng-click="sendCrypti()">Send</button>
                 <button class="button small" ng-click="close()">Close</button>
             </div>
         </form>

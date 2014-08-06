@@ -10,6 +10,7 @@ webApp.controller('passphraseController', ['$scope', '$rootScope', '$http', "$st
                         if (resp.data.success) {
                             userService.setData(resp.data.address, resp.data.publickey, resp.data.balance, resp.data.unconfirmedBalance, resp.data.effectiveBalance);
                             userService.setForging(resp.data.forging);
+                            userService.setSecondPassphrase(resp.data.secondPassPhrase);
 
                             $state.go('main.account');
                         } else {
