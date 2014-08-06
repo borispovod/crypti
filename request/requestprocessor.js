@@ -88,7 +88,7 @@ requestprocessor.prototype.transactionFromBytes = function (buffer) {
     return r;
 }
 
-requestprocessor.prototype.processRequest = function (request) {
+requestprocessor.prototype.processRequest = function (request, send) {
     var lastBlock = this.app.blockchain.getLastBlock();
     var now = utils.getEpochTime(new Date().getTime());
     var elapsedTime = lastBlock.timestamp - now;
@@ -126,7 +126,11 @@ requestprocessor.prototype.processRequest = function (request) {
     }
 
     this.unconfirmedRequests[account.address] = request;
-    console.log("request added");
+
+    if (send) {
+        this.app.peerprocessor.sendRequestToAll(request);
+    }
+
     return true;
 }
 
