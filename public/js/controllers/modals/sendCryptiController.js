@@ -3,6 +3,7 @@ webApp.controller('sendCryptiController', ["$scope", "sendCryptiModal", "$http",
     $scope.fromServer = "";
     $scope.maxlength = 8;
     $scope.onlyNumbers = /^-?\d*(\.\d+)?$/;
+    $scope.secondPassphrase = userService.secondPassphrase;
 
     Number.prototype.roundTo = function( digitsCount ){
         var digitsCount = typeof digitsCount !== 'undefined' ? digitsCount : 2;
@@ -141,18 +142,16 @@ webApp.controller('sendCryptiController', ["$scope", "sendCryptiModal", "$http",
             amount: $scope.amount,
             recepient: $scope.to,
             accountAddress: userService.address,
-            deadline: $scope.deadline,
             fee: $scope.fee
         };
+
+        if ($scope.secondPassphrase) {
+            data.secondPhrase = $scope.secondPhrase;
+        }
+
         if (!$scope.amountError) {
-            $http.post("/api/sendMoney", {
-                secretPharse: $scope.secretPhrase,
-                amount: $scope.amount,
-                recepient: $scope.to,
-                accountAddress: userService.address,
-                fee: $scope.fee
-            }).then(function (resp) {
-                if (resp.data.error == "Invalid passphrase, check your passphrase please" || resp.data.error == "Invalid merchant address, check it again please") {
+            $http.post("/api/sendMoney", data).then(function (resp) {
+                if (resp.data.error) {
                     $scope.fromServer = resp.data.error;
                 }
                 else {
