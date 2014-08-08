@@ -1,16 +1,16 @@
 webApp.controller('passphraseController', ['$scope', '$rootScope', '$http', "$state", "userService",
     function($rootScope, $scope, $http, $state, userService) {
         $scope.login = function(pass) {
-            var data = {secretPhrase: pass};
+            var data = {secret: pass};
             if (!pass || pass.length > 100){
             }
             else{
-                $http.post("/api/unlock", { secretPhrase : pass })
+                $http.post("/api/unlock", { secret : pass })
                     .then(function (resp) {
                         if (resp.data.success) {
                             userService.setData(resp.data.address, resp.data.publickey, resp.data.balance, resp.data.unconfirmedBalance, resp.data.effectiveBalance);
                             userService.setForging(resp.data.forging);
-                            userService.setSecondPassphrase(resp.data.secondPassPhrase);
+                            userService.setSecondPassphrase(resp.data.secondPassphrase);
 
                             $state.go('main.account');
                         } else {

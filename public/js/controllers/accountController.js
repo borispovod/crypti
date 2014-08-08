@@ -6,7 +6,7 @@ webApp.controller('accountController', ['$scope', '$rootScope', '$http', "userSe
     $scope.secondPassphrase = userService.secondPassphrase;
 
     $scope.getTransactions = function () {
-        $http.get("/api/getAllTransactions", { params : { accountId : userService.address }})
+        $http.get("/api/getAddressTransactions", { params : { address : userService.address, limit : 20, descOrder : true }})
             .then(function (resp) {
                 $scope.transactions = resp.data.transactions;
             });
@@ -15,10 +15,10 @@ webApp.controller('accountController', ['$scope', '$rootScope', '$http', "userSe
     $scope.getBalance = function () {
         $http.get("/api/getBalance", { params : { address : userService.address }})
             .then(function (resp) {
-                userService.balance = resp.data.balance;
-                userService.unconfirmedBalance = resp.data.unconfirmedBalance;
-                userService.effectiveBalance = resp.data.effectiveBalance;
-                userService.secondPassphrase = resp.data.secondPassPhrase;
+                userService.balance = resp.data.balance / 100000000;
+                userService.unconfirmedBalance = resp.data.unconfirmedBalance / 100000000;
+                userService.effectiveBalance = resp.data.effectiveBalance / 100000000;
+                userService.secondPassphrase = resp.data.secondPassphrase;
                 $scope.balance = userService.balance;
                 $scope.unconfirmedBalance = userService.unconfirmedBalance;
                 $scope.effectiveBalance = userService.effectiveBalance;
@@ -46,8 +46,8 @@ webApp.controller('accountController', ['$scope', '$rootScope', '$http', "userSe
         $scope.sendCryptiModal = sendCryptiModal.activate({
             totalBalance : $scope.unconfirmedBalance,
             destroy: function () {
-                $scope.getTransactions();
                 $scope.getBalance();
+                $scope.getTransactions();
             }
         });
     }
@@ -58,19 +58,6 @@ webApp.controller('accountController', ['$scope', '$rootScope', '$http', "userSe
         });
     }
 
-    $scope.sendFree = function () {
-        var data = { addr : $scope.address };
-        $http.post("/api/sendFree",data)
-            .then(function (resp) {
-                if (resp.data.success) {
-                    $scope.getTransactions();
-                    $scope.getBalance();
-                    freeModal.activate({ msg : "Crypti sent, please, wait around minute" });
-                } else {
-                    freeModal.activate({ msg : "We already sent Crypti to you, sorry" });
-                }
-            });
-    }
 
     $scope.getBalance();
     $scope.getTransactions();
