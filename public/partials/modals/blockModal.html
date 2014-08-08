@@ -5,14 +5,14 @@
             <tr>
                 <th>ID</th>
                 <th>Sender</th>
-                <th>Recepient</th>
+                <th>Recipient</th>
                 <th>Fee</th>
                 <th>Amount</th>
             </tr>
             <tr ng-repeat="transaction in transactions">
                 <td>{{transaction.id}}</td>
                 <td>{{transaction.sender}}</td>
-                <td>{{transaction.recepient}}</td>
+                <td>{{transaction.recipient}}</td>
                 <td>{{transaction.fee / 100000000 | feeFilter}}</td>
                 <td>{{transaction.amount / 100000000 | feeFilter}}</td>
             </tr>

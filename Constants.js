@@ -10,7 +10,7 @@ module.exports = {
     maxAddressesLength: 208 * 128,
     maxClientConnections: 100,
     numberLength: 100000000,
-    feeStartVolume: 100000 * 100000000,
+    feeStartVolume: 10000 * 100000000,
     feeStart: 1,
     maxRequests: 10000,
     requestLength: 104,

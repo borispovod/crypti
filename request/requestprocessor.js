@@ -93,35 +93,30 @@ requestprocessor.prototype.processRequest = function (request, send) {
     var now = utils.getEpochTime(new Date().getTime());
     var elapsedTime = lastBlock.timestamp - now;
 
-    if (elapsedTime > 50) {
-        console.log("elapsed time passed");
-        return false;
-    }
-
     if (!request.verify()) {
-        console.log("can't verify request signature");
+        this.app.logger.error("Can't verify request signature: " + request.getId());
         return false;
     }
 
     if (request.lastAliveBlock != lastBlock.getId()) {
-        console.log("request last block not valid");
+        this.app.logger.warn("Request last block not valid: " + request.getId());
         return false;
     }
 
     var account = this.app.accountprocessor.getAccountByPublicKey(request.publicKey);
 
     if (!account) {
-        console.log("request account not found");
+        this.app.logger.warn("Request account not found: " + request.getId());
         return false;
     }
 
     if (account.getEffectiveBalance() < 1000 * Constants.numberLength) {
-        console.log("request not have effective balance");
+        this.app.logger.warn("Request not have effective balance: " + request.getId());
         return false;
     }
 
     if (this.unconfirmedRequests[account.address]) {
-        console.log("request already added");
+        this.app.logger.warn("Request already added: " + request.getId() + "/" + account.address);
         return false;
     }
 
