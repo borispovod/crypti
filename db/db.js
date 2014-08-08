@@ -38,7 +38,7 @@ db.prototype.writeTransaction = function (t, cb) {
             signSignature = t.signSignature.toString('hex')
         }
 
-        var q = this.sql.prepare("INSERT INTO trs VALUES($id, $blockId, $type, $subtype, $timestamp, $senderPublicKey, $recepient, $amount, $fee, $signature, $signSignature)");
+        var q = this.sql.prepare("INSERT INTO trs VALUES($id, $blockId, $type, $subtype, $timestamp, $senderPublicKey, $sender, $recipient, $amount, $fee, $creationBlockId, $signature, $signSignature)");
         q.bind({
             $id: t.getId(),
             $blockId: t.blockId,
@@ -46,11 +46,13 @@ db.prototype.writeTransaction = function (t, cb) {
             $subtype: t.subtype,
             $timestamp: t.timestamp,
             $senderPublicKey: t.senderPublicKey.toString('hex'),
-            $recepient: t.recipientId,
+            $recipient: t.recipientId,
             $amount: t.amount,
-            $fee: t.fee,
             $signature: t.signature.toString('hex'),
-            $signSignature : signSignature
+            $signSignature : signSignature,
+            $sender : t.sender,
+            $creationBlockId : t.creationBlockId,
+            $fee : t.fee
         });
 
         q.run(function (err) {
@@ -212,7 +214,7 @@ module.exports.initDb = function (callback) {
                 d.sql.run("CREATE TABLE IF NOT EXISTS blocks (id CHAR(25) NOT NULL, version INT NOT NULL, timestamp TIMESTAMP NOT NULL, previousBlock VARCHAR(25), numberOfAddresses INT NOT NULL, numberOfRequests INT NOT NULL, numberOfTransactions INT NOT NULL, totalAmount INTEGER NOT NULL, totalFee INTEGER NOT NULL, payloadLength INT NOT NULL, addressesLength INT NOT NULL, requestsLength INT NOT NULL, payloadHash VARCHAR(255) NOT NULL, generationWeight VARCHAR(25) NOT NULL, generatorPublicKey VARCHAR(255) NOT NULL, generationSignature VARCHAR(255) NOT NULL, blockSignature VARCHAR(255) NOT NULL, height INT NOT NULL, PRIMARY KEY(id))", cb);
             },
             function (cb) {
-                d.sql.run("CREATE TABLE IF NOT EXISTS trs (id CHAR(25) NOT NULL, blockId CHAR(25) NOT NULL, type INT NOT NULL, subtype INT NOT NULL, timestamp TIMESTAMP NOT NULL, senderPublicKey VARCHAR(128) NOT NULL, recepient VARCHAR(25) NOT NULL, amount INTEGER NOT NULL, fee INTEGER NOT NULL, signature CHAR(255) NOT NULL, signSignature CHAR(255), PRIMARY KEY(id))", cb);
+                d.sql.run("CREATE TABLE IF NOT EXISTS trs (id CHAR(25) NOT NULL, blockId CHAR(25) NOT NULL, type INT NOT NULL, subtype INT NOT NULL, timestamp TIMESTAMP NOT NULL, senderPublicKey VARCHAR(128) NOT NULL, sender VARCHAR(25) NOT NULL, recipient VARCHAR(25) NOT NULL, amount INTEGER NOT NULL, fee INTEGER NOT NULL, creationBlockId VARCHAR(25) NOT NULL, signature CHAR(255) NOT NULL, signSignature CHAR(255), PRIMARY KEY(id))", cb);
             },
             function (cb) {
                 d.sql.run("CREATE TABLE IF NOT EXISTS addresses (id CHAR(25) NOT NULL, blockId CHAR(25) NOT NULL, version INT NOT NULL, timestamp TIMESTAMP NOT NULL, publicKey VARCHAR(128) NOT NULL, generatorPublicKey VARCHAR(128) NOT NULL, signature VARCHAR(255) NOT NULL, accountSignature VARCHAR(255) NOT NULL, PRIMARY KEY(id))", cb);

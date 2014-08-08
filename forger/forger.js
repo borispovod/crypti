@@ -6,7 +6,8 @@ var crypto = require('crypto'),
     Block = require("../block").block.block,
     ed  = require('ed25519'),
     async = require('async'),
-    request = require('../request').request;
+    request = require('../request').request,
+    genesisblock = require("../block").genesisblock;
 
 var forger = function (accountId, publicKey, secretPharse) {
     this.accountId = accountId;
@@ -87,8 +88,16 @@ forger.prototype.startForge = function () {
         return false;
     }
 
-    var requests = _.map(this.app.requestprocessor.unconfirmedRequests, function (v) { return v; });
+    if (Object.keys(this.app.requestprocessor.unconfirmedRequests).length == 0) {
+        this.app.logger.info("Not found accounts for next block forging...");
+        this.workingForger = false;
+        return false;
+    }
+
+
+    var requests = _.map(lastAliveBlock.requests, function (v) { return v; });
     var accounts = [];
+
 
     for (var i = 0; i < requests.length; i++) {
         var request = requests[i];
@@ -110,42 +119,39 @@ forger.prototype.startForge = function () {
         confirmedRequests = confirmedRequests.slice(0);
         //confirmedRequests.push(request);
 
-        var accountWeightTimestamps = bignum(lastAliveBlock.timestamp);
+        var accountWeightTimestamps = bignum(0);
         var popWeightAmount = 0;
 
-
-        var previousBlock = this.app.blockchain.getBlock(lastAliveBlock.previousBlock);
-        if (lastAliveBlock.generatorPublicKey.toString('hex') != request.publicKey.toString('hex')) {
-
-            for (var j = confirmedRequests.length - 1; j >= 0; j--) {
-                if (!previousBlock) {
-                    break;
-                }
-
-                var confirmedRequest = confirmedRequests[j];
-                var block = this.app.blockchain.getBlock(confirmedRequest.lastAliveBlock);
-
-
-                if (previousBlock.getId() != block.getId()) {
-                    break;
-                }
-
-                accountWeightTimestamps = accountWeightTimestamps.add(previousBlock.timestamp);
-                var purchases = this.app.accountprocessor.purchases[previousBlock.getId()];
-
-                if (purchases) {
-                    if (purchases[address]) {
-                        popWeightAmount += purchases[address];
-                    }
-                }
-
-                if (request.publicKey.toString('hex') == block.generatorPublicKey.toString('hex')) {
-                    break;
-                }
-
-                // get account purcashes in this block
-                previousBlock = this.app.blockchain.getBlock(previousBlock.previousBlock);
+        var previousBlock = this.app.blockchain.getBlock(lastAliveBlock.getId());
+        for (var j = confirmedRequests.length - 1; j >= 0; j--) {
+            if (!previousBlock) {
+                break;
             }
+
+            var confirmedRequest = confirmedRequests[j];
+
+
+            var block = this.app.blockchain.getBlock(confirmedRequest.blockId);
+
+            if (previousBlock.getId() != block.getId()) {
+                break;
+            }
+
+            accountWeightTimestamps = accountWeightTimestamps.add(block.timestamp);
+            var purchases = this.app.accountprocessor.purchases[block.getId()];
+
+            if (purchases) {
+                if (purchases[address]) {
+                    popWeightAmount += purchases[address];
+                }
+            }
+
+            if (block.generatorPublicKey.toString('hex') == request.publicKey.toString('hex')) {
+                break;
+            }
+
+            // get account purcashes in this block
+            previousBlock = this.app.blockchain.getBlock(previousBlock.previousBlock);
         }
 
         accountWeightTimestamps = accountWeightTimestamps.div(lastAliveBlock.height);
@@ -156,7 +162,7 @@ forger.prototype.startForge = function () {
         this.app.logger.info("Account " + address + " PoP weight " + popWeightAmount);
 
         var accountTotalWeight = accountWeightTimestamps.add(popWeightAmount);
-        accounts.push({ address : address, weight : accountTotalWeight });
+        accounts.push({ address : address, weight : accountTotalWeight, publicKey : request.publicKey, signature : request.signature  });
 
         this.app.logger.info("Account " + address + " weight " + accountTotalWeight.toString());
     }
@@ -171,6 +177,12 @@ forger.prototype.startForge = function () {
         return 0;
     });
 
+    if (accounts.length == 0) {
+        this.app.logger.info("Not found accounts for forging...");
+        this.workingForger = false;
+        return false;
+    }
+
     var cycle = parseInt(elapsedTime / 60) - 1;
 
     if (cycle > accounts.length - 1) {
@@ -180,7 +192,6 @@ forger.prototype.startForge = function () {
     this.logger.info("Winner number: " + cycle);
 
     // ищем похожий вес
-    console.log(accounts);
     var winner = accounts[cycle];
     var sameWeights = [winner];
 
@@ -200,7 +211,7 @@ forger.prototype.startForge = function () {
         var randomWinners = [];
         for (var i = 0; i < sameWeights.length; i++) {
             var a = sameWeights[i];
-            var hash = crypto.createHash('sha256').update(a.weight.toBuffer({ size : '8' })).update(this.app.requestprocessor.unconfirmedRequests[a.address].publicKey).digest();
+            var hash = crypto.createHash('sha256').update(a.weight.toBuffer({ size : '8' })).update(a.signature).digest();
 
             var result = new Buffer(8);
             for (var j = 0; j < 8; j++) {
@@ -208,7 +219,7 @@ forger.prototype.startForge = function () {
             }
 
             this.app.logger.info("Account with same weight " + a.address + " new weight: " + bignum.fromBuffer(result, { size : '8'}));
-            randomWinners.push({ address : a.address, weight : bignum.fromBuffer(result, { size : '8'})});
+            randomWinners.push({ address : a.address, weight : bignum.fromBuffer(result, { size : '8'}), publicKey : a.publicKey, signature : a.signature });
         }
 
         randomWinners.sort(function compare(a,b) {
@@ -239,8 +250,9 @@ forger.prototype.startForge = function () {
         }
 
         sortedTransactions.sort(function(a, b){
-            return a.fee > b.fee;
-        });
+            var feeA = this.app.blockchain.getFee(a), feeB = this.app.blockchain.getFee(b);
+            return feeA > feeB;
+        }.bind(this));
 
         var newTransactions = {};
         var newTransactionsLength = sortedTransactions.length;
@@ -268,7 +280,45 @@ forger.prototype.startForge = function () {
                 }
 
                 var accumulatedAmount = accumulatedAmounts[sender.address] || 0;
-                var amount = t.amount + t.fee;
+
+                var fee = 0;
+
+                switch (t.type) {
+                    case 0:
+                        switch (t.subtype) {
+                            case 0:
+                                var fee = parseInt(t.amount / 100 * this.app.blockchain.fee);
+
+                                if (fee == 0) {
+                                    fee = 1;
+                                }
+                                break;
+                        }
+                        break;
+
+                    case 1:
+                        switch (t.subtype) {
+                            case 0:
+                                var fee = parseInt(t.amount / 100 * this.app.blockchain.fee);
+
+                                if (fee == 0) {
+                                    fee = 1;
+                                }
+                                break;
+                        }
+                        break;
+
+                    case 2:
+                        switch (t.subtype) {
+                            case 0:
+                                fee = 100 * constants.numberLength;
+                                break;
+                        }
+                        break;
+                }
+
+
+                var amount = t.amount + fee;
 
                 if (accumulatedAmount + amount > sender.balance) {
                     continue;
@@ -287,7 +337,7 @@ forger.prototype.startForge = function () {
                 }
 
                 accumulatedAmounts[sender.address] += amount;
-                totalFee += t.fee;
+                totalFee += fee;
                 totalAmount += t.amount;
                 payloadLength += size;
 
@@ -339,30 +389,28 @@ forger.prototype.startForge = function () {
             addressesLength += addresses[i].getBytes().length;
         }
 
-        //payloadLength += addressesLength;
-
         var newRequests = [];
         var requestsLength = 0;
-        for (var i = 0 ; i < requests.length; i++) {
-            var size = requests[i].getBytes().length;
+        var unconfirmedRequests = _.map(this.app.requestprocessor.unconfirmedRequests, function (v) { return v; });
+        for (var i = 0 ; i < unconfirmedRequests.length; i++) {
+            var size = unconfirmedRequests[i].getBytes().length;
 
             if (requestsLength + size > constants.maxRequestsLength) {
                 break;
             }
 
-            var account = this.app.accountprocessor.getAccountByPublicKey(requests[i].publicKey);
-
-            /*if (this.app.requestprocessor.confirmedRequests[account.address]) {
-                continue;
-            }*/
+            var account = this.app.accountprocessor.getAccountByPublicKey(unconfirmedRequests[i].publicKey);
 
             if (!account || account.getEffectiveBalance() < 1000 * constants.numberLength) {
+                console.log("fail");
                 continue;
             }
 
-            newRequests.push(requests[i]);
+            newRequests.push(unconfirmedRequests[i]);
             requestsLength += size;
         }
+
+        console.log(newRequests);
 
         var publicKey = this.publicKey;
         var hash = crypto.createHash('sha256');
@@ -401,6 +449,7 @@ forger.prototype.startForge = function () {
         block.generationWeight = winner.weight;
         block.generationSignature = ed.Sign(generationSignature, keypair);
         block.sign(this.secretPharse);
+
 
         if (block.verifyBlockSignature() && block.verifyGenerationSignature()) {
             this.logger.info("Block generated: " + block.getId());

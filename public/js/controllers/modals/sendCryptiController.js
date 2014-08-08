@@ -129,18 +129,18 @@ webApp.controller('sendCryptiController', ["$scope", "sendCryptiModal", "$http",
     }
 
     $scope.getCurrentFee = function () {
-        $http.get("/api/getCurrentFee", { params : { accountId : userService.address }})
+        $http.get("/api/getFee", { params : { accountId : userService.address }})
             .then(function (resp) {
-                $scope.currentFee = resp.data.currentFee;
+                $scope.currentFee = resp.data.fee;
             });
     }
 
     $scope.sendCrypti = function () {
         $scope.amountError = parseFloat($scope.fee) + parseFloat($scope.amount) > $scope.totalBalance;
         var data = {
-            secretPharse: $scope.secretPhrase,
+            secret: $scope.secretPhrase,
             amount: $scope.amount,
-            recepient: $scope.to,
+            recipient: $scope.to,
             accountAddress: userService.address,
             fee: $scope.fee
         };
@@ -150,7 +150,7 @@ webApp.controller('sendCryptiController', ["$scope", "sendCryptiModal", "$http",
         }
 
         if (!$scope.amountError) {
-            $http.post("/api/sendMoney", data).then(function (resp) {
+            $http.post("/api/sendFunds", data).then(function (resp) {
                 if (resp.data.error) {
                     $scope.fromServer = resp.data.error;
                 }

@@ -1,10 +1,38 @@
 var peer = require("./peer.js"),
     _ = require("underscore"),
-    async = require('async');
+    async = require('async'),
+    utils = require("../utils.js");
+
+var timeToBlock = 60 * 10;
 
 var peerprocessor = function () {
     this.peers = {};
     this.blockedPeers = {};
+
+    var blockedInterval = false;
+    setInterval(function () {
+        if (blockedInterval) {
+            return;
+        }
+
+        blockedInterval = true;
+        var now = utils.getEpochTime(new Date().getTime());
+        for (var ip in this.blockedPeers) {
+            var peer = this.blockedPeers[ip];
+
+            if (peer.blockedTime + timeToBlock > now) {
+                var copy = _.extend({}, peer);
+                delete this.blockedPeers[ip];
+                delete copy.blockedTime;
+
+                if (Object.keys(this.peers).length < 100) {
+                    this.peers[ip] = peer;
+                }
+            }
+        }
+
+        blockedInterval = false;
+    }.bind(this), 1000 * 60 * 5);
 }
 
 peerprocessor.prototype.setApp = function (app) {
@@ -114,11 +142,30 @@ peerprocessor.prototype.removePeer = function (ip) {
 }
 
 peerprocessor.prototype.addPeer = function (peer) {
+    if (Object.keys(this.peers).length > 100) {
+        return false;
+    }
+
+    if (this.blockedPeers[peer.ip]) {
+        return false;
+    }
+
     if (this.peers[peer.ip]) {
         return false;
     } else {
         this.peers[peer.ip] = peer;
         return true;
+    }
+}
+
+peerprocessor.prototype.blockPeer = function (ip) {
+    if (this.peers[ip]) {
+        var peer = _.extend({}, this.peers[ip]);
+        delete this.peers[ip];
+        peer.blockedTime = utils.getEpochTime(new Date().getTime());
+        this.blockedPeers[ip] = peer;
+
+        this.app.logger.info("Peer blocked: " + ip);
     }
 }
 

@@ -15,7 +15,7 @@ var transactionprocessor = function () {
 
 
 transactionprocessor.prototype.fromJSON = function (t) {
-    return new Transaction(t.type, null, t.timestamp, new Buffer(t.senderPublicKey, 'hex'), t.recepientId, t.amount,t.fee, new Buffer(t.signature, 'hex'));
+    return new Transaction(t.type, null, t.timestamp, new Buffer(t.senderPublicKey, 'hex'), t.recipientId, t.amount, new Buffer(t.signature, 'hex'));
 }
 
 transactionprocessor.prototype.setApp = function (app) {
@@ -37,19 +37,43 @@ transactionprocessor.prototype.processTransaction = function (transaction, sendT
     this.logger.info("Process transaction: " + transaction.getId());
 
     var currentTime = epochTime(new Date().getTime());
-    if (transaction.timestamp > currentTime || transaction.fee <= 0) {
-        this.logger.error("Can't verify transaction: " + transaction.getId());
+
+    if (transaction.timestamp > currentTime) {
+        this.logger.error("Can't verify transaction: " + transaction.getId() + " invalid time: " + transaction.timestamp + "/" + currentTime);
         return false;
     }
 
+    var blockId = transaction.creationBlockId;
+
+    if (!blockId) {
+        this.logger.error("Creation block id not provided: " + transaction.getId());
+        return false;
+    }
+
+    var block = this.app.blockchain.blocks[blockId];
+
+    if (!block) {
+        this.logger.error("Creation block id not found: " + transaction.getId());
+        return false;
+    }
+
+    var fee = parseInt(transaction.amount / 100 * this.app.blockchain.fee);
+
+    if (fee == 0) {
+        fee = 1;
+    }
+
+    /*if (transaction.fee <= 0) {
+        this.logger.error("Can't verify transaction: " + transaction.getId() + " invalid fee: " + transaction.fee);
+        return false;
+    }*/
+
     var id = transaction.getId();
+
     if (this.transactions[id] || this.unconfirmedTransactions[id] || this.doubleSpendingTransactions[id] || !transaction.verify()) {
-        console.log(transaction.verify());
         this.logger.error("Can't verify transaction: " + transaction.getId() + ", it's already exist");
         return false;
     }
-
-    var fee = 0;
 
     switch (transaction.type) {
         case 0:
@@ -58,21 +82,10 @@ transactionprocessor.prototype.processTransaction = function (transaction, sendT
                     if (transaction.asset) {
                         return false;
                     }
+                    break;
 
-                    fee = parseInt(transaction.amount / 100 * this.app.blockchain.fee);
-
-                    if (parseInt(fee) != fee) {
-                        fee = 1;
-                    }
-
-                    if (fee == 0) {
-                        fee = 1;
-                    }
-
-                    if (fee != transaction.fee) {
-                        this.logger.error("Transaction has not valid fee");
-                        return false;
-                    }
+                default:
+                    return false;
                     break;
             }
             break;
@@ -82,22 +95,11 @@ transactionprocessor.prototype.processTransaction = function (transaction, sendT
                     if (transaction.asset) {
                         return false;
                     }
-
-                    fee = parseInt(transaction.amount / 100 * this.app.blockchain.fee);
-
-                    if (parseInt(fee) != fee) {
-                        fee = 1;
-                    }
-
-                    if (fee == 0) {
-                        fee = 1;
-                    }
-
-                    if (fee != transaction.fee) {
-                        this.logger.error("Transaction has not valid fee");
-                        return false;
-                    }
                     break;
+
+                default:
+                    return false;
+                break;
             }
             break;
         case 2:
@@ -109,18 +111,21 @@ transactionprocessor.prototype.processTransaction = function (transaction, sendT
 
                     fee = 100 * constants.numberLength;
 
-                    if (fee != transaction.fee) {
-                        this.logger.error("Transaction has not valid fee");
-                        return false;
-                    }
-
                     if (transaction.amount > 0) {
                         this.logger.error("Transaction has not valid amount");
                         return false;
                     }
                     break;
+
+                default:
+                    return false;
+                break;
             }
             break;
+
+        default:
+            return false;
+        break;
     }
 
     if (transaction.type == 1 && transaction.recipientId[transaction.recipientId.length - 1] != "D") {
@@ -135,14 +140,13 @@ transactionprocessor.prototype.processTransaction = function (transaction, sendT
 
     if (transaction.type == 1) {
         if (!this.app.addressprocessor.addresses[transaction.recipientId] && !this.app.addressprocessor.unconfirmedAddresses[transaction.recipientId]) {
-            this.logger.error("Invalid recepient, merchant address not found: " + transaction.getId() + ", address: " + transaction.recipientId);
+            this.logger.error("Invalid recipient, merchant address not found: " + transaction.getId() + ", address: " + transaction.recipientId);
             return false;
         }
     }
 
     var isDoubleSpending = false;
     var a = this.accountprocessor.getAccountByPublicKey(transaction.senderPublicKey);
-
 
     if (!a) {
         isDoubleSpending = true;
@@ -156,7 +160,7 @@ transactionprocessor.prototype.processTransaction = function (transaction, sendT
             }
         }
 
-        var amount = transaction.amount + transaction.fee;
+        var amount = transaction.amount + fee;
 
         if (a.unconfirmedBalance < amount) {
             isDoubleSpending = true;
@@ -179,8 +183,6 @@ transactionprocessor.prototype.processTransaction = function (transaction, sendT
 
             a.setUnconfirmedBalance(a.unconfirmedBalance - amount);
         }
-
-
     }
 
     // add index
@@ -252,28 +254,33 @@ transactionprocessor.prototype.transactionFromBuffer = function (bb) {
     var account = this.app.accountprocessor.getAccountByPublicKey(t.senderPublicKey);
     var readSignature = false;
     if (this.app.signatureprocessor.getSignatureByAddress(account.address)) {
-        console.log("signature found");
         readSignature = true;
     }
 
-    var recepientBuffer = new Buffer(8);
+    var recipientBuffer = new Buffer(8);
 
     for (var i = 0; i < 8; i++) {
-        recepientBuffer[i] = bb.readByte();
+        recipientBuffer[i] = bb.readByte();
     }
 
-    var recepient = bignum.fromBuffer(recepientBuffer).toString();
+    var recipient = bignum.fromBuffer(recipientBuffer).toString();
 
     if (t.type == 1) {
-        t.recipientId = recepient + "D";
+        t.recipientId = recipient + "D";
     } else {
-        t.recipientId = recepient + "C";
+        t.recipientId = recipient + "C";
     }
 
     var amountLong = bb.readLong();
     t.amount = new Long(amountLong.low, amountLong.high, false).toNumber();
-    var feeLong = bb.readLong();
-    t.fee = new Long(feeLong.low, feeLong.high, false).toNumber();
+
+    var blockId = new Buffer(8);
+
+    for (var i = 0; i < 8; i++) {
+        blockId[i] = bb.readByte();
+    }
+
+    t.creationBlockId = bignum.fromBuffer(blockId, { size : '8' }).toString();
 
     if (assetSize > 0) {
         var assetBuffer = new Buffer(assetSize);
@@ -326,22 +333,21 @@ transactionprocessor.prototype.transactionFromBytes = function (bytes) {
 
     t.senderPublicKey = buffer;
 
-    var recepientBuffer = new Buffer(8);
+    var recipientBuffer = new Buffer(8);
 
     for (var i = 0; i < 8; i++) {
-        recepientBuffer[i] = bb.readByte();
+        recipientBuffer[i] = bb.readByte();
     }
 
-    var recepient = bignum.fromBuffer(recepientBuffer).toString();
+    var recipient = bignum.fromBuffer(recipientBuffer).toString();
 
     if (t.type == 1) {
-        t.recipientId = recepient + "D";
+        t.recipientId = recipient + "D";
     } else {
-        t.recipientId = recepient + "C";
+        t.recipientId = recipient + "C";
     }
 
     t.amount = bb.readUint32();
-    t.fee = bb.readUint32();
 
     if (assetSize > 0) {
         var assetBuffer = new Buffer(assetSize);
@@ -377,7 +383,7 @@ transactionprocessor.prototype.transactionFromBytes = function (bytes) {
 transactionprocessor.prototype.transactionFromJSON = function (transaction) {
     try {
         var json = JSON.parse(JSON);
-        return new transaction(json.type, json.id, json.timestamp, json.senderPublicKey, json.recipientId, json.amount, json.fee, json.signature);
+        return new transaction(json.type, json.id, json.timestamp, json.senderPublicKey, json.recipientId, json.amount, json.signature);
     } catch (e) {
         return null;
     }
