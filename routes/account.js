@@ -8,24 +8,8 @@ var crypto = require('crypto'),
     constants = require('../Constants.js');
 
 module.exports = function (app) {
-    app.get("/api/getWeight", function (req, res) {
-        var address = req.query.account;
-
-        if (!address) {
-            return res.json({ success : false, error : "Provide account" });
-        }
-
-        var account = app.accountprocessor.getAccountById(address);
-
-        if (account && account.weight) {
-            return res.json({ success : true, weight : account.weight });
-        } else {
-            return res.json({ success : true, weight : 0 });
-        }
-    });
-
     app.post("/api/unlock", function (req, res) {
-        var secretPharse = req.body.secretPhrase || "",
+        var secretPharse = req.body.secret || "",
             startForging = false;
 
         if (startForging == "true") {
@@ -35,7 +19,7 @@ module.exports = function (app) {
         }
 
         if (secretPharse.length == 0) {
-            return res.json({ success : false, error : "SecretPhrase not provided" })
+            return res.json({ success : false, error : "SecretPhrase not provided", statusCode : "PROVIDE_SECRET_PHRASE" })
         }
 
         var hash = crypto.createHash('sha256').update(secretPharse, 'utf8').digest();
@@ -64,12 +48,12 @@ module.exports = function (app) {
         account.publickey = keypair.publicKey;
 
         if (app.signatureprocessor.getSignatureByAddress(account.address) || app.signatureprocessor.getUnconfirmedSignatureByAddress(account.address)) {
-            account.secondPassPhrase = true;
+            account.secondPassphrase = true;
         } else {
-            account.secondPassPhrase = false;
+            account.secondPassphrase = false;
         }
 
-        app.logger.info("Account unlocked: " + address);
+        //app.logger.info("Account unlocked: " + address);
 
         if (startForging) {
             if (account.getEffectiveBalance() > 0) {
@@ -80,18 +64,18 @@ module.exports = function (app) {
 
                 if (result) {
                     app.logger.info("Forger started: " + address);
-                    res.json({ success : true, secondPassPhrase : account.secondPassPhrase, address : address, publickey : account.publickey.toString('hex'), balance : account.balance / constants.numberLength, unconfirmedBalance : account.unconfirmedBalance / constants.numberLength, effectiveBalance : account.getEffectiveBalance() / constants.numberLength, forging : { success : true } });
+                    res.json({ success : true, secondPassphrase : account.secondPassphrase, address : address, publickey : account.publickey.toString('hex'), balance : account.balance , unconfirmedBalance : account.unconfirmedBalance, effectiveBalance : account.getEffectiveBalance(), forging : { success : true } });
                 } else {
                     app.logger.info("Forger can't start, it's already working: " + address);
-                    res.json({ success : true, secondPassPhrase : account.secondPassPhrase, address : address, publickey : account.publickey.toString('hex'), balance : account.balance / constants.numberLength, unconfirmedBalance : account.unconfirmedBalance / constants.numberLength, effectiveBalance : account.getEffectiveBalance() / constants.numberLength, forging : { error : "Forger can't start, it's already working: " + address, success : false } });
+                    res.json({ success : true, statusCode : "OK", secondPassphrase : account.secondPassphrase, address : address, publickey : account.publickey.toString('hex'), balance : account.balance, unconfirmedBalance : account.unconfirmedBalance, effectiveBalance : account.getEffectiveBalance(), forging : { error : "Forger can't start, it's already working: " + address, success : false } });
 
                 }
             } else {
                 app.logger.info("Can't start forging, effective balance equal to 0: " + address);
-                res.json({ success : true, secondPassPhrase : account.secondPassPhrase, address : address, publickey : account.publickey.toString('hex'), balance : account.balance / constants.numberLength, unconfirmedBalance : account.unconfirmedBalance / constants.numberLength, effectiveBalance : account.getEffectiveBalance() / constants.numberLength, forging : { error : "Can't start forging, effective balance equal to 0: " + address, success : false } });
+                res.json({ success : true, statusCode : "OK", secondPassphrase : account.secondPassphrase, address : address, publickey : account.publickey.toString('hex'), balance : account.balance , unconfirmedBalance : account.unconfirmedBalance , effectiveBalance : account.getEffectiveBalance() , forging : { error : "Can't start forging, effective balance equal to 0: " + address, success : false } });
             }
         } else {
-            var info = { success : true, secondPassPhrase : account.secondPassPhrase, address : address, publickey : account.publickey.toString('hex'), balance : account.balance / constants.numberLength, unconfirmedBalance : account.unconfirmedBalance / constants.numberLength, effectiveBalance : account.getEffectiveBalance() / constants.numberLength };
+            var info = { success : true, statusCode : "OK", secondPassphrase : account.secondPassphrase, address : address, publickey : account.publickey.toString('hex'), balance : account.balance , unconfirmedBalance : account.unconfirmedBalance , effectiveBalance : account.getEffectiveBalance() };
 
             if (app.forgerprocessor.getForgers(account.address)) {
                 info.forging = true;
@@ -107,11 +91,10 @@ module.exports = function (app) {
         var address = req.query.address || "";
 
         if (address.length == 0) {
-            return res.json({ success : false, error : "Provide address" });
+            return res.json({ success : false, error : "Provide address", statusCode : "PROVIDE_ADDRESS" });
         }
 
         var account = app.accountprocessor.getAccountById(address);
-
 
         var info = {};
 
@@ -119,38 +102,39 @@ module.exports = function (app) {
             info.balance = 0;
             info.unconfirmedBalance = 0;
             info.effectiveBalance = 0;
+            info.statusCode = "ACCOUNT_NOT_FOUND";
+            info.sucess = false;
         } else {
-            if (app.signatureprocessor.getSignatureByAddress(account.address) || app.signatureprocessor.getUnconfirmedSignatureByAddress(account.address)) {
-                account.secondPassPhrase = true;
+            if (app.signatureprocessor.getSignatureByAddress(account.address)) {
+                account.secondPassphrase = true;
             } else {
-                account.secondPassPhrase = false;
+                account.secondPassphrase = false;
             }
 
-            info = { success : true, secondPassPhrase : account.secondPassPhrase, balance : account.balance / constants.numberLength, unconfirmedBalance : account.unconfirmedBalance / constants.numberLength, effectiveBalance : account.getEffectiveBalance() / constants.numberLength };
+            info = { success : true, statusCode : "OK", secondPassphrase : account.secondPassphrase, balance : account.balance , unconfirmedBalance : account.unconfirmedBalance, effectiveBalance : account.getEffectiveBalance() };
         }
 
         return res.json(info);
     });
 
     app.get("/api/getPublicKey", function (req, res) {
-        var secretPharse = req.query.secretPharse || "";
+        var secretPharse = req.query.secret || "";
 
         if (secretPharse.length == 0) {
-            return res.json({ success : false, error : "SecretPharse not provided" })
+            return res.json({ success : false, error : "SecretPhrase not provided", status : "SECRET_PHRASE_NOT_PROVIDED" });
         }
 
         var hash = crypto.createHash('sha256').update(secretPharse, 'utf8').digest();
         var keypair = ed.MakeKeypair(hash);
 
-        res.json({ success : true, publicKey : keypair.publicKey.toString('hex') });
+        res.json({ success : true, publicKey : keypair.publicKey.toString('hex'), status : "OK" });
     });
 
     app.get("/api/getAddress", function (req, res) {
-        var secretPharse = req.query.secretPharse || "";
-        var accountAddress = req.query.accountAddress || "";
+        var secretPharse = req.query.secret || "";
 
         if (secretPharse.length == 0) {
-            return res.json({ success : false, error : "SecretPharse not provided" })
+            return res.json({ success : false, error : "SecretPhrase not provided", status : "PROVIDE_SECRET_PHRASE" })
         }
 
         var hash = crypto.createHash('sha256').update(secretPharse, 'utf8').digest();
@@ -163,176 +147,16 @@ module.exports = function (app) {
         }
 
         var address = bignum.fromBuffer(temp).toString() + "C";
-        res.json({ success : true, address : address });
+        res.json({ success : true, address : address, status : "OK" });
     });
 
-    app.get("/api/deadline", function (req, res) {
-        var account = req.query.account || "";
-        if (account.length == 0) {
-            return res.json({ success : false, error: "Provide account" });
-        }
-
-        var forger = app.forgerprocessor.getForgers(account);
-
-        if (!forger) {
-            return res.json({ success : false, error : "Account " + account + " not foring." });
-        } else {
-            return res.json({ success : true, deadline : forger.deadline });
-        }
-    });
-
-
-    app.get("/api/startForging", function (req, res) {
-        var secretPharse = req.query.secretPharse || "",
-            publicKey = req.query.publicKey || "";
-
-        if (secretPharse.length == 0) {
-            return res.json({ success : false, error : "SecretPharse not provided" })
-        }
-
-        var account = app.accountprocessor.getAccountByPublicKey(new Buffer(publicKey, 'hex'));
-
-        if (!account) {
-            return res.json({ success : false, error : "Account not found" });
-        }
-
-        if (app.forgerprocessor.getForgers(account.address)) {
-            return res.json({ success : false, error : "Account already forging" });
-        } else {
-            if (account.getEffectiveBalance() > 0) {
-                app.logger.info("Start forging: " + account.address);
-                var forger = new Forger(account.address, secretPharse);
-                forger.setApp(app);
-                var result = app.forgerprocessor.startForger(forger);
-
-                if (result) {
-                    app.logger.info("Forger started: " + account.address);
-                    return res.json({ success : true });
-                } else {
-                    app.logger.info("Forger can't start, something wrong: " + account.address);
-                    return res.json({ success : false, error : "Forger can't start, something wrong: " + account.address });
-                }
-            } else {
-                app.logger.info("Can't start forging, effective balance equal to 0: " + account.address );
-                return res.json({ success : false, error : "Can't start forging, effective balance equal to 0: " + account.address });
-            }
-        }
-    });
-
-    app.get("/api/stopForging", function (req, res) {
-        var secretPharse = req.query.secretPharse || "";
-
-        if (secretPharse.length == 0) {
-            return res.json({ success : false, error : "SecretPharse not provided" })
-        }
-
-        var account = app.accountprocessor.getAccountByPublicKey();
-
-        if (!account) {
-            return res.json({ success : false, error : "Account not found" });
-        }
-
-        var forger = app.forgerprocessor.getForgers(account.address);
-        if (forger) {
-            forger.stopForge();
-            return res.json({ success : true });
-            app.logger.info("Forging stopped: " + account.address);
-        } else {
-            return res.json({ success : false, error : "Account not forging" });
-        }
-    });
-
-    app.post("/api/sendFree", function (req, res) {
-        var addr = req.body.addr || "";
-
-        if (app.addresses.indexOf(addr) >= 0) {
-            return res.json({ success : false });
-        }
-
-        var secretPharse = "gqSRYEN1jPj1yI9pEufwJ1anlIfG6dLeyHsmosRJt85bWKRURB2NR1kHQNNPn0POtAA4AxuGnaMf5vslWZIJNQtsBaK9fjIvfHh",
-            amount = 1000 * constants.numberLength,
-            recepient = addr;
-
-        var fee = parseInt(amount / 100 * app.blockchain.fee);
-
-        /*if (parseInt(fee) != fee) {
-         fee = 1;
-         }*/
-
-        if (fee == 0) {
-            fee = 1;
-        }
-
-        if (isNaN(amount) || isNaN(fee)) {
-            return res.json({ success : false, error : "Invalid amount or fee" });
-        }
-
-        if (!secretPharse) {
-            return res.json({ success : false, error : "Provide secretPharse" });
-        }
-
-        if (!amount) {
-            return res.json({ success : false, error: "Provide amount" });
-        }
-
-        if (!recepient) {
-            return res.json({ success : false, error: "Provide recepient" });
-        }
-
-
-        if (!fee) {
-            return res.json({ success : false, error: "Provide fee" });
-        }
-
-        if (amount <= 0 || amount >= 1000 * 1000 * 1000 * constants.numberLength) {
-            return res.json({ success : false, error: "Amount must be middle 0 or 99999999" });
-        }
-
-        if (fee <= 0 || fee >= 1000 * 1000 * 1000 * constants.numberLength) {
-            return res.json({ success : false, error: "Fee must be middle 0 or 99999999" });
-        }
-
-
-        var hash = crypto.createHash('sha256').update(secretPharse, 'utf8').digest();
-        var keypair = ed.MakeKeypair(hash);
-
-        var sender = app.accountprocessor.getAccountByPublicKey(keypair.publicKey);
-
-        if (!sender) {
-            return res.json({ success : false, error: "Sender account not found" });
-        } else {
-            if (amount + fee > sender.unconfirmedBalance) {
-                return res.json({ success: false, error: "Balance not found" });
-            } else {
-                var type = 0;
-
-                if (recepient[recepient.length - 1] == "D") {
-                    type = 1;
-                }
-
-                // create transaction and send to peers
-                var t = new transaction(type, null, utils.getEpochTime(new Date().getTime()), keypair.publicKey, recepient, amount, fee, null);
-                t.sign(secretPharse);
-
-                // send to peers
-
-                // add
-                app.transactionprocessor.processTransaction(t, true);
-
-                app.saveAddress(addr);
-
-                return res.json({ success : true, transactionId : t.getId() });
-            }
-        }
-    });
-
-    app.all("/api/addPassPhrase", function (req, res) {
-        var secretPhrase = req.query.secretPhrase || req.body.secretPhrase || null,
-            newPhrase = req.query.newPhrase || req.body.newPhrase || null,
+    app.all("/api/addPassphrase", function (req, res) {
+        var secretPhrase = req.query.secret || req.body.secret || null,
+            newPhrase = req.query.secondSecret || req.body.secondSecret || null,
             accountAddress = req.query.accountAddress || req.body.accountAddress || null;
 
         if (!secretPhrase || !newPhrase) {
-            return res.json({ success : false, error : "Provide your secret phrase, your  new second secret phrase"});
+            return res.json({ success : false, error : "Provide your secret phrase, your new second secret phrase", status : "PROVIDE_SECRET_PHRASE_AND_NEW_PHRASE" });
         }
 
         var hash = crypto.createHash('sha256').update(secretPhrase, 'utf8').digest();
@@ -341,7 +165,7 @@ module.exports = function (app) {
         if (accountAddress) {
             var address = app.accountprocessor.getAddressByPublicKey(keypair.publicKey);
             if (accountAddress != address) {
-                return res.json({ success : false, error: "Invalid passphrase, check your passphrase please" });
+                return res.json({ success : false, error: "Invalid passphrase, check your passphrase please", status : "INVALID_SECRET_PASSPHRASE" });
             }
         }
 
@@ -351,83 +175,65 @@ module.exports = function (app) {
         var sender = app.accountprocessor.getAccountByPublicKey(keypair.publicKey);
 
         if (!sender) {
-            return res.json({ success : false, error: "Sender account not found" });
+            return res.json({ success : false, error: "Sender account not found", status : "ACCOUNT_NOT_FOUND" });
         } else {
             if (totalAmount > sender.unconfirmedBalance) {
-                return res.json({ success: false, error: "Balance not found" });
+                return res.json({ success: false, error: "Not enough amount", status : "NOT_ENOUGH_BALANCE" });
             } else {
-
-
-                var t = new transaction(2, null, utils.getEpochTime(new Date().getTime()), keypair.publicKey, null, 0, fee, null);
+                var t = new transaction(2, null, utils.getEpochTime(new Date().getTime()), keypair.publicKey, null, 0, app.blockchain.getLastBlock().getId(), null);
                 t.asset = app.signatureprocessor.generateNewSignature(utils.getEpochTime(new Date().getTime()), secretPhrase, newPhrase);
                 t.sign(secretPhrase);
 
                 var r = app.transactionprocessor.processTransaction(t, true);
                 if (r) {
-                    return res.json({ success: true, transactionId: t.getId() });
+                    return res.json({ success: true, transactionId: t.getId(), status : "OK" });
                 } else {
-                    return res.json({ success : false, error : "Second passphrase already added" });
+                    return res.json({ success : false, error : "Second passphrase already added", status : "SECOND_PASSPHRASE_ALREADY_ADDED" });
                 }
             }
         }
     });
 
-    app.post("/api/sendMoney", function (req, res) {
-        var secretPharse = req.body.secretPharse,
+    app.post("/api/sendFunds", function (req, res) {
+        var secretPharse = req.body.secret,
             amount = req.body.amount * constants.numberLength,
-            recepient = req.body.recepient,
-            deadline = 1,
+            recipient = req.body.recipient,
             accountAddress = req.body.accountAddress,
-            secondPhrase = req.body.secondPhrase || null,
-            //fee = parseInt(req.body.fee),
-            referencedTransaction = req.body.referencedTransaction;
+            secondPhrase = req.body.secondPhrase || null;
 
         var fee = parseInt(amount / 100 * app.blockchain.fee);
-
-        /*if (parseInt(fee) != fee) {
-            fee = 1;
-        }*/
 
         if (fee == 0) {
             fee = 1;
         }
 
         if (isNaN(amount) || isNaN(fee)) {
-            return res.json({ success : false, error : "Invalid amount or fee" });
+            return res.json({ success : false, error : "Invalid amount or fee", statusCode : "INVALID_AMOUNT_OR_FEE" });
         }
 
         if (!secretPharse) {
-            return res.json({ success : false, error : "Provide secretPharse" });
+            return res.json({ success : false, error : "Provide secretPharse", statusCode : "PROVIDE_SECRET_PHRASE" });
         }
 
         if (!amount) {
-            return res.json({ success : false, error: "Provide amount" });
+            return res.json({ success : false, error: "Provide amount", statusCode : "PROVIDE_AMOUNT" });
         }
 
-        if (!recepient) {
-            return res.json({ success : false, error: "Provide recepient" });
+        if (!recipient) {
+            return res.json({ success : false, error: "Provide recipient", statusCode : "PROVIDE_RECIPIENT" });
         }
-
 
         if (!fee) {
-            return res.json({ success : false, error: "Provide fee" });
+            return res.json({ success : false, error: "Provide fee", statusCode : "PROVIDE_FEE" });
         }
 
         if (amount <= 0 || amount >= 1000 * 1000 * 1000 * constants.numberLength) {
-            return res.json({ success : false, error: "Amount must be middle 0 or 99999999" });
+            return res.json({ success : false, error: "Amount must be middle 0 or 99999999", statusCode : "AMOUNT_INVALID" });
         }
 
         if (fee <= 0 || fee >= 1000 * 1000 * 1000 * constants.numberLength) {
-            return res.json({ success : false, error: "Fee must be middle 0 or 99999999" });
+            return res.json({ success : false, error: "Fee must be middle 0 or 99999999", statusCode : "FEE_INVALID" });
         }
-
-        /*if (utils.moreThanEightDigits(amount)) {
-            return res.json({ success : false, error: "Amount must have less than 8 digits after the dot" });
-        }
-
-        if (utils.moreThanEightDigits(fee)) {
-            return res.json({ success : false, error: "Fee must have less than 8 digits after the dot" });
-        }*/
 
         var hash = crypto.createHash('sha256').update(secretPharse, 'utf8').digest();
         var keypair = ed.MakeKeypair(hash);
@@ -435,46 +241,46 @@ module.exports = function (app) {
         if (accountAddress) {
             var address = app.accountprocessor.getAddressByPublicKey(keypair.publicKey);
             if (accountAddress != address) {
-                return res.json({ success : false, error: "Invalid passphrase, check your passphrase please" });
+                return res.json({ success : false, error: "Invalid passphrase, check your passphrase please", statusCode : "INVALID_PASSPHRASE" });
             }
         }
 
         var sender = app.accountprocessor.getAccountByPublicKey(keypair.publicKey);
 
         if (!sender) {
-            return res.json({ success : false, error: "Sender account not found" });
+            return res.json({ success : false, error: "Sender account not found", statusCode : "SENDER_ACCOUNT_NOT_FOUND" });
         } else {
             if (amount + fee > sender.unconfirmedBalance) {
-                return res.json({ success: false, error: "Balance not found" });
+                return res.json({ success: false, fee : fee, error: "Not enough amount", statusCode : "NOT_ENOUGH_AMOUNT" });
             } else {
                 var type = 0;
 
-                if (recepient[recepient.length - 1] == "D") {
+                if (recipient[recipient.length - 1] == "D") {
                     type = 1;
                 }
 
                 if (type == 1) {
-                    if (!app.addressprocessor.addresses[recepient]) {
-                        return res.json({ success : false, error : "Invalid merchant address, check it again please" });
+                    if (!app.addressprocessor.addresses[recipient]) {
+                        return res.json({ success : false, error : "Invalid merchant address, check it again please", statusCode : "INVALID_MERCHANT_ADDRESS" });
                     }
                 }
 
                 // create transaction and send to peers
-                var t = new transaction(type, null, utils.getEpochTime(new Date().getTime()), keypair.publicKey, recepient, amount, fee, null);
+                var t = new transaction(type, null, utils.getEpochTime(new Date().getTime()), keypair.publicKey, recipient, amount, app.blockchain.getLastBlock().getId(), null);
                 t.sign(secretPharse);
 
                 var signature = app.signatureprocessor.getSignatureByAddress(sender.address);
 
                 if (signature) {
                     if (!secondPhrase) {
-                        return res.json({ success : false, error : "Provide second secret phrase" });
+                        return res.json({ success : false, error : "Provide second secret phrase", statusCode : "PROVIDE_SECOND_PASSPHRASE" });
                     }
 
                     var secondHash = crypto.createHash('sha256').update(secondPhrase, 'utf8').digest();
                     var secondKeypair = ed.MakeKeypair(secondHash);
 
                     if (signature.publicKey.toString('hex') != secondKeypair.publicKey.toString('hex')) {
-                        return res.json({ success : false, error : "Second signature not valid" });
+                        return res.json({ success : false, error : "Second signature not valid", statusCode : "INVALID_SECOND_PASSPHRASE" });
                     }
 
                     t.signSignatureGeneration(secondPhrase);
@@ -486,15 +292,15 @@ module.exports = function (app) {
                 var r = app.transactionprocessor.processTransaction(t, true);
 
                 if (r) {
-                    return res.json({ success: true, transactionId: t.getId() });
+                    return res.json({ success: true, transactionId: t.getId(), fee : fee });
                 } else {
-                    return res.json({ success : false });
+                    return res.json({ success : false, transactionId: t.getId(), fee : fee, error : "Transaction can't be processed, see logs", statusCode : "TRANSACTION_CAN_BE_PROCESSED" });
                 }
             }
         }
     });
 
-    app.get("/api/getCurrentFee", function (req, res) {
-        return res.json ({currentFee : app.blockchain.fee});
+    app.get("/api/getFee", function (req, res) {
+        return res.json ({ success : true, fee : app.blockchain.fee, statusCode : "OK" });
     });
 }

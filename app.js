@@ -49,6 +49,21 @@ app.configure(function () {
     }
     app.use(express.json());
     app.use(express.urlencoded());
+
+    app.use(function (req, res, next) {
+        var url = req.path.split('/');
+
+        if (url[1] == 'peer') {
+            var ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+            var port = config.get('port');
+
+            var newPeer = new peer(ip, port);
+            app.peerprocessor.addPeer(newPeer);
+        }
+
+        next();
+    });
+
     app.use(app.router);
 });
 
@@ -127,14 +142,26 @@ async.series([
     function (cb) {
         logger.getInstance().info("Initializing forger processor...");
         app.forgerprocessor = forgerprocessor.init(app);
-        app.synchronizedBlock = false;
+        app.synchronizedBlocks = false;
         app.synchronizedPeers = false;
         app.synchronizedRequests = false;
 
         logger.getInstance().info("Initialize forger...");
         // get public key
 
-        var forgerPassphrase = config.get("forging").secretPhrase;
+        var forgerPassphrase = config.get("forging");//.secretPhrase;
+
+        if (!forgerPassphrase) {
+            logger.getInstance().info("Provide secret phrase to start forging...");
+            return cb();
+        }
+
+        forgerPassphrase = forgerPassphrase.secretPhrase;
+
+        if (forgerPassphrase.length == 0) {
+            logger.getInstance().info("Provide secret phrase to start forging...");
+            return cb();
+        }
 
         if (forgerPassphrase && forgerPassphrase.length > 0) {
             var keypair = app.accountprocessor.getKeyPair(forgerPassphrase);
@@ -188,7 +215,7 @@ async.series([
                                 } else {
                                     var transactions = [];
                                     async.eachSeries(rows, function (t, _c) {
-                                        var tr = new transaction(t.type, t.id, t.timestamp, new Buffer(t.senderPublicKey, 'hex'), t.recepient, t.amount, t.fee, new Buffer(t.signature, 'hex'));
+                                        var tr = new transaction(t.type, t.id, t.timestamp, new Buffer(t.senderPublicKey, 'hex'), t.recipient, t.amount, t.creationBlockId, new Buffer(t.signature, 'hex'));
 
                                         if (t.signSignature) {
                                             tr.signSignature = new Buffer(t.signSignature, 'hex');
@@ -207,8 +234,6 @@ async.series([
                                                     $transactionId: t.id
                                                 });
                                                 req.get(function (err, asset) {
-                                                    console.log(err);
-                                                    console.log(asset);
                                                     if (err) {
                                                         _c(err);
                                                     } else {
@@ -269,9 +294,8 @@ async.series([
                                                            var requests = [];
                                                            async.eachSeries(rows, function (r, _c) {
                                                                var request = new Request(null, r.blockId, r.ip, new Buffer(r.publicKey, 'hex'), r.lastAliveBlock, new Buffer(r.signature, 'hex'));
-                                                               var address = app.accountprocessor.getAccountByPublicKey(request.publicKey).address;
+                                                               var address = app.accountprocessor.getAddressByPublicKey(request.publicKey);
                                                                requests.push(request);
-                                                               app.requestprocessor.unconfirmedRequests[address] = request;
                                                                _c();
                                                            }.bind(this), function (err) {
                                                               if (err) {
@@ -281,11 +305,22 @@ async.series([
                                                                b.requests = requests;
 
                                                                if (b.getId() == genesisblock.blockId) {
+
+                                                                   var r = b.requests[0];
+
+                                                                   if (r.getId() == genesisblock.genesisRequest) {
+                                                                       app.requestprocessor.confirmedRequests[app.accountprocessor.getAddressByPublicKey(r.publicKey)] = [r];
+                                                                   }
+
+
                                                                    var a = b.analyze();
 
                                                                    if (!a) {
                                                                        c("Can't process block: " + b.getId());
                                                                    } else {
+                                                                       app.blockchain.blocks[b.getId()] = b;
+                                                                       app.blockchain.lastBlock = b.getId();
+
                                                                        c();
                                                                    }
                                                                } else {
@@ -365,53 +400,9 @@ async.series([
         });
     },
     function (cb) {
-        logger.getInstance().info("Scanning peers...");
-        var peers = [];
-        peers = app.peerprocessor.getPeersAsArray();
-
-        async.eachSeries(peers, function (p, callback) {
-            p.getPeers(function (err, peersJSON) {
-                if (err) {
-                    //app.peerprocessor.removePeer(p.ip);
-                    callback();
-                } else {
-                    var ps = [];
-
-                    try {
-                        ps = JSON.parse(peersJSON).peers;
-                    } catch (e) {
-                        return callback();
-                    }
-
-                    if (ps) {
-                        for (var i = 0; i < ps.length; i++) {
-                            var pr = ps[i];
-                            if (!pr.ip || isNaN(parseInt(pr.port)) || !pr.version || !pr.platform) {
-                                return callback();
-                            }
-
-                            var newPeer = new peer(ps[i].ip, ps[i].port, ps[i].platform, ps[i].version);
-
-                            if (!app.peerprocessor.peers[newPeer.ip]) {
-                                app.peerprocessor.addPeer(newPeer);
-                            }
-                        }
-
-                        callback();
-                    } else {
-                        return callback();
-                    }
-                }
-            });
-        }, function () {
-
-            cb();
-        });
-    },
-    function (cb) {
         logger.getInstance().info("Starting intervals...");
+
         var peersRunning = false;
-        // peers
         setInterval(function () {
             if (peersRunning) {
                 return;
@@ -462,7 +453,7 @@ async.series([
 
         var requestsInterval = false;
         setInterval(function () {
-            if (requestsInterval || app.synchronizedBlock) {
+            if (requestsInterval || !app.synchronizedBlocks) {
                 return;
             }
 
@@ -493,7 +484,12 @@ async.series([
                                    var r = app.requestprocessor.fromJSON(item);
                                    delete r.blockId;
 
-                                   var added = app.requestprocessor.processRequest(r);
+                                   try {
+                                       var added = app.requestprocessor.processRequest(r);
+                                   } catch (e) {
+                                       // баним адрес
+                                   }
+
                                    c();
                                }, function () {
                                    next(true);
@@ -558,16 +554,21 @@ async.series([
                                     logger.getInstance().info("Load block from peer: " + b.getId() + ", height: " + b.height);
                                     var transactions = [];
                                     async.eachSeries(item.trs, function (t, _c) {
-                                        var tr = new transaction(t.type, t.id, t.timestamp, new Buffer(t.senderPublicKey, 'hex'), t.recepient, t.amount, t.fee, new Buffer(t.signature, 'hex'));
+                                        var tr = new transaction(t.type, t.id, t.timestamp, new Buffer(t.senderPublicKey, 'hex'), t.recipient, t.amount, t.creationBlockId, new Buffer(t.signature, 'hex'));
 
                                         if (t.signSignature) {
                                             tr.signSignature = new Buffer(t.signSignature, 'hex');
                                         }
 
-                                        if (tr.type == 2) {
-                                            if (tr.subtype == 0) {
-                                                tr.asset = signatureprocessor.fromJSON(t.asset);
-                                            }
+                                        console.log(t);
+                                        switch (tr.type) {
+                                            case 2:
+                                                switch (tr.subtype) {
+                                                    case 0:
+                                                        tr.asset = app.signatureprocessor.fromJSON(t.asset);
+                                                        break;
+                                                }
+                                                break;
                                         }
 
                                         if (!tr.verify()) {
@@ -603,12 +604,8 @@ async.series([
                                             var requests = [];
                                             async.eachSeries(item.requests, function (r, _c) {
                                                 var request = new Request(null, r.blockId, r.ip, new Buffer(r.publicKey, 'hex'), r.lastAliveBlock, new Buffer(r.signature, 'hex'));
-                                                var address = app.accountprocessor.getAccountByPublicKey(request.publicKey).address;
+                                                var address = app.accountprocessor.getAddressByPublicKey(request.publicKey);
                                                 requests.push(request);
-
-                                                if (!app.requestprocessor.unconfirmedRequests[address]) {
-                                                    app.requestprocessor.unconfirmedRequests[address] = request;
-                                                }
                                                 _c();
                                             }.bind(this), function (err) {
                                                 if (err) {
@@ -642,6 +639,7 @@ async.series([
                                                 }
 
                                                 if (!a) {
+                                                    app.peerprocessor.blockPeer(p.ip);
                                                     c("Can't process block: " + b.getId());
                                                 } else {
                                                     c();
@@ -653,6 +651,7 @@ async.series([
                                     if (err) {
                                         app.logger.error(err);
                                         //app.peerprocessor.removePeer(p.ip);
+                                        app.peerprocessor.blockPeer(p.ip);
                                         p = app.peerprocessor.getAnyPeer();
                                         return next(true);
                                     }
@@ -666,7 +665,7 @@ async.series([
                                     }
                                 });
                             } else {
-                                app.peerprocessor.removePeer(p.ip);
+                                app.peerprocessor.blockPeer(p.ip);
                                 p = app.peerprocessor.getAnyPeer();
                                 next(true);
                             }
@@ -687,7 +686,7 @@ async.series([
 
         var unconfirmedTransactonsInterval = false;
         setInterval(function () {
-            if (unconfirmedTransactonsInterval) {
+            if (unconfirmedTransactonsInterval || app.synchronizedBlocks) {
                 return;
             }
 
@@ -716,13 +715,14 @@ async.series([
                             answer = JSON.parse(trs);
                         } catch (e) {
                             //app.peerprocessor.removePeer(p.ip);
+                            app.peerprocessor.blockPeer(p.ip);
                             p = app.peerprocessor.getAnyPeer();
                             return next(true);
                         }
 
                         if (answer.success) {
                             async.eachSeries(answer.transactions, function (t, cb) {
-                                var tr = new transaction(t.type, t.id, t.timestamp, new Buffer(t.senderPublicKey, 'hex'), t.recipientId, t.amount, t.fee, new Buffer(t.signature, 'hex'));
+                                var tr = new transaction(t.type, t.id, t.timestamp, new Buffer(t.senderPublicKey, 'hex'), t.recipientId, t.amount, t.creationBlockId, new Buffer(t.signature, 'hex'));
 
                                 if (t.signSignature) {
                                     tr.signSignature = new Buffer(t.signSignature, 'hex');
@@ -736,18 +736,33 @@ async.series([
                                     return cb();
                                 }
 
-                                var r = app.transactionprocessor.processTransaction(tr);
+                                switch (tr.type) {
+                                    case 2:
+                                        switch (tr.subtype) {
+                                            case 0:
+                                                tr.asset = app.signatureprocessor.fromJSON(t.asset);
+                                                break;
+                                        }
+                                        break;
+                                }
 
+                                try {
+                                    var r = app.transactionprocessor.processTransaction(tr);
+                                } catch (e) {
+                                    r = false;
+                                }
 
                                 if (r) {
                                     cb();
                                 } else {
+                                    app.peerprocessor.blockPeer(p.ip);
                                     cb("Can't process transaction " + tr.getId() + " from " + p.ip);
                                 }
                             }, function (err) {
                                 if (err) {
                                     app.logger.error(err);
                                     //app.peerprocessor.removePeer(p.ip);
+                                    app.peerprocessor.blockPeer(p.ip);
                                     p = app.peerprocessor.getAnyPeer();
                                     return next(true);
                                 }
@@ -813,7 +828,11 @@ async.series([
                                     return cb();
                                 }
 
-                                var r = app.addressprocessor.processAddress(addr);
+                                try {
+                                    var r = app.addressprocessor.processAddress(addr);
+                                } catch (e) {
+                                    r = false;
+                                }
                                 if (r) {
                                     cb();
                                 } else {
@@ -821,7 +840,7 @@ async.series([
                                 }
                             }, function (err) {
                                 if (err) {
-                                    //app.peerprocessor.removePeer(p.ip);
+                                    app.peerprocessor.blockPeer(p.ip);
                                     p = app.peerprocessor.getAnyPeer();
                                     return next(true);
                                 }
@@ -829,7 +848,7 @@ async.series([
                                 return next(true);
                             });
                         } else {
-                            //app.peerprocessor.removePeer(p.ip);
+                            app.peerprocessor.blockPeer(p.ip);
                             p = app.peerprocessor.getAnyPeer();
                             return next(true);
                         }
@@ -853,20 +872,6 @@ async.series([
     } else {
         app.listen(app.get('port'), app.get('address'), function () {
             logger.getInstance().info("Crypti started: " + app.get("address") + ":" + app.get("port"));
-
-            app.use("*", function (req, res, next) {
-                var url = req.path.split('/');
-
-                if (url[1] == 'peer') {
-                    var ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
-                    var port = config.get('port');
-
-                    var newPeer = new peer(ip, port);
-                    app.peerprocessor.addPeer(newPeer);
-                }
-
-                next();
-            });
 
             if (config.get("serveHttpAPI")) {
                 routes(app);

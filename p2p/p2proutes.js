@@ -53,7 +53,12 @@ module.exports = function (app) {
 
         var r = new Request(null, null, ip, new Buffer(request.publicKey, 'hex'), request.lastAliveBlock, new Buffer(request.signature, 'hex'));
 
-        var added = app.requestprocessor.processRequest(r, true);
+        try {
+            var added = app.requestprocessor.processRequest(r, true);
+        } catch (e) {
+            added = false;
+        }
+
 
         if (added) {
             console.log("request processed");
@@ -132,7 +137,7 @@ module.exports = function (app) {
                                             if (err) {
                                                 cb(err);
                                             } else {
-                                                trs.asset = asset;
+                                                t.asset = asset;
                                                 cb();
                                             }
                                         });
@@ -181,6 +186,10 @@ module.exports = function (app) {
     });
 
     app.get('/peer/getUnconfirmedTransactions', function (req, res) {
+        if (!app.synchronizedBlocks) {
+            return res.json({ success : false, transactions : [] });
+        }
+
         var results = [];
         for (var t in app.transactionprocessor.unconfirmedTransactions) {
             results.push(app.transactionprocessor.unconfirmedTransactions[t].toJSON());
@@ -190,6 +199,10 @@ module.exports = function (app) {
     });
 
     app.get('/peer/getUnconfirmedAddresses', function (req, res) {
+        if (!app.synchronizedBlocks) {
+            return res.json({ success : false, addresses : [] });
+        }
+
         var addresses = [];
         for (var t in app.addressprocessor.unconfirmedAddresses) {
             addresses.push(app.addressprocessor.unconfirmedAddresses[t].toJSON());
@@ -199,6 +212,10 @@ module.exports = function (app) {
     });
 
     app.get("/peer/processUnconfirmedTransaction", function (req, res) {
+        if (!app.synchronizedBlocks) {
+            return res.json({ success : false, accepted : false });
+        }
+
         var t = null;
 
         try {
@@ -207,29 +224,38 @@ module.exports = function (app) {
             return res.json({ success : false, error : "JSON parser error" });
         }
 
-        var tr = new Transaction(t.type, null, t.timestamp, new Buffer(t.senderPublicKey, 'hex'), t.recipientId, t.amount, t.fee, new Buffer(t.signature, 'hex'));
+        var tr = new Transaction(t.type, null, t.timestamp, new Buffer(t.senderPublicKey, 'hex'), t.recipientId, t.amount, t.creationBlockId, new Buffer(t.signature, 'hex'));
 
         switch (t.type) {
             case 2:
                 switch (t.subtype) {
                     case 0:
-                        tr.asset = signatureprocessor.fromJSON(t.asset);
+                        tr.asset = app.signatureprocessor.fromJSON(t.asset);
                         break;
                 }
                 break;
         }
 
 
-        var r = app.transactionprocessor.processTransaction(tr, true);
+        try {
+            var r = app.transactionprocessor.processTransaction(tr, true);
+        } catch (e) {
+            r = false;
+        }
 
         if (r) {
             return res.json({ success : true, accepted : true });
         } else {
+            app.peerprocessor.blockPeer(req.headers['x-forwarded-for'] || req.connection.remoteAddress);
             return res.json({ success : false, accepted : false });
         }
     });
 
     app.get("/peer/processUnconfirmedAddress", function (req, res) {
+        if (!app.synchronizedBlocks) {
+            return res.json({ success : false, accepted : false });
+        }
+
         var a = null;
 
         try {
@@ -239,15 +265,26 @@ module.exports = function (app) {
         }
 
         var addr = new Address(a.version, a.id, new Buffer(a.generatorPublicKey, 'hex'), new Buffer(a.publicKey, 'hex'), a.timestamp, new Buffer(a.signature, 'hex'), new Buffer(a.accountSignature, 'hex'));
-        var r = app.addressprocessor.processAddress(addr);
+
+        try {
+            var r = app.addressprocessor.processAddress(addr);
+        } catch (e) {
+            r = false;
+        }
+
         if (r) {
             return res.json({ success : true, accepted : true });
         } else {
+            app.peerprocessor.blockPeer(req.headers['x-forwarded-for'] || req.connection.remoteAddress);
             return res.json({ success : false, accepted : false });
         }
     });
 
     app.get("/peer/processBlock", function (req, res) {
+        if (!app.synchronizedBlocks) {
+            return res.json({ success : false, accepted : false });
+        }
+
         var b = null;
         try {
             b = JSON.parse(req.query.block);
@@ -266,9 +303,19 @@ module.exports = function (app) {
         var transactions = [];
         for (var i = 0; i < b.transactions.length; i++) {
             var t = b.transactions[i];
-            var transaction = new Transaction(t.type, null, t.timestamp, new Buffer(t.senderPublicKey, 'hex'), t.recipientId, t.amount, t.fee, new Buffer(t.signature, 'hex'));
+            var transaction = new Transaction(t.type, null, t.timestamp, new Buffer(t.senderPublicKey, 'hex'), t.recipientId, t.amount, t.creationBlockId, new Buffer(t.signature, 'hex'));
             if (t.signSignature) {
                 transaction.signSignature = new Buffer(t.signSignature, 'hex');
+
+                switch (transaction.type) {
+                    case 2:
+                        switch (transaction.subtype) {
+                            case 0:
+                                transaction.asset = app.signatureprocessor.fromJSON(t.asset);
+                                break;
+                        }
+                        break;
+                }
             }
 
             transactions.push(transaction);
@@ -311,6 +358,11 @@ module.exports = function (app) {
             this.app.logger.error(e.toString());
         }
 
-        return res.json({ success : true, accepted : r });
+        if (r) {
+            return res.json({ success: true, accepted: true });
+        } else {
+            app.peerprocessor.blockPeer(req.headers['x-forwarded-for'] || req.connection.remoteAddress);
+            return res.json({ success : false, accepted : false });
+        }
     });
 }

@@ -4,6 +4,173 @@ var async = require('async'),
     utils = require('../utils.js');
 
 module.exports = function (app) {
+    var getFee = function (item) {
+        var fee = 0;
+        switch (item.type) {
+            case 0:
+            case 1:
+                switch (item.subtype) {
+                    case 0:
+                        fee = parseInt(item.amount / 100 * app.blockchain.fee);
+
+                        if (fee == 0) {
+                            fee = 1;
+                        }
+                        break;
+                }
+                break;
+
+            case 2:
+                switch (item.subtype) {
+                    case 0:
+                        fee = 100 * Constants.numberLength;
+                        break;
+                }
+                break;
+        }
+
+        return fee;
+    }
+
+    app.get("/api/getBlock", function (req, res) {
+        var blockId = req.query.blockId || "";
+
+        if (blockId.length == 0) {
+            return res.json({ success : false, error : "Provide block id", status : "PROVID_BLOCK_ID" });
+        }
+
+        app.db.sql.all("SELECT * FROM blocks WHERE id=? LIMIT 1", [blockId], function (err, rows) {
+            if (err) {
+                app.logger.error(err);
+                return res.json({ success : false, success : false, error : "Sql error", status : "SQL_ERROR" });
+            } else {
+                async.forEach(rows, function (item, callback) {
+                    item.timestamp += utils.epochTime();
+                    item.generator = app.accountprocessor.getAddressByPublicKey(new Buffer(item.generatorPublicKey, 'hex'));
+
+                    app.db.sql.all("SELECT * FROM trs WHERE blockId='" + item.id + "'", function (err, rows) {
+                        if (err) {
+                            callback(err);
+                        } else {
+                            item.transactions = rows;
+
+                            async.forEach(item.transactions, function (t, cb) {
+                                t.timestamp += utils.epochTime();
+                                t.sender = app.accountprocessor.getAddressByPublicKey(new Buffer(t.senderPublicKey, 'hex'));
+                                cb();
+                            }, function () {
+                                app.db.sql.all("SELECT * FROM addresses WHERE blockId='" + item.id + "'", function (err, rows) {
+                                    if (err) {
+                                        callback(err);
+                                    } else {
+                                        item.addresses = rows;
+
+                                        async.forEach(item.addresses, function (a, c) {
+                                            a.generator = app.accountprocessor.getAddressByPublicKey(new Buffer(a.generatorPublicKey, 'hex'));
+                                            a.address = app.accountprocessor.getAddressByPublicKey(new Buffer(a.publicKey, 'hex'));
+                                            c();
+                                        }, function () {
+                                            callback();
+                                        });
+                                    }
+                                });
+                            });
+                        }
+                    });
+                }, function (err) {
+                    if (err) {
+                        app.logger.error(err);
+                        return res.json({ success : false, status : "SQL_ERROR", error : "Sql error" });
+                    }
+
+                    return res.json({ success : true, blocks : rows, status : "OK" });
+                });
+            }
+        });
+    });
+
+    app.get("/api/getTransaction", function (req, res) {
+        var transactionId = req.query.transactionId || "";
+
+        if (transactionId.length == 0) {
+            return res.json({ success : false, error : "Provide transaction id", status : "Provide transaction id" });
+        }
+
+        app.db.sql.get("SELECT * FROM trs WHERE id=? LIMIT 1", [transactionId], function (err, t) {
+            if (err) {
+                return res.json({ success : false, status : "SQL_ERROR", error : "Sql error"});
+            } else {
+                if (t) {
+                    var blockId = t.blockId;
+                    t.confirmations = app.blockchain.getLastBlock().height - app.blockchain.blocks[blockId].height;
+                    t.sender = app.accountprocessor.getAddressByPublicKey(new Buffer(е.senderPublicKey, 'hex'));
+                    t.timestamp += utils.epochTime();
+                    t.confirmed = true;
+
+                    return res.json({ success : true, transaction : t, status : "OK" });
+                } else {
+                    t = app.transactionprocessor.unconfirmedTransactions[transactionId];
+
+                    if (t) {
+                        t.sender = app.accountprocessor.getAddressByPublicKey(t.senderPublicKey);
+                        t = t.toJSON();
+                        t.timestamp += utils.epochTime();
+                        t.confirmed = false;
+                        t.fee = getFee(t);
+
+                        return res.json({ success : true, status : "OK", transaction : t});
+                    } else {
+                        return res.json({ success : false, status : "TRANSACTION_NOT_FOUND", error : "Transaction not found" })
+                    }
+                }
+            }
+        });
+    });
+
+    app.get("/api/getTransactionBlock", function (req, res) {
+        var transactionId = req.query.transactionId || "";
+
+        if (transactionId.length == 0) {
+            return res.json({ success : false, error : "Provide transaction id", status : "Provide transaction id" });
+        }
+
+        app.db.sql.get("SELECT * FROM trs WHERE id=? LIMIT 1", [transactionId], function (err, t) {
+            if (err) {
+                return res.json({ success: false, status: "SQL_ERROR", error: "Sql error"});
+            } else {
+                if (t) {
+                    var blockId = t.blockId;
+
+                    return res.json({ success : true, status : "OK", blockId : blockId });
+                } else {
+                    return res.json({ success : false, status : "TRANSACTION_NOT_FOUND", status : "OK" });
+                }
+            }
+        });
+    });
+
+    app.get("/api/getTransactionConfirmations", function (req, res) {
+        var transactionId = req.query.transactionId || "";
+
+        if (transactionId.length == 0) {
+            return res.json({ success : false, error : "Provide transaction id", status : "Provide transaction id" });
+        }
+
+        app.db.sql.get("SELECT * FROM trs WHERE id=? LIMIT 1", [transactionId], function (err, t) {
+            if (err) {
+                return res.json({ success : false, status : "SQL_ERROR", error : "Sql error"});
+            } else {
+                if (t) {
+                    var blockId = t.blockId;
+                    var confirmations = app.blockchain.getLastBlock().height - app.blockchain.blocks[blockId].height;
+                    return res.json({ success : true, confirmations : confirmations, status : "OK" });
+                } else {
+                    return res.json({ success : false, status : "TRANSACTION_NOT_FOUND", error : "Transaction not found" });
+                }
+            }
+        });
+    });
+
     app.get('/api/getAddressesByAccount', function (req, res) {
         var accountId = req.query.accountId || "";
 
@@ -47,26 +214,38 @@ module.exports = function (app) {
         });
     });
 
-    app.get('/api/getAllTransactions', function (req, res) {
-        var accountId = req.query.accountId || "";
+    app.get('/api/getAddressTransactions', function (req, res) {
+        var accountId = req.query.address || 20,
+            limit = req.query.limit || "",
+            desc = req.query.descOrder || "";
 
         var account = app.accountprocessor.getAccountById(accountId);
         if (!account) {
-            return res.json({ success : false, transactions: [] });
+            return res.json({ success : false, transactions: [], statusCode : "ACCOUNT_NOT_FOUND" });
         }
 
-        if (!account.publickey) {
-            return res.json({ success : false, transactions: [] });
+        limit = parseInt(limit);
+
+        if (isNaN(limit)) {
+            limit = 100;
+        } else if (limit <= 0) {
+            return res.json({ success : false, status : "INVALID_LIMIT", error : "Invalid limit" });
         }
 
-        var publicKey = account.publickey.toString('hex');
+        if (desc == "true") {
+            desc = "DESC";
+        } else {
+            desc = "ASC";
+        }
 
-        var q = app.db.sql.prepare("SELECT * FROM trs WHERE (recepient=? OR senderPublicKey=? OR recepient IN (SELECT id FROM addresses WHERE generatorPublicKey=?)) ORDER BY timestamp DESC");
-        q.bind([accountId, publicKey, publicKey]);
+        var q = app.db.sql.prepare("SELECT * FROM trs WHERE (recipient=$accountId OR sender=$accountId) ORDER BY timestamp "  + desc + " LIMIT " + limit);
+        q.bind({
+            $accountId : accountId
+        });
         q.all(function (err, rows) {
             if (err) {
                 app.logger.error(err);
-                return res.json({ success : false, error : "Sql error" });
+                return res.json({ success : false, error : "Sql error, see logs for more info", statusCode : "SQL_ERROR" });
             } else {
                 if (!rows) {
                     rows = [];
@@ -81,23 +260,28 @@ module.exports = function (app) {
                         item.confirmations = app.blockchain.getLastBlock().height - app.blockchain.blocks[blockId].height;
                         item.sender = app.accountprocessor.getAddressByPublicKey(new Buffer(item.senderPublicKey, 'hex'));
                         item.timestamp += utils.epochTime();
+                        item.confirmed = true;
+
                         transactions.push(item);
                         cb();
                     }
                 }, function () {
                     var unconfirmedTransactions = _.map(app.transactionprocessor.unconfirmedTransactions, function (v) { return _.extend({}, v) });
                     async.eachSeries(unconfirmedTransactions, function (item, с) {
-                        if (item.recipientId == accountId || item.senderPublicKey.toString('hex') == publicKey || (item.type == 1 && app.addressprocessor.addresses[item.recipientId].generatorPublicKey.toString('hex') == publicKey)) {
+                        item.sender = app.accountprocessor.getAddressByPublicKey(item.senderPublicKey);
+                        if (item.recipientId == accountId || item.sender ==  accountId) {
                             item.timestamp += utils.epochTime();
-                            item.sender = app.accountprocessor.getAddressByPublicKey(new Buffer(item.senderPublicKey, 'hex'));
                             item.confirmations = "-";
-                            item.recepient = item.recipientId;
-                            transactions.unshift(item);
+                            item.recipient = item.recipientId;
+                            item.confirmed = false;
+                            item.fee = getFee(item);
+
+                            transactions.unshift(item.toJSON());
                         }
 
                         с();
                     }, function () {
-                        return res.json({ success : true, transactions : transactions });
+                        return res.json({ success : true, statusCode : "OK", transactions : transactions });
                     });
                 });
             }
@@ -105,28 +289,37 @@ module.exports = function (app) {
     });
 
     app.get("/api/getReceivedTransactionsByAddress", function (req, res) {
-        var accountId = req.query.accountId || "";
-        var q = app.db.sql.prepare("SELECT * FROM trs WHERE recepient = ? ORDER BY timestamp");
+        var accountId = req.query.address || "";
+        var q = app.db.sql.prepare("SELECT * FROM trs WHERE recipient = ? ORDER BY timestamp");
         q.bind(accountId);
         q.run(function (err, rows) {
             if (err) {
                 app.logger.error(err);
-                return res.json({ success : false, error : "Sql error" });
+                return res.json({ success : false, error : "Sql error", status : "SQL_ERROR" });
             } else {
                 var transactions = rows;
                 var unconfirmedTransactions = [];
                 async.forEach(transactions, function (item, cb) {
                     var blockId = item.blockId;
                     item.confirmations = app.blockchain.getLastBlock().height - app.blockchain.blocks[blockId].height;
+                    item.confirmed = true;
+
                     cb();
                 }, function () {
                     async.forEach(app.transactionprocessor.unconfirmedTransactions, function (item, cb) {
-                        if (item.recepientId == accountId) {
-                            unconfirmedTransactions.push(item);
+                        if (item.recipientId == accountId) {
+                            item.confirmed = false;
+                            item.timestamp += utils.epochTime();
+                            item.sender = app.accountprocessor.getAddressByPublicKey(item.senderPublicKey);
+                            item.fee = getFee(item);
+
+                            unconfirmedTransactions.push(item.toJSON());
+
                             cb();
                         }
                     }, function () {
-                        return res.json({ success : true, transactions : transactions, unconfirmedTransactions : unconfirmedTransactions });
+                        transactions = transactions.concat(unconfirmedTransactions);
+                        return res.json({ success : true, transactions : transactions, status : "OK" });
                     });
                 });
             }
@@ -134,36 +327,43 @@ module.exports = function (app) {
     });
 
     app.get("/api/getSentTransactionsByAddress", function (req, res) {
-        var accountId = req.query.accountId || "";
+        var accountId = req.query.address || "";
 
         var account = app.accountprocessor.getAccountById(accountId);
         if (!account) {
-            return res.json({ success : false, error : "Account not found" });
+            return res.json({ success : false, error : "Account not found", status : "ACCOUNT_NOT_FOUND" });
         }
 
-        var publicKey = account.publickey.toString('hex');
+        var sender = account.address;
 
-        var q = app.db.sql.prepare("SELECT * FROM trs WHERE senderPublicKey = ? ORDER BY timestamp");
-        q.bind(publicKey);
+        var q = app.db.sql.prepare("SELECT * FROM trs WHERE sender = ? ORDER BY timestamp");
+        q.bind(sender);
         q.run(function (err, rows) {
             if (err) {
                 app.logger.error(err);
-                return res.json({ success : false, error : "Sql error" });
+                return res.json({ success : false, error : "Sql error", status : "SQL_ERROR" });
             } else {
                 var transactions = rows;
                 var unconfirmedTransactions = [];
                 async.forEach(transactions, function (item, cb) {
                     var blockId = item.blockId;
                     item.confirmations = app.blockchain.getLastBlock().height - app.blockchain.blocks[blockId].height;
+                    item.confirmed = true;
                     cb();
                 }, function () {
                     async.forEach(app.transactionprocessor.unconfirmedTransactions, function (item, cb) {
-                        if (item.senderPublicKey.toString('hex') == publicKey) {
-                            unconfirmedTransactions.push(item);
+                        item.sender = app.accountprocessor.getAddressByPublicKey(item.senderPublicKey);
+                        if (item.sender == sender) {
+                            item.timestamp += utils.epochTime();
+                            item.confirmed = false;
+                            item.fee = getFee(item);
+
+                            unconfirmedTransactions.push(item.toJSON());
                             cb();
                         }
                     }, function () {
-                        return res.json({ success : true, transactions : transactions, unconfirmedTransactions : unconfirmedTransactions });
+                        transactions = transactions.concat(unconfirmedTransactions);
+                        return res.json({ success : true, transactions : transactions, status : "OK" });
                     });
                 });
             }
@@ -185,7 +385,7 @@ module.exports = function (app) {
         }
 
         var accountId = req.query.accountId || "";
-        var q = app.db.sql.prepare("SELECT * FROM trs WHERE recepient = ?");
+        var q = app.db.sql.prepare("SELECT * FROM trs WHERE recipient = ?");
         q.bind(address.id);
         q.run(function (err, rows) {
             if (err) {
@@ -258,8 +458,8 @@ module.exports = function (app) {
                                 a.mined = 0;
                                 a.generator = app.accountprocessor.getAddressByPublicKey(new Buffer(a.generatorPublicKey, 'hex'));
                                 a.address = a.id;
-                                app.db.sql.all("SELECT * FROM trs WHERE recepient=$recepient", {
-                                    $recepient : a.address
+                                app.db.sql.all("SELECT * FROM trs WHERE recipient=$recipient", {
+                                    $recipient : a.address
                                 }, function (err, trs) {
                                     async.eachSeries(trs, function (t, c) {
                                         if (t.fee >= 2) {
@@ -308,15 +508,123 @@ module.exports = function (app) {
         });
     });
 
+    app.get('/api/getNextBlocks', function (req, res) {
+        var blockId = req.query.blockId || "",
+            limit = req.query.limit || 20;
+
+        limit = parseInt(limit);
+
+        if (isNaN(limit)) {
+            limit = 20;
+        } else if (limit <= 0) {
+            return res.json({ success : false, error : "Limit is invalid", status : "INVALID_LIMIT" });
+        }
+
+        if (blockId.length == 0) {
+            return res.json({ success : false, error : "Provide block id", status : "PROVIDE_BLOCK_ID" });
+        }
+
+        var r = app.db.sql.prepare("SELECT * FROM blocks WHERE height > (SELECT height FROM blocks WHERE id=$id LIMIT 1) ORDER BY height LIMIT " + limit);
+        r.bind({
+            $id: blockId
+        });
+
+        r.all(function (err, blocks) {
+            if (err) {
+                app.logger.error("Sqlite error: " + err);
+                return res.json({ success : false, error : "SQL error", status : "SQL_ERROR" });
+            } else {
+                async.eachSeries(blocks, function (item, cb) {
+                    app.db.sql.all("SELECT * FROM trs WHERE blockId=$id", {
+                        $id: item.id
+                    }, function (err, trs) {
+                        if (err) {
+                            cb(err);
+                        } else {
+                            async.forEach(trs, function (t, cb) {
+                                if (t.type == 2) {
+                                    if (t.subtype == 0) {
+                                        app.db.sql.get("SELECT * FROM signatures WHERE transactionId=$transactionId", {
+                                            $transactionId : t.id
+                                        }, function (err, asset) {
+                                            if (err) {
+                                                cb(err);
+                                            } else {
+                                                trs.asset = asset;
+                                                cb();
+                                            }
+                                        });
+                                    }
+                                } else {
+                                    cb();
+                                }
+                            }, function (err) {
+                                if (err) {
+                                    return cb(err);
+                                }
+
+                                item.trs = trs;
+                                app.db.sql.all("SELECT * FROM addresses WHERE blockId=$id", {
+                                    $id : item.id
+                                }, function (err, addresses) {
+                                    if (err) {
+                                        cb(err);
+                                    } else {
+                                        item.addresses = addresses;
+                                        app.db.sql.all("SELECT * FROM requests WHERE blockId=$id", {
+                                            $id : item.id
+                                        }, function (err, requests) {
+                                            if (err) {
+                                                cb(err);
+                                            }  else {
+                                                item.requests = requests;
+                                                cb();
+                                            }
+                                        });
+                                    }
+                                });
+                            });
+                        }
+                    });
+                }, function (err) {
+                    if (err) {
+                        app.logger.error("SQL error");
+                    return res.json({ success : false, error : "Sql error", status : "SQL_ERROR" });
+                    } else {
+                        return res.json({ success : true, blocks : blocks, status : "OK" });
+                    }
+                });
+            }
+        })
+    });
+
     app.get('/api/getLastBlocks', function (req, res) {
-        app.db.sql.all("SELECT * FROM blocks ORDER BY timestamp DESC LIMIT 20", function (err, rows) {
+        var limit = req.query.limit || 20,
+            orderDesc = req.query.orderDesc || false;
+
+        limit = parseInt(limit);
+
+        if (isNaN(limit)) {
+            limit = 20;
+        } else if (limit <= 0) {
+            return res.json({ success : false, error : "Limit is invalid", status : "INVALID_LIMIT" });
+        }
+
+        var order = null;
+        if (orderDesc == "true") {
+            order = "DESC";
+         }  else {
+            order = "ASC";
+        }
+
+        app.db.sql.all("SELECT * FROM blocks ORDER BY timestamp " + order + "  LIMIT " + limit, function (err, rows) {
             if (err) {
                 app.logger.error(err);
-                return res.json({ success : false, blocks : [] });
+                return res.json({ success : false, blocks : [], status : "SQL_ERROR", error : "Sql error" });
             } else {
                 async.forEach(rows, function (item, callback) {
                     item.timestamp += utils.epochTime();
-                    item.generator = app.accountprocessor.getAddressByPublicKey(new Buffer(item.generatorPublicKey, 'hex'));
+                    item.generator = app.accountprocessor.getAddressByPublicKey(new Buffer(item.generatorPublicKey, 'hex'))
 
                     app.db.sql.all("SELECT * FROM trs WHERE blockId='" + item.id + "'", function (err, rows) {
                         if (err) {
@@ -350,21 +658,20 @@ module.exports = function (app) {
                 }, function (err) {
                     if (err) {
                         app.logger.error(err);
+                        return res.json({ success : false, blocks : [], error : "Sql error", status : "SQL_ERROR" });
                     }
 
-                    return res.json({ success : true, blocks : rows });
+                    return res.json({ success : true, blocks : rows, status : "OK" });
                 });
             }
         });
     });
 
     app.get('/api/lastBlock', function (req, res) {
-        var blockId = req.query.blockId || "";
-
-        app.db.sql.all("SELECT * FROM blocks WHERE height > (SELECT height FROM blocks WHERE id=" + blockId + " LIMIT 1) ORDER BY timestamp DESC", function (err, rows) {
+        app.db.sql.all("SELECT * FROM blocks ORDER BY height DESC LIMIT 1", function (err, rows) {
             if (err) {
                 app.logger.error(err);
-                return res.json({ success : false, blocks : [] });
+                return res.json({ success : false, success : false, error : "Sql error", status : "SQL_ERROR" });
             } else {
                 async.forEach(rows, function (item, callback) {
                     item.timestamp += utils.epochTime();
@@ -404,9 +711,10 @@ module.exports = function (app) {
                 }, function (err) {
                     if (err) {
                         app.logger.error(err);
+                        return res.json({ success : false, status : "SQL_ERROR", error : "Sql error" });
                     }
 
-                    return res.json({ success : true, blocks : rows });
+                    return res.json({ success : true, blocks : rows, status : "OK" });
                 });
             }
         });

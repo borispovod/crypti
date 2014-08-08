@@ -9,6 +9,7 @@ var ed  = require('ed25519'),
 
 module.exports = function (app) {
     app.get("/api/newAddress", function (req, res) {
+        return res.json({ success : false });
         var secretPharse = req.query.secretPharse || "";
         var accountAddress = req.query.accountAddress || "";
 

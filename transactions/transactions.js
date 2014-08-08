@@ -4,7 +4,7 @@ var crypto = require('crypto'),
     _ = require('underscore'),
     ByteBuffer = require("bytebuffer");
 
-var transaction = function(type, id, timestamp, senderPublicKey, recipientId, amount, fee, signature, signSignature) {
+var transaction = function(type, id, timestamp, senderPublicKey, recipientId, amount, creationBlockId, signature, signSignature) {
     this.type = type;
     this.subtype = 0;
     this.id = id;
@@ -12,9 +12,9 @@ var transaction = function(type, id, timestamp, senderPublicKey, recipientId, am
     this.senderPublicKey = senderPublicKey;
     this.recipientId = recipientId;
     this.amount = amount;
-    this.fee = fee;
     this.signature = signature;
     this.signSignature = signSignature;
+    this.creationBlockId = creationBlockId;
     this.height = 0;
     this.asset = null;
 }
@@ -42,11 +42,11 @@ transaction.prototype.getBytes = function () {
     }
 
     if (this.recipientId) {
-        var recepient = this.recipientId.slice(0, -1);
-        recepient = bignum(recepient).toBuffer();
+        var recipient = this.recipientId.slice(0, -1);
+        recipient = bignum(recipient).toBuffer({ size : '8' });
 
         for (var i = 0; i < 8; i++) {
-            bb.writeByte(recepient[i] || 0);
+            bb.writeByte(recipient[i] || 0);
         }
     } else {
         for (var i = 0; i < 8; i++) {
@@ -55,7 +55,12 @@ transaction.prototype.getBytes = function () {
     }
 
     bb.writeLong(this.amount);
-    bb.writeLong(this.fee);
+
+    var blockId = bignum(this.creationBlockId).toBuffer({ size : '8' });
+
+    for (var i = 0; i < 8; i++) {
+        bb.writeByte(blockId[i]);
+    }
 
     if (assetSize > 0) {
         var assetBytes = this.asset.getBytes();
@@ -78,7 +83,6 @@ transaction.prototype.getBytes = function () {
     }
 
     bb.flip();
-    console.log(bb.toBuffer().toString('hex'));
     return bb.toBuffer();
 }
 
