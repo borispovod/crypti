@@ -4,54 +4,178 @@ var ed  = require('ed25519'),
     crypto = require("crypto"),
     /*getSECCurveByName = require('../ec').sec,
     ripemd160 = require("../ec").ripemd160,*/
-    Address = require("../address").address,
-    utils = require("../utils.js");
+    company = require("../company").company,
+    transaction = require("../transactions").transaction,
+    utils = require("../utils.js"),
+    http = require('http');
 
 module.exports = function (app) {
-    app.get("/api/newAddress", function (req, res) {
-        return res.json({ success : false });
-        var secretPharse = req.query.secretPharse || "";
-        var accountAddress = req.query.accountAddress || "";
+    app.post("/api/getToken", function (req, res) {
+        var secret = req.body.secret || "",
+            accountAddress = req.body.accountAddress || "",
+            companyName = req.body.companyName || "",
+            description = req.body.description || "",
+            domain = req.body.domain || "",
+            email = req.body.email || "",
+            secondPhrase = req.body.secondPhrase || null;
 
-        if (secretPharse.length == 0) {
-            return res.json({ success : false, error: "Provide secretPharse" });
+        if (secret.length == 0) {
+            return res.json({ success : false, status : "PROVIDE_SECRET_PHRASE", error : "Provide secret phrase" });
         }
 
-        var hash = crypto.createHash('sha256').update(secretPharse, 'utf8').digest();
+        var signature = app.signatureprocessor.getSignatureByAddress(accountAddress);
+
+        if (signature) {
+            if (!secondPhrase) {
+                return res.json({ success : false, error : "Provide second secret phrase", statusCode : "PROVIDE_SECOND_PASSPHRASE" });
+            }
+
+            var secondHash = crypto.createHash('sha256').update(secondPhrase, 'utf8').digest();
+            var secondKeypair = ed.MakeKeypair(secondHash);
+
+            if (signature.publicKey.toString('hex') != secondKeypair.publicKey.toString('hex')) {
+                return res.json({ success : false, error : "Second passphrase not valid", statusCode : "INVALID_SECOND_PASSPHRASE" });
+            }
+        }
+
+        var hash = crypto.createHash('sha256').update(new Buffer(secret, 'utf8')).digest();
         var keypair = ed.MakeKeypair(hash);
 
-        if (accountAddress) {
+        if (accountAddress.length > 0) {
             var address = app.accountprocessor.getAddressByPublicKey(keypair.publicKey);
-            if (accountAddress != address) {
-                return res.json({ success : false, error: "Invalid passphrase, check your passphrase please" });
+
+            if (address != accountAddress) {
+                return res.json({ success : false, status : "INVALID_PASSPHRASE", error : "Invalid passphrase" });
             }
         }
 
-        var account = app.accountprocessor.getAccountByPublicKey(keypair.publicKey);
+        var timestamp = utils.getEpochTime(new Date().getTime());
+        var c = new company(companyName, description, domain, email, timestamp, keypair.publicKey);
 
-        if (!account) {
-            return res.json({ success : false, error : "Account not found" });
+        if (!app.companyprocessor.checkCompanyData(c)) {
+            return res.json({ success : false, status : "INVALID_DATA_OF_COMPANY", error : "Invalid data to create company, see logs" });
         }
 
-        if (account.getEffectiveBalance() <= 0) {
-            return res.json({ success : false, error : "Effective balance equal 0, for add new address please add founds on your account." });
+        c.sign(secret);
+
+        if (!c.verify()) {
+            return res.json({ success : false, status : "CANT_VERIFY_SIGNATURE", error : "Can't verify singature" });
         }
 
-        var params = app.addressprocessor.newAddress();
-        var generatorKeypair = params.keypair;
-        var address = new Address(1, params.address, keypair.publicKey, generatorKeypair.publicKey, utils.getEpochTime(new Date().getTime()));
-        address.sign(generatorKeypair);
-        address.signAccount(keypair);
+        return res.json({ success : true, status : "OK", token : c.signature.toString('base64'), timestamp : timestamp });
+    });
 
-        if (address.verify() && address.accountVerify()) {
-            var added = app.addressprocessor.processAddress(address, true);
-            if (added) {
-                return res.json({ success: true, address: params.address });
-            } else {
-                return res.json({ success : false, error: "Can't add new address, already exists" });
+    app.post("/api/createCompany", function (req, res) {
+        var secret = req.body.secret || "",
+            accountAddress = req.body.accountAddress || "",
+            companyName = req.body.companyName || "",
+            description = req.body.description || "",
+            domain = req.body.domain || "",
+            email = req.body.email || "",
+            timestamp = req.body.timestamp || null,
+            secondPhrase = req.body.secondPhrase || null;
+
+        if (secret.length == 0) {
+            return res.json({ success : false, status : "PROVIDE_SECRET_PHRASE", error : "Provide secret phrase" });
+        }
+
+        if (!timestamp) {
+            return res.json({ success : false, status : "PROVIDE_TIMESTAMP", error : "Provide timestamp" });
+        }
+
+        timestamp = parseInt(timestamp);
+
+        if (isNaN(timestamp) || timestamp <= 0) {
+            return res.json({ success : false, status : "PROVIDE_VALID_TIMESTAMP", error : "Provide valid timestampo" });
+        }
+
+        var hash = crypto.createHash('sha256').update(new Buffer(secret, 'utf8')).digest();
+        var keypair = ed.MakeKeypair(hash);
+
+        if (accountAddress.length > 0) {
+            var address = app.accountprocessor.getAddressByPublicKey(keypair.publicKey);
+
+            if (address != accountAddress) {
+                return res.json({ success : false, status : "INVALID_PASSPHRASE", error : "Invalid passphrase" });
             }
-        } else {
-            return res.json({ success : false, error: "Can't verify new address" });
         }
+
+        var c = new company(companyName, description, domain, email, timestamp, keypair.publicKey);
+
+        if (!app.companyprocessor.checkCompanyData(c)) {
+            return res.json({ success : false, status : "INVALID_DATA_OF_COMPANY", error : "Invalid data to create company, see logs" });
+        }
+
+        c.sign(secret);
+
+        if (!c.verify()) {
+            return res.json({ success : false, status : "CANT_VERIFY_SIGNATURE", error : "Can't verify singature" });
+        }
+
+        // check file
+        var getOptions = {
+            hostname: c.domain,
+            port: 80,
+            path: '/cryptixcr.txt'
+        };
+
+        var timeout = null;
+
+        var r = http.get(getOptions, function (response) {
+            var data = "";
+            response.on("data", function(body) {
+                clearTimeout(timeout);
+                data += body;
+            });
+            response.on('end', function () {
+                data = data.replace(/^\s+|\s+$/g,"");
+
+                if (data != c.signature.toString('base64')) {
+                    return res.json({ status : "INVALID_KEY_IN_CRYPTIXCR_FILE", success : false, error : "Check your cryptixcr.txt file, there is invalid key" });
+                } else {
+                var sender = app.accountprocessor.getAccountByPublicKey(keypair.publicKey);
+
+                if (!sender) {
+                    return res.json({ success : false, error : "Sender not found", status : "SENDER_NOT_FOUND"});
+                }
+
+                var t = new transaction(3, null, utils.getEpochTime(new Date().getTime()), keypair.publicKey, null, 0, app.blockchain.getLastBlock().getId(), null);
+                t.asset = c;
+                t.sign(secret);
+
+                var signature = app.signatureprocessor.getSignatureByAddress(sender.address);
+
+                if (signature) {
+                    if (!secondPhrase) {
+                        return res.json({ success : false, error : "Provide second secret phrase", statusCode : "PROVIDE_SECOND_PASSPHRASE" });
+                    }
+
+                    var secondHash = crypto.createHash('sha256').update(secondPhrase, 'utf8').digest();
+                    var secondKeypair = ed.MakeKeypair(secondHash);
+
+                    if (signature.publicKey.toString('hex') != secondKeypair.publicKey.toString('hex')) {
+                        return res.json({ success : false, error : "Second signature not valid", statusCode : "INVALID_SECOND_PASSPHRASE" });
+                    }
+
+                    t.signSignatureGeneration(secondPhrase);
+                }
+
+                var result = app.transactionprocessor.processTransaction(t, true);
+                if (result) {
+                    return res.json({ success: true, transactionId: t.getId(), status : "OK" });
+                } else {
+                    return res.json({ success : false, error : "Second passphrase already added", status : "SECOND_PASSPHRASE_ALREADY_ADDED" });
+                }
+                }
+            });
+        });
+
+        timeout = setTimeout(function () {
+            r.abort();
+        }, 3000);
+
+        r.on('error', function (err) {
+            return res.json({ status : "CANT_GET_CRYPTIXCR_FILE", success : false, error : "Check your cryptixcr.txt file on your domain" });
+        });
     });
 }

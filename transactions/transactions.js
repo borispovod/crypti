@@ -30,6 +30,14 @@ transaction.prototype.getBytes = function () {
                     break;
             }
             break;
+
+        case 3:
+            switch (this.subtype) {
+                case 0:
+                    assetSize = this.asset.getBytes().length;
+                    break;
+            }
+            break;
     }
 
     var bb = new ByteBuffer(1 + 1 + 4 + 32 + 8 + 8 + 8 + 64 + 64 + assetSize, true);

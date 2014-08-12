@@ -418,14 +418,14 @@ peer.prototype.processBlock = function (block, cb) {
         transactions.push(block.transactions[i].toJSON());
     }
 
-    var addresses = [];
-    for (var a in b.addresses) {
-        addresses.push(block.addresses[a].toJSON());
-    }
-
     var requests = [];
     for (var r in b.requests) {
         requests.push(b.requests[r].toJSON());
+    }
+
+    var confirmations = [];
+    for (var i = 0; i < b.confirmations.length; i++) {
+        confirmations.push(b.confirmations[i].toJSON());
     }
 
     var signatures = [];
@@ -435,8 +435,8 @@ peer.prototype.processBlock = function (block, cb) {
 
     b.requests = requests;
     b.transactions = transactions;
-    b.addresses = addresses;
     b.signatures = signatures;
+    b.confirmations = b.confirmations;
 
     var getOptions = {
         hostname: this.ip,
@@ -569,7 +569,6 @@ peer.prototype.sendRequest = function (request, cb) {
             data += body;
         });
         res.on('end', function () {
-            console.log(data);
             cb(null, data);
         });
     });

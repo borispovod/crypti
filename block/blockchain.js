@@ -2,7 +2,6 @@ var genesisblock = require("./genesisblock.js"),
     crypto = require('crypto'),
     block = require("./block.js").block,
     transaction = require('../transactions').transaction,
-    transaction = require('../transactions').transaction,
     transactionprocessor = require("../transactions").transactionprocessor.getInstance(),
     utils = require('../utils.js'),
     constants = require("../Constants.js"),
@@ -17,7 +16,6 @@ var blockchain = function (app) {
     this.accountprocessor = this.app.accountprocessor;
     this.transactionprocessor = this.app.transactionprocessor;
     this.logger = this.app.logger;
-    this.addressprocessor = this.app.addressprocessor;
     this.db = this.app.db;
     this.blocks = {};
     this.lastBlock = null;
@@ -25,7 +23,7 @@ var blockchain = function (app) {
     this.fee = constants.feeStart;
     this.nextFeeVolume = constants.feeStartVolume;
     this.actualFeeVolume = 0;
-    this.totalPurchaseAmount = bignum(0);
+    this.totalPurchaseAmount = 0;
 }
 
 blockchain.prototype.getBlock = function (id) {
@@ -40,7 +38,6 @@ blockchain.prototype.fromJSON = function (b) {
     var block = new Block(b.version, null, b.timestamp, b.previousBlock, [], b.totalAmount, b.totalFee, b.payloadLength, new Buffer(b.payloadHash,'hex'), new Buffer(b.generatorPublicKey, 'hex'), new Buffer(b.generationSignature, 'hex'), new Buffer(b.blockSignature, 'hex'));
     block.addressesLength = b.addressesLength;
     block.requestsLength = b.requestsLength;
-    block.signatureslength = b.signaturesLength;
     block.numberOfSignatures = b.numberOfSignatures;
 
     return block;
@@ -76,7 +73,6 @@ blockchain.prototype.blockFromBytes = function (buffer) {
     b.generationWeight = bignum.fromBuffer(generationWeightBuffer);
 
     b.payloadLength = bb.readInt();
-    b.addressesLength = bb.readInt();
     b.requestsLength = bb.readInt();
 
     var payloadHash = new Buffer(32);
@@ -139,7 +135,7 @@ blockchain.prototype.getFee = function (transaction) {
     return fee;
 }
 
-blockchain.prototype.pushBlock = function (buffer, sendToPeers) {
+blockchain.prototype.pushBlock = function (buffer, sendToPeers, checkRequests) {
     this.logger.info("Processing new block...");
     var bb = ByteBuffer.wrap(buffer, true);
     bb.flip();
@@ -155,9 +151,9 @@ blockchain.prototype.pushBlock = function (buffer, sendToPeers) {
     }
 
     b.previousBlock = bignum.fromBuffer(pb, { size : 'auto' }).toString();
-    b.numberOfAddresses = bb.readInt();
     b.numberOfTransactions = bb.readInt();
     b.numberOfRequests = bb.readInt();
+    b.numberOfConfirmations = bb.readInt();
 
     var amountLong = bb.readLong();
     b.totalAmount  = new Long(amountLong.low, amountLong.high, false).toNumber();
@@ -172,8 +168,8 @@ blockchain.prototype.pushBlock = function (buffer, sendToPeers) {
     b.generationWeight = bignum.fromBuffer(generationWeightBuffer, { size : 'auto' });
 
     b.payloadLength = bb.readInt();
-    b.addressesLength = bb.readInt();
     b.requestsLength = bb.readInt();
+    b.confirmationsLength = bb.readInt();
 
     var payloadHash = new Buffer(32);
 
@@ -208,20 +204,18 @@ blockchain.prototype.pushBlock = function (buffer, sendToPeers) {
     b.setApp(this.app);
 
     if (this.getLastBlock().previousBlock == b.previousBlock) {
-        this.logger.error("Invalid previous block: " + b.getId() + ", " + b.previousBlock + " must be " + this.getLastBlock().previousBlock);
+        this.logger.error("Invalid previous block: " + b.getId() + ", " + b.previousBlock + " must be " + this.getLastBlock().getId());
         return false;
     }
 
     var curTime = utils.getEpochTime(new Date().getTime());
-    if (b.timestamp > curTime || b.timestamp <= this.getLastBlock().timestamp || curTime - this.getLastBlock().timestamp < 60) {
+    if (b.numberOfRequests == 0 || b.timestamp > curTime || b.timestamp <= this.getLastBlock().timestamp || curTime - this.getLastBlock().timestamp < 60) {
         this.logger.error("Invalid block (" + b.getId() + ") time: " + b.timestamp + ", current time: " + curTime + ", last block time: " + this.getLastBlock().timestamp);
         return false;
     }
 
-    console.log(b.addressesLength, b.payloadLength,  b.requestsLength);
-
-    if (b.payloadLength > constants.maxPayloadLength || b.addressesLength > constants.maxAddressesLength || b.requestsLength > constants.maxRequestsLength || b.payloadLength + constants.blockHeaderLength + b.requestsLength + b.addressesLength != buffer.length) {
-        this.logger.error("Invalid payload length: " + b.getId(), " length: " + (b.payloadLength + constants.blockHeaderLength + b.requestsLength + b.addressesLength), "buffer length: " + buffer.length);
+    if (b.payloadLength > constants.maxPayloadLength || b.requestsLength > constants.maxRequestsLength || b.confirmationsLength > constants.maxConfirmations || b.payloadLength + constants.blockHeaderLength + b.confirmationsLength + b.requestsLength  != buffer.length) {
+        this.logger.error("Invalid payload length: " + b.getId(), " length: " + (b.payloadLength + constants.blockHeaderLength + b.requestsLength), "buffer length: " + buffer.length);
         return false;
     }
 
@@ -239,17 +233,15 @@ blockchain.prototype.pushBlock = function (buffer, sendToPeers) {
         b.transactions.push(this.transactionprocessor.transactionFromBuffer(bb));
     }
 
-    b.addresses = {};
-    for (var i = 0; i < b.numberOfAddresses; i++) {
-        var addr = this.app.addressprocessor.fromByteBuffer(bb);
-        addr.blockId = b.getId();
-        b.addresses[addr.id] = addr;
-    }
-
     b.requests = {};
     for (var i = 0; i < b.numberOfRequests; i++) {
         var r = this.app.requestprocessor.fromByteBuffer(bb);
         b.requests[r.getId()] = r;
+    }
+
+    if (Object.keys(b.requests).length == 0) {
+        this.app.logger.error("Not enough requests in block: " + b.getId());
+        return false;
     }
 
     b.signatures = [];
@@ -258,44 +250,13 @@ blockchain.prototype.pushBlock = function (buffer, sendToPeers) {
         b.signatures.push(s);
     }
 
+    b.confirmations = [];
+    for (var i = 0; i < b.numberOfConfirmations; i++) {
+        var c = this.app.companyprocessor.confirmationFromByteBuffer(bb);
+        b.confirmations.push(c);
+    }
+
     b.forForger = 0;
-
-    var c = 0;
-    for (var a in b.addresses) {
-        var addr = b.addresses[a];
-        addr.height = b.height;
-        addr.blockId = b.getId();
-
-        if (addr.timestamp > curTime ||  !addr.verify() || !addr.accountVerify()) {
-            break;
-        }
-
-        if (!addr.verify() || !addr.accountVerify()) {
-            this.logger.error("Invalid addr signatures: " + addr.id + ", " + addr.verify() + "/" + addr.accountVerify());
-            return false;
-        }
-
-        if (this.app.addressprocessor.addresses[addr.id]) {
-            this.logger.error("Address already exists: " + addr.id);
-            return false;
-        }
-
-        this.app.addressprocessor.addresses[addr.id] = addr;
-
-        var account = this.app.accountprocessor.getAccountByPublicKey(addr.generatorPublicKey);
-
-        if (!account || account.getEffectiveBalance() <= 0) {
-            this.logger.error("Account not found or effective balance equal 0: " + account.address + "/" + account.getEffectiveBalance() + " for address: " + addr.id);
-            break;
-        }
-
-        c++;
-    }
-
-    if (c != b.numberOfAddresses) {
-        this.logger.error("Invalid addresses count, mistake in addresses: " + b.getId() + ", number of addresses: " + b.numberOfAddresses + ", processed: " + c);
-        return false;
-    }
 
     this.logger.info("Process transactions in block: " + b.getId());
     var accumulatedAmounts = {};
@@ -352,6 +313,11 @@ blockchain.prototype.pushBlock = function (buffer, sendToPeers) {
 
                 var account = this.app.accountprocessor.getAccountByPublicKey(s.generatorPublicKey);
 
+                if (!account) {
+                    this.logger.error("Can't process account signature, account not found: " + s.getId());
+                    break;
+                }
+
                 if (this.app.signatureprocessor.getSignatureByAddress(account.address)) {
                     this.logger.error("Can't process account signature, it's already added: " + s.getId() + " / " + account.address);
                     break;
@@ -362,9 +328,66 @@ blockchain.prototype.pushBlock = function (buffer, sendToPeers) {
             } else {
                 break;
             }
-        } else {
+        } else if (t.type == 3) {
+            if (t.subtype == 0) {
+                fee = 1000 * constants.numberLength;
+
+                if (t.amount > 0) {
+                    this.logger.error("Amount not valid: " + t.getId());
+                    break;
+                }
+
+                var c = t.asset;
+
+                if (!c) {
+                    this.logger.error("Asset not found: " + t.getId());
+                    break;
+                }
+
+                if (c.timestamp > curTime || c.timestamp > b.timestamp) {
+                    this.logger.error("Can't process asset: " + c.getId() + "(signature), invalid timestamp");
+                    break;
+                }
+
+                if (!c.verify()) {
+                    this.logger.error("Can't process asset: " + c.getId() + "(signature), invalid signature");
+                    break;
+                }
+
+                var account = this.app.accountprocessor.getAccountByPublicKey(c.generatorPublicKey);
+
+                if (!account) {
+                    this.logger.error("Can't process account company, account not found: " + c.getId());
+                    break;
+                }
+
+                var result = this.app.companyprocessor.checkCompanyData(c);
+
+                if (!result) {
+                    this.logger.error("Can't process company, invalid data of company: " + c.getId());
+                    break;
+                }
+
+                if (this.app.companyprocessor.domainExists(c.domain)) {
+                    this.logger.error("Can't process request, company domain already added: " + c.getId() + "/" + c.domain);
+                    break;
+                }
+
+                if (this.app.companyprocessor.confirmations[c.domain] > 0 || this.app.companyprocessor.addedCompanies[c.domain] || this.app.companyprocessor.confirmedCompanies[c.domain]) {
+                    this.logger.error("Can't process company, company already added and wait for confirmations: " + c.getId() + "/" + c.domain);
+                    break;
+                }
+
+                c.blockId = b.getId();
+                c.transactionId = t.getId();
+            } else {
+                break;
+            }
+        }
+        else {
             break;
         }
+
 
         var sender = this.accountprocessor.getAccountByPublicKey(t.senderPublicKey);
         if (!accumulatedAmounts[sender.address]) {
@@ -380,19 +403,21 @@ blockchain.prototype.pushBlock = function (buffer, sendToPeers) {
             }
         }
 
-        if (t.type == 1 && t.recipientId[t.recipientId.length - 1] != "D") {
+        if (t.type == 1 && t.subtype == 0 && t.recipientId[t.recipientId.length - 1] != "D") {
             this.app.logger.error("Can't process transaction: " + t.getId() + ", because invalid type: 0/1");
             break;
         }
 
-        if (t.type == 0 && t.recipientId[t.recipientId.length - 1] != "C") {
+        if (t.type == 0 && t.subtype == 0 && t.recipientId[t.recipientId.length - 1] != "C") {
             this.app.logger.error("Can't process transaction: " + t.getId() + ", because invalid type: 1/0");
-
             break;
         }
 
-        if (t.type == 1) {
-            if (!this.app.addressprocessor.addresses[t.recipientId]) {
+        if (t.type == 1 && t.subtype == 0) {
+            var recipientId = t.recipientId;
+
+            if (!this.app.companyprocessor.addresses[recipientId]) {
+                this.app.logger.error("Can't process transaction: " + t.getId() + ", recipient not found: " + recipientId);
                 break;
             }
         }
@@ -411,8 +436,8 @@ blockchain.prototype.pushBlock = function (buffer, sendToPeers) {
 
                 if (fee >= 2) {
                     if (fee % 2 != 0) {
-                        var r = t.fee % 2;
-                        b.forForger += fee / 2 + r;
+                        var r = parseInt(fee / 2);
+                        b.forForger += fee - r;
                     } else {
                         b.forForger += fee / 2;
                     }
@@ -428,11 +453,53 @@ blockchain.prototype.pushBlock = function (buffer, sendToPeers) {
             } else {
                 break;
             }
+        } else if (t.type == 3) {
+            if (t.subtype == 0) {
+                b.forForger += fee / 10;
+            } else {
+                break;
+            }
         } else {
             break;
         }
 
         calculatedTotalFee += fee;
+    }
+
+    var confirmationsLength = 0;
+    for (confirmationsLength = 0; confirmationsLength < b.confirmations.length; confirmationsLength++) {
+        var c = b.confirmations[confirmationsLength];
+
+        if (!c.verify(b.generatorPublicKey)) {
+            this.app.logger.error("Can't process confirmation, invalid signature: " + b.getId() + " / " + c.getId());
+            break;
+        }
+
+        if (c.timestamp > b.timestamp || c.timestamp > curTime) {
+            this.app.logger.error("Invalid timestamp of confirmation: " + c.getId() + " / " + b.getId());
+            break;
+        }
+
+        var company = this.app.companyprocessor.addedCompaniesIds[c.companyId];
+
+        if (!company || !this.app.companyprocessor.addedCompanies[company.domain] || this.app.companyprocessor.confirmations[company.domain] <= 0 || this.app.companyprocessor.addedCompanies[company.domain].blocks >= 10 || !this.app.companyprocessor.confirmations[company.domain]) {
+            this.app.logger.error("Invalid company: " + c.getId() + " / " + company.domain + " / " + b.getId());
+            break;
+        }
+
+        if (this.app.companyprocessor.confirmedCompanies[company.domain]) {
+            this.app.logger.error("Company already confirmed: " + c.getId() + " / " + company.domain);
+            break;
+        }
+
+        c.blockId = b.getId();
+        calculatedTotalFee += 100 * constants.numberLength;
+        b.forForger += 100 * constants.numberLength;
+    }
+
+    if (confirmationsLength != b.numberOfConfirmations) {
+        this.app.logger("Invalid number of confirmations: " + b.getId());
+        return false;
     }
 
     if (calculatedTotalAmount != b.totalAmount || calculatedTotalFee != b.totalFee || i != b.transactions.length) {
@@ -441,6 +508,7 @@ blockchain.prototype.pushBlock = function (buffer, sendToPeers) {
     }
 
     var numOfRequests = 0;
+    var found = 0;
     for (var r in b.requests) {
         var request = b.requests[r];
 
@@ -462,20 +530,29 @@ blockchain.prototype.pushBlock = function (buffer, sendToPeers) {
 
         var rId = request.getId();
 
+        if (this.app.requestprocessor.unconfirmedRequests[account.address]) {
+            found++;
+        }
+
         if (this.app.requestprocessor.getRequest(rId)) {
             break;
         }
 
         request.blockId = b.getId();
-
         numOfRequests += 1;
+    }
+
+    if (checkRequests) {
+        if (found != Object.keys(this.app.requestprocessor.unconfirmedRequests).length) {
+            this.app.logger.error("Can't process, requests in blocks invalids: " + b.getId());
+            return false;
+        }
     }
 
     if (numOfRequests != b.numberOfRequests) {
         this.app.logger.error("Can't process block: " + b.getId() + ", invalid requests invalid: " + numOfRequests + '/' + b.numberOfRequests);
         return false;
     }
-    // check generator
 
     var hash = crypto.createHash('sha256');
 
@@ -483,12 +560,12 @@ blockchain.prototype.pushBlock = function (buffer, sendToPeers) {
         hash.update(b.transactions[i].getBytes());
     }
 
-    for (var a in b.addresses) {
-        hash.update(b.addresses[a].getBytes());
-    }
-
     for (var r in b.requests) {
         hash.update(b.requests[r].getBytes());
+    }
+
+    for (var i = 0; i < b.confirmations.length; i++) {
+        hash.update(b.confirmations[i].getBytes());
     }
 
     var a = hash.digest();
@@ -529,6 +606,44 @@ blockchain.prototype.pushBlock = function (buffer, sendToPeers) {
         }
     }
 
+    for (var i = 0; i < b.confirmations.length; i++) {
+        var c = b.confirmations[i];
+        var company = this.app.companyprocessor.addedCompaniesIds[c.companyId];
+
+        if (c.verified == true || c.verified == 1) {
+            this.app.companyprocessor.confirmations[company.domain] += 1;
+        }
+
+        this.app.companyprocessor.addedCompanies[company.domain].blocks += 1;
+
+        if (this.app.companyprocessor.addedCompanies[company.domain].blocks == 10) {
+            var confirmations = this.app.companyprocessor.confirmations[company.domain];
+            delete this.app.companyprocessor.confirmations[company.domain];
+            delete this.app.companyprocessor.addedCompanies[company.domain];
+            delete this.app.companyprocessor.addedCompaniesIds[company.getId()];
+
+            if (confirmations > 5) {
+                this.app.companyprocessor.confirmedCompanies[company.domain] = company;
+
+                var addr = new Buffer(8);
+                for (var i = 0; i < 8; i++) {
+                    addr[i] = company.signature[i];
+                }
+
+                addr = bignum.fromBuffer(addr).toString() + "D";
+                this.app.companyprocessor.addresses[addr] = company;
+            } else {
+                this.app.companyprocessor.deletedCompanies.push(company);
+
+                var indexOf = this.app.companyprocessor.domains.indexOf(company.domain);
+
+                if (indexOf >= 0) {
+                    this.app.companyprocessor.domains.splice(indexOf, 1);
+                }
+            }
+        }
+    }
+
     for (var i = 0; i < b.transactions.length; i++) {
         var r = this.transactionprocessor.removeUnconfirmedTransaction(b.transactions[i]);
 
@@ -553,9 +668,19 @@ blockchain.prototype.pushBlock = function (buffer, sendToPeers) {
                     case 0:
                         fee = 100 * constants.numberLength;
                         break;
+
+                }
+                break;
+
+            case 3:
+                switch (b.transactions[i].subtype) {
+                    case 0:
+                        fee = 1000 * constants.numberLength;
+                        break;
                 }
                 break;
         }
+
 
         if (r) {
             var a = this.accountprocessor.getAccountByPublicKey(b.transactions[i].senderPublicKey);
@@ -578,10 +703,6 @@ blockchain.prototype.pushBlock = function (buffer, sendToPeers) {
     }
 
 
-    for (var i in b.addresses) {
-        delete this.app.addressprocessor.unconfirmedAddresses[addr.id];
-    }
-
     this.lastBlock = b.getId();
     this.logger.info("Block processed: " + b.getId());
 
@@ -601,15 +722,24 @@ blockchain.prototype.pushBlock = function (buffer, sendToPeers) {
                         break;
                 }
                 break;
+
+            case 3:
+                switch (b.transactions[i].subtype) {
+                    case 0:
+                        this.app.db.writeCompany(b.transactions[i].asset);
+                        break;
+                }
+                break;
         }
     }
 
-    for (var a in b.addresses) {
-        this.app.db.writeAddress(b.addresses[a]);
-    }
 
     for (var r in b.requests) {
         this.app.db.writePeerRequest(b.requests[r]);
+    }
+
+    for (var i = 0; i < b.confirmations.length; i++) {
+        this.app.db.writeCompanyConfirmation(b.confirmations[i]);
     }
 
     this.app.requestprocessor.unconfirmedRequests = {};
@@ -679,7 +809,8 @@ module.exports.addGenesisBlock = function (app, cb) {
             transactions.push(t);
         }
 
-        var req = new request(null, null, "127.0.0.1", new Buffer(genesisblock.generatorPublicKey, 'hex'), 0, new Buffer(genesisblock.requestSignature, 'hex'));
+
+        var req = new request(null, null, "127.0.0.1", new Buffer(genesisblock.requestGeneratorPublicKey, 'hex'), 0, new Buffer(genesisblock.requestSignature, 'hex'));
 
         if (!req.verify()) {
             app.logger.error("Genesis request has not valid signature: " + req.getId());
@@ -702,6 +833,7 @@ module.exports.addGenesisBlock = function (app, cb) {
 
         var generationSignature = new Buffer(64);
         generationSignature.fill(0);
+
 
         b = new block(0, null, 0, null, transactions, 100000000 * constants.numberLength, 0 * constants.numberLength, payloadLength, payloadHash, new Buffer(genesisblock.sender, 'hex'), generationSignature, new Buffer(genesisblock.blockSignature, 'hex'));
         b.requestsLength = requestsLength;
@@ -727,8 +859,6 @@ module.exports.addGenesisBlock = function (app, cb) {
             app.logger.error("Genesis block not added");
             return null;
         }
-
-        //console.log(req.publicKey);
 
         var address = app.accountprocessor.getAddressByPublicKey(req.publicKey);
         app.requestprocessor.confirmedRequests[address] = [req];

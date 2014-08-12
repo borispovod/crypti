@@ -260,7 +260,7 @@ module.exports = function (app) {
                 }
 
                 if (type == 1) {
-                    if (!app.addressprocessor.addresses[recipient]) {
+                    if (!app.companyprocessor.addresses[recipient]) {
                         return res.json({ success : false, error : "Invalid merchant address, check it again please", statusCode : "INVALID_MERCHANT_ADDRESS" });
                     }
                 }
@@ -280,7 +280,7 @@ module.exports = function (app) {
                     var secondKeypair = ed.MakeKeypair(secondHash);
 
                     if (signature.publicKey.toString('hex') != secondKeypair.publicKey.toString('hex')) {
-                        return res.json({ success : false, error : "Second signature not valid", statusCode : "INVALID_SECOND_PASSPHRASE" });
+                        return res.json({ success : false, error : "Second passphrase not valid", statusCode : "INVALID_SECOND_PASSPHRASE" });
                     }
 
                     t.signSignatureGeneration(secondPhrase);

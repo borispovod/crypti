@@ -13,7 +13,6 @@ var transactionprocessor = function () {
     this.doubleSpendingTransactions = {};
 }
 
-
 transactionprocessor.prototype.fromJSON = function (t) {
     return new Transaction(t.type, null, t.timestamp, new Buffer(t.senderPublicKey, 'hex'), t.recipientId, t.amount, new Buffer(t.signature, 'hex'));
 }
@@ -95,6 +94,12 @@ transactionprocessor.prototype.processTransaction = function (transaction, sendT
                     if (transaction.asset) {
                         return false;
                     }
+
+                    var recipientId = transaction.recipientId;
+
+                    if (!this.app.companyprocessor.addresses[recipientId]) {
+                        return false;
+                    }
                     break;
 
                 default:
@@ -123,6 +128,26 @@ transactionprocessor.prototype.processTransaction = function (transaction, sendT
             }
             break;
 
+        case 3:
+            switch (transaction.subtype) {
+                case 0:
+                    if (!transaction.asset) {
+                        return false;
+                    }
+
+                    fee = 1000 * constants.numberLength;
+                    if (transaction.amount > 0) {
+                        this.logger.error("Transaction has not valid amount");
+                        return false;
+                    }
+                    break;
+
+                default:
+                    return false;
+                break;
+            }
+            break;
+
         default:
             return false;
         break;
@@ -138,12 +163,6 @@ transactionprocessor.prototype.processTransaction = function (transaction, sendT
         return false;
     }
 
-    if (transaction.type == 1) {
-        if (!this.app.addressprocessor.addresses[transaction.recipientId] && !this.app.addressprocessor.unconfirmedAddresses[transaction.recipientId]) {
-            this.logger.error("Invalid recipient, merchant address not found: " + transaction.getId() + ", address: " + transaction.recipientId);
-            return false;
-        }
-    }
 
     var isDoubleSpending = false;
     var a = this.accountprocessor.getAccountByPublicKey(transaction.senderPublicKey);
@@ -169,7 +188,12 @@ transactionprocessor.prototype.processTransaction = function (transaction, sendT
                 case 2:
                     switch (transaction.subtype) {
                         case 0:
-                            var r = this.app.signatureprocessor.processSignature(transaction.asset);
+                            try {
+                                var r = this.app.signatureprocessor.processSignature(transaction.asset);
+                            }
+                            catch (e) {
+                                r = false;
+                            }
 
                             if (!r) {
                                 this.app.logger.error("Can't process signature: " + transaction.asset.getId());
@@ -179,6 +203,23 @@ transactionprocessor.prototype.processTransaction = function (transaction, sendT
                             break;
                     }
                     break;
+
+                case 3:
+                    switch (transaction.subtype) {
+                        case 0:
+                            try {
+                                var r = this.app.companyprocessor.processCompany(transaction.asset);
+                            } catch (e) {
+                                r = false;
+                            }
+
+                            if (!r) {
+                                this.app.logger.error("Can't process company: " + transaction.asset.getId());
+                            }
+                            break;
+                    }
+                    break;
+                break;
             }
 
             a.setUnconfirmedBalance(a.unconfirmedBalance - amount);
@@ -191,7 +232,6 @@ transactionprocessor.prototype.processTransaction = function (transaction, sendT
         this.doubleSpendingTransactions[id] = transaction;
     } else {
         this.unconfirmedTransactions[id] = transaction;
-
     }
 
     if (isDoubleSpending) {
@@ -240,6 +280,13 @@ transactionprocessor.prototype.transactionFromBuffer = function (bb) {
                     break;
             }
             break;
+
+        case 3:
+            switch (t.subtype) {
+                case 0:
+                    assetSize = 16;
+            }
+            break;
     }
 
     t.timestamp = bb.readInt();
@@ -263,7 +310,7 @@ transactionprocessor.prototype.transactionFromBuffer = function (bb) {
         recipientBuffer[i] = bb.readByte();
     }
 
-    var recipient = bignum.fromBuffer(recipientBuffer).toString();
+    var recipient = bignum.fromBuffer(recipientBuffer, { size : '8' }).toString();
 
     if (t.type == 1) {
         t.recipientId = recipient + "D";
@@ -283,16 +330,24 @@ transactionprocessor.prototype.transactionFromBuffer = function (bb) {
     t.creationBlockId = bignum.fromBuffer(blockId, { size : '8' }).toString();
 
     if (assetSize > 0) {
-        var assetBuffer = new Buffer(assetSize);
-        for (var i = 0; i < assetSize; i++) {
-            assetBuffer[i] = bb.readByte();
-        }
-
         switch (t.type) {
             case 2:
                 switch (t.subtype) {
                     case 0:
+                        var assetBuffer = new Buffer(assetSize);
+                        for (var i = 0; i < assetSize; i++) {
+                            assetBuffer[i] = bb.readByte();
+                        }
+
                         t.asset = this.app.signatureprocessor.fromBytes(assetBuffer);
+                        break;
+                }
+                break;
+
+            case 3:
+                switch (t.subtype) {
+                    case 0:
+                        t.asset = this.app.companyprocessor.companyFromByteBuffer(bb);
                         break;
                 }
                 break;
