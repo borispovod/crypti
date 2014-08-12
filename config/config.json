@@ -6,13 +6,9 @@
     "version": 1,
     "peers": {
         "list": [
-            {
-                "ip" : "192.241.210.79",
-                "port": 6040
-            }
         ]
     },
     "forging": {
-        "secretPhrase" : "ms02kf"
+        "secretPhrase" : "4G92kut51ms02kf"
     }
 }

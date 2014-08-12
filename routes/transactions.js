@@ -27,6 +27,14 @@ module.exports = function (app) {
                         break;
                 }
                 break;
+
+            case 3:
+                switch (item.subtype) {
+                    case 0:
+                        fee = 1000 * Constants.numberLength;
+                        break;
+                }
+            break;
         }
 
         return fee;
@@ -59,21 +67,7 @@ module.exports = function (app) {
                                 t.sender = app.accountprocessor.getAddressByPublicKey(new Buffer(t.senderPublicKey, 'hex'));
                                 cb();
                             }, function () {
-                                app.db.sql.all("SELECT * FROM addresses WHERE blockId='" + item.id + "'", function (err, rows) {
-                                    if (err) {
-                                        callback(err);
-                                    } else {
-                                        item.addresses = rows;
-
-                                        async.forEach(item.addresses, function (a, c) {
-                                            a.generator = app.accountprocessor.getAddressByPublicKey(new Buffer(a.generatorPublicKey, 'hex'));
-                                            a.address = app.accountprocessor.getAddressByPublicKey(new Buffer(a.publicKey, 'hex'));
-                                            c();
-                                        }, function () {
-                                            callback();
-                                        });
-                                    }
-                                });
+                                callback();
                             });
                         }
                     });
@@ -171,49 +165,6 @@ module.exports = function (app) {
         });
     });
 
-    app.get('/api/getAddressesByAccount', function (req, res) {
-        var accountId = req.query.accountId || "";
-
-        if (accountId.length == 0) {
-            return res.json({ success : false, error : "Provide account id" });
-        }
-
-        var account = app.accountprocessor.getAccountById(accountId);
-        if (!account) {
-            return res.json({ success : false, error : "Account not found" });
-        }
-
-        var publicKey = account.publickey.toString('hex');
-        var q = app.db.sql.prepare("SELECT * FROM addresses WHERE generatorPublicKey = ? ORDER BY timestamp DESC");
-        q.bind(publicKey);
-
-        q.run(function (err, rows) {
-            if (err) {
-                app.logger.error(err);
-                return res.json({ success : false, error : "Sql error" });
-            } else {
-                var addresses = rows;
-                var unconfirmedAddresses = [];
-
-                async.forEach(addresses, function (item, cb) {
-                    var blockId = item.blockId;
-                    item.confirmations = app.blockchain.getLastBlock().height - app.blockchain.blocks[blockId].height;
-                    cb();
-                }, function () {
-                    async.forEach(app.addressprocessor.unconfirmedAddresses, function (item, cb) {
-                        if (item.generatorPublicKey.toString('hex') == publicKey) {
-                            unconfirmedAddresses.push(item);
-                        }
-
-                        cb();
-                    }, function () {
-                        return res.json({ success : true, addresses : addresses, unconfirmedAddresses : unconfirmedAddresses });
-                    });
-                });
-            }
-        });
-    });
-
     app.get('/api/getAddressTransactions', function (req, res) {
         var accountId = req.query.address || 20,
             limit = req.query.limit || "",
@@ -238,7 +189,21 @@ module.exports = function (app) {
             desc = "ASC";
         }
 
-        var q = app.db.sql.prepare("SELECT * FROM trs WHERE (recipient=$accountId OR sender=$accountId) ORDER BY timestamp "  + desc + " LIMIT " + limit);
+        var addresses = _.map(app.companyprocessor.addresses, function (v, k) {
+            v.address = k;
+            return v;
+        });
+
+        var a = [];
+        addresses = _.filter(addresses, function (v) {
+            if (app.accountprocessor.getAddressByPublicKey(v.generatorPublicKey) == accountId) {
+                a.push(v.address);
+                return true;
+            }
+        });
+
+
+        var q = app.db.sql.prepare("SELECT * FROM trs WHERE (recipient=$accountId OR sender=$accountId OR recipient IN " +  JSON.stringify(a).replace('[', '(').replace(']', ')') + ") ORDER BY timestamp "  + desc + " LIMIT " + limit);
         q.bind({
             $accountId : accountId
         });
@@ -269,7 +234,7 @@ module.exports = function (app) {
                     var unconfirmedTransactions = _.map(app.transactionprocessor.unconfirmedTransactions, function (v) { return _.extend({}, v) });
                     async.eachSeries(unconfirmedTransactions, function (item, с) {
                         item.sender = app.accountprocessor.getAddressByPublicKey(item.senderPublicKey);
-                        if (item.recipientId == accountId || item.sender ==  accountId) {
+                        if (item.recipientId == accountId || item.sender ==  accountId || a.indexOf(item.recipientId) >= 0) {
                             item.timestamp += utils.epochTime();
                             item.confirmations = "-";
                             item.recipient = item.recipientId;
@@ -370,139 +335,175 @@ module.exports = function (app) {
         });
     });
 
-    app.get("/api/getAmountMinedByAddress", function (req, res) {
-        var addr = req.query.address || "";
-        var mined = 0,
-            unconfirmed = 0;
-
-        if (addr.length == 0) {
-            return res.json({ success : false, error : "Provide address" });
-        }
-
-        var address = app.addressprocessor.addresses[addr];
-        if (!address) {
-            return res.json({ success : false, error : "Account not found" });
-        }
-
-        var accountId = req.query.accountId || "";
-        var q = app.db.sql.prepare("SELECT * FROM trs WHERE recipient = ?");
-        q.bind(address.id);
-        q.run(function (err, rows) {
-            if (err) {
-                app.logger.error(err);
-                return res.json({ success : false, error : "Sql error" });
-            } else {
-                var transactions = rows;
-                async.forEach(transactions, function (item, cb) {
-                    var blockId = item.blockId;
-                    item.confirmations = app.blockchain.getLastBlock().height - app.blockchain.blocks[blockId].height;
-                    if (item.confirmations > 10) {
-                        mined += item.fee / 2;
-                    } else {
-                        unconfirmed += item.fee / 2;
-                    }
-
-                    cb();
-                }, function () {
-                    return res.json({ success : true, mined : mined, unconfirmed : unconfirmed });
-                });
-            }
-        });
-    });
-
     app.get('/api/getMiningInfo', function (req, res) {
-        var publicKey = req.query.publicKey || "";
-        var totalForged = 0,
-            totalMined = 0;
-        app.db.sql.all("SELECT * FROM blocks WHERE generatorPublicKey=$publicKey ORDER BY timestamp DESC", {
+        var publicKey = req.query.publicKey || "",
+            limit = req.query.limit || 20,
+            descOrder = req.query.descOrder;
+
+        limit = parseInt(limit);
+
+        if (isNaN(limit) || limit <= 0) {
+            return res.json({ success : false, status : "PROVIDE_LIMIT", error : "Provide correct limit" });
+        }
+
+        var order = "";
+
+        if (descOrder == "true") {
+            order = "DESC";
+        } else {
+            order = "ASC";
+        }
+
+        var totalForged = 0;
+
+        app.db.sql.all("SELECT * FROM blocks WHERE generatorPublicKey=$publicKey ORDER BY timestamp " + order, {
             $publicKey: publicKey
         }, function (err, blocks) {
             if (err) {
                 return res.json({ success : false });
             } else {
-                async.eachSeries(blocks, function (item, cb) {
-                    app.db.sql.all("SELECT * FROM trs WHERE blockId=$blockId", {
-                        $blockId: item.id
-                    }, function (err, trs) {
-                        item.forged = 0;
-
-                        async.eachSeries(trs, function (t, c) {
-                            if (t.type == 1) {
-                                if (t.fee >= 2) {
-                                    if (t.fee % 2 != 0) {
-                                        var r = t.fee % 2;
-                                        item.forged += t.fee / 2 + r;
-                                    } else {
-                                        item.forged += t.fee / 2;
-                                    }
-                                } else {
-                                    item.forged += t.fee;
-                                }
-                            } else if (t.type == 0) {
-                                item.forged += t.fee;
-                            }
-
-                            c();
-                        }, function () {
-                            cb();
-                        });
-                    });
-                }, function () {
-                    app.db.sql.all("SELECT * FROM addresses WHERE generatorPublicKey=$publicKey ORDER BY timestamp DESC", {
-                        $publicKey : publicKey
-                    }, function (err, addresses) {
+                async.eachSeries(blocks, function (b, cb) {
+                    app.db.sql.all("SELECT * FROM trs WHERE blockId=$blockId", { $blockId : b.id }, function (err, trs) {
                         if (err) {
-                            return res.json({ success : false });
+                            return cb(err);
                         } else {
-                            async.forEach(addresses, function (a, cb) {
-                                a.mined = 0;
-                                a.generator = app.accountprocessor.getAddressByPublicKey(new Buffer(a.generatorPublicKey, 'hex'));
-                                a.address = a.id;
-                                app.db.sql.all("SELECT * FROM trs WHERE recipient=$recipient", {
-                                    $recipient : a.address
-                                }, function (err, trs) {
-                                    async.eachSeries(trs, function (t, c) {
-                                        if (t.fee >= 2) {
-                                            if (t.fee % 2 != 0) {
-                                                var r = t.fee % 2;
-                                                a.mined = t.fee / 2 - r;
-                                                totalMined += a.mined;
-                                            } else {
-                                                a.mined = t.fee / 2;
-                                                totalMined += a.mined;
-                                            }
+                            async.eachSeries(trs, function (t, tcb) {
+                                if (t.type == 1 && t.subtype == 0) {
+                                    if (t.fee >= 2) {
+                                        if (t.fee % 2 != 0) {
+                                            var r = t.fee % 2;
+                                            totalForged += t.fee / 2 + r;
+                                        } else {
+                                           totalForged += t.fee / 2;
                                         }
+                                    } else {
+                                        totalForged += t.fee;
+                                    }
+                                } else if (t.type == 3 && t.subtype == 0) {
+                                    totalForged += 100 * Constants.numberLength;
+                                } else {
+                                    totalForged += t.fee;
+                                }
 
-                                        c();
-                                    }, function () {
-                                        cb();
-                                    })
-
-                                    //totalMined += a.mined;
-                                    //cb();
-                                });
+                                tcb();
                             }, function () {
-                                async.forEach(blocks, function (b, cb) {
-                                    totalForged += b.forged;
-                                    b.timestamp += utils.epochTime();
-                                    cb();
-                                }, function () {
-                                    var unconfirmedAddresses = _.map(app.addressprocessor.unconfirmedAddresses, function (value) { var a =  value.toJSON(); a.mined = 0; return a; });
-                                    var myAddresses = [];
-                                    async.forEach(unconfirmedAddresses, function (a, cb) {
-                                        if (a.generatorPublicKey == publicKey) {
-                                            myAddresses.unshift(a);
-                                        }
-
+                                app.db.sql.all("SELECT * FROM companyconfirmations WHERE blockId=$blockId", { $blockId : b.id }, function (err, cms) {
+                                    if (err) {
+                                        return cb(err);
+                                    } else {
+                                        totalForged += cms.length * 100 * Constants.numberLength;
                                         cb();
-                                    }, function () {
-                                        addresses = addresses.concat(myAddresses);
-                                        return res.json({ success : true, blocks : blocks, addresses : addresses, totalMined : totalMined, totalForged : totalForged });
-                                    });
+                                    }
                                 });
                             });
                         }
                     });
+                }, function (err) {
+                    if (err) {
+                        return res.json({ success : false, status : "SQL_ERROR", error : "Sql error" });
+                    }
+
+                    var addresses = _.map(app.companyprocessor.addresses, function (v, k) {
+                        v = v.toJSON();
+                        v.address = k;
+                        v.confirmed = true;
+                        return v;
+                    });
+
+                    addresses = _.filter(addresses, function (v) {
+                        if (v.generatorPublicKey == publicKey) {
+                            return true;
+                        }
+                    });
+
+                    async.eachSeries(addresses, function (a, cb) {
+                        app.db.sql.all("SELECT * FROM trs WHERE recipient = $recipient", {
+                            $recipient : a.address
+                        }, function (err, trs) {
+                            if (err) {
+                                return cb(err);
+                            } else {
+                                async.eachSeries(trs, function (t, tcb) {
+                                    if (t.fee >= 2) {
+                                        if (t.fee % 2 != 0) {
+                                            var r = t.fee % 2;
+                                            totalForged += t.fee / 2 - r;
+                                        } else {
+                                            totalForged += t.fee / 2;
+                                        }
+                                    }
+
+                                    tcb();
+                                }, function () {
+                                    cb();
+                                });
+                            }
+                        });
+                    }, function (err) {
+                        if (err) {
+                            return res.json({ success : false, status : "SQL_ERROR", error : "Sql error" });
+                        }
+
+                        var unconfirmedCompanies = _.map(app.companyprocessor.unconfirmedCompanies, function (v, k) {
+                            v = v.toJSON();
+                            v.confirmed = false;
+                            v.confirmations = 0;
+                            return v;
+                        });
+
+                        unconfirmedCompanies = _.filter(unconfirmedCompanies, function (v) {
+                            if (v.generatorPublicKey == publicKey) {
+                                return true;
+                            }
+                        });
+
+                        if (!unconfirmedCompanies) {
+                            unconfirmedCompanies = [];
+                        }
+
+                        var addedCompanies = _.map(app.companyprocessor.addedCompanies, function (v, k) {
+                            v = v.toJSON();
+                            v.confirmations = app.companyprocessor.confirmations[v.domain];
+                            v.blocksConfirmations = v.blocks;
+                            v.confirmed = false;
+                            return v;
+                        });
+
+                        addedCompanies = _.filter(addedCompanies, function (v) {
+                            if (v.generatorPublicKey == publicKey) {
+                                return true;
+                            }
+                        });
+
+                        if (!addedCompanies) {
+                            addedCompanies = [];
+                        }
+
+                        if (!addresses) {
+                            addresses = [];
+                        }
+
+                        var dels = [];
+                        async.eachSeries(app.companyprocessor.deletedCompanies, function (i, cb) {
+                            if (i.generatorPublicKey.toString('hex') == publicKey) {
+                                i.deleted = true;
+                                dels.push(i.toJSON());
+                            }
+
+                            cb();
+                        }, function () {
+                            addresses = dels.concat(addresses);
+                            addresses = addresses.concat(addedCompanies);
+                            addresses = addresses.concat(unconfirmedCompanies);
+
+                            addresses.sort(function (a, b) {
+                                return a.timestamp < b.timestamp;
+                            });
+
+                            blocks = blocks.slice(0, limit);
+                            return res.json({ success : true, status : "OK", totalForged : totalForged, blocks : blocks, companies : addresses });
+                        });
+                    })
                 });
             }
         });
@@ -564,23 +565,14 @@ module.exports = function (app) {
                                 }
 
                                 item.trs = trs;
-                                app.db.sql.all("SELECT * FROM addresses WHERE blockId=$id", {
+                                app.db.sql.all("SELECT * FROM requests WHERE blockId=$id", {
                                     $id : item.id
-                                }, function (err, addresses) {
+                                }, function (err, requests) {
                                     if (err) {
                                         cb(err);
-                                    } else {
-                                        item.addresses = addresses;
-                                        app.db.sql.all("SELECT * FROM requests WHERE blockId=$id", {
-                                            $id : item.id
-                                        }, function (err, requests) {
-                                            if (err) {
-                                                cb(err);
-                                            }  else {
-                                                item.requests = requests;
-                                                cb();
-                                            }
-                                        });
+                                    }  else {
+                                        item.requests = requests;
+                                        cb();
                                     }
                                 });
                             });
@@ -619,7 +611,8 @@ module.exports = function (app) {
 
         app.db.sql.all("SELECT * FROM blocks ORDER BY timestamp " + order + "  LIMIT " + limit, function (err, rows) {
             if (err) {
-                app.logger.error(err);
+                console.log(err);
+                app.logger.error(err.toString());
                 return res.json({ success : false, blocks : [], status : "SQL_ERROR", error : "Sql error" });
             } else {
                 async.forEach(rows, function (item, callback) {
@@ -631,28 +624,7 @@ module.exports = function (app) {
                             callback(err);
                         } else {
                             item.transactions = rows;
-
-                            async.forEach(item.transactions, function (t, cb) {
-                                t.sender = app.accountprocessor.getAddressByPublicKey(new Buffer(t.senderPublicKey, 'hex'));
-                                t.timestamp += utils.epochTime();
-                                cb();
-                            }, function () {
-                                app.db.sql.all("SELECT * FROM addresses WHERE blockId='" + item.id + "'", function (err, rows) {
-                                    if (err) {
-                                        callback(err);
-                                    } else {
-                                        item.addresses = rows;
-
-                                        async.forEach(item.addresses, function (a, c) {
-                                            a.generator = app.accountprocessor.getAddressByPublicKey(new Buffer(a.generatorPublicKey, 'hex'));
-                                            a.address = app.accountprocessor.getAddressByPublicKey(new Buffer(a.publicKey, 'hex'));
-                                            c();
-                                        }, function () {
-                                            callback();
-                                        });
-                                    }
-                                });
-                            });
+                            callback();
                         }
                     });
                 }, function (err) {
@@ -688,24 +660,8 @@ module.exports = function (app) {
                                 t.sender = app.accountprocessor.getAddressByPublicKey(new Buffer(t.senderPublicKey, 'hex'));
                                 cb();
                             }, function () {
-                                app.db.sql.all("SELECT * FROM addresses WHERE blockId='" + item.id + "'", function (err, rows) {
-                                    if (err) {
-                                        callback(err);
-                                    } else {
-                                        item.addresses = rows;
-
-                                        async.forEach(item.addresses, function (a, c) {
-                                            a.generator = app.accountprocessor.getAddressByPublicKey(new Buffer(a.generatorPublicKey, 'hex'));
-                                            a.address = app.accountprocessor.getAddressByPublicKey(new Buffer(a.publicKey, 'hex'));
-                                            c();
-                                        }, function () {
-                                            callback();
-                                        });
-                                    }
-                                });
+                                callback();
                             });
-
-
                         }
                     });
                 }, function (err) {

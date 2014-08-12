@@ -1,15 +1,15 @@
-webApp.controller('forgingController', ['$scope', '$rootScope', '$http', "userService", "$interval", "addressModal", "forgingModal", function($rootScope, $scope, $http, userService, $interval, addressModal, forgingModal) {
+webApp.controller('forgingController', ['$scope', '$rootScope', '$http', "userService", "$interval", "companyModal", "forgingModal", function($rootScope, $scope, $http, userService, $interval, companyModal, forgingModal) {
     $scope.address = userService.address;
     $scope.effectiveBalance = userService.effectiveBalance;
+    $scope.totalBalance = userService.balance;
     $scope.forging = userService.forging;
 
     $scope.getInfo = function () {
-        $http.get("/api/getMiningInfo", { params : { publicKey : userService.publicKey }})
+        $http.get("/api/getMiningInfo", { params : { publicKey : userService.publicKey, descOrder : true }})
             .then(function (resp) {
                 $scope.blocks = resp.data.blocks;
-                $scope.addresses = resp.data.addresses;
+                $scope.companies = resp.data.companies;
                 $scope.totalForged = resp.data.totalForged;
-                $scope.totalMined = resp.data.totalMined;
             });
     }
 
@@ -19,18 +19,11 @@ webApp.controller('forgingController', ['$scope', '$rootScope', '$http', "userSe
 
     $scope.getInfo();
 
-    $scope.newAddress = function () {
-        $scope.addressModal = addressModal.activate({
+    $scope.newCompany = function () {
+        $scope.companyModal = companyModal.activate({
+            totalBalance: $scope.totalBalance,
             destroy : function () {
                 $scope.getInfo();
-            }
-        });
-    }
-
-    $scope.enableForging = function () {
-        $scope.forgingModal = forgingModal.activate({
-            destroy : function () {
-                $scope.forging = userService.forging;
             }
         });
     }

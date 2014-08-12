@@ -154,9 +154,6 @@ body {
   position: relative;
   font-family: "HelveticaNeue-Light", "Helvetica Neue Light", "Helvetica Neue", Helvetica, Arial, "Lucida Grande", sans-serif;
 }
-body {
-  overflow: scroll;
-}
 .height {
   height: 100%;
 }
@@ -371,6 +368,29 @@ p.description {
   clear: both;
   margin-top: 40px;
   line-height: 1.3;
+}
+.instruction {
+  font-size: 14px;
+  width: 100%;
+  position: relative;
+  line-height: 1.3;
+  margin-top: 5px;
+  list-style-type: circle;
+}
+.instruction ul {
+  width: 100%;
+  font-size: 14px;
+  line-height: 1.3;
+}
+.instruction ul li {
+  display: block;
+  word-wrap: break-word;
+  width: 100%;
+  margin-left: 15px;
+  margin-top: 2px;
+}
+#companyModal {
+  top: 5%;
 }
 /*END OF JOINT STYLES*/
 #left-nav {

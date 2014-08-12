@@ -33,8 +33,6 @@ signatureprocessor.prototype.generateNewSignature = function (timestamp, secretP
     s.sign(secondSecretPhrase);
     s.signGeneration(secretPhrase);
 
-    console.log(s);
-
     return s;
 }
 

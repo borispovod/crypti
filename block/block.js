@@ -27,20 +27,15 @@ var block = function (version, id, timestamp, previousBlock, transactions, total
     this.height = 0;
     this.baseTarget = 0;
     this.numberOfRequests = 0;
-    this.addressesLength = 0;
+    this.numberOfConfirmations = 0;
     this.requestsLength = 0;
+    this.confirmationsLength = 0;
     this.generationWeight = bignum(0);
 
     if (this.transactions) {
         this.numberOfTransactions = this.transactions.length;
     } else {
         this.numberOfTransactions = 0;
-    }
-
-    if (this.addresses) {
-        this.numberOfAddresses = this.addresses.length;
-    } else {
-        this.numberOfAddresses = 0;
     }
 }
 
@@ -54,10 +49,6 @@ block.prototype.setApp = function (app) {
 
 block.prototype.toJSON = function () {
     var obj = _.extend({}, this);
-    /*obj.payloadHash = new Buffer(this.payloadHash, 'hex');
-    obj.generatorPublicKey = new Buffer(this.generatorPublicKey, 'hex');
-    obj.generationSignature = new Buffer(this.generationSignature, 'hex');
-    obj.blockSignature = new Buffer(this.blockSignature, 'hex');*/
 
     obj.payloadHash = this.payloadHash.toString('hex');
     obj.generatorPublicKey = this.generatorPublicKey.toString('hex');
@@ -112,11 +103,6 @@ block.prototype.analyze = function () {
     }
 
 
-    for (var a in this.addresses) {
-        var addr = this.addresses[a];
-        this.app.addressprocessor.addresses[addr.id] = addr;
-    }
-
     for (var i = 0; i < this.transactions.length; i++) {
         var t = this.transactions[i];
 
@@ -144,6 +130,14 @@ block.prototype.analyze = function () {
                         break;
                 }
                 break;
+
+            case 3:
+                switch (t.subtype)  {
+                    case 0:
+                        fee = 1000 * constants.numberLength;
+                        break;
+                }
+                break;
         }
 
         sender.setBalance(sender.balance - (t.amount + fee));
@@ -161,16 +155,10 @@ block.prototype.analyze = function () {
                 this.accountprocessor.addAccount(recipient);
             }
 
-            if (t.recipientId[t.recipientId.length - 1] == "D") {
-                //t.type = 1;
-                var address = this.app.addressprocessor.addresses[t.recipientId];
+            if (t.recipientId[t.recipientId.length - 1] == "D" && t.type == 1 && t.subtype == 0) {
+                var company = this.app.companyprocessor.addresses[t.recipientId];
 
-                /*if (!address) {
-                 address = this.app.addressprocessor.unconfirmedAddresses[t.recipientId];
-                 }*/
-
-                var addr = this.accountprocessor.getAddressByPublicKey(address.generatorPublicKey);
-                addr.popWeight = t.amount;
+                var addr = this.accountprocessor.getAddressByPublicKey(company.generatorPublicKey);
                 recipient = this.accountprocessor.getAccountById(addr);
 
                 if (!recipient) {
@@ -182,6 +170,20 @@ block.prototype.analyze = function () {
         }
 
         switch (t.type) {
+            case 3:
+                switch (t.subtype) {
+                    case 0:
+                        var company = t.asset;
+                        company.blocks = 1;
+                        delete this.app.companyprocessor.unconfirmedCompanies[company.domain];
+                        this.app.companyprocessor.addedCompanies[company.domain] = company;
+                        this.app.companyprocessor.confirmations[company.domain] = 1;
+                        this.app.companyprocessor.domains.push(company.domain);
+                        this.app.companyprocessor.addedCompaniesIds[company.getId()] = company;
+                        break;
+                }
+            break;
+
             case 2:
                 switch (t.subtype) {
                     case 0:
@@ -209,12 +211,13 @@ block.prototype.analyze = function () {
 
                         if (fee >= 2) {
                             if (fee % 2 != 0) {
-                                var r = fee % 2;
-                                value = fee / 2 - r;
+                                value = parseInt(fee / 2);
                             } else {
                                 value = fee / 2;
                             }
                         }
+
+                        console.log(value);
 
                         var blockId = this.getId();
 
@@ -305,46 +308,9 @@ block.prototype.setPreviousBlock = function (block, cb) {
         }
     }
 }
-/*
-block.prototype.getBaseTarget = function (previousBlock) {
-    if (this.getId() == genesis.blockId && !this.previousBlockId) {
-        this.baseTarget = 153722867;
-        this.cumulativeDifficulty = 0;
-
-        return this.baseTarget;
-    } else {
-        var prevBaseTarget = this.blockchain.getBlock(previousBlock).baseTarget;
-        var prevNum = bignum.fromBuffer(prevBaseTarget);
-        var newBaseTarget = bignum.fromBuffer(prevBaseTarget).mul(bignum(this.timestamp - previousBlock.timestamp)).div(bignum(60));
-
-        if (newBaseTarget.lt(0) || newBaseTarget.gt(153722867 * 1000000000)) {
-            newBaseTarget = bignum(153722867 * 1000000000);
-        }
-
-        if (newBaseTarget.lt(prevNum.mul(2))) {
-            newBaseTarget = prevNum.mul(2);
-        }
-
-        if (newBaseTarget.eq(0)) {
-            newBaseTarget = bignum(1);
-        }
-
-        var twofoldCurBaseTarget = prevNum.mul(2);
-        if (twofoldCurBaseTarget.lt(0)) {
-            twofoldCurBaseTarget = bignum(153722867 * 1000000000);
-        }
-
-        if (newBaseTarget.gt(twofoldCurBaseTarget)) {
-            newBaseTarget = twofoldCurBaseTarget;
-        }
-
-        this.baseTarget = newBaseTarget.toBuffer();
-        return this.baseTarget;
-    }
-}*/
 
 block.prototype.getBytes = function () {
-    var size = 4 + 4 + 8 + 4 + 4 + 4 + 8 + 8 + 8 + 4 + 4 + 4  + 32 + 32 + 64 + 64;
+    var size = 4 + 4 + 8 + 4 + 4 + 4 + 8 + 8 + 8 + 4 + 4 + 4 + 32 + 32 + 64 + 64;
 
     var bb = new ByteBuffer(size, true);
     bb.writeInt(this.version);
@@ -362,9 +328,9 @@ block.prototype.getBytes = function () {
         }
     }
 
-    bb.writeInt(this.numberOfAddresses);
     bb.writeInt(this.numberOfTransactions);
     bb.writeInt(this.numberOfRequests);
+    bb.writeInt(this.numberOfConfirmations);
     bb.writeLong(this.totalAmount);
     bb.writeLong(this.totalFee);
 
@@ -375,8 +341,8 @@ block.prototype.getBytes = function () {
     }
 
     bb.writeInt(this.payloadLength);
-    bb.writeInt(this.addressesLength);
     bb.writeInt(this.requestsLength);
+    bb.writeInt(this.confirmationsLength);
 
     for (var i = 0; i < this.payloadHash.length; i++) {
         bb.writeByte(this.payloadHash[i]);
@@ -511,13 +477,20 @@ block.prototype.verifyGenerationSignature = function () {
                 break;
             }
 
-            // get account purcashes in this block
             previousBlock = this.app.blockchain.getBlock(previousBlock.previousBlock);
         }
 
         accountWeightTimestamps = accountWeightTimestamps.div(lastAliveBlock.height);
-        //popWeightAmount = Math.log(1 + popWeightAmount) / Math.LN10;
-        //popWeightAmount /= Math.log(1 + this.app.blockchain.totalPurchaseAmount) /  Math.LN10;
+        popWeightAmount = Math.log(1 + popWeightAmount) / Math.LN10;
+
+        var X = null;
+        if (this.app.blockchain.totalPurchaseAmount == 0) {
+            X = 1;
+        } else {
+            X = this.app.blockchain.totalPurchaseAmount;
+        }
+
+        popWeightAmount /= X;
 
         this.app.logger.info("Account " + address + " PoT weight " + accountWeightTimestamps.toString());
         this.app.logger.info("Account " + address + " PoP weight " + popWeightAmount);
@@ -546,7 +519,7 @@ block.prototype.verifyGenerationSignature = function () {
     var cycle = parseInt(elapsedTime / 60) - 1;
 
     if (cycle > accounts.length - 1) {
-        cycle = accounts.length - 1;
+        cycle = parseInt(cycle  % accounts.length)
     }
 
     this.logger.info("Winner number: " + cycle);

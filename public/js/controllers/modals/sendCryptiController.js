@@ -57,19 +57,18 @@ webApp.controller('sendCryptiController', ["$scope", "sendCryptiModal", "$http",
             if ($scope.amount.indexOf('.') >= 0) {
                 var strs = $scope.amount.split('.');
                 $scope.maxlength = strs[0].length + 9;
-                console.log($scope.maxlength);
             }
             // calculate fee.
-            var fee = ($scope.amount / 100 * $scope.currentFee).roundTo(8);
+            var fee = parseInt($scope.amount * 100000000 / 100 * $scope.currentFee) / 100000000; //($scope.amount / 100 * $scope.currentFee).roundTo(8);
 
             if ($scope.amount == 0) {
                 fee = 0;
             } else if (parseFloat(fee) == 0) {
                 fee = "0.00000001";
-
+                $scope.fee = fee;
+            } else {
+                $scope.fee = fee.toFixed(8);
             }
-
-            $scope.fee = fee;
         }
 
         /*

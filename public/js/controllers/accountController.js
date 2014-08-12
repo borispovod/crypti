@@ -54,7 +54,11 @@ webApp.controller('accountController', ['$scope', '$rootScope', '$http', "userSe
 
     $scope.addSecondPassphrase = function () {
         $scope.secondPassphraseModal = secondPassphraseModal.activate({
-            totalBalance : $scope.unconfirmedBalance
+            totalBalance : $scope.unconfirmedBalance,
+            destroy: function () {
+                $scope.getBalance();
+                $scope.getTransactions();
+            }
         });
     }
 
