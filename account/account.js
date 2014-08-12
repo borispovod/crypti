@@ -39,6 +39,8 @@ account.prototype.getEffectiveBalance = function () {
         return 0;
     }
 
+    return this.balance;
+
     var lastBlock = this.app.blockchain.getLastBlock();
 
 

@@ -83,9 +83,6 @@ signature.prototype.verify = function () {
 
 
     var hash = crypto.createHash('sha256').update(data2).digest();
-
-    console.log(hash);
-
     return ed.Verify(hash, this.signature, this.publicKey);
 }
 
