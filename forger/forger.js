@@ -7,7 +7,9 @@ var crypto = require('crypto'),
     ed  = require('ed25519'),
     async = require('async'),
     request = require('../request').request,
-    genesisblock = require("../block").genesisblock;
+    genesisblock = require("../block").genesisblock,
+    companyconfirmation = require("../company").companyconfirmation,
+    http = require('http');
 
 var forger = function (accountId, publicKey, secretPharse) {
     this.accountId = accountId;
@@ -25,6 +27,40 @@ forger.prototype.setApp = function (app) {
     this.addressprocessor = app.addressprocessor;
     this.workingForger = false;
     this.sending = false;
+}
+
+forger.prototype.checkCompany = function (company, cb) {
+    var getOptions = {
+        hostname: company.domain,
+        port: 80,
+        path: '/cryptixcr.txt'
+    };
+
+    var timeout = null;
+
+    var r = http.get(getOptions, function (response) {
+        var data = "";
+        response.on("data", function(body) {
+            clearTimeout(timeout);
+            data += body;
+        });
+        response.on('end', function () {
+            data = data.replace(/^\s+|\s+$/g,"");
+            if (data != company.signature.toString('base64')) {
+                cb(false);
+             } else {
+                cb(true);
+            }
+        });
+    });
+
+    timeout = setTimeout(function () {
+        r.abort();
+    }, 3000);
+
+    r.on('error', function (err) {
+        cb(false);
+    });
 }
 
 forger.prototype.sendRequest = function () {
@@ -54,7 +90,7 @@ forger.prototype.sendRequest = function () {
 }
 
 forger.prototype.startForge = function () {
-    if (!this.app.synchronizedBlocks || !this.app.synchronizedRequests || !this.sent) {
+    if (!this.app.synchronizedBlocks || !this.sent) {
         this.app.logger.warn("Can't forge, node not synchronized!");
         return false;
     }
@@ -88,16 +124,15 @@ forger.prototype.startForge = function () {
         return false;
     }
 
+
     if (Object.keys(this.app.requestprocessor.unconfirmedRequests).length == 0) {
-        this.app.logger.info("Not found accounts for next block forging...");
+        this.app.logger.info("Need account for forge block...");
         this.workingForger = false;
         return false;
     }
 
-
     var requests = _.map(lastAliveBlock.requests, function (v) { return v; });
     var accounts = [];
-
 
     for (var i = 0; i < requests.length; i++) {
         var request = requests[i];
@@ -117,7 +152,6 @@ forger.prototype.startForge = function () {
         }
 
         confirmedRequests = confirmedRequests.slice(0);
-        //confirmedRequests.push(request);
 
         var accountWeightTimestamps = bignum(0);
         var popWeightAmount = 0;
@@ -155,16 +189,24 @@ forger.prototype.startForge = function () {
         }
 
         accountWeightTimestamps = accountWeightTimestamps.div(lastAliveBlock.height);
-        //popWeightAmount = Math.log(1 + popWeightAmount) / Math.LN10;
-        //popWeightAmount /= Math.log(1 + this.app.blockchain.totalPurchaseAmount) /  Math.LN10;
+        popWeightAmount  = Math.log(1 + popWeightAmount) / Math.LN10;
 
-        this.app.logger.info("Account " + address + " PoT weight " + accountWeightTimestamps.toString());
-        this.app.logger.info("Account " + address + " PoP weight " + popWeightAmount);
+        var X = null;
+        if (this.app.blockchain.totalPurchaseAmount == 0) {
+            X = 1;
+        } else {
+            X = this.app.blockchain.totalPurchaseAmount;
+        }
+
+        popWeightAmount /= X;
+
+        this.app.logger.info("Account PoT weight: " + address + " / " + accountWeightTimestamps.toString());
+        this.app.logger.info("Account PoP weight: " + address + " / " + popWeightAmount);
 
         var accountTotalWeight = accountWeightTimestamps.add(popWeightAmount);
         accounts.push({ address : address, weight : accountTotalWeight, publicKey : request.publicKey, signature : request.signature  });
 
-        this.app.logger.info("Account " + address + " weight " + accountTotalWeight.toString());
+        this.app.logger.info("Account " + address + " / " + accountTotalWeight.toString());
     }
 
     accounts.sort(function compare(a,b) {
@@ -178,7 +220,7 @@ forger.prototype.startForge = function () {
     });
 
     if (accounts.length == 0) {
-        this.app.logger.info("Not found accounts for forging...");
+        this.app.logger.info("Need accounts for forging...");
         this.workingForger = false;
         return false;
     }
@@ -186,10 +228,10 @@ forger.prototype.startForge = function () {
     var cycle = parseInt(elapsedTime / 60) - 1;
 
     if (cycle > accounts.length - 1) {
-        cycle = accounts.length - 1;
+        cycle = parseInt(cycle  % accounts.length);
     }
 
-    this.logger.info("Winner number: " + cycle);
+    this.logger.info("Winner in cycle is: " + cycle);
 
     // ищем похожий вес
     var winner = accounts[cycle];
@@ -206,7 +248,7 @@ forger.prototype.startForge = function () {
     }
 
     if (sameWeights.length > 1) {
-        this.app.logger.info("Accounts with same weight founds, count: " + sameWeights.length);
+        this.app.logger.info("Same weight in cyclet: " + sameWeights.length);
 
         var randomWinners = [];
         for (var i = 0; i < sameWeights.length; i++) {
@@ -218,7 +260,7 @@ forger.prototype.startForge = function () {
                 result[j] = hash[j];
             }
 
-            this.app.logger.info("Account with same weight " + a.address + " new weight: " + bignum.fromBuffer(result, { size : '8'}));
+            this.app.logger.info("Account " + a.address + " new weight is: " + bignum.fromBuffer(result, { size : '8'}));
             randomWinners.push({ address : a.address, weight : bignum.fromBuffer(result, { size : '8'}), publicKey : a.publicKey, signature : a.signature });
         }
 
@@ -235,7 +277,7 @@ forger.prototype.startForge = function () {
         winner = randomWinners[0];
     }
 
-    this.app.logger.info("Winner " + winner.address + " with weight " + winner.weight.toString());
+    this.app.logger.info("Winner in cycle" + winner.address + " / " + winner.weight.toString());
 
     if (winner.address == myAccount.address) {
         // let's generate block
@@ -315,6 +357,14 @@ forger.prototype.startForge = function () {
                                 break;
                         }
                         break;
+
+                    case 3:
+                        switch (t.subtype) {
+                            case 0:
+                                fee = 1000 * constants.numberLength;
+                                break;
+                        }
+                        break;
                 }
 
 
@@ -349,46 +399,6 @@ forger.prototype.startForge = function () {
             }
         }
 
-        var addresses = _.map(this.addressprocessor.unconfirmedAddresses, function (obj, key) { return obj });
-        addresses.sort(function(a, b){
-            return a.timestamp > b.timestamp;
-        });
-
-        var newAddresses = {};
-        var addressesLength = 0;
-
-        for (var i = 0; i < addresses.length; i++) {
-            var size = addresses[i].getBytes().length;
-
-            if (newAddresses[addresses[i].id]) {
-                continue;
-            }
-
-            if (addressesLength + size > constants.maxAddressesLength) {
-                break;
-            }
-
-            if (this.addressprocessor.addresses[addresses[i].id]) {
-                continue;
-            }
-
-            var addrAccount = this.accountprocessor.getAddressByPublicKey(addresses[i].generatorPublicKey);
-            if (newAddresses[addrAccount]) {
-                continue;
-            }
-
-            if (!this.accountprocessor.accounts[addrAccount] || this.accountprocessor.accounts[addrAccount].getEffectiveBalance() <= 0) {
-                continue;
-            }
-
-            if (addressesLength + addresses[i].getBytes().length > constants.maxAddressLength) {
-                break;
-            }
-
-            newAddresses[addresses[i].id] = addresses[i];
-            addressesLength += addresses[i].getBytes().length;
-        }
-
         var newRequests = [];
         var requestsLength = 0;
         var unconfirmedRequests = _.map(this.app.requestprocessor.unconfirmedRequests, function (v) { return v; });
@@ -402,7 +412,6 @@ forger.prototype.startForge = function () {
             var account = this.app.accountprocessor.getAccountByPublicKey(unconfirmedRequests[i].publicKey);
 
             if (!account || account.getEffectiveBalance() < 1000 * constants.numberLength) {
-                console.log("fail");
                 continue;
             }
 
@@ -410,81 +419,94 @@ forger.prototype.startForge = function () {
             requestsLength += size;
         }
 
-        console.log(newRequests);
+        var companies = _.map(this.app.companyprocessor.addedCompanies, function (v) { return v; });
+        var newConfirmations = [];
+        var confirmationsLength = 0;
+        async.forEach(companies, function (company, cb) {
+            var size = 77;
 
-        var publicKey = this.publicKey;
-        var hash = crypto.createHash('sha256');
-
-        for (var t in newTransactions) {
-            hash.update(newTransactions[t].getBytes());
-        }
-
-        for (var a in newAddresses) {
-            hash.update(newAddresses[a].getBytes());
-        }
-
-        for (var i = 0; i < newRequests.length; i++) {
-            hash.update(newRequests[i].getBytes());
-        }
-
-        var payloadHash = hash.digest();
-
-        var previousBlock = this.blockchain.getLastBlock();
-        hash = crypto.createHash('sha256').update(previousBlock.generationSignature).update(publicKey);
-        var generationSignature = hash.digest();
-
-        var previousBlockHash = crypto.createHash('sha256').update(previousBlock.getBytes()).digest();
-
-        var block = new Block(1, null, blockTimestamp, previousBlock.getId(), null, totalAmount, totalFee, payloadLength, payloadHash, publicKey, generationSignature, null);
-        block.addressesLength = addressesLength;
-        block.requestsLength = requestsLength;
-        block.numberOfAddresses = Object.keys(newAddresses).length;
-        block.numberOfRequests = newRequests.length;
-        block.setApp(this.app);
-        block.numberOfTransactions = Object.keys(newTransactions).length;
-
-        var passHash = crypto.createHash('sha256').update(this.secretPharse, 'utf8').digest();
-        var keypair = ed.MakeKeypair(passHash);
-
-        block.generationWeight = winner.weight;
-        block.generationSignature = ed.Sign(generationSignature, keypair);
-        block.sign(this.secretPharse);
-
-
-        if (block.verifyBlockSignature() && block.verifyGenerationSignature()) {
-            this.logger.info("Block generated: " + block.getId());
-            var buffer = block.getBytes();
-
-            for (var t in newTransactions) {
-                buffer = Buffer.concat([buffer, newTransactions[t].getBytes()]);
+            if (size + confirmationsLength > constants.maxConfirmations) {
+                return cb(true);
             }
 
-            for (var addr in newAddresses) {
-                buffer = Buffer.concat([buffer, newAddresses[addr].getBytes()]);
+            this.checkCompany(company, function (r) {
+                var cm = new companyconfirmation(company.getId(), r, blockTimestamp);
+                cm.sign(this.secretPharse);
+
+                newConfirmations.push(cm);
+                confirmationsLength += size;
+                totalFee += 100 * constants.numberLength;
+                cb();
+            }.bind(this));
+        }.bind(this), function () {
+            console.log(newConfirmations);
+            var publicKey = this.publicKey;
+            var hash = crypto.createHash('sha256');
+
+            for (var t in newTransactions) {
+                hash.update(newTransactions[t].getBytes());
             }
 
             for (var i = 0; i < newRequests.length; i++) {
-                buffer = Buffer.concat([buffer, newRequests[i].getBytes()]);
+                hash.update(newRequests[i].getBytes());
             }
 
-            try {
-                var result = this.blockchain.pushBlock(buffer, true);
-            } catch (e) {
-                result = null;
-                this.app.logger.error(e.toString());
+            for (var i = 0; i < newConfirmations.length; i++) {
+                hash.update(newConfirmations[i].getBytes());
             }
 
-            if (!result) {
-                this.transactionprocessor.unconfirmedTransactions = {};
-                this.addressprocessor.unconfirmedAddresses = {};
-                this.app.requestprocessor.unconfirmedRequests = {};
+            var payloadHash = hash.digest();
+
+            var previousBlock = this.blockchain.getLastBlock();
+            hash = crypto.createHash('sha256').update(previousBlock.generationSignature).update(publicKey);
+            var generationSignature = hash.digest();
+
+            var previousBlockHash = crypto.createHash('sha256').update(previousBlock.getBytes()).digest();
+
+            var block = new Block(1, null, blockTimestamp, previousBlock.getId(), null, totalAmount, totalFee, payloadLength, payloadHash, publicKey, generationSignature, null);
+            block.requestsLength = requestsLength;
+            block.numberOfConfirmations = newConfirmations.length;
+            block.confirmationsLength = confirmationsLength;
+            block.numberOfRequests = newRequests.length;
+            block.setApp(this.app);
+            block.numberOfTransactions = Object.keys(newTransactions).length;
+
+            var passHash = crypto.createHash('sha256').update(this.secretPharse, 'utf8').digest();
+            var keypair = ed.MakeKeypair(passHash);
+
+            block.generationWeight = winner.weight;
+            block.generationSignature = ed.Sign(generationSignature, keypair);
+            block.sign(this.secretPharse);
+
+            if (block.verifyBlockSignature() && block.verifyGenerationSignature()) {
+                this.logger.info("Block generated: " + block.getId());
+
+                var buffer = block.getBytes();
+
+                for (var t in newTransactions) {
+                    buffer = Buffer.concat([buffer, newTransactions[t].getBytes()]);
+                }
+
+                for (var i = 0; i < newRequests.length; i++) {
+                    buffer = Buffer.concat([buffer, newRequests[i].getBytes()]);
+                }
+
+                for (var i = 0; i < newConfirmations.length; i++) {
+                    buffer = Buffer.concat([buffer, newConfirmations[i].getBytes()]);
+                }
+
+                try {
+                    var result = this.blockchain.pushBlock(buffer, true, true);
+                } catch (e) {
+                    result = null;
+                    this.app.logger.error(e.toString());
+                }
+
+                this.workingForger = false;
+            } else {
+                this.logger.error("Can't verify new generated block");
             }
-
-            this.workingForger = false;
-
-        } else {
-            this.logger.error("Can't verify new generated block");
-        }
+        }.bind(this));
 
     } else {
         this.workingForger = false;

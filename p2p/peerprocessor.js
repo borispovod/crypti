@@ -3,7 +3,7 @@ var peer = require("./peer.js"),
     async = require('async'),
     utils = require("../utils.js");
 
-var timeToBlock = 60 * 10;
+var timeToBlock = 10;
 
 var peerprocessor = function () {
     this.peers = {};
@@ -180,6 +180,8 @@ peerprocessor.prototype.getPeerByPublicKey = function (publicKey) {
         }
     }
 }
+
+
 
 peerprocessor.prototype.getPeer = function (ip) {
     return this.peers[ip];

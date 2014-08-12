@@ -1,14 +1,13 @@
 <div id="account">
     <div class="row">
         <h1 class="heading">Account</h1>
-        <h2 class="account-id">Your account: {{ address }}<span ng-show="!secondPassphrase"> / </span><a href="#" ng-show="!secondPassphrase" ng-click="addSecondPassphrase()">Add second passphrase</a></h2>
+        <h2 class="account-id">Your account: {{ address }}<span ng-show="!secondPassphrase"> / </span><a href="#" ng-show="!secondPassphrase" ng-click="addSecondPassphrase()"  title="Increase your account security!">Add second passphrase</a></h2>
     </div>
     <div class="raw-buttons" id="paddingFix">
         <button class="button green send" ng-click="sendCrypti()">Send Crypti</button>
         <div id="buttons">
             <div class="container"><button class="button static label" title="{{ balance  | feeFilter }}">Balance:   <span>{{ balance | feeFilter }}</span></button></div>
             <div class="container"><button class="button static label" title="{{ unconfirmedBalance | feeFilter }}">Unconfirmed:   <span>{{ unconfirmedBalance | feeFilter }}</span></button></div>
-            <div class="container"><button class="button static label" title="{{ effectiveBalance | feeFilter }}">Effective:   <span>{{ effectiveBalance | feeFilter }}</span></button></div>
         </div>
     </div>
     <h1>Transactions</h1>
@@ -25,8 +24,8 @@
         <tr ng-repeat="transaction in transactions">
             <td>{{transaction.id}}</td>
             <td>{{transaction.sender}}</td>
-            <td ng-show="transaction.type < 1">{{transaction.recipient || transaction.recipientId }}</td>
-            <td ng-show="transaction.type == 2">-</td>
+            <td ng-show="transaction.type <= 1">{{transaction.recipient || transaction.recipientId }}</td>
+            <td ng-show="transaction.type == 2 && transaction.subtype == 0 || transaction.type == 3 && transaction.subtype == 0">-</td>
             <td>{{transaction.timestamp | timestampFilter}}</td>
             <td>{{transaction.fee / 100000000 | feeFilter}}</td>
             <td>{{transaction.amount / 100000000 | feeFilter}}</td>

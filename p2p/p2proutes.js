@@ -3,7 +3,6 @@ var peer = require("./peer.js"),
     Constants = require("../Constants.js"),
     Block = require('../block').block.block,
     Transaction = require("../transactions").transaction,
-    Address = require("../address").address,
     async = require('async'),
     utils = require("../utils.js"),
     _ = require('underscore'),
@@ -12,7 +11,7 @@ var peer = require("./peer.js"),
     Request = require("../request").request,
     bignum = require('bignum'),
     signature = require('../signature').signature,
-    signatureprocessor = require("../signature").signatureprocessor;
+    companyconfirmation = require("../company").companyconfirmation;
 
 module.exports = function (app) {
     app.get("/peer/getRequests", function (req, res) {
@@ -61,10 +60,8 @@ module.exports = function (app) {
 
 
         if (added) {
-            console.log("request processed");
             return res.json({ success : true });
         } else {
-            console.log("request not processed");
             return res.json({ success : false });
         }
     });
@@ -111,7 +108,7 @@ module.exports = function (app) {
             return res.json({ success : false, error : "Provide block id" });
         }
 
-        var r = app.db.sql.prepare("SELECT * FROM blocks WHERE height > (SELECT height FROM blocks WHERE id=$id LIMIT 1) ORDER BY height LIMIT 60");
+        var r = app.db.sql.prepare("SELECT * FROM blocks WHERE height > (SELECT height FROM blocks WHERE id=$id LIMIT 1) ORDER BY height LIMIT 10");
         r.bind({
             $id: blockId
         });
@@ -151,20 +148,21 @@ module.exports = function (app) {
                                 }
 
                                 item.trs = trs;
-                                app.db.sql.all("SELECT * FROM addresses WHERE blockId=$id", {
+
+                                app.db.sql.all("SELECT * FROM requests WHERE blockId=$id", {
                                     $id : item.id
-                                }, function (err, addresses) {
+                                }, function (err, requests) {
                                     if (err) {
                                         cb(err);
-                                    } else {
-                                        item.addresses = addresses;
-                                        app.db.sql.all("SELECT * FROM requests WHERE blockId=$id", {
-                                            $id : item.id
-                                        }, function (err, requests) {
+                                    }  else {
+                                        item.requests = requests;
+                                        app.db.sql.all("SELECT * FROM companyconfirmations WHERE blockId=$id", {
+                                            $id: item.id
+                                        }, function (err, confirmations) {
                                             if (err) {
                                                 cb(err);
-                                            }  else {
-                                                item.requests = requests;
+                                            } else {
+                                                item.confirmations = confirmations;
                                                 cb();
                                             }
                                         });
@@ -198,19 +196,6 @@ module.exports = function (app) {
         return res.json({ success : true, transactions : results });
     });
 
-    app.get('/peer/getUnconfirmedAddresses', function (req, res) {
-        if (!app.synchronizedBlocks) {
-            return res.json({ success : false, addresses : [] });
-        }
-
-        var addresses = [];
-        for (var t in app.addressprocessor.unconfirmedAddresses) {
-            addresses.push(app.addressprocessor.unconfirmedAddresses[t].toJSON());
-        }
-
-        return res.json({ success : true, addresses : addresses });
-    });
-
     app.get("/peer/processUnconfirmedTransaction", function (req, res) {
         if (!app.synchronizedBlocks) {
             return res.json({ success : false, accepted : false });
@@ -234,40 +219,19 @@ module.exports = function (app) {
                         break;
                 }
                 break;
+
+            case 3:
+                switch (t.subtype) {
+                    case 0:
+                        tr.asset = app.companyprocessor.fromJSON(t.asset);
+                        break;
+                }
+                break;
         }
 
 
         try {
             var r = app.transactionprocessor.processTransaction(tr, true);
-        } catch (e) {
-            r = false;
-        }
-
-        if (r) {
-            return res.json({ success : true, accepted : true });
-        } else {
-            app.peerprocessor.blockPeer(req.headers['x-forwarded-for'] || req.connection.remoteAddress);
-            return res.json({ success : false, accepted : false });
-        }
-    });
-
-    app.get("/peer/processUnconfirmedAddress", function (req, res) {
-        if (!app.synchronizedBlocks) {
-            return res.json({ success : false, accepted : false });
-        }
-
-        var a = null;
-
-        try {
-            a = JSON.parse(req.query.address);
-        } catch (e) {
-            return res.json({ success : false, error : "JSON parse error" });
-        }
-
-        var addr = new Address(a.version, a.id, new Buffer(a.generatorPublicKey, 'hex'), new Buffer(a.publicKey, 'hex'), a.timestamp, new Buffer(a.signature, 'hex'), new Buffer(a.accountSignature, 'hex'));
-
-        try {
-            var r = app.addressprocessor.processAddress(addr);
         } catch (e) {
             r = false;
         }
@@ -293,10 +257,11 @@ module.exports = function (app) {
         }
 
         var block = new Block(b.version, null, b.timestamp, b.previousBlock, [], b.totalAmount, b.totalFee, b.payloadLength, new Buffer(b.payloadHash,'hex'), new Buffer(b.generatorPublicKey, 'hex'), new Buffer(b.generationSignature, 'hex'), new Buffer(b.blockSignature, 'hex'));
-        block.addressesLength = b.addressesLength;
         block.requestsLength = b.requestsLength;
         block.generationWeight = bignum(b.generationWeight);
         block.numberOfRequests = b.numberOfRequests;
+        block.numberOfConfirmations = b.numberOfConfirmations;
+        block.confirmationsLength = b.confirmationsLength;
 
         var previousBlock = b.previousBlock;
 
@@ -315,17 +280,18 @@ module.exports = function (app) {
                                 break;
                         }
                         break;
+
+                    case 3:
+                        switch (transaction.type) {
+                            case 0:
+                                transaction.asset = app.companyprocessor.fromJSON(t.asset);
+                                break;
+                        }
+                        break;
                 }
             }
 
             transactions.push(transaction);
-        }
-
-        var addresses = [];
-        for (var i = 0; i < b.addresses.length; i++) {
-            var a = b.addresses[i];
-            var addr = new Address(a.version, a.id, new Buffer(a.generatorPublicKey, 'hex'), new Buffer(a.publicKey, 'hex'), a.timestamp, new Buffer(a.signature, 'hex'), new Buffer(a.accountSignature, 'hex'));
-            addresses.push(addr);
         }
 
         var requests = [];
@@ -334,8 +300,13 @@ module.exports = function (app) {
             requests.push(new Request(null, null, r.ip, new Buffer(r.publicKey, 'hex'), r.lastAliveBlock, new Buffer(r.signature, 'hex')));
         }
 
+        var confirmations = [];
+        for (var i = 0; i < b.confirmations.length; i++) {
+            var c = b.confirmations[i];
+            confirmations.push(new companyconfirmation(c.companyId, c.verified, c.timestamp, c.signature));
+        }
+
         block.numberOfTransactions = transactions.length;
-        block.numberOfAddresses = addresses.length;
         block.numberOfRequests = requests.length;
 
         var buffer = block.getBytes();
@@ -343,16 +314,16 @@ module.exports = function (app) {
             buffer = Buffer.concat([buffer, transactions[i].getBytes()]);
         }
 
-        for (var i = 0; i < addresses.length; i++) {
-            buffer = Buffer.concat([buffer, addresses[i].getBytes()]);
-        }
-
         for (var i = 0; i < requests.length; i++) {
             buffer = Buffer.concat([buffer, requests[i].getBytes()]);
         }
 
+        for (var i = 0; i < confirmations.length; i++) {
+            buffer = Buffer.concat([buffer, confirmations[i].getBytes()]);
+        }
+
         try {
-            var r = app.blockchain.pushBlock(buffer, true);
+            var r = app.blockchain.pushBlock(buffer, true, true);
         } catch (e) {
             r = false;
             this.app.logger.error(e.toString());

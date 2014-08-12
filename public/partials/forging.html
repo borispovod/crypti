@@ -4,9 +4,7 @@
         <h2 class="account-id">Your account: {{ address }}</h2>
     </div>
     <div class="raw-buttons">
-        <button class="button static">Effective Balance: <span>{{ effectiveBalance | feeFilter }}</span></button>
         <button class="button static">Forged:   <span>{{ totalForged / 100000000 | feeFilter }}</span></button>
-        <button class="button static">Forged by addresses:   <span>{{ totalMined / 100000000 | feeFilter }}</span></button>
         <div id="forging">
             <h3 class="start-red" ng-show="false && !forging">Forging not started</h3>
             <button class="button static" ng-show="false && forging">Time to generate block: - mins</button>
@@ -18,18 +16,12 @@
             <table border="0" width="100%" cellpadding="0" cellspacing="0" id="blocks">
                 <tr>
                     <th>Block</th>
-                    <th>Date & Time</th>
-                    <th>Amount</th>
-                    <th>Fee / Forged</th>
                 </tr>
                 <tr ng-repeat="item in blocks">
                     <td>{{item.id}}</td>
-                    <td ng-show="item.timestamp > 0">{{item.timestamp | timestampFilter}}</td>
-                    <td>{{item.totalAmount / 100000000 | feeFilter}}</td>
-                    <td id="feeForged" title="{{item.totalFee / 100000000 | feeFilter}} / {{item.forged / 100000000 | feeFilter}}">{{item.totalFee / 100000000 | feeFilter}} / {{item.forged / 100000000 | feeFilter}}</td>
                 </tr>
                 <tr ng-show="!blocks || blocks.length == 0">
-                    <td colspan="4">
+                    <td colspan="1">
                         No blocks generated
                     </td>
                 </tr>
@@ -37,23 +29,28 @@
         </div>
 
         <div id="right-col">
-            <h1>Addresses</h1>
+            <h1>Companies</h1>
             <table border="0" width="100%" cellpadding="0" cellspacing="0">
                 <tr>
+                    <th>Domain</th>
                     <th>Address</th>
-                    <th>Total generated</th>
+                    <th>Confirmations</th>
                 </tr>
-                <tr ng-repeat="item in addresses">
-                    <td>{{item.address}}</td>
-                    <td>{{item.mined / 100000000 | feeFilter}}</td>
+                <tr ng-repeat="item in companies">
+                    <td>{{ item.domain }}</td>
+                    <td ng-show="item.deleted" colspan="3">Not confirmed by forgers</td>
+                    <td ng-show="item.confirmed == true && item.address && !item.deleted">{{ item.address }}</td>
+                    <td ng-show="item.confirmed == false && !item.deleted">-</td>
+                    <td ng-show="!item.confirmations && !item.deleted">-</td>
+                    <td ng-show="item.confirmations > 0 && !item.deleted">{{ item.confirmations }} / 10</td>
                 </tr>
-                <tr ng-show="!addresses || addresses.length == 0">
-                    <td colspan="2">
-                        No addresses generated
+                <tr ng-show="!companies || companies.length == 0">
+                    <td colspan="4">
+                        No companies were created
                     </td>
                 </tr>
             </table>
-            <button class="button green small" id="newAddress" ng-click="newAddress()" ng-disabled="effectiveBalance <= 0">New merchant address</button>
+            <button class="button green small" id="newAddress" ng-click="newCompany()" ng-disabled="effectiveBalance <= 0">New company</button>
         </div>
     </div>
 </div>
