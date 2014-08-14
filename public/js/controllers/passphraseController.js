@@ -11,6 +11,7 @@ webApp.controller('passphraseController', ['$scope', '$rootScope', '$http', "$st
                             userService.setData(resp.data.address, resp.data.publickey, resp.data.balance, resp.data.unconfirmedBalance, resp.data.effectiveBalance);
                             userService.setForging(resp.data.forging);
                             userService.setSecondPassphrase(resp.data.secondPassphrase);
+                            userService.unconfirmedPassphrase = resp.data.unconfirmedPassphrase;
 
                             $state.go('main.account');
                         } else {

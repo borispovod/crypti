@@ -418,20 +418,12 @@ block.prototype.getHash = function () {
 
 
 block.prototype.verifyBlockSignature = function () {
-    /*var a = this.accountprocessor.getAccountByPublicKey(this.generatorPublicKey);
-
-    if (a == null) {
-        a = { publickey : this.generatorPublicKey };
-    }*/
-
     var data = this.getBytes();
     var data2 = new Buffer(data.length - 64);
 
     for (var i = 0; i < data2.length; i++) {
         data2[i] = data[i];
     }
-
-    //console.log(this.generatorPublicKey);
 
     var hash = crypto.createHash('sha256').update(data2).digest();
     return ed.Verify(hash, this.blockSignature, this.generatorPublicKey);

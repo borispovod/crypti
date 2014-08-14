@@ -611,7 +611,6 @@ module.exports = function (app) {
 
         app.db.sql.all("SELECT * FROM blocks ORDER BY timestamp " + order + "  LIMIT " + limit, function (err, rows) {
             if (err) {
-                console.log(err);
                 app.logger.error(err.toString());
                 return res.json({ success : false, blocks : [], status : "SQL_ERROR", error : "Sql error" });
             } else {

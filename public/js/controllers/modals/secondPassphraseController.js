@@ -28,7 +28,7 @@ webApp.controller('secondPassphraseModalController', ["$scope", "secondPassphras
             }
             else {
                 if ($scope.destroy) {
-                    $scope.destroy();
+                    $scope.destroy(true);
                 }
 
                 secondPassphraseModal.deactivate();

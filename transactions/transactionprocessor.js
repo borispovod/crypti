@@ -62,15 +62,10 @@ transactionprocessor.prototype.processTransaction = function (transaction, sendT
         fee = 1;
     }
 
-    /*if (transaction.fee <= 0) {
-        this.logger.error("Can't verify transaction: " + transaction.getId() + " invalid fee: " + transaction.fee);
-        return false;
-    }*/
-
     var id = transaction.getId();
 
     if (this.transactions[id] || this.unconfirmedTransactions[id] || this.doubleSpendingTransactions[id] || !transaction.verify()) {
-        this.logger.error("Can't verify transaction: " + transaction.getId() + ", it's already exist");
+        this.logger.warn("Can't verify transaction: " + transaction.getId() + ", it's already exist");
         return false;
     }
 

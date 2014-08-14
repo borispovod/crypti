@@ -10,9 +10,6 @@ var peer = function (address, port, platform, version) {
     this.shareAddress = true;
     this.platform = "";
     this.version =  1;
-    //this.timestamp = timestamp;
-    //this.publicKey = publicKey;
-    //this.blocked = blocked;
     this.downloadedVolume = 0;
     this.uploadedVolume = 0;
     this.blacklistedTime = 0;
@@ -438,20 +435,24 @@ peer.prototype.processBlock = function (block, cb) {
     b.signatures = signatures;
     b.confirmations = confirmations;
 
+    var json = JSON.stringify({
+        block: b
+    });
+
     var getOptions = {
         hostname: this.ip,
         port: this.port,
-        path: '/peer/processBlock?block=' + JSON.stringify(b),
-        //agent: this.agent,
+        path: '/peer/processBlock',
+        method : 'POST',
         headers: {
-            "platform" : this._platform,
-            "version" : this._version
+            'Content-Type': 'application/json',
+            'Content-Length': Buffer.byteLength(json)
         }
     };
 
     var timeout = null;
 
-    var r = http.get(getOptions, function (res) {
+    var r = http.request(getOptions, function (res) {
         var data = "";
         res.on("data", function(body) {
             clearTimeout(timeout);
@@ -469,6 +470,9 @@ peer.prototype.processBlock = function (block, cb) {
     r.on('error', function (err) {
         cb(err, null);
     });
+
+    r.write(json);
+    r.end();
 }
 
 peer.prototype.processUnconfirmedTransaction = function (transaction, cb) {
@@ -583,95 +587,5 @@ peer.prototype.sendRequest = function (request, cb) {
     });
 }
 
-peer.prototype.processUnconfirmedAddress = function (address, cb) {
-    var a = address.toJSON();
-
-    this.checkAgent();
-
-    var getOptions = {
-        hostname: this.ip,
-        port: this.port,
-        path: '/peer/processUnconfirmedAddress?address=' + JSON.stringify(a),
-        //agent: this.agent,
-        headers: {
-            "platform" : this._platform,
-            "version" : this._version
-        }
-    };
-
-    var timeout = null;
-
-    var r = http.get(getOptions, function (res) {
-        var data = "";
-        res.on("data", function(body) {
-            clearTimeout(timeout);
-            data += body;
-        });
-        res.on('end', function () {
-            cb(null, data);
-        });
-    });
-
-    timeout = setTimeout(function () {
-        r.abort();
-    }, 5000);
-
-    r.on('error', function (err) {
-        cb(err, null);
-    });
-}
-
-peer.prototype.sendHello = function (params, cb) {
-
-
-    var getOptions = {
-        hostname: this.ip,
-        port: this.port,
-        path: '/peer/hello?params=' + JSON.stringify(params),
-        //agent: this.agent,
-        headers: {
-            "platform" : this._platform,
-            "version" : this._version
-        }
-    };
-
-    var timeount = null;
-    var self = this;
-    var r = http.get(getOptions, function (res) {
-        var data = "";
-        res.on("data", function(body) {
-            clearTimeout(timeout);
-            data += body;
-        });
-        res.on('end', function () {
-            if (cb) {
-                //cb(null, data);
-            }
-
-            var json = null;
-
-            try {
-                json = JSON.parse(data);
-            } catch (e) {
-                return;
-            }
-
-            if (json.forger) {
-                self.timestamp = json.forger.timestamp;
-                self.publicKey = json.forger.publicKey;
-            }
-        });
-    });
-
-    timeout = setTimeout(function () {
-        r.abort();
-    }, 5000);
-
-    r.on('error', function (err) {
-        if (cb) {
-            cb(err, null);
-        }
-    });
-}
 
 module.exports = peer;
