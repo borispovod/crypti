@@ -23,12 +23,19 @@ module.exports = function (app) {
             return v;
         });
 
+
         return res.json({ success : true, requests : requests });
     });
 
     app.get("/peer/alive", function (req, res) {
         if (!app.synchronizedBlocks) {
             return res.json({ success : false, error : "Node not synchronized" });
+        }
+
+        var ip = req.connection.remoteAddress;
+
+        if (!app.peerprocessor.getPeer(ip)) {
+            return res.json({ success : false, peerBlocked : true });
         }
 
         var request = req.query.request || "";
@@ -55,9 +62,9 @@ module.exports = function (app) {
         try {
             var added = app.requestprocessor.processRequest(r, true);
         } catch (e) {
+            app.peerprocessor.blockPeer(ip);
             added = false;
         }
-
 
         if (added) {
             return res.json({ success : true });
@@ -68,6 +75,14 @@ module.exports = function (app) {
 
     app.get("/peer/getPeers", function (req, res) {
         var peers = app.peerprocessor.getPeersAsArray();
+
+        var ip = req.connection.remoteAddress;
+        peers = _.filter(peers, function (v) {
+            if (v.ip != ip) {
+                return true;
+            }
+        });
+
         return res.json({ success : true, peers : peers });
     });
 
@@ -88,6 +103,10 @@ module.exports = function (app) {
             return res.json({ success : false, error : "Provide block id" });
         }
 
+        if (!app.blockchain.blocks[blockId]) {
+            return res.json({ success : false, error : "Block not found" });
+        }
+
         var r = app.db.sql.prepare("SELECT id FROM blocks WHERE height > (SELECT height FROM blocks WHERE id=$id LIMIT 1)");
         r.bind({
             $id: blockId
@@ -96,7 +115,7 @@ module.exports = function (app) {
             if (err) {
                 return res.json({ success : false, error : "SQL error" });
             } else {
-                return res.json({ success : true, blockIds : all });
+                return res.json({ success : true, blockIds : all, previousBlock : app.blockchain.getLastBlock().previousBlock });
             }
         });
     });
@@ -106,6 +125,10 @@ module.exports = function (app) {
 
         if (blockId.length == 0) {
             return res.json({ success : false, error : "Provide block id" });
+        }
+
+        if (!app.blockchain.blocks[blockId]) {
+            return res.json({ success : false, error : "Block not found", found : false });
         }
 
         var r = app.db.sql.prepare("SELECT * FROM blocks WHERE height > (SELECT height FROM blocks WHERE id=$id LIMIT 1) ORDER BY height LIMIT 10");
@@ -138,6 +161,23 @@ module.exports = function (app) {
                                                 cb();
                                             }
                                         });
+                                    } else {
+                                        cb();
+                                    }
+                                } else if (t.type == 3) {
+                                    if (t.subtype == 0) {
+                                        app.db.sql.get("SELECT * FROM companies WHERE transactionId=$transactionId", {
+                                            $transactionId : t.id
+                                        }, function (err, asset) {
+                                           if (err) {
+                                               cb(err);
+                                           } else {
+                                               t.asset = asset;
+                                               cb();
+                                           }
+                                        });
+                                    } else {
+                                        cb();
                                     }
                                 } else {
                                     cb();
@@ -176,7 +216,7 @@ module.exports = function (app) {
                         app.logger.error("SQL error");
                         return res.json({ success : false, error : "SQL error" });
                     } else {
-                        return res.json({ success : true, blocks : blocks });
+                        return res.json({ success : true, blocks : blocks, found : true });
                     }
                 });
             }
@@ -201,6 +241,12 @@ module.exports = function (app) {
             return res.json({ success : false, accepted : false });
         }
 
+        var ip = req.connection.remoteAddress;
+
+        if (!app.peerprocessor.getPeer(ip)) {
+            return res.json({ success : false, peerBlocked : true });
+        }
+
         var t = null;
 
         try {
@@ -210,6 +256,10 @@ module.exports = function (app) {
         }
 
         var tr = new Transaction(t.type, null, t.timestamp, new Buffer(t.senderPublicKey, 'hex'), t.recipientId, t.amount, t.creationBlockId, new Buffer(t.signature, 'hex'));
+
+        if (t.signSignature) {
+            tr.signSignature = new Buffer(t.signSignature, 'hex');
+        }
 
         switch (t.type) {
             case 2:
@@ -229,17 +279,16 @@ module.exports = function (app) {
                 break;
         }
 
-
         try {
             var r = app.transactionprocessor.processTransaction(tr, true);
         } catch (e) {
+            app.peerprocessor.blockPeer(ip);
             r = false;
         }
 
         if (r) {
             return res.json({ success : true, accepted : true });
         } else {
-            app.peerprocessor.blockPeer(req.headers['x-forwarded-for'] || req.connection.remoteAddress);
             return res.json({ success : false, accepted : false });
         }
     });
@@ -247,6 +296,12 @@ module.exports = function (app) {
     app.get("/peer/processBlock", function (req, res) {
         if (!app.synchronizedBlocks) {
             return res.json({ success : false, accepted : false });
+        }
+
+        var ip = req.connection.remoteAddress;
+
+        if (!app.peerprocessor.getPeer(ip)) {
+            return res.json({ success : false, peerBlocked : true });
         }
 
         var b = null;
@@ -258,7 +313,7 @@ module.exports = function (app) {
 
         var block = new Block(b.version, null, b.timestamp, b.previousBlock, [], b.totalAmount, b.totalFee, b.payloadLength, new Buffer(b.payloadHash,'hex'), new Buffer(b.generatorPublicKey, 'hex'), new Buffer(b.generationSignature, 'hex'), new Buffer(b.blockSignature, 'hex'));
         block.requestsLength = b.requestsLength;
-        block.generationWeight = bignum(b.generationWeight);
+        block.generationWeight = b.generationWeight;
         block.numberOfRequests = b.numberOfRequests;
         block.numberOfConfirmations = b.numberOfConfirmations;
         block.confirmationsLength = b.confirmationsLength;
@@ -271,24 +326,24 @@ module.exports = function (app) {
             var transaction = new Transaction(t.type, null, t.timestamp, new Buffer(t.senderPublicKey, 'hex'), t.recipientId, t.amount, t.creationBlockId, new Buffer(t.signature, 'hex'));
             if (t.signSignature) {
                 transaction.signSignature = new Buffer(t.signSignature, 'hex');
+            }
 
-                switch (transaction.type) {
-                    case 2:
-                        switch (transaction.subtype) {
-                            case 0:
-                                transaction.asset = app.signatureprocessor.fromJSON(t.asset);
-                                break;
-                        }
-                        break;
+            switch (transaction.type) {
+                case 2:
+                    switch (transaction.subtype) {
+                        case 0:
+                            transaction.asset = app.signatureprocessor.fromJSON(t.asset);
+                            break;
+                    }
+                    break;
 
-                    case 3:
-                        switch (transaction.type) {
-                            case 0:
-                                transaction.asset = app.companyprocessor.fromJSON(t.asset);
-                                break;
-                        }
-                        break;
-                }
+                case 3:
+                    switch (transaction.subtype) {
+                        case 0:
+                            transaction.asset = app.companyprocessor.fromJSON(t.asset);
+                            break;
+                    }
+                    break;
             }
 
             transactions.push(transaction);
@@ -303,7 +358,7 @@ module.exports = function (app) {
         var confirmations = [];
         for (var i = 0; i < b.confirmations.length; i++) {
             var c = b.confirmations[i];
-            confirmations.push(new companyconfirmation(c.companyId, c.verified, c.timestamp, c.signature));
+            confirmations.push(new companyconfirmation(c.companyId, c.verified, c.timestamp, new Buffer(c.signature, 'hex')));
         }
 
         block.numberOfTransactions = transactions.length;
@@ -326,13 +381,13 @@ module.exports = function (app) {
             var r = app.blockchain.pushBlock(buffer, true, true);
         } catch (e) {
             r = false;
+            app.peerprocessor.blockPeer(ip);
             this.app.logger.error(e.toString());
         }
 
         if (r) {
             return res.json({ success: true, accepted: true });
         } else {
-            app.peerprocessor.blockPeer(req.headers['x-forwarded-for'] || req.connection.remoteAddress);
             return res.json({ success : false, accepted : false });
         }
     });

@@ -436,7 +436,7 @@ peer.prototype.processBlock = function (block, cb) {
     b.requests = requests;
     b.transactions = transactions;
     b.signatures = signatures;
-    b.confirmations = b.confirmations;
+    b.confirmations = confirmations;
 
     var getOptions = {
         hostname: this.ip,
@@ -569,6 +569,7 @@ peer.prototype.sendRequest = function (request, cb) {
             data += body;
         });
         res.on('end', function () {
+            console.log(data);
             cb(null, data);
         });
     });
