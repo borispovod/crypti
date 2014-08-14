@@ -465,7 +465,7 @@ module.exports = function (app) {
                             v = v.toJSON();
                             v.confirmations = app.companyprocessor.confirmations[v.domain];
                             v.blocksConfirmations = v.blocks;
-                            v.confirmed = false;
+                            v.confirmed = true;
                             return v;
                         });
 

@@ -61,7 +61,7 @@ app.configure(function () {
         var url = req.path.split('/');
 
         if (url[1] == 'peer' && app.synchronizedBlocks) {
-            var ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+            var ip = req.connection.remoteAddress;
             var port = config.get('port');
 
             var newPeer = new peer(ip, port);
@@ -199,7 +199,7 @@ async.series([
                             b.numberOfTransactions = item.numberOfTransactions;
                             b.numberOfRequests = item.numberOfRequests;
                             b.requestsLength = item.requestsLength;
-                            b.generationWeight = bignum(item.generationWeight);
+                            b.generationWeight = item.generationWeight;
                             b.numberOfConfirmations = item.numberOfConfirmations;
                             b.confirmationsLength = item.confirmationsLength;
                             b.setApp(app);
@@ -411,6 +411,10 @@ async.series([
                 return;
             }
 
+            if (Object.keys(app.peerprocessor.peers).length >= 100) {
+                return;
+            }
+
             peersRunning = true;
             var peers = [];
             peers = app.peerprocessor.getPeersAsArray();
@@ -418,12 +422,8 @@ async.series([
                 app.logger.info("Get peers from " + p.ip);
                 p.getPeers(function (err, peersJSON) {
                     if (err) {
-                        if (p) {
-                            //app.peerprocessor.removePeer(p.ip);
-                        }
-
                         p = app.peerprocessor.getAnyPeer();
-                        return callback();
+                        return callback(true);
                     } else {
                         var ps = [];
                         try {
@@ -449,10 +449,10 @@ async.series([
                         }
                     }
                 });
-            }, function () {
+            }, function (e) {
                 peersRunning = false;
             });
-        }, 1000 * 3);
+        }, 1000 * 10);
 
         var requestsInterval = false;
         setInterval(function () {
@@ -477,6 +477,7 @@ async.series([
                            try {
                                answer = JSON.parse(requests);
                            } catch (e) {
+                               app.peerprocessor.blockPeer(p.ip);
                                return next(true);
                            }
 
@@ -490,11 +491,12 @@ async.series([
                                    try {
                                        var added = app.requestprocessor.processRequest(r);
                                    } catch (e) {
+                                       app.peerprocessor.blockPeer(p.ip);
                                        added = false;
                                    }
 
                                    if (!added) {
-
+                                       return c(true);
                                    }
 
                                    c();
@@ -537,23 +539,24 @@ async.series([
                             next();
                         } else {
                             var answer = null;
+
                             try {
                                 answer = JSON.parse(blocks);
                             } catch (e) {
-                                //app.peerprocessor.removePeer(p.ip);
+                                app.peerprocessor.blockPeer(p.ip);
                                 p = app.peerprocessor.getAnyPeer();
                                 return next({ error : true });
                             }
 
-                            if (answer.success) {
+                            if (answer.success && answer.found) {
                                 async.eachSeries(answer.blocks, function (item, c) {
                                     var b = new block(item.version, null, item.timestamp, item.previousBlock, [], item.totalAmount, item.totalFee, item.payloadLength, new Buffer(item.payloadHash, 'hex'), new Buffer(item.generatorPublicKey, 'hex'), new Buffer(item.generationSignature, 'hex'), new Buffer(item.blockSignature, 'hex'));
                                     b.numberOfTransactions = item.numberOfTransactions;
                                     b.numberOfRequests = item.numberOfRequests;
                                     b.requestsLength = item.requestsLength;
-                                    b.generationWeight = bignum(item.generationWeight);
+                                    b.generationWeight = item.generationWeight;
                                     b.numberOfConfirmations = item.numberOfConfirmations;
-                                    b.confrimationsLength = item.confirmationsLength;
+                                    b.confirmationsLength = item.confirmationsLength;
                                     b.setApp(app);
                                     b.height = item.height;
                                     var id = b.getId();
@@ -636,12 +639,12 @@ async.series([
                                                     var checkUnconfirmed = app.synchronizedBlocks;
                                                     var a = app.blockchain.pushBlock(buffer, false, checkUnconfirmed);
                                                 } catch (e) {
-                                                    a = null;
+                                                    a = false;
+                                                    app.peerprocessor.blockPeer(p.ip);
                                                     app.logger.error(e.toString());
                                                 }
 
                                                 if (!a) {
-                                                    app.peerprocessor.blockPeer(p.ip);
                                                     c("Can't process block: " + b.getId());
                                                 } else {
                                                     c();
@@ -652,8 +655,6 @@ async.series([
                                 }, function (err) {
                                     if (err) {
                                         app.logger.error(err);
-                                        //app.peerprocessor.removePeer(p.ip);
-                                        app.peerprocessor.blockPeer(p.ip);
                                         p = app.peerprocessor.getAnyPeer();
                                         return next({error : true });
                                     }
@@ -667,7 +668,10 @@ async.series([
                                     }
                                 });
                             } else {
-                                app.peerprocessor.blockPeer(p.ip);
+                                if (!answer.found) {
+                                    app.peerprocessor.blockPeer(p.ip);
+                                }
+
                                 p = app.peerprocessor.getAnyPeer();
                                 next({ error : true });
                             }
@@ -683,12 +687,12 @@ async.series([
                     blocksInterval = false;
                 }
             );
-        }, 1000 * 3);
+        }, 1000 * 10);
 
 
         var unconfirmedTransactonsInterval = false;
         setInterval(function () {
-            if (unconfirmedTransactonsInterval || app.synchronizedBlocks) {
+            if (unconfirmedTransactonsInterval || !app.synchronizedBlocks) {
                 return;
             }
 
@@ -702,12 +706,6 @@ async.series([
             }, function (next) {
                 p.getUnconfirmedTransactions(function (err, trs) {
                     if (err) {
-                        if (p) {
-                            //app.logger.error(err);
-                            //app.logger.error("Remove ip: " + p.ip);
-                            //app.peerprocessor.removePeer(p.ip);
-                        }
-
                         p = app.peerprocessor.getAnyPeer();
                         next(true);
                     } else {
@@ -716,7 +714,6 @@ async.series([
                         try {
                             answer = JSON.parse(trs);
                         } catch (e) {
-                            //app.peerprocessor.removePeer(p.ip);
                             app.peerprocessor.blockPeer(p.ip);
                             p = app.peerprocessor.getAnyPeer();
                             return next(true);
@@ -731,9 +728,9 @@ async.series([
                                     tr.signSignature = new Buffer(t.signSignature, 'hex');
                                 }
 
-                                if (!tr.verify()) {
+                                /*if (!tr.verify()) {
                                     return cb("Can't verify transaction: " + tr.getId());
-                                }
+                                }*/
 
                                 if (app.transactionprocessor.getUnconfirmedTransaction(tr.getId()) != null) {
                                     return cb();
@@ -743,7 +740,6 @@ async.series([
                                     case 2:
                                         switch (tr.subtype) {
                                             case 0:
-                                                console.log("here");
                                                 tr.asset = app.signatureprocessor.fromJSON(t.asset);
                                                 break;
                                         }
@@ -761,20 +757,17 @@ async.series([
                                 try {
                                     var r = app.transactionprocessor.processTransaction(tr);
                                 } catch (e) {
+                                    app.peerprocessor.blockPeer(p.ip);
                                     r = false;
                                 }
 
                                 if (r) {
                                     cb();
                                 } else {
-                                    app.peerprocessor.blockPeer(p.ip);
                                     cb("Can't process transaction " + tr.getId() + " from " + p.ip);
                                 }
                             }, function (err) {
                                 if (err) {
-                                    app.logger.error(err);
-                                    //app.peerprocessor.removePeer(p.ip);
-                                    app.peerprocessor.blockPeer(p.ip);
                                     p = app.peerprocessor.getAnyPeer();
                                     return next(true);
                                 }
@@ -782,7 +775,6 @@ async.series([
                                 next(true);
                             });
                         } else {
-                            app.peerprocessor.removePeer(p.ip);
                             p = app.peerprocessor.getAnyPeer();
                             return next(true);
                         }
@@ -794,7 +786,7 @@ async.series([
                 }
                 unconfirmedTransactonsInterval = false;
             });
-        }, 1000 * 3);
+        }, 1000 * 10);
 
 
         cb();

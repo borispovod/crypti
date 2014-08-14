@@ -28,7 +28,7 @@
             <input class="input-text" type="password" ng-readonly="token" ng-model="secretPhrase" placeholder="Your SecretPhrase">
             <input class="input-text" type="password" ng-readonly="token" ng-model="secondPhrase" placeholder="Your second secretPhrase" ng-show="secondPassphrase">
             <input class="input-text" type="text" ng-model="token" ng-show="token" readonly>
-            <p class="error">{{fromServer}}.</p>
+            <p class="error">{{fromServer}}</p>
             <div class="pull-right">
                 <button type="{{ buttontype }}" class="button green small" ng-disabled="!secretPhrase || !email || !domain || !companyName || token || (secondPassphrase && !secondPhrase) ||  totalBalance < 1000" ng-show="!token" ng-click="getToken()">Get token</button>
                 <button type="submit" class="button green small" ng-disabled="!secretPhrase || !email || !domain || !companyName || !token || (secondPassphrase && !secondPhrase) || totalBalance < 1000" ng-show="token" ng-click="createCompany()">Create company</button>

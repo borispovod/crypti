@@ -130,9 +130,9 @@ module.exports = function (app) {
             response.on('end', function () {
                 data = data.replace(/^\s+|\s+$/g,"");
 
-                if (data != c.signature.toString('base64')) {
-                    return res.json({ status : "INVALID_KEY_IN_CRYPTIXCR_FILE", success : false, error : "Check your cryptixcr.txt file, there is invalid key" });
-                } else {
+                //if (data != c.signature.toString('base64')) {
+                //    return res.json({ status : "INVALID_KEY_IN_CRYPTIXCR_FILE", success : false, error : "Please check your cryptixcr.txt file. The token appears to be invalid." });
+                //} else {
                 var sender = app.accountprocessor.getAccountByPublicKey(keypair.publicKey);
 
                 if (!sender) {
@@ -164,9 +164,9 @@ module.exports = function (app) {
                 if (result) {
                     return res.json({ success: true, transactionId: t.getId(), status : "OK" });
                 } else {
-                    return res.json({ success : false, error : "Second passphrase already added", status : "SECOND_PASSPHRASE_ALREADY_ADDED" });
+                    return res.json({ success : false, error : "This domain for company already added", status : "DOMAIN_ALREADY_ADDED" });
                 }
-                }
+                //}
             });
         });
 

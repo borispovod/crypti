@@ -62,15 +62,10 @@ blockchain.prototype.blockFromBytes = function (buffer) {
     b.timestamp = bb.readInt();
     b.previousBlock = bb.readLong();
     b.numbersOfTransactions = bb.readInt();
-    b.totalAmount = bb.readInt();
-    b.totalFee = bb.readInt();
+    b.totalAmount = bb.readLong();
+    b.totalFee = bb.readLong();
 
-    var generationWeightBuffer = new Buffer(8);
-    for (var i = 0; i < 8; i++) {
-        generationWeightBuffer[i] = bb.readByte();
-    }
-
-    b.generationWeight = bignum.fromBuffer(generationWeightBuffer);
+    b.generationWeight = bb.readDouble();
 
     b.payloadLength = bb.readInt();
     b.requestsLength = bb.readInt();
@@ -159,13 +154,7 @@ blockchain.prototype.pushBlock = function (buffer, sendToPeers, checkRequests) {
     b.totalAmount  = new Long(amountLong.low, amountLong.high, false).toNumber();
     var feeLong = bb.readLong();
     b.totalFee = new Long(feeLong.low, feeLong.high, false).toNumber();
-
-    var generationWeightBuffer = new Buffer(8);
-    for (var i = 0; i < 8; i++) {
-        generationWeightBuffer[i] = bb.readByte();
-    }
-
-    b.generationWeight = bignum.fromBuffer(generationWeightBuffer, { size : 'auto' });
+    b.generationWeight = bb.readDouble();
 
     b.payloadLength = bb.readInt();
     b.requestsLength = bb.readInt();
@@ -215,7 +204,7 @@ blockchain.prototype.pushBlock = function (buffer, sendToPeers, checkRequests) {
     }
 
     if (b.payloadLength > constants.maxPayloadLength || b.requestsLength > constants.maxRequestsLength || b.confirmationsLength > constants.maxConfirmations || b.payloadLength + constants.blockHeaderLength + b.confirmationsLength + b.requestsLength  != buffer.length) {
-        this.logger.error("Invalid payload length: " + b.getId(), " length: " + (b.payloadLength + constants.blockHeaderLength + b.requestsLength), "buffer length: " + buffer.length);
+        this.logger.error("Invalid payload length: " + b.getId(), " length: " + (b.payloadLength + constants.blockHeaderLength + b.requestsLength + b.confirmationsLength), "buffer length: " + buffer.length);
         return false;
     }
 
@@ -530,12 +519,13 @@ blockchain.prototype.pushBlock = function (buffer, sendToPeers, checkRequests) {
 
         var rId = request.getId();
 
-        if (this.app.requestprocessor.unconfirmedRequests[account.address]) {
-            found++;
-        }
-
         if (this.app.requestprocessor.getRequest(rId)) {
             break;
+        }
+
+
+        if (this.app.requestprocessor.unconfirmedRequests[account.address]) {
+            found++;
         }
 
         request.blockId = b.getId();
@@ -544,7 +534,7 @@ blockchain.prototype.pushBlock = function (buffer, sendToPeers, checkRequests) {
 
     if (checkRequests) {
         if (found != Object.keys(this.app.requestprocessor.unconfirmedRequests).length) {
-            this.app.logger.error("Can't process, requests in blocks invalids: " + b.getId());
+            this.app.logger.error("Can't process, requests in blocks invalids: " + b.getId() + " / " + found + " / " + Object.keys(this.app.requestprocessor.unconfirmedRequests).length);
             return false;
         }
     }
@@ -841,6 +831,7 @@ module.exports.addGenesisBlock = function (app, cb) {
         b.cumulativeDifficulty = 0;
         b.numberOfTransactions = 1;
         b.numberOfRequests = 1;
+        b.height = 1;
         b.requests = [req];
         bc.lastBlock = b.getId();
 
