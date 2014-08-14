@@ -47,13 +47,19 @@ module.exports = function (app) {
 
         account.publickey = keypair.publicKey;
 
-        if (app.signatureprocessor.getSignatureByAddress(account.address) || app.signatureprocessor.getUnconfirmedSignatureByAddress(account.address)) {
+        if (app.signatureprocessor.getSignatureByAddress(account.address)) {
             account.secondPassphrase = true;
         } else {
             account.secondPassphrase = false;
         }
 
-        //app.logger.info("Account unlocked: " + address);
+        var unconfirmedPassphrase = false;
+
+        if (app.signatureprocessor.getUnconfirmedSignatureByAddress(account.address)) {
+            unconfirmedPassphrase = true;
+        } else {
+            unconfirmedPassphrase = false;
+        }
 
         if (startForging) {
             if (account.getEffectiveBalance() > 0) {
@@ -64,18 +70,18 @@ module.exports = function (app) {
 
                 if (result) {
                     app.logger.info("Forger started: " + address);
-                    res.json({ success : true, secondPassphrase : account.secondPassphrase, address : address, publickey : account.publickey.toString('hex'), balance : account.balance , unconfirmedBalance : account.unconfirmedBalance, effectiveBalance : account.getEffectiveBalance(), forging : { success : true } });
+                    res.json({ success : true, unconfirmedPassphrase : unconfirmedPassphrase, secondPassphrase : account.secondPassphrase, address : address, publickey : account.publickey.toString('hex'), balance : account.balance , unconfirmedBalance : account.unconfirmedBalance, effectiveBalance : account.getEffectiveBalance(), forging : { success : true } });
                 } else {
                     app.logger.info("Forger can't start, it's already working: " + address);
-                    res.json({ success : true, statusCode : "OK", secondPassphrase : account.secondPassphrase, address : address, publickey : account.publickey.toString('hex'), balance : account.balance, unconfirmedBalance : account.unconfirmedBalance, effectiveBalance : account.getEffectiveBalance(), forging : { error : "Forger can't start, it's already working: " + address, success : false } });
+                    res.json({ success : true, unconfirmedPassphrase : unconfirmedPassphrase, statusCode : "OK", secondPassphrase : account.secondPassphrase, address : address, publickey : account.publickey.toString('hex'), balance : account.balance, unconfirmedBalance : account.unconfirmedBalance, effectiveBalance : account.getEffectiveBalance(), forging : { error : "Forger can't start, it's already working: " + address, success : false } });
 
                 }
             } else {
                 app.logger.info("Can't start forging, effective balance equal to 0: " + address);
-                res.json({ success : true, statusCode : "OK", secondPassphrase : account.secondPassphrase, address : address, publickey : account.publickey.toString('hex'), balance : account.balance , unconfirmedBalance : account.unconfirmedBalance , effectiveBalance : account.getEffectiveBalance() , forging : { error : "Can't start forging, effective balance equal to 0: " + address, success : false } });
+                res.json({ success : true, unconfirmedPassphrase : unconfirmedPassphrase, statusCode : "OK", secondPassphrase : account.secondPassphrase, address : address, publickey : account.publickey.toString('hex'), balance : account.balance , unconfirmedBalance : account.unconfirmedBalance , effectiveBalance : account.getEffectiveBalance() , forging : { error : "Can't start forging, effective balance equal to 0: " + address, success : false } });
             }
         } else {
-            var info = { success : true, statusCode : "OK", secondPassphrase : account.secondPassphrase, address : address, publickey : account.publickey.toString('hex'), balance : account.balance , unconfirmedBalance : account.unconfirmedBalance , effectiveBalance : account.getEffectiveBalance() };
+            var info = { success : true, unconfirmedPassphrase : unconfirmedPassphrase, statusCode : "OK", secondPassphrase : account.secondPassphrase, address : address, publickey : account.publickey.toString('hex'), balance : account.balance , unconfirmedBalance : account.unconfirmedBalance , effectiveBalance : account.getEffectiveBalance() };
 
             if (app.forgerprocessor.getForgers(account.address)) {
                 info.forging = true;

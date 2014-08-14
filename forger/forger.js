@@ -270,7 +270,7 @@ forger.prototype.startForge = function () {
         winner = randomWinners[0];
     }
 
-    this.app.logger.info("Winner in cycle" + winner.address + " / " + winner.weight);
+    this.app.logger.info("Winner in cycle: " + winner.address + " / " + winner.weight);
 
     if (winner.address == myAccount.address) {
         // let's generate block
@@ -297,99 +297,95 @@ forger.prototype.startForge = function () {
         var totalFee = 0;
         var accumulatedAmounts = {};
 
-        while (payloadLength <= constants.maxPayloadLength) {
-            var prevNumberOfNewTransactions = newTransactionsLength;
+        for (var i = 0; i < sortedTransactions.length; i++) {
+            var t = sortedTransactions[i];
+            var size = t.getSize();
 
-            for (var i = 0; i < sortedTransactions.length; i++) {
-                var t = sortedTransactions[i];
-                var size = t.getSize();
-
-                if (newTransactions[t.getId()] != null || size + payloadLength > constants.maxPayloadLength) {
-                    continue;
-                }
-
-                var sender = this.accountprocessor.getAccountByPublicKey(t.senderPublicKey);
-
-                if (!sender) {
-                    continue;
-                }
-
-                var accumulatedAmount = accumulatedAmounts[sender.address] || 0;
-
-                var fee = 0;
-
-                switch (t.type) {
-                    case 0:
-                        switch (t.subtype) {
-                            case 0:
-                                var fee = parseInt(t.amount / 100 * this.app.blockchain.fee);
-
-                                if (fee == 0) {
-                                    fee = 1;
-                                }
-                                break;
-                        }
-                        break;
-
-                    case 1:
-                        switch (t.subtype) {
-                            case 0:
-                                var fee = parseInt(t.amount / 100 * this.app.blockchain.fee);
-
-                                if (fee == 0) {
-                                    fee = 1;
-                                }
-                                break;
-                        }
-                        break;
-
-                    case 2:
-                        switch (t.subtype) {
-                            case 0:
-                                fee = 100 * constants.numberLength;
-                                break;
-                        }
-                        break;
-
-                    case 3:
-                        switch (t.subtype) {
-                            case 0:
-                                fee = 1000 * constants.numberLength;
-                                break;
-                        }
-                        break;
-                }
-
-
-                var amount = t.amount + fee;
-
-                if (accumulatedAmount + amount > sender.balance) {
-                    continue;
-                }
-
-                if (t.timestamp > blockTimestamp) {
-                    continue;
-                }
-
-                if (this.transactionprocessor.getTransaction(t.getId())) {
-                    continue;
-                }
-
-                if (!accumulatedAmounts[sender.address]) {
-                    accumulatedAmounts[sender.address] = 0;
-                }
-
-                accumulatedAmounts[sender.address] += amount;
-                totalFee += fee;
-                totalAmount += t.amount;
-                payloadLength += size;
-
-                newTransactions[t.getId()] = t;
-            }
-
-            if (Object.keys(newTransactions).length == prevNumberOfNewTransactions) {
+            if (size + payloadLength > constants.maxPayloadLength) {
                 break;
             }
+
+            if (newTransactions[t.getId()] != null) {
+                continue;
+            }
+
+            var sender = this.accountprocessor.getAccountByPublicKey(t.senderPublicKey);
+
+            if (!sender) {
+                continue;
+            }
+
+            var accumulatedAmount = accumulatedAmounts[sender.address] || 0;
+
+            var fee = 0;
+
+            switch (t.type) {
+                case 0:
+                    switch (t.subtype) {
+                        case 0:
+                            var fee = parseInt(t.amount / 100 * this.app.blockchain.fee);
+
+                            if (fee == 0) {
+                                fee = 1;
+                            }
+                            break;
+                    }
+                    break;
+
+                case 1:
+                    switch (t.subtype) {
+                        case 0:
+                            var fee = parseInt(t.amount / 100 * this.app.blockchain.fee);
+
+                            if (fee == 0) {
+                                fee = 1;
+                            }
+                            break;
+                    }
+                    break;
+
+                case 2:
+                    switch (t.subtype) {
+                        case 0:
+                            fee = 100 * constants.numberLength;
+                            break;
+                    }
+                    break;
+
+                case 3:
+                    switch (t.subtype) {
+                        case 0:
+                            fee = 1000 * constants.numberLength;
+                            break;
+                    }
+                    break;
+            }
+
+
+            var amount = t.amount + fee;
+
+            if (accumulatedAmount + amount > sender.balance) {
+                continue;
+            }
+
+            if (t.timestamp > blockTimestamp) {
+                continue;
+            }
+
+            if (this.transactionprocessor.getTransaction(t.getId())) {
+                continue;
+            }
+
+            if (!accumulatedAmounts[sender.address]) {
+                accumulatedAmounts[sender.address] = 0;
+            }
+
+            accumulatedAmounts[sender.address] += amount;
+            totalFee += fee;
+            totalAmount += t.amount;
+            payloadLength += size;
+
+            newTransactions[t.getId()] = t;
         }
 
         var newRequests = [];
@@ -429,6 +425,7 @@ forger.prototype.startForge = function () {
                 newConfirmations.push(cm);
                 confirmationsLength += size;
                 totalFee += 100 * constants.numberLength;
+
                 cb();
             }.bind(this));
         }.bind(this), function () {
