@@ -153,7 +153,7 @@ forger.prototype.startForge = function () {
 
         confirmedRequests = confirmedRequests.slice(0);
 
-        var accountWeightTimestamps = bignum(0);
+        var accountWeightTimestamps = 0;
         var popWeightAmount = 0;
 
         var previousBlock = this.app.blockchain.getBlock(lastAliveBlock.getId());
@@ -164,18 +164,20 @@ forger.prototype.startForge = function () {
 
             var confirmedRequest = confirmedRequests[j];
 
-
             var block = this.app.blockchain.getBlock(confirmedRequest.blockId);
 
             if (previousBlock.getId() != block.getId()) {
                 break;
             }
 
-            accountWeightTimestamps = accountWeightTimestamps.add(block.timestamp);
+            accountWeightTimestamps += block.timestamp;
             var purchases = this.app.accountprocessor.purchases[block.getId()];
 
             if (purchases) {
-                if (purchases[address]) {
+                if (purchases[address] > 10) {
+                    popWeightAmount += (Math.log(1 + purchases[address]) / Math.LN10);
+                    popWeightAmount = popWeightAmount / (Math.log(1 + (block.totalAmount + block.totalFee)) / Math.LN10)
+                } else if (purchases[address]) {
                     popWeightAmount += purchases[address];
                 }
             }
@@ -188,32 +190,22 @@ forger.prototype.startForge = function () {
             previousBlock = this.app.blockchain.getBlock(previousBlock.previousBlock);
         }
 
-        accountWeightTimestamps = accountWeightTimestamps.div(lastAliveBlock.height);
-        popWeightAmount  = Math.log(1 + popWeightAmount) / Math.LN10;
+        accountWeightTimestamps = parseInt(accountWeightTimestamps / lastAliveBlock.height);
 
-        var X = null;
-        if (this.app.blockchain.totalPurchaseAmount == 0) {
-            X = 1;
-        } else {
-            X = this.app.blockchain.totalPurchaseAmount;
-        }
-
-        popWeightAmount /= X;
-
-        this.app.logger.info("Account PoT weight: " + address + " / " + accountWeightTimestamps.toString());
+        this.app.logger.info("Account PoT weight: " + address + " / " + accountWeightTimestamps);
         this.app.logger.info("Account PoP weight: " + address + " / " + popWeightAmount);
 
-        var accountTotalWeight = accountWeightTimestamps.add(popWeightAmount);
+        var accountTotalWeight = accountWeightTimestamps + popWeightAmount;
         accounts.push({ address : address, weight : accountTotalWeight, publicKey : request.publicKey, signature : request.signature  });
 
-        this.app.logger.info("Account " + address + " / " + accountTotalWeight.toString());
+        this.app.logger.info("Account " + address + " / " + accountTotalWeight);
     }
 
     accounts.sort(function compare(a,b) {
-        if (a.weight.gt(b.weight))
+        if (a.weight > b.weight)
             return -1;
 
-        if (a.weight.lt(b.weight))
+        if (a.weight < b.weight)
             return 1;
 
         return 0;
@@ -240,7 +232,7 @@ forger.prototype.startForge = function () {
     for (var i = cycle + 1; i < accounts.length; i++) {
         var accountWeight = accounts[i];
 
-        if (winner.weight.eq(accountWeight.weight)) {
+        if (winner.weight == accountWeight.weight) {
             sameWeights.push(accountWeight);
         } else {
             break;
@@ -253,22 +245,23 @@ forger.prototype.startForge = function () {
         var randomWinners = [];
         for (var i = 0; i < sameWeights.length; i++) {
             var a = sameWeights[i];
-            var hash = crypto.createHash('sha256').update(a.weight.toBuffer({ size : '8' })).update(a.signature).digest();
+            var hash = crypto.createHash('sha256').update(bignum(a.weight).toBuffer({ size : '8' })).update(a.signature).digest();
 
             var result = new Buffer(8);
             for (var j = 0; j < 8; j++) {
                 result[j] = hash[j];
             }
 
-            this.app.logger.info("Account " + a.address + " new weight is: " + bignum.fromBuffer(result, { size : '8'}));
-            randomWinners.push({ address : a.address, weight : bignum.fromBuffer(result, { size : '8'}), publicKey : a.publicKey, signature : a.signature });
+            var weight = bignum.fromBuffer(result, { size : '8' }).toNumber();
+            this.app.logger.info("Account " + a.address + " new weight is: " + weight);
+            randomWinners.push({ address : a.address, weight : weight, publicKey : a.publicKey, signature : a.signature });
         }
 
-        randomWinners.sort(function compare(a,b) {
-            if (a.weight.gt(b.weight))
+        randomWinners.sort(function (a,b) {
+            if (a.weight > b.weight)
                 return -1;
 
-            if (a.weight.lt(b.weight))
+            if (a.weight < b.weight)
                 return 1;
 
             return 0;
@@ -277,7 +270,7 @@ forger.prototype.startForge = function () {
         winner = randomWinners[0];
     }
 
-    this.app.logger.info("Winner in cycle" + winner.address + " / " + winner.weight.toString());
+    this.app.logger.info("Winner in cycle" + winner.address + " / " + winner.weight);
 
     if (winner.address == myAccount.address) {
         // let's generate block
@@ -439,7 +432,6 @@ forger.prototype.startForge = function () {
                 cb();
             }.bind(this));
         }.bind(this), function () {
-            console.log(newConfirmations);
             var publicKey = this.publicKey;
             var hash = crypto.createHash('sha256');
 

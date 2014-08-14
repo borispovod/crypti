@@ -215,6 +215,7 @@ transactionprocessor.prototype.processTransaction = function (transaction, sendT
 
                             if (!r) {
                                 this.app.logger.error("Can't process company: " + transaction.asset.getId());
+                                return false;
                             }
                             break;
                     }
