@@ -39,82 +39,23 @@ peerprocessor.prototype.setApp = function (app) {
     this.app = app;
 }
 
-peerprocessor.prototype.connectToPeer = function (peer, cb) {
-    /*var socket = io.connect(peer.ip, {
-        port: peer.port
-    });
-
-    socket.on('connect', function() {
-        socket.on('disconnected?', function () {
-
-        });
-    });*/
-}
-
 peerprocessor.prototype.sendRequestToAll = function (request, cb) {
     var peers = this.getPeersAsArray();
     async.forEach(peers, function (peer, callback) {
-        if (!peer.blocked) {
-            peer.sendRequest(request, function () {
-                callback();
-            });
-        }
+        peer.sendRequest(request, function () {});
+        callback();
     }, function () {
         if (cb) {
             cb(true);
         }
     });
-}
-
-peerprocessor.prototype.sendHelloToAll = function (params, cb) {
-    /*var peers = this.getPeersAsArray();
-    var self = this;
-    async.forEach(peers, function (peer, callback) {
-        if (!peer.blocked) {
-            peer.sendHello(params, function () {
-                callback();
-            });
-        }
-    }, function () {
-       async.eachSeries(peers, function (item, callback) {
-           if (!item.timestamp || !item.publicKey) {
-               return callback();
-           }
-
-           self.app.db.writePeer(item, function () {
-               callback();
-           })
-       }, function () {
-           if (cb) {
-               cb(true);
-           }
-       });
-    });*/
 }
 
 peerprocessor.prototype.sendUnconfirmedTransactionToAll = function (transaction, cb) {
     var peers = this.getPeersAsArray();
     async.forEach(peers, function (peer, callback) {
-        if (!peer.blocked) {
-            peer.processUnconfirmedTransaction(transaction, function () {
-                callback();
-            });
-        }
-    }, function () {
-        if (cb) {
-            cb(true);
-        }
-    });
-}
-
-peerprocessor.prototype.sendUnconfirmedAddressToAll = function (address, cb) {
-    var peers = this.getPeersAsArray();
-    async.forEach(peers, function (peer, callback) {
-        if (!peer.blocked) {
-            peer.processUnconfirmedAddress(address, function () {
-                callback();
-            });
-        }
+        peer.processUnconfirmedTransaction(transaction, function () {});
+        callback();
     }, function () {
         if (cb) {
             cb(true);
@@ -125,11 +66,8 @@ peerprocessor.prototype.sendUnconfirmedAddressToAll = function (address, cb) {
 peerprocessor.prototype.sendBlockToAll = function (block, cb) {
     var peers = this.getPeersAsArray();
     async.forEach(peers, function (peer, callback) {
-        if (!peer.blocked) {
-            peer.processBlock(block, function () {
-                callback();
-            });
-        }
+        peer.processBlock(block, function () {});
+        callback();
     }, function () {
         if (cb) {
             cb(true);

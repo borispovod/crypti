@@ -40,36 +40,46 @@ module.exports = function (app) {
 
         var request = req.query.request || "";
 
-        if (request.length == 0) {
-            return res.json({ success : false });
-        }
-
         try {
-            request = JSON.parse(request);
-        } catch (e) {
-            return res.json({ success : false });
-        }
 
-        if (!request.publicKey || !request.lastAliveBlock || !request.signature) {
+            if (request.length == 0) {
+                return res.json({ success: false });
+            }
 
-            return res.json({ success : false });
-        }
+            try {
+                request = JSON.parse(request);
+            } catch (e) {
+                return res.json({ success: false });
+            }
 
-        var ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+            if (!request.publicKey || !request.lastAliveBlock || !request.signature) {
 
-        var r = new Request(null, null, ip, new Buffer(request.publicKey, 'hex'), request.lastAliveBlock, new Buffer(request.signature, 'hex'));
+                return res.json({ success: false });
+            }
 
-        try {
-            var added = app.requestprocessor.processRequest(r, true);
+            var ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+
+            try {
+                var r = new Request(null, null, ip, new Buffer(request.publicKey, 'hex'), request.lastAliveBlock, new Buffer(request.signature, 'hex'));
+            } catch (e) {
+                return res.json({ success: false, error: "JSON parser error" });
+            }
+
+            try {
+                var added = app.requestprocessor.processRequest(r, true);
+            } catch (e) {
+                app.peerprocessor.blockPeer(ip);
+                added = false;
+            }
+
+            if (added) {
+                return res.json({ success: true });
+            } else {
+                return res.json({ success: false });
+            }
         } catch (e) {
             app.peerprocessor.blockPeer(ip);
-            added = false;
-        }
-
-        if (added) {
-            return res.json({ success : true });
-        } else {
-            return res.json({ success : false });
+            return res.json({ success : false, accepted : false });
         }
     });
 
@@ -247,147 +257,198 @@ module.exports = function (app) {
             return res.json({ success : false, peerBlocked : true });
         }
 
-        var t = null;
-
         try {
-            t = JSON.parse(req.query.transaction);
-        } catch (e) {
-            return res.json({ success : false, error : "JSON parser error" });
-        }
 
-        var tr = new Transaction(t.type, null, t.timestamp, new Buffer(t.senderPublicKey, 'hex'), t.recipientId, t.amount, t.creationBlockId, new Buffer(t.signature, 'hex'));
+            var t = null;
 
-        if (t.signSignature) {
-            tr.signSignature = new Buffer(t.signSignature, 'hex');
-        }
+            try {
+                t = JSON.parse(req.query.transaction);
+            } catch (e) {
+                return res.json({ success: false, error: "JSON parser error" });
+            }
 
-        switch (t.type) {
-            case 2:
-                switch (t.subtype) {
-                    case 0:
-                        tr.asset = app.signatureprocessor.fromJSON(t.asset);
-                        break;
+            try {
+                var tr = new Transaction(t.type, null, t.timestamp, new Buffer(t.senderPublicKey, 'hex'), t.recipientId, t.amount, t.creationBlockId, new Buffer(t.signature, 'hex'));
+
+                if (t.signSignature) {
+                    tr.signSignature = new Buffer(t.signSignature, 'hex');
                 }
-                break;
+            } catch (e) {
+                return res.json({ success: false, error: "JSON parser error" });
+            }
 
-            case 3:
-                switch (t.subtype) {
-                    case 0:
-                        tr.asset = app.companyprocessor.fromJSON(t.asset);
-                        break;
-                }
-                break;
-        }
+            switch (t.type) {
+                case 2:
+                    switch (t.subtype) {
+                        case 0:
+                            try {
+                                tr.asset = app.signatureprocessor.fromJSON(t.asset);
+                            } catch (e) {
+                                return res.json({ success: false, error: "JSON parser error" });
+                            }
+                            break;
+                    }
+                    break;
 
-        try {
-            var r = app.transactionprocessor.processTransaction(tr, true);
+                case 3:
+                    switch (t.subtype) {
+                        case 0:
+                            try {
+                                tr.asset = app.companyprocessor.fromJSON(t.asset);
+                            } catch (e) {
+                                return res.json({ success: false, error: "JSON parser error" });
+                            }
+                            break;
+                    }
+                    break;
+            }
+
+            try {
+                var r = app.transactionprocessor.processTransaction(tr, true);
+            } catch (e) {
+                app.peerprocessor.blockPeer(ip);
+                r = false;
+            }
+
+            if (r) {
+                return res.json({ success: true, accepted: true });
+            } else {
+                return res.json({ success: false, accepted: false });
+            }
         } catch (e) {
             app.peerprocessor.blockPeer(ip);
-            r = false;
-        }
-
-        if (r) {
-            return res.json({ success : true, accepted : true });
-        } else {
             return res.json({ success : false, accepted : false });
         }
     });
 
-    app.get("/peer/processBlock", function (req, res) {
+    app.post("/peer/processBlock", function (req, res) {
+
         if (!app.synchronizedBlocks) {
             return res.json({ success : false, accepted : false });
         }
 
         var ip = req.connection.remoteAddress;
 
-        if (!app.peerprocessor.getPeer(ip)) {
-            return res.json({ success : false, peerBlocked : true });
-        }
-
-        var b = null;
         try {
-            b = JSON.parse(req.query.block);
-        } catch (e) {
-            return res.json({ success : false, accepted : false });
-        }
-
-        var block = new Block(b.version, null, b.timestamp, b.previousBlock, [], b.totalAmount, b.totalFee, b.payloadLength, new Buffer(b.payloadHash,'hex'), new Buffer(b.generatorPublicKey, 'hex'), new Buffer(b.generationSignature, 'hex'), new Buffer(b.blockSignature, 'hex'));
-        block.requestsLength = b.requestsLength;
-        block.generationWeight = b.generationWeight;
-        block.numberOfRequests = b.numberOfRequests;
-        block.numberOfConfirmations = b.numberOfConfirmations;
-        block.confirmationsLength = b.confirmationsLength;
-
-        var previousBlock = b.previousBlock;
-
-        var transactions = [];
-        for (var i = 0; i < b.transactions.length; i++) {
-            var t = b.transactions[i];
-            var transaction = new Transaction(t.type, null, t.timestamp, new Buffer(t.senderPublicKey, 'hex'), t.recipientId, t.amount, t.creationBlockId, new Buffer(t.signature, 'hex'));
-            if (t.signSignature) {
-                transaction.signSignature = new Buffer(t.signSignature, 'hex');
+            if (!app.peerprocessor.getPeer(ip)) {
+                return res.json({ success: false, peerBlocked: true });
             }
 
-            switch (transaction.type) {
-                case 2:
-                    switch (transaction.subtype) {
-                        case 0:
-                            transaction.asset = app.signatureprocessor.fromJSON(t.asset);
-                            break;
-                    }
-                    break;
+            var b = req.body.block;
 
-                case 3:
-                    switch (transaction.subtype) {
-                        case 0:
-                            transaction.asset = app.companyprocessor.fromJSON(t.asset);
-                            break;
-                    }
-                    break;
+            console.log(b);
+
+            if (!b) {
+                return res.json({ success: false, accepted: false });
             }
 
-            transactions.push(transaction);
-        }
+            try {
+                var block = new Block(b.version, null, b.timestamp, b.previousBlock, [], b.totalAmount, b.totalFee, b.payloadLength, new Buffer(b.payloadHash, 'hex'), new Buffer(b.generatorPublicKey, 'hex'), new Buffer(b.generationSignature, 'hex'), new Buffer(b.blockSignature, 'hex'));
+                block.requestsLength = b.requestsLength;
+                block.generationWeight = b.generationWeight;
+                block.numberOfRequests = b.numberOfRequests;
+                block.numberOfConfirmations = b.numberOfConfirmations;
+                block.confirmationsLength = b.confirmationsLength;
+            } catch (e) {
+                app.peerprocessor.blockPeer(ip);
+                return res.json({ success: false, accepted: false });
+            }
 
-        var requests = [];
-        for (var i = 0; i < b.requests.length; i++) {
-            var r = b.requests[i];
-            requests.push(new Request(null, null, r.ip, new Buffer(r.publicKey, 'hex'), r.lastAliveBlock, new Buffer(r.signature, 'hex')));
-        }
+            var previousBlock = b.previousBlock;
 
-        var confirmations = [];
-        for (var i = 0; i < b.confirmations.length; i++) {
-            var c = b.confirmations[i];
-            confirmations.push(new companyconfirmation(c.companyId, c.verified, c.timestamp, new Buffer(c.signature, 'hex')));
-        }
+            try {
+                var transactions = [];
+                for (var i = 0; i < b.transactions.length; i++) {
+                    var t = b.transactions[i];
 
-        block.numberOfTransactions = transactions.length;
-        block.numberOfRequests = requests.length;
+                    var transaction = new Transaction(t.type, null, t.timestamp, new Buffer(t.senderPublicKey, 'hex'), t.recipientId, t.amount, t.creationBlockId, new Buffer(t.signature, 'hex'));
+                    if (t.signSignature) {
+                        transaction.signSignature = new Buffer(t.signSignature, 'hex');
+                    }
 
-        var buffer = block.getBytes();
-        for (var i = 0; i < transactions.length; i++) {
-            buffer = Buffer.concat([buffer, transactions[i].getBytes()]);
-        }
 
-        for (var i = 0; i < requests.length; i++) {
-            buffer = Buffer.concat([buffer, requests[i].getBytes()]);
-        }
+                    switch (transaction.type) {
+                        case 2:
+                            switch (transaction.subtype) {
+                                case 0:
+                                    transaction.asset = app.signatureprocessor.fromJSON(t.asset);
+                                    break;
+                            }
+                            break;
 
-        for (var i = 0; i < confirmations.length; i++) {
-            buffer = Buffer.concat([buffer, confirmations[i].getBytes()]);
-        }
+                        case 3:
+                            switch (transaction.subtype) {
+                                case 0:
+                                    transaction.asset = app.companyprocessor.fromJSON(t.asset);
+                                    break;
+                            }
+                            break;
+                    }
 
-        try {
-            var r = app.blockchain.pushBlock(buffer, true, true);
+                    transactions.push(transaction);
+                }
+            }
+            catch (e) {
+                app.peerprocessor.blockPeer(ip);
+                return res.json({ success: false, accepted: false });
+            }
+
+            var requests = [];
+            for (var i = 0; i < b.requests.length; i++) {
+                var r = b.requests[i];
+
+                try {
+                    requests.push(new Request(null, null, r.ip, new Buffer(r.publicKey, 'hex'), r.lastAliveBlock, new Buffer(r.signature, 'hex')));
+                } catch (e) {
+                    app.peerprocessor.blockPeer(ip);
+                    return res.json({ success: false, accepted: false });
+                }
+            }
+
+            var confirmations = [];
+            for (var i = 0; i < b.confirmations.length; i++) {
+                var c = b.confirmations[i];
+
+                try {
+                    confirmations.push(new companyconfirmation(c.companyId, c.verified, c.timestamp, new Buffer(c.signature, 'hex')));
+                } catch (e) {
+                    app.peerprocessor.blockPeer(ip);
+                    return res.json({ success: false, accepted: false });
+                }
+            }
+
+            block.numberOfTransactions = transactions.length;
+            block.numberOfRequests = requests.length;
+
+            var buffer = block.getBytes();
+            for (var i = 0; i < transactions.length; i++) {
+                buffer = Buffer.concat([buffer, transactions[i].getBytes()]);
+            }
+
+            for (var i = 0; i < requests.length; i++) {
+                buffer = Buffer.concat([buffer, requests[i].getBytes()]);
+            }
+
+            for (var i = 0; i < confirmations.length; i++) {
+                buffer = Buffer.concat([buffer, confirmations[i].getBytes()]);
+            }
+
+            try {
+                var r = app.blockchain.pushBlock(buffer, true, true);
+            } catch (e) {
+                r = false;
+                app.peerprocessor.blockPeer(ip);
+                this.app.logger.error(e.toString());
+            }
+
+            if (r) {
+                return res.json({ success: true, accepted: true });
+            } else {
+                return res.json({ success: false, accepted: false });
+            }
         } catch (e) {
-            r = false;
+            console.log(e);
             app.peerprocessor.blockPeer(ip);
-            this.app.logger.error(e.toString());
-        }
-
-        if (r) {
-            return res.json({ success: true, accepted: true });
-        } else {
             return res.json({ success : false, accepted : false });
         }
     });

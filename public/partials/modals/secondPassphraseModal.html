@@ -6,9 +6,9 @@
             Please allow some time for changes to take effect. Service Cost <b>100 XCR</b>. Your balance: <b>{{ totalBalance }} XCR</b>.
         </p>
         <form class="form" style="margin-top: 20px;">
-            <input class="input-text" type="{{type}}" ng-model="secretPhrase" placeholder="Your SecretPhrase">
-            <input class="input-text" type="{{type}}" ng-model="newSecretPhrase" placeholder="New second secretphrase">
-            <input class="input-text" type="{{type}}" ng-model="repeatSecretPhrase" placeholder="Repeat new second secretphrase">
+            <input class="input-text" type="{{type}}" ng-model="secretPhrase" placeholder="Your SecretPhrase" ng-trim="false">
+            <input class="input-text" type="{{type}}" ng-model="newSecretPhrase" placeholder="New second secretphrase" ng-trim="false">
+            <input class="input-text" type="{{type}}" ng-model="repeatSecretPhrase" placeholder="Repeat new second secretphrase" ng-trim="false">
             <input type="checkbox" ng-model="showPassphrase" ng-change="changeType()"> <label>Show secretphrases?</label>
             <p class="error" style="margin-top: 10px;">{{fromServer}}.</p>
             <div class="pull-right">

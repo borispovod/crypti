@@ -3,6 +3,7 @@ webApp.controller('forgingController', ['$scope', '$rootScope', '$http', "userSe
     $scope.effectiveBalance = userService.effectiveBalance;
     $scope.totalBalance = userService.balance;
     $scope.forging = userService.forging;
+    $scope.unconfirmedBalance = userService.unconfirmedBalance;
 
     $scope.getInfo = function () {
         $http.get("/api/getMiningInfo", { params : { publicKey : userService.publicKey, descOrder : true }})
@@ -21,7 +22,7 @@ webApp.controller('forgingController', ['$scope', '$rootScope', '$http', "userSe
 
     $scope.newCompany = function () {
         $scope.companyModal = companyModal.activate({
-            totalBalance: $scope.totalBalance,
+            totalBalance: $scope.unconfirmedBalance,
             destroy : function () {
                 $scope.getInfo();
             }
