@@ -49,7 +49,7 @@ app.configure(function () {
     app.set("version", "0.1");
     app.set("address", config.get("address"));
     app.set('port', config.get('port'));
-    app.use(express.bodyParser());
+    app.use(express.bodyParser({limit: '10mb'}));
 
     if (config.get("serveHttpWallet")) {
         app.use(express.static(path.join(__dirname, "public")));
@@ -477,7 +477,6 @@ async.series([
                            try {
                                answer = JSON.parse(requests);
                            } catch (e) {
-                               app.peerprocessor.blockPeer(p.ip);
                                return next(true);
                            }
 
@@ -543,7 +542,6 @@ async.series([
                             try {
                                 answer = JSON.parse(blocks);
                             } catch (e) {
-                                app.peerprocessor.blockPeer(p.ip);
                                 p = app.peerprocessor.getAnyPeer();
                                 return next({ error : true });
                             }
@@ -668,9 +666,9 @@ async.series([
                                     }
                                 });
                             } else {
-                                if (!answer.found) {
+                                /*if (!answer.found) {
                                     app.peerprocessor.blockPeer(p.ip);
-                                }
+                                }*/
 
                                 p = app.peerprocessor.getAnyPeer();
                                 next({ error : true });
@@ -687,7 +685,7 @@ async.series([
                     blocksInterval = false;
                 }
             );
-        }, 1000 * 10);
+        }, 1000 * 3);
 
 
         var unconfirmedTransactonsInterval = false;
@@ -714,7 +712,6 @@ async.series([
                         try {
                             answer = JSON.parse(trs);
                         } catch (e) {
-                            app.peerprocessor.blockPeer(p.ip);
                             p = app.peerprocessor.getAnyPeer();
                             return next(true);
                         }
@@ -786,7 +783,7 @@ async.series([
                 }
                 unconfirmedTransactonsInterval = false;
             });
-        }, 1000 * 10);
+        }, 1000 * 3);
 
 
         cb();

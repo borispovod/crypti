@@ -250,10 +250,11 @@ blockchain.prototype.pushBlock = function (buffer, sendToPeers, checkRequests) {
     this.logger.info("Process transactions in block: " + b.getId());
     var accumulatedAmounts = {};
     var i, calculatedTotalAmount = 0, calculatedTotalFee = 0;
+    var foundsTrs = {};
     for (i = 0; i < b.transactions.length; i++) {
         var t = b.transactions[i];
 
-        if (t.timestamp > curTime ||  this.transactionprocessor.getTransaction(t.getId()) || (this.transactionprocessor.getUnconfirmedTransaction(t.getId()) && !t.verify())) {
+        if (t.timestamp > curTime || foundsTrs[t.getId()] || this.transactionprocessor.getTransaction(t.getId()) || (this.transactionprocessor.getUnconfirmedTransaction(t.getId()) && !t.verify())) {
             break;
         }
 
@@ -377,7 +378,6 @@ blockchain.prototype.pushBlock = function (buffer, sendToPeers, checkRequests) {
             break;
         }
 
-
         var sender = this.accountprocessor.getAccountByPublicKey(t.senderPublicKey);
         if (!accumulatedAmounts[sender.address]) {
             accumulatedAmounts[sender.address] = 0;
@@ -452,10 +452,12 @@ blockchain.prototype.pushBlock = function (buffer, sendToPeers, checkRequests) {
             break;
         }
 
+        foundsTrs[t.getId()] = true;
         calculatedTotalFee += fee;
     }
 
     var confirmationsLength = 0;
+    var foundsCompany = [];
     for (confirmationsLength = 0; confirmationsLength < b.confirmations.length; confirmationsLength++) {
         var c = b.confirmations[confirmationsLength];
 
@@ -476,12 +478,18 @@ blockchain.prototype.pushBlock = function (buffer, sendToPeers, checkRequests) {
             break;
         }
 
+        if (foundsCompany[company.domain]) {
+            this.app.logger.error("Company confirmation already processed in this block: " + c.getId());
+            break;
+        }
+
         if (this.app.companyprocessor.confirmedCompanies[company.domain]) {
             this.app.logger.error("Company already confirmed: " + c.getId() + " / " + company.domain);
             break;
         }
 
         c.blockId = b.getId();
+        foundsCompany[company.domain] = company.domain;
         calculatedTotalFee += 100 * constants.numberLength;
         b.forForger += 100 * constants.numberLength;
     }
@@ -498,6 +506,7 @@ blockchain.prototype.pushBlock = function (buffer, sendToPeers, checkRequests) {
 
     var numOfRequests = 0;
     var found = 0;
+    var founds = {};
     for (var r in b.requests) {
         var request = b.requests[r];
 
@@ -524,7 +533,8 @@ blockchain.prototype.pushBlock = function (buffer, sendToPeers, checkRequests) {
         }
 
 
-        if (this.app.requestprocessor.unconfirmedRequests[account.address]) {
+        if (this.app.requestprocessor.unconfirmedRequests[account.address] && !founds[account.address]) {
+            founds[account.address] = 1;
             found++;
         }
 

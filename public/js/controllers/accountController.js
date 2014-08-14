@@ -2,8 +2,9 @@ webApp.controller('accountController', ['$scope', '$rootScope', '$http', "userSe
     $scope.address = userService.address;
     $scope.balance = userService.balance;
     $scope.unconfirmedBalance = userService.unconfirmedBalance;
-    $scope.effectiveBalance = userService.effectiveBalance ;
+    $scope.effectiveBalance = userService.effectiveBalance;
     $scope.secondPassphrase = userService.secondPassphrase;
+    $scope.unconfirmedPassphrase = userService.unconfirmedPassphrase;
 
     $scope.getTransactions = function () {
         $http.get("/api/getAddressTransactions", { params : { address : userService.address, limit : 20, descOrder : true }})
@@ -19,10 +20,12 @@ webApp.controller('accountController', ['$scope', '$rootScope', '$http', "userSe
                 userService.unconfirmedBalance = resp.data.unconfirmedBalance / 100000000;
                 userService.effectiveBalance = resp.data.effectiveBalance / 100000000;
                 userService.secondPassphrase = resp.data.secondPassphrase;
+                userService.unconfirmedPassphrase = resp.data.unconfirmedPassphrase;
                 $scope.balance = userService.balance;
                 $scope.unconfirmedBalance = userService.unconfirmedBalance;
                 $scope.effectiveBalance = userService.effectiveBalance;
                 $scope.secondPassphrase = userService.secondPassphrase;
+                $scope.unconfirmedPassphrase = userService.unconfirmedPassphrase;
             });
     }
 
@@ -55,13 +58,16 @@ webApp.controller('accountController', ['$scope', '$rootScope', '$http', "userSe
     $scope.addSecondPassphrase = function () {
         $scope.secondPassphraseModal = secondPassphraseModal.activate({
             totalBalance : $scope.unconfirmedBalance,
-            destroy: function () {
+            destroy: function (r) {
                 $scope.getBalance();
                 $scope.getTransactions();
+
+                if (r) {
+                    $scope.unconfirmedPassphrase = true;
+                }
             }
         });
     }
-
 
     $scope.getBalance();
     $scope.getTransactions();
