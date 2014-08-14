@@ -39,10 +39,12 @@
                 <tr ng-repeat="item in companies">
                     <td>{{ item.domain }}</td>
                     <td ng-show="item.deleted" colspan="3">Not confirmed by forgers</td>
-                    <td ng-show="item.confirmed == true && item.address && !item.deleted">{{ item.address }}</td>
-                    <td ng-show="item.confirmed == false && !item.deleted">-</td>
-                    <td ng-show="!item.confirmations && !item.deleted">-</td>
-                    <td ng-show="item.confirmations > 0 && !item.deleted">{{ item.confirmations }} / 10</td>
+                    <td ng-show="item.confirmed && item.address && !item.deleted">{{ item.address }}</td>
+                    <td ng-show="item.confirmed && !item.address && !item.deleted">-</td>
+                    <td ng-show="!item.confirmed && !item.deleted">-</td>
+                    <td ng-show="item.confirmed && item.address && !item.deleted">Confirmed</td>
+                    <td ng-show="item.confirmed && !item.address && !item.deleted">{{ item.confirmations }} / 10</td>
+                    <td ng-show="!item.confirmed && !item.deleted">-</td>
                 </tr>
                 <tr ng-show="!companies || companies.length == 0">
                     <td colspan="4">

@@ -3,7 +3,7 @@ var peer = require("./peer.js"),
     async = require('async'),
     utils = require("../utils.js");
 
-var timeToBlock = 10;
+var timeToBlock = 30;
 
 var peerprocessor = function () {
     this.peers = {};
