@@ -9,7 +9,7 @@ var genesisblock = require("./genesisblock.js"),
     bignum = require('bignum'),
     bufferEqual = require('buffer-equal'),
     Long = require("long"),
-    request = require('../request').request;
+    requestconfirmation = require('../request').requestsconfirmation;
 
 var blockchain = function (app) {
     this.app = app;
@@ -43,16 +43,6 @@ blockchain.prototype.fromJSON = function (b) {
     return block;
 }
 
-/*
-blockchain.prototype.blockFromJSON = function (jsonObj) {
-    try {
-        var data = JSON.parse(jsonObj);
-        block = new block(data.version, data.id, data.timestamp, data.previousBlock, data.transactions, data.totalAmount, data.totalFee, data.payloadLength, data.payloadHash, data.generatorPublicKey, data.generationSignature, data.blockSignature);
-    } catch (e) {
-        return null;
-    }
-}*/
-
 blockchain.prototype.blockFromBytes = function (buffer) {
     var bb = ByteBuffer.wrap(buffer, true);
     bb.flip();
@@ -64,8 +54,6 @@ blockchain.prototype.blockFromBytes = function (buffer) {
     b.numbersOfTransactions = bb.readInt();
     b.totalAmount = bb.readLong();
     b.totalFee = bb.readLong();
-
-    b.generationWeight = bb.readDouble();
 
     b.payloadLength = bb.readInt();
     b.requestsLength = bb.readInt();
@@ -154,7 +142,6 @@ blockchain.prototype.pushBlock = function (buffer, sendToPeers, checkRequests) {
     b.totalAmount  = new Long(amountLong.low, amountLong.high, false).toNumber();
     var feeLong = bb.readLong();
     b.totalFee = new Long(feeLong.low, feeLong.high, false).toNumber();
-    b.generationWeight = bb.readDouble();
 
     b.payloadLength = bb.readInt();
     b.requestsLength = bb.readInt();
@@ -797,7 +784,7 @@ module.exports.addGenesisBlock = function (app, cb) {
         var transactions = [];
         for (var i = 0; i < genesisblock.transactions.length; i++) {
             var gt = genesisblock.transactions[i];
-            var t = new transaction(0, null, 0, new Buffer(genesisblock.sender, 'hex'), gt.recipient, gt.amount * constants.numberLength, 0, new Buffer(gt.signature, 'hex'));
+            var t = new transaction(0, null, 0, new Buffer(genesisblock.sender, 'hex'), gt.recipient, gt.amount * constants.numberLength, new Buffer(gt.signature, 'hex'));
             t.sender = app.accountprocessor.getAddressByPublicKey(t.senderPublicKey);
             t.fee = 0;
 
@@ -810,12 +797,15 @@ module.exports.addGenesisBlock = function (app, cb) {
         }
 
 
+        var req = new requestconfirmation(app.accountprocessor.getAddressByPublicKey(genesisblock.requestGeneratorPublicKey), false);
+
+        /*
         var req = new request(null, null, "127.0.0.1", new Buffer(genesisblock.requestGeneratorPublicKey, 'hex'), 0, new Buffer(genesisblock.requestSignature, 'hex'));
 
         if (!req.verify()) {
             app.logger.error("Genesis request has not valid signature: " + req.getId());
             return false;
-        }
+        }*/
 
         var requestsLength = req.getBytes().length;
         var payloadHash = crypto.createHash('sha256');
@@ -834,7 +824,6 @@ module.exports.addGenesisBlock = function (app, cb) {
         var generationSignature = new Buffer(64);
         generationSignature.fill(0);
 
-
         b = new block(0, null, 0, null, transactions, 100000000 * constants.numberLength, 0 * constants.numberLength, payloadLength, payloadHash, new Buffer(genesisblock.sender, 'hex'), generationSignature, new Buffer(genesisblock.blockSignature, 'hex'));
         b.requestsLength = requestsLength;
         b.baseTarget = bignum(constants.initialBaseTarget);
@@ -844,7 +833,6 @@ module.exports.addGenesisBlock = function (app, cb) {
         b.height = 1;
         b.requests = [req];
         bc.lastBlock = b.getId();
-
 
         for (var i = 0; i < transactions.length; i++) {
             transactions[i].blockId = b.getId();
@@ -861,7 +849,7 @@ module.exports.addGenesisBlock = function (app, cb) {
             return null;
         }
 
-        var address = app.accountprocessor.getAddressByPublicKey(req.publicKey);
+        var address = req.address;
         app.requestprocessor.confirmedRequests[address] = [req];
         app.blockchain.blocks[b.getId()] = b;
         app.blockchain.lastBlock = b.getId();

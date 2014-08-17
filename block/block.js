@@ -30,7 +30,6 @@ var block = function (version, id, timestamp, previousBlock, transactions, total
     this.numberOfConfirmations = 0;
     this.requestsLength = 0;
     this.confirmationsLength = 0;
-    this.generationWeight = 0;
 
     if (this.transactions) {
         this.numberOfTransactions = this.transactions.length;
@@ -338,7 +337,7 @@ block.prototype.setPreviousBlock = function (block, cb) {
 }
 
 block.prototype.getBytes = function () {
-    var size = 4 + 4 + 8 + 4 + 4 + 4 + 8 + 8 + 8 + 4 + 4 + 4 + 32 + 32 + 64 + 64;
+    var size = 4 + 4 + 8 + 4 + 4 + 4 + 8 + 8 + 4 + 4 + 4 + 32 + 32 + 64 + 64;
 
     var bb = new ByteBuffer(size, true);
     bb.writeInt(this.version);
@@ -361,7 +360,6 @@ block.prototype.getBytes = function () {
     bb.writeInt(this.numberOfConfirmations);
     bb.writeLong(this.totalAmount);
     bb.writeLong(this.totalFee);
-    bb.writeDouble(this.generationWeight);
 
     bb.writeInt(this.payloadLength);
     bb.writeInt(this.requestsLength);
@@ -499,15 +497,15 @@ block.prototype.verifyGenerationSignature = function () {
             previousBlock = this.app.blockchain.getBlock(previousBlock.previousBlock);
         }
 
-        accountWeightTimestamps = parseInt(accountWeightTimestamps / lastAliveBlock.height);
+        accountWeightTimestamps = accountWeightTimestamps;
 
-        this.app.logger.info("Account PoT weight: " + address + " / " + accountWeightTimestamps);
-        this.app.logger.info("Account PoP weight: " + address + " / " + popWeightAmount);
+        this.app.logger.debug("Account PoT weight: " + address + " / " + accountWeightTimestamps);
+        this.app.logger.debug("Account PoP weight: " + address + " / " + popWeightAmount);
 
         var accountTotalWeight = accountWeightTimestamps + popWeightAmount;
         accounts.push({ address : address, weight : accountTotalWeight, publicKey : request.publicKey, signature : request.signature  });
 
-        this.app.logger.info("Account " + address + " / " + accountTotalWeight);
+        this.app.logger.debug("Account " + address + " / " + accountTotalWeight);
     }
 
     accounts.sort(function compare(a,b) {
@@ -521,7 +519,7 @@ block.prototype.verifyGenerationSignature = function () {
     });
 
     if (accounts.length == 0) {
-        this.app.logger.info("Need accounts for forging...");
+        this.app.logger.warn("Need accounts for forging...");
         this.workingForger = false;
         return false;
     }
@@ -532,7 +530,7 @@ block.prototype.verifyGenerationSignature = function () {
         cycle = parseInt(cycle  % accounts.length);
     }
 
-    this.logger.info("Winner in cycle is: " + cycle);
+    this.logger.debug("Winner in cycle is: " + cycle);
 
     // ищем похожий вес
     var winner = accounts[cycle];
@@ -579,9 +577,9 @@ block.prototype.verifyGenerationSignature = function () {
         winner = randomWinners[0];
     }
 
-    this.app.logger.info("Winner in cycle: " + winner.address + " / " + winner.weight);
+    this.app.logger.debug("Winner in cycle: " + winner.address + " / " + winner.weight);
 
-    if (this.generationWeight == winner.weight) {
+    if (this.app.accountprocessor.getAddressByPublicKey(this.generatorPublicKey) == this.app.accountprocessor.getAddressByPublicKey(winner.publicKey)) {
         this.app.logger.info("Valid generator " + this.getId());
 
         var hash = crypto.createHash('sha256').update(lastAliveBlock.generationSignature).update(winner.publicKey);

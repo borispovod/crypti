@@ -354,6 +354,13 @@ module.exports = function (app) {
             order = "ASC";
         }
 
+        var address = app.accountprocessor.getAddressByPublicKey(new Buffer(publicKey, 'hex'));
+
+        var forging = false;
+        if (app.forgerprocessor.getForgers(address)) {
+            forging = true;
+        }
+
         var totalForged = 0;
 
         app.db.sql.all("SELECT * FROM blocks WHERE generatorPublicKey=$publicKey ORDER BY timestamp " + order, {
@@ -501,7 +508,7 @@ module.exports = function (app) {
                             });
 
                             blocks = blocks.slice(0, limit);
-                            return res.json({ success : true, status : "OK", totalForged : totalForged, blocks : blocks, companies : addresses });
+                            return res.json({ success : true, forging : forging, status : "OK", totalForged : totalForged, blocks : blocks, companies : addresses });
                         });
                     })
                 });
