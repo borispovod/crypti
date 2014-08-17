@@ -2,7 +2,6 @@ webApp.controller('forgingController', ['$scope', '$rootScope', '$http', "userSe
     $scope.address = userService.address;
     $scope.effectiveBalance = userService.effectiveBalance;
     $scope.totalBalance = userService.balance;
-    $scope.forging = userService.forging;
     $scope.unconfirmedBalance = userService.unconfirmedBalance;
 
     $scope.getInfo = function () {
@@ -11,6 +10,7 @@ webApp.controller('forgingController', ['$scope', '$rootScope', '$http', "userSe
                 $scope.blocks = resp.data.blocks;
                 $scope.companies = resp.data.companies;
                 $scope.totalForged = resp.data.totalForged;
+                $scope.forging = resp.data.forging;
             });
     }
 

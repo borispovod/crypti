@@ -100,6 +100,14 @@ module.exports = function (app) {
             return res.json({ success : false, error : "Provide address", statusCode : "PROVIDE_ADDRESS" });
         }
 
+        var unconfirmedPassphrase = false;
+
+        if (app.signatureprocessor.getUnconfirmedSignatureByAddress(address)) {
+            unconfirmedPassphrase = true;
+        } else {
+            unconfirmedPassphrase = false;
+        }
+
         var account = app.accountprocessor.getAccountById(address);
 
         var info = {};
@@ -117,11 +125,12 @@ module.exports = function (app) {
                 account.secondPassphrase = false;
             }
 
-            info = { success : true, statusCode : "OK", secondPassphrase : account.secondPassphrase, balance : account.balance , unconfirmedBalance : account.unconfirmedBalance, effectiveBalance : account.getEffectiveBalance() };
+            info = { success : true, unconfirmedPassphrase : unconfirmedPassphrase, statusCode : "OK", secondPassphrase : account.secondPassphrase, balance : account.balance , unconfirmedBalance : account.unconfirmedBalance, effectiveBalance : account.getEffectiveBalance() };
         }
 
         return res.json(info);
     });
+
 
     app.get("/api/getPublicKey", function (req, res) {
         var secretPharse = req.query.secret || "";
@@ -147,6 +156,23 @@ module.exports = function (app) {
         var keypair = ed.MakeKeypair(hash);
 
         var publicKeyHash = crypto.createHash('sha256').update(keypair.publicKey).digest();
+        var temp = new Buffer(8);
+        for (var i = 0; i < 8; i++) {
+            temp[i] = publicKeyHash[7-i];
+        }
+
+        var address = bignum.fromBuffer(temp).toString() + "C";
+        res.json({ success : true, address : address, status : "OK" });
+    });
+
+    app.get('/api/getAddressByPublicKey', function (req, res) {
+        var publicKey = req.query.publicKey || "";
+        if (publicKey.length == 0) {
+            return res.json({ success : false, error : "Provide public key", status : "PROVIDE_PUBLIC_KEY" });
+        }
+
+        var publicKey = new Buffer(publicKey, 'hex');
+        var publicKeyHash = crypto.createHash('sha256').update(publicKey).digest();
         var temp = new Buffer(8);
         for (var i = 0; i < 8; i++) {
             temp[i] = publicKeyHash[7-i];
