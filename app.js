@@ -199,7 +199,6 @@ async.series([
                             b.numberOfTransactions = item.numberOfTransactions;
                             b.numberOfRequests = item.numberOfRequests;
                             b.requestsLength = item.requestsLength;
-                            b.generationWeight = item.generationWeight;
                             b.numberOfConfirmations = item.numberOfConfirmations;
                             b.confirmationsLength = item.confirmationsLength;
                             b.setApp(app);
@@ -216,7 +215,7 @@ async.series([
                                 } else {
                                     var transactions = [];
                                     async.eachSeries(rows, function (t, _c) {
-                                        var tr = new transaction(t.type, t.id, t.timestamp, new Buffer(t.senderPublicKey, 'hex'), t.recipient, t.amount, t.creationBlockId, new Buffer(t.signature, 'hex'));
+                                        var tr = new transaction(t.type, t.id, t.timestamp, new Buffer(t.senderPublicKey, 'hex'), t.recipient, t.amount, new Buffer(t.signature, 'hex'));
 
                                         if (t.signSignature) {
                                             tr.signSignature = new Buffer(t.signSignature, 'hex');
@@ -552,7 +551,6 @@ async.series([
                                     b.numberOfTransactions = item.numberOfTransactions;
                                     b.numberOfRequests = item.numberOfRequests;
                                     b.requestsLength = item.requestsLength;
-                                    b.generationWeight = item.generationWeight;
                                     b.numberOfConfirmations = item.numberOfConfirmations;
                                     b.confirmationsLength = item.confirmationsLength;
                                     b.setApp(app);
@@ -562,7 +560,7 @@ async.series([
                                     logger.getInstance().info("Load block from peer: " + b.getId() + ", height: " + b.height);
                                     var transactions = [];
                                     async.eachSeries(item.trs, function (t, _c) {
-                                        var tr = new transaction(t.type, t.id, t.timestamp, new Buffer(t.senderPublicKey, 'hex'), t.recipient, t.amount, t.creationBlockId, new Buffer(t.signature, 'hex'));
+                                        var tr = new transaction(t.type, t.id, t.timestamp, new Buffer(t.senderPublicKey, 'hex'), t.recipient, t.amount, new Buffer(t.signature, 'hex'));
 
                                         if (t.signSignature) {
                                             tr.signSignature = new Buffer(t.signSignature, 'hex');
@@ -660,6 +658,7 @@ async.series([
                                     app.logger.info("Processed blocks from " + p.ip);
 
                                     if (answer.blocks && answer.blocks.length > 0) {
+                                        p = app.peerprocessor.getAnyPeer();
                                         next();
                                     } else {
                                         next({ error : false, syncrhonized : true });
@@ -718,16 +717,13 @@ async.series([
 
                         if (answer.success) {
                             async.eachSeries(answer.transactions, function (t, cb) {
-                                var tr = new transaction(t.type, t.id, t.timestamp, new Buffer(t.senderPublicKey, 'hex'), t.recipientId, t.amount, t.creationBlockId, new Buffer(t.signature, 'hex'));
+                                var tr = new transaction(t.type, t.id, t.timestamp, new Buffer(t.senderPublicKey, 'hex'), t.recipientId, t.amount, new Buffer(t.signature, 'hex'));
 
 
                                 if (t.signSignature) {
                                     tr.signSignature = new Buffer(t.signSignature, 'hex');
                                 }
 
-                                /*if (!tr.verify()) {
-                                    return cb("Can't verify transaction: " + tr.getId());
-                                }*/
 
                                 if (app.transactionprocessor.getUnconfirmedTransaction(tr.getId()) != null) {
                                     return cb();

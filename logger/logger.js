@@ -1,19 +1,27 @@
 var winston = require('winston');
 
+
+var level = 'info';
+
+if (process.env.NODE_ENV == 'development') {
+    level = 'debug';
+}
+
 var logLevels = {
-    levels: {
-        info: 0,
-        warn: 1,
-        debug: 2,
+    levels : {
+        debug : 0,
+        info: 1,
+        warn: 2,
         error: 3
     },
     colors: {
         info: 'green',
         warn: 'yellow',
-        debug: 'blue',
-        error: 'red'
+        error: 'red',
+        debug: 'blue'
     }
 };
+
 
 var l = null;
 
@@ -21,15 +29,14 @@ module.exports.init = function (file, onlyToFile) {
     var transports = [];
 
     if (!onlyToFile) {
-        transports.push(new (winston.transports.Console)({ colorize : true, timestamp : true }));
+        transports.push(new (winston.transports.Console)({ level : level, colorize : true, timestamp : true }));
     }
 
     if (file) {
-        transports.push(new (winston.transports.File)({ filename: file }));
+        transports.push(new (winston.transports.File)({ level : level, filename: file }));
     }
 
-    l = new (winston.Logger)({ levels: logLevels.levels, transports : transports });
-    winston.addColors(logLevels.colors);
+    l = new (winston.Logger)({ transports : transports, levels : logLevels.levels, colors : logLevels.colors });
 }
 
 module.exports.getInstance = function () {

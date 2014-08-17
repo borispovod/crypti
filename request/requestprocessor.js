@@ -1,12 +1,12 @@
 var ed = require('ed25519'),
     request = require('./request.js'),
+    requestconfirmation = require('./requestconfirmation.js'),
     _ = require('underscore'),
     ByteBuffer = require("bytebuffer"),
     crypto = require('crypto'),
     bignum = require('bignum'),
     utils = require("../utils.js"),
     Constants = require("../Constants.js");
-
 
 var requestprocessor = function () {
     this.unconfirmedRequests = {};
@@ -86,6 +86,27 @@ requestprocessor.prototype.transactionFromBytes = function (buffer) {
 
     r.signature = signature;
     return r;
+}
+
+requestprocessor.prototype.confirmationFromBuffer = function (bb) {
+    var rc = new requestconfirmation();
+    var addressBuffer = new Buffer(8);
+
+    for (var i = 0; i < 8; i++) {
+        addressBuffer[i] = bb.readByte();
+    }
+
+    rc.address = bignum.fromBuffer(addressBuffer, { size : '8' }).toString() + "C";
+
+    var random = bb.readByte();
+
+    if (random == 1) {
+        rc.random = true;
+    } else {
+        rc.random = false;
+    }
+
+    return rc;
 }
 
 requestprocessor.prototype.processRequest = function (request, send) {

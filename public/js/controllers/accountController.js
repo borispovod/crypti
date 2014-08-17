@@ -1,4 +1,4 @@
-webApp.controller('accountController', ['$scope', '$rootScope', '$http', "userService", "$interval", "sendCryptiModal", "freeModal", "secondPassphraseModal", function($rootScope, $scope, $http, userService, $interval, sendCryptiModal, freeModal, secondPassphraseModal) {
+webApp.controller('accountController', ['$scope', '$rootScope', '$http', "userService", "$interval", "sendCryptiModal", "secondPassphraseModal", function($rootScope, $scope, $http, userService, $interval, sendCryptiModal, secondPassphraseModal) {
     $scope.address = userService.address;
     $scope.balance = userService.balance;
     $scope.unconfirmedBalance = userService.unconfirmedBalance;

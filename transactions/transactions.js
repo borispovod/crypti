@@ -4,7 +4,7 @@ var crypto = require('crypto'),
     _ = require('underscore'),
     ByteBuffer = require("bytebuffer");
 
-var transaction = function(type, id, timestamp, senderPublicKey, recipientId, amount, creationBlockId, signature, signSignature) {
+var transaction = function(type, id, timestamp, senderPublicKey, recipientId, amount, signature, signSignature) {
     this.type = type;
     this.subtype = 0;
     this.id = id;
@@ -14,7 +14,6 @@ var transaction = function(type, id, timestamp, senderPublicKey, recipientId, am
     this.amount = amount;
     this.signature = signature;
     this.signSignature = signSignature;
-    this.creationBlockId = creationBlockId;
     this.height = 0;
     this.asset = null;
 }
@@ -40,7 +39,7 @@ transaction.prototype.getBytes = function () {
             break;
     }
 
-    var bb = new ByteBuffer(1 + 1 + 4 + 32 + 8 + 8 + 8 + 64 + 64 + assetSize, true);
+    var bb = new ByteBuffer(1 + 1 + 4 + 32 + 8 + 8 + 64 + 64 + assetSize, true);
     bb.writeByte(this.type);
     bb.writeByte(this.subtype);
     bb.writeInt(this.timestamp);
@@ -63,12 +62,6 @@ transaction.prototype.getBytes = function () {
     }
 
     bb.writeLong(this.amount);
-
-    var blockId = bignum(this.creationBlockId).toBuffer({ size : '8' });
-
-    for (var i = 0; i < 8; i++) {
-        bb.writeByte(blockId[i]);
-    }
 
     if (assetSize > 0) {
         var assetBytes = this.asset.getBytes();
