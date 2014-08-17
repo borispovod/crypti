@@ -6,8 +6,7 @@
     <div class="raw-buttons">
         <button class="button static">Forged:   <span>{{ totalForged / 100000000 | feeFilter }}</span></button>
         <div id="forging">
-            <h3 class="start-red" ng-show="false && !forging">Forging not started</h3>
-            <button class="button static" ng-show="false && forging">Time to generate block: - mins</button>
+            <h3 class="start-green" ng-show="forging && totalBalance >= 1000">Forging enabled</h3>
         </div>
     </div>
     <div id="columns">

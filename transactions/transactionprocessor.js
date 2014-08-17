@@ -42,20 +42,6 @@ transactionprocessor.prototype.processTransaction = function (transaction, sendT
         return false;
     }
 
-    var blockId = transaction.creationBlockId;
-
-    if (!blockId) {
-        this.logger.error("Creation block id not provided: " + transaction.getId());
-        return false;
-    }
-
-    var block = this.app.blockchain.blocks[blockId];
-
-    if (!block) {
-        this.logger.error("Creation block id not found: " + transaction.getId());
-        return false;
-    }
-
     var fee = parseInt(transaction.amount / 100 * this.app.blockchain.fee);
 
     if (fee == 0) {
@@ -316,14 +302,6 @@ transactionprocessor.prototype.transactionFromBuffer = function (bb) {
 
     var amountLong = bb.readLong();
     t.amount = new Long(amountLong.low, amountLong.high, false).toNumber();
-
-    var blockId = new Buffer(8);
-
-    for (var i = 0; i < 8; i++) {
-        blockId[i] = bb.readByte();
-    }
-
-    t.creationBlockId = bignum.fromBuffer(blockId, { size : '8' }).toString();
 
     if (assetSize > 0) {
         switch (t.type) {

@@ -126,7 +126,7 @@ forger.prototype.startForge = function () {
 
 
     if (Object.keys(this.app.requestprocessor.unconfirmedRequests).length == 0) {
-        this.app.logger.info("Need account for forge block...");
+        this.app.logger.warn("Need account for forge block...");
         this.workingForger = false;
         return false;
     }
@@ -134,7 +134,7 @@ forger.prototype.startForge = function () {
     var requests = _.map(lastAliveBlock.requests, function (v) { return v; });
     var accounts = [];
 
-    for (var i = 0; i < requests.length; i++) {
+    /*for (var i = 0; i < requests.length; i++) {
         var request = requests[i];
         var account = this.app.accountprocessor.getAccountByPublicKey(request.publicKey);
 
@@ -190,15 +190,15 @@ forger.prototype.startForge = function () {
             previousBlock = this.app.blockchain.getBlock(previousBlock.previousBlock);
         }
 
-        accountWeightTimestamps = parseInt(accountWeightTimestamps / lastAliveBlock.height);
+        accountWeightTimestamps = accountWeightTimestamps;
 
-        this.app.logger.info("Account PoT weight: " + address + " / " + accountWeightTimestamps);
-        this.app.logger.info("Account PoP weight: " + address + " / " + popWeightAmount);
+        this.app.logger.debug("Account PoT weight: " + address + " / " + accountWeightTimestamps);
+        this.app.logger.debug("Account PoP weight: " + address + " / " + popWeightAmount);
 
         var accountTotalWeight = accountWeightTimestamps + popWeightAmount;
         accounts.push({ address : address, weight : accountTotalWeight, publicKey : request.publicKey, signature : request.signature  });
 
-        this.app.logger.info("Account " + address + " / " + accountTotalWeight);
+        this.app.logger.debug("Account " + address + " / " + accountTotalWeight);
     }
 
     accounts.sort(function compare(a,b) {
@@ -212,7 +212,7 @@ forger.prototype.startForge = function () {
     });
 
     if (accounts.length == 0) {
-        this.app.logger.info("Need accounts for forging...");
+        this.app.logger.warn("Need accounts for forging...");
         this.workingForger = false;
         return false;
     }
@@ -223,7 +223,7 @@ forger.prototype.startForge = function () {
         cycle = parseInt(cycle  % accounts.length);
     }
 
-    this.logger.info("Winner in cycle is: " + cycle);
+    this.logger.debug("Winner in cycle is: " + cycle);
 
     // ищем похожий вес
     var winner = accounts[cycle];
@@ -253,7 +253,7 @@ forger.prototype.startForge = function () {
             }
 
             var weight = bignum.fromBuffer(result, { size : '8' }).toNumber();
-            this.app.logger.info("Account " + a.address + " new weight is: " + weight);
+            this.app.logger.debug("Account " + a.address + " new weight is: " + weight);
             randomWinners.push({ address : a.address, weight : weight, publicKey : a.publicKey, signature : a.signature });
         }
 
@@ -268,9 +268,9 @@ forger.prototype.startForge = function () {
         });
 
         winner = randomWinners[0];
-    }
+    }*/
 
-    this.app.logger.info("Winner in cycle: " + winner.address + " / " + winner.weight);
+    this.app.logger.debug("Winner in cycle: " + winner.address + " / " + winner.weight);
 
     if (winner.address == myAccount.address) {
         // let's generate block
@@ -463,7 +463,6 @@ forger.prototype.startForge = function () {
             var passHash = crypto.createHash('sha256').update(this.secretPharse, 'utf8').digest();
             var keypair = ed.MakeKeypair(passHash);
 
-            block.generationWeight = winner.weight;
             block.generationSignature = ed.Sign(generationSignature, keypair);
             block.sign(this.secretPharse);
 

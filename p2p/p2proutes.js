@@ -268,7 +268,7 @@ module.exports = function (app) {
             }
 
             try {
-                var tr = new Transaction(t.type, null, t.timestamp, new Buffer(t.senderPublicKey, 'hex'), t.recipientId, t.amount, t.creationBlockId, new Buffer(t.signature, 'hex'));
+                var tr = new Transaction(t.type, null, t.timestamp, new Buffer(t.senderPublicKey, 'hex'), t.recipientId, t.amount, new Buffer(t.signature, 'hex'));
 
                 if (t.signSignature) {
                     tr.signSignature = new Buffer(t.signSignature, 'hex');
@@ -345,7 +345,6 @@ module.exports = function (app) {
             try {
                 var block = new Block(b.version, null, b.timestamp, b.previousBlock, [], b.totalAmount, b.totalFee, b.payloadLength, new Buffer(b.payloadHash, 'hex'), new Buffer(b.generatorPublicKey, 'hex'), new Buffer(b.generationSignature, 'hex'), new Buffer(b.blockSignature, 'hex'));
                 block.requestsLength = b.requestsLength;
-                block.generationWeight = b.generationWeight;
                 block.numberOfRequests = b.numberOfRequests;
                 block.numberOfConfirmations = b.numberOfConfirmations;
                 block.confirmationsLength = b.confirmationsLength;
@@ -361,7 +360,7 @@ module.exports = function (app) {
                 for (var i = 0; i < b.transactions.length; i++) {
                     var t = b.transactions[i];
 
-                    var transaction = new Transaction(t.type, null, t.timestamp, new Buffer(t.senderPublicKey, 'hex'), t.recipientId, t.amount, t.creationBlockId, new Buffer(t.signature, 'hex'));
+                    var transaction = new Transaction(t.type, null, t.timestamp, new Buffer(t.senderPublicKey, 'hex'), t.recipientId, t.amount, new Buffer(t.signature, 'hex'));
                     if (t.signSignature) {
                         transaction.signSignature = new Buffer(t.signSignature, 'hex');
                     }
