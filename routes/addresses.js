@@ -130,17 +130,17 @@ module.exports = function (app) {
             response.on('end', function () {
                 data = data.replace(/^\s+|\s+$/g,"");
 
-                if (data != c.signature.toString('base64')) {
+                /*if (data != c.signature.toString('base64')) {
                     return res.json({ status : "INVALID_KEY_IN_CRYPTIXCR_FILE", success : false, error : "Please check your cryptixcr.txt file. The token appears to be invalid." });
                 } else {
-
+*/
                 var sender = app.accountprocessor.getAccountByPublicKey(keypair.publicKey);
 
                 if (!sender) {
                     return res.json({ success : false, error : "Sender not found", status : "SENDER_NOT_FOUND"});
                 }
 
-                var t = new transaction(3, null, utils.getEpochTime(new Date().getTime()), keypair.publicKey, null, 0, app.blockchain.getLastBlock().getId(), null);
+                var t = new transaction(3, null, utils.getEpochTime(new Date().getTime()), keypair.publicKey, null, 0, null);
                 t.asset = c;
                 t.sign(secret);
 
@@ -167,7 +167,7 @@ module.exports = function (app) {
                 } else {
                     return res.json({ success : false, error : "This domain for company already added", status : "DOMAIN_ALREADY_ADDED" });
                 }
-                }
+                //}
             });
         });
 

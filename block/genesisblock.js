@@ -4,11 +4,10 @@ module.exports = {
     generatorPublicKey: "9e51284be9f60a367d57b8d9dc40fb7a1e95cdf9c4ba249f4e96809fa05d5982",
     requestGeneratorPublicKey : "c3843e2ece2ee743178972850e6282c023cfa699589c1b0ead423ff202d4bd69",
     requestSignature: "9443e8c88af9fcbba606f9c9c7e4ffae3cab331db6ae2e2b7c0813659eddb1cdf9b7a916fbf1377713ad5292d4ee2b828cdd013c5d41619ce4fad74ab3f9ee0d",
-    genesisRequest: "2325604412906725522",
-    blockId : "14363102095928335908",
+    blockId : "9306893212243057044",
     sender : "614c27657de2069fe27aa208f317c6e14ba9d6cd0c23b1ff9506228109ac61a1",
     amount : 99999999,
-    blockSignature: "ea47b29b0341eac111da5cf06a6a6f148c27c1eb9d664cf1480358ad50ebc7195fa03e86a17de6aef08b3e32a663fafcc1354bc30121381e1aeef2a740bf7b0f",
+    blockSignature: "a4c2a450de15938c94a4fd43bae9760c6183a4036debd0a98633a9080690e01213bfdcfd3f4101571189f9479773c250d421cdf09a51c78cc89ef44b6080c90e",
     transactions : [
         {
             amount: 81408339.63,

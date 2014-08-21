@@ -9,6 +9,7 @@ var crypto = require('crypto'),
     request = require('../request').request,
     genesisblock = require("../block").genesisblock,
     companyconfirmation = require("../company").companyconfirmation,
+    requestconfirmation = require("../request").requestconfirmation,
     http = require('http');
 
 var forger = function (accountId, publicKey, secretPharse) {
@@ -65,6 +66,12 @@ forger.prototype.checkCompany = function (company, cb) {
 
 forger.prototype.sendRequest = function () {
     if (this.sending || !this.app.synchronizedRequests) {
+        return false;
+    }
+
+    var acc = this.app.accountprocessor.getAccountById(this.accountId);
+
+    if (!acc || acc.getEffectiveBalance() < 1000) {
         return false;
     }
 
@@ -134,9 +141,9 @@ forger.prototype.startForge = function () {
     var requests = _.map(lastAliveBlock.requests, function (v) { return v; });
     var accounts = [];
 
-    /*for (var i = 0; i < requests.length; i++) {
+    for (var i = 0; i < requests.length; i++) {
         var request = requests[i];
-        var account = this.app.accountprocessor.getAccountByPublicKey(request.publicKey);
+        var account = this.app.accountprocessor.getAccountById(request.address);
 
         if (!account || account.getEffectiveBalance() < 1000 * constants.numberLength) {
             continue;
@@ -145,7 +152,6 @@ forger.prototype.startForge = function () {
         var address = account.address;
 
         var confirmedRequests = this.app.requestprocessor.confirmedRequests[address];
-
 
         if (!confirmedRequests) {
             confirmedRequests = [];
@@ -182,7 +188,7 @@ forger.prototype.startForge = function () {
                 }
             }
 
-            if (block.generatorPublicKey.toString('hex') == request.publicKey.toString('hex')) {
+            if (this.app.accountprocessor.getAddressByPublicKey(block.generatorPublicKey) == request.address) {
                 break;
             }
 
@@ -190,13 +196,12 @@ forger.prototype.startForge = function () {
             previousBlock = this.app.blockchain.getBlock(previousBlock.previousBlock);
         }
 
-        accountWeightTimestamps = accountWeightTimestamps;
 
         this.app.logger.debug("Account PoT weight: " + address + " / " + accountWeightTimestamps);
         this.app.logger.debug("Account PoP weight: " + address + " / " + popWeightAmount);
 
         var accountTotalWeight = accountWeightTimestamps + popWeightAmount;
-        accounts.push({ address : address, weight : accountTotalWeight, publicKey : request.publicKey, signature : request.signature  });
+        accounts.push({ address : address, weight : accountTotalWeight });
 
         this.app.logger.debug("Account " + address + " / " + accountTotalWeight);
     }
@@ -245,7 +250,10 @@ forger.prototype.startForge = function () {
         var randomWinners = [];
         for (var i = 0; i < sameWeights.length; i++) {
             var a = sameWeights[i];
-            var hash = crypto.createHash('sha256').update(bignum(a.weight).toBuffer({ size : '8' })).update(a.signature).digest();
+
+            var address = a.address.slice(0, -1);
+            var addressBuffer = bignum(address).toBuffer({ 'size' : '8' });
+            var hash = crypto.createHash('sha256').update(bignum(a.weight).toBuffer({ size : '8' })).update(addressBuffer).digest();
 
             var result = new Buffer(8);
             for (var j = 0; j < 8; j++) {
@@ -254,7 +262,7 @@ forger.prototype.startForge = function () {
 
             var weight = bignum.fromBuffer(result, { size : '8' }).toNumber();
             this.app.logger.debug("Account " + a.address + " new weight is: " + weight);
-            randomWinners.push({ address : a.address, weight : weight, publicKey : a.publicKey, signature : a.signature });
+            randomWinners.push({ address : a.address, weight : weight });
         }
 
         randomWinners.sort(function (a,b) {
@@ -267,13 +275,17 @@ forger.prototype.startForge = function () {
             return 0;
         });
 
-        winner = randomWinners[0];
-    }*/
 
-    this.app.logger.debug("Winner in cycle: " + winner.address + " / " + winner.weight);
+        if (cycle > randomWinners.length - 1) {
+            cycle = parseInt(cycle  % randomWinners.length);
+        }
+
+        winner = randomWinners[cycle];
+    }
+
+    this.app.logger.debug("Winner in cycle: " + winner.address);
 
     if (winner.address == myAccount.address) {
-        // let's generate block
         this.logger.info("Generating block...");
 
         var sortedTransactions = [];
@@ -392,7 +404,7 @@ forger.prototype.startForge = function () {
         var requestsLength = 0;
         var unconfirmedRequests = _.map(this.app.requestprocessor.unconfirmedRequests, function (v) { return v; });
         for (var i = 0 ; i < unconfirmedRequests.length; i++) {
-            var size = unconfirmedRequests[i].getBytes().length;
+            var size = 8;
 
             if (requestsLength + size > constants.maxRequestsLength) {
                 break;
@@ -404,8 +416,8 @@ forger.prototype.startForge = function () {
                 continue;
             }
 
-            newRequests.push(unconfirmedRequests[i]);
-            requestsLength += size;
+            newRequests.push(new requestconfirmation(account.address));
+            requestsLength += 8;
         }
 
         var companies = _.map(this.app.companyprocessor.addedCompanies, function (v) { return v; });

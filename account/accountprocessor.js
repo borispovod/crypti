@@ -31,8 +31,8 @@ accountprocessor.prototype.processRequest = function (request) {
         return false;
     }
 
-    var publicKeyHash = new Buffer(publicKey, 'hex');
-    var signatureHash = new Buffer(signature, 'hex');
+    var publicKeyHash = publicKey;
+    var signatureHash = signature;
 
     var hash = crypto.createHash('sha256').update(publicKeyHash).digest();
     var verify = ed.Verify(hash, signatureHash, publicKeyHash);

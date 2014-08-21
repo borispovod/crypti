@@ -1,8 +1,5 @@
 module.exports = {
-    initialBaseTarget: 1537228,
     maxAmount: 100000000,
-    maxBaseTarget: 100000000 * 1537228,
-    two64: "18446744073709551616",
     maxPayloadLength: 256 * 256,
     blockHeaderLength: 248,
     addressLength: 208,
@@ -11,7 +8,7 @@ module.exports = {
     numberLength: 100000000,
     feeStartVolume: 10000 * 100000000,
     feeStart: 1,
-    maxRequests: 10000,
+    maxRequests: 10000 * 12,
     requestLength: 104,
     maxRequestsLength: 104 * 10000,
     signatureLength: 196,

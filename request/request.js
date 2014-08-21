@@ -5,18 +5,24 @@ var ed = require('ed25519'),
     bignum = require('bignum');
 
 var request = function (id, blockId, ip, publicKey, lastAliveBlock, signature) {
+    if (publicKey && !Buffer.isBuffer(publicKey)) {
+        publicKey = new Buffer(publicKey);
+    }
+
+    if (signature && !Buffer.isBuffer(signature)) {
+        signature = new Buffer(signature);
+    }
+
     this.id = id;
     this.ip = ip;
     this.publicKey = publicKey;
-    this.lastAliveBlock = lastAliveBlock;
     this.signature = signature;
+    this.lastAliveBlock = lastAliveBlock;
     this.blockId = blockId;
 }
 
 request.prototype.toJSON = function () {
     var obj = _.extend({}, this);
-    obj.signature = obj.signature.toString('hex');
-    obj.publicKey = obj.publicKey.toString('hex');
 
     return obj;
 }
@@ -39,7 +45,6 @@ request.prototype.getBytes = function () {
             bb.writeByte(this.signature[i]);
         }
     }
-
 
     bb.flip();
     return bb.toBuffer();
