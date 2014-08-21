@@ -43,6 +43,7 @@ module.exports = function (grunt) {
                 'request/index.js',
                 'request/request.js',
                 'request/requestprocessor.js',
+                'request/requestconfirmation.js',
                 'signature/index.js',
                 'signature/signature.js',
                 'signature/signatureprocessor.js'

@@ -5,20 +5,25 @@ var _ = require('underscore'),
     ByteBuffer = require("bytebuffer");
 
 var signature = function (publicKey, generatorPublicKey, timestamp, signature, generationSignature) {
-    this.publicKey = publicKey;
-    this.generatorPublicKey = generatorPublicKey;
+    this.publicKey = this.isBuffer(publicKey);
+    this.generatorPublicKey = this.isBuffer(generatorPublicKey);
     this.timestamp = timestamp;
-    this.signature = signature;
-    this.generationSignature = generationSignature;
+    this.signature = this.isBuffer(signature);
+    this.generationSignature = this.isBuffer(generationSignature);
+}
+
+signature.prototype.isBuffer = function (b) {
+    if (b && Buffer.isBuffer(b)) {
+        return b;
+    } else if (b) {
+        return new Buffer(b);
+    } else {
+        return null;
+    }
 }
 
 signature.prototype.toJSON = function () {
     var obj = _.extend({}, this);
-    obj.publicKey = this.publicKey.toString('hex');
-    obj.generatorPublicKey = this.generatorPublicKey.toString('hex');
-    obj.generationSignature = this.generationSignature.toString('hex');
-    obj.signature = this.signature.toString('hex');
-
     return obj;
 }
 

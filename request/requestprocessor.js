@@ -11,6 +11,7 @@ var ed = require('ed25519'),
 var requestprocessor = function () {
     this.unconfirmedRequests = {};
     this.confirmedRequests = {};
+    this.ips = [];
 }
 
 requestprocessor.prototype.setApp = function (app) {
@@ -26,7 +27,7 @@ requestprocessor.prototype.getRequest = function (id) {
 }
 
 requestprocessor.prototype.fromJSON = function (JSON) {
-    return new request(null, JSON.blockId, JSON.ip, new Buffer(JSON.publicKey, 'hex'), JSON.lastAliveBlock, new Buffer(JSON.signature, 'hex'));
+    return new request(null, JSON.blockId, JSON.ip, JSON.publicKey, JSON.lastAliveBlock, JSON.signature);
 }
 
 requestprocessor.prototype.fromByteBuffer = function (bb) {
@@ -46,7 +47,6 @@ requestprocessor.prototype.fromByteBuffer = function (bb) {
     }
 
     r.lastAliveBlock = bignum.fromBuffer(lastAliveBlockBuffer, { size : '8' }).toString();
-
 
     var signature = new Buffer(64);
     for (var i = 0; i < 64; i++) {
@@ -78,7 +78,6 @@ requestprocessor.prototype.transactionFromBytes = function (buffer) {
 
     r.lastAliveBlock = bignum.fromBuffer(lastAliveBlockBuffer, { size : 'auto' }).toString();
 
-
     var signature = new Buffer(64);
     for (var i = 0; i < 64; i++) {
         signature[i] = bb.readByte();
@@ -97,14 +96,6 @@ requestprocessor.prototype.confirmationFromBuffer = function (bb) {
     }
 
     rc.address = bignum.fromBuffer(addressBuffer, { size : '8' }).toString() + "C";
-
-    var random = bb.readByte();
-
-    if (random == 1) {
-        rc.random = true;
-    } else {
-        rc.random = false;
-    }
 
     return rc;
 }
@@ -138,6 +129,11 @@ requestprocessor.prototype.processRequest = function (request, send) {
 
     if (this.unconfirmedRequests[account.address]) {
         this.app.logger.warn("Request already added: " + request.getId() + "/" + account.address);
+        return false;
+    }
+
+    if (this.ips.indexOf(request.ip) >= 0) {
+        this.app.logger.warn("IP " + request.ip + " already used for: " + account.address);
         return false;
     }
 
