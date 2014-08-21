@@ -87,7 +87,7 @@ signatureprocessor.prototype.removeUnconfirmedSignature = function (address) {
 }
 
 signatureprocessor.prototype.fromJSON = function (JSON) {
-    var s = new signature(new Buffer(JSON.publicKey, 'hex'), new Buffer(JSON.generatorPublicKey, 'hex'), JSON.timestamp, new Buffer(JSON.signature, 'hex'), new Buffer(JSON.generationSignature, 'hex'));
+    var s = new signature(JSON.publicKey, JSON.generatorPublicKey, JSON.timestamp, JSON.signature, JSON.generationSignature);
     return s;
 }
 

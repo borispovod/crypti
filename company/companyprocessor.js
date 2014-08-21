@@ -32,7 +32,7 @@ companyprocessor.prototype.getRequest = function (companyId) {
 }
 
 companyprocessor.prototype.fromJSON = function (JSON) {
-    return new company(JSON.name, JSON.description, JSON.domain, JSON.email, JSON.timestamp, new Buffer(JSON.generatorPublicKey, 'hex'), new Buffer(JSON.signature, 'hex'));
+    return new company(JSON.name, JSON.description, JSON.domain, JSON.email, JSON.timestamp, JSON.generatorPublicKey, JSON.signature);
 }
 
 companyprocessor.prototype.confirmationFromJSON = function (JSON) {

@@ -336,7 +336,7 @@ module.exports = function (app) {
     });
 
     app.get('/api/getMiningInfo', function (req, res) {
-        var publicKey = req.query.publicKey || "",
+        var publicKey = new Buffer(req.query.publicKey, 'hex') || "",
             limit = req.query.limit || 20,
             descOrder = req.query.descOrder;
 
@@ -344,6 +344,10 @@ module.exports = function (app) {
 
         if (isNaN(limit) || limit <= 0) {
             return res.json({ success : false, status : "PROVIDE_LIMIT", error : "Provide correct limit" });
+        }
+
+        if (publicKey.length == 0) {
+            return res.json({ success : false, status : "PROVIDE_PUBLIC_KEY", error : "Provide public key" });
         }
 
         var order = "";
@@ -354,7 +358,7 @@ module.exports = function (app) {
             order = "ASC";
         }
 
-        var address = app.accountprocessor.getAddressByPublicKey(new Buffer(publicKey, 'hex'));
+        var address = app.accountprocessor.getAddressByPublicKey(publicKey);
 
         var forging = false;
         if (app.forgerprocessor.getForgers(address)) {
@@ -378,8 +382,8 @@ module.exports = function (app) {
                                 if (t.type == 1 && t.subtype == 0) {
                                     if (t.fee >= 2) {
                                         if (t.fee % 2 != 0) {
-                                            var r = t.fee % 2;
-                                            totalForged += t.fee / 2 + r;
+                                            var r = parseInt(t.fee / 2);
+                                            totalForged += t.fee - r;
                                         } else {
                                            totalForged += t.fee / 2;
                                         }
@@ -418,7 +422,7 @@ module.exports = function (app) {
                     });
 
                     addresses = _.filter(addresses, function (v) {
-                        if (v.generatorPublicKey == publicKey) {
+                        if (v.generatorPublicKey.toString('hex') == publicKey.toString('hex')) {
                             return true;
                         }
                     });
@@ -459,7 +463,7 @@ module.exports = function (app) {
                         });
 
                         unconfirmedCompanies = _.filter(unconfirmedCompanies, function (v) {
-                            if (v.generatorPublicKey == publicKey) {
+                            if (v.generatorPublicKey.toString('hex') == publicKey.toString('hex')) {
                                 return true;
                             }
                         });
@@ -477,7 +481,7 @@ module.exports = function (app) {
                         });
 
                         addedCompanies = _.filter(addedCompanies, function (v) {
-                            if (v.generatorPublicKey == publicKey) {
+                            if (v.generatorPublicKey.toString('hex') == publicKey.toString('hex')) {
                                 return true;
                             }
                         });
@@ -492,7 +496,7 @@ module.exports = function (app) {
 
                         var dels = [];
                         async.eachSeries(app.companyprocessor.deletedCompanies, function (i, cb) {
-                            if (i.generatorPublicKey.toString('hex') == publicKey) {
+                            if (i.generatorPublicKey.toString('hex') == publicKey.toString('hex')) {
                                 i.deleted = true;
                                 dels.push(i.toJSON());
                             }

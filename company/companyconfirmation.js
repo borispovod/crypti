@@ -5,6 +5,10 @@ var ed = require('ed25519'),
     bignum = require('bignum');
 
 var companyconfirmation = function (companyId, verified, timestamp, signature) {
+    if (signature && !Buffer.isBuffer(signature)) {
+        signature = new Buffer(signature);
+    }
+
     this.companyId = companyId;
     this.verified = verified;
     this.timestamp = timestamp;
@@ -13,7 +17,6 @@ var companyconfirmation = function (companyId, verified, timestamp, signature) {
 
 companyconfirmation.prototype.toJSON = function () {
     var obj = _.extend({}, this);
-    obj.signature = this.signature.toString('hex');
     return obj;
 }
 

@@ -5,6 +5,14 @@ var ed = require('ed25519'),
     bignum = require('bignum');
 
 var company = function (name, description, domain, email, timestamp, generatorPublicKey, signature) {
+    if (signature && !Buffer.isBuffer(generatorPublicKey)) {
+        generatorPublicKey = new Buffer(generatorPublicKey);
+    }
+
+    if (signature && !Buffer.isBuffer(signature)) {
+        signature = new Buffer(signature);
+    }
+
     this.name = name;
     this.description = description;
     this.domain = domain;
@@ -16,9 +24,6 @@ var company = function (name, description, domain, email, timestamp, generatorPu
 
 company.prototype.toJSON = function () {
     var obj = _.extend({}, this);
-    obj.generatorPublicKey = this.generatorPublicKey.toString('hex');
-    obj.signature = this.signature.toString('hex');
-
     return obj;
 }
 
