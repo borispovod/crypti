@@ -286,7 +286,16 @@ peer.prototype.getNextBlockIds = function (blockId, cb) {
             data += body;
         });
         res.on('end', function () {
-            cb(null, data);
+            var json = null;
+
+            try {
+                json = JSON.parse(data)
+            } catch (e) {
+                return cb(e, null);
+            }
+
+            cb(null, json);
+
         });
     });
 
@@ -322,7 +331,15 @@ peer.prototype.getNextBlocks = function (blockId, cb) {
             data += body;
         });
         res.on('end', function () {
-            cb(null, data);
+            var json = null;
+
+            try {
+                json = JSON.parse(data);
+            } catch (e) {
+                return cb(e);
+            }
+
+            cb(null, json);
         });
     });
 
@@ -513,6 +530,84 @@ peer.prototype.processUnconfirmedTransaction = function (transaction, cb) {
     });
 }
 
+peer.prototype.getMilestoneBlocks = function (lastBlock, lastMilestoneBlock, cb) {
+    this.checkAgent();
+
+    var getOptions = {
+        hostname: this.ip,
+        port: this.port,
+        path: '/peer/getMilestoneBlocks?lastBlock=' + lastBlock + "&lastMilestoneBlockId=" + lastMilestoneBlock
+    };
+
+    var timeout = null;
+
+    var r = http.get(getOptions, function (res) {
+        var data = "";
+        res.on("data", function(body) {
+            clearTimeout(timeout);
+            data += body;
+        });
+        res.on('end', function () {
+            var answer = null;
+
+            try {
+                answer = JSON.parse(data);
+            } catch (e) {
+                return cb(e);
+            }
+
+            cb(null, answer);
+        });
+    });
+
+    timeout = setTimeout(function () {
+        r.abort();
+    }, 5000);
+
+    r.on('error', function (err) {
+        cb(err, null);
+    });
+}
+
+peer.prototype.getWeight = function (cb) {
+    this.checkAgent();
+
+    var getOptions = {
+        hostname: this.ip,
+        port: this.port,
+        path: '/peer/getWeight'
+    };
+
+    var timeout = null;
+
+    var r = http.get(getOptions, function (res) {
+        var data = "";
+        res.on("data", function(body) {
+            clearTimeout(timeout);
+            data += body;
+        });
+        res.on('end', function () {
+            var answer = null;
+
+            try {
+                answer = JSON.parse(data);
+            } catch (e) {
+                return cb(e);
+            }
+
+            cb(null, answer);
+        });
+    });
+
+    timeout = setTimeout(function () {
+        r.abort();
+    }, 5000);
+
+    r.on('error', function (err) {
+        cb(err, null);
+    });
+}
+
 peer.prototype.getRequests = function (cb) {
     this.checkAgent();
 
@@ -573,7 +668,6 @@ peer.prototype.sendRequest = function (request, cb) {
             data += body;
         });
         res.on('end', function () {
-            console.log(data);
             cb(null, data);
         });
     });

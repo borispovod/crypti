@@ -9,13 +9,28 @@ var transaction = function(type, id, timestamp, senderPublicKey, recipientId, am
     this.subtype = 0;
     this.id = id;
     this.timestamp = timestamp;
-    this.senderPublicKey = senderPublicKey;
+    this.senderPublicKey = this.isBuffer(senderPublicKey);
     this.recipientId = recipientId;
     this.amount = amount;
-    this.signature = signature;
+    this.signature = this.isBuffer(signature);
     this.signSignature = signSignature;
+
+    if (this.signSignature) {
+        this.signSignature = this.isBuffer(this.signSignature);
+    }
+
     this.height = 0;
     this.asset = null;
+}
+
+transaction.prototype.isBuffer = function (b) {
+    if (b && Buffer.isBuffer(b)) {
+        return b;
+    } else if (b) {
+        return new Buffer(b);
+    } else {
+        return null;
+    }
 }
 
 transaction.prototype.getBytes = function () {
@@ -89,13 +104,6 @@ transaction.prototype.getBytes = function () {
 
 transaction.prototype.toJSON = function () {
     var obj = _.extend({}, this);
-
-    obj.senderPublicKey = this.senderPublicKey.toString('hex');
-    obj.signature = this.signature.toString('hex');
-
-    if (this.signSignature) {
-        obj.signSignature = this.signSignature.toString('hex');
-    }
 
     if (this.asset) {
         obj.asset = this.asset.toJSON();

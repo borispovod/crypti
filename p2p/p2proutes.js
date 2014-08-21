@@ -11,7 +11,8 @@ var peer = require("./peer.js"),
     Request = require("../request").request,
     bignum = require('bignum'),
     signature = require('../signature').signature,
-    companyconfirmation = require("../company").companyconfirmation;
+    companyconfirmation = require("../company").companyconfirmation,
+    requestconfirmation = require('../request').requestconfirmation;
 
 module.exports = function (app) {
     app.get("/peer/getRequests", function (req, res) {
@@ -23,8 +24,82 @@ module.exports = function (app) {
             return v;
         });
 
-
         return res.json({ success : true, requests : requests });
+    });
+
+    app.get('/peer/getWeight', function (req, res) {
+        if (!app.synchronizedBlocks) {
+            return res.json({ success : false });
+        }
+
+        return res.json({ success : true, weight : app.blockchain.getWeight().toString() });
+    });
+
+
+    app.get('/peer/getMilestoneBlocks', function (req, res) {
+        if (!app.synchronizedBlocks) {
+            return res.json({ success : false, error : "Not synchronized" });
+        }
+
+        try {
+            var lastBlock = req.query.lastBlock,
+                lastMilestoneBlockId = req.query.lastMilestoneBlockId;
+
+            if (lastBlock == "null") {
+                lastBlock = null;
+            }
+
+            if (lastMilestoneBlockId == "null") {
+                lastMilestoneBlockId = null;
+            }
+
+            var ip = req.connection.remoteAddress;
+
+            if (lastBlock == app.blockchain.getLastBlock().getId() || app.blockchain.blocks[lastBlock]) {
+                var isLast = app.blockchain.getLastBlock().getId() == lastBlock;
+
+                return res.json({ success: true, milestoneBlockIds: [lastBlock], last: isLast });
+            }
+
+            var milestoneBlockIds = [];
+
+            var blockId;
+            var height;
+            var jump;
+            var limit;
+
+            if (lastMilestoneBlockId != null) {
+                var lastMilestoneBlock = app.blockchain.blocks[lastMilestoneBlockId];
+
+                if (lastMilestoneBlock == null) {
+                    return res.json({ success: false, error : "Not found lastMilestoneBlock" });
+                }
+
+                height = lastMilestoneBlock.height;
+                jump = Math.min(1440, app.blockchain.getLastBlock().height - height);
+                height = Math.max(height - jump, 0);
+                limit = 10;
+            } else if (lastBlock != null) {
+                height = app.blockchain.getLastBlock().height;
+                jump = 10;
+                limit = 10;
+            } else {
+                app.peerprocessor.blockPeer(ip);
+                return res.json({ success: false, error : "Data not found" });
+            }
+
+            blockId = app.blockchain.getBlockIdAtHeight(height);
+
+            while (height > 0 && limit-- > 0) {
+                milestoneBlockIds.push(blockId);
+                blockId = app.blockchain.getBlockIdAtHeight(height);
+                height = height - jump;
+            }
+
+            return res.json({ success: true, milestoneBlockIds: milestoneBlockIds, last: false });
+        } catch (e) {
+            return res.json({ success : false, error : "Exception" });
+        }
     });
 
     app.get("/peer/alive", function (req, res) {
@@ -106,7 +181,7 @@ module.exports = function (app) {
         return res.json({ platform : app.info.platform, version : app.info.version });
     });
 
-    app.get("/peer/getNextBlocksIds", function (req, res) {
+    app.get("/peer/getNextBlockIds", function (req, res) {
         var blockId = req.query.blockId || "";
 
         if (blockId.length == 0) {
@@ -117,7 +192,7 @@ module.exports = function (app) {
             return res.json({ success : false, error : "Block not found" });
         }
 
-        var r = app.db.sql.prepare("SELECT id FROM blocks WHERE height > (SELECT height FROM blocks WHERE id=$id LIMIT 1)");
+        var r = app.db.sql.prepare("SELECT id FROM blocks WHERE height > (SELECT height FROM blocks WHERE id=$id LIMIT 1) ORDER BY height LIMIT 60");
         r.bind({
             $id: blockId
         });
@@ -336,8 +411,6 @@ module.exports = function (app) {
 
             var b = req.body.block;
 
-            console.log(b);
-
             if (!b) {
                 return res.json({ success: false, accepted: false });
             }
@@ -397,7 +470,7 @@ module.exports = function (app) {
                 var r = b.requests[i];
 
                 try {
-                    requests.push(new Request(null, null, r.ip, new Buffer(r.publicKey, 'hex'), r.lastAliveBlock, new Buffer(r.signature, 'hex')));
+                    requests.push(new requestconfirmation(r.address));
                 } catch (e) {
                     app.peerprocessor.blockPeer(ip);
                     return res.json({ success: false, accepted: false });
@@ -446,7 +519,6 @@ module.exports = function (app) {
                 return res.json({ success: false, accepted: false });
             }
         } catch (e) {
-            console.log(e);
             app.peerprocessor.blockPeer(ip);
             return res.json({ success : false, accepted : false });
         }

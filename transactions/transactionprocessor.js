@@ -14,7 +14,7 @@ var transactionprocessor = function () {
 }
 
 transactionprocessor.prototype.fromJSON = function (t) {
-    return new Transaction(t.type, null, t.timestamp, new Buffer(t.senderPublicKey, 'hex'), t.recipientId, t.amount, new Buffer(t.signature, 'hex'));
+    return new Transaction(t.type, null, t.timestamp, t.senderPublicKey, t.recipientId, t.amount, t.signature);
 }
 
 transactionprocessor.prototype.setApp = function (app) {

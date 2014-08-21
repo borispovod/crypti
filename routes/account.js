@@ -212,7 +212,7 @@ module.exports = function (app) {
             if (totalAmount > sender.unconfirmedBalance) {
                 return res.json({ success: false, error: "Not enough amount", status : "NOT_ENOUGH_BALANCE" });
             } else {
-                var t = new transaction(2, null, utils.getEpochTime(new Date().getTime()), keypair.publicKey, null, 0, app.blockchain.getLastBlock().getId(), null);
+                var t = new transaction(2, null, utils.getEpochTime(new Date().getTime()), keypair.publicKey, null, 0);
                 t.asset = app.signatureprocessor.generateNewSignature(utils.getEpochTime(new Date().getTime()), secretPhrase, newPhrase);
                 t.sign(secretPhrase);
 
@@ -298,7 +298,7 @@ module.exports = function (app) {
                 }
 
                 // create transaction and send to peers
-                var t = new transaction(type, null, utils.getEpochTime(new Date().getTime()), keypair.publicKey, recipient, amount, app.blockchain.getLastBlock().getId(), null);
+                var t = new transaction(type, null, utils.getEpochTime(new Date().getTime()), keypair.publicKey, recipient, amount, null);
                 t.sign(secretPharse);
 
                 var signature = app.signatureprocessor.getSignatureByAddress(sender.address);

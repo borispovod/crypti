@@ -10,6 +10,22 @@ var crypto = require('crypto'),
     utils = require('../utils.js');
 
 var block = function (version, id, timestamp, previousBlock, transactions, totalAmount, totalFee, payloadLength, payloadHash, generatorPublicKey, generationSignature, blockSignature) {
+    if (payloadHash && !Buffer.isBuffer(payloadHash)) {
+        payloadHash = new Buffer(payloadHash);
+    }
+
+    if (generatorPublicKey && !Buffer.isBuffer(generatorPublicKey)) {
+        generatorPublicKey = new Buffer(generatorPublicKey);
+    }
+
+    if (generationSignature && !Buffer.isBuffer(generationSignature)) {
+        generationSignature = new Buffer(generationSignature);
+    }
+
+    if (blockSignature && !Buffer.isBuffer(blockSignature)) {
+        blockSignature = new Buffer(blockSignature);
+    }
+
     this.version = version;
     this.id = id;
     this.timestamp = timestamp;
@@ -22,10 +38,8 @@ var block = function (version, id, timestamp, previousBlock, transactions, total
     this.generatorPublicKey = generatorPublicKey;
     this.generationSignature = generationSignature;
     this.blockSignature = blockSignature;
-    this.cumulativeDifficulty = null;
     this.nextBlock = null;
     this.height = 0;
-    this.baseTarget = 0;
     this.numberOfRequests = 0;
     this.numberOfConfirmations = 0;
     this.requestsLength = 0;
@@ -49,11 +63,6 @@ block.prototype.setApp = function (app) {
 block.prototype.toJSON = function () {
     var obj = _.extend({}, this);
 
-    obj.payloadHash = this.payloadHash.toString('hex');
-    obj.generatorPublicKey = this.generatorPublicKey.toString('hex');
-    obj.generationSignature = this.generationSignature.toString('hex');
-    obj.blockSignature = this.blockSignature.toString('hex');
-
     delete obj.app;
     delete obj.blockchain;
     delete obj.accountprocessor;
@@ -66,10 +75,7 @@ block.prototype.analyze = function () {
     if (!this.previousBlock) {
         this.id = genesis.blockId;
         this.blockchain.blocks[this.getId()] = this;
-        this.cumulativeDifficulty = bignum("0");
-        this.baseTarget = bignum(constants.initialBaseTarget);
         this.blockchain.lastBlock = this.getId();
-
 
         var a = new account(this.accountprocessor.getAddressByPublicKey(this.generatorPublicKey), this.generatorPublicKey);
         a.setApp(this.app);
@@ -90,8 +96,6 @@ block.prototype.analyze = function () {
         this.height = this.blockchain.getLastBlock().height + 1;
         this.blockchain.blocks[this.getId()] = this;
 
-        this.baseTarget = this.getBaseTarget();
-        //this.cumulativeDifficulty = this.blockchain.getBlock(this.previousBlock).cumulativeDifficulty.add(bignum(constants.two64).div(bignum(this.baseTarget.toString())));
         var a = this.accountprocessor.getAccountByPublicKey(this.generatorPublicKey);
         a.setApp(this.app);
         this.accountprocessor.addAccount(a);
@@ -103,7 +107,6 @@ block.prototype.analyze = function () {
 
     for (var i = 0; i < this.transactions.length; i++) {
         var t = this.transactions[i];
-
         var sender = this.accountprocessor.getAccountByPublicKey(t.senderPublicKey);
 
         var fee = 0;
@@ -270,41 +273,6 @@ block.prototype.analyze = function () {
     return true;
 }
 
-block.prototype.getBaseTarget = function () {
-    var lastBlock = this.blockchain.getLastBlock();
-
-    if (lastBlock.getId() == genesis.blockId) {
-        return this.blockchain.getBlock(lastBlock.getId()).baseTarget;
-    } else {
-        var previousBlock = this.blockchain.getBlock(lastBlock.previousBlock);
-        var newBaseTarget = previousBlock.baseTarget.mul(bignum(lastBlock.timestamp - previousBlock.timestamp)).div(60).toNumber();
-
-        if (newBaseTarget < 0 || newBaseTarget > constants.maxBaseTarget) {
-            newBaseTarget = constants. maxBaseTarget;
-        }
-
-        if (newBaseTarget < previousBlock.baseTarget.toNumber() / 2) {
-            newBaseTarget = previousBlock.baseTarget.toNumber() / 2;
-        }
-
-        if (newBaseTarget == 0) {
-            newBaseTarget = 1;
-        }
-
-        var twofoldCurBaseTarget = previousBlock.baseTarget.toNumber() * 2;
-
-        if (twofoldCurBaseTarget < 0) {
-            twofoldCurBaseTarget = maxBaseTarget;
-
-        }
-        if (newBaseTarget > twofoldCurBaseTarget) {
-            newBaseTarget = twofoldCurBaseTarget;
-        }
-
-        return bignum(newBaseTarget.toString());
-    }
-}
-
 block.prototype.getJSON = function () {
     return JSON.stringify(this);
 }
@@ -428,8 +396,9 @@ block.prototype.verifyBlockSignature = function () {
 }
 
 block.prototype.verifyGenerationSignature = function () {
-    var lastAliveBlock = this.app.blockchain.getLastBlock();
+    this.weight = bignum(0);
 
+    var lastAliveBlock = this.app.blockchain.getLastBlock();
     var elapsedTime = this.timestamp - lastAliveBlock.timestamp;
 
     if (elapsedTime < 60) {
@@ -442,7 +411,7 @@ block.prototype.verifyGenerationSignature = function () {
 
     for (var i = 0; i < requests.length; i++) {
         var request = requests[i];
-        var account = this.app.accountprocessor.getAccountByPublicKey(request.publicKey);
+        var account = this.app.accountprocessor.getAccountById(request.address);
 
         if (!account || account.getEffectiveBalance() < 1000 * constants.numberLength) {
             continue;
@@ -451,7 +420,6 @@ block.prototype.verifyGenerationSignature = function () {
         var address = account.address;
 
         var confirmedRequests = this.app.requestprocessor.confirmedRequests[address];
-
 
         if (!confirmedRequests) {
             confirmedRequests = [];
@@ -469,7 +437,6 @@ block.prototype.verifyGenerationSignature = function () {
             }
 
             var confirmedRequest = confirmedRequests[j];
-
 
             var block = this.app.blockchain.getBlock(confirmedRequest.blockId);
 
@@ -489,7 +456,7 @@ block.prototype.verifyGenerationSignature = function () {
                 }
             }
 
-            if (block.generatorPublicKey.toString('hex') == request.publicKey.toString('hex')) {
+            if (this.app.accountprocessor.getAddressByPublicKey(block.generatorPublicKey) == request.address) {
                 break;
             }
 
@@ -497,16 +464,19 @@ block.prototype.verifyGenerationSignature = function () {
             previousBlock = this.app.blockchain.getBlock(previousBlock.previousBlock);
         }
 
-        accountWeightTimestamps = accountWeightTimestamps;
 
         this.app.logger.debug("Account PoT weight: " + address + " / " + accountWeightTimestamps);
         this.app.logger.debug("Account PoP weight: " + address + " / " + popWeightAmount);
 
         var accountTotalWeight = accountWeightTimestamps + popWeightAmount;
-        accounts.push({ address : address, weight : accountTotalWeight, publicKey : request.publicKey, signature : request.signature  });
+        this.weight = this.weight.add(accountTotalWeight);
+
+        accounts.push({ address : address, weight : accountTotalWeight });
 
         this.app.logger.debug("Account " + address + " / " + accountTotalWeight);
     }
+
+    this.weight = this.weight.mul(this.numberOfRequests);
 
     accounts.sort(function compare(a,b) {
         if (a.weight > b.weight)
@@ -532,7 +502,6 @@ block.prototype.verifyGenerationSignature = function () {
 
     this.logger.debug("Winner in cycle is: " + cycle);
 
-    // ищем похожий вес
     var winner = accounts[cycle];
     var sameWeights = [winner];
 
@@ -552,7 +521,10 @@ block.prototype.verifyGenerationSignature = function () {
         var randomWinners = [];
         for (var i = 0; i < sameWeights.length; i++) {
             var a = sameWeights[i];
-            var hash = crypto.createHash('sha256').update(bignum(a.weight).toBuffer({ size : '8' })).update(a.signature).digest();
+
+            var address = a.address.slice(0, -1);
+            var addressBuffer = bignum(address).toBuffer({ 'size' : '8' });
+            var hash = crypto.createHash('sha256').update(bignum(a.weight).toBuffer({ size : '8' })).update(addressBuffer).digest();
 
             var result = new Buffer(8);
             for (var j = 0; j < 8; j++) {
@@ -560,8 +532,8 @@ block.prototype.verifyGenerationSignature = function () {
             }
 
             var weight = bignum.fromBuffer(result, { size : '8' }).toNumber();
-            this.app.logger.info("Account " + a.address + " new weight is: " + weight);
-            randomWinners.push({ address : a.address, weight : weight, publicKey : a.publicKey, signature : a.signature });
+            this.app.logger.debug("Account " + a.address + " new weight is: " + weight);
+            randomWinners.push({ address : a.address, weight : weight });
         }
 
         randomWinners.sort(function (a,b) {
@@ -574,27 +546,19 @@ block.prototype.verifyGenerationSignature = function () {
             return 0;
         });
 
-        winner = randomWinners[0];
+
+        if (cycle > randomWinners.length - 1) {
+            cycle = parseInt(cycle  % randomWinners.length);
+        }
+
+        winner = randomWinners[cycle];
     }
 
-    this.app.logger.debug("Winner in cycle: " + winner.address + " / " + winner.weight);
+    this.app.logger.debug("Winner in cycle: " + winner.address);
 
-    if (this.app.accountprocessor.getAddressByPublicKey(this.generatorPublicKey) == this.app.accountprocessor.getAddressByPublicKey(winner.publicKey)) {
+    if (this.app.accountprocessor.getAddressByPublicKey(this.generatorPublicKey) == winner.address) {
         this.app.logger.info("Valid generator " + this.getId());
-
-        var hash = crypto.createHash('sha256').update(lastAliveBlock.generationSignature).update(winner.publicKey);
-        var generationSignature = hash.digest();
-
-        // check
-        var verify = ed.Verify(generationSignature, this.generationSignature, winner.publicKey);
-
-        if (!verify) {
-            this.app.logger.error("Can't verify generation signature: " + this.getId());
-            return false;
-        } else {
-            this.app.logger.info("Generation signature verfied: " + this.getId());
-            return true;
-        }
+        return true;
     } else {
         this.app.logger.error("Generator of block not valid: " + winner.weight + "/" + this.generationWeight);
         return false;
