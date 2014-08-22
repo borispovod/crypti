@@ -440,6 +440,10 @@ block.prototype.verifyGenerationSignature = function () {
 
             var block = this.app.blockchain.getBlock(confirmedRequest.blockId);
 
+            if (!block) {
+                break;
+            }
+
             if (previousBlock.getId() != block.getId()) {
                 break;
             }
