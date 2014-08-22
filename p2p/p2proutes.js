@@ -135,7 +135,7 @@ module.exports = function (app) {
             var ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
 
             try {
-                var r = new Request(null, null, ip, new Buffer(request.publicKey, 'hex'), request.lastAliveBlock, new Buffer(request.signature, 'hex'));
+                var r = new Request(null, null, ip, request.publicKey, request.lastAliveBlock, request.signature);
             } catch (e) {
                 return res.json({ success: false, error: "JSON parser error" });
             }
@@ -343,10 +343,10 @@ module.exports = function (app) {
             }
 
             try {
-                var tr = new Transaction(t.type, null, t.timestamp, new Buffer(t.senderPublicKey, 'hex'), t.recipientId, t.amount, new Buffer(t.signature, 'hex'));
+                var tr = new Transaction(t.type, null, t.timestamp, t.senderPublicKey, t.recipientId, t.amount, t.signature);
 
                 if (t.signSignature) {
-                    tr.signSignature = new Buffer(t.signSignature, 'hex');
+                    tr.signSignature = new Buffer(t.signSignature);
                 }
             } catch (e) {
                 return res.json({ success: false, error: "JSON parser error" });
@@ -416,7 +416,7 @@ module.exports = function (app) {
             }
 
             try {
-                var block = new Block(b.version, null, b.timestamp, b.previousBlock, [], b.totalAmount, b.totalFee, b.payloadLength, new Buffer(b.payloadHash, 'hex'), new Buffer(b.generatorPublicKey, 'hex'), new Buffer(b.generationSignature, 'hex'), new Buffer(b.blockSignature, 'hex'));
+                var block = new Block(b.version, null, b.timestamp, b.previousBlock, [], b.totalAmount, b.totalFee, b.payloadLength, b.payloadHash, b.generatorPublicKey, b.generationSignature, b.blockSignature);
                 block.requestsLength = b.requestsLength;
                 block.numberOfRequests = b.numberOfRequests;
                 block.numberOfConfirmations = b.numberOfConfirmations;
@@ -433,9 +433,9 @@ module.exports = function (app) {
                 for (var i = 0; i < b.transactions.length; i++) {
                     var t = b.transactions[i];
 
-                    var transaction = new Transaction(t.type, null, t.timestamp, new Buffer(t.senderPublicKey, 'hex'), t.recipientId, t.amount, new Buffer(t.signature, 'hex'));
+                    var transaction = new Transaction(t.type, null, t.timestamp, t.senderPublicKey, t.recipientId, t.amount, t.signature);
                     if (t.signSignature) {
-                        transaction.signSignature = new Buffer(t.signSignature, 'hex');
+                        transaction.signSignature = new Buffer(t.signSignature);
                     }
 
 
@@ -482,7 +482,7 @@ module.exports = function (app) {
                 var c = b.confirmations[i];
 
                 try {
-                    confirmations.push(new companyconfirmation(c.companyId, c.verified, c.timestamp, new Buffer(c.signature, 'hex')));
+                    confirmations.push(new companyconfirmation(c.companyId, c.verified, c.timestamp, c.signature));
                 } catch (e) {
                     app.peerprocessor.blockPeer(ip);
                     return res.json({ success: false, accepted: false });

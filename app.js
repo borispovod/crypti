@@ -29,7 +29,8 @@ var express = require('express'),
     companyprocessor = require("./company").companyprocessor,
     company = require("./company").company,
     companyconfirmation = require("./company").companyconfirmation,
-    requestconfirmation = require("./request").requestconfirmation;
+    requestconfirmation = require("./request").requestconfirmation,
+    crypto = require('crypto');
 
 var app = express();
 
@@ -47,7 +48,7 @@ if (process.env.NODE_ENV=="development") {
 }
 
 app.configure(function () {
-    app.set("version", "0.1");
+    app.set("version", config.get("version"));
     app.set("address", config.get("address"));
     app.set('port', config.get('port'));
     app.use(express.bodyParser({limit: '10mb'}));
@@ -327,6 +328,7 @@ async.series([
                                                                 } else {
                                                                     var buffer = b.getBytes();
 
+                                                                    var h = crypto.createHash('sha256');
                                                                     for (var t in transactions) {
                                                                         buffer = Buffer.concat([buffer, transactions[t].getBytes()]);
                                                                     }
@@ -338,6 +340,7 @@ async.series([
                                                                     for (var i = 0; i < confirmations.length; i++) {
                                                                         buffer = Buffer.concat([buffer, confirmations[i].getBytes()]);
                                                                     }
+
 
                                                                     try {
                                                                         var a = app.blockchain.pushBlock(buffer);
