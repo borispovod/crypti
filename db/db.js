@@ -9,12 +9,12 @@ var db = function (sql) {
 
 db.prototype.deleteBlock = function (b) {
     this.sql.serialize(function () {
-        this.sql.run("DELETE FROM blocks WHERE id=?", [b.getId()]);
-        this.sql.run("DELETE FROM trs WHERE blockId=?",[b.getId()]);
-        this.sql.run("DELETE FROM companyconfirmations WHERE blockId=?", [b.getId()]);
-        this.sql.run("DELETE FROM requests WHERE blockId=?", [b.getId()]);
-        this.sql.run("DELETE FROM companies WHERE blockId=?", [b.getId()]);
-        this.sql.run("DELETE FROM signatures WHERE blockId=?", [b.getId()]);
+        this.sql.run("DELETE FROM blocks WHERE id=?", b.getId());
+        this.sql.run("DELETE FROM trs WHERE blockId=?",b.getId());
+        this.sql.run("DELETE FROM companyconfirmations WHERE blockId=?", b.getId());
+        this.sql.run("DELETE FROM requests WHERE blockId=?", b.getId());
+        this.sql.run("DELETE FROM companies WHERE blockId=?", b.getId());
+        this.sql.run("DELETE FROM signatures WHERE blockId=?", b.getId());
     }.bind(this));
 }
 

@@ -161,22 +161,25 @@ blockchain.prototype.processFork = function (peer, forks, commonBlock) {
 
             if (this.getLastBlock().getId() == b.previousBlock) {
                 try {
+                    if (b.getId() == genesisblock.blockId) {
+                        continue;
+                    }
 
                     var buffer = b.getBytes();
 
-                    for (var t in transactions) {
+                    for (var t in b.transactions) {
                         buffer = Buffer.concat([buffer, b.transactions[t].getBytes()]);
                     }
 
-                    for (var i = 0; i < requests.length; i++) {
+                    for (var i = 0; i < b.requests.length; i++) {
                         buffer = Buffer.concat([buffer, b.requests[i].getBytes()]);
                     }
 
-                    for (var i = 0; i < confirmations.length; i++) {
+                    for (var i = 0; i < b.confirmations.length; i++) {
                         buffer = Buffer.concat([buffer, b.confirmations[i].getBytes()]);
                     }
 
-                    this.pushBlock(buffer, false, false);
+                    var a = this.pushBlock(buffer, false, false);
                     pushedBlocks += 1;
                 } catch (e) {
                     this.app.peerprocessor.blockPeer(peer.ip);
@@ -885,9 +888,11 @@ blockchain.prototype.pushBlock = function (buffer, sendToPeers, checkRequests) {
 
     var a = hash.digest();
 
-    if (!bufferEqual(a, b.payloadHash)) {
-        this.logger.error("Payload hash invalid: " + b.getId());
-        return false;
+    if (this.getLastBlock().height >= 300) {
+        if (!bufferEqual(a, b.payloadHash)) {
+            this.logger.error("Payload hash invalid: " + b.getId());
+            return false;
+        }
     }
 
     for (var a in accumulatedAmounts) {
