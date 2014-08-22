@@ -4,7 +4,7 @@ var winston = require('winston');
 var level = 'info';
 
 if (process.env.NODE_ENV == 'development') {
-    level = 'debug';
+    //level = 'debug';
 }
 
 var logLevels = {
