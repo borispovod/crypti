@@ -90,7 +90,6 @@ forger.prototype.sendRequest = function () {
     var added = this.app.requestprocessor.processRequest(r);
     this.app.peerprocessor.sendRequestToAll(r);
 
-
     this.sending = false;
     this.sent = true;
     return false;
@@ -171,6 +170,10 @@ forger.prototype.startForge = function () {
             var confirmedRequest = confirmedRequests[j];
 
             var block = this.app.blockchain.getBlock(confirmedRequest.blockId);
+
+            if (!block) {
+                break;
+            }
 
             if (previousBlock.getId() != block.getId()) {
                 break;
@@ -283,7 +286,7 @@ forger.prototype.startForge = function () {
         winner = randomWinners[cycle];
     }
 
-    this.app.logger.debug("Winner in cycle: " + winner.address);
+    this.app.logger.info("Winner in cycle: " + winner.address);
 
     if (winner.address == myAccount.address) {
         this.logger.info("Generating block...");
@@ -291,9 +294,7 @@ forger.prototype.startForge = function () {
         var sortedTransactions = [];
         var transactions = _.map(this.transactionprocessor.unconfirmedTransactions, function (obj, key) { return obj });
         for (var i = 0; i < transactions.length; i++) {
-            if (transactions[i].referencedTransaction == null || this.transactionprocessor.getTransaction(transactions[i].referencedTransaction)) {
-                sortedTransactions.push(transactions[i]);
-            }
+            sortedTransactions.push(transactions[i]);
         }
 
         sortedTransactions.sort(function(a, b){
@@ -311,6 +312,11 @@ forger.prototype.startForge = function () {
 
         for (var i = 0; i < sortedTransactions.length; i++) {
             var t = sortedTransactions[i];
+
+            if (!t) {
+                continue;
+            }
+
             var size = t.getSize();
 
             if (size + payloadLength > constants.maxPayloadLength) {
@@ -431,6 +437,10 @@ forger.prototype.startForge = function () {
             }
 
             this.checkCompany(company, function (r) {
+                if (!company) {
+                    return cb();
+                }
+
                 var cm = new companyconfirmation(company.getId(), r, blockTimestamp);
                 cm.sign(this.secretPharse);
 
