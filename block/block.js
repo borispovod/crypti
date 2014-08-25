@@ -440,10 +440,6 @@ block.prototype.verifyGenerationSignature = function () {
 
             var block = this.app.blockchain.getBlock(confirmedRequest.blockId);
 
-            if (!block) {
-                break;
-            }
-
             if (previousBlock.getId() != block.getId()) {
                 break;
             }
@@ -464,7 +460,6 @@ block.prototype.verifyGenerationSignature = function () {
                 break;
             }
 
-            // get account purcashes in this block
             previousBlock = this.app.blockchain.getBlock(previousBlock.previousBlock);
         }
 
@@ -558,13 +553,18 @@ block.prototype.verifyGenerationSignature = function () {
         winner = randomWinners[cycle];
     }
 
+    if (this.app.blockchain.getLastBlock().height <= 2813) {
+        return true;
+    }
+
     this.app.logger.debug("Winner in cycle: " + winner.address);
+    this.app.logger.debug(this.app.accountprocessor.getAddressByPublicKey(this.generatorPublicKey));
 
     if (this.app.accountprocessor.getAddressByPublicKey(this.generatorPublicKey) == winner.address) {
         this.app.logger.info("Valid generator " + this.getId());
         return true;
     } else {
-        this.app.logger.error("Generator of block not valid: " + winner.weight + "/" + this.generationWeight);
+        this.app.logger.error("Generator of block not valid: " + winner.address + " / " + this.app.accountprocessor.getAddressByPublicKey(this.generatorPublicKey));
         return false;
     }
 }
