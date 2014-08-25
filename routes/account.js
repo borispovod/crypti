@@ -266,10 +266,16 @@ module.exports = function (app) {
     app.post("/api/sendFunds", function (req, res) {
         try {
             var secretPharse = req.body.secret,
-                amount = req.body.amount * constants.numberLength,
+                amount = req.body.amount,
                 recipient = req.body.recipient,
                 accountAddress = req.body.accountAddress,
-                secondPhrase = req.body.secondPhrase || null;
+                secondPhrase = req.body.secondPhrase || null,
+                amountIsInteger = req.body.amountIsInteger || false;
+
+
+            if (amountIsInteger !== true) {
+                amount *= constants.numberLength;
+            }
 
 
             var fee = parseInt(amount / 100 * app.blockchain.fee);
@@ -362,7 +368,7 @@ module.exports = function (app) {
                     if (r) {
                         return res.json({ success: true, transactionId: t.getId(), fee: fee });
                     } else {
-                        return res.json({ success: false, transactionId: t.getId(), fee: fee, error: "Transaction can't be processed, see logs", statusCode: "TRANSACTION_CAN_BE_PROCESSED" });
+                        return res.json({ success: false, transactionId: t.getId(), fee: fee, error: "Transaction can't be processed, see logs", statusCode: "TRANSACTION_CANT_BE_PROCESSED" });
                     }
                 }
             }
