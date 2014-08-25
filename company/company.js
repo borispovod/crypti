@@ -5,7 +5,7 @@ var ed = require('ed25519'),
     bignum = require('bignum');
 
 var company = function (name, description, domain, email, timestamp, generatorPublicKey, signature) {
-    if (signature && !Buffer.isBuffer(generatorPublicKey)) {
+    if (generatorPublicKey && !Buffer.isBuffer(generatorPublicKey)) {
         generatorPublicKey = new Buffer(generatorPublicKey);
     }
 

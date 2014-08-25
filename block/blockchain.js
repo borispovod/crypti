@@ -10,7 +10,6 @@ var genesisblock = require("./genesisblock.js"),
     bufferEqual = require('buffer-equal'),
     Long = require("long"),
     requestconfirmation = require('../request').requestconfirmation,
-    genesisblock = require("./genesisblock.js"),
     async = require('async'),
     _ = require('underscore');
 
@@ -75,7 +74,7 @@ blockchain.prototype.getCommonBlockId = function (commonBlock, peer, cb) {
                 if (err) {
                     return next(true);
                 } else if (json.blockIds.length == 0) {
-                    return next(null);
+                    return next(true);
                 } else {
                     for (var i = 0; i < json.blockIds.length; i++) {
                         var blockId = json.blockIds[i];
@@ -86,6 +85,8 @@ blockchain.prototype.getCommonBlockId = function (commonBlock, peer, cb) {
 
                         commonBlock = blockId;
                     }
+
+                    next();
                 }
             }.bind(this));
         }.bind(this),
@@ -135,7 +136,7 @@ blockchain.prototype.getMilestoneBlockId = function (peer,  cb) {
                             }
                         }
 
-                        return next();
+                        next();
                     }
                 }
             }.bind(this));
@@ -146,7 +147,7 @@ blockchain.prototype.getMilestoneBlockId = function (peer,  cb) {
     )
 }
 
-blockchain.prototype.processFork = function (peer, forks, commonBlock) {
+blockchain.prototype.processFork = function (peer, forks, commonBlock, cb) {
     var weight = this.getWeight();
     var lastBlockId = this.getLastBlock().getId();
 
@@ -156,46 +157,56 @@ blockchain.prototype.processFork = function (peer, forks, commonBlock) {
 
     var pushedBlocks = 0;
     if (this.getLastBlock().getId() == commonBlock) {
-        for (var i = 0; i < forks.length; i++) {
-            var b = forks[i];
-
-            if (this.getLastBlock().getId() == b.previousBlock) {
-                try {
-                    if (b.getId() == genesisblock.blockId) {
-                        continue;
-                    }
-
-                    var buffer = b.getBytes();
-
-                    for (var t in b.transactions) {
-                        buffer = Buffer.concat([buffer, b.transactions[t].getBytes()]);
-                    }
-
-                    for (var i = 0; i < b.requests.length; i++) {
-                        buffer = Buffer.concat([buffer, b.requests[i].getBytes()]);
-                    }
-
-                    for (var i = 0; i < b.confirmations.length; i++) {
-                        buffer = Buffer.concat([buffer, b.confirmations[i].getBytes()]);
-                    }
-
-                    var a = this.pushBlock(buffer, false, false);
-                    pushedBlocks += 1;
-                } catch (e) {
-                    this.app.peerprocessor.blockPeer(peer.ip);
-                    break;
+        async.forEach(forks, function (b, c) {
+            try {
+                if (b.getId() == genesisblock.blockId) {
+                    return c(true);
                 }
+
+                if (b.previousBlock != this.getLastBlock().getId()) {
+                    return c(true);
+                }
+
+                var buffer = b.getBytes();
+
+                for (var t in b.transactions) {
+                    buffer = Buffer.concat([buffer, b.transactions[t].getBytes()]);
+                }
+
+                for (var j = 0; j < b.requests.length; j++) {
+                    buffer = Buffer.concat([buffer, b.requests[j].getBytes()]);
+                }
+
+                for (var j = 0; j < b.confirmations.length; j++) {
+                    buffer = Buffer.concat([buffer, b.confirmations[j].getBytes()]);
+                }
+
+                var a = this.pushBlock(buffer, false, false);
+
+                if (a) {
+                    pushedBlocks += 1;
+                }
+
+                return c();
+            } catch (e) {
+                this.app.peerprocessor.blockPeer(peer.ip);
+                return c(true);
             }
-        }
-    }
+        }.bind(this), function () {
+            if (pushedBlocks > 0 && this.getWeight().lt(weight)) {
+                this.app.peerprocessor.blockPeer(peer.ip);
 
-    if (pushedBlocks > 0 && this.getWeight().lt(weight)) {
-        this.app.peerprocessor.blockPeer(peer.ip);
+                var lastBlockId = this.getLastBlock().getId();
+                while ((lastBlockId != commonBlock) && (lastBlockId != genesisblock.blockId)) {
+                    lastBlockId = this.popLastBlock();
+                }
 
-        var lastBlockId = this.getLastBlock().getId();
-        while ((lastBlockId != commonBlock) && (lastBlockId != genesisblock.blockId)) {
-            lastBlockId = this.popLastBlock();
-        }
+                return cb();
+            } else {
+                this.app.logger.info("Fork processed, blocks pushed: " + pushedBlocks);
+                return cb();
+            }
+        }.bind(this));
     }
 }
 
@@ -206,12 +217,13 @@ blockchain.prototype.popLastBlock = function () {
         return lastBlock;
     }
 
-    for (var i = 0; i < lastBlock.requests.length; i++) {
-        var request = lastBlock.requests[i];
+    var feePercent = lastBlock.previousFee || 1;
+
+    for (var r  in lastBlock.requests) {
+        var request = lastBlock.requests[r];
         var address = request.address;
 
         this.app.requestprocessor.confirmedRequests[address].pop();
-
         if (this.app.requestprocessor.confirmedRequests[address].length == 0) {
             delete this.app.requestprocessor.confirmedRequests[address];
         }
@@ -226,7 +238,7 @@ blockchain.prototype.popLastBlock = function () {
 
         if (t.type == 0 || t.type == 1) {
             if (t.subtype == 0) {
-                fee = parseInt(t.amount / 100.00 * lastBlock.fee);
+                fee = parseInt(t.amount / 100.00 * feePercent);
 
                 if (fee == 0) {
                     fee = 1;
@@ -263,7 +275,7 @@ blockchain.prototype.popLastBlock = function () {
             if (t.subtype == 0) {
                 forForger += fee;
 
-                var address = this.app.accountprocessor.getAddressByPublicKey();
+                var address = this.app.accountprocessor.getAddressByPublicKey(t.senderPublicKey);
                 delete this.app.signatureprocessor.signatures[address];
             }
         } else if (t.type == 3) {
@@ -305,7 +317,11 @@ blockchain.prototype.popLastBlock = function () {
         }
 
         var sender = this.app.accountprocessor.getAccountByPublicKey(t.senderPublicKey);
-        senders[sender.address] = t.amount + fee;
+
+        if (!senders[sender.address] ) {
+            senders[sender.address] = 0;
+        }
+        senders[sender.address] += t.amount + fee;
 
         delete this.app.transactionprocessor.transactions[t.getId()];
     }
@@ -327,8 +343,8 @@ blockchain.prototype.popLastBlock = function () {
             this.app.companyprocessor.confirmations[company.domain] -= toRemove;
             this.app.companyprocessor.addedCompanies[company.domain].blocks -= 1;
         } else {
-            for (var c in this.app.companyprocessor.confirmedCompanies) {
-                var cp = this.app.companyprocessor.confirmedCompanies[c];
+            for (var cId in this.app.companyprocessor.confirmedCompanies) {
+                var cp = this.app.companyprocessor.confirmedCompanies[cId];
 
                 if (cp.getId() == c.companyId) {
                     company = cp;
@@ -337,7 +353,7 @@ blockchain.prototype.popLastBlock = function () {
             }
 
             if (company) {
-                company.blocks = 10;
+                company.blocks = 9;
                 this.app.companyprocessor.addedCompanies[company.domain] = company;
                 this.app.companyprocessor.confirmations[company.domain] = company.confirmations - toRemove;
                 this.app.companyprocessor.addedCompaniesIds[company.getId()] = company;
@@ -356,7 +372,7 @@ blockchain.prototype.popLastBlock = function () {
                 }
 
                 if (company) {
-                    company.blocks = 10;
+                    company.blocks = 9;
                     this.app.companyprocessor.addedCompanies[company.domain] = company;
                     this.app.companyprocessor.confirmations[company.domain] = company.confirmations - toRemove;
                     this.app.companyprocessor.addedCompaniesIds[company.getId()] = company;
@@ -378,15 +394,20 @@ blockchain.prototype.popLastBlock = function () {
         sender.addToUnconfirmedBalance(senders[s]);
     }
 
+    delete this.app.accountprocessor.purchases[lastBlock.getId()];
     this.weight = this.weight.sub(lastBlock.weight);
-    if (this.fee != lastBlock.previousFee) {
-        this.fee = lastBlock.previousFee;
-    }
+    this.lastBlock = lastBlock.previousBlock;
+    this.fee = feePercent;
+    this.nextFeeVolume = lastBlock.nextFeeVolume;
+    this.actualFeeVolume = lastBlock.actualFeeVolume;
 
     this.app.db.deleteBlock(lastBlock);
     delete this.blocks[lastBlock.getId()];
-    this.lastBlock = lastBlock.previousBlock;
-    return this.lastBlock;
+
+    this.app.requestprocessor.unconfirmedRequests = {};
+    this.app.transactionprocessor.unconfirmedTransactions = {};
+
+    return this.getLastBlock().getId();
 }
 
 blockchain.prototype.blockFromBytes = function (buffer) {
@@ -809,7 +830,7 @@ blockchain.prototype.pushBlock = function (buffer, sendToPeers, checkRequests) {
         var company = this.app.companyprocessor.addedCompaniesIds[c.companyId];
 
         if (!company || !this.app.companyprocessor.addedCompanies[company.domain] || this.app.companyprocessor.confirmations[company.domain] <= 0 || this.app.companyprocessor.addedCompanies[company.domain].blocks >= 10 || !this.app.companyprocessor.confirmations[company.domain]) {
-            this.app.logger.error("Invalid company: " + c.getId() + " / " + company.domain + " / " + b.getId());
+            this.app.logger.error("Invalid company: " + c.getId() + " / " + b.getId());
             break;
         }
 
@@ -830,7 +851,7 @@ blockchain.prototype.pushBlock = function (buffer, sendToPeers, checkRequests) {
     }
 
     if (confirmationsLength != b.numberOfConfirmations) {
-        this.app.logger("Invalid number of confirmations: " + b.getId());
+        this.logger.error("Invalid number of confirmations: " + b.getId());
         return false;
     }
 
@@ -888,7 +909,7 @@ blockchain.prototype.pushBlock = function (buffer, sendToPeers, checkRequests) {
 
     var a = hash.digest();
 
-    if (this.getLastBlock().height >= 300) {
+    if (this.getLastBlock().height >= 350) {
         if (!bufferEqual(a, b.payloadHash)) {
             this.logger.error("Payload hash invalid: " + b.getId());
             return false;
@@ -1069,6 +1090,9 @@ blockchain.prototype.pushBlock = function (buffer, sendToPeers, checkRequests) {
     this.app.requestprocessor.unconfirmedRequests = {};
     this.app.requestprocessor.ips = [];
 
+    b.nextFeeVolume = this.nextFeeVolume;
+    b.actualFeeVolume = this.actualFeeVolume;
+
     this.actualFeeVolume += b.totalAmount + b.totalFee;
 
     var lastFee = this.fee;
@@ -1084,7 +1108,6 @@ blockchain.prototype.pushBlock = function (buffer, sendToPeers, checkRequests) {
 
     this.weight = this.weight.add(b.weight);
 
-    // пересчитываем баланс у неподтвержденных транзакций
     for (var tId in this.app.transactionprocessor.unconfirmedTransactions) {
         var t = this.app.transactionprocessor.unconfirmedTransactions[tId];
 
