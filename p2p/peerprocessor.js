@@ -84,6 +84,10 @@ peerprocessor.prototype.addPeer = function (peer) {
         return false;
     }
 
+    if (this.blackList.indexOf(peer.ip) >= 0) {
+        return false;
+    }
+
     if (this.blockedPeers[peer.ip]) {
         return false;
     }
@@ -155,6 +159,15 @@ peerprocessor.prototype.getAnyPeer = function (blacklisted) {
     }
 
     var peers = this.getPeersAsArray();
+
+    peers = _.filter(peers, function (p) {
+        return !p.isNat;
+    });
+
+    if (peers.length == 0) {
+        return null;
+    }
+
     var toReturn = null;
 
     while (true) {

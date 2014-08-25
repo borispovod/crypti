@@ -15,6 +15,7 @@ var peer = function (address, port, platform, version) {
     this.blacklistedTime = 0;
     this.agent = null;
     this.app = null;
+    this.isNat = false;
 }
 
 peer.prototype.setApp = function (app) {

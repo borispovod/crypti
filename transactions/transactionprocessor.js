@@ -42,6 +42,11 @@ transactionprocessor.prototype.processTransaction = function (transaction, sendT
         return false;
     }
 
+    if (transaction.amount < 0 || transaction.amount % 1 !== 0 || transaction.amount >= 1000 * 1000 * 100 * constants.numberLength) {
+        this.logger.warn("Can't verify transaction: " + transaction.getId() + ", invalid amount");
+        return false;
+    }
+
     var fee = parseInt(transaction.amount / 100 * this.app.blockchain.fee);
 
     if (fee == 0) {
