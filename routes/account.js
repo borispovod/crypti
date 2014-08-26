@@ -273,10 +273,9 @@ module.exports = function (app) {
                 amountIsInteger = req.body.amountIsInteger || false;
 
 
-            if (amountIsInteger !== true) {
+            if (amountIsInteger !== true || amountIsInteger !== "true") {
                 amount *= constants.numberLength;
             }
-
 
             var fee = parseInt(amount / 100 * app.blockchain.fee);
 
