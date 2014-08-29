@@ -40,7 +40,6 @@ if (process.env.PRODUCTION) {
     });
 }
 
-
 if (process.env.NODE_ENV=="development") {
     app.set('onlyToFile', false);
 } else {
@@ -52,27 +51,46 @@ app.configure(function () {
     app.set("address", config.get("address"));
     app.set('port', config.get('port'));
     app.use(express.bodyParser({limit: '10mb'}));
+    app.dbLoaded = false;
+
+    app.api = {
+        whiteList : config.get('api').access.whiteList,
+        auth : config.get('api').access.auth
+    };
 
     if (config.get("serveHttpWallet")) {
         app.use(express.static(path.join(__dirname, "public")));
     }
+
     app.use(express.json());
     app.use(express.urlencoded());
 
     app.use(function (req, res, next) {
         var url = req.path.split('/');
 
-        if (url[1] == 'peer' && app.synchronizedBlocks) {
-            var ip = req.connection.remoteAddress;
-            var port = config.get('port');
+        var ip = req.connection.remoteAddress;
+        var port = config.get('port');
 
+        if (url[1] == 'peer' && app.synchronizedBlocks) {
             var newPeer = new peer(ip, port);
             app.peerprocessor.addPeer(newPeer);
+        } else if (url[1] == 'api' || req.path == '' || req.path == '/') {
+            if (app.api.whiteList.length > 0) {
+                if (app.api.whiteList.indexOf(ip) < 0) {
+                    return res.send(401);
+                }
+            }
         }
 
-        next();
+        return next();
     });
 
+
+    if (app.api.auth.user || app.api.auth.password) {
+        app.basicAuth = express.basicAuth(app.api.auth.user, app.api.auth.password);
+    } else {
+        app.basicAuth = function (req, res, next) { return next(); }
+    }
 
     app.use(app.router);
 });
@@ -159,7 +177,7 @@ async.series([
 
         forgerPassphrase = forgerPassphrase.secretPhrase;
 
-        if (forgerPassphrase.length == 0) {
+        if (forgerPassphrase.length === 0) {
             logger.getInstance().info("Provide secret phrase to start forging...");
             console.log("Provide secret phrase to start forging...");
             return cb();
@@ -186,8 +204,49 @@ async.series([
         cb();
     },
     function (cb) {
+        app.listen(app.get('port'), app.get('address'), function () {
+            logger.getInstance().info("Crypti started: " + app.get("address") + ":" + app.get("port"));
+            console.log("Crypti started: " + app.get("address") + ":" + app.get("port"));
+
+            app.get('/', function (req, res) {
+                var ip = req.connection.remoteAddress;
+                if (app.api.whiteList.length > 0) {
+                    if (app.api.whiteList.indexOf(ip) < 0) {
+                        return res.send(401);
+                    } else {
+                        if (app.dbLoaded) {
+                            res.sendfile(path.join(__dirname, "public", "wallet.html"));
+                        } else {
+                            res.sendfile(path.join(__dirname, "public", "loading.html"));
+                        }
+                    }
+                } else {
+                    if (app.dbLoaded) {
+                        res.sendfile(path.join(__dirname, "public", "wallet.html"));
+                    } else {
+                        res.sendfile(path.join(__dirname, "public", "loading.html"));
+                    }
+                }
+            });
+
+            app.get("/api/getLoading", function (req, res) {
+                if (app.blockchain.getLastBlock() && app.blocksCount) {
+                    return res.json({ success: true, height : app.blockchain.getLastBlock().height, blocksCount : app.blocksCount, loaded : app.dbLoaded });
+                } else {
+                    return res.json({ success : false });
+                }
+            });
+
+            app.get("*", function (req, res) {
+                return res.redirect('/');
+            });
+
+            cb();
+        });
+    },
+    function (cb) {
         logger.getInstance().info("Initializing and scanning database...");
-        initDb(function (err, db) {
+        initDb("./blockchain.db", function (err, db) {
             if (err) {
                 cb(err);
             } else {
@@ -196,6 +255,7 @@ async.series([
                     if (err) {
                         cb(err);
                     } else {
+                        app.blocksCount = blocks.length;
                         async.eachSeries(blocks, function (item, c) {
                             var b = new block(item.version, null, item.timestamp, item.previousBlock, [], item.totalAmount, item.totalFee, item.payloadLength, item.payloadHash, item.generatorPublicKey, item.generationSignature, item.blockSignature);
                             b.numberOfTransactions = item.numberOfTransactions;
@@ -223,9 +283,10 @@ async.series([
                                             tr.signSignature = t.signSignature;
                                         }
 
+                                        var req = null;
                                         if (tr.type == 2) {
-                                            if (tr.subtype == 0) {
-                                                var req = app.db.sql.prepare("SELECT * FROM signatures WHERE blockId=$blockId AND transactionId=$transactionId");
+                                            if (tr.subtype === 0) {
+                                                req = app.db.sql.prepare("SELECT * FROM signatures WHERE blockId=$blockId AND transactionId=$transactionId");
                                                 req.bind({
                                                     $blockId: id,
                                                     $transactionId: t.id
@@ -244,8 +305,8 @@ async.series([
                                                 });
                                             }
                                         } else if (tr.type == 3) {
-                                            if (tr.subtype == 0) {
-                                                var req = app.db.sql.prepare("SELECT * FROM companies WHERE blockId=$blockId AND transactionId=$transactionId");
+                                            if (tr.subtype === 0) {
+                                                req = app.db.sql.prepare("SELECT * FROM companies WHERE blockId=$blockId AND transactionId=$transactionId");
                                                 req.bind({
                                                     $blockId: id,
                                                     $transactionId: t.id
@@ -310,12 +371,13 @@ async.series([
                                                             }, function () {
                                                                 b.confirmations = confirmations;
 
+                                                                var a = false;
                                                                 if (b.getId() == genesisblock.blockId) {
 
                                                                     var r = b.requests[0];
                                                                     app.requestprocessor.confirmedRequests[r.address] = [r];
 
-                                                                    var a = b.analyze();
+                                                                    a = b.analyze();
 
                                                                     if (!a) {
                                                                         c("Can't process block: " + b.getId());
@@ -333,19 +395,20 @@ async.series([
                                                                         buffer = Buffer.concat([buffer, transactions[t].getBytes()]);
                                                                     }
 
-                                                                    for (var i = 0; i < requests.length; i++) {
+                                                                    var i = 0;
+                                                                    for (i = 0; i < requests.length; i++) {
                                                                         buffer = Buffer.concat([buffer, requests[i].getBytes()]);
                                                                     }
 
-                                                                    for (var i = 0; i < confirmations.length; i++) {
+                                                                    for (i = 0; i < confirmations.length; i++) {
                                                                         buffer = Buffer.concat([buffer, confirmations[i].getBytes()]);
                                                                     }
 
 
                                                                     try {
-                                                                        var a = app.blockchain.pushBlock(buffer);
+                                                                        a = app.blockchain.pushBlock(buffer, false);
                                                                     } catch (e) {
-                                                                        a = null;
+                                                                        a = false;
                                                                         app.logger.error(e.toString());
                                                                     }
 
@@ -384,6 +447,7 @@ async.series([
                 cb();
             }
 
+            app.dbLoaded = true;
         });
     },
     function (cb) {
@@ -408,458 +472,482 @@ async.series([
 
         var peersRunning = false;
         setInterval(function () {
-            if (peersRunning || !app.synchronizedBlocks) {
-                return;
-            }
+            try {
+                if (peersRunning || !app.synchronizedBlocks) {
+                    return;
+                }
 
-            if (Object.keys(app.peerprocessor.peers).length >= 100) {
-                return;
-            }
+                if (Object.keys(app.peerprocessor.peers).length >= 100) {
+                    return;
+                }
 
-            peersRunning = true;
-            var peers = [];
-            peers = app.peerprocessor.getPeersAsArray();
-            async.eachSeries(peers, function (p, callback) {
-                app.logger.info("Get peers from " + p.ip);
-                p.getPeers(function (err, peersJSON) {
-                    if (err) {
-                        p = app.peerprocessor.getAnyPeer();
-                        return callback(true);
-                    } else {
-                        var ps = [];
-                        try {
-                            ps = JSON.parse(peersJSON).peers;
-                        } catch (e) {
+                peersRunning = true;
+                var peers = [];
+                peers = app.peerprocessor.getPeersAsArray();
+                async.eachSeries(peers, function (p, callback) {
+                    app.logger.info("Get peers from " + p.ip);
+                    p.getPeers(function (err, peersJSON) {
+                        if (err) {
                             p = app.peerprocessor.getAnyPeer();
-                            return callback();
-                        }
-
-                        if (ps) {
-                            app.logger.info("Process peers");
-                            for (var i = 0; i < ps.length; i++) {
-                                if (!ps[i].ip || ps[i].ip == "127.0.0.1") {
-                                    continue;
-                                }
-
-                                var p = new peer(ps[i].ip, ps[i].port, ps[i].platform, ps[i].version);
-
-                                if (!app.peerprocessor.peers[p.ip]) {
-                                    app.peerprocessor.addPeer(p);
-                                }
-                            }
-                            callback();
+                            return callback(true);
                         } else {
-                            p = app.peerprocessor.getAnyPeer();
-                            return callback();
+                            var ps = [];
+                            try {
+                                ps = JSON.parse(peersJSON).peers;
+                            } catch (e) {
+                                p = app.peerprocessor.getAnyPeer();
+                                return callback();
+                            }
+
+                            if (ps) {
+                                app.logger.info("Process peers");
+                                for (var i = 0; i < ps.length; i++) {
+                                    if (!ps[i].ip || ps[i].ip == "127.0.0.1") {
+                                        continue;
+                                    }
+
+                                    var _peer = new peer(ps[i].ip, ps[i].port, ps[i].platform, ps[i].version);
+
+                                    if (!app.peerprocessor.peers[_peer.ip]) {
+                                        app.peerprocessor.addPeer(_peer);
+                                    }
+                                }
+                                callback();
+                            } else {
+                                p = app.peerprocessor.getAnyPeer();
+                                return callback();
+                            }
                         }
-                    }
+                    });
+                }, function (e) {
+                    peersRunning = false;
                 });
-            }, function (e) {
+            } catch (e) {
                 peersRunning = false;
-            });
+            }
         }, 1000 * 10);
 
         var requestsInterval = false;
         setInterval(function () {
-            if (requestsInterval || !app.synchronizedBlocks) {
-                return;
-            }
+            try {
+                if (requestsInterval || !app.synchronizedBlocks) {
+                    return;
+                }
 
-            requestsInterval = true;
-            app.logger.info("Process requests...");
+                requestsInterval = true;
+                app.logger.info("Process requests...");
 
-            var p = app.peerprocessor.getAnyPeer();
-            async.whilst(
-                function (_break) { if (_break) return false; return p; },
-                function (next) {
-                    app.logger.info("Get requests from " + p.ip);
-                    p.getRequests(function (err, requests) {
-                       if (err) {
-                           p.isNat = true;
-                           return next(true);
-                       }  else {
-                           var answer = null;
+                var p = app.peerprocessor.getAnyPeer();
+                async.whilst(
+                    function (_break) {
+                        if (_break) return false;
+                        return p;
+                    },
+                    function (next) {
+                        app.logger.info("Get requests from " + p.ip);
+                        p.getRequests(function (err, requests) {
+                            if (err) {
+                                p.isNat = true;
+                                return next(true);
+                            } else {
+                                var answer = null;
 
-                           try {
-                               answer = JSON.parse(requests);
-                           } catch (e) {
-                               return next(true);
-                           }
+                                try {
+                                    answer = JSON.parse(requests);
+                                } catch (e) {
+                                    return next(true);
+                                }
 
-                           if (answer.success) {
-                               requests = answer.requests;
+                                if (answer.success) {
+                                    requests = answer.requests;
 
-                               async.eachSeries(requests, function (item, c) {
-                                   var r = app.requestprocessor.fromJSON(item);
-                                   delete r.blockId;
+                                    async.eachSeries(requests, function (item, c) {
+                                        var r = app.requestprocessor.fromJSON(item);
+                                        delete r.blockId;
 
-                                   try {
-                                       var added = app.requestprocessor.processRequest(r);
-                                   } catch (e) {
-                                       app.peerprocessor.blockPeer(p.ip);
-                                       added = false;
-                                   }
+                                        var added = false;
 
-                                   if (!added) {
-                                       return c(true);
-                                   }
+                                        try {
+                                            added = app.requestprocessor.processRequest(r);
+                                        } catch (e) {
+                                            app.peerprocessor.blockPeer(p.ip);
+                                            added = false;
+                                        }
 
-                                   c();
-                               }, function () {
-                                   next(true);
-                               });
-                           } else {
-                               return next(true);
-                           }
-                       }
+                                        if (!added) {
+                                            return c(true);
+                                        }
+
+                                        c();
+                                    }, function () {
+                                        next(true);
+                                    });
+                                } else {
+                                    return next(true);
+                                }
+                            }
+                        });
+                    },
+                    function () {
+                        app.synchronizedRequests = true;
+                        requestsInterval = false;
                     });
-                },
-                function () {
-                    app.synchronizedRequests = true;
-                    requestsInterval = false;
-                });
+            } catch (e) {
+                return false;
+            }
         }, 1000 * 3);
 
         var blocksInterval = false;
         setInterval(function () {
-            if (blocksInterval) {
-                return;
-            }
+            try {
+                if (blocksInterval) {
+                    return;
+                }
 
-            blocksInterval = true;
-            var p = app.peerprocessor.getAnyPeer();
+                blocksInterval = true;
+                var p = app.peerprocessor.getAnyPeer();
 
-            if (!p || !p.ip) {
-                app.synchronizedBlocks = true;
-                blocksInterval = false;
-                return;
-            }
+                if (!p || !p.ip) {
+                    app.synchronizedBlocks = true;
+                    blocksInterval = false;
+                    return;
+                }
 
-            app.logger.info("Process blocks from peer: " + p.ip);
+                app.logger.info("Process blocks from peer: " + p.ip);
 
-            var getCommonBlock = function (blockId, peer, cb) {
-                app.blockchain.getCommonBlockId(blockId, peer, function (err, blockId) {
-                    cb(err, blockId);
-                });
-            }
+                var getCommonBlock = function (blockId, peer, cb) {
+                    app.blockchain.getCommonBlockId(blockId, peer, function (err, blockId) {
+                        cb(err, blockId);
+                    });
+                };
 
-            var loadBlocks = function (blockId, cb) {
-                var forks = [];
-                var lastAdded = blockId;
+                var loadBlocks = function (blockId, cb) {
+                    var forks = [];
+                    var lastAdded = blockId;
 
-                async.whilst(function (stop) {
-                    if (stop) {
-                        return false;
-                    } else {
-                        return true;
-                    }
-                }, function (next) {
-                    p.getNextBlocks(blockId, function (err, json) {
-                        if (err) {
-                            next(true);
+                    async.whilst(function (stop) {
+                        if (stop) {
+                            return false;
                         } else {
-                            if (json.success) {
-                                async.eachSeries(json.blocks, function (item, c) {
-                                    var b = new block(item.version, null, item.timestamp, item.previousBlock, [], item.totalAmount, item.totalFee, item.payloadLength, item.payloadHash, item.generatorPublicKey, item.generationSignature, item.blockSignature);
-                                    b.numberOfTransactions = item.numberOfTransactions;
-                                    b.numberOfRequests = item.numberOfRequests;
-                                    b.requestsLength = item.requestsLength;
-                                    b.numberOfConfirmations = item.numberOfConfirmations;
-                                    b.confirmationsLength = item.confirmationsLength;
-                                    b.setApp(app);
-                                    b.height = item.height;
+                            return true;
+                        }
+                    }, function (next) {
+                        p.getNextBlocks(blockId, function (err, json) {
+                            if (err) {
+                                next(true);
+                            } else {
+                                if (json.success) {
+                                    async.eachSeries(json.blocks, function (item, c) {
+                                        var b = new block(item.version, null, item.timestamp, item.previousBlock, [], item.totalAmount, item.totalFee, item.payloadLength, item.payloadHash, item.generatorPublicKey, item.generationSignature, item.blockSignature);
+                                        b.numberOfTransactions = item.numberOfTransactions;
+                                        b.numberOfRequests = item.numberOfRequests;
+                                        b.requestsLength = item.requestsLength;
+                                        b.numberOfConfirmations = item.numberOfConfirmations;
+                                        b.confirmationsLength = item.confirmationsLength;
+                                        b.setApp(app);
+                                        b.height = item.height;
 
-                                    var id = b.getId();
+                                        var id = b.getId();
 
-                                    var transactions = [];
-                                    async.eachSeries(item.trs, function (t, _c) {
-                                        var tr = new transaction(t.type, t.id, t.timestamp, t.senderPublicKey, t.recipient, t.amount, t.signature);
+                                        var transactions = [];
+                                        async.eachSeries(item.trs, function (t, _c) {
+                                            var tr = new transaction(t.type, t.id, t.timestamp, t.senderPublicKey, t.recipient, t.amount, t.signature);
 
-                                        if (t.signSignature) {
-                                            tr.signSignature = new Buffer(t.signSignature);
-                                        }
-
-                                        switch (tr.type) {
-                                            case 2:
-                                                switch (tr.subtype) {
-                                                    case 0:
-                                                        tr.asset = app.signatureprocessor.fromJSON(t.asset);
-                                                        break;
-                                                }
-                                                break;
-
-                                            case 3:
-                                                switch (tr.subtype) {
-                                                    case 0:
-                                                        tr.asset = app.companyprocessor.fromJSON(t.asset);
-                                                        break;
-                                                }
-                                                break;
-                                        }
-
-                                        transactions.push(tr);
-                                        _c();
-                                    }, function (err) {
-                                        if (err) {
-                                            return c(err);
-                                        }
-
-                                        b.transactions = transactions;
-
-                                        var requests = [];
-                                        async.eachSeries(item.requests, function (r, _c) {
-                                            var request = new requestconfirmation(r.address);
-                                            request.blockId = r.blockId;
-                                            requests.push(request);
-                                            _c();
-                                        }.bind(this), function (err) {
-                                            if (err) {
-                                                return _c(err);
+                                            if (t.signSignature) {
+                                                tr.signSignature = new Buffer(t.signSignature);
                                             }
 
-                                            b.requests = requests;
+                                            switch (tr.type) {
+                                                case 2:
+                                                    switch (tr.subtype) {
+                                                        case 0:
+                                                            tr.asset = app.signatureprocessor.fromJSON(t.asset);
+                                                            break;
+                                                    }
+                                                    break;
 
-                                            var confirmations = [];
-                                            async.eachSeries(item.confirmations, function (conf, _c) {
-                                                var confirmation = new companyconfirmation(conf.companyId, conf.verified, conf.timestamp, conf.signature);
-                                                confirmations.push(confirmation);
+                                                case 3:
+                                                    switch (tr.subtype) {
+                                                        case 0:
+                                                            tr.asset = app.companyprocessor.fromJSON(t.asset);
+                                                            break;
+                                                    }
+                                                    break;
+                                            }
+
+                                            transactions.push(tr);
+                                            _c();
+                                        }, function (err) {
+                                            if (err) {
+                                                return c(err);
+                                            }
+
+                                            b.transactions = transactions;
+
+                                            var requests = [];
+                                            async.eachSeries(item.requests, function (r, _c) {
+                                                var request = new requestconfirmation(r.address);
+                                                request.blockId = r.blockId;
+                                                requests.push(request);
                                                 _c();
-                                            }, function () {
-                                                b.confirmations = confirmations;
-
-                                                if (app.blockchain.getLastBlock().getId() == b.previousBlock) {
-                                                    var buffer = b.getBytes();
-
-                                                    for (var t in transactions) {
-                                                        buffer = Buffer.concat([buffer, transactions[t].getBytes()]);
-                                                    }
-
-                                                    for (var i = 0; i < requests.length; i++) {
-                                                        buffer = Buffer.concat([buffer, requests[i].getBytes()]);
-                                                    }
-
-                                                    for (var i = 0; i < confirmations.length; i++) {
-                                                        buffer = Buffer.concat([buffer, confirmations[i].getBytes()]);
-                                                    }
-
-                                                    var a = false;
-
-                                                    try {
-                                                        a = app.blockchain.pushBlock(buffer, false, false);
-                                                    } catch (e) {
-                                                        app.peerprocessor.blockPeer(p.ip);
-                                                        return c(true);
-                                                    }
-
-                                                    if (a) {
-                                                        lastAdded = b.getId();
-                                                    }
-
-                                                    blockId = b.getId();
-                                                    c();
-                                                } else if (!app.blockchain.blocks[b.getId()]) {
-                                                    blockId = b.getId();
-                                                    forks.push(b);
-                                                    c();
-                                                } else {
-                                                    lastAdded = b.getId();
-                                                    blockId = b.getId();
-                                                    c();
+                                            }.bind(this), function (err) {
+                                                if (err) {
+                                                    return _c(err);
                                                 }
+
+                                                b.requests = requests;
+
+                                                var confirmations = [];
+                                                async.eachSeries(item.confirmations, function (conf, _c) {
+                                                    var confirmation = new companyconfirmation(conf.companyId, conf.verified, conf.timestamp, conf.signature);
+                                                    confirmations.push(confirmation);
+                                                    _c();
+                                                }, function () {
+                                                    b.confirmations = confirmations;
+
+                                                    if (app.blockchain.getLastBlock().getId() == b.previousBlock) {
+                                                        var buffer = b.getBytes();
+
+                                                        for (var t in transactions) {
+                                                            buffer = Buffer.concat([buffer, transactions[t].getBytes()]);
+                                                        }
+
+                                                        var i = 0;
+                                                        for (i = 0; i < requests.length; i++) {
+                                                            buffer = Buffer.concat([buffer, requests[i].getBytes()]);
+                                                        }
+
+                                                        for (i = 0; i < confirmations.length; i++) {
+                                                            buffer = Buffer.concat([buffer, confirmations[i].getBytes()]);
+                                                        }
+
+                                                        var a = false;
+
+                                                        try {
+                                                            a = app.blockchain.pushBlock(buffer, true, false, false);
+                                                        } catch (e) {
+                                                            app.peerprocessor.blockPeer(p.ip);
+                                                            return c(true);
+                                                        }
+
+                                                        if (a) {
+                                                            lastAdded = b.getId();
+                                                        }
+
+                                                        blockId = b.getId();
+                                                        c();
+                                                    } else if (!app.blockchain.blocks[b.getId()]) {
+                                                        blockId = b.getId();
+                                                        forks.push(b);
+                                                        c();
+                                                    } else {
+                                                        lastAdded = b.getId();
+                                                        blockId = b.getId();
+                                                        c();
+                                                    }
+                                                });
                                             });
                                         });
+                                    }, function (err) {
+                                        if (err) {
+                                            return next(true);
+                                        } else if (json.blocks.length === 0) {
+                                            return next(true);
+                                        } else {
+                                            return next();
+                                        }
                                     });
-                                }, function (err) {
+                                } else {
+                                    return next(true);
+                                }
+                            }
+                        });
+                    }, function () {
+                        cb({ forks: forks, lastBlock: lastAdded });
+                    });
+                };
+
+                p.getWeight(function (err, json) {
+                    if (err) {
+                        p.isNat = true;
+                        blocksInterval = false;
+                    } else if (json.success && json.weight) {
+                        if (app.blockchain.getWeight().lt(bignum(json.weight))) {
+                            var commonBlockId = genesisblock.blockId;
+
+                            if (app.blockchain.getLastBlock().getId() != commonBlockId) {
+                                app.blockchain.getMilestoneBlockId(p, function (err, blockId) {
                                     if (err) {
-                                        return next(true);
-                                    } else if (json.blocks.length == 0) {
-                                        return next(true);
+                                        blocksInterval = false;
                                     } else {
-                                        return next();
+                                        commonBlockId = blockId;
+                                        getCommonBlock(commonBlockId, p, function (err, blockId) {
+                                            if (err) {
+                                                blocksInterval = false;
+                                            } else {
+                                                commonBlockId = blockId;
+                                                loadBlocks(commonBlockId, function (result) {
+                                                    var forks = result.forks,
+                                                        commonBlockId = result.lastBlock;
+
+                                                    if (forks.length > 0) {
+                                                        app.synchronizedBlocks = false;
+                                                        app.logger.info("Process fork...");
+                                                        app.blockchain.processFork(p, forks, commonBlockId, function () {
+                                                            app.synchronizedBlocks = true;
+                                                            blocksInterval = false;
+                                                        });
+                                                    } else {
+                                                        blocksInterval = false;
+                                                        app.synchronizedBlocks = true;
+                                                    }
+                                                });
+                                            }
+                                        });
                                     }
                                 });
                             } else {
-                                return next(true);
-                            }
-                        }
-                    });
-                }, function () {
-                    cb({ forks : forks, lastBlock : lastAdded });
-                });
-            }
+                                getCommonBlock(commonBlockId, p, function (err, blockId) {
+                                    if (err) {
+                                        blocksInterval = false;
+                                    } else {
+                                        commonBlockId = blockId;
+                                        loadBlocks(commonBlockId, function (result) {
+                                            var forks = result.forks,
+                                                commonBlockId = result.lastBlock;
 
-            p.getWeight(function (err, json) {
-                if (err) {
-                    p.isNat = true;
-                    blocksInterval = false;
-                } else if (json.success && json.weight) {
-                    if (app.blockchain.getWeight().lt(bignum(json.weight))) {
-                        var commonBlockId = genesisblock.blockId;
 
-                        if (app.blockchain.getLastBlock().getId() != commonBlockId) {
-                            app.blockchain.getMilestoneBlockId(p, function (err, blockId) {
-                                if (err) {
-                                    blocksInterval = false;
-                                } else {
-                                    commonBlockId = blockId;
-                                    getCommonBlock(commonBlockId, p, function (err, blockId) {
-                                        if (err) {
-                                            blocksInterval = false;
-                                        } else {
-                                            commonBlockId = blockId;
-                                            loadBlocks(commonBlockId, function (result) {
-                                                var forks = result.forks,
-                                                    commonBlockId = result.lastBlock;
-
-                                                if (forks.length > 0) {
-                                                    app.synchronizedBlocks = false;
-                                                    app.logger.info("Process fork...");
-                                                    app.blockchain.processFork(p, forks, commonBlockId, function () {
-                                                        app.synchronizedBlocks = true;
-                                                        blocksInterval = false;
-                                                    });
-                                                } else {
+                                            if (forks.length > 0) {
+                                                app.synchronizedBlocks = false;
+                                                app.logger.info("Process fork...");
+                                                app.blockchain.processFork(p, forks, commonBlockId, function () {
                                                     blocksInterval = false;
                                                     app.synchronizedBlocks = true;
-                                                }
-                                            });
-                                        }
-                                    });
-                                }
-                            });
-                        } else {
-                            getCommonBlock(commonBlockId, p, function (err, blockId) {
-                                if (err) {
-                                    blocksInterval = false;
-                                } else {
-                                    commonBlockId = blockId;
-                                    loadBlocks(commonBlockId, function (result) {
-                                        var forks = result.forks,
-                                            commonBlockId = result.lastBlock;
-
-
-                                        if (forks.length > 0) {
-                                            app.synchronizedBlocks = false;
-                                            app.logger.info("Process fork...");
-                                            app.blockchain.processFork(p, forks, commonBlockId, function () {
+                                                });
+                                            } else {
                                                 blocksInterval = false;
                                                 app.synchronizedBlocks = true;
-                                            });
-                                        } else {
-                                            blocksInterval = false;
-                                            app.synchronizedBlocks = true;
-                                        }
-                                    });
-                                }
-                            });
+                                            }
+                                        });
+                                    }
+                                });
+                            }
+                        } else {
+                            app.synchronizedBlocks = true;
+                            blocksInterval = false;
                         }
                     } else {
                         app.synchronizedBlocks = true;
                         blocksInterval = false;
                     }
-                } else {
-                    app.synchronizedBlocks = true;
-                    blocksInterval = false;
-                }
-            });
+                });
+            } catch (e) {
+                blocksInterval = false;
+            }
         }, 1000 * 15);
 
 
         var unconfirmedTransactonsInterval = false;
         setInterval(function () {
-            if (unconfirmedTransactonsInterval || !app.synchronizedBlocks) {
-                return;
-            }
-
-            unconfirmedTransactonsInterval = true;
-            var p = app.peerprocessor.getAnyPeer();
-            var finished = true;
-
-            app.logger.info("Process unconfirmed transactions...");
-            async.whilst(function (_break) {
-                if (_break) return false; return p;
-            }, function (next) {
-                p.getUnconfirmedTransactions(function (err, trs) {
-                    if (err) {
-                        p.isNat = true;
-                        p = app.peerprocessor.getAnyPeer();
-                        next(true);
-                    } else {
-                        var answer = null;
-
-                        try {
-                            answer = JSON.parse(trs);
-                        } catch (e) {
-                            p = app.peerprocessor.getAnyPeer();
-                            return next(true);
-                        }
-
-                        if (answer.success) {
-                            async.eachSeries(answer.transactions, function (t, cb) {
-                                var tr = new transaction(t.type, t.id, t.timestamp, t.senderPublicKey, t.recipientId, t.amount, t.signature);
-
-
-                                if (t.signSignature) {
-                                    tr.signSignature = new Buffer(t.signSignature);
-                                }
-
-
-                                if (app.transactionprocessor.getUnconfirmedTransaction(tr.getId()) != null) {
-                                    return cb();
-                                }
-
-                                switch (tr.type) {
-                                    case 2:
-                                        switch (tr.subtype) {
-                                            case 0:
-                                                tr.asset = app.signatureprocessor.fromJSON(t.asset);
-                                                break;
-                                        }
-                                        break;
-
-                                    case 3:
-                                        switch (tr.subtype) {
-                                            case 0:
-                                                tr.asset = app.companyprocessor.fromJSON(t.asset);
-                                                break;
-                                        }
-                                        break;
-                                }
-
-                                try {
-                                    var r = app.transactionprocessor.processTransaction(tr);
-                                } catch (e) {
-                                    app.peerprocessor.blockPeer(p.ip);
-                                    r = false;
-                                }
-
-                                if (r) {
-                                    cb();
-                                } else {
-                                    cb("Can't process transaction " + tr.getId() + " from " + p.ip);
-                                }
-                            }, function (err) {
-                                if (err) {
-                                    p = app.peerprocessor.getAnyPeer();
-                                    return next(true);
-                                }
-
-                                next(true);
-                            });
-                        } else {
-                            p = app.peerprocessor.getAnyPeer();
-                            return next(true);
-                        }
-                    }
-                });
-            }, function () {
-                if (p) {
-                    app.logger.info("Unconfirmed transactions processed from " + p.ip);
+            try {
+                if (unconfirmedTransactonsInterval || !app.synchronizedBlocks) {
+                    return;
                 }
-                unconfirmedTransactonsInterval = false;
-            });
-        }, 1000 * 3);
 
+                unconfirmedTransactonsInterval = true;
+                var p = app.peerprocessor.getAnyPeer();
+                var finished = true;
+
+                app.logger.info("Process unconfirmed transactions...");
+                async.whilst(function (_break) {
+                    if (_break) return false;
+                    return !!p;
+                }, function (next) {
+                    p.getUnconfirmedTransactions(function (err, trs) {
+                        if (err) {
+                            p.isNat = true;
+                            p = app.peerprocessor.getAnyPeer();
+                            next(true);
+                        } else {
+                            var answer = null;
+
+                            try {
+                                answer = JSON.parse(trs);
+                            } catch (e) {
+                                p = app.peerprocessor.getAnyPeer();
+                                return next(true);
+                            }
+
+                            if (answer.success) {
+                                async.eachSeries(answer.transactions, function (t, cb) {
+                                    var tr = new transaction(t.type, t.id, t.timestamp, t.senderPublicKey, t.recipientId, t.amount, t.signature);
+
+
+                                    if (t.signSignature) {
+                                        tr.signSignature = new Buffer(t.signSignature);
+                                    }
+
+
+                                    if (app.transactionprocessor.getUnconfirmedTransaction(tr.getId()) !== null) {
+                                        return cb();
+                                    }
+
+                                    switch (tr.type) {
+                                        case 2:
+                                            switch (tr.subtype) {
+                                                case 0:
+                                                    tr.asset = app.signatureprocessor.fromJSON(t.asset);
+                                                    break;
+                                            }
+                                            break;
+
+                                        case 3:
+                                            switch (tr.subtype) {
+                                                case 0:
+                                                    tr.asset = app.companyprocessor.fromJSON(t.asset);
+                                                    break;
+                                            }
+                                            break;
+                                    }
+
+                                    var r = false;
+
+                                    try {
+                                        r = app.transactionprocessor.processTransaction(tr);
+                                    } catch (e) {
+                                        app.peerprocessor.blockPeer(p.ip);
+                                        r = false;
+                                    }
+
+                                    if (r) {
+                                        cb();
+                                    } else {
+                                        cb("Can't process transaction " + tr.getId() + " from " + p.ip);
+                                    }
+                                }, function (err) {
+                                    if (err) {
+                                        p = app.peerprocessor.getAnyPeer();
+                                        return next(true);
+                                    }
+
+                                    next(true);
+                                });
+                            } else {
+                                p = app.peerprocessor.getAnyPeer();
+                                return next(true);
+                            }
+                        }
+                    });
+                }, function () {
+                    if (p) {
+                        app.logger.info("Unconfirmed transactions processed from " + p.ip);
+                    }
+                    unconfirmedTransactonsInterval = false;
+                });
+            } catch (e) {
+                unconfirmedTransactonsInterval = false;
+            }
+        }, 1000 * 3);
 
         cb();
     }
@@ -868,19 +956,22 @@ async.series([
         logger.getInstance().info("Crypti stopped!");
         logger.getInstance().error("Error: " + err);
     } else {
-        app.listen(app.get('port'), app.get('address'), function () {
-            logger.getInstance().info("Crypti started: " + app.get("address") + ":" + app.get("port"));
-            console.log("Crypti started: " + app.get("address") + ":" + app.get("port"));
-
-            if (config.get("serveHttpAPI")) {
-                routes(app);
+        for (var i = 0; i < app.routes.get.length; i++) {
+            var route = app.routes.get[i];
+            if (route.path == '*') {
+                app.routes.get.splice(i, 1);
+                break;
             }
+        }
 
-            peerRoutes(app);
+        if (config.get("serveHttpAPI")) {
+            routes(app);
+        }
 
-            app.get("*", function (req, res) {
-                res.redirect('/');
-            });
+        peerRoutes(app);
+
+        app.get("*", function (req, res) {
+            res.redirect('/');
         });
     }
 });

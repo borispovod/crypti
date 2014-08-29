@@ -10,7 +10,8 @@ var crypto = require('crypto'),
     genesisblock = require("../block").genesisblock,
     companyconfirmation = require("../company").companyconfirmation,
     requestconfirmation = require("../request").requestconfirmation,
-    http = require('http');
+    http = require('http'),
+    requestHttp = require('request');
 
 var forger = function (accountId, publicKey, secretPharse) {
     this.accountId = accountId;
@@ -31,36 +32,23 @@ forger.prototype.setApp = function (app) {
 }
 
 forger.prototype.checkCompany = function (company, cb) {
-    var getOptions = {
-        hostname: company.domain,
-        port: 80,
-        path: '/cryptixcr.txt'
-    };
+    requestHttp({
+        url: "http://" + company.domain + "/cryptixcr.txt",
+        headers: {
+            'User-Agent': 'Crypti Agent'
+        },
+        timeout : 3000
+    }, function (err, resp, body) {
+        if (err) {
+            cb(false);
+        }
 
-    var timeout = null;
-
-    var r = http.get(getOptions, function (response) {
-        var data = "";
-        response.on("data", function(body) {
-            clearTimeout(timeout);
-            data += body;
-        });
-        response.on('end', function () {
-            data = data.replace(/^\s+|\s+$/g,"");
-            if (data != company.signature.toString('base64')) {
-                cb(false);
-             } else {
-                cb(true);
-            }
-        });
-    });
-
-    timeout = setTimeout(function () {
-        r.abort();
-    }, 3000);
-
-    r.on('error', function (err) {
-        cb(false);
+        var data = body.replace(/^\s+|\s+$/g, "");
+        if (data != company.signature.toString('base64')) {
+            cb(false);
+        } else {
+            cb(true);
+        }
     });
 }
 
@@ -506,7 +494,7 @@ forger.prototype.startForge = function () {
                 }
 
                 try {
-                    var result = this.blockchain.pushBlock(buffer, true, true);
+                    var result = this.blockchain.pushBlock(buffer, true, true, true);
                 } catch (e) {
                     result = null;
                     this.app.logger.error(e.toString());

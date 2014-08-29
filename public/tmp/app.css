@@ -620,6 +620,12 @@ span.menu-text {
   font-size: 13px;
   color: #939495;
 }
+.loading {
+  text-align: center;
+}
+.loading h3 {
+  color: #939495;
+}
 .modal {
   width: 100%;
   height: 100%;

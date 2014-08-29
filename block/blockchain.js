@@ -181,7 +181,7 @@ blockchain.prototype.processFork = function (peer, forks, commonBlock, cb) {
                     buffer = Buffer.concat([buffer, b.confirmations[j].getBytes()]);
                 }
 
-                var a = this.pushBlock(buffer, false, false);
+                var a = this.pushBlock(buffer, true, false, false);
 
                 if (a) {
                     pushedBlocks += 1;
@@ -486,7 +486,7 @@ blockchain.prototype.getFee = function (transaction) {
 }
 
 
-blockchain.prototype.pushBlock = function (buffer, sendToPeers, checkRequests) {
+blockchain.prototype.pushBlock = function (buffer, saveToDb, sendToPeers, checkRequests) {
     this.logger.info("Processing new block...");
     var bb = ByteBuffer.wrap(buffer, true);
     bb.flip();
@@ -1052,39 +1052,42 @@ blockchain.prototype.pushBlock = function (buffer, sendToPeers, checkRequests) {
     this.logger.info("Block processed: " + b.getId());
 
     // save block, transactions, addresses to db.
-    this.app.db.writeBlock(b);
 
-    for (var i = 0; i < b.transactions.length; i++) {
-        b.transactions[i].sender = this.app.accountprocessor.getAccountByPublicKey(b.transactions[i].senderPublicKey).address;
+    if (saveToDb) {
+        this.app.db.writeBlock(b);
 
-        this.app.db.writeTransaction(b.transactions[i]);
+        for (var i = 0; i < b.transactions.length; i++) {
+            b.transactions[i].sender = this.app.accountprocessor.getAccountByPublicKey(b.transactions[i].senderPublicKey).address;
 
-        switch (b.transactions[i].type) {
-            case 2:
-                switch (b.transactions[i].subtype) {
-                    case 0:
-                        this.app.db.writeSignature(b.transactions[i].asset);
-                        break;
-                }
-                break;
+            this.app.db.writeTransaction(b.transactions[i]);
 
-            case 3:
-                switch (b.transactions[i].subtype) {
-                    case 0:
-                        this.app.db.writeCompany(b.transactions[i].asset);
-                        break;
-                }
-                break;
+            switch (b.transactions[i].type) {
+                case 2:
+                    switch (b.transactions[i].subtype) {
+                        case 0:
+                            this.app.db.writeSignature(b.transactions[i].asset);
+                            break;
+                    }
+                    break;
+
+                case 3:
+                    switch (b.transactions[i].subtype) {
+                        case 0:
+                            this.app.db.writeCompany(b.transactions[i].asset);
+                            break;
+                    }
+                    break;
+            }
         }
-    }
 
 
-    for (var r in b.requests) {
-        this.app.db.writePeerRequest(b.requests[r]);
-    }
+        for (var r in b.requests) {
+            this.app.db.writePeerRequest(b.requests[r]);
+        }
 
-    for (var i = 0; i < b.confirmations.length; i++) {
-        this.app.db.writeCompanyConfirmation(b.confirmations[i]);
+        for (var i = 0; i < b.confirmations.length; i++) {
+            this.app.db.writeCompanyConfirmation(b.confirmations[i]);
+        }
     }
 
     this.app.requestprocessor.unconfirmedRequests = {};

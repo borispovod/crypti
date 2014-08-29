@@ -8,7 +8,7 @@ var crypto = require('crypto'),
     constants = require('../Constants.js');
 
 module.exports = function (app) {
-    app.post("/api/unlock", function (req, res) {
+    app.post("/api/unlock", app.basicAuth, function (req, res) {
         try {
             var secretPharse = req.body.secret || "",
                 startForging = false;
@@ -99,7 +99,7 @@ module.exports = function (app) {
         }
     });
 
-    app.get("/api/getBalance", function (req, res) {
+    app.get("/api/getBalance", app.basicAuth, function (req, res) {
         try {
             var address = req.query.address || "";
 
@@ -144,7 +144,7 @@ module.exports = function (app) {
     });
 
 
-    app.get("/api/getPublicKey", function (req, res) {
+    app.get("/api/getPublicKey", app.basicAuth, function (req, res) {
         try {
             var secretPharse = req.query.secret || "";
 
@@ -163,7 +163,7 @@ module.exports = function (app) {
         }
     });
 
-    app.get("/api/getAddress", function (req, res) {
+    app.get("/api/getAddress", app.basicAuth, function (req, res) {
         try {
             var secretPharse = req.query.secret || "";
 
@@ -189,7 +189,7 @@ module.exports = function (app) {
         }
     });
 
-    app.get('/api/getAddressByPublicKey', function (req, res) {
+    app.get('/api/getAddressByPublicKey', app.basicAuth, function (req, res) {
         try {
             var publicKey = req.query.publicKey || "";
 
@@ -213,7 +213,7 @@ module.exports = function (app) {
         }
     });
 
-    app.all("/api/addPassphrase", function (req, res) {
+    app.all("/api/addPassphrase", app.basicAuth, function (req, res) {
         try {
             var secretPhrase = req.query.secret || req.body.secret || null,
                 newPhrase = req.query.secondSecret || req.body.secondSecret || null,
@@ -263,7 +263,7 @@ module.exports = function (app) {
         }
     });
 
-    app.post("/api/sendFunds", function (req, res) {
+    app.post("/api/sendFunds", app.basicAuth, function (req, res) {
         try {
             var secretPharse = req.body.secret,
                 amount = req.body.amount,
@@ -378,7 +378,7 @@ module.exports = function (app) {
         }
     });
 
-    app.get("/api/getFee", function (req, res) {
+    app.get("/api/getFee", app.basicAuth, function (req, res) {
         return res.json ({ success : true, fee : app.blockchain.fee, statusCode : "OK" });
     });
 }

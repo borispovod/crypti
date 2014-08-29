@@ -40,7 +40,7 @@ module.exports = function (app) {
         return fee;
     }
 
-    app.get("/api/getBlock", function (req, res) {
+    app.get("/api/getBlock", app.basicAuth, function (req, res) {
         try {
             var blockId = req.query.blockId || "";
 
@@ -89,7 +89,7 @@ module.exports = function (app) {
         }
     });
 
-    app.get("/api/getTransaction", function (req, res) {
+    app.get("/api/getTransaction", app.basicAuth, function (req, res) {
         try {
             var transactionId = req.query.transactionId || "";
 
@@ -133,7 +133,7 @@ module.exports = function (app) {
         }
     });
 
-    app.get("/api/getTransactionBlock", function (req, res) {
+    app.get("/api/getTransactionBlock", app.basicAuth, function (req, res) {
         try {
             var transactionId = req.query.transactionId || "";
 
@@ -161,7 +161,7 @@ module.exports = function (app) {
         }
     });
 
-    app.get("/api/getTransactionConfirmations", function (req, res) {
+    app.get("/api/getTransactionConfirmations", app.basicAuth, function (req, res) {
         try {
             var transactionId = req.query.transactionId || "";
 
@@ -189,7 +189,7 @@ module.exports = function (app) {
         }
     });
 
-    app.get('/api/getAddressTransactions', function (req, res) {
+    app.get('/api/getAddressTransactions', app.basicAuth, function (req, res) {
         try {
             var accountId = req.query.address || 20,
                 limit = req.query.limit || "",
@@ -286,7 +286,7 @@ module.exports = function (app) {
         }
     });
 
-    app.get("/api/getReceivedTransactionsByAddress", function (req, res) {
+    app.get("/api/getReceivedTransactionsByAddress", app.basicAuth, function (req, res) {
         try {
             var accountId = req.query.address || "";
             var q = app.db.sql.prepare("SELECT * FROM trs WHERE recipient = ? ORDER BY timestamp");
@@ -330,7 +330,7 @@ module.exports = function (app) {
         }
     });
 
-    app.get("/api/getSentTransactionsByAddress", function (req, res) {
+    app.get("/api/getSentTransactionsByAddress", app.basicAuth, function (req, res) {
         try {
             var accountId = req.query.address || "";
 
@@ -380,7 +380,7 @@ module.exports = function (app) {
         }
     });
 
-    app.get('/api/getMiningInfo', function (req, res) {
+    app.get('/api/getMiningInfo', app.basicAuth, function (req, res) {
         try {
             var publicKey = new Buffer(req.query.publicKey, 'hex') || "",
                 limit = req.query.limit || 20,
@@ -571,7 +571,7 @@ module.exports = function (app) {
         }
     });
 
-    app.get('/api/getNextBlocks', function (req, res) {
+    app.get('/api/getNextBlocks', app.basicAuth, function (req, res) {
         try {
             var blockId = req.query.blockId || "",
                 limit = req.query.limit || 20;
@@ -658,7 +658,7 @@ module.exports = function (app) {
         }
     });
 
-    app.get('/api/getLastBlocks', function (req, res) {
+    app.get('/api/getLastBlocks', app.basicAuth, function (req, res) {
         try {
             var limit = req.query.limit || 20,
                 orderDesc = req.query.orderDesc || false;
@@ -712,7 +712,7 @@ module.exports = function (app) {
         }
     });
 
-    app.get('/api/lastBlock', function (req, res) {
+    app.get('/api/lastBlock', app.basicAuth, function (req, res) {
         try {
             app.db.sql.all("SELECT * FROM blocks ORDER BY height DESC LIMIT 1", function (err, rows) {
                 if (err) {

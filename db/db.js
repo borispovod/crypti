@@ -1,10 +1,9 @@
 var sqlite3 = require('sqlite3').verbose(),
-    path = require('path');
-    sql = new sqlite3.Database(path.join(__dirname, "..", "blockchain.db")),
+    path = require('path'),
     async = require('async');
 
-var db = function (sql) {
-    this.sql = sql;
+var db = function (path) {
+    this.sql = new sqlite3.Database(path);
 }
 
 db.prototype.deleteBlock = function (b) {
@@ -237,8 +236,8 @@ db.prototype.writeCompanyConfirmation = function (confirmation, callback) {
     }.bind(this));
 }
 
-module.exports.initDb = function (callback) {
-    var d = new db(sql);
+module.exports.initDb = function (path, callback) {
+    var d = new db(path);
 
     d.sql.serialize(function () {
         async.series([

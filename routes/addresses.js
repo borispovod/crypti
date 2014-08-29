@@ -5,10 +5,10 @@ var ed  = require('ed25519'),
     company = require("../company").company,
     transaction = require("../transactions").transaction,
     utils = require("../utils.js"),
-    http = require('http');
+    request = require('request');
 
 module.exports = function (app) {
-    app.post("/api/getToken", function (req, res) {
+    app.post("/api/getToken", app.basicAuth, function (req, res) {
         try {
             var secret = req.body.secret || "",
                 accountAddress = req.body.accountAddress || "",
@@ -69,7 +69,7 @@ module.exports = function (app) {
         }
     });
 
-    app.post("/api/createCompany", function (req, res) {
+    app.post("/api/createCompany", app.basicAuth, function (req, res) {
         try {
             var secret = req.body.secret || "",
                 accountAddress = req.body.accountAddress || "",
@@ -126,7 +126,58 @@ module.exports = function (app) {
 
             var timeout = null;
 
-            var r = http.get(getOptions, function (response) {
+            request({
+                url: "http://" + c.domain + "/cryptixcr.txt",
+                headers: {
+                    'User-Agent': 'Crypti Agent'
+                },
+                timeout : 3000
+            }, function (err, resp, body) {
+                if (err) {
+                    return res.json({ status: "CANT_GET_CRYPTIXCR_FILE", success: false, error: "Check you website address, can't get http response" });
+                }
+
+                var data = body.replace(/^\s+|\s+$/g, "");
+                if (data != c.signature.toString('base64')) {
+                    return res.json({ status: "INVALID_KEY_IN_CRYPTIXCR_FILE", success: false, error: "Please check your cryptixcr.txt file. The token appears to be invalid." });
+                } else {
+                    var sender = app.accountprocessor.getAccountByPublicKey(keypair.publicKey);
+
+                    if (!sender) {
+                        return res.json({ success: false, error: "Sender not found", status: "SENDER_NOT_FOUND"});
+                    }
+
+                    var t = new transaction(3, null, utils.getEpochTime(new Date().getTime()), keypair.publicKey, null, 0, null);
+                    t.asset = c;
+                    t.sign(secret);
+
+                    var signature = app.signatureprocessor.getSignatureByAddress(sender.address);
+
+                    if (signature) {
+                        if (!secondPhrase) {
+                            return res.json({ success: false, error: "Provide second secret phrase", statusCode: "PROVIDE_SECOND_PASSPHRASE" });
+                        }
+
+                        var secondHash = crypto.createHash('sha256').update(secondPhrase, 'utf8').digest();
+                        var secondKeypair = ed.MakeKeypair(secondHash);
+
+                        if (signature.publicKey.toString('hex') != secondKeypair.publicKey.toString('hex')) {
+                            return res.json({ success: false, error: "Second signature not valid", statusCode: "INVALID_SECOND_PASSPHRASE" });
+                        }
+
+                        t.signSignatureGeneration(secondPhrase);
+                    }
+
+                    var result = app.transactionprocessor.processTransaction(t, true);
+                    if (result) {
+                        return res.json({ success: true, transactionId: t.getId(), status: "OK" });
+                    } else {
+                        return res.json({ success: false, error: "This domain for company already added", status: "DOMAIN_ALREADY_ADDED" });
+                    }
+                }
+            });
+
+            /*var r = http.get(getOptions, function (response) {
                 var data = "";
                 response.on("data", function (body) {
                     clearTimeout(timeout);
@@ -135,43 +186,7 @@ module.exports = function (app) {
                 response.on('end', function () {
                     data = data.replace(/^\s+|\s+$/g, "");
 
-                    if (data != c.signature.toString('base64')) {
-                        return res.json({ status: "INVALID_KEY_IN_CRYPTIXCR_FILE", success: false, error: "Please check your cryptixcr.txt file. The token appears to be invalid." });
-                    } else {
-                        var sender = app.accountprocessor.getAccountByPublicKey(keypair.publicKey);
 
-                        if (!sender) {
-                            return res.json({ success: false, error: "Sender not found", status: "SENDER_NOT_FOUND"});
-                        }
-
-                        var t = new transaction(3, null, utils.getEpochTime(new Date().getTime()), keypair.publicKey, null, 0, null);
-                        t.asset = c;
-                        t.sign(secret);
-
-                        var signature = app.signatureprocessor.getSignatureByAddress(sender.address);
-
-                        if (signature) {
-                            if (!secondPhrase) {
-                                return res.json({ success: false, error: "Provide second secret phrase", statusCode: "PROVIDE_SECOND_PASSPHRASE" });
-                            }
-
-                            var secondHash = crypto.createHash('sha256').update(secondPhrase, 'utf8').digest();
-                            var secondKeypair = ed.MakeKeypair(secondHash);
-
-                            if (signature.publicKey.toString('hex') != secondKeypair.publicKey.toString('hex')) {
-                                return res.json({ success: false, error: "Second signature not valid", statusCode: "INVALID_SECOND_PASSPHRASE" });
-                            }
-
-                            t.signSignatureGeneration(secondPhrase);
-                        }
-
-                        var result = app.transactionprocessor.processTransaction(t, true);
-                        if (result) {
-                            return res.json({ success: true, transactionId: t.getId(), status: "OK" });
-                        } else {
-                            return res.json({ success: false, error: "This domain for company already added", status: "DOMAIN_ALREADY_ADDED" });
-                        }
-                    }
                 });
             });
 
@@ -181,7 +196,7 @@ module.exports = function (app) {
 
             r.on('error', function (err) {
                 return res.json({ status: "CANT_GET_CRYPTIXCR_FILE", success: false, error: "Check your cryptixcr.txt file on your domain" });
-            });
+            });*/
         } catch (e) {
             app.logger.error("Exception, notify developers: ");
             app.logger.error(e);
