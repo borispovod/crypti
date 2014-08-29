@@ -218,33 +218,61 @@ companyprocessor.prototype.domainExists = function (domain) {
 
 companyprocessor.prototype.checkCompanyData = function (company) {
     if (company.name.length <= 0 || company.name.length > 16) {
+        this.app.logger.error("Invalid company name length: " + company.name);
         return false;
     }
 
     if (company.domain.length <= 0 || company.domain.length > 256) {
+        this.app.logger.error("Invalid company domain length: " + company.domain);
         return false;
     }
 
-    var domainRe = /^(?!:\/\/)([a-zA-Z0-9]+\.)?[a-zA-Z0-9][a-zA-Z0-9-]+\.[a-zA-Z]{2,6}?$/i;
+    var domainRe = new RegExp(/^((?:(?:(?:\w[\.\-\+]?)*)\w)+)((?:(?:(?:\w[\.\-\+]?){0,62})\w)+)\.(\w{2,6})$/);
     var emailRe = /^(([^<>()[\]\\.,;:\s@\"]+(\.[^<>()[\]\\.,;:\s@\"]+)*)|(\".+\"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
 
-    if (!domainRe.test(company.domain)) {
+    if (!company.domain.match(domainRe)) {
+        this.app.logger.error("Invalid domain: " + company.domain);
         return false;
     }
 
     if (!emailRe.test(company.email)) {
+        this.app.logger.error("Invalid email: " + company.email);
         return false;
     }
 
     if (company.email.length > 254) {
+        this.app.logger.error("Invalid email length: " + company.email);
         return false;
     }
 
+    var domain = company.domain;
     var domainPart = company.email.split("@")[1];
 
-    if (domainPart != company.domain) {
-        return false;
+    var lastChar, numberOfDots, found = false;
+
+    for (var i = domain.length - 1; i >= 0; i--) {
+        if (!domainPart[i]) {
+            break;
+        }
+
+        if (domainPart[i] != domain[i] && domain[i] == '.') {
+            found = true;
+            break;
+        } else if (domainPart[i] != domain[i]) {
+            break;
+        }
+
+        if (domain[i] == '.') {
+            numberOfDots++;
+        }
+
+        lastChar = domainPart[i];
     }
+
+    /*if (numberOfDots < 1 || found != true) {
+        this.app.logger.error("Invalid domain of email: " + company.email);
+        return false;
+    }*/
 
     return true;
 }
