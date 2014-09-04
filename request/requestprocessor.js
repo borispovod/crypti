@@ -128,12 +128,12 @@ requestprocessor.prototype.processRequest = function (request, send) {
     }
 
     if (this.unconfirmedRequests[account.address]) {
-        this.app.logger.warn("Request already added: " + request.getId() + "/" + account.address);
+        this.app.logger.debug("Request already added: " + request.getId() + "/" + account.address);
         return false;
     }
 
     if (this.ips.indexOf(request.ip) >= 0) {
-        this.app.logger.warn("IP " + request.ip + " already used for: " + account.address);
+        this.app.logger.debug("IP " + request.ip + " already used for: " + account.address);
         return false;
     }
 

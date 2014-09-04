@@ -6,7 +6,6 @@ var crypto = require('crypto'),
     account = require("../account").account,
     constants = require("../Constants.js"),
     ByteBuffer = require("bytebuffer"),
-    bufferEqual = require('buffer-equal'),
     utils = require('../utils.js');
 
 var block = function (version, id, timestamp, previousBlock, transactions, totalAmount, totalFee, payloadLength, payloadHash, generatorPublicKey, generationSignature, blockSignature) {
@@ -63,6 +62,10 @@ block.prototype.setApp = function (app) {
 block.prototype.toJSON = function () {
     var obj = _.extend({}, this);
 
+    obj.app = null;
+    obj.blockchain = null;
+    obj.accountprocessor = null;
+    obj.logger = null;
     delete obj.app;
     delete obj.blockchain;
     delete obj.accountprocessor;
@@ -176,6 +179,7 @@ block.prototype.analyze = function () {
                     case 0:
                         var company = t.asset;
                         company.blocks = 1;
+                        this.app.companyprocessor.unconfirmedCompanies[company.domain] = null;
                         delete this.app.companyprocessor.unconfirmedCompanies[company.domain];
                         this.app.companyprocessor.addedCompanies[company.domain] = company;
                         this.app.companyprocessor.confirmations[company.domain] = 1;
@@ -456,7 +460,7 @@ block.prototype.verifyGenerationSignature = function () {
                 }
             }
 
-            if (this.app.accountprocessor.getAddressByPublicKey(block.generatorPublicKey) == request.address) {
+            if (block.generatorId == request.address) {
                 break;
             }
 
@@ -488,7 +492,7 @@ block.prototype.verifyGenerationSignature = function () {
     });
 
     if (accounts.length == 0) {
-        this.app.logger.warn("Need accounts for forging...");
+        this.app.logger.debug("Need accounts for forging...");
         this.workingForger = false;
         return false;
     }
@@ -515,7 +519,7 @@ block.prototype.verifyGenerationSignature = function () {
     }
 
     if (sameWeights.length > 1) {
-        this.app.logger.info("Same weight in cyclet: " + sameWeights.length);
+        this.app.logger.debug("Same weight in cyclet: " + sameWeights.length);
 
         var randomWinners = [];
         for (var i = 0; i < sameWeights.length; i++) {
@@ -557,14 +561,16 @@ block.prototype.verifyGenerationSignature = function () {
         return true;
     }
 
-    this.app.logger.debug("Winner in cycle: " + winner.address);
-    this.app.logger.debug(this.app.accountprocessor.getAddressByPublicKey(this.generatorPublicKey));
+    var addr = this.app.accountprocessor.getAddressByPublicKey(this.generatorPublicKey);
 
-    if (this.app.accountprocessor.getAddressByPublicKey(this.generatorPublicKey) == winner.address) {
-        this.app.logger.info("Valid generator " + this.getId());
+
+    this.app.logger.debug("Winner in cycle: " + winner.address);
+
+    if (addr == winner.address) {
+        this.app.logger.debug("Valid generator " + this.getId());
         return true;
     } else {
-        this.app.logger.error("Generator of block not valid: " + winner.address + " / " + this.app.accountprocessor.getAddressByPublicKey(this.generatorPublicKey));
+        this.app.logger.error("Generator of block not valid: " + winner.address + " / " + addr);
         return false;
     }
 }

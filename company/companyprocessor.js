@@ -231,6 +231,7 @@ companyprocessor.prototype.checkCompanyData = function (company) {
     var emailRe = /^(([^<>()[\]\\.,;:\s@\"]+(\.[^<>()[\]\\.,;:\s@\"]+)*)|(\".+\"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
 
     if (!company.domain.match(domainRe)) {
+        console.log(company.domain);
         this.app.logger.error("Invalid domain: " + company.domain);
         return false;
     }
@@ -248,31 +249,26 @@ companyprocessor.prototype.checkCompanyData = function (company) {
     var domain = company.domain;
     var domainPart = company.email.split("@")[1];
 
-    var lastChar, numberOfDots, found = false;
 
-    for (var i = domain.length - 1; i >= 0; i--) {
-        if (!domainPart[i]) {
+    var a = domain.split('.').reverse(), b = domainPart.split('.').reverse();
+    var founds = 0;
+
+    for (var i = 0; i < a.length; i++) {
+        if (!b[i]) {
             break;
         }
 
-        if (domainPart[i] != domain[i] && domain[i] == '.') {
-            found = true;
-            break;
-        } else if (domainPart[i] != domain[i]) {
+        if (b[i] == a[i]) {
+            founds++;
+        } else {
             break;
         }
-
-        if (domain[i] == '.') {
-            numberOfDots++;
-        }
-
-        lastChar = domainPart[i];
     }
 
-    /*if (numberOfDots < 1 || found != true) {
+    if (founds < 2) {
         this.app.logger.error("Invalid domain of email: " + company.email);
         return false;
-    }*/
+    }
 
     return true;
 }

@@ -30,6 +30,7 @@ module.exports = function (grunt) {
                 'routes/transactions.js',
                 'routes/index.js',
                 'routes/transaction.js',
+                'routes/forging.js',
                 'transactions/index.js',
                 'transactions/transactions.js',
                 'transactions/transactionprocessor.js',

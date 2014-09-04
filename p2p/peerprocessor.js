@@ -22,6 +22,9 @@ var peerprocessor = function () {
 
             if (peer.blockedTime + timeToBlock > now) {
                 var copy = _.extend({}, peer);
+                this.blockedPeers[ip] = null;
+                copy.blockedTime = null;
+
                 delete this.blockedPeers[ip];
                 delete copy.blockedTime;
 
