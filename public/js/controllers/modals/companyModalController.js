@@ -13,9 +13,13 @@ webApp.controller('companyModalController', ["$scope", "companyModal", "$http", 
     $scope.createCompany = function () {
         $scope.stopCancel = true;
 
-        var domainRe = /^(?!:\/\/)([a-zA-Z0-9]+\.)?[a-zA-Z0-9][a-zA-Z0-9-]+\.[a-zA-Z]{2,6}?$/i;
+        delete $scope.domainError;
+        delete $scope.emailError;
+        delete $scope.fromServer;
 
-        if (!domainRe.test($scope.domain)) {
+        var domainRe = new RegExp(/^((?:(?:(?:\w[\.\-\+]?)*)\w)+)((?:(?:(?:\w[\.\-\+]?){0,62})\w)+)\.(\w{2,6})$/);
+
+        if (!$scope.domain.match(domainRe)) {
             $scope.domainError = "Provide correct domain name";
         }
 
@@ -25,9 +29,25 @@ webApp.controller('companyModalController', ["$scope", "companyModal", "$http", 
             $scope.emailError = "Provide correct email";
         }
 
-        var emailDomain = $scope.email.split("@")[1];
+        var domain = $scope.domain;
+        var domainPart = $scope.email.split("@")[1];
 
-        if (emailDomain != $scope.domain) {
+        var a = domain.split('.').reverse(), b = domainPart.split('.').reverse();
+        var founds = 0;
+
+        for (var i = 0; i < a.length; i++) {
+            if (!b[i]) {
+                break;
+            }
+
+            if (b[i] == a[i]) {
+                founds++;
+            } else {
+                break;
+            }
+        }
+
+        if (founds < 2) {
             $scope.emailError = "Email must have same domain";
         }
 
@@ -62,9 +82,9 @@ webApp.controller('companyModalController', ["$scope", "companyModal", "$http", 
         delete $scope.emailError;
         delete $scope.fromServer;
 
-        var domainRe = /^(?!:\/\/)([a-zA-Z0-9]+\.)?[a-zA-Z0-9][a-zA-Z0-9-]+\.[a-zA-Z]{2,6}?$/i;
+        var domainRe = new RegExp(/^((?:(?:(?:\w[\.\-\+]?)*)\w)+)((?:(?:(?:\w[\.\-\+]?){0,62})\w)+)\.(\w{2,6})$/);
 
-        if (!domainRe.test($scope.domain)) {
+        if (!$scope.domain.match(domainRe)) {
             $scope.domainError = "Provide correct domain name";
         }
 
@@ -74,9 +94,25 @@ webApp.controller('companyModalController', ["$scope", "companyModal", "$http", 
             $scope.emailError = "Provide correct email";
         }
 
-        var emailDomain = $scope.email.split("@")[1];
+        var domain = $scope.domain;
+        var domainPart = $scope.email.split("@")[1];
 
-        if (emailDomain != $scope.domain) {
+        var a = domain.split('.').reverse(), b = domainPart.split('.').reverse();
+        var founds = 0;
+
+        for (var i = 0; i < a.length; i++) {
+            if (!b[i]) {
+                break;
+            }
+
+            if (b[i] == a[i]) {
+                founds++;
+            } else {
+                break;
+            }
+        }
+
+        if (founds < 2) {
             $scope.emailError = "Email must have same domain";
         }
 

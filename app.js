@@ -1,5 +1,9 @@
 var express = require('express'),
-    config = require('./config'),
+    config = require('./config').config,
+    configFunctions = {
+        readConfig : require("./config").readConfig,
+        writeConfig : require("./config").writeConfig
+    },
     routes = require('./routes'),
     initDb = require('./db').initDb,
     async = require('async'),
@@ -30,7 +34,8 @@ var express = require('express'),
     company = require("./company").company,
     companyconfirmation = require("./company").companyconfirmation,
     requestconfirmation = require("./request").requestconfirmation,
-    crypto = require('crypto');
+    crypto = require('crypto'),
+    doT = require('express-dot');
 
 var app = express();
 
@@ -52,6 +57,28 @@ app.configure(function () {
     app.set('port', config.get('port'));
     app.use(express.bodyParser({limit: '10mb'}));
     app.dbLoaded = false;
+
+    app.set('views', path.join(__dirname, 'public'));
+    app.set('view engine', 'html' );
+    app.engine('html', doT.__express );
+
+    app.writePassphrase = function (passphrase) {
+        try {
+            var jsonString = configFunctions.readConfig();
+
+            var json = json = JSON.parse(jsonString);
+
+            json.forging.secretPhrase = passphrase;
+            jsonString = JSON.stringify(json, null, 4);
+
+            configFunctions.writeConfig(jsonString);
+
+            return true;
+        } catch (e) {
+            app.logger.error("Can't write/read config: " + e);
+            return false;
+        }
+    }
 
     app.api = {
         whiteList : config.get('api').access.whiteList,
@@ -103,9 +130,23 @@ app.configure("development", function () {
 
 async.series([
     function (cb) {
-        logger.init("logs.log", app.get('onlyToFile'));
+        logger.init("logs.log", config.get('logLevel'), app.get('onlyToFile'));
         logger.getInstance().info("Logger initialized");
         app.logger = logger.getInstance();
+        cb();
+    },
+    function (cb) {
+        logger.getInstance().info("Load forging panel configruation");
+        app.forgingConfig = config.get("adminPanel");
+
+        if (app.forgingConfig.auth.user || app.forgingConfig.auth.password) {
+            app.forgingPanelAuth = express.basicAuth(app.forgingConfig.auth.user, app.forgingConfig.auth.password);
+        } else {
+            app.forgingPanelAuth = function (req, res, next) { return next (); }
+        }
+
+        app.forgingFile = fs.readFileSync(path.join(__dirname, "public", "forging.html"));
+
         cb();
     },
     function (cb) {
@@ -210,19 +251,28 @@ async.series([
 
             app.get('/', function (req, res) {
                 var ip = req.connection.remoteAddress;
+
+                var showLinkToAdminPanel = false;
+
+                if (app.forgingConfig.whiteList.length > 0 && app.forgingConfig.whiteList.indexOf(ip) >= 0) {
+                    showLinkToAdminPanel = true;
+                }
+
                 if (app.api.whiteList.length > 0) {
                     if (app.api.whiteList.indexOf(ip) < 0) {
                         return res.send(401);
                     } else {
                         if (app.dbLoaded) {
-                            res.sendfile(path.join(__dirname, "public", "wallet.html"));
+                            res.render('wallet', { showAdmin : showLinkToAdminPanel,  layout : false });
+                            //res.sendfile(path.join(__dirname, "public", "wallet.html"));
                         } else {
                             res.sendfile(path.join(__dirname, "public", "loading.html"));
                         }
                     }
                 } else {
                     if (app.dbLoaded) {
-                        res.sendfile(path.join(__dirname, "public", "wallet.html"));
+                        res.render('wallet', { showAdmin : showLinkToAdminPanel, layout : false });
+                        //res.sendfile(path.join(__dirname, "public", "wallet.html"));
                     } else {
                         res.sendfile(path.join(__dirname, "public", "loading.html"));
                     }
@@ -256,6 +306,7 @@ async.series([
                         cb(err);
                     } else {
                         app.blocksCount = blocks.length;
+
                         async.eachSeries(blocks, function (item, c) {
                             var b = new block(item.version, null, item.timestamp, item.previousBlock, [], item.totalAmount, item.totalFee, item.payloadLength, item.payloadHash, item.generatorPublicKey, item.generationSignature, item.blockSignature);
                             b.numberOfTransactions = item.numberOfTransactions;
@@ -436,14 +487,14 @@ async.series([
         });
     },
     function (cb) {
-        logger.getInstance().info("Find or add genesis block...");
+        logger.getInstance().debug("Find or add genesis block...");
 
         blockchain.addGenesisBlock(app, function (err) {
             if (err) {
-               logger.getInstance().info("Genesis block not added");
+               logger.getInstance().debug("Genesis block not added");
                cb(err);
             } else {
-                logger.getInstance().info("Genesis block added...");
+                logger.getInstance().debug("Genesis block added...");
                 cb();
             }
 
@@ -482,10 +533,11 @@ async.series([
                 }
 
                 peersRunning = true;
+
                 var peers = [];
                 peers = app.peerprocessor.getPeersAsArray();
                 async.eachSeries(peers, function (p, callback) {
-                    app.logger.info("Get peers from " + p.ip);
+                    app.logger.debug("Get peers from " + p.ip);
                     p.getPeers(function (err, peersJSON) {
                         if (err) {
                             p = app.peerprocessor.getAnyPeer();
@@ -500,7 +552,7 @@ async.series([
                             }
 
                             if (ps) {
-                                app.logger.info("Process peers");
+                                app.logger.debug("Process peers");
                                 for (var i = 0; i < ps.length; i++) {
                                     if (!ps[i].ip || ps[i].ip == "127.0.0.1") {
                                         continue;
@@ -523,6 +575,10 @@ async.series([
                     peersRunning = false;
                 });
             } catch (e) {
+                if (p) {
+                    app.peerprocessor.blockPeer(p.ip);
+                }
+
                 peersRunning = false;
             }
         }, 1000 * 10);
@@ -535,7 +591,7 @@ async.series([
                 }
 
                 requestsInterval = true;
-                app.logger.info("Process requests...");
+                app.logger.debug("Process requests...");
 
                 var p = app.peerprocessor.getAnyPeer();
                 async.whilst(
@@ -544,7 +600,7 @@ async.series([
                         return p;
                     },
                     function (next) {
-                        app.logger.info("Get requests from " + p.ip);
+                        app.logger.debug("Get requests from " + p.ip);
                         p.getRequests(function (err, requests) {
                             if (err) {
                                 p.isNat = true;
@@ -563,6 +619,7 @@ async.series([
 
                                     async.eachSeries(requests, function (item, c) {
                                         var r = app.requestprocessor.fromJSON(item);
+                                        r.blockId = null;
                                         delete r.blockId;
 
                                         var added = false;
@@ -593,6 +650,10 @@ async.series([
                         requestsInterval = false;
                     });
             } catch (e) {
+                if (p) {
+                    app.peerprocessor.blockPeer(p.ip);
+                }
+
                 return false;
             }
         }, 1000 * 3);
@@ -613,7 +674,7 @@ async.series([
                     return;
                 }
 
-                app.logger.info("Process blocks from peer: " + p.ip);
+                app.logger.debug("Process blocks from peer: " + p.ip);
 
                 var getCommonBlock = function (blockId, peer, cb) {
                     app.blockchain.getCommonBlockId(blockId, peer, function (err, blockId) {
@@ -792,7 +853,7 @@ async.series([
 
                                                     if (forks.length > 0) {
                                                         app.synchronizedBlocks = false;
-                                                        app.logger.info("Process fork...");
+                                                        app.logger.debug("Process fork...");
                                                         app.blockchain.processFork(p, forks, commonBlockId, function () {
                                                             app.synchronizedBlocks = true;
                                                             blocksInterval = false;
@@ -819,7 +880,7 @@ async.series([
 
                                             if (forks.length > 0) {
                                                 app.synchronizedBlocks = false;
-                                                app.logger.info("Process fork...");
+                                                app.logger.debug("Process fork...");
                                                 app.blockchain.processFork(p, forks, commonBlockId, function () {
                                                     blocksInterval = false;
                                                     app.synchronizedBlocks = true;
@@ -842,6 +903,10 @@ async.series([
                     }
                 });
             } catch (e) {
+                if (p) {
+                    app.peerprocessor.blockPeer(p.ip);
+                }
+
                 blocksInterval = false;
             }
         }, 1000 * 15);
@@ -858,7 +923,7 @@ async.series([
                 var p = app.peerprocessor.getAnyPeer();
                 var finished = true;
 
-                app.logger.info("Process unconfirmed transactions...");
+                app.logger.debug("Process unconfirmed transactions...");
                 async.whilst(function (_break) {
                     if (_break) return false;
                     return !!p;
@@ -940,11 +1005,15 @@ async.series([
                     });
                 }, function () {
                     if (p) {
-                        app.logger.info("Unconfirmed transactions processed from " + p.ip);
+                        app.logger.debug("Unconfirmed transactions processed from " + p.ip);
                     }
                     unconfirmedTransactonsInterval = false;
                 });
             } catch (e) {
+                if (p) {
+                    app.peerprocessor.blockPeer(p.ip);
+                }
+
                 unconfirmedTransactonsInterval = false;
             }
         }, 1000 * 3);
@@ -956,6 +1025,8 @@ async.series([
         logger.getInstance().info("Crypti stopped!");
         logger.getInstance().error("Error: " + err);
     } else {
+        logger.getInstance().info("API/P2P routes initializing...");
+
         for (var i = 0; i < app.routes.get.length; i++) {
             var route = app.routes.get[i];
             if (route.path == '*') {
@@ -973,5 +1044,7 @@ async.series([
         app.get("*", function (req, res) {
             res.redirect('/');
         });
+
+        logger.getInstance().info("Initializing done!");
     }
 });

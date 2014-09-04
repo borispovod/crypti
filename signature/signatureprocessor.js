@@ -79,10 +79,12 @@ signatureprocessor.prototype.processSignature = function (signature) {
 }
 
 signatureprocessor.prototype.removeSignature = function (address) {
+    this.signatures[address] = null;
     delete this.signatures[address];
 }
 
 signatureprocessor.prototype.removeUnconfirmedSignature = function (address) {
+    this.unconfirmedSignatures[address] = null;
     delete this.unconfirmedSignatures[address];
 }
 
