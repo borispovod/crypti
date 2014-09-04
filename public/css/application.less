@@ -49,6 +49,14 @@ h3.start-red{
     display: inline-block;
 }
 
+.red {
+  color: #b25b5b;
+}
+
+.green {
+  color: #61b26e;
+}
+
 h3.start-green{
   color: #61b26e;
   font-size: 14px;
@@ -290,6 +298,49 @@ p.description {
   top: 5%;
 }
 
+.clearfix:after {
+  content: " ";
+  display: block;
+  height: 0;
+  clear: both;
+}
+
+.back-label {
+  color: #4f5051;
+  position : absolute;
+  top: 20px;
+  left: 20px;
+  font-size: 13px;
+  font-weight: bold;
+
+  a {
+    text-decoration: none;
+    color: #4f5051;
+
+    &.disabled {
+      color: #4f5051;
+    }
+  }
+}
+
+.forging-link {
+  color: #4f5051;
+  position : absolute;
+  top: 20px;
+  right: 20px;
+  font-size: 13px;
+  font-weight: bold;
+
+  a {
+    text-decoration: none;
+    color: #4f5051;
+
+    &.disabled {
+      color: #4f5051;
+    }
+  }
+}
+
 /*END OF JOINT STYLES*/
 
 @import "index";
@@ -299,3 +350,4 @@ p.description {
 @import "pass";
 @import "modal";
 @import "block-modal";
+@import "forging";

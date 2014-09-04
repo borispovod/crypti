@@ -185,6 +185,12 @@ h3.start-red {
   color: #b25b5b;
   display: inline-block;
 }
+.red {
+  color: #b25b5b;
+}
+.green {
+  color: #61b26e;
+}
 h3.start-green {
   color: #61b26e;
   font-size: 14px;
@@ -391,6 +397,42 @@ p.description {
 }
 #companyModal {
   top: 5%;
+}
+.clearfix:after {
+  content: " ";
+  display: block;
+  height: 0;
+  clear: both;
+}
+.back-label {
+  color: #4f5051;
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  font-size: 13px;
+  font-weight: bold;
+}
+.back-label a {
+  text-decoration: none;
+  color: #4f5051;
+}
+.back-label a.disabled {
+  color: #4f5051;
+}
+.forging-link {
+  color: #4f5051;
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  font-size: 13px;
+  font-weight: bold;
+}
+.forging-link a {
+  text-decoration: none;
+  color: #4f5051;
+}
+.forging-link a.disabled {
+  color: #4f5051;
 }
 /*END OF JOINT STYLES*/
 #left-nav {
@@ -672,4 +714,26 @@ span.menu-text {
   background: #ffffff;
   padding: 25px;
   border-radius: 8px;
+}
+.admin-form {
+  padding: 10px;
+  margin-top: 10px;
+  background-color: #fff;
+  border-radius: 3px;
+  box-shadow: 0 1px rgba(0, 0, 0, 0.07);
+  clear: both;
+}
+.admin-form #forgingSettings {
+  float: right;
+  margin-top: 10px;
+}
+.admin-form #saveToFile {
+  margin-left: 16px;
+}
+.admin-form .checkbox-label {
+  font-size: 13px;
+  color: #4f5051;
+}
+.admin-form .fix {
+  margin-bottom: 16px !important;
 }

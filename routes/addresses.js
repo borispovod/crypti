@@ -176,27 +176,6 @@ module.exports = function (app) {
                     }
                 }
             });
-
-            /*var r = http.get(getOptions, function (response) {
-                var data = "";
-                response.on("data", function (body) {
-                    clearTimeout(timeout);
-                    data += body;
-                });
-                response.on('end', function () {
-                    data = data.replace(/^\s+|\s+$/g, "");
-
-
-                });
-            });
-
-            timeout = setTimeout(function () {
-                r.abort();
-            }, 3000);
-
-            r.on('error', function (err) {
-                return res.json({ status: "CANT_GET_CRYPTIXCR_FILE", success: false, error: "Check your cryptixcr.txt file on your domain" });
-            });*/
         } catch (e) {
             app.logger.error("Exception, notify developers: ");
             app.logger.error(e);

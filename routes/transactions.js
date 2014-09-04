@@ -247,7 +247,7 @@ module.exports = function (app) {
                         if (!app.blockchain.blocks[blockId]) {
                             cb();
                         } else {
-                            item.confirmations = app.blockchain.getLastBlock().height - app.blockchain.blocks[blockId].height;
+                            item.confirmations = app.blockchain.getLastBlock().height - app.blockchain.blocks[blockId].height + 1;
                             item.sender = app.accountprocessor.getAddressByPublicKey(new Buffer(item.senderPublicKey, 'hex'));
                             item.timestamp += utils.epochTime();
                             item.confirmed = true;

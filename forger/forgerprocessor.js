@@ -41,6 +41,10 @@ forgerprocessor.prototype.stopForger = function (accountId) {
         clearInterval(this.timers[accountId]);
         clearInterval(this.sendingTimers[accountId]);
 
+        this.timers[accountId] = null;
+        this.forgers[accountId] = null;
+        this.sendingTimers[accountId] = null;
+
         delete this.timers[accountId];
         delete this.forgers[accountId];
         delete this.sendingTimers[accountId];

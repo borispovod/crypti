@@ -1,5 +1,4 @@
 var http = require('http'),
-    keepAliveAgent = require('keep-alive-agent'),
     _ = require('underscore');
 
 var peer = function (address, port, platform, version) {
@@ -79,9 +78,9 @@ peer.prototype.setShare = function (share) {
 }
 
 peer.prototype.checkAgent = function () {
-    if (!this.agent) {
+    /*if (!this.agent) {
         this.agent = new keepAliveAgent;
-    }
+    }*/
 }
 
 peer.prototype.getPeers = function (cb) {

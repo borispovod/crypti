@@ -245,6 +245,7 @@ transactionprocessor.prototype.addTransaction = function (t) {
 
 transactionprocessor.prototype.removeUnconfirmedTransaction = function (t) {
     if (this.unconfirmedTransactions[t.getId()]) {
+        this.unconfirmedTransactions[t.getId()] = null;
         delete this.unconfirmedTransactions[t.getId()];
         return true;
     } else {
