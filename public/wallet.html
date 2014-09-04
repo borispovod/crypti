@@ -10,5 +10,10 @@
     </head>
     <body>
         <div ui-view class="height"></div>
+        {{?it.showAdmin}}
+        <div id="forgingButton" class="forging-link">
+            <a href="/panel/forging" target="_blank" class="button small green">Forging panel</a>
+        </div>
+        {{?}}
     </body>
 </html>

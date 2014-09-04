@@ -1,5 +1,7 @@
 webApp.controller('passphraseController', ['$scope', '$rootScope', '$http', "$state", "userService",
     function($rootScope, $scope, $http, $state, userService) {
+        angular.element(document.getElementById("forgingButton")).show();
+
         $scope.login = function(pass) {
             var data = {secret: pass};
             if (!pass || pass.length > 100){
@@ -13,6 +15,7 @@ webApp.controller('passphraseController', ['$scope', '$rootScope', '$http', "$st
                             userService.setSecondPassphrase(resp.data.secondPassphrase);
                             userService.unconfirmedPassphrase = resp.data.unconfirmedPassphrase;
 
+                            angular.element(document.getElementById("forgingButton")).hide();
                             $state.go('main.account');
                         } else {
                             alert("Something wrong. Restart server please.");

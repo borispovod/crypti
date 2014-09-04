@@ -85,7 +85,7 @@ forger.prototype.sendRequest = function () {
 
 forger.prototype.startForge = function () {
     if (!this.app.synchronizedBlocks || !this.sent) {
-        this.app.logger.warn("Can't forge, node not synchronized!");
+        this.app.logger.debug("Can't forge, node not synchronized!");
         return false;
     }
 
@@ -120,7 +120,7 @@ forger.prototype.startForge = function () {
 
 
     if (Object.keys(this.app.requestprocessor.unconfirmedRequests).length == 0) {
-        this.app.logger.warn("Need account for forge block...");
+        this.app.logger.debug("Need account for forge block...");
         this.workingForger = false;
         return false;
     }
@@ -179,7 +179,7 @@ forger.prototype.startForge = function () {
                 }
             }
 
-            if (this.app.accountprocessor.getAddressByPublicKey(block.generatorPublicKey) == request.address) {
+            if (block.generatorId == request.address) {
                 break;
             }
 
@@ -208,7 +208,7 @@ forger.prototype.startForge = function () {
     });
 
     if (accounts.length == 0) {
-        this.app.logger.warn("Need accounts for forging...");
+        this.app.logger.debug("Need accounts for forging...");
         this.workingForger = false;
         return false;
     }
@@ -236,7 +236,7 @@ forger.prototype.startForge = function () {
     }
 
     if (sameWeights.length > 1) {
-        this.app.logger.info("Same weight in cyclet: " + sameWeights.length);
+        this.app.logger.debug("Same weight in cyclet: " + sameWeights.length);
 
         var randomWinners = [];
         for (var i = 0; i < sameWeights.length; i++) {
@@ -274,10 +274,10 @@ forger.prototype.startForge = function () {
         winner = randomWinners[cycle];
     }
 
-    this.app.logger.info("Winner in cycle: " + winner.address);
+    this.app.logger.debug("Winner in cycle: " + winner.address);
 
     if (winner.address == myAccount.address) {
-        this.logger.info("Generating block...");
+        this.logger.debug("Generating block...");
 
         var sortedTransactions = [];
         var transactions = _.map(this.transactionprocessor.unconfirmedTransactions, function (obj, key) { return obj });
@@ -477,7 +477,7 @@ forger.prototype.startForge = function () {
             block.sign(this.secretPharse);
 
             if (block.verifyBlockSignature() && block.verifyGenerationSignature()) {
-                this.logger.info("Block generated: " + block.getId());
+                this.logger.debug("Block generated: " + block.getId());
 
                 var buffer = block.getBytes();
 
