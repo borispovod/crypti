@@ -39,7 +39,9 @@ db.prototype.deleteBlock = function (b, callback) {
                         }
                     }.bind(this));
                 } else {
-                    callback();
+                    if (callback) {
+                        callback();
+                    }
                 }
             }.bind(this));
         }.bind(this));
@@ -79,132 +81,130 @@ db.prototype.writeTransaction = function (t, cb) {
 }
 
 db.prototype.writeBlock = function (block,  callback) {
-    var sql = this.sql;
-    sql.serialize(function () {
-        sql.beginTransaction(function (err, dbTransaction) {
-            async.parallel([
-                function (cb) {
-                    if (!block.transactions) {
-                        return cb();
-                    }
-
-                    async.forEach(block.transactions, function (t, c) {
-                        var q = dbTransaction.prepare("INSERT INTO trs VALUES($id, $blockId, $type, $subtype, $timestamp, $senderPublicKey, $sender, $recipient, $amount, $fee, $signature, $signSignature)");
-                        q.bind({
-                            $id: t.getId(),
-                            $blockId: t.blockId,
-                            $type: t.type,
-                            $subtype: t.subtype,
-                            $timestamp: t.timestamp,
-                            $senderPublicKey: t.senderPublicKey,
-                            $recipient: t.recipientId,
-                            $amount: t.amount,
-                            $signature: t.signature,
-                            $signSignature : t.signSignature,
-                            $sender : t.sender,
-                            $fee : t.fee
-                        });
-
-                        q.run(function (err) {
-                            if (err) {
-                                console.log(err);
-                                return c(err);
+    try {
+        var sql = this.sql;
+        sql.serialize(function () {
+            sql.beginTransaction(function (err, dbTransaction) {
+                if (err) {
+                    console.log(err);
+                } else {
+                    async.parallel([
+                        function (cb) {
+                            if (!block.transactions) {
+                                return cb();
                             }
 
-                            if (t.type == 2 && t.subtype == 0) {
-                                q = dbTransaction.prepare("INSERT INTO signatures (id, blockId, transactionId, timestamp, publicKey, generatorPublicKey, signature, generationSignature) VALUES ($id, $blockId, $transactionId, $timestamp, $publicKey, $generatorPublicKey, $signature, $generationSignature)");
-
+                            async.forEach(block.transactions, function (t, c) {
+                                var q = dbTransaction.prepare("INSERT INTO trs VALUES($id, $blockId, $type, $subtype, $timestamp, $senderPublicKey, $sender, $recipient, $amount, $fee, $signature, $signSignature)");
                                 q.bind({
-                                    $id: t.asset.getId(),
-                                    $blockId: t.asset.blockId,
-                                    $transactionId: t.asset.transactionId,
-                                    $timestamp: t.asset.timestamp,
-                                    $publicKey: t.asset.publicKey,
-                                    $generatorPublicKey: t.asset.generatorPublicKey,
-                                    $signature: t.asset.signature,
-                                    $generationSignature: t.asset.generationSignature
+                                    $id: t.getId(),
+                                    $blockId: t.blockId,
+                                    $type: t.type,
+                                    $subtype: t.subtype,
+                                    $timestamp: t.timestamp,
+                                    $senderPublicKey: t.senderPublicKey,
+                                    $recipient: t.recipientId,
+                                    $amount: t.amount,
+                                    $signature: t.signature,
+                                    $signSignature: t.signSignature,
+                                    $sender: t.sender,
+                                    $fee: t.fee
                                 });
 
                                 q.run(function (err) {
-                                    return c(err);
+                                    if (err) {
+                                        console.log(err);
+                                        return c(err);
+                                    }
+
+                                    if (t.type == 2 && t.subtype == 0) {
+                                        q = dbTransaction.prepare("INSERT INTO signatures (id, blockId, transactionId, timestamp, publicKey, generatorPublicKey, signature, generationSignature) VALUES ($id, $blockId, $transactionId, $timestamp, $publicKey, $generatorPublicKey, $signature, $generationSignature)");
+
+                                        q.bind({
+                                            $id: t.asset.getId(),
+                                            $blockId: t.asset.blockId,
+                                            $transactionId: t.asset.transactionId,
+                                            $timestamp: t.asset.timestamp,
+                                            $publicKey: t.asset.publicKey,
+                                            $generatorPublicKey: t.asset.generatorPublicKey,
+                                            $signature: t.asset.signature,
+                                            $generationSignature: t.asset.generationSignature
+                                        });
+
+                                        q.run(function (err) {
+                                            return c(err);
+                                        });
+                                    } else if (t.type == 3 && t.subtype == 0) {
+                                        var data = {
+                                            $id: t.asset.getId(),
+                                            $blockId: t.asset.blockId,
+                                            $transactionId: t.asset.transactionId,
+                                            $name: t.asset.name,
+                                            $description: t.asset.description || "",
+                                            $domain: t.asset.domain,
+                                            $email: t.asset.email,
+                                            $timestamp: t.asset.timestamp,
+                                            $generatorPublicKey: t.asset.generatorPublicKey,
+                                            $signature: t.asset.signature
+                                        };
+
+                                        q = dbTransaction.prepare("INSERT INTO companies (id, blockId, transactionId, name, description, domain, email, timestamp, generatorPublicKey, signature) VALUES ($id, $blockId, $transactionId, $name, $description, $domain, $email, $timestamp, $generatorPublicKey, $signature)");
+                                        q.bind(data);
+                                        q.run(function (err) {
+                                            return c(err);
+                                        });
+                                    } else {
+                                        return c();
+                                    }
                                 });
-                            } else if (t.type == 3 && t.subtype == 0) {
+                            }, function (err) {
+                                cb(err);
+                            });
+                        },
+                        function (cb) {
+                            var requests = _.map(block.requests, function (v) {
+                                return v;
+                            });
+
+                            async.forEach(requests, function (r, c) {
+                                var q = dbTransaction.prepare("INSERT INTO requests (id, blockId, address) VALUES($id, $blockId, $address)");
+                                q.bind({
+                                    $id: r.getId(),
+                                    $blockId: r.blockId,
+                                    $address: r.address
+                                });
+
+                                q.run(function (err) {
+                                    c(err);
+                                });
+                            }, function (err) {
+                                cb(err);
+                            });
+                        },
+                        function (cb) {
+                            if (!block.confirmations) {
+                                return cb();
+                            }
+                            async.forEach(block.confirmations, function (confirmation, c) {
                                 var data = {
-                                    $id: t.asset.getId(),
-                                    $blockId: t.asset.blockId,
-                                    $transactionId: t.asset.transactionId,
-                                    $name: t.asset.name,
-                                    $description: t.asset.description || "",
-                                    $domain: t.asset.domain,
-                                    $email: t.asset.email,
-                                    $timestamp: t.asset.timestamp,
-                                    $generatorPublicKey: t.asset.generatorPublicKey,
-                                    $signature: t.asset.signature
+                                    $id: confirmation.getId(),
+                                    $blockId: confirmation.blockId,
+                                    $companyId: confirmation.companyId,
+                                    $verified: confirmation.verified,
+                                    $timestamp: confirmation.timestamp,
+                                    $signature: confirmation.signature
                                 };
 
-                                q = dbTransaction.prepare("INSERT INTO companies (id, blockId, transactionId, name, description, domain, email, timestamp, generatorPublicKey, signature) VALUES ($id, $blockId, $transactionId, $name, $description, $domain, $email, $timestamp, $generatorPublicKey, $signature)");
+                                var q = dbTransaction.prepare("INSERT INTO companyconfirmations (id, blockId, companyId, verified, timestamp, signature) VALUES ($id, $blockId, $companyId, $verified, $timestamp, $signature)");
                                 q.bind(data);
                                 q.run(function (err) {
-                                    return c(err);
+                                    c(err);
                                 });
-                            } else {
-                                return c();
-                            }
-                        });
-                    }, function (err) {
-                        cb(err);
-                    });
-                },
-                function (cb) {
-                    var requests = _.map(block.requests, function (v) { return v; });
-
-                    async.forEach(requests, function (r, c) {
-                        var q = dbTransaction.prepare("INSERT INTO requests (id, blockId, address) VALUES($id, $blockId, $address)");
-                        q.bind({
-                            $id : r.getId(),
-                            $blockId : r.blockId,
-                            $address : r.address
-                        });
-
-                        q.run(function (err) {
-                            c(err);
-                        });
-                    }, function (err) {
-                        cb(err);
-                    });
-                },
-                function (cb) {
-                    if (!block.confirmations) {
-                        return cb();
-                    }
-                    async.forEach(block.confirmations, function (confirmation, c) {
-                        var data = {
-                            $id : confirmation.getId(),
-                            $blockId : confirmation.blockId,
-                            $companyId :  confirmation.companyId,
-                            $verified : confirmation.verified,
-                            $timestamp : confirmation.timestamp,
-                            $signature : confirmation.signature
-                        };
-
-                        var q = dbTransaction.prepare("INSERT INTO companyconfirmations (id, blockId, companyId, verified, timestamp, signature) VALUES ($id, $blockId, $companyId, $verified, $timestamp, $signature)");
-                        q.bind(data);
-                        q.run(function (err) {
-                            c(err);
-                        });
-                    }, function (err) {
-                        cb(err);
-                    });
-                }
-            ], function (err) {
-                if (err) {
-                    dbTransaction.rollback(function () {
-                        if (callback) {
-                            callback();
+                            }, function (err) {
+                                cb(err);
+                            });
                         }
-                    });
-                } else {
-                    dbTransaction.commit(function (err) {
+                    ], function (err) {
                         if (err) {
                             dbTransaction.rollback(function () {
                                 if (callback) {
@@ -212,30 +212,40 @@ db.prototype.writeBlock = function (block,  callback) {
                                 }
                             });
                         } else {
-                            var q = sql.prepare("INSERT INTO blocks VALUES($id, $version, $timestamp, $previousBlock, $numberOfRequests, $numberOfTransactions, $numberOfConfirmations, $totalAmount, $totalFee, $payloadLength, $requestsLength, $confirmationsLength, $payloadHash, $generatorPublicKey, $generationSignature, $blockSignature, $height)");
-                            q.bind({
-                                $id: block.getId(),
-                                $version: block.version,
-                                $timestamp: block.timestamp,
-                                $previousBlock: block.previousBlock,
-                                $numberOfRequests: block.numberOfRequests,
-                                $numberOfTransactions: block.numberOfTransactions,
-                                $totalAmount: block.totalAmount,
-                                $totalFee: block.totalFee,
-                                $payloadLength: block.payloadLength,
-                                $payloadHash: block.payloadHash,
-                                $generatorPublicKey: block.generatorPublicKey,
-                                $generationSignature: block.generationSignature,
-                                $blockSignature: block.blockSignature,
-                                $height: block.height,
-                                $requestsLength: block.requestsLength,
-                                $numberOfConfirmations: block.numberOfConfirmations,
-                                $confirmationsLength: block.confirmationsLength
-                            });
+                            dbTransaction.commit(function (err) {
+                                if (err) {
+                                    dbTransaction.rollback(function () {
+                                        if (callback) {
+                                            callback();
+                                        }
+                                    });
+                                } else {
+                                    var q = sql.prepare("INSERT INTO blocks VALUES($id, $version, $timestamp, $previousBlock, $numberOfRequests, $numberOfTransactions, $numberOfConfirmations, $totalAmount, $totalFee, $payloadLength, $requestsLength, $confirmationsLength, $payloadHash, $generatorPublicKey, $generationSignature, $blockSignature, $height)");
+                                    q.bind({
+                                        $id: block.getId(),
+                                        $version: block.version,
+                                        $timestamp: block.timestamp,
+                                        $previousBlock: block.previousBlock,
+                                        $numberOfRequests: block.numberOfRequests,
+                                        $numberOfTransactions: block.numberOfTransactions,
+                                        $totalAmount: block.totalAmount,
+                                        $totalFee: block.totalFee,
+                                        $payloadLength: block.payloadLength,
+                                        $payloadHash: block.payloadHash,
+                                        $generatorPublicKey: block.generatorPublicKey,
+                                        $generationSignature: block.generationSignature,
+                                        $blockSignature: block.blockSignature,
+                                        $height: block.height,
+                                        $requestsLength: block.requestsLength,
+                                        $numberOfConfirmations: block.numberOfConfirmations,
+                                        $confirmationsLength: block.confirmationsLength
+                                    });
 
-                            q.run(function (err) {
-                                if (callback) {
-                                    callback(err);
+                                    q.run(function (err) {
+                                        if (callback) {
+                                            callback(err);
+                                        }
+                                    });
                                 }
                             });
                         }
@@ -243,7 +253,11 @@ db.prototype.writeBlock = function (block,  callback) {
                 }
             });
         });
-    });
+    } catch (e) {
+        if (callback) {
+            callback(e);
+        }
+    }
 }
 
 /*
