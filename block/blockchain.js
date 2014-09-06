@@ -986,7 +986,6 @@ blockchain.prototype.pushBlock = function (buffer, saveToDb, sendToPeers, checkR
 
     if (this.getLastBlock().height >= 350) {
         if (!utils.bufferEqual(a, b.payloadHash)) {
-            console.log("here");
             this.logger.error("Payload hash invalid: " + b.getId());
             return false;
         }
@@ -1203,17 +1202,17 @@ module.exports.addGenesisBlock = function (app, cb) {
         for (var i = 0; i < genesisblock.transactions.length; i++) {
             var gt = genesisblock.transactions[i];
             var t = new transaction(0, null, 0, new Buffer(genesisblock.sender, 'hex'), gt.recipient, gt.amount * constants.numberLength, new Buffer(gt.signature, 'hex'));
+
             t.sender = app.accountprocessor.getAddressByPublicKey(t.senderPublicKey);
             t.fee = 0;
 
             if (!t.verify()) {
                 app.logger.error("Genesis transaction has not valid signature: " + t.recipientId);
-                return false;
+                return cb("Genesis transaction has not valid signature: " + t.recipientId);
             }
 
             transactions.push(t);
         }
-
 
         var req = new requestconfirmation(app.accountprocessor.getAddressByPublicKey(new Buffer(genesisblock.requestGeneratorPublicKey, 'hex')));
 
@@ -1255,7 +1254,7 @@ module.exports.addGenesisBlock = function (app, cb) {
 
         if (!r) {
             app.logger.error("Genesis block not added");
-            return null;
+            return cb("Genesis block not added");
         }
 
         var address = req.address;

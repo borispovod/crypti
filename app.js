@@ -490,6 +490,8 @@ async.series([
         logger.getInstance().debug("Find or add genesis block...");
 
         blockchain.addGenesisBlock(app, function (err) {
+            app.dbLoaded = true;
+
             if (err) {
                logger.getInstance().debug("Genesis block not added");
                cb(err);
@@ -497,8 +499,6 @@ async.series([
                 logger.getInstance().debug("Genesis block added...");
                 cb();
             }
-
-            app.dbLoaded = true;
         });
     },
     function (cb) {
@@ -688,6 +688,11 @@ async.series([
                     var forks = [];
                     var lastAdded = blockId;
 
+
+                    var inFork = false,
+                        forkBlock = null,
+                        lastWeight = app.blockchain.getWeight();
+
                     async.whilst(function (stop) {
                         if (stop) {
                             return false;
@@ -695,16 +700,12 @@ async.series([
                             return true;
                         }
                     }, function (next) {
-                        var inFork = false,
-                            forkBlock = null,
-                            lastWeight = app.blockchain.getWeight();
-
                         p.getNextBlocks(blockId, function (err, json) {
                             if (err) {
                                 next(true);
                             } else {
                                 if (json.success) {
-                                    if (json.blocks.length >= 20) {
+                                    if (json.blocks.length >= 10) {
                                         app.syncFromPeer = true;
                                     } else {
                                         app.syncFromPeer = false;
@@ -836,6 +837,7 @@ async.series([
                                                                 c();
                                                             });
                                                         } else {
+                                                            app.logger.error("Invalid fork..." );
                                                             app.blockchain.removeForkedBlocks(forkBlock, function () {
                                                                 app.peerprocessor.blockPeer(p);
                                                                 return c(true);
@@ -855,6 +857,7 @@ async.series([
                                                 if (!forkBlock) {
                                                     forkBlock = commonBlock;
                                                 }
+
                                                 app.blockchain.removeForkedBlocks(forkBlock, function () {
                                                     app.peerprocessor.blockPeer(p);
                                                     return next(true);
@@ -872,6 +875,7 @@ async.series([
                             }
                         });
                     }, function () {
+                        app.syncFromPeer = false;
                         cb();
                     });
                 };
