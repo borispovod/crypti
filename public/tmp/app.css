@@ -434,6 +434,18 @@ p.description {
 .forging-link a.disabled {
   color: #4f5051;
 }
+.syncLabel {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  width: 230px;
+  line-height: 1.25;
+  background: rgba(0, 0, 0, 0.2);
+  font-size: 13px;
+  padding: 7px;
+  border-radius: 7px;
+  cursor: pointer;
+}
 /*END OF JOINT STYLES*/
 #left-nav {
   min-height: 486px;

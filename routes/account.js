@@ -272,8 +272,7 @@ module.exports = function (app) {
                 secondPhrase = req.body.secondPhrase || null,
                 amountIsInteger = req.body.amountIsInteger || false;
 
-
-            if (amountIsInteger !== true || amountIsInteger !== "true") {
+            if (amountIsInteger == false || amountIsInteger == "false") {
                 amount *= constants.numberLength;
             }
 
@@ -303,11 +302,11 @@ module.exports = function (app) {
                 return res.json({ success: false, error: "Provide fee", statusCode: "PROVIDE_FEE" });
             }
 
-            if (amount <= 0 || amount >= 1000 * 1000 * 1000 * constants.numberLength) {
+            if (amount <= 0 || amount >= 100 * 1000 * 1000 * constants.numberLength) {
                 return res.json({ success: false, error: "Amount must be middle 0 or 99999999", statusCode: "AMOUNT_INVALID" });
             }
 
-            if (fee <= 0 || fee >= 1000 * 1000 * 1000 * constants.numberLength) {
+            if (fee <= 0 || fee >= 100 * 1000 * 1000 * constants.numberLength) {
                 return res.json({ success: false, error: "Fee must be middle 0 or 99999999", statusCode: "FEE_INVALID" });
             }
 
