@@ -108,7 +108,7 @@ module.exports = function (app) {
                     } else {
                         if (t) {
                             var blockId = t.blockId;
-                            t.confirmations = app.blockchain.getLastBlock().height - app.blockchain.blocks[blockId].height;
+                            t.confirmations = app.blockchain.getLastBlock().height - app.blockchain.blocks[blockId].height + 1;
                             t.sender = app.accountprocessor.getAddressByPublicKey(new Buffer(t.senderPublicKey, 'hex'));
                             t.timestamp += utils.epochTime();
                             t.confirmed = true;
@@ -184,7 +184,7 @@ module.exports = function (app) {
                     } else {
                         if (t) {
                             var blockId = t.blockId;
-                            var confirmations = app.blockchain.getLastBlock().height - app.blockchain.blocks[blockId].height;
+                            var confirmations = app.blockchain.getLastBlock().height - app.blockchain.blocks[blockId].height + 1;
                             return res.json({ success: true, confirmations: confirmations, status: "OK" });
                         } else {
                             return res.json({ success: false, status: "TRANSACTION_NOT_FOUND", error: "Transaction not found" });
@@ -312,7 +312,7 @@ module.exports = function (app) {
                         var unconfirmedTransactions = [];
                         async.forEach(transactions, function (item, cb) {
                             var blockId = item.blockId;
-                            item.confirmations = app.blockchain.getLastBlock().height - app.blockchain.blocks[blockId].height;
+                            item.confirmations = app.blockchain.getLastBlock().height - app.blockchain.blocks[blockId].height + 1;
                             item.confirmed = true;
 
                             cb();
@@ -366,7 +366,7 @@ module.exports = function (app) {
                         var unconfirmedTransactions = [];
                         async.forEach(transactions, function (item, cb) {
                             var blockId = item.blockId;
-                            item.confirmations = app.blockchain.getLastBlock().height - app.blockchain.blocks[blockId].height;
+                            item.confirmations = app.blockchain.getLastBlock().height - app.blockchain.blocks[blockId].height + 1;
                             item.confirmed = true;
                             cb();
                         }, function () {
@@ -790,5 +790,25 @@ module.exports = function (app) {
             app.logger.error(e);
             return res.json({ success : false, error : "Exception", status : "EXCEPTION" });
         }
+    });
+
+    app.get('/api/getHeight', function (req, res) {
+        try {
+            return res.json({ success: true, status : "OK", height: app.blockchain.getLastBlock().height });
+        } catch (e) {
+            app.logger.error("Exception, notify developers: ");
+            app.logger.error(e);
+            return res.json({ success : false, error : "Exception", status : "EXCEPTION" });
+        }
+    });
+
+    app.get("/api/isSync", function (req, res) {
+       try {
+         return res.json({ success : true, status : "OK", sync : app.syncFromPeer || false, height : app.blockchain.getLastBlock().height });
+       } catch (e) {
+           app.logger.error("Exception, notify developers: ");
+           app.logger.error(e);
+           return res.json({ success : false, error : "Exception", status : "EXCEPTION" });
+       }
     });
 }
