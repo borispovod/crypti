@@ -2,7 +2,8 @@ var sqlite3 = require('sqlite3'),
     path = require('path'),
     async = require('async'),
     transactionDatabase = require("sqlite3-transactions").TransactionDatabase,
-    _ = require('underscore');
+    _ = require('underscore'),
+    ByteBuffer = require('bytebuffer');
 
 var db = function (path) {
     this.path = path;
@@ -446,16 +447,16 @@ db.prototype.writeCompanyConfirmation = function (confirmation, callback) {
     }.bind(this));
 }
 
-module.exports.initDb = function (path, callback) {
+module.exports.initDb = function (path, app, callback) {
     var d = new db(path);
 
     d.sql.serialize(function () {
         async.series([
             function (cb) {
-                d.sql.run("CREATE TABLE IF NOT EXISTS blocks (id VARCHAR(20) NOT NULL, version INT NOT NULL, timestamp TIMESTAMP NOT NULL, previousBlock VARCHAR(20),  numberOfRequests INT NOT NULL, numberOfTransactions INT NOT NULL, numberOfConfirmations INT NOT NULL, totalAmount INTEGER NOT NULL, totalFee INTEGER NOT NULL, payloadLength INT NOT NULL, requestsLength INT NOT NULL, confirmationsLength INT NOT NULL, payloadHash BLOB NOT NULL, generatorPublicKey BLOB NOT NULL, generationSignature BLOB NOT NULL, blockSignature BLOB NOT NULL, height INT NOT NULL, PRIMARY KEY(id))", cb);
+                d.sql.run("CREATE TABLE IF NOT EXISTS blocks (id VARCHAR(20) NOT NULL, version INT NOT NULL, timestamp TIMESTAMP NOT NULL, previousBlock VARCHAR(20),  numberOfRequests INT NOT NULL, numberOfTransactions INT NOT NULL, numberOfConfirmations INT NOT NULL, totalAmount INTEGER NOT NULL, totalFee INTEGER NOT NULL, payloadLength INT NOT NULL, requestsLength INT NOT NULL, confirmationsLength INT NOT NULL, payloadHash BLOB NOT NULL, generatorPublicKey BLOB NOT NULL, generationSignature BLOB NOT NULL, blockSignature BLOB NOT NULL, references BLOB, height INT NOT NULL, PRIMARY KEY(id))", cb);
             },
             function (cb) {
-                d.sql.run("CREATE TABLE IF NOT EXISTS trs (id VARCHAR(20) NOT NULL, blockId VARCHAR(20) NOT NULL, type INT NOT NULL, subtype INT NOT NULL, timestamp TIMESTAMP NOT NULL, senderPublicKey BLOB NOT NULL, sender VARCHAR(21) NOT NULL, recipient VARCHAR(21) NOT NULL, amount INTEGER NOT NULL, fee INTEGER NOT NULL, signature BLOB NOT NULL, signSignature BLOB, PRIMARY KEY(id), FOREIGN KEY(blockId) REFERENCES blocks(id))", cb);
+                d.sql.run("CREATE TABLE IF NOT EXISTS trs (id VARCHAR(20) NOT NULL, blockId VARCHAR(20) NOT NULL, type INT NOT NULL, subtype INT NOT NULL, timestamp TIMESTAMP NOT NULL, senderPublicKey BLOB NOT NULL, sender VARCHAR(21) NOT NULL, recipient VARCHAR(21) NOT NULL, amount INTEGER NOT NULL, fee INTEGER NOT NULL, signature BLOB NOT NULL, signSignature BLOB, REFERENCES BLOB NOT NULL, PRIMARY KEY(id), FOREIGN KEY(blockId) REFERENCES blocks(id))", cb);
             },
             function (cb) {
                 d.sql.run("CREATE TABLE IF NOT EXISTS requests (id VARCHAR(20) NOT NULL, blockId VARCHAR(20) NOT NULL, address VARCHAR(21) NOT NULL, PRIMARY KEY(id), FOREIGN KEY(blockId) REFERENCES blocks(id))", cb);
@@ -479,6 +480,8 @@ module.exports.initDb = function (path, callback) {
                                if (err) {
                                    return cb(err);
                                }  else {
+                                   app.logger.info("Start migration...");
+
                                    dbTransaction.run("CREATE TEMPORARY TABLE trs_backup(id VARCHAR(20) NOT NULL, blockId VARCHAR(20) NOT NULL, type INT NOT NULL, subtype INT NOT NULL, timestamp TIMESTAMP NOT NULL, senderPublicKey BLOB NOT NULL, sender VARCHAR(21) NOT NULL, recipient VARCHAR(21) NOT NULL, amount INTEGER NOT NULL, fee INTEGER NOT NULL, signature BLOB NOT NULL, signSignature BLOB, PRIMARY KEY(id))");
                                    dbTransaction.run("INSERT INTO trs_backup SELECT * FROM trs");
                                    dbTransaction.run("DROP TABLE trs");
@@ -522,18 +525,38 @@ module.exports.initDb = function (path, callback) {
                                            });
                                        } else {
                                            return cb();
+                                           d.sql.run("SELECT * FROM blocks", function (err, blocks) {
+                                              if (err) {
+                                                  cb(err);
+                                              } else {
+                                                  async.forEach(blocks, function (b) {
+                                                      var trsIds,
+                                                          requestsIds,
+                                                          signaturesIds,
+                                                          companiesIds,
+                                                          companyconfirmationsIds;
+
+                                                      async.parallel([
+                                                          function (cb) {
+                                                              d.sql.run("SELECT * FROM trs ")
+                                                          },
+                                                          function (cb) {
+
+                                                          },
+                                                          function (cb) {
+
+                                                          },
+                                                          function (cb) {
+
+                                                          }
+                                                      ])
+                                                  });
+                                              }
+                                           });
                                        }
                                    });
                                }
                            });
-                           /*BEGIN TRANSACTION;
-                           CREATE TEMPORARY TABLE t1_backup(a,b);
-                           INSERT INTO t1_backup SELECT a,b FROM t1;
-                           DROP TABLE t1;
-                           CREATE TABLE t1(a,b);
-                           INSERT INTO t1 SELECT a,b FROM t1_backup;
-                           DROP TABLE t1_backup;
-                           COMMIT;*/
                        } else {
                            cb();
                        }
