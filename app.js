@@ -296,7 +296,7 @@ async.series([
     },
     function (cb) {
         logger.getInstance().info("Initializing and scanning database...");
-        initDb("./blockchain.db", function (err, db) {
+        initDb("./blockchain.db", app, function (err, db) {
             if (err) {
                 cb(err);
             } else {
@@ -688,7 +688,6 @@ async.series([
                     var forks = [];
                     var lastAdded = blockId;
 
-
                     var inFork = false,
                         forkBlock = null,
                         lastWeight = app.blockchain.getWeight();
@@ -702,14 +701,10 @@ async.series([
                     }, function (next) {
                         p.getNextBlocks(blockId, function (err, json) {
                             if (err) {
-                                next(true);
+                                return next({ error : true });
                             } else {
                                 if (json.success) {
-                                    if (json.blocks.length >= 10) {
-                                        app.syncFromPeer = true;
-                                    } else {
-                                        app.syncFromPeer = false;
-                                    }
+                                    app.syncFromPeer = true;
 
                                     async.eachSeries(json.blocks, function (item, c) {
                                         var b = new block(item.version, null, item.timestamp, item.previousBlock, [], item.totalAmount, item.totalFee, item.payloadLength, item.payloadHash, item.generatorPublicKey, item.generationSignature, item.blockSignature);
@@ -801,13 +796,13 @@ async.series([
                                                             a = app.blockchain.pushBlock(buffer, true, false, false);
                                                         } catch (e) {
                                                             app.peerprocessor.blockPeer(p.ip);
-                                                            return c(true);
+                                                            return c({ error : true });
                                                         }
 
                                                         if (a) {
                                                             lastAdded = b.getId();
                                                         } else {
-                                                            return c(true);
+                                                            return c({ error : true });
                                                         }
 
                                                         blockId = b.getId();
@@ -818,15 +813,15 @@ async.series([
                                                             inFork = true;
                                                             app.logger.info("Process fork...");
                                                             app.blockchain.removeForkedBlocks(commonBlock, function (lastBlock) {
-                                                                app.logger.info("Forked blocks removed... ");
+                                                                app.logger.info("Forked blocks removed...");
                                                                 blockId = lastBlock;
                                                                 lastAdded = lastBlock;
-                                                                return next();
+                                                                return с({ _continue : true });
                                                             });
                                                         } else {
-                                                            app.logger.error("Invalid fork... " + blockId + " / " + app.blockchain.getLastBlock().getId());
+                                                            app.logger.error("Invalid fork...");
                                                             app.blockchain.removeForkedBlocks(forkBlock, function () {
-                                                                return next(true);
+                                                                return c({ error : true });
                                                             });
                                                         }
                                                     } else {
@@ -835,8 +830,10 @@ async.series([
                                                 });
                                             });
                                         });
-                                    }, function (err) {
-                                        if (err) {
+                                    }, function (s) {
+                                        if (!s) {
+                                            return next();
+                                        } else if (s.err) {
                                             return next(true);
                                         } else if (json.blocks.length === 0) {
                                             if (lastWeight.gt(app.blockchain.getWeight())) {
@@ -852,6 +849,8 @@ async.series([
                                             } else {
                                                 return next(true);
                                             }
+                                        } else if (s._continue) {
+                                            return next();
                                         } else {
                                             return next();
                                         }

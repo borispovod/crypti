@@ -5,6 +5,8 @@ webApp.controller('templateController', ['$scope', '$rootScope', '$http', 'userS
                 $rootScope.sync = resp.data.sync;
                 $rootScope.height = resp.data.height;
             }
+
+            console.log(resp.data);
         });
     }
 
