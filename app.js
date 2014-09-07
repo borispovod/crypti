@@ -817,30 +817,16 @@ async.series([
                                                             forkBlock = lastAdded;
                                                             inFork = true;
                                                             app.logger.info("Process fork...");
-                                                            app.blockchain.removeForkedBlocks(lastAdded, function () {
-                                                                app.logger.info("Forked blocks removed...");
-
-                                                                try {
-                                                                    a = app.blockchain.pushBlock(buffer, true, false, false);
-                                                                } catch (e) {
-                                                                    app.peerprocessor.blockPeer(p.ip);
-                                                                    return c(true);
-                                                                }
-
-                                                                if (a) {
-                                                                    lastAdded = b.getId();
-                                                                } else {
-                                                                    return c(true);
-                                                                }
-
-                                                                blockId = b.getId();
-                                                                c();
+                                                            app.blockchain.removeForkedBlocks(commonBlock, function (lastBlock) {
+                                                                app.logger.info("Forked blocks removed... ");
+                                                                blockId = lastBlock;
+                                                                lastAdded = lastBlock;
+                                                                return next();
                                                             });
                                                         } else {
-                                                            app.logger.error("Invalid fork..." );
+                                                            app.logger.error("Invalid fork... " + blockId + " / " + app.blockchain.getLastBlock().getId());
                                                             app.blockchain.removeForkedBlocks(forkBlock, function () {
-                                                                app.peerprocessor.blockPeer(p);
-                                                                return c(true);
+                                                                return next(true);
                                                             });
                                                         }
                                                     } else {
@@ -854,12 +840,13 @@ async.series([
                                             return next(true);
                                         } else if (json.blocks.length === 0) {
                                             if (lastWeight.gt(app.blockchain.getWeight())) {
+                                                app.logger.warn("Bad peer, block it: " + p.ip);
                                                 if (!forkBlock) {
                                                     forkBlock = commonBlock;
                                                 }
 
                                                 app.blockchain.removeForkedBlocks(forkBlock, function () {
-                                                    app.peerprocessor.blockPeer(p);
+                                                    app.peerprocessor.blockPeer(p.ip);
                                                     return next(true);
                                                 });
                                             } else {
@@ -931,7 +918,10 @@ async.series([
                     }
                 });
             } catch (e) {
+                app.logger.warn("Exception: " + e);
+
                 if (p) {
+                    app.logger.wanr("Block peer: " + p.ip);
                     app.peerprocessor.blockPeer(p.ip);
                 }
 

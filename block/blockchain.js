@@ -161,8 +161,8 @@ blockchain.prototype.removeForkedBlocks = function (commonBlock, cb) {
             setImmediate(next);
         }.bind(this),
         function () {
-            cb(removedBlocks);
-        }
+            cb(lastBlockId);
+        }.bind(this)
     )
 }
 
