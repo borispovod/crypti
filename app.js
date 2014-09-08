@@ -35,15 +35,10 @@ var express = require('express'),
     companyconfirmation = require("./company").companyconfirmation,
     requestconfirmation = require("./request").requestconfirmation,
     crypto = require('crypto'),
-    doT = require('express-dot');
+    doT = require('express-dot'),
+    ByteBuffer = require("bytebuffer");
 
 var app = express();
-
-if (process.env.PRODUCTION) {
-    process.on('uncaughtException', function (exception) {
-        console.log(exception);
-    });
-}
 
 if (process.env.NODE_ENV=="development") {
     app.set('onlyToFile', false);
@@ -55,7 +50,7 @@ app.configure(function () {
     app.set("version", config.get("version"));
     app.set("address", config.get("address"));
     app.set('port', config.get('port'));
-    app.use(express.bodyParser({limit: '10mb'}));
+    app.use(express.bodyParser({limit: '300mb'}));
     app.dbLoaded = false;
 
     app.set('views', path.join(__dirname, 'public'));
@@ -264,7 +259,6 @@ async.series([
                     } else {
                         if (app.dbLoaded) {
                             res.render('wallet', { showAdmin : showLinkToAdminPanel,  layout : false });
-                            //res.sendfile(path.join(__dirname, "public", "wallet.html"));
                         } else {
                             res.sendfile(path.join(__dirname, "public", "loading.html"));
                         }
@@ -272,7 +266,6 @@ async.series([
                 } else {
                     if (app.dbLoaded) {
                         res.render('wallet', { showAdmin : showLinkToAdminPanel, layout : false });
-                        //res.sendfile(path.join(__dirname, "public", "wallet.html"));
                     } else {
                         res.sendfile(path.join(__dirname, "public", "loading.html"));
                     }
@@ -318,10 +311,48 @@ async.series([
                             b.height = item.height;
                             var id = b.getId();
 
+                            var numberOfTransactions = b.numberOfTransactions;
+                            if (id == genesisblock.blockId) {
+                                numberOfTransactions = 13;
+                            }
+
+                            var refs = item.refs;
+
+                            var trsIds = "",
+                                requestsIds = "",
+                                companyconfirmationsIds = "";
+
+                            var bb = ByteBuffer.wrap(refs);
+
+                            var i = 0;
+                            for (i = 0; i < numberOfTransactions; i++) {
+                                trsIds += bb.readInt64();
+
+                                if (i+1 != numberOfTransactions) {
+                                    trsIds += ',';
+                                }
+                            }
+
+                            for (i = 0; i < b.numberOfRequests; i++) {
+                                requestsIds += bb.readInt64();
+
+                                if (i+1 != b.numberOfRequests) {
+                                    requestsIds += ',';
+                                }
+                            }
+
+                            for (i = 0; i < b.numberOfConfirmations; i++) {
+                                companyconfirmationsIds += bb.readInt64();
+
+                                if (i+1 != b.numberOfConfirmations) {
+                                    companyconfirmationsIds += ',';
+                                }
+                            }
+
+
                             logger.getInstance().info("Load block: " + b.getId() + ", height: " + b.height);
 
-                            var q = app.db.sql.prepare("SELECT * FROM trs WHERE blockId = ?");
-                            q.bind(id);
+                            var q = app.db.sql.prepare("SELECT * FROM trs WHERE rowid IN (" + trsIds + ")");
                             q.all(function (err, rows) {
                                 if (err) {
                                     c(err);
@@ -337,10 +368,9 @@ async.series([
                                         var req = null;
                                         if (tr.type == 2) {
                                             if (tr.subtype === 0) {
-                                                req = app.db.sql.prepare("SELECT * FROM signatures WHERE blockId=$blockId AND transactionId=$transactionId");
+                                                req = app.db.sql.prepare("SELECT * FROM signatures WHERE rowid=$rowid");
                                                 req.bind({
-                                                    $blockId: id,
-                                                    $transactionId: t.id
+                                                    $rowid : t.assetId
                                                 });
                                                 req.get(function (err, asset) {
                                                     if (err) {
@@ -357,10 +387,9 @@ async.series([
                                             }
                                         } else if (tr.type == 3) {
                                             if (tr.subtype === 0) {
-                                                req = app.db.sql.prepare("SELECT * FROM companies WHERE blockId=$blockId AND transactionId=$transactionId");
+                                                req = app.db.sql.prepare("SELECT * FROM companies WHERE rowid=$rowid");
                                                 req.bind({
-                                                    $blockId: id,
-                                                    $transactionId: t.id
+                                                    $rowid : t.assetId
                                                 });
                                                 req.get(function (err, asset) {
                                                     if (err) {
@@ -389,8 +418,7 @@ async.series([
 
                                         b.transactions = transactions;
 
-                                        q = app.db.sql.prepare("SELECT * FROM requests WHERE blockId=?");
-                                        q.bind(id);
+                                        q = app.db.sql.prepare("SELECT * FROM requests WHERE rowid IN (" + requestsIds + ")");
                                         q.all(function (err, rows) {
                                             if (err) {
                                                 c(err);
@@ -408,8 +436,7 @@ async.series([
 
                                                     b.requests = requests;
 
-                                                    q = app.db.sql.prepare("SELECT * FROM companyconfirmations WHERE blockId=?");
-                                                    q.bind(id);
+                                                    q = app.db.sql.prepare("SELECT * FROM companyconfirmations WHERE rowid IN (" + companyconfirmationsIds + ")");
                                                     q.all(function (err, rows) {
                                                         if (err) {
                                                             return c(err);
@@ -446,7 +473,7 @@ async.series([
                                                                         buffer = Buffer.concat([buffer, transactions[t].getBytes()]);
                                                                     }
 
-                                                                    var i = 0;
+                                                                    i = 0;
                                                                     for (i = 0; i < requests.length; i++) {
                                                                         buffer = Buffer.concat([buffer, requests[i].getBytes()]);
                                                                     }
@@ -454,7 +481,6 @@ async.series([
                                                                     for (i = 0; i < confirmations.length; i++) {
                                                                         buffer = Buffer.concat([buffer, confirmations[i].getBytes()]);
                                                                     }
-
 
                                                                     try {
                                                                         a = app.blockchain.pushBlock(buffer, false);
@@ -560,9 +586,9 @@ async.series([
 
                                     var _peer = new peer(ps[i].ip, ps[i].port, ps[i].platform, ps[i].version);
 
-                                    if (!app.peerprocessor.peers[_peer.ip]) {
+                                    /*if (!app.peerprocessor.peers[_peer.ip]) {
                                         app.peerprocessor.addPeer(_peer);
-                                    }
+                                    }*/
                                 }
                                 callback();
                             } else {
@@ -604,7 +630,6 @@ async.series([
                         app.logger.debug("Get requests from " + p.ip);
                         p.getRequests(function (err, requests) {
                             if (err) {
-                                p.isNat = true;
                                 return next(true);
                             } else {
                                 var answer = null;
@@ -701,7 +726,7 @@ async.series([
                     }, function (next) {
                         p.getNextBlocks(blockId, function (err, json) {
                             if (err) {
-                                return next({ error : true });
+                                return next(true);
                             } else {
                                 if (json.success) {
                                     app.syncFromPeer = true;
@@ -748,7 +773,9 @@ async.series([
                                             _c();
                                         }, function (err) {
                                             if (err) {
-                                                return c(err);
+                                                return setImmediate(function () {
+                                                    return c({ error: true });
+                                                });
                                             }
 
                                             b.transactions = transactions;
@@ -761,7 +788,9 @@ async.series([
                                                 _c();
                                             }.bind(this), function (err) {
                                                 if (err) {
-                                                    return _c(err);
+                                                    return setImmediate(function () {
+                                                        return c({ error: true });
+                                                    });
                                                 }
 
                                                 b.requests = requests;
@@ -796,17 +825,23 @@ async.series([
                                                             a = app.blockchain.pushBlock(buffer, true, false, false);
                                                         } catch (e) {
                                                             app.peerprocessor.blockPeer(p.ip);
-                                                            return c({ error : true });
+                                                            setImmediate(function () {
+                                                                return c({ error: true });
+                                                            });
                                                         }
 
                                                         if (a) {
                                                             lastAdded = b.getId();
                                                         } else {
-                                                            return c({ error : true });
+                                                            setImmediate(function () {
+                                                                return c({ error: true });
+                                                            });
                                                         }
 
                                                         blockId = b.getId();
-                                                        c();
+                                                        return setImmediate(function () {
+                                                            return c();
+                                                        });
                                                     } else if (!app.blockchain.blocks[b.getId()]) {
                                                         if (!inFork) {
                                                             forkBlock = lastAdded;
@@ -816,43 +851,67 @@ async.series([
                                                                 app.logger.info("Forked blocks removed...");
                                                                 blockId = lastBlock;
                                                                 lastAdded = lastBlock;
-                                                                return с({ _continue : true });
+                                                                return setImmediate(function () {
+                                                                    return c({ _continue: true });
+                                                                });
                                                             });
                                                         } else {
                                                             app.logger.error("Invalid fork...");
                                                             app.blockchain.removeForkedBlocks(forkBlock, function () {
-                                                                return c({ error : true });
+                                                                return setImmediate(function () {
+                                                                    return c({ error: true });
+                                                                });
                                                             });
                                                         }
                                                     } else {
-                                                        return c(true);
+                                                        return setImmediate(function () {
+                                                            return c();
+                                                        });
                                                     }
                                                 });
                                             });
                                         });
                                     }, function (s) {
-                                        if (!s) {
-                                            return next();
-                                        } else if (s.err) {
-                                            return next(true);
-                                        } else if (json.blocks.length === 0) {
-                                            if (lastWeight.gt(app.blockchain.getWeight())) {
-                                                app.logger.warn("Bad peer, block it: " + p.ip);
-                                                if (!forkBlock) {
-                                                    forkBlock = commonBlock;
-                                                }
+                                        if (s && s._continue) {
+                                            if (json.blocks && json.blocks.length === 0) {
+                                                if (lastWeight.gt(app.blockchain.getWeight())) {
+                                                    app.logger.warn("Bad peer, block it: " + p.ip);
 
-                                                app.blockchain.removeForkedBlocks(forkBlock, function () {
-                                                    app.peerprocessor.blockPeer(p.ip);
+                                                    if (!forkBlock) {
+                                                        forkBlock = commonBlock;
+                                                    }
+
+                                                    app.blockchain.removeForkedBlocks(forkBlock, function () {
+                                                        app.peerprocessor.blockPeer(p.ip);
+                                                        return next(true);
+                                                    });
+                                                } else {
                                                     return next(true);
-                                                });
+                                                }
                                             } else {
-                                                return next(true);
+                                                return next();
                                             }
-                                        } else if (s._continue) {
-                                            return next();
+                                        } else if (s && s.error) {
+                                            return next(true);
                                         } else {
-                                            return next();
+                                            if (json.blocks && json.blocks.length === 0) {
+                                                if (lastWeight.gt(app.blockchain.getWeight())) {
+                                                    app.logger.warn("Bad peer, block it: " + p.ip);
+
+                                                    if (!forkBlock) {
+                                                        forkBlock = commonBlock;
+                                                    }
+
+                                                    app.blockchain.removeForkedBlocks(forkBlock, function () {
+                                                        app.peerprocessor.blockPeer(p.ip);
+                                                        return next(true);
+                                                    });
+                                                } else {
+                                                    return next(true);
+                                                }
+                                            } else {
+                                                return next();
+                                            }
                                         }
                                     });
                                 } else {
@@ -868,7 +927,6 @@ async.series([
 
                 p.getWeight(function (err, json) {
                     if (err) {
-                        p.isNat = true;
                         blocksInterval = false;
                     } else if (json.success && json.weight) {
                         if (app.blockchain.getWeight().lt(bignum(json.weight))) {
@@ -885,8 +943,8 @@ async.series([
                                                 blocksInterval = false;
                                             } else {
                                                 commonBlockId = blockId;
-                                                app.logger.debug("Load blocks from: " + p.ip);
-                                                loadBlocks(commonBlockId, commonBlockId, function (result) {
+                                                app.logger.info("Load blocks from: " + p.ip);
+                                                loadBlocks(commonBlockId, commonBlockId, function () {
                                                     app.synchronizedBlocks = true;
                                                     blocksInterval = false;
                                                 });
@@ -900,7 +958,8 @@ async.series([
                                         blocksInterval = false;
                                     } else {
                                         commonBlockId = blockId;
-                                        loadBlocks(commonBlockId, commonBlockId, function (result) {
+                                        app.logger.info("Load blocks from: " + p.ip);
+                                        loadBlocks(commonBlockId, commonBlockId, function () {
                                             app.synchronizedBlocks = true;
                                             blocksInterval = false;
                                         });
@@ -920,7 +979,7 @@ async.series([
                 app.logger.warn("Exception: " + e);
 
                 if (p) {
-                    app.logger.wanr("Block peer: " + p.ip);
+                    app.logger.warn("Block peer: " + p.ip);
                     app.peerprocessor.blockPeer(p.ip);
                 }
 
@@ -947,7 +1006,6 @@ async.series([
                 }, function (next) {
                     p.getUnconfirmedTransactions(function (err, trs) {
                         if (err) {
-                            p.isNat = true;
                             p = app.peerprocessor.getAnyPeer();
                             next(true);
                         } else {
