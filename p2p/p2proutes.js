@@ -12,7 +12,9 @@ var peer = require("./peer.js"),
     bignum = require('bignum'),
     signature = require('../signature').signature,
     companyconfirmation = require("../company").companyconfirmation,
-    requestconfirmation = require('../request').requestconfirmation;
+    requestconfirmation = require('../request').requestconfirmation,
+    ByteBuffer = require('bytebuffer'),
+    genesisblock = require('../block').genesisblock;
 
 module.exports = function (app) {
     app.get("/peer/getRequests", function (req, res) {
@@ -222,7 +224,7 @@ module.exports = function (app) {
                 return res.json({ success: false, error: "Block not found", found: false });
             }
 
-            var r = app.db.sql.prepare("SELECT * FROM blocks WHERE height > (SELECT height FROM blocks WHERE id=$id LIMIT 1) ORDER BY height LIMIT 10");
+            var r = app.db.sql.prepare("SELECT * FROM blocks WHERE height > (SELECT height FROM blocks WHERE id=$id LIMIT 1) ORDER BY height LIMIT 60");
             r.bind({
                 $id: blockId
             });
@@ -233,17 +235,54 @@ module.exports = function (app) {
                     return res.json({ success: false, error: "SQL error" });
                 } else {
                     async.eachSeries(blocks, function (item, cb) {
-                        app.db.sql.all("SELECT * FROM trs WHERE blockId=$id", {
-                            $id: item.id
-                        }, function (err, trs) {
+                        var refs = item.refs;
+
+                        var numberOfTransactions = item.numberOfTransactions;
+                        if (item.id == genesisblock.blockId) {
+                            numberOfTransactions = 13;
+                        }
+
+                        var trsIds = "",
+                            requestsIds = "",
+                            companyconfirmationsIds = "";
+
+                        var bb = ByteBuffer.wrap(refs);
+
+                        var i = 0;
+                        for (i = 0; i < numberOfTransactions; i++) {
+                            trsIds += bb.readInt64();
+
+                            if (i+1 != numberOfTransactions) {
+                                trsIds += ',';
+                            }
+                        }
+
+                        for (i = 0; i < item.numberOfRequests; i++) {
+                            requestsIds += bb.readInt64();
+
+                            if (i+1 != item.numberOfRequests) {
+                                requestsIds += ',';
+                            }
+                        }
+
+                        for (i = 0; i < item.numberOfConfirmations; i++) {
+                            companyconfirmationsIds += bb.readInt64();
+
+                            if (i+1 != item.numberOfConfirmations) {
+                                companyconfirmationsIds += ',';
+                            }
+                        }
+
+
+                        app.db.sql.all("SELECT * FROM trs WHERE rowid IN (" + trsIds + ")", function (err, trs) {
                             if (err) {
                                 cb(err);
                             } else {
                                 async.forEach(trs, function (t, cb) {
                                     if (t.type == 2) {
                                         if (t.subtype == 0) {
-                                            app.db.sql.get("SELECT * FROM signatures WHERE transactionId=$transactionId", {
-                                                $transactionId: t.id
+                                            app.db.sql.get("SELECT * FROM signatures WHERE rowid=$rowid", {
+                                                $rowid : t.assetId
                                             }, function (err, asset) {
                                                 if (err) {
                                                     cb(err);
@@ -257,8 +296,8 @@ module.exports = function (app) {
                                         }
                                     } else if (t.type == 3) {
                                         if (t.subtype == 0) {
-                                            app.db.sql.get("SELECT * FROM companies WHERE transactionId=$transactionId", {
-                                                $transactionId: t.id
+                                            app.db.sql.get("SELECT * FROM companies WHERE rowid=$rowid", {
+                                                $rowid : t.asstId
                                             }, function (err, asset) {
                                                 if (err) {
                                                     cb(err);
@@ -280,16 +319,12 @@ module.exports = function (app) {
 
                                     item.trs = trs;
 
-                                    app.db.sql.all("SELECT * FROM requests WHERE blockId=$id", {
-                                        $id: item.id
-                                    }, function (err, requests) {
+                                    app.db.sql.all("SELECT * FROM requests WHERE rowid IN (" + requestsIds + ")", function (err, requests) {
                                         if (err) {
                                             cb(err);
                                         } else {
                                             item.requests = requests;
-                                            app.db.sql.all("SELECT * FROM companyconfirmations WHERE blockId=$id", {
-                                                $id: item.id
-                                            }, function (err, confirmations) {
+                                            app.db.sql.all("SELECT * FROM companyconfirmations WHERE rowid IN (" + companyconfirmationsIds + ")", function (err, confirmations) {
                                                 if (err) {
                                                     cb(err);
                                                 } else {
@@ -304,6 +339,7 @@ module.exports = function (app) {
                         });
                     }, function (err) {
                         if (err) {
+                            console.log(err);
                             app.logger.error("SQL error");
                             return res.json({ success: false, error: "SQL error" });
                         } else {

@@ -1,4 +1,4 @@
-var sqlite3 = require('sqlite3'),
+var sqlite3 = require('sqlite3').verbose(),
     path = require('path'),
     async = require('async'),
     transactionDatabase = require("sqlite3-transactions").TransactionDatabase,
@@ -89,14 +89,18 @@ db.prototype.writeBlock = function (block,  callback) {
                 if (err) {
                     console.log(err);
                 } else {
+                    var trsIds = [],
+                        requestsIds = [],
+                        companyconfirmationsIds = [];
+
                     async.parallel([
                         function (cb) {
                             if (!block.transactions) {
                                 return cb();
                             }
 
-                            async.forEach(block.transactions, function (t, c) {
-                                var q = dbTransaction.prepare("INSERT INTO trs VALUES($id, $blockId, $type, $subtype, $timestamp, $senderPublicKey, $sender, $recipient, $amount, $fee, $signature, $signSignature)");
+                            async.eachSeries(block.transactions, function (t, c) {
+                                var q = dbTransaction.prepare("INSERT INTO trs VALUES($id, $blockId, $type, $subtype, $timestamp, $senderPublicKey, $sender, $recipient, $amount, $fee, $signature, null, $signSignature)");
                                 q.bind({
                                     $id: t.getId(),
                                     $blockId: t.blockId,
@@ -114,9 +118,11 @@ db.prototype.writeBlock = function (block,  callback) {
 
                                 q.run(function (err) {
                                     if (err) {
-                                        console.log(err);
                                         return c(err);
                                     }
+
+                                    trsIds.push(this.lastID);
+                                    var trId = this.lastID;
 
                                     if (t.type == 2 && t.subtype == 0) {
                                         q = dbTransaction.prepare("INSERT INTO signatures (id, blockId, transactionId, timestamp, publicKey, generatorPublicKey, signature, generationSignature) VALUES ($id, $blockId, $transactionId, $timestamp, $publicKey, $generatorPublicKey, $signature, $generationSignature)");
@@ -133,7 +139,20 @@ db.prototype.writeBlock = function (block,  callback) {
                                         });
 
                                         q.run(function (err) {
-                                            return c(err);
+                                            if (err) {
+                                                return c(err);
+                                            }
+
+                                            var assetId = this.lastID;
+                                            q = dbTransaction.prepare("UPDATE trs SET assetId = $assetId WHERE rowid=$rowid");
+                                            q.bind({
+                                                $rowid : trId,
+                                                $assetId : assetId
+                                            });
+
+                                            q.run(function (err) {
+                                                return c(err);
+                                            });
                                         });
                                     } else if (t.type == 3 && t.subtype == 0) {
                                         var data = {
@@ -152,7 +171,20 @@ db.prototype.writeBlock = function (block,  callback) {
                                         q = dbTransaction.prepare("INSERT INTO companies (id, blockId, transactionId, name, description, domain, email, timestamp, generatorPublicKey, signature) VALUES ($id, $blockId, $transactionId, $name, $description, $domain, $email, $timestamp, $generatorPublicKey, $signature)");
                                         q.bind(data);
                                         q.run(function (err) {
-                                            return c(err);
+                                            if (err) {
+                                                return c(err);
+                                            }
+
+                                            var assetId = this.lastID;
+                                            q = dbTransaction.prepare("UPDATE trs SET assetId = $assetId WHERE rowid=$rowid");
+                                            q.bind({
+                                                $rowid : trId,
+                                                $assetId : assetId
+                                            });
+
+                                            q.run(function (err) {
+                                                return c(err);
+                                            });
                                         });
                                     } else {
                                         return c();
@@ -167,7 +199,7 @@ db.prototype.writeBlock = function (block,  callback) {
                                 return v;
                             });
 
-                            async.forEach(requests, function (r, c) {
+                            async.eachSeries(requests, function (r, c) {
                                 var q = dbTransaction.prepare("INSERT INTO requests (id, blockId, address) VALUES($id, $blockId, $address)");
                                 q.bind({
                                     $id: r.getId(),
@@ -176,6 +208,10 @@ db.prototype.writeBlock = function (block,  callback) {
                                 });
 
                                 q.run(function (err) {
+                                    if (!err) {
+                                        requestsIds.push(this.lastID);
+                                    }
+
                                     c(err);
                                 });
                             }, function (err) {
@@ -186,7 +222,7 @@ db.prototype.writeBlock = function (block,  callback) {
                             if (!block.confirmations) {
                                 return cb();
                             }
-                            async.forEach(block.confirmations, function (confirmation, c) {
+                            async.eachSeries(block.confirmations, function (confirmation, c) {
                                 var data = {
                                     $id: confirmation.getId(),
                                     $blockId: confirmation.blockId,
@@ -199,57 +235,81 @@ db.prototype.writeBlock = function (block,  callback) {
                                 var q = dbTransaction.prepare("INSERT INTO companyconfirmations (id, blockId, companyId, verified, timestamp, signature) VALUES ($id, $blockId, $companyId, $verified, $timestamp, $signature)");
                                 q.bind(data);
                                 q.run(function (err) {
+                                    if (!err) {
+                                        companyconfirmationsIds.push(this.lastID);
+                                    }
+
                                     c(err);
                                 });
                             }, function (err) {
                                 cb(err);
                             });
                         }
-                    ], function (err) {
-                        if (err) {
-                            dbTransaction.rollback(function () {
-                                if (callback) {
-                                    callback();
-                                }
+                    ], function () {
+                        var bb = new ByteBuffer(8 * (trsIds.length + requestsIds.length + companyconfirmationsIds.length));
+
+                        async.series([
+                            function (next) {
+                                async.eachSeries(trsIds, function (tId, c) {
+                                    bb.writeInt64(tId);
+                                    c();
+                                }, next);
+                            },
+                            function (next) {
+                                async.eachSeries(requestsIds, function (rId, c) {
+                                    bb.writeInt64(rId);
+                                    c();
+                                }, next);
+                            },
+                            function (next) {
+                                async.eachSeries(companyconfirmationsIds, function (cId, c) {
+                                    bb.writeInt64(cId);
+                                    c();
+                                }, next);
+                            }
+                        ], function () {
+                            var buffer = null;
+                            bb.flip();
+                            buffer = bb.toBuffer();
+
+                            var q = dbTransaction.prepare("INSERT INTO blocks VALUES($id, $version, $timestamp, $previousBlock, $numberOfRequests, $numberOfTransactions, $numberOfConfirmations, $totalAmount, $totalFee, $payloadLength, $requestsLength, $confirmationsLength, $payloadHash, $generatorPublicKey, $generationSignature, $blockSignature, $refs, $height)");
+                            q.bind({
+                                $id: block.getId(),
+                                $version: block.version,
+                                $timestamp: block.timestamp,
+                                $previousBlock: block.previousBlock,
+                                $numberOfRequests: block.numberOfRequests,
+                                $numberOfTransactions: block.numberOfTransactions,
+                                $totalAmount: block.totalAmount,
+                                $totalFee: block.totalFee,
+                                $payloadLength: block.payloadLength,
+                                $payloadHash: block.payloadHash,
+                                $generatorPublicKey: block.generatorPublicKey,
+                                $generationSignature: block.generationSignature,
+                                $blockSignature: block.blockSignature,
+                                $height: block.height,
+                                $requestsLength: block.requestsLength,
+                                $numberOfConfirmations: block.numberOfConfirmations,
+                                $confirmationsLength: block.confirmationsLength,
+                                $refs : buffer
                             });
-                        } else {
-                            dbTransaction.commit(function (err) {
-                                if (err) {
-                                    dbTransaction.rollback(function () {
+
+                            q.run(function (err) {
+                                dbTransaction.commit(function (err) {
+                                    if (err) {
+                                        dbTransaction.rollback(function () {
+                                            if (callback) {
+                                                callback(err);
+                                            }
+                                        });
+                                    } else {
                                         if (callback) {
                                             callback();
                                         }
-                                    });
-                                } else {
-                                    var q = sql.prepare("INSERT INTO blocks VALUES($id, $version, $timestamp, $previousBlock, $numberOfRequests, $numberOfTransactions, $numberOfConfirmations, $totalAmount, $totalFee, $payloadLength, $requestsLength, $confirmationsLength, $payloadHash, $generatorPublicKey, $generationSignature, $blockSignature, $height)");
-                                    q.bind({
-                                        $id: block.getId(),
-                                        $version: block.version,
-                                        $timestamp: block.timestamp,
-                                        $previousBlock: block.previousBlock,
-                                        $numberOfRequests: block.numberOfRequests,
-                                        $numberOfTransactions: block.numberOfTransactions,
-                                        $totalAmount: block.totalAmount,
-                                        $totalFee: block.totalFee,
-                                        $payloadLength: block.payloadLength,
-                                        $payloadHash: block.payloadHash,
-                                        $generatorPublicKey: block.generatorPublicKey,
-                                        $generationSignature: block.generationSignature,
-                                        $blockSignature: block.blockSignature,
-                                        $height: block.height,
-                                        $requestsLength: block.requestsLength,
-                                        $numberOfConfirmations: block.numberOfConfirmations,
-                                        $confirmationsLength: block.confirmationsLength
-                                    });
-
-                                    q.run(function (err) {
-                                        if (callback) {
-                                            callback(err);
-                                        }
-                                    });
-                                }
+                                    }
+                                });
                             });
-                        }
+                        });
                     });
                 }
             });
@@ -453,10 +513,10 @@ module.exports.initDb = function (path, app, callback) {
     d.sql.serialize(function () {
         async.series([
             function (cb) {
-                d.sql.run("CREATE TABLE IF NOT EXISTS blocks (id VARCHAR(20) NOT NULL, version INT NOT NULL, timestamp TIMESTAMP NOT NULL, previousBlock VARCHAR(20),  numberOfRequests INT NOT NULL, numberOfTransactions INT NOT NULL, numberOfConfirmations INT NOT NULL, totalAmount INTEGER NOT NULL, totalFee INTEGER NOT NULL, payloadLength INT NOT NULL, requestsLength INT NOT NULL, confirmationsLength INT NOT NULL, payloadHash BLOB NOT NULL, generatorPublicKey BLOB NOT NULL, generationSignature BLOB NOT NULL, blockSignature BLOB NOT NULL, references BLOB, height INT NOT NULL, PRIMARY KEY(id))", cb);
+                d.sql.run("CREATE TABLE IF NOT EXISTS blocks (id VARCHAR(20) NOT NULL, version INT NOT NULL, timestamp TIMESTAMP NOT NULL, previousBlock VARCHAR(20),  numberOfRequests INT NOT NULL, numberOfTransactions INT NOT NULL, numberOfConfirmations INT NOT NULL, totalAmount INTEGER NOT NULL, totalFee INTEGER NOT NULL, payloadLength INT NOT NULL, requestsLength INT NOT NULL, confirmationsLength INT NOT NULL, payloadHash BLOB NOT NULL, generatorPublicKey BLOB NOT NULL, generationSignature BLOB NOT NULL, blockSignature BLOB NOT NULL, refs BLOB, height INT NOT NULL, PRIMARY KEY(id))", cb);
             },
             function (cb) {
-                d.sql.run("CREATE TABLE IF NOT EXISTS trs (id VARCHAR(20) NOT NULL, blockId VARCHAR(20) NOT NULL, type INT NOT NULL, subtype INT NOT NULL, timestamp TIMESTAMP NOT NULL, senderPublicKey BLOB NOT NULL, sender VARCHAR(21) NOT NULL, recipient VARCHAR(21) NOT NULL, amount INTEGER NOT NULL, fee INTEGER NOT NULL, signature BLOB NOT NULL, signSignature BLOB, REFERENCES BLOB NOT NULL, PRIMARY KEY(id), FOREIGN KEY(blockId) REFERENCES blocks(id))", cb);
+                d.sql.run("CREATE TABLE IF NOT EXISTS trs (id VARCHAR(20) NOT NULL, blockId VARCHAR(20) NOT NULL, type INT NOT NULL, subtype INT NOT NULL, timestamp TIMESTAMP NOT NULL, senderPublicKey BLOB NOT NULL, sender VARCHAR(21) NOT NULL, recipient VARCHAR(21) NOT NULL, amount INTEGER NOT NULL, fee INTEGER NOT NULL, signature BLOB NOT NULL, assetId BIGINT, signSignature BLOB, PRIMARY KEY(id), FOREIGN KEY(blockId) REFERENCES blocks(id))", cb);
             },
             function (cb) {
                 d.sql.run("CREATE TABLE IF NOT EXISTS requests (id VARCHAR(20) NOT NULL, blockId VARCHAR(20) NOT NULL, address VARCHAR(21) NOT NULL, PRIMARY KEY(id), FOREIGN KEY(blockId) REFERENCES blocks(id))", cb);
@@ -471,97 +531,99 @@ module.exports.initDb = function (path, app, callback) {
                 d.sql.run("CREATE TABLE IF NOT EXISTS companyconfirmations (id VARCHAR(20) NOT NULL, blockId VARCHAR(20) NOT NULL, companyId VARCHAR(20) NOT NULL, verified TINYINT(1) NOT NULL, timestamp INT NOT NULL, signature BLOB NOT NULL, PRIMARY KEY(id), FOREIGN KEY(blockId) REFERENCES blocks(id))", cb);
             },
             function (cb) {
-                d.sql.get("SELECT TYPEOF(blockId) as type FROM trs", function (err, r) {
-                   if (err) {
-                       return cb(err);
-                   } else {
-                       if (process.env.CONVERT_DB) {
-                           d.sql.beginTransaction(function (err, dbTransaction) {
-                               if (err) {
-                                   return cb(err);
-                               }  else {
-                                   app.logger.info("Start migration...");
+                if (process.env.MIGRATION) {
+                    app.logger.info("Start migration...");
+                    var loaded = 0,
+                        total = 0;
+                    d.sql.run("ALTER TABLE blocks ADD COLUMN refs BLOB", function (err) {
+                        if (err) {
+                            cb(err);
+                        } else {
+                            d.sql.all("SELECT * FROM blocks ORDER BY height", function (err, blocks) {
+                                if (err) {
+                                    return cb(err);
+                                }
 
-                                   dbTransaction.run("CREATE TEMPORARY TABLE trs_backup(id VARCHAR(20) NOT NULL, blockId VARCHAR(20) NOT NULL, type INT NOT NULL, subtype INT NOT NULL, timestamp TIMESTAMP NOT NULL, senderPublicKey BLOB NOT NULL, sender VARCHAR(21) NOT NULL, recipient VARCHAR(21) NOT NULL, amount INTEGER NOT NULL, fee INTEGER NOT NULL, signature BLOB NOT NULL, signSignature BLOB, PRIMARY KEY(id))");
-                                   dbTransaction.run("INSERT INTO trs_backup SELECT * FROM trs");
-                                   dbTransaction.run("DROP TABLE trs");
-                                   dbTransaction.run("CREATE TABLE  trs(id VARCHAR(20) NOT NULL, blockId VARCHAR(20) NOT NULL, type INT NOT NULL, subtype INT NOT NULL, timestamp TIMESTAMP NOT NULL, senderPublicKey BLOB NOT NULL, sender VARCHAR(21) NOT NULL, recipient VARCHAR(21) NOT NULL, amount INTEGER NOT NULL, fee INTEGER NOT NULL, signature BLOB NOT NULL, signSignature BLOB, PRIMARY KEY(id), FOREIGN KEY(blockId) REFERENCES blocks(id))");
-                                   dbTransaction.run("INSERT INTO trs SELECT * FROM trs_backup");
-                                   dbTransaction.run("DROP TABLE trs_backup");
+                                total = blocks.length;
+                                async.eachSeries(blocks, function (b, nextBlock) {
+                                    var trsIds = [],
+                                        requestsIds = [],
+                                        companyconfirmationsIds = [];
 
-                                   dbTransaction.run("CREATE TEMPORARY TABLE requests_backup(id VARCHAR(20) NOT NULL, blockId VARCHAR(20) NOT NULL, address VARCHAR(21) NOT NULL, PRIMARY KEY(id))");
-                                   dbTransaction.run("INSERT INTO requests_backup SELECT * FROM requests");
-                                   dbTransaction.run("DROP TABLE requests");
-                                   dbTransaction.run("CREATE TABLE requests(id VARCHAR(20) NOT NULL, blockId VARCHAR(20) NOT NULL, address VARCHAR(21) NOT NULL, PRIMARY KEY(id), FOREIGN KEY(blockId) REFERENCES blocks(id))");
-                                   dbTransaction.run("INSERT INTO requests SELECT * FROM requests_backup");
-                                   dbTransaction.run("DROP TABLE requests_backup");
+                                    async.series([
+                                        function (next) {
+                                            d.sql.all("SELECT rowid FROM trs where blockId=?", b.id, function (err, ids) {
+                                                trsIds = ids;
+                                                next(err);
+                                            });
+                                        },
+                                        function (next) {
+                                            d.sql.all("SELECT rowid FROM requests where blockId=?", b.id, function (err, ids) {
+                                                requestsIds = ids;
+                                                next(err);
+                                            });
+                                        },
+                                        function (next) {
+                                            d.sql.all("SELECT rowid FROM companyconfirmations where blockId=?", b.id, function (err, ids) {
+                                                companyconfirmationsIds = ids;
+                                                next(err);
+                                            });
+                                        }
+                                    ], function (err) {
+                                        if (err) {
+                                            return nextBlock(err);
+                                        } else {
+                                            var bb = new ByteBuffer(8 * (trsIds.length + requestsIds.length + companyconfirmationsIds.length));
 
-                                   dbTransaction.run("CREATE TEMPORARY TABLE signatures_backup (id VARCHAR(20) NOT NULL, blockId VARCHAR(20) NOT NULL, transactionId VARCHAR(20) NOT NULL, timestamp TIMESTAMP NOT NULL, publicKey BLOB NOT NULL, generatorPublicKey BLOB NOT NULL, signature BLOB NOT NULL, generationSignature BLOB NOT NULL, PRIMARY KEY(id))");
-                                   dbTransaction.run("INSERT INTO signatures_backup SELECT * FROM signatures");
-                                   dbTransaction.run("DROP TABLE signatures");
-                                   dbTransaction.run("CREATE TABLE signatures (id VARCHAR(20) NOT NULL, blockId VARCHAR(20) NOT NULL, transactionId VARCHAR(20) NOT NULL, timestamp TIMESTAMP NOT NULL, publicKey BLOB NOT NULL, generatorPublicKey BLOB NOT NULL, signature BLOB NOT NULL, generationSignature BLOB NOT NULL, PRIMARY KEY(id), FOREIGN KEY(blockid) REFERENCES blocks(id),  FOREIGN KEY(transactionId) REFERENCES trs(id))");
-                                   dbTransaction.run("INSERT INTO signatures SELECT * FROM signatures_backup");
-                                   dbTransaction.run("DROP TABLE signatures_backup");
+                                            async.series([
+                                                function (next) {
+                                                    async.eachSeries(trsIds, function (trId, c) {
+                                                        bb.writeInt64(trId.rowid);
+                                                        c();
+                                                    }, next);
+                                                },
+                                                function (next) {
+                                                    async.eachSeries(requestsIds, function (rId, c) {
+                                                        bb.writeInt64(rId.rowid);
+                                                        c();
+                                                    }, next);
+                                                },
+                                                function (next) {
+                                                    async.eachSeries(companyconfirmationsIds, function (cId, c) {
+                                                        bb.writeInt64(cId.rowid);
+                                                        c();
+                                                    }, next);
+                                                }
+                                            ], function () {
+                                                bb.flip();
+                                                var buffer = bb.toBuffer();
 
-                                   dbTransaction.run("CREATE TEMPORARY TABLE companies_backup (id VARCHAR(20) NOT NULL, blockId VARCHAR(20) NOT NULL, transactionId VARCHAR(20) NOT NULL, name VARCHAR(20) NOT NULL, description VARCHAR(250) NOT NULL, domain TEXT, email TEXT NOT NULL, timestamp INT NOT NULL, generatorPublicKey BLOB NOT NULL, signature BLOB NOT NULL, PRIMARY KEY(id))");
-                                   dbTransaction.run("INSERT INTO companies_backup SELECT * FROM companies");
-                                   dbTransaction.run("DROP TABLE companies");
-                                   dbTransaction.run("CREATE TABLE companies (id VARCHAR(20) NOT NULL, blockId VARCHAR(20) NOT NULL, transactionId VARCHAR(20) NOT NULL, name VARCHAR(20) NOT NULL, description VARCHAR(250) NOT NULL, domain TEXT, email TEXT NOT NULL, timestamp INT NOT NULL, generatorPublicKey BLOB NOT NULL, signature BLOB NOT NULL, PRIMARY KEY(id),  FOREIGN KEY(blockId) REFERENCES blocks(id),  FOREIGN KEY(transactionId) REFERENCES trs(id))");
-                                   dbTransaction.run("INSERT INTO companies SELECT * FROM companies_backup");
-                                   dbTransaction.run("DROP TABLE companies_backup");
+                                                d.sql.run("UPDATE blocks SET refs = ? WHERE id=?", [buffer, b.id], function (err) {
+                                                    loaded++;
 
+                                                    if (loaded % 100 == 0) {
+                                                        console.log("Migration: " + loaded + " / " + total);
+                                                    }
 
-                                   dbTransaction.run("CREATE TEMPORARY TABLE companyconfirmations_backup (id VARCHAR(20) NOT NULL, blockId VARCHAR(20) NOT NULL, companyId VARCHAR(20) NOT NULL, verified TINYINT(1) NOT NULL, timestamp INT NOT NULL, signature BLOB NOT NULL, PRIMARY KEY(id))");
-                                   dbTransaction.run("INSERT INTO companyconfirmations_backup SELECT * FROM companyconfirmations");
-                                   dbTransaction.run("DROP TABLE companyconfirmations");
-                                   dbTransaction.run("CREATE TABLE companyconfirmations (id VARCHAR(20) NOT NULL, blockId VARCHAR(20) NOT NULL, companyId VARCHAR(20) NOT NULL, verified TINYINT(1) NOT NULL, timestamp INT NOT NULL, signature BLOB NOT NULL, PRIMARY KEY(id), FOREIGN KEY(blockId) REFERENCES blocks(id))");
-                                   dbTransaction.run("INSERT INTO companyconfirmations SELECT * FROM companyconfirmations_backup");
-                                   dbTransaction.run("DROP TABLE companyconfirmations_backup");
-
-                                   dbTransaction.commit(function (err) {
-                                       if (err) {
-                                           dbTransaction.rollback(function (err) {
-                                               return cb(err);
-                                           });
-                                       } else {
-                                           return cb();
-                                           d.sql.run("SELECT * FROM blocks", function (err, blocks) {
-                                              if (err) {
-                                                  cb(err);
-                                              } else {
-                                                  async.forEach(blocks, function (b) {
-                                                      var trsIds,
-                                                          requestsIds,
-                                                          signaturesIds,
-                                                          companiesIds,
-                                                          companyconfirmationsIds;
-
-                                                      async.parallel([
-                                                          function (cb) {
-                                                              d.sql.run("SELECT * FROM trs ")
-                                                          },
-                                                          function (cb) {
-
-                                                          },
-                                                          function (cb) {
-
-                                                          },
-                                                          function (cb) {
-
-                                                          }
-                                                      ])
-                                                  });
-                                              }
-                                           });
-                                       }
-                                   });
-                               }
-                           });
-                       } else {
-                           cb();
-                       }
-                   }
-                });
+                                                    nextBlock(err);
+                                                });
+                                            })
+                                        }
+                                    });
+                                }, function (err) {
+                                    if (err) {
+                                        cb(err);
+                                    } else {
+                                        app.logger.info("Migration finished");
+                                        cb();
+                                    }
+                                });
+                            });
+                        }
+                    });
+                } else {
+                    cb();
+                }
             }
         ], function (err) {
             callback(err, d);
