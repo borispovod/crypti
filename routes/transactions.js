@@ -101,7 +101,6 @@ module.exports = function (app) {
                 return res.json({ success: false, error: "Provide transaction id", status: "PROVIDE_TRANSACTION_ID" });
             }
 
-            app.db.sql.serialize(function () {
                 app.db.sql.get("SELECT * FROM trs WHERE id=? LIMIT 1", [transactionId], function (err, t) {
                     if (err) {
                         return res.json({ success: false, status: "SQL_ERROR", error: "Sql error"});
@@ -131,7 +130,6 @@ module.exports = function (app) {
                         }
                     }
                 });
-            });
         } catch (e) {
             app.logger.error("Exception, notify developers: ");
             app.logger.error(e);
@@ -147,7 +145,6 @@ module.exports = function (app) {
                 return res.json({ success: false, error: "Provide transaction id", status: "Provide transaction id" });
             }
 
-            app.db.sql.serialize(function () {
                 app.db.sql.get("SELECT * FROM trs WHERE id=? LIMIT 1", [transactionId], function (err, t) {
                     if (err) {
                         return res.json({ success: false, status: "SQL_ERROR", error: "Sql error"});
@@ -161,7 +158,6 @@ module.exports = function (app) {
                         }
                     }
                 });
-            });
         } catch (e) {
             app.logger.error("Exception, notify developers: ");
             app.logger.error(e);
@@ -177,7 +173,6 @@ module.exports = function (app) {
                 return res.json({ success: false, error: "Provide transaction id", status: "Provide transaction id" });
             }
 
-            app.db.sql.serialize(function () {
                 app.db.sql.get("SELECT * FROM trs WHERE id=? LIMIT 1", [transactionId], function (err, t) {
                     if (err) {
                         return res.json({ success: false, status: "SQL_ERROR", error: "Sql error"});
@@ -191,7 +186,6 @@ module.exports = function (app) {
                         }
                     }
                 });
-            });
         } catch (e) {
             app.logger.error("Exception, notify developers: ");
             app.logger.error(e);
@@ -237,7 +231,6 @@ module.exports = function (app) {
                 }
             });
 
-            app.db.sql.serialize(function () {
                 var q = app.db.sql.prepare("SELECT * FROM trs WHERE (recipient=$accountId OR sender=$accountId OR recipient IN " + JSON.stringify(a).replace('[', '(').replace(']', ')') + ") ORDER BY timestamp " + desc + " LIMIT " + limit);
                 q.bind({
                     $accountId: accountId
@@ -289,7 +282,6 @@ module.exports = function (app) {
                         });
                     }
                 });
-            });
         } catch (e) {
             app.logger.error("Exception, notify developers: ");
             app.logger.error(e);
@@ -300,7 +292,6 @@ module.exports = function (app) {
     app.get("/api/getReceivedTransactionsByAddress", app.basicAuth, function (req, res) {
         try {
             var accountId = req.query.address || "";
-            app.db.sql.serialize(function () {
                 var q = app.db.sql.prepare("SELECT * FROM trs WHERE recipient = ? ORDER BY timestamp");
                 q.bind(accountId);
                 q.all(function (err, rows) {
@@ -335,7 +326,6 @@ module.exports = function (app) {
                         });
                     }
                 });
-            });
         } catch (e) {
             app.logger.error("Exception, notify developers: ");
             app.logger.error(e);
