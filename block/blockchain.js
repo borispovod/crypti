@@ -72,7 +72,7 @@ blockchain.prototype.getCommonBlockId = function (commonBlock, peer, cb) {
             peer.getNextBlockIds(commonBlock, function (err, json) {
                 if (err) {
                     return next(true);
-                } else if (json.blockIds.length == 0) {
+                } if (!json || !json.blocks || json.blockIds.length == 0) {
                     return next(true);
                 } else {
                     for (var i = 0; i < json.blockIds.length; i++) {
