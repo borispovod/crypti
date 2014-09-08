@@ -586,9 +586,9 @@ async.series([
 
                                     var _peer = new peer(ps[i].ip, ps[i].port, ps[i].platform, ps[i].version);
 
-                                    /*if (!app.peerprocessor.peers[_peer.ip]) {
+                                    if (!app.peerprocessor.peers[_peer.ip]) {
                                         app.peerprocessor.addPeer(_peer);
-                                    }*/
+                                    }
                                 }
                                 callback();
                             } else {

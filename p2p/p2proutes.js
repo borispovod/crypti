@@ -297,7 +297,7 @@ module.exports = function (app) {
                                     } else if (t.type == 3) {
                                         if (t.subtype == 0) {
                                             app.db.sql.get("SELECT * FROM companies WHERE rowid=$rowid", {
-                                                $rowid : t.asstId
+                                                $rowid : t.assetId
                                             }, function (err, asset) {
                                                 if (err) {
                                                     cb(err);
