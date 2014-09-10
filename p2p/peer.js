@@ -301,7 +301,7 @@ peer.prototype.getNextBlockIds = function (blockId, cb) {
 
     timeout = setTimeout(function () {
         r.abort();
-    }, 5000);
+    }, 10000);
 
     r.on('error', function (err) {
         cb(err, null);

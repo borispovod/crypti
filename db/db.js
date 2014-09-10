@@ -1,13 +1,46 @@
-var sqlite3 = require('sqlite3').verbose(),
+var sqlite3 = require('sqlite3'),
     path = require('path'),
     async = require('async'),
     transactionDatabase = require("sqlite3-transactions").TransactionDatabase,
     _ = require('underscore'),
-    ByteBuffer = require('bytebuffer');
+    ByteBuffer = require('bytebuffer'),
+    EventEmitter = require('events').EventEmitter,
+    util = require('util');
 
 var db = function (path) {
     this.path = path;
+
+    this.queue = [];
+    this.blockSavingId = null;
+
     this.open();
+
+    this.on("newBlock", function () {
+        if (this.blockSavingId) {
+            return;
+        }
+
+        this.blockSavingId = this.queue.shift();
+        var block = this.app.blockchain.blocks[this.blockSavingId];
+
+        this._writeBlock(block, function (err) {
+            if (err) {
+                this.app.logger.error(err.toString());
+            } else {
+                this.blockSavingId = null;
+
+                if (this.queue.length > 0) {
+                    this.emit("newBlock");
+                }
+            }
+        }.bind(this));
+    }.bind(this));
+}
+
+util.inherits(db, EventEmitter);
+
+db.prototype.setApp = function (app) {
+    this.app = app;
 }
 
 db.prototype.open = function () {
@@ -21,16 +54,16 @@ db.prototype.close = function () {
     this.sql = null;
 }
 
-db.prototype.deleteBlock = function (b, callback) {
+db.prototype.deleteBlock = function (bId, callback) {
     var sql = this.sql;
     sql.serialize(function () {
         sql.beginTransaction(function (err, dbTransaction) {
-            dbTransaction.run("DELETE FROM blocks WHERE id=?", b.getId());
-            dbTransaction.run("DELETE FROM trs WHERE blockId=?",b.getId());
-            dbTransaction.run("DELETE FROM companyconfirmations WHERE blockId=?", b.getId());
-            dbTransaction.run("DELETE FROM requests WHERE blockId=?", b.getId());
-            dbTransaction.run("DELETE FROM companies WHERE blockId=?", b.getId());
-            dbTransaction.run("DELETE FROM signatures WHERE blockId=?", b.getId());
+            dbTransaction.run("DELETE FROM blocks WHERE id=?", bId);
+            dbTransaction.run("DELETE FROM trs WHERE blockId=?", bId);
+            dbTransaction.run("DELETE FROM companyconfirmations WHERE blockId=?", bId);
+            dbTransaction.run("DELETE FROM requests WHERE blockId=?", bId);
+            dbTransaction.run("DELETE FROM companies WHERE blockId=?", bId);
+            dbTransaction.run("DELETE FROM signatures WHERE blockId=?", bId);
 
             dbTransaction.commit(function (err) {
                 if (err) {
@@ -81,13 +114,24 @@ db.prototype.writeTransaction = function (t, cb) {
     }.bind(this));
 }
 
-db.prototype.writeBlock = function (block,  callback) {
+db.prototype.writeBlock = function (blockId, cb) {
+    this.queue.push(blockId);
+    this.emit("newBlock");
+
+    if (cb) {
+        cb();
+    }
+}
+
+db.prototype._writeBlock = function (block,  callback) {
     try {
         var sql = this.sql;
         sql.serialize(function () {
             sql.beginTransaction(function (err, dbTransaction) {
                 if (err) {
-                    console.log(err);
+                    if (callback) {
+                        return callback(err);
+                    }
                 } else {
                     var trsIds = [],
                         requestsIds = [],
@@ -222,6 +266,7 @@ db.prototype.writeBlock = function (block,  callback) {
                             if (!block.confirmations) {
                                 return cb();
                             }
+
                             async.eachSeries(block.confirmations, function (confirmation, c) {
                                 var data = {
                                     $id: confirmation.getId(),
@@ -245,7 +290,15 @@ db.prototype.writeBlock = function (block,  callback) {
                                 cb(err);
                             });
                         }
-                    ], function () {
+                    ], function (err) {
+                        if (err) {
+                            if (callback) {
+                                return callback(err);
+                            } else {
+                                return;
+                            }
+                        }
+
                         var bb = new ByteBuffer(8 * (trsIds.length + requestsIds.length + companyconfirmationsIds.length));
 
                         async.series([
@@ -291,23 +344,29 @@ db.prototype.writeBlock = function (block,  callback) {
                                 $requestsLength: block.requestsLength,
                                 $numberOfConfirmations: block.numberOfConfirmations,
                                 $confirmationsLength: block.confirmationsLength,
-                                $refs : buffer
+                                $refs: buffer
                             });
 
                             q.run(function (err) {
-                                dbTransaction.commit(function (err) {
-                                    if (err) {
-                                        dbTransaction.rollback(function () {
-                                            if (callback) {
-                                                callback(err);
-                                            }
-                                        });
-                                    } else {
-                                        if (callback) {
-                                            callback();
-                                        }
+                                if (err) {
+                                    if (callback) {
+                                        return callback(err);
                                     }
-                                });
+                                } else {
+                                    dbTransaction.commit(function (err) {
+                                        if (err) {
+                                            dbTransaction.rollback(function () {
+                                                if (callback) {
+                                                    callback(err);
+                                                }
+                                            });
+                                        } else {
+                                            if (callback) {
+                                                callback();
+                                            }
+                                        }
+                                    });
+                                }
                             });
                         });
                     });
@@ -315,6 +374,9 @@ db.prototype.writeBlock = function (block,  callback) {
             });
         });
     } catch (e) {
+        if (e) {
+            console.log(e);
+        }
         if (callback) {
             callback(e);
         }
@@ -626,6 +688,7 @@ module.exports.initDb = function (path, app, callback) {
                 }
             }
         ], function (err) {
+            d.setApp(app);
             callback(err, d);
         });
     });
