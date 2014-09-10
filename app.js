@@ -803,24 +803,24 @@ async.series([
                                                 }, function () {
                                                     b.confirmations = confirmations;
 
-                                                    var a = false;
-
-                                                    var buffer = b.getBytes();
-
-                                                    for (var t in transactions) {
-                                                        buffer = Buffer.concat([buffer, transactions[t].getBytes()]);
-                                                    }
-
-                                                    var i = 0;
-                                                    for (i = 0; i < requests.length; i++) {
-                                                        buffer = Buffer.concat([buffer, requests[i].getBytes()]);
-                                                    }
-
-                                                    for (i = 0; i < confirmations.length; i++) {
-                                                        buffer = Buffer.concat([buffer, confirmations[i].getBytes()]);
-                                                    }
-
                                                     if (app.blockchain.getLastBlock().getId() == b.previousBlock) {
+                                                        var a = false;
+
+                                                        var buffer = b.getBytes();
+
+                                                        for (var t in transactions) {
+                                                            buffer = Buffer.concat([buffer, transactions[t].getBytes()]);
+                                                        }
+
+                                                        var i = 0;
+                                                        for (i = 0; i < requests.length; i++) {
+                                                            buffer = Buffer.concat([buffer, requests[i].getBytes()]);
+                                                        }
+
+                                                        for (i = 0; i < confirmations.length; i++) {
+                                                            buffer = Buffer.concat([buffer, confirmations[i].getBytes()]);
+                                                        }
+
                                                         try {
                                                             a = app.blockchain.pushBlock(buffer, true, false, false);
                                                         } catch (e) {
@@ -865,7 +865,7 @@ async.series([
                                                         }
                                                     } else {
                                                         return setImmediate(function () {
-                                                            return c();
+                                                            return c({ error : true });
                                                         });
                                                     }
                                                 });
@@ -874,7 +874,7 @@ async.series([
                                     }, function (s) {
                                         if (s && s._continue) {
                                             if (json.blocks && json.blocks.length === 0) {
-                                                if (lastWeight.gt(app.blockchain.getWeight())) {
+                                                if (!inFork && lastWeight.gt(app.blockchain.getWeight())) {
                                                     app.logger.warn("Bad peer, block it: " + p.ip);
 
                                                     if (!forkBlock) {
@@ -939,11 +939,11 @@ async.series([
                                     } else {
                                         commonBlockId = blockId;
                                         getCommonBlock(commonBlockId, p, function (err, blockId) {
-                                            if (err) {
+                                            if (err || !blockId) {
                                                 blocksInterval = false;
                                             } else {
                                                 commonBlockId = blockId;
-                                                app.logger.info("Load blocks from: " + p.ip);
+                                                app.logger.info("Load blocks from: " + p.ip + " / " + commonBlockId);
                                                 loadBlocks(commonBlockId, commonBlockId, function () {
                                                     app.synchronizedBlocks = true;
                                                     blocksInterval = false;
@@ -954,7 +954,7 @@ async.series([
                                 });
                             } else {
                                 getCommonBlock(commonBlockId, p, function (err, blockId) {
-                                    if (err) {
+                                    if (err || !blockId) {
                                         blocksInterval = false;
                                     } else {
                                         commonBlockId = blockId;
