@@ -31,6 +31,8 @@ var db = function (path) {
 
                 if (this.queue.length > 0) {
                     this.emit("newBlock");
+                } else {
+                    this.emit("blockchainLoaded");
                 }
             }
         }.bind(this));

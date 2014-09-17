@@ -209,6 +209,7 @@ transactionprocessor.prototype.processTransaction = function (transaction, sendT
                 break;
             }
 
+            transaction.sender = this.app.accountprocessor.getAddressByPublicKey(transaction.senderPublicKey);
             a.setUnconfirmedBalance(a.unconfirmedBalance - amount);
         }
     }
