@@ -32,24 +32,36 @@ forger.prototype.setApp = function (app) {
 }
 
 forger.prototype.checkCompany = function (company, cb) {
-    requestHttp({
-        url: "http://" + company.domain + "/cryptixcr.txt",
-        headers: {
-            'User-Agent': 'Crypti Agent'
-        },
-        timeout : 3000
-    }, function (err, resp, body) {
-        if (err) {
-            cb(false);
-        }
+    try {
+        requestHttp({
+            url: "http://" + company.domain + "/cryptixcr.txt",
+            headers: {
+                'User-Agent': 'Crypti Agent'
+            },
+            timeout: 5000
+        }, function (err, resp, body) {
+            if (err) {
+                cb(false);
+            }
 
-        var data = body.replace(/^\s+|\s+$/g, "");
-        if (data != company.signature.toString('base64')) {
-            cb(false);
-        } else {
-            cb(true);
-        }
-    });
+            if (resp.statusCode != 200) {
+                return cb(false);
+            }
+
+            if (!data) {
+                return cb(false);
+            }
+
+            var data = body.replace(/^\s+|\s+$/g, "");
+            if (data != company.signature.toString('base64')) {
+                cb(false);
+            } else {
+                cb(true);
+            }
+        });
+    } catch (e) {
+        return cb(false);
+    }
 }
 
 forger.prototype.sendRequest = function () {
@@ -274,6 +286,7 @@ forger.prototype.startForge = function () {
         winner = randomWinners[cycle];
     }
 
+    console.log("Winner in cycle: " + winner.address);
     this.app.logger.debug("Winner in cycle: " + winner.address);
 
     if (winner.address == myAccount.address) {

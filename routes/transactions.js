@@ -1,7 +1,9 @@
 var async = require('async'),
     Constants = require ('../Constants'),
     _ = require('underscore'),
-    utils = require('../utils.js');
+    utils = require('../utils.js'),
+    ByteBuffer = require('bytebuffer'),
+    genesisblock = require('../block').genesisblock;
 
 module.exports = function (app) {
     var getFee = function (item) {
@@ -45,7 +47,7 @@ module.exports = function (app) {
             var blockId = req.query.blockId || "";
 
             if (blockId.length == 0) {
-                return res.json({ success: false, error: "Provide block id", status: "PROVID_BLOCK_ID" });
+                return res.json({ success: false, error: "Provide block id", status: "PROVIDE_BLOCK_ID" });
             }
 
             app.db.sql.serialize(function () {
@@ -55,11 +57,34 @@ module.exports = function (app) {
                         return res.json({ success: false, success: false, error: "Sql error", status: "SQL_ERROR" });
                     } else {
                         async.forEach(rows, function (item, callback) {
+                            item.nextBlock = app.blockchain.blocks[item.id].nextBlock;
                             item.timestamp += utils.epochTime();
                             item.generator = app.accountprocessor.getAddressByPublicKey(new Buffer(item.generatorPublicKey, 'hex'));
 
+                            var refs = item.refs;
+
+                            var numberOfTransactions = item.numberOfTransactions;
+                            if (item.id == genesisblock.blockId) {
+                                numberOfTransactions = 13;
+                            }
+
+                            var trsIds = "",
+                                requestsIds = "",
+                                companyconfirmationsIds = "";
+
+                            var bb = ByteBuffer.wrap(refs);
+
+                            var i = 0;
+                            for (i = 0; i < numberOfTransactions; i++) {
+                                trsIds += bb.readInt64();
+
+                                if (i+1 != numberOfTransactions) {
+                                    trsIds += ',';
+                                }
+                            }
+
                             app.db.sql.serialize(function () {
-                                app.db.sql.all("SELECT * FROM trs WHERE blockId='" + item.id + "'", function (err, rows) {
+                                app.db.sql.all("SELECT * FROM trs WHERE rowid IN (" + trsIds + ")", function (err, rows) {
                                     if (err) {
                                         callback(err);
                                     } else {
@@ -85,6 +110,61 @@ module.exports = function (app) {
                         });
                     }
                 });
+            });
+        } catch (e) {
+            app.logger.error("Exception, notify developers: ");
+            app.logger.error(e);
+            return res.json({ success : false, error : "Exception", status : "EXCEPTION" });
+        }
+    });
+
+    app.get("/api/getLastTransactions", app.basicAuth, function (req, res) {
+        try {
+            var orderDesc = req.query.orderDesc || false,
+                limit = req.query.limit || 20,
+                offset = req.query.offset || 0;
+
+            if (orderDesc != "true" && orderDesc != "false" && orderDesc != false) {
+                return res.json({ success : false, status : "PROVIDE_VALID_ORDER_DESC_PARAM", error : "Invalid order desc parameter" });
+            }
+
+            limit = parseInt(limit);
+
+            if (isNaN(limit)) {
+                return res.json({ success : false, status : "INVALID_LIMIT", error : "Invalid limit parameter" });
+            } else if (limit <= 0) {
+                return res.json({ success : false, status : "INVALID_LIMIT", error : "Invalid limit parameter" });
+            }
+
+            offset = parseInt(offset);
+
+            if (isNaN(offset)) {
+                return res.json({ success : false, status : "INVALID_OFFSET", error : "Invalid offset parameter" });
+            } else if (offset < 0) {
+                return res.json({ success : false, status : "INVALID_OFFSET", error : "Invalid offset parameter" });
+            }
+
+            var order = "ASC";
+
+            if (orderDesc == "true") {
+                order = "DESC";
+            }
+
+            app.db.sql.all("SELECT * FROM trs ORDER BY timestamp " + order +  " LIMIT " + limit + " OFFSET " + offset, function (err, trs) {
+                if (err) {
+                    return res.json({ success: false, status: "SQL_ERROR", error: "Sql error"});
+                } else {
+                    async.forEach(trs, function (t, cb) {
+                        var blockId = t.blockId;
+                        t.confirmations = app.blockchain.getLastBlock().height - app.blockchain.blocks[blockId].height + 1;
+                        t.sender = app.accountprocessor.getAddressByPublicKey(new Buffer(t.senderPublicKey, 'hex'));
+                        t.timestamp += utils.epochTime();
+                        t.confirmed = true;
+                        cb();
+                    }, function () {
+                        return res.json({ success: true, transactions: trs, status: "OK" });
+                    });
+                }
             });
         } catch (e) {
             app.logger.error("Exception, notify developers: ");
@@ -193,11 +273,20 @@ module.exports = function (app) {
         }
     });
 
+    app.get("/api/getUnconfirmedTransactions", app.basicAuth, function (req, res) {
+        var transactions = _.map(app.transactionprocessor.unconfirmedTransactions, function (t) {
+            return t;
+        });
+
+        return res.json({ status : "OK", success : true, transactions : transactions });
+    });
+
     app.get('/api/getAddressTransactions', app.basicAuth, function (req, res) {
         try {
-            var accountId = req.query.address || 20,
+            var accountId = req.query.address,
                 limit = req.query.limit || "",
-                desc = req.query.descOrder || "";
+                desc = req.query.descOrder || "",
+                offset = req.query.offset || 0;
 
             var account = app.accountprocessor.getAccountById(accountId);
             if (!account) {
@@ -210,6 +299,14 @@ module.exports = function (app) {
                 limit = 100;
             } else if (limit <= 0) {
                 return res.json({ success: false, status: "INVALID_LIMIT", error: "Invalid limit" });
+            }
+
+            offset = parseInt(offset);
+
+            if (isNaN(offset)) {
+                offset = 0;
+            } else if (offset < 0) {
+                return res.json({ success : false, status : "INVALID_OFFSET", error : "Invalid offset" });
             }
 
             if (desc == "true") {
@@ -231,7 +328,7 @@ module.exports = function (app) {
                 }
             });
 
-                var q = app.db.sql.prepare("SELECT * FROM trs WHERE (recipient=$accountId OR sender=$accountId OR recipient IN " + JSON.stringify(a).replace('[', '(').replace(']', ')') + ") ORDER BY timestamp " + desc + " LIMIT " + limit);
+                var q = app.db.sql.prepare("SELECT * FROM trs WHERE (recipient=$accountId OR sender=$accountId OR recipient IN " + JSON.stringify(a).replace('[', '(').replace(']', ')') + ") ORDER BY timestamp " + desc + " LIMIT " + limit + " OFFSET " + offset);
                 q.bind({
                     $accountId: accountId
                 });
@@ -277,7 +374,7 @@ module.exports = function (app) {
 
                                 с();
                             }, function () {
-                                return res.json({ success: true, statusCode: "OK", transactions: transactions });
+                                return res.json({ success: true, status: "OK", transactions: transactions });
                             });
                         });
                     }
@@ -680,14 +777,22 @@ module.exports = function (app) {
     app.get('/api/getLastBlocks', app.basicAuth, function (req, res) {
         try {
             var limit = req.query.limit || 20,
-                orderDesc = req.query.orderDesc || false;
+                orderDesc = req.query.orderDesc || false,
+                offset = req.query.offset || 0;
 
+            offset = parseInt(offset);
             limit = parseInt(limit);
 
             if (isNaN(limit)) {
                 limit = 20;
-            } else if (limit <= 0) {
+            } else if (limit < 0) {
                 return res.json({ success: false, error: "Limit is invalid", status: "INVALID_LIMIT" });
+            }
+
+            if (isNaN(offset)) {
+                offset = 0;
+            } else if (offset < 0) {
+                return res.json({ success : false, error : "Offset is invalid", status : "INVALID_OFFSET" });
             }
 
             var order = null;
@@ -698,7 +803,7 @@ module.exports = function (app) {
             }
 
             app.db.sql.serialize(function () {
-                app.db.sql.all("SELECT * FROM blocks ORDER BY timestamp " + order + "  LIMIT " + limit, function (err, rows) {
+                app.db.sql.all("SELECT * FROM blocks ORDER BY timestamp " + order + "  LIMIT " + limit + " OFFSET " + offset, function (err, rows) {
                     if (err) {
                         app.logger.error(err.toString());
                         return res.json({ success: false, blocks: [], status: "SQL_ERROR", error: "Sql error" });
@@ -782,7 +887,7 @@ module.exports = function (app) {
         }
     });
 
-    app.get('/api/getHeight', function (req, res) {
+    app.get('/api/getHeight', app.basicAuth, function (req, res) {
         try {
             return res.json({ success: true, status : "OK", height: app.blockchain.getLastBlock().height });
         } catch (e) {

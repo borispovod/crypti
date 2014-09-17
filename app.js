@@ -701,7 +701,7 @@ async.series([
                     return;
                 }
 
-                app.logger.debug("Process blocks from peer: " + p.ip);
+                app.logger.warn("Process blocks from peer: " + p.ip);
 
                 var getCommonBlock = function (blockId, peer, cb) {
                     app.blockchain.getCommonBlockId(blockId, peer, function (err, blockId) {
@@ -825,7 +825,7 @@ async.series([
                                                             a = app.blockchain.pushBlock(buffer, true, false, false);
                                                         } catch (e) {
                                                             app.peerprocessor.blockPeer(p.ip);
-                                                            setImmediate(function () {
+                                                            return setImmediate(function () {
                                                                 return c({ error: true });
                                                             });
                                                         }
@@ -833,7 +833,7 @@ async.series([
                                                         if (a) {
                                                             lastAdded = b.getId();
                                                         } else {
-                                                            setImmediate(function () {
+                                                            return setImmediate(function () {
                                                                 return c({ error: true });
                                                             });
                                                         }
