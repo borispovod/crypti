@@ -329,6 +329,9 @@ module.exports = function (app) {
                                                     cb(err);
                                                 } else {
                                                     item.confirmations = confirmations;
+
+                                                    item.refs = null;
+                                                    delete item.refs;
                                                     cb();
                                                 }
                                             });

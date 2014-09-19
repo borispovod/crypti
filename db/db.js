@@ -20,6 +20,10 @@ var db = function (path) {
             return;
         }
 
+        if (this.queue.length == 0) {
+            return;
+        }
+
         this.blockSavingId = this.queue.shift();
         var block = this.app.blockchain.blocks[this.blockSavingId];
 

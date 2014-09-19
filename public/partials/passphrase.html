@@ -2,7 +2,7 @@
     <div id="center">
         <div id="logo-grey"></div>
         <div id="login-form">
-            <form>
+            <form autocomplete="off">
                 <input type="password" id="enter" placeholder="Your secret passphrase here" ng-model="pass" ng-trim="false">
                 <p id="message">For securiy reasons, please use long passphrases. We recommend passphrases as long as 100 characters.</p>
                 <button type="submit" class="button green" id="login" ng-click="login(pass)">Login</button>

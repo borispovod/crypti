@@ -520,6 +520,7 @@ module.exports = function (app) {
                     $publicKey: publicKey
                 }, function (err, blocks) {
                     if (err) {
+                        console.log(err);
                         return res.json({ success: false });
                     } else {
                         async.eachSeries(blocks, function (b, cb) {
@@ -709,6 +710,9 @@ module.exports = function (app) {
                     } else {
                         async.eachSeries(blocks, function (item, cb) {
                             app.db.sql.serialize(function () {
+                                item.refs = null;
+                                delete item.refs;
+
                                 app.db.sql.all("SELECT * FROM trs WHERE blockId=$id", {
                                     $id: item.id
                                 }, function (err, trs) {
@@ -812,12 +816,37 @@ module.exports = function (app) {
                             item.timestamp += utils.epochTime();
                             item.generator = app.accountprocessor.getAddressByPublicKey(new Buffer(item.generatorPublicKey, 'hex'))
 
+                            var refs = item.refs;
+
+                            var numberOfTransactions = item.numberOfTransactions;
+                            if (item.id == genesisblock.blockId) {
+                                numberOfTransactions = 13;
+                                item.numberOfTransactions = 13;
+                            }
+
+
+                            var trsIds = "";
+
+                            var bb = ByteBuffer.wrap(refs);
+
+                            var i = 0;
+                            for (i = 0; i < numberOfTransactions; i++) {
+                                trsIds += bb.readInt64();
+
+                                if (i+1 != numberOfTransactions) {
+                                    trsIds += ',';
+                                }
+                            }
+
                             app.db.sql.serialize(function () {
-                                app.db.sql.all("SELECT * FROM trs WHERE blockId='" + item.id + "'", function (err, rows) {
+                                app.db.sql.all("SELECT * FROM trs WHERE rowid IN (" + trsIds + ")", function (err, rows) {
                                     if (err) {
                                         callback(err);
                                     } else {
                                         item.transactions = rows;
+
+                                        item.refs = null;
+                                        delete item.refs;
                                         callback();
                                     }
                                 });

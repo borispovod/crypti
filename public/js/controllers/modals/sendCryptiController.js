@@ -134,14 +134,56 @@ webApp.controller('sendCryptiController', ["$scope", "sendCryptiModal", "$http",
             });
     }
 
+    $scope.convertXCR = function (currency) {
+        currency = String(currency);
+
+        var parts = currency.split(".");
+
+        var amount = parts[0];
+
+        //no fractional part
+        if (parts.length == 1) {
+            var fraction = "00000000";
+        } else if (parts.length == 2) {
+            if (parts[1].length <= 8) {
+                var fraction = parts[1];
+            } else {
+                var fraction = parts[1].substring(0, 8);
+            }
+        } else {
+            throw "Invalid input";
+        }
+
+        for (var i = fraction.length; i < 8; i++) {
+            fraction += "0";
+        }
+
+        var result = amount + "" + fraction;
+
+        //in case there's a comma or something else in there.. at this point there should only be numbers
+        if (!/^\d+$/.test(result)) {
+            throw "Invalid input.";
+        }
+
+        //remove leading zeroes
+        result = result.replace(/^0+/, "");
+
+        if (result === "") {
+            result = "0";
+        }
+
+        return parseInt(result);
+    }
+
     $scope.sendCrypti = function () {
-        $scope.amountError = parseFloat($scope.fee) + parseFloat($scope.amount) > $scope.totalBalance;
+        $scope.amountError = $scope.convertXCR($scope.fee) + $scope.convertXCR($scope.amount) > userService._unconfirmedBalance;
+
         var data = {
             secret: $scope.secretPhrase,
-            amount: $scope.amount,
+            amount: $scope.convertXCR($scope.amount),
             recipient: $scope.to,
             accountAddress: userService.address,
-            fee: $scope.fee
+            amountIsInteger : true
         };
 
         if ($scope.secondPassphrase) {
