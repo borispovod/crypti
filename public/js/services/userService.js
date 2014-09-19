@@ -5,6 +5,8 @@ webApp.service('userService', function () {
         this.balance = balance / 100000000;
         this.unconfirmedBalance = unconfirmedBalance / 100000000;
         this.effectiveBalance = effectiveBalance / 100000000;
+        this._balance = balance;
+        this._unconfirmedBalance = unconfirmedBalance;
     }
 
     this.setForging = function (forging) {
