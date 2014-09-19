@@ -60,26 +60,29 @@ blockchain.prototype.getBlockIdAtHeight = function (height) {
 }
 
 blockchain.prototype.getCommonBlockId = function (commonBlock, peer, cb) {
+    var finished = false;
+
     async.whilst(
-        function (err) {
-            if (err) {
-                return false;
-            } else {
-                return true;
-            }
+        function () {
+            return !finished;
         },
         function (next) {
             peer.getNextBlockIds(commonBlock, function (err, json) {
                 if (err) {
-                    return next({ err : true });
-                } if (!json.success || json.blockIds.length == 0) {
-                    return next({ err : false });
-                } else {
+                    return next(true);
+                } if (!json.success) {
+                    return next(true);
+                } else if (json.blockIds.length == 0) {
+                    finished = true;
+                    return next();
+                }
+                else {
                     for (var i = 0; i < json.blockIds.length; i++) {
                         var blockId = json.blockIds[i].id;
 
                         if (!this.blocks[blockId]) {
-                            return next({ err : false });
+                            finished = true;
+                            return next();
                         }
 
                         commonBlock = blockId;
@@ -90,21 +93,25 @@ blockchain.prototype.getCommonBlockId = function (commonBlock, peer, cb) {
             }.bind(this));
         }.bind(this),
         function (err) {
-            return cb(err.err, commonBlock);
+            if (err) {
+                return cb(err, null);
+            } else if (!finished) {
+                return cb(true, null);
+            } else {
+                return cb(null, commonBlock);
+            }
         }
     )
 }
 
 blockchain.prototype.getMilestoneBlockId = function (peer,  cb) {
     var lastMilestoneBlockId = null;
+    var milestoneBlock = null;
+    var finished = false;
 
     async.whilst(
-        function (obj) {
-            if (obj && (obj.err || obj.milestoneBlock)) {
-                return false;
-            } else {
-                return true;
-            }
+        function () {
+            return !finished;
         },
         function (next) {
             var _lastBlockId = null,
@@ -118,18 +125,25 @@ blockchain.prototype.getMilestoneBlockId = function (peer,  cb) {
 
             peer.getMilestoneBlocks(_lastBlockId, _lastMilestoneBlockId, function (err, json) {
                 if (err) {
-                    return next({ err : err });
+                    return next(true);
                 } else {
                     if (!json.milestoneBlockIds) {
-                        return next({ err : "Can't find block" });
+                        return next(true);
+                    }  else if (json.success == false) {
+                        return next(true);
                     } else if (json.milestoneBlockIds.length == 0) {
-                        return next({ err : null, milestoneBlock : genesisblock.blockId});
+                        finished = true;
+                        milestoneBlock = genesisblock.blockId;
+                        return next();
                     } else {
                         for (var i = 0; i < json.milestoneBlockIds.length; i++) {
                             var blockId = json.milestoneBlockIds[i];
 
                             if (this.blocks[blockId]) {
-                                return next({ err : null, milestoneBlock : blockId });
+                                finished = true;
+                                milestoneBlock = blockId;
+                                return next();
+                                break;
                             } else {
                                 lastMilestoneBlockId = blockId;
                             }
@@ -140,8 +154,14 @@ blockchain.prototype.getMilestoneBlockId = function (peer,  cb) {
                 }
             }.bind(this));
         }.bind(this),
-        function (obj) {
-            return cb(obj.err, obj.milestoneBlock);
+        function (err) {
+            if (err) {
+                return cb(err, null);
+            } else if (!finished) {
+                return cb(true, null)
+            } else {
+                return cb(null, milestoneBlock);
+            }
         }
     )
 }
@@ -168,6 +188,7 @@ blockchain.prototype.removeForkedBlocks = function (commonBlock, cb) {
     }.bind(this);
 
     if (this.app.db.blockSavingId) {
+        this.app.db.queue = [];
         this.app.db.on("blockchainLoaded", function () {
             var lastBlockId = this.getLastBlock().getId();
 
@@ -190,9 +211,6 @@ blockchain.prototype.processFork = function (peer, forks, commonBlock, cb) {
     var weight = this.getWeight();
     var lastBlockId = this.getLastBlock().getId();
     var removedBlocks = 0;
-
-    // check blockchain saving
-
 
     async.whilst(
         function () {
