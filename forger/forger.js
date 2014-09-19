@@ -17,6 +17,8 @@ var forger = function (accountId, publicKey, secretPharse) {
     this.accountId = accountId;
     this.secretPharse = secretPharse;
     this.publicKey = publicKey;
+    this.accounts = [];
+    this.lastBlock = null;
 }
 
 forger.prototype.setApp = function (app) {
@@ -137,92 +139,103 @@ forger.prototype.startForge = function () {
         return false;
     }
 
-    var requests = _.map(lastAliveBlock.requests, function (v) { return v; });
-    var accounts = [];
-
-    for (var i = 0; i < requests.length; i++) {
-        var request = requests[i];
-        var account = this.app.accountprocessor.getAccountById(request.address);
-
-        if (!account || account.getEffectiveBalance() < 1000 * constants.numberLength) {
-            continue;
-        }
-
-        var address = account.address;
-
-        var confirmedRequests = this.app.requestprocessor.confirmedRequests[address];
-
-        if (!confirmedRequests) {
-            confirmedRequests = [];
-        }
-
-        confirmedRequests = confirmedRequests.slice(0);
-
-        var accountWeightTimestamps = 0;
-        var popWeightAmount = 0;
-
-        var previousBlock = this.app.blockchain.getBlock(lastAliveBlock.getId());
-        for (var j = confirmedRequests.length - 1; j >= 0; j--) {
-            if (!previousBlock) {
-                break;
-            }
-
-            var confirmedRequest = confirmedRequests[j];
-
-            var block = this.app.blockchain.getBlock(confirmedRequest.blockId);
-
-            if (!block) {
-                break;
-            }
-
-            if (previousBlock.getId() != block.getId()) {
-                break;
-            }
-
-            accountWeightTimestamps += block.timestamp;
-            var purchases = this.app.accountprocessor.purchases[block.getId()];
-
-            if (purchases) {
-                if (purchases[address] > 10) {
-                    popWeightAmount += (Math.log(1 + purchases[address]) / Math.LN10);
-                    popWeightAmount = popWeightAmount / (Math.log(1 + (block.totalAmount + block.totalFee)) / Math.LN10)
-                } else if (purchases[address]) {
-                    popWeightAmount += purchases[address];
-                }
-            }
-
-            if (block.generatorId == request.address) {
-                break;
-            }
-
-            // get account purcashes in this block
-            previousBlock = this.app.blockchain.getBlock(previousBlock.previousBlock);
-        }
-
-
-        this.app.logger.debug("Account PoT weight: " + address + " / " + accountWeightTimestamps);
-        this.app.logger.debug("Account PoP weight: " + address + " / " + popWeightAmount);
-
-        var accountTotalWeight = accountWeightTimestamps + popWeightAmount;
-        accounts.push({ address : address, weight : accountTotalWeight });
-
-        this.app.logger.debug("Account " + address + " / " + accountTotalWeight);
+    if (this.lastBlock != this.app.blockchain.getLastBlock().getId()) {
+        this.lastBlock = this.app.blockchain.getLastBlock().getId();
+        this.accounts = [];
     }
 
-    accounts.sort(function compare(a,b) {
-        if (a.weight > b.weight)
-            return -1;
+    if (this.accounts.length == 0) {
+        var requests = _.map(lastAliveBlock.requests, function (v) {
+            return v;
+        });
+        var accounts = [];
 
-        if (a.weight < b.weight)
-            return 1;
+        for (var i = 0; i < requests.length; i++) {
+            var request = requests[i];
+            var account = this.app.accountprocessor.getAccountById(request.address);
 
-        return 0;
-    });
+            if (!account || account.getEffectiveBalance() < 1000 * constants.numberLength) {
+                continue;
+            }
 
-    if (accounts.length == 0) {
-        this.app.logger.debug("Need accounts for forging...");
-        this.workingForger = false;
-        return false;
+            var address = account.address;
+
+            var confirmedRequests = this.app.requestprocessor.confirmedRequests[address];
+
+            if (!confirmedRequests) {
+                confirmedRequests = [];
+            }
+
+            confirmedRequests = confirmedRequests.slice(0);
+
+            var accountWeightTimestamps = 0;
+            var popWeightAmount = 0;
+
+            var previousBlock = this.app.blockchain.getBlock(lastAliveBlock.getId());
+            for (var j = confirmedRequests.length - 1; j >= 0; j--) {
+                if (!previousBlock) {
+                    break;
+                }
+
+                var confirmedRequest = confirmedRequests[j];
+
+                var block = this.app.blockchain.getBlock(confirmedRequest.blockId);
+
+                if (!block) {
+                    break;
+                }
+
+                if (previousBlock.getId() != block.getId()) {
+                    break;
+                }
+
+                accountWeightTimestamps += block.timestamp;
+                var purchases = this.app.accountprocessor.purchases[block.getId()];
+
+                if (purchases) {
+                    if (purchases[address] > 10) {
+                        popWeightAmount += (Math.log(1 + purchases[address]) / Math.LN10);
+                        popWeightAmount = popWeightAmount / (Math.log(1 + (block.totalAmount + block.totalFee)) / Math.LN10)
+                    } else if (purchases[address]) {
+                        popWeightAmount += purchases[address];
+                    }
+                }
+
+                if (block.generatorId == request.address) {
+                    break;
+                }
+
+                // get account purcashes in this block
+                previousBlock = this.app.blockchain.getBlock(previousBlock.previousBlock);
+            }
+
+
+            this.app.logger.debug("Account PoT weight: " + address + " / " + accountWeightTimestamps);
+            this.app.logger.debug("Account PoP weight: " + address + " / " + popWeightAmount);
+
+            var accountTotalWeight = accountWeightTimestamps + popWeightAmount;
+            accounts.push({ address: address, weight: accountTotalWeight });
+
+            this.app.logger.debug("Account " + address + " / " + accountTotalWeight);
+        }
+
+        accounts.sort(function compare(a, b) {
+            if (a.weight > b.weight)
+                return -1;
+
+            if (a.weight < b.weight)
+                return 1;
+
+            return 0;
+        });
+
+        if (accounts.length == 0) {
+            this.app.logger.debug("Need accounts for forging...");
+            this.workingForger = false;
+            return false;
+        }
+
+        this.accounts = accounts;
     }
 
     var cycle = parseInt(elapsedTime / 60) - 1;
