@@ -38,7 +38,7 @@ forger.prototype.checkCompany = function (company, cb) {
             headers: {
                 'User-Agent': 'Crypti Agent'
             },
-            timeout: 5000
+            timeout: 1500
         }, function (err, resp, body) {
             if (err) {
                 cb(false);
@@ -96,7 +96,7 @@ forger.prototype.sendRequest = function () {
 }
 
 forger.prototype.startForge = function () {
-    if (!this.app.synchronizedBlocks || !this.sent) {
+    if (!this.app.synchronizedBlocks || !this.sent || this.app.syncFromPeer) {
         this.app.logger.debug("Can't forge, node not synchronized!");
         return false;
     }
@@ -286,14 +286,13 @@ forger.prototype.startForge = function () {
         winner = randomWinners[cycle];
     }
 
-    console.log("Winner in cycle: " + winner.address);
     this.app.logger.debug("Winner in cycle: " + winner.address);
 
     if (winner.address == myAccount.address) {
         this.logger.debug("Generating block...");
 
         var sortedTransactions = [];
-        var transactions = _.map(this.transactionprocessor.unconfirmedTransactions, function (obj, key) { return obj });
+        var transactions = _.map(this.transactionprocessor.unconfirmedTransactions, function (obj, key) { return obj; });
         for (var i = 0; i < transactions.length; i++) {
             sortedTransactions.push(transactions[i]);
         }

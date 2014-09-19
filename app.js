@@ -117,12 +117,6 @@ app.configure(function () {
     app.use(app.router);
 });
 
-app.configure("development", function () {
-    app.use(express.logger('dev'));
-    app.use(express.errorHandler());
-});
-
-
 async.series([
     function (cb) {
         logger.init("logs.log", config.get('logLevel'), app.get('onlyToFile'));
@@ -619,12 +613,12 @@ async.series([
 
                 requestsInterval = true;
                 app.logger.debug("Process requests...");
+                var finished = false;
 
                 p = app.peerprocessor.getAnyPeer();
                 async.whilst(
-                    function (_break) {
-                        if (_break) return false;
-                        return p;
+                    function () {
+                        return !finished;
                     },
                     function (next) {
                         app.logger.debug("Get requests from " + p.ip);
@@ -662,8 +656,13 @@ async.series([
                                         }
 
                                         c();
-                                    }, function () {
-                                        next(true);
+                                    }, function (err) {
+                                        if (err) {
+                                            return next(true);
+                                        } else {
+                                            finished = true;
+                                            next();
+                                        }
                                     });
                                 } else {
                                     return next(true);
@@ -705,6 +704,8 @@ async.series([
 
                 var getCommonBlock = function (blockId, peer, cb) {
                     app.blockchain.getCommonBlockId(blockId, peer, function (err, blockId) {
+                        console.log("Common block: ");
+                        console.log(err, blockId);
                         cb(err, blockId);
                     });
                 };
@@ -717,18 +718,16 @@ async.series([
                         forkBlock = null,
                         lastWeight = app.blockchain.getWeight();
 
-                    async.whilst(function (stop) {
-                        if (stop) {
-                            return false;
-                        } else {
-                            return true;
-                        }
+                    var finished = false;
+
+                    async.whilst(function () {
+                        return !finished;
                     }, function (next) {
                         p.getNextBlocks(blockId, function (err, json) {
                             if (err) {
                                 return next(true);
                             } else {
-                                if (json.success) {
+                                if (json.success && json.blocks.length > 0) {
                                     app.syncFromPeer = true;
 
                                     async.eachSeries(json.blocks, function (item, c) {
@@ -882,6 +881,7 @@ async.series([
                                                     }
 
                                                     app.blockchain.removeForkedBlocks(forkBlock, function () {
+                                                        // block peer for all time
                                                         app.peerprocessor.blockPeer(p.ip);
                                                         return next(true);
                                                     });
@@ -914,8 +914,11 @@ async.series([
                                             }
                                         }
                                     });
-                                } else {
+                                } else if (!json.success) {
                                     return next(true);
+                                } else {
+                                    finished = true;
+                                    return next();
                                 }
                             }
                         });
@@ -934,7 +937,9 @@ async.series([
 
                             if (app.blockchain.getLastBlock().getId() != commonBlockId) {
                                 app.blockchain.getMilestoneBlockId(p, function (err, blockId) {
-                                    if (err) {
+                                    console.log("Millestone : ");
+                                    console.log(err, blockId);
+                                    if (err || !blockId) {
                                         blocksInterval = false;
                                     } else {
                                         commonBlockId = blockId;
@@ -976,6 +981,7 @@ async.series([
                     }
                 });
             } catch (e) {
+                app.syncFromPeer = false;
                 app.logger.warn("Exception: " + e);
 
                 if (p) {
@@ -997,12 +1003,11 @@ async.series([
 
                 unconfirmedTransactonsInterval = true;
                 var p = app.peerprocessor.getAnyPeer();
-                var finished = true;
+                var finished = false;
 
                 app.logger.debug("Process unconfirmed transactions...");
-                async.whilst(function (_break) {
-                    if (_break) return false;
-                    return !!p;
+                async.whilst(function () {
+                    return !finished;
                 }, function (next) {
                     p.getUnconfirmedTransactions(function (err, trs) {
                         if (err) {
@@ -1026,7 +1031,6 @@ async.series([
                                     if (t.signSignature) {
                                         tr.signSignature = new Buffer(t.signSignature);
                                     }
-
 
                                     if (app.transactionprocessor.getUnconfirmedTransaction(tr.getId()) !== null) {
                                         return cb();
@@ -1066,22 +1070,22 @@ async.series([
                                     }
                                 }, function (err) {
                                     if (err) {
-                                        p = app.peerprocessor.getAnyPeer();
                                         return next(true);
                                     }
 
-                                    next(true);
+                                    finished = true;
+                                    return next();
                                 });
                             } else {
-                                p = app.peerprocessor.getAnyPeer();
                                 return next(true);
                             }
                         }
                     });
-                }, function () {
+                }, function (err) {
                     if (p) {
                         app.logger.debug("Unconfirmed transactions processed from " + p.ip);
                     }
+
                     unconfirmedTransactonsInterval = false;
                 });
             } catch (e) {
