@@ -84,344 +84,76 @@ peer.prototype.checkAgent = function () {
     }*/
 }
 
+peer.prototype.baseRequest = function (method, call, body, cb) {
+    if (typeof body == "function") {
+        cb = body;
+    }
+
+    request({
+        url : "http://" + this.ip + ":" + this.port + call,
+        method : method,
+        timeout : 3000,
+        json : true
+    }, cb);
+}
+
 peer.prototype.getPeers = function (cb) {
-    this.checkAgent();
-
-    var getOptions = {
-        hostname: this.ip,
-        port: this.port,
-        path: '/peer/getPeers',
-        //agent: this.agent,
-        headers: {
-            "platform" : this._platform,
-            "version" : this._version
+    this.baseRequest('GET', '/peer/getPeers', function (err, resp, body) {
+        if (err || resp.statusCode != 200) {
+            return cb(err || "Status code isn't 200");
+        } else {
+            cb(null, body);
         }
-    };
-    var timeout = null;
-
-    var r = http.get(getOptions, function (res) {
-        var data = "";
-        res.on("data", function(body) {
-            clearTimeout(timeout);
-            data += body;
-        });
-        res.on('end', function () {
-            cb(null, data);
-        });
-    });
-
-    timeout = setTimeout(function () {
-        r.abort();
-    }, 5000);
-
-    r.on('error', function (err) {
-        cb(err, null);
     });
 }
 
 peer.prototype.getPeer = function (ip, cb) {
-    this.checkAgent();
-
-    var getOptions = {
-        hostname: this.ip,
-        port: this.port,
-        path: '/peer/getPeer?ip=' + ip,
-        //agent: this.agent,
-        headers: {
-            "platform" : this._platform,
-            "version" : this._version
+    this.baseRequest('GET', '/peer/getPeer?ip=' + ip, function (err, resp, body) {
+        if (err || resp.statusCode != 200) {
+            return cb(err || "Status code isn't 200");
+        } else {
+            cb(null, body);
         }
-    };
-
-    var timeout = null;
-
-    var r = http.get(getOptions, function (res) {
-        var data = "";
-        res.on("data", function(body) {
-            clearTimeout(timeout);
-            data += body;
-        });
-        res.on('end', function () {
-            cb(null, data);
-        });
-    });
-
-    timeout = setTimeout(function () {
-        r.abort();
-    }, 5000);
-
-    r.on('error', function (err) {
-        cb(err, null);
     });
 }
 
 peer.prototype.getInfo = function (cb) {
-    this.checkAgent();
-
-    var getOptions = {
-        hostname: this.ip,
-        port: this.port,
-        path: '/peer/getInfo',
-        //agent: this.agent,
-        headers: {
-            "platform" : this._platform,
-            "version" : this._version
+    this.baseRequest('GET', '/peer/getInfo', function (err, resp, body) {
+        if (err || resp.statusCode != 200) {
+            return cb(err || "Status code isn't 200");
+        } else {
+            cb(null, body);
         }
-    };
-
-    var timeout = null;
-
-    var r = http.get(getOptions, function (res) {
-        var data = "";
-        res.on("data", function(body) {
-            clearTimeout(timeout);
-            data += body;
-        });
-        res.on('end', function () {
-            cb(null, data);
-        });
-    });
-
-    timeout = setTimeout(function () {
-        r.abort();
-    }, 5000);
-
-    r.on('error', function (err) {
-        cb(err, null);
     });
 }
-
-peer.prototype.getInfo = function (cb) {
-    this.checkAgent();
-
-    var getOptions = {
-        hostname: this.ip,
-        port: this.port,
-        path: '/peer/getInfo',
-        //agent: this.agent,
-        headers: {
-            "platform" : this._platform,
-            "version" : this._version
-        }
-    };
-
-    var timeout = null;
-
-    var r = http.get(getOptions, function (res) {
-        var data = "";
-        res.on("data", function(body) {
-            clearTimeout(timeout);
-            data += body;
-        });
-        res.on('end', function () {
-            cb(null, data);
-        });
-    });
-
-    timeout = setTimeout(function () {
-        r.abort();
-    }, 5000);
-
-    r.on('error', function (err) {
-        cb(err, null);
-    });
-}
-
-peer.prototype.getCumulativeDifficulty = function (cb) {
-    this.checkAgent();
-
-    var getOptions = {
-        hostname: this.ip,
-        port: this.port,
-        path: '/peer/getCumulativeDifficulty',
-        ///agent: this.agent,
-        headers: {
-            "platform" : this._platform,
-            "version" : this._version
-        }
-    };
-
-    var timeout = null;
-
-    var r = http.get(getOptions, function (res) {
-        var data = "";
-        res.on("data", function(body) {
-            clearTimeout(timeout);
-            data += body;
-        });
-        res.on('end', function () {
-            cb(null, data);
-        });
-    });
-
-    timeout = setTimeout(function () {
-        r.abort();
-    }, 5000);
-
-    r.on('error', function (err) {
-        cb(err, null);
-    });
-}
-
 
 peer.prototype.getNextBlockIds = function (blockId, cb) {
-    this.checkAgent();
-
-    var getOptions = {
-        hostname: this.ip,
-        port: this.port,
-        path: '/peer/getNextBlockIds?blockId=' + blockId,
-        //agent: this.agent,
-        headers: {
-            "platform" : this._platform,
-            "version" : this._version
+    this.baseRequest('GET', '/peer/getNextBlockIds?blockId=' + blockId, function (err, resp, body) {
+        if (err || resp.statusCode != 200) {
+            return cb(err || "Status code isn't 200");
+        } else {
+            cb(null, body);
         }
-    };
-
-    var timeout = null;
-
-    var r = http.get(getOptions, function (res) {
-        var data = "";
-        res.on("data", function(body) {
-            clearTimeout(timeout);
-            data += body;
-        });
-        res.on('end', function () {
-            var json = null;
-
-            try {
-                json = JSON.parse(data)
-            } catch (e) {
-                return cb(e, null);
-            }
-
-            cb(null, json);
-
-        });
-    });
-
-    timeout = setTimeout(function () {
-        r.abort();
-    }, 10000);
-
-    r.on('error', function (err) {
-        cb(err, null);
     });
 }
 
 peer.prototype.getNextBlocks = function (blockId, cb) {
-    this.checkAgent();
-
-    var getOptions = {
-        hostname: this.ip,
-        port: this.port,
-        path: '/peer/getNextBlocks?blockId=' + blockId,
-        ///agent: this.agent,
-        headers: {
-            "platform" : this._platform,
-            "version" : this._version
+    this.baseRequest('GET', '/peer/getNextBlocks?blockId=' + blockId, function (err, resp, body) {
+        if (err || resp.statusCode != 200) {
+            return cb(err || "Status code isn't 200");
+        } else {
+            cb(null, body);
         }
-    };
-
-    var timeout = null;
-
-    var r = http.get(getOptions, function (res) {
-        var data = "";
-        res.on("data", function(body) {
-            clearTimeout(timeout);
-            data += body;
-        });
-        res.on('end', function () {
-            var json = null;
-
-            try {
-                json = JSON.parse(data);
-            } catch (e) {
-                return cb(e);
-            }
-
-            cb(null, json);
-        });
-    });
-
-    timeout = setTimeout(function () {
-        r.abort();
-    }, 10000);
-
-    r.on('error', function (err) {
-        cb(err, null);
-    });
-}
-
-peer.prototype.getUnconfirmedAddresses = function (cb) {
-    this.checkAgent();
-
-    var getOptions = {
-        hostname: this.ip,
-        port: this.port,
-        path: '/peer/getUnconfirmedAddresses',
-        //agent: this.agent,
-        headers: {
-            "platform" : this._platform,
-            "version" : this._version
-        }
-    };
-
-    var timeout = null;
-
-    var r = http.get(getOptions, function (res) {
-        var data = "";
-        res.on("data", function(body) {
-            clearTimeout(timeout);
-            data += body;
-        });
-        res.on('end', function () {
-            cb(null, data);
-        });
-    });
-
-    timeout = setTimeout(function () {
-        r.abort();
-    }, 5000);
-
-    r.on('error', function (err) {
-        cb(err, null);
     });
 }
 
 peer.prototype.getUnconfirmedTransactions = function (cb) {
-    this.checkAgent();
-
-    var getOptions = {
-        hostname: this.ip,
-        port: this.port,
-        path: '/peer/getUnconfirmedTransactions',
-        //agent: this.agent,
-        headers: {
-            "platform" : this._platform,
-            "version" : this._version
+    this.baseRequest('GET', '/peer/getUnconfirmedTransactions', function (err, resp, body) {
+        if (err || resp.statusCode != 200) {
+            return cb(err || "Status code isn't 200");
+        } else {
+            cb(null, body);
         }
-    };
-
-    var timeout = null;
-
-    var r = http.get(getOptions, function (res) {
-        var data = "";
-        res.on("data", function(body) {
-            clearTimeout(timeout);
-            data += body;
-        });
-        res.on('end', function () {
-            cb(null, data);
-        });
-    });
-
-    timeout = setTimeout(function () {
-        r.abort();
-    }, 5000);
-
-    r.on('error', function (err) {
-        cb(err, null);
     });
 }
 
@@ -453,232 +185,69 @@ peer.prototype.processBlock = function (block, cb) {
     b.signatures = signatures;
     b.confirmations = confirmations;
 
-    var json = JSON.stringify({
+    var json = {
         block: b
-    });
-
-    var getOptions = {
-        hostname: this.ip,
-        port: this.port,
-        path: '/peer/processBlock',
-        method : 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Content-Length': Buffer.byteLength(json)
-        }
     };
 
-    var timeout = null;
-
-    var r = http.request(getOptions, function (res) {
-        var data = "";
-        res.on("data", function(body) {
-            clearTimeout(timeout);
-            data += body;
-        });
-        res.on('end', function () {
-            cb(null, data);
-        });
+    this.baseRequest('POST', '/peer/processBlock', json, function (err, resp, body) {
+        if (err || resp.statusCode != 200) {
+            return cb(err || "Status code isn't 200");
+        } else {
+            cb(null, body);
+        }
     });
-
-    timeout = setTimeout(function () {
-        r.abort();
-    }, 5000);
-
-    r.on('error', function (err) {
-        cb(err, null);
-    });
-
-    r.write(json);
-    r.end();
 }
 
 peer.prototype.processUnconfirmedTransaction = function (transaction, cb) {
     var t = transaction.toJSON();
 
-    this.checkAgent();
 
-    var getOptions = {
-        hostname: this.ip,
-        port: this.port,
-        path: '/peer/processUnconfirmedTransaction?transaction=' + JSON.stringify(t),
-        //agent: this.agent,
-        headers: {
-            "platform" : this._platform,
-            "version" : this._version
+    this.baseRequest('GET', '/peer/processUnconfirmedTransaction?transaction=' + JSON.stringify(t), function (err, resp, body) {
+        if (err || resp.statusCode != 200) {
+            return cb(err || "Status code isn't 200");
+        } else {
+            cb(null, body);
         }
-    };
-
-    var timeout = null;
-
-    var r = http.get(getOptions, function (res) {
-        var data = "";
-        res.on("data", function(body) {
-            clearTimeout(timeout);
-            data += body;
-        });
-        res.on('end', function () {
-            cb(null, data);
-        });
-    });
-
-    timeout = setTimeout(function () {
-        r.abort();
-    }, 5000);
-
-    r.on('error', function (err) {
-        cb(err, null);
     });
 }
 
 peer.prototype.getMilestoneBlocks = function (lastBlock, lastMilestoneBlock, cb) {
-    this.checkAgent();
-
-    var getOptions = {
-        hostname: this.ip,
-        port: this.port,
-        path: '/peer/getMilestoneBlocks?lastBlock=' + lastBlock + "&lastMilestoneBlockId=" + lastMilestoneBlock
-    };
-
-    var timeout = null;
-
-    var r = http.get(getOptions, function (res) {
-        var data = "";
-        res.on("data", function(body) {
-            clearTimeout(timeout);
-            data += body;
-        });
-        res.on('end', function () {
-            var answer = null;
-
-            try {
-                answer = JSON.parse(data);
-            } catch (e) {
-                return cb(e);
-            }
-
-            cb(null, answer);
-        });
-    });
-
-    timeout = setTimeout(function () {
-        r.abort();
-    }, 5000);
-
-    r.on('error', function (err) {
-        cb(err, null);
+    this.baseRequest('GET', '/peer/getMilestoneBlocks?lastBlock=' + lastBlock + "&lastMilestoneBlockId=" + lastMilestoneBlock, function (err, resp, body) {
+        if (err || resp.statusCode != 200) {
+            return cb(err || "Status code isn't 200");
+        } else {
+            return cb(null, body);
+        }
     });
 }
 
 peer.prototype.getWeight = function (cb) {
-    this.checkAgent();
-
-    var getOptions = {
-        hostname: this.ip,
-        port: this.port,
-        path: '/peer/getWeight'
-    };
-
-    var timeout = null;
-
-    var r = http.get(getOptions, function (res) {
-        var data = "";
-        res.on("data", function(body) {
-            clearTimeout(timeout);
-            data += body;
-        });
-        res.on('end', function () {
-            var answer = null;
-
-            try {
-                answer = JSON.parse(data);
-            } catch (e) {
-                return cb(e);
-            }
-
-            cb(null, answer);
-        });
-    });
-
-    timeout = setTimeout(function () {
-        r.abort();
-    }, 5000);
-
-    r.on('error', function (err) {
-        cb(err, null);
+    this.baseRequest('GET', '/peer/getWeight', function (err, resp, body) {
+        if (err || resp.statusCode != 200) {
+            return cb(err || "Status code isn't 200");
+        } else {
+            return cb(null, body);
+        }
     });
 }
 
 peer.prototype.getRequests = function (cb) {
-    this.checkAgent();
-
-    var getOptions = {
-        hostname: this.ip,
-        port: this.port,
-        path: '/peer/getRequests',
-        //agent: this.agent,
-        headers: {
-            "platform" : this._platform,
-            "version" : this._version
+    this.baseRequest('GET', '/peer/getRequests', function (err, resp, body) {
+        if (err || resp.statusCode != 200) {
+            return cb(err || "Status code isn't 200");
+        } else {
+            return cb(null, body);
         }
-    };
-
-    var timeout = null;
-
-    var r = http.get(getOptions, function (res) {
-        var data = "";
-        res.on("data", function(body) {
-            clearTimeout(timeout);
-            data += body;
-        });
-        res.on('end', function () {
-            cb(null, data);
-        });
-    });
-
-    timeout = setTimeout(function () {
-        r.abort();
-    }, 5000);
-
-    r.on('error', function (err) {
-        cb(err, null);
     });
 }
 
 peer.prototype.sendRequest = function (request, cb) {
-    this.checkAgent();
-
-
-    var getOptions = {
-        hostname: this.ip,
-        port: this.port,
-        path: '/peer/alive?&request=' + JSON.stringify(request.toJSON()),
-        //agent: this.agent,
-        headers: {
-            "platform" : this._platform,
-            "version" : this._version
+    this.baseRequest("GET", '/peer/alive?&request=' + JSON.stringify(request.toJSON()), function (err, resp, body) {
+        if (err || resp.statusCode != 200) {
+            return cb(err || "Status code isn't 200");
+        } else {
+            return cb(null, body);
         }
-    };
-
-    var timeout = null;
-
-    var r = http.get(getOptions, function (res) {
-        var data = "";
-        res.on("data", function(body) {
-            clearTimeout(timeout);
-            data += body;
-        });
-        res.on('end', function () {
-            cb(null, data);
-        });
-    });
-
-    timeout = setTimeout(function () {
-        r.abort();
-    }, 5000);
-
-    r.on('error', function (err) {
-        cb(err, null);
     });
 }
 
