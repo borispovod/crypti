@@ -15,6 +15,7 @@ forgerprocessor.prototype.getForgers = function (id) {
     return this.forgers[id];
 }
 
+
 forgerprocessor.prototype.startForger = function (forger) {
     if (this.forgers[forger.accountId]) {
         return false;
