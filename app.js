@@ -50,6 +50,7 @@ app.configure(function () {
     app.set("version", config.get("version"));
     app.set("address", config.get("address"));
     app.set('port', config.get('port'));
+    app.use(express.compress());
     app.use(express.bodyParser({limit: '300mb'}));
     app.dbLoaded = false;
 
@@ -61,7 +62,7 @@ app.configure(function () {
         try {
             var jsonString = configFunctions.readConfig();
 
-            var json = json = JSON.parse(jsonString);
+            var json = JSON.parse(jsonString);
 
             json.forging.secretPhrase = passphrase;
             jsonString = JSON.stringify(json, null, 4);
@@ -563,13 +564,7 @@ async.series([
                             p = app.peerprocessor.getAnyPeer();
                             return callback(true);
                         } else {
-                            var ps = [];
-                            try {
-                                ps = JSON.parse(peersJSON).peers;
-                            } catch (e) {
-                                p = app.peerprocessor.getAnyPeer();
-                                return callback();
-                            }
+                            var ps = peersJSON.peers;
 
                             if (ps) {
                                 app.logger.debug("Process peers");
@@ -626,13 +621,7 @@ async.series([
                             if (err) {
                                 return next(true);
                             } else {
-                                var answer = null;
-
-                                try {
-                                    answer = JSON.parse(requests);
-                                } catch (e) {
-                                    return next(true);
-                                }
+                                var answer = requests;
 
                                 if (answer.success) {
                                     requests = answer.requests;
@@ -1014,15 +1003,7 @@ async.series([
                             p = app.peerprocessor.getAnyPeer();
                             next(true);
                         } else {
-                            var answer = null;
-
-                            try {
-                                answer = JSON.parse(trs);
-                            } catch (e) {
-                                p = app.peerprocessor.getAnyPeer();
-                                return next(true);
-                            }
-
+                            var answer = trs;
                             if (answer.success) {
                                 async.eachSeries(answer.transactions, function (t, cb) {
                                     var tr = new transaction(t.type, t.id, t.timestamp, t.senderPublicKey, t.recipientId, t.amount, t.signature);
