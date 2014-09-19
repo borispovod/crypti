@@ -1,5 +1,6 @@
 var http = require('http'),
-    _ = require('underscore');
+    _ = require('underscore'),
+    request = require('request');
 
 var peer = function (address, port, platform, version) {
     this.ip = address;
