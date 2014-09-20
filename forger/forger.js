@@ -98,7 +98,7 @@ forger.prototype.sendRequest = function () {
 }
 
 forger.prototype.startForge = function () {
-    if (!this.app.synchronizedBlocks || !this.sent || this.app.syncFromPeer) {
+    if (!this.app.synchronizedBlocks || !this.sent) {
         this.app.logger.debug("Can't forge, node not synchronized!");
         return false;
     }
@@ -240,18 +240,18 @@ forger.prototype.startForge = function () {
 
     var cycle = parseInt(elapsedTime / 60) - 1;
 
-    if (cycle > accounts.length - 1) {
-        cycle = parseInt(cycle  % accounts.length);
+    if (cycle > this.accounts.length - 1) {
+        cycle = parseInt(cycle  % this.accounts.length);
     }
 
     this.logger.debug("Winner in cycle is: " + cycle);
 
     // ищем похожий вес
-    var winner = accounts[cycle];
+    var winner = this.accounts[cycle];
     var sameWeights = [winner];
 
-    for (var i = cycle + 1; i < accounts.length; i++) {
-        var accountWeight = accounts[i];
+    for (var i = cycle + 1; i < this.accounts.length; i++) {
+        var accountWeight = this.accounts[i];
 
         if (winner.weight == accountWeight.weight) {
             sameWeights.push(accountWeight);

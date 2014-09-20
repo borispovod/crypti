@@ -100,29 +100,6 @@ module.exports = function (app) {
         }
     });
 
-    app.get("/api/getTopAccounts", function (req, res) {
-        var accounts = _.map(app.accountprocessor.accounts, function (v, k) {
-            var a = _.extend({}, v);
-            a.app = null;
-            delete a.app;
-            a.blockchain = null;
-            delete a.blockchain;
-            return a;
-        })
-
-        accounts.sort(function (a, b) {
-            if (a.balance > b.balance)
-                return -1;
-            if (a.balance < b.balance)
-                return 1;
-            return 0;
-        });
-
-        accounts = accounts.slice(0, 50);
-
-        return res.json({ success : true, accounts : accounts });
-    });
-
     app.get("/api/getBalance", app.basicAuth, function (req, res) {
         try {
             var address = req.query.address || "";
