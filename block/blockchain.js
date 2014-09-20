@@ -176,7 +176,7 @@ blockchain.prototype.removeForkedBlocks = function (commonBlock, cb) {
             },
             function (next) {
                 this.popLastBlock(function (lBId) {
-                    lastBlockId =  lBId;
+                    lastBlockId = lBId;
 
                     setImmediate(next);
                 });
@@ -186,7 +186,6 @@ blockchain.prototype.removeForkedBlocks = function (commonBlock, cb) {
             }.bind(this)
         )
     }.bind(this);
-
     if (this.app.db.blockSavingId) {
         this.app.db.queue = [];
         this.app.db.on("blockchainLoaded", function () {
@@ -217,7 +216,8 @@ blockchain.prototype.processFork = function (peer, forks, commonBlock, cb) {
             return ((lastBlockId != commonBlock) && (lastBlockId != genesisblock.blockId));
         },
         function (next) {
-            lastBlockId = this.popLastBlock(function () {
+            this.popLastBlock(function (lastBlock) {
+                lastBlockId = lastBlock;
                 removedBlocks++;
                 setImmediate(next);
             });
@@ -489,38 +489,6 @@ blockchain.prototype.popLastBlock = function (cb) {
     delete this.blocks[lastBlock.getId()];
 
     this.app.requestprocessor.unconfirmedRequests = {};
-
-    for (var tId in this.app.transactionprocessor.unconfirmedTransactions) {
-        var t = this.app.transactionprocessor.unconfirmedTransactions[tId];
-
-        var fee = 0;
-        if (t.type == 0 || t.type == 1) {
-            if (t.subtype == 0) {
-                fee = parseInt(t.amount / 100.00 * feePercent);
-
-                if (fee == 0) {
-                    fee = 1;
-                }
-            }
-        } else if (t.type == 2) {
-            if (t.subtype == 0) {
-                fee = 100 * constants.numberLength;
-            }
-        } else if (t.type == 3) {
-            if (t.subtype == 0) {
-                fee = 1000 * constants.numberLength;
-            }
-        }
-
-        var amount = t.amount + fee;
-        var a = this.accountprocessor.getAccountByPublicKey(t.senderPublicKey);
-        a.setUnconfirmedBalance(a.unconfirmedBalance + amount);
-
-        this.app.transactionprocessor.unconfirmedTransactions[tId] = null;
-        delete this.app.transactionprocessor.unconfirmedTransactions[tId];
-    }
-
-    this.app.transactionprocessor.doubleSpendingTransactions = {};
     this.app.requestprocessor.ips = [];
 
     this.app.db.deleteBlock(toDelete, function () {
