@@ -30,7 +30,7 @@ module.exports = function (app) {
     });
 
     app.get('/peer/getWeight', function (req, res) {
-        if (!app.synchronizedBlocks) {
+        if (!app.synchronizedBlocks || app.db.queue.length > 0 || app.blockchain.forkProcessingRunning) {
             return res.json({ success : false });
         }
 
