@@ -50,7 +50,6 @@ app.configure(function () {
     app.set("version", config.get("version"));
     app.set("address", config.get("address"));
     app.set('port', config.get('port'));
-    app.use(express.compress());
     app.use(express.bodyParser({limit: '300mb'}));
     app.dbLoaded = false;
 
@@ -611,6 +610,13 @@ async.series([
                 var finished = false;
 
                 p = app.peerprocessor.getAnyPeer();
+
+                if (!p) {
+                    app.synchronizedRequests = true;
+                    requestsInterval = false;
+                    return;
+                }
+
                 async.whilst(
                     function () {
                         return !finished;
@@ -693,8 +699,6 @@ async.series([
 
                 var getCommonBlock = function (blockId, peer, cb) {
                     app.blockchain.getCommonBlockId(blockId, peer, function (err, blockId) {
-                        console.log("Common block: ");
-                        console.log(err, blockId);
                         cb(err, blockId);
                     });
                 };
@@ -861,37 +865,18 @@ async.series([
                                         });
                                     }, function (s) {
                                         if (s && s._continue) {
-                                            if (json.blocks && json.blocks.length === 0) {
-                                                if (!inFork && lastWeight.gt(app.blockchain.getWeight())) {
-                                                    app.logger.warn("Bad peer, block it: " + p.ip);
-
-                                                    if (!forkBlock) {
-                                                        forkBlock = commonBlock;
-                                                    }
-
-                                                    app.blockchain.removeForkedBlocks(forkBlock, function () {
-                                                        // block peer for all time
-                                                        app.peerprocessor.blockPeer(p.ip);
-                                                        return next(true);
-                                                    });
-                                                } else {
-                                                    return next(true);
-                                                }
-                                            } else {
-                                                return next();
-                                            }
+                                            return next();
                                         } else if (s && s.error) {
                                             return next(true);
                                         } else {
                                             if (json.blocks && json.blocks.length === 0) {
-                                                if (lastWeight.gt(app.blockchain.getWeight())) {
-                                                    app.logger.warn("Bad peer, block it: " + p.ip);
-
+                                                if (inFork && lastWeight.gt(app.blockchain.getWeight())) {
                                                     if (!forkBlock) {
                                                         forkBlock = commonBlock;
                                                     }
 
                                                     app.blockchain.removeForkedBlocks(forkBlock, function () {
+                                                        app.logger.info("Remove invalid fork blocks...");
                                                         app.peerprocessor.blockPeer(p.ip);
                                                         return next(true);
                                                     });
@@ -926,8 +911,6 @@ async.series([
 
                             if (app.blockchain.getLastBlock().getId() != commonBlockId) {
                                 app.blockchain.getMilestoneBlockId(p, function (err, blockId) {
-                                    console.log("Millestone : ");
-                                    console.log(err, blockId);
                                     if (err || !blockId) {
                                         blocksInterval = false;
                                     } else {
@@ -992,6 +975,12 @@ async.series([
 
                 unconfirmedTransactonsInterval = true;
                 var p = app.peerprocessor.getAnyPeer();
+
+                if (!p) {
+                    unconfirmedTransactonsInterval = false;
+                    return;
+                }
+
                 var finished = false;
 
                 app.logger.debug("Process unconfirmed transactions...");
