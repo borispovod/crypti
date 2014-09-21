@@ -3,8 +3,14 @@
   "version": "0.1.5t",
   "private": true,
   "scripts": {
-    "start": "node app.js"
+      "start": "nodewebkit"
   },
+  "window": {
+      "toolbar": false,
+      "width" : 1224,
+      "height" : 678
+  },
+  "main": "index.html",
   "dependencies": {
     "async": "https://github.com/crypti/async/tarball/master",
     "bignum": "https://github.com/crypti/node-bignum/tarball/master",
@@ -15,6 +21,7 @@
     "grunt": "^0.4.5",
     "long": "^1.1.5",
     "nconf": "https://github.com/crypti/nconf/tarball/master",
+    "nodewebkit": "^0.10.5",
     "request": "https://github.com/crypti/request/tarball/master",
     "sqlite3": "2.2.0",
     "sqlite3-transactions": "0.0.5",

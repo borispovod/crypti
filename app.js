@@ -1,8 +1,8 @@
 var express = require('express'),
     config = require('./config').config,
     configFunctions = {
-        readConfig : require("./config").readConfig,
-        writeConfig : require("./config").writeConfig
+        readConfig: require("./config").readConfig,
+        writeConfig: require("./config").writeConfig
     },
     routes = require('./routes'),
     initDb = require('./db').initDb,
@@ -38,9 +38,10 @@ var express = require('express'),
     doT = require('express-dot'),
     ByteBuffer = require("bytebuffer");
 
+
 var app = express();
 
-if (process.env.NODE_ENV=="development") {
+if (process.env.NODE_ENV == "development") {
     app.set('onlyToFile', false);
 } else {
     app.set('onlyToFile', true);
@@ -54,8 +55,8 @@ app.configure(function () {
     app.dbLoaded = false;
 
     app.set('views', path.join(__dirname, 'public'));
-    app.set('view engine', 'html' );
-    app.engine('html', doT.__express );
+    app.set('view engine', 'html');
+    app.engine('html', doT.__express);
 
     app.writePassphrase = function (passphrase) {
         try {
@@ -76,8 +77,8 @@ app.configure(function () {
     }
 
     app.api = {
-        whiteList : config.get('api').access.whiteList,
-        auth : config.get('api').access.auth
+        whiteList: config.get('api').access.whiteList,
+        auth: config.get('api').access.auth
     };
 
     if (config.get("serveHttpWallet")) {
@@ -111,7 +112,9 @@ app.configure(function () {
     if (app.api.auth.user || app.api.auth.password) {
         app.basicAuth = express.basicAuth(app.api.auth.user, app.api.auth.password);
     } else {
-        app.basicAuth = function (req, res, next) { return next(); }
+        app.basicAuth = function (req, res, next) {
+            return next();
+        }
     }
 
     app.use(app.router);
@@ -131,7 +134,9 @@ async.series([
         if (app.forgingConfig.auth.user || app.forgingConfig.auth.password) {
             app.forgingPanelAuth = express.basicAuth(app.forgingConfig.auth.user, app.forgingConfig.auth.password);
         } else {
-            app.forgingPanelAuth = function (req, res, next) { return next (); }
+            app.forgingPanelAuth = function (req, res, next) {
+                return next();
+            }
         }
 
         app.forgingFile = fs.readFileSync(path.join(__dirname, "public", "forging.html"));
@@ -165,10 +170,10 @@ async.series([
         cb();
     },
     function (cb) {
-      logger.getInstance().info("Initializing peer processor...");
-      app.peerprocessor = new peerprocessor();
-      app.peerprocessor.setApp(app);
-      cb();
+        logger.getInstance().info("Initializing peer processor...");
+        app.peerprocessor = new peerprocessor();
+        app.peerprocessor.setApp(app);
+        cb();
     },
     function (cb) {
         logger.getInstance().info("Initialize request processor...");
@@ -184,7 +189,7 @@ async.series([
     },
     function (cb) {
         logger.getInstance().info("Load system info...");
-        app.info = { platform : os.platform, version : config.get('version') };
+        app.info = { platform: os.platform, version: config.get('version') };
         cb();
     },
     function (cb) {
@@ -252,14 +257,14 @@ async.series([
                         return res.send(401);
                     } else {
                         if (app.dbLoaded) {
-                            res.render('wallet', { showAdmin : showLinkToAdminPanel,  layout : false });
+                            res.render('wallet', { showAdmin: showLinkToAdminPanel, layout: false });
                         } else {
                             res.sendfile(path.join(__dirname, "public", "loading.html"));
                         }
                     }
                 } else {
                     if (app.dbLoaded) {
-                        res.render('wallet', { showAdmin : showLinkToAdminPanel, layout : false });
+                        res.render('wallet', { showAdmin: showLinkToAdminPanel, layout: false });
                     } else {
                         res.sendfile(path.join(__dirname, "public", "loading.html"));
                     }
@@ -268,9 +273,9 @@ async.series([
 
             app.get("/api/getLoading", function (req, res) {
                 if (app.blockchain.getLastBlock() && app.blocksCount) {
-                    return res.json({ success: true, height : app.blockchain.getLastBlock().height, blocksCount : app.blocksCount, loaded : app.dbLoaded });
+                    return res.json({ success: true, height: app.blockchain.getLastBlock().height, blocksCount: app.blocksCount, loaded: app.dbLoaded });
                 } else {
-                    return res.json({ success : false });
+                    return res.json({ success: false });
                 }
             });
 
@@ -322,7 +327,7 @@ async.series([
                             for (i = 0; i < numberOfTransactions; i++) {
                                 trsIds += bb.readInt64();
 
-                                if (i+1 != numberOfTransactions) {
+                                if (i + 1 != numberOfTransactions) {
                                     trsIds += ',';
                                 }
                             }
@@ -330,7 +335,7 @@ async.series([
                             for (i = 0; i < b.numberOfRequests; i++) {
                                 requestsIds += bb.readInt64();
 
-                                if (i+1 != b.numberOfRequests) {
+                                if (i + 1 != b.numberOfRequests) {
                                     requestsIds += ',';
                                 }
                             }
@@ -338,7 +343,7 @@ async.series([
                             for (i = 0; i < b.numberOfConfirmations; i++) {
                                 companyconfirmationsIds += bb.readInt64();
 
-                                if (i+1 != b.numberOfConfirmations) {
+                                if (i + 1 != b.numberOfConfirmations) {
                                     companyconfirmationsIds += ',';
                                 }
                             }
@@ -364,7 +369,7 @@ async.series([
                                             if (tr.subtype === 0) {
                                                 req = app.db.sql.prepare("SELECT * FROM signatures WHERE rowid=$rowid");
                                                 req.bind({
-                                                    $rowid : t.assetId
+                                                    $rowid: t.assetId
                                                 });
                                                 req.get(function (err, asset) {
                                                     if (err) {
@@ -383,7 +388,7 @@ async.series([
                                             if (tr.subtype === 0) {
                                                 req = app.db.sql.prepare("SELECT * FROM companies WHERE rowid=$rowid");
                                                 req.bind({
-                                                    $rowid : t.assetId
+                                                    $rowid: t.assetId
                                                 });
                                                 req.get(function (err, asset) {
                                                     if (err) {
@@ -513,8 +518,8 @@ async.series([
             app.dbLoaded = true;
 
             if (err) {
-               logger.getInstance().debug("Genesis block not added");
-               cb(err);
+                logger.getInstance().debug("Genesis block not added");
+                cb(err);
             } else {
                 logger.getInstance().debug("Genesis block added...");
                 cb();
@@ -857,7 +862,7 @@ async.series([
                                                         }
                                                     } else {
                                                         return setImmediate(function () {
-                                                            return c({ error : true });
+                                                            return c({ error: true });
                                                         });
                                                     }
                                                 });
