@@ -820,8 +820,8 @@ module.exports = function (app) {
 
                             var numberOfTransactions = item.numberOfTransactions;
                             if (item.id == genesisblock.blockId) {
-                                numberOfTransactions = 13;
-                                item.numberOfTransactions = 13;
+                                numberOfTransactions = 1;
+                                item.numberOfTransactions = 1;
                             }
 
 
