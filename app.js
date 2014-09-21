@@ -920,11 +920,18 @@ async.series([
                                                 blocksInterval = false;
                                             } else {
                                                 commonBlockId = blockId;
-                                                app.logger.info("Load blocks from: " + p.ip + " / " + commonBlockId);
-                                                loadBlocks(commonBlockId, commonBlockId, function () {
+
+                                                if (!app.blockchain.blocks[commonBlockId]) {
+                                                    app.logger.info("Common block not found in blockchain: " + p.ip + " / " + commonBlockId);
                                                     app.synchronizedBlocks = true;
                                                     blocksInterval = false;
-                                                });
+                                                } else {
+                                                    app.logger.info("Load blocks from: " + p.ip + " / " + commonBlockId);
+                                                    loadBlocks(commonBlockId, commonBlockId, function () {
+                                                        app.synchronizedBlocks = true;
+                                                        blocksInterval = false;
+                                                    });
+                                                }
                                             }
                                         });
                                     }
@@ -935,11 +942,18 @@ async.series([
                                         blocksInterval = false;
                                     } else {
                                         commonBlockId = blockId;
-                                        app.logger.info("Load blocks from: " + p.ip);
-                                        loadBlocks(commonBlockId, commonBlockId, function () {
+
+                                        if (!app.blockchain.blocks[commonBlockId]) {
+                                            app.logger.info("Common block not found in blockchain: " + p.ip + " / " + commonBlockId);
                                             app.synchronizedBlocks = true;
                                             blocksInterval = false;
-                                        });
+                                        } else {
+                                            app.logger.info("Load blocks from: " + p.ip);
+                                            loadBlocks(commonBlockId, commonBlockId, function () {
+                                                app.synchronizedBlocks = true;
+                                                blocksInterval = false;
+                                            });
+                                        }
                                     }
                                 });
                             }
