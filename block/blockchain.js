@@ -188,7 +188,7 @@ blockchain.prototype.removeForkedBlocks = function (commonBlock, cb) {
     }.bind(this);
     if (this.app.db.blockSavingId) {
         this.app.db.queue = [];
-        this.app.db.on("blockchainLoaded", function () {
+        this.app.db.once("blockchainLoaded", function () {
             var lastBlockId = this.getLastBlock().getId();
 
             tempFunc(lastBlockId, function (b) {
