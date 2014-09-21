@@ -301,7 +301,7 @@ forger.prototype.startForge = function () {
 
     this.app.logger.debug("Winner in cycle: " + winner.address);
 
-    if (winner.address == myAccount.address) {
+    if (winner.address == myAccount.address && Object.keys(this.app.requestprocessor.unconfirmedRequests).length > 1) {
         this.logger.debug("Generating block...");
 
         var sortedTransactions = [];
