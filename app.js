@@ -307,7 +307,7 @@ async.series([
 
                             var numberOfTransactions = b.numberOfTransactions;
                             if (id == genesisblock.blockId) {
-                                numberOfTransactions = 13;
+                                numberOfTransactions = 1;
                             }
 
                             var refs = item.refs;

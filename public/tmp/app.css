@@ -446,6 +446,15 @@ p.description {
   border-radius: 7px;
   cursor: pointer;
 }
+#message-error {
+  display: block;
+  width: 492px;
+  line-height: 1.6;
+  margin: 15px auto 0 auto;
+  font-size: 13px;
+  text-align: center;
+  color: #F24A65;
+}
 /*END OF JOINT STYLES*/
 #left-nav {
   min-height: 486px;
@@ -630,7 +639,7 @@ span.menu-text {
 }
 #login-form {
   width: 526px;
-  height: 220px;
+  height: 250px;
   background-color: #fff;
   border-radius: 3px;
   box-shadow: 0 1px rgba(0, 0, 0, 0.07);
