@@ -1,0 +1,163 @@
+
+> application-name@0.1.5-t start /Users/borispovod/Documents/crypti
+> nodewebkit
+
+[6812:0921/122752:INFO:CONSOLE(1)] ""process.mainModule.filename: /Users/borispovod/Documents/crypti/index.html"", source: process_main (1)
+[6812:0921/122752:INFO:CONSOLE(85)] ""util.puts: Use console.log instead"", source: util.js (85)
+
+
+> application-name@0.1.5-t start /Users/borispovod/Documents/crypti
+> nodewebkit
+
+[6832:0921/122946:INFO:CONSOLE(1)] ""process.mainModule.filename: /Users/borispovod/Documents/crypti/index.html"", source: process_main (1)
+[6832:0921/122946:INFO:CONSOLE(85)] ""util.puts: Use console.log instead"", source: util.js (85)
+
+
+> application-name@0.1.5-t start /Users/borispovod/Documents/crypti
+> nodewebkit
+
+[6853:0921/123012:INFO:CONSOLE(1)] ""process.mainModule.filename: /Users/borispovod/Documents/crypti/index.html"", source: process_main (1)
+[6853:0921/123012:INFO:CONSOLE(85)] ""util.puts: Use console.log instead"", source: util.js (85)
+
+
+> application-name@0.1.5-t start /Users/borispovod/Documents/crypti
+> nodewebkit
+
+[6863:0921/123030:ERROR:process_singleton_mac.cc(103)] Unable to obtain profile lock.
+[6863:0921/123030:INFO:CONSOLE(1)] ""process.mainModule.filename: /Users/borispovod/Documents/crypti/index.html"", source: process_main (1)
+[6863:0921/123030:INFO:CONSOLE(85)] ""util.puts: Use console.log instead"", source: util.js (85)
+
+
+> application-name@0.1.5-t start /Users/borispovod/Documents/crypti
+> nodewebkit
+
+[6876:0921/123048:ERROR:process_singleton_mac.cc(103)] Unable to obtain profile lock.
+[6876:0921/123048:INFO:CONSOLE(1)] ""process.mainModule.filename: /Users/borispovod/Documents/crypti/index.html"", source: process_main (1)
+[6876:0921/123048:INFO:CONSOLE(85)] ""util.puts: Use console.log instead"", source: util.js (85)
+
+
+> application-name@0.1.5-t start /Users/borispovod/Documents/crypti
+> nodewebkit
+
+[6896:0921/123258:INFO:CONSOLE(1)] ""process.mainModule.filename: /Users/borispovod/Documents/crypti/index.html"", source: process_main (1)
+[6896:0921/123258:INFO:CONSOLE(85)] ""util.puts: Use console.log instead"", source: util.js (85)
+
+
+> application-name@0.1.5-t start /Users/borispovod/Documents/crypti
+> nodewebkit
+
+[6915:0921/123453:INFO:CONSOLE(1)] ""process.mainModule.filename: /Users/borispovod/Documents/crypti/index.html"", source: process_main (1)
+[6915:0921/123453:INFO:CONSOLE(4)] ""Spawned child pid: 6918"", source: /Users/borispovod/Documents/crypti/start.js (4)
+
+> application-name@0.1.5-t start /Users/borispovod/Documents/crypti
+> nodewebkit
+
+[6942:0921/123636:INFO:CONSOLE(1)] ""process.mainModule.filename: /Users/borispovod/Documents/crypti/index.html"", source: process_main (1)
+
+> application-name@0.1.5-t start /Users/borispovod/Documents/crypti
+> nodewebkit
+
+[6962:0921/123944:INFO:CONSOLE(1)] ""process.mainModule.filename: /Users/borispovod/Documents/crypti/index.html"", source: process_main (1)
+
+> application-name@0.1.5-t start /Users/borispovod/Documents/crypti
+> nodewebkit
+
+[6970:0921/123957:INFO:CONSOLE(1)] ""process.mainModule.filename: /Users/borispovod/Documents/crypti/index.html"", source: process_main (1)
+
+> application-name@0.1.5-t start /Users/borispovod/Documents/crypti
+> nodewebkit
+
+[6987:0921/124041:INFO:CONSOLE(1)] ""process.mainModule.filename: /Users/borispovod/Documents/crypti/index.html"", source: process_main (1)
+
+> application-name@0.1.5-t start /Users/borispovod/Documents/crypti
+> nodewebkit
+
+[7013:0921/124310:INFO:CONSOLE(1)] ""process.mainModule.filename: /Users/borispovod/Documents/crypti/index.html"", source: process_main (1)
+
+> application-name@0.1.5-t start /Users/borispovod/Documents/crypti
+> nodewebkit
+
+[7028:0921/124323:INFO:CONSOLE(1)] ""process.mainModule.filename: /Users/borispovod/Documents/crypti/index.html"", source: process_main (1)
+
+> application-name@0.1.5-t start /Users/borispovod/Documents/crypti
+> nodewebkit
+
+[7047:0921/124500:INFO:CONSOLE(1)] ""process.mainModule.filename: /Users/borispovod/Documents/crypti/index.html"", source: process_main (1)
+[7047:0921/124500:INFO:CONSOLE(11)] "Uncaught TypeError: Cannot read property 'statusCode' of undefined", source: file:///Users/borispovod/Documents/crypti/index.html (11)
+[7047:0921/124500:INFO:CONSOLE(11)] "Uncaught TypeError: Cannot read property 'statusCode' of undefined", source: file:///Users/borispovod/Documents/crypti/index.html (11)
+[7047:0921/124500:INFO:CONSOLE(11)] "Uncaught TypeError: Cannot read property 'statusCode' of undefined", source: file:///Users/borispovod/Documents/crypti/index.html (11)
+
+> application-name@0.1.5-t start /Users/borispovod/Documents/crypti
+> nodewebkit
+
+[7064:0921/124522:INFO:CONSOLE(1)] ""process.mainModule.filename: /Users/borispovod/Documents/crypti/index.html"", source: process_main (1)
+[7064:0921/124522:INFO:CONSOLE(11)] "Uncaught TypeError: Cannot read property 'statusCode' of undefined", source: file:///Users/borispovod/Documents/crypti/index.html (11)
+[7064:0921/124522:INFO:CONSOLE(11)] "Uncaught TypeError: Cannot read property 'statusCode' of undefined", source: file:///Users/borispovod/Documents/crypti/index.html (11)
+
+> application-name@0.1.5-t start /Users/borispovod/Documents/crypti
+> nodewebkit
+
+[7079:0921/124556:INFO:CONSOLE(1)] ""process.mainModule.filename: /Users/borispovod/Documents/crypti/index.html"", source: process_main (1)
+
+> application-name@0.1.5-t start /Users/borispovod/Documents/crypti
+> nodewebkit
+
+[7091:0921/124609:INFO:CONSOLE(1)] ""process.mainModule.filename: /Users/borispovod/Documents/crypti/index.html"", source: process_main (1)
+
+> application-name@0.1.5-t start /Users/borispovod/Documents/crypti
+> nodewebkit
+
+[7100:0921/124615:INFO:CONSOLE(1)] ""process.mainModule.filename: /Users/borispovod/Documents/crypti/index.html"", source: process_main (1)
+
+> application-name@0.1.5-t start /Users/borispovod/Documents/crypti
+> nodewebkit
+
+[7128:0921/124821:INFO:CONSOLE(1)] ""process.mainModule.filename: /Users/borispovod/Documents/crypti/index.html"", source: process_main (1)
+
+> application-name@0.1.5-t start /Users/borispovod/Documents/crypti
+> nodewebkit
+
+[7142:0921/124858:INFO:CONSOLE(1)] ""process.mainModule.filename: /Users/borispovod/Documents/crypti/index.html"", source: process_main (1)
+
+> application-name@0.1.5-t start /Users/borispovod/Documents/crypti
+> nodewebkit
+
+[7156:0921/124929:INFO:CONSOLE(1)] ""process.mainModule.filename: /Users/borispovod/Documents/crypti/index.html"", source: process_main (1)
+
+> application-name@0.1.5-t start /Users/borispovod/Documents/crypti
+> nodewebkit
+
+[7222:0921/125206:INFO:CONSOLE(1)] ""process.mainModule.filename: /Users/borispovod/Documents/crypti/index.html"", source: process_main (1)
+[7222:0921/125206:INFO:CONSOLE(22)] "Uncaught ReferenceError: bodyOnLoad is not defined", source: file:///Users/borispovod/Documents/crypti/index.html (22)
+
+> application-name@0.1.5-t start /Users/borispovod/Documents/crypti
+> nodewebkit
+
+[7246:0921/125216:INFO:CONSOLE(1)] ""process.mainModule.filename: /Users/borispovod/Documents/crypti/index.html"", source: process_main (1)
+
+> application-name@0.1.5-t start /Users/borispovod/Documents/crypti
+> nodewebkit
+
+[7257:0921/125220:INFO:CONSOLE(1)] ""process.mainModule.filename: /Users/borispovod/Documents/crypti/index.html"", source: process_main (1)
+
+> application-name@0.1.5-t start /Users/borispovod/Documents/crypti
+> nodewebkit
+
+[7276:0921/125336:INFO:CONSOLE(1)] ""process.mainModule.filename: /Users/borispovod/Documents/crypti/index.html"", source: process_main (1)
+
+> application-name@0.1.5-t start /Users/borispovod/Documents/crypti
+> nodewebkit
+
+[9303:0921/133650:INFO:CONSOLE(1)] ""process.mainModule.filename: /Users/borispovod/Documents/crypti/index.html"", source: process_main (1)
+[9303:0921/133704:INFO:CONSOLE(12)] "{"success":true,"status":"OK","sync":false,"height":2030}", source: http://localhost:6040/static/js/app.js (12)
+
+> application-name@0.1.5-t start /Users/borispovod/Documents/crypti
+> nodewebkit
+
+[9319:0921/133721:ERROR:process_singleton_mac.cc(103)] Unable to obtain profile lock.
+[9319:0921/133721:INFO:CONSOLE(1)] ""process.mainModule.filename: /Users/borispovod/Documents/crypti/index.html"", source: process_main (1)
+
+> application-name@0.1.5-t start /Users/borispovod/Documents/crypti
+> nodewebkit
+
+[9332:0921/133730:INFO:CONSOLE(1)] ""process.mainModule.filename: /Users/borispovod/Documents/crypti/index.html"", source: process_main (1)

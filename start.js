@@ -1,4 +1,11 @@
-var sys = require('sys')
-var exec = require('child_process').exec;
-function puts(error, stdout, stderr) { sys.puts(stdout) }
-exec("node app.js", puts);
+var spawn     = require('child_process').spawn;
+var children  = [];
+
+process.on('exit', function() {
+    console.log('killing', children.length, 'child processes');
+    children.forEach(function(child) {
+        child.kill();
+    });
+});
+
+children.push(spawn('node', [ 'app.js' ]));

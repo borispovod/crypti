@@ -8,7 +8,8 @@
   "window": {
       "toolbar": false,
       "width" : 1224,
-      "height" : 678
+      "height" : 678,
+      "show" : "false"
   },
   "main": "index.html",
   "dependencies": {

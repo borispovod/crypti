@@ -2,12 +2,23 @@
 <html>
 <head>
     <script>
-        function bodyOnLoad(){
-            require('./start.js')
-            window.location.href = "http://localhost:6040";
-        }
+        var gui = require('nw.gui');
+        var win = gui.Window.get();
+
+        var request = require('request');
+        require('./start.js');
+
+        var interval = setInterval(function () {
+            request.get("http://localhost:6040", function (err, resp, body) {
+                if (!err && resp.statusCode == 200) {
+                    clearInterval(interval);
+                    window.location.href = "http://localhost:6040";
+                    win.show();
+                }
+            });
+        }, 10);
     </script>
 </head>
-<body onload="bodyOnLoad()">
+<body style="background: #ebeced;">
 </body>
 </html>

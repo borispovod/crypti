@@ -1,1 +1,1 @@
-npm start
+nohup npm start &
