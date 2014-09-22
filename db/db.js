@@ -435,6 +435,39 @@ db.prototype.readAllBlocks = function (cb) {
     }.bind(this));
 }
 
+db.prototype.deleteFromHeight = function (height, callback) {
+    var sql = this.sql;
+    sql.all("SELECT id FROM blocks WHERE height > ?", height, function (err, blockIds) {
+        if (err) {
+            return callback(err);
+        } else {
+            async.eachSeries(blockIds, function (b, cb) {
+                var bId = b.id;
+                sql.beginTransaction(function (err, dbTransaction) {
+                    dbTransaction.run("DELETE FROM blocks WHERE id=?", bId);
+                    dbTransaction.run("DELETE FROM trs WHERE blockId=?", bId);
+                    dbTransaction.run("DELETE FROM companyconfirmations WHERE blockId=?", bId);
+                    dbTransaction.run("DELETE FROM requests WHERE blockId=?", bId);
+                    dbTransaction.run("DELETE FROM companies WHERE blockId=?", bId);
+                    dbTransaction.run("DELETE FROM signatures WHERE blockId=?", bId);
+
+                    dbTransaction.commit(function (tErr) {
+                        if (tErr) {
+                            dbTransaction.rollback(function (err) {
+                                cb(tErr || err);
+                            });
+                        } else {
+                            cb();
+                        }
+                    });
+                });
+            }, function (err) {
+                callback(err);
+            });
+        }
+    });
+}
+
 
 /*
 db.prototype.readAllBlocks = function (cb) {
