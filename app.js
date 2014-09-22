@@ -484,7 +484,24 @@ async.series([
                                                                     }
 
                                                                     if (!a) {
-                                                                        c("Can't process block: " + b.getId());
+                                                                        app.badBlock = {
+                                                                            id : b.getId(),
+                                                                            height : b.height
+                                                                        };
+
+                                                                        logger.getInstance().warn("Bad block found, will remove now...");
+                                                                        app.db.deleteFromHeight(app.badBlock.height - 1, function (err) {
+                                                                            if (err) {
+                                                                                return c(err);
+                                                                            }
+
+                                                                            logger.getInstance().warn("Invalid blocks deleted...");
+
+                                                                            app.badBlock = null;
+                                                                            delete app.badBlock;
+
+                                                                            return c(true);
+                                                                        });
                                                                     } else {
                                                                         c();
                                                                     }
@@ -498,8 +515,8 @@ async.series([
                                     });
                                 }
                             });
-                        }, function (err) {
-                            cb(err);
+                        }, function () {
+                            cb();
                         });
                     }
                 });
