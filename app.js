@@ -515,8 +515,8 @@ async.series([
                                     });
                                 }
                             });
-                        }, function (err) {
-                            cb(err);
+                        }, function () {
+                            cb();
                         });
                     }
                 });
