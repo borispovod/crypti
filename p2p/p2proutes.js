@@ -554,7 +554,7 @@ module.exports = function (app) {
             }
 
             try {
-                var r = app.blockchain.pushBlock(buffer, true, true, true);
+                var r = app.blockchain.pushBlock(buffer, true, true, false);
             } catch (e) {
                 r = false;
                 app.peerprocessor.blockPeer(ip);

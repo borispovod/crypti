@@ -26,8 +26,8 @@
     "peers": {
         "list": [
             {
-                "ip" : "109.73.224.52",
-                "port" : 6040
+                "ip" : "127.0.0.1",
+                "port" : "7040"
             }
         ],
         "blackList": [
@@ -35,6 +35,6 @@
         ]
     },
     "forging": {
-        "secretPhrase": "c086a1081d893e21fe48383a66b187cbcdfe3909"
+        "secretPhrase": "45e909404b17496e74b5051d6ebf8298e6ca67c4"
     }
 }
