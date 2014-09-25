@@ -16,6 +16,12 @@ accountprocessor.prototype.setApp = function (app) {
     this.app = app;
 }
 
+accountprocessor.prototype.setWeight = function (id, weight) {
+    if (this.accounts[id]) {
+        this.accounts[id].weight = weight;
+    }
+}
+
 accountprocessor.prototype.addAccount = function (account) {
     this.accounts[account.address] = account;
 }

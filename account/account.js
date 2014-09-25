@@ -1,17 +1,21 @@
+var bignum = require('bignum');
+
 var account = function (address, publickey, balance, unconfirmedBalance) {
     this.address = address;
     this.publickey = publickey;
     this.balance = 0;
     this.unconfirmedBalance = 0;
     this.height = 0;
-    this.weight = 0;
-    this.unconfirmedWeight = 0;
-    this.popWeight = 0;
+    this.weight = bignum(1);
 }
 
 account.prototype.setApp = function (app) {
     this.app = app;
     this.blockchain = this.app.blockchain;
+}
+
+account.prototype.reduceWeight = function () {
+    this.weight = bignum(1);
 }
 
 account.prototype.addToBalance = function (amount) {
