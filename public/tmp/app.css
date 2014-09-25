@@ -683,6 +683,15 @@ span.menu-text {
   font-size: 13px;
   color: #939495;
 }
+#message-error {
+  display: block;
+  width: 492px;
+  line-height: 1.6;
+  margin: 15px auto 0;
+  font-size: 13px;
+  text-align: center;
+  color: #F24A65;
+}
 .loading {
   text-align: center;
 }
