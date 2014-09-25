@@ -450,6 +450,8 @@ async.series([
                                                                     app.requestprocessor.confirmedRequests[r.address] = [r];
 
                                                                     a = b.analyze();
+                                                                    b.getBaseTarget();
+                                                                    app.blockchain.maxWeight = utils.epochTime();
 
                                                                     if (!a) {
                                                                         c("Can't process block: " + b.getId());
@@ -476,15 +478,32 @@ async.series([
                                                                         buffer = Buffer.concat([buffer, confirmations[i].getBytes()]);
                                                                     }
 
-                                                                    try {
+                                                                    //try {
                                                                         a = app.blockchain.pushBlock(buffer, false);
-                                                                    } catch (e) {
-                                                                        a = false;
-                                                                        app.logger.error(e.toString());
-                                                                    }
+                                                                    //} catch (e) {
+                                                                        //a = false;
+                                                                        //app.logger.error(e.toString());
+                                                                    //}
 
                                                                     if (!a) {
-                                                                        c("Can't process block: " + b.getId());
+                                                                        app.badBlock = {
+                                                                            id : b.getId(),
+                                                                            height : b.height
+                                                                        };
+
+                                                                        logger.getInstance().warn("Bad block found, will remove now...");
+                                                                        app.db.deleteFromHeight(app.badBlock.height - 1, function (err) {
+                                                                            if (err) {
+                                                                                return c(err);
+                                                                            }
+
+                                                                            logger.getInstance().warn("Invalid blocks deleted...");
+
+                                                                            app.badBlock = null;
+                                                                            delete app.badBlock;
+
+                                                                            return c(true);
+                                                                        });
                                                                     } else {
                                                                         c();
                                                                     }
@@ -498,8 +517,8 @@ async.series([
                                     });
                                 }
                             });
-                        }, function (err) {
-                            cb(err);
+                        }, function () {
+                            cb();
                         });
                     }
                 });
@@ -920,11 +939,18 @@ async.series([
                                                 blocksInterval = false;
                                             } else {
                                                 commonBlockId = blockId;
-                                                app.logger.info("Load blocks from: " + p.ip + " / " + commonBlockId);
-                                                loadBlocks(commonBlockId, commonBlockId, function () {
+
+                                                if (!app.blockchain.blocks[commonBlockId]) {
+                                                    app.logger.info("Common block not found in blockchain: " + p.ip + " / " + commonBlockId);
                                                     app.synchronizedBlocks = true;
                                                     blocksInterval = false;
-                                                });
+                                                } else {
+                                                    app.logger.info("Load blocks from: " + p.ip + " / " + commonBlockId);
+                                                    loadBlocks(commonBlockId, commonBlockId, function () {
+                                                        app.synchronizedBlocks = true;
+                                                        blocksInterval = false;
+                                                    });
+                                                }
                                             }
                                         });
                                     }
@@ -935,11 +961,18 @@ async.series([
                                         blocksInterval = false;
                                     } else {
                                         commonBlockId = blockId;
-                                        app.logger.info("Load blocks from: " + p.ip);
-                                        loadBlocks(commonBlockId, commonBlockId, function () {
+
+                                        if (!app.blockchain.blocks[commonBlockId]) {
+                                            app.logger.info("Common block not found in blockchain: " + p.ip + " / " + commonBlockId);
                                             app.synchronizedBlocks = true;
                                             blocksInterval = false;
-                                        });
+                                        } else {
+                                            app.logger.info("Load blocks from: " + p.ip);
+                                            loadBlocks(commonBlockId, commonBlockId, function () {
+                                                app.synchronizedBlocks = true;
+                                                blocksInterval = false;
+                                            });
+                                        }
                                     }
                                 });
                             }

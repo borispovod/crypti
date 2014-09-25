@@ -73,7 +73,7 @@ forger.prototype.sendRequest = function () {
 
     var acc = this.app.accountprocessor.getAccountById(this.accountId);
 
-    if (!acc || acc.getEffectiveBalance() < 1000) {
+    if (!acc || acc.getEffectiveBalance() < 1000 * constants.numberLength) {
         return false;
     }
 
@@ -86,7 +86,7 @@ forger.prototype.sendRequest = function () {
 
     var lastAliveBlock = this.app.blockchain.getLastBlock().getId();
 
-    var r = new request(null, null, "127.0.0.1", keypair.publicKey, lastAliveBlock);
+    var r = new request(null, null, "127.0.0.2", keypair.publicKey, lastAliveBlock);
     r.sign(this.secretPharse);
 
     var added = this.app.requestprocessor.processRequest(r);
@@ -124,13 +124,12 @@ forger.prototype.startForge = function () {
 
     var lastAliveBlock = this.app.blockchain.getLastBlock();
 
+    if (!this.lastBlock) {
+        this.lastBlock = lastAliveBlock.getId();
+    }
+
     var now = utils.getEpochTime(new Date().getTime());
     var elapsedTime = now - lastAliveBlock.timestamp;
-
-    if (elapsedTime <= 60) {
-        this.workingForger = false;
-        return false;
-    }
 
 
     if (Object.keys(this.app.requestprocessor.unconfirmedRequests).length == 0) {
@@ -141,168 +140,35 @@ forger.prototype.startForge = function () {
 
     if (this.lastBlock != this.app.blockchain.getLastBlock().getId()) {
         this.lastBlock = this.app.blockchain.getLastBlock().getId();
-        this.accounts = [];
+        this.hit = null;
     }
 
-    if (this.accounts.length == 0) {
-        var requests = _.map(lastAliveBlock.requests, function (v) {
-            return v;
-        });
-        var accounts = [];
 
-        for (var i = 0; i < requests.length; i++) {
-            var request = requests[i];
-            var account = this.app.accountprocessor.getAccountById(request.address);
+    if (!this.hit) {
+        var generationSignatureHash = crypto.createHash('sha256').update(lastAliveBlock.generationSignature).update(this.publicKey).digest();
+        this.hit = new Buffer(8);
 
-            if (!account || account.getEffectiveBalance() < 1000 * constants.numberLength) {
-                continue;
-            }
-
-            var address = account.address;
-
-            var confirmedRequests = this.app.requestprocessor.confirmedRequests[address];
-
-            if (!confirmedRequests) {
-                confirmedRequests = [];
-            }
-
-            confirmedRequests = confirmedRequests.slice(0);
-
-            var accountWeightTimestamps = 0;
-            var popWeightAmount = 0;
-
-            var previousBlock = this.app.blockchain.getBlock(lastAliveBlock.getId());
-            for (var j = confirmedRequests.length - 1; j >= 0; j--) {
-                if (!previousBlock) {
-                    break;
-                }
-
-                var confirmedRequest = confirmedRequests[j];
-
-                var block = this.app.blockchain.getBlock(confirmedRequest.blockId);
-
-                if (!block) {
-                    break;
-                }
-
-                if (previousBlock.getId() != block.getId()) {
-                    break;
-                }
-
-                accountWeightTimestamps += block.timestamp;
-                var purchases = this.app.accountprocessor.purchases[block.getId()];
-
-                if (purchases) {
-                    if (purchases[address] > 10) {
-                        popWeightAmount += (Math.log(1 + purchases[address]) / Math.LN10);
-                        popWeightAmount = popWeightAmount / (Math.log(1 + (block.totalAmount + block.totalFee)) / Math.LN10)
-                    } else if (purchases[address]) {
-                        popWeightAmount += purchases[address];
-                    }
-                }
-
-                if (block.generatorId == request.address) {
-                    break;
-                }
-
-                // get account purcashes in this block
-                previousBlock = this.app.blockchain.getBlock(previousBlock.previousBlock);
-            }
-
-
-            this.app.logger.debug("Account PoT weight: " + address + " / " + accountWeightTimestamps);
-            this.app.logger.debug("Account PoP weight: " + address + " / " + popWeightAmount);
-
-            var accountTotalWeight = accountWeightTimestamps + popWeightAmount;
-            accounts.push({ address: address, weight: accountTotalWeight });
-
-            this.app.logger.debug("Account " + address + " / " + accountTotalWeight);
+        for (var i = 0; i < 8; i++) {
+            this.hit[i] = generationSignatureHash[i];
         }
 
-        accounts.sort(function compare(a, b) {
-            if (a.weight > b.weight)
-                return -1;
-
-            if (a.weight < b.weight)
-                return 1;
-
-            return 0;
-        });
-
-        if (accounts.length == 0) {
-            this.app.logger.debug("Need accounts for forging...");
-            this.workingForger = false;
-            return false;
-        }
-
-        this.accounts = accounts;
+        this.hit = bignum.fromBuffer(this.hit, { size : '8' });
+        this.hit = this.hit.mul(this.app.blockchain.maxWeight);
     }
 
-    var cycle = parseInt(elapsedTime / 60) - 1;
-
-    if (cycle > this.accounts.length - 1) {
-        cycle = parseInt(cycle  % this.accounts.length);
+    if (elapsedTime <= 0) {
+        this.workingForger = false;
+        return false;
     }
 
-    this.logger.debug("Winner in cycle is: " + cycle);
 
-    // ищем похожий вес
-    var winner = this.accounts[cycle];
-    var sameWeights = [winner];
+    var target = bignum(lastAliveBlock.getBaseTarget()).mul(myAccount.weight).mul(elapsedTime);
 
-    for (var i = cycle + 1; i < this.accounts.length; i++) {
-        var accountWeight = this.accounts[i];
+    console.log(target.toString() + " / " + this.hit.toString());
 
-        if (winner.weight == accountWeight.weight) {
-            sameWeights.push(accountWeight);
-        } else {
-            break;
-        }
-    }
-
-    if (sameWeights.length > 1) {
-        this.app.logger.debug("Same weight in cyclet: " + sameWeights.length);
-
-        var randomWinners = [];
-        for (var i = 0; i < sameWeights.length; i++) {
-            var a = sameWeights[i];
-
-            var address = a.address.slice(0, -1);
-            var addressBuffer = bignum(address).toBuffer({ 'size' : '8' });
-            var hash = crypto.createHash('sha256').update(bignum(a.weight).toBuffer({ size : '8' })).update(addressBuffer).digest();
-
-            var result = new Buffer(8);
-            for (var j = 0; j < 8; j++) {
-                result[j] = hash[j];
-            }
-
-            var weight = bignum.fromBuffer(result, { size : '8' }).toNumber();
-            this.app.logger.debug("Account " + a.address + " new weight is: " + weight);
-            randomWinners.push({ address : a.address, weight : weight });
-        }
-
-        randomWinners.sort(function (a,b) {
-            if (a.weight > b.weight)
-                return -1;
-
-            if (a.weight < b.weight)
-                return 1;
-
-            return 0;
-        });
-
-
-        if (cycle > randomWinners.length - 1) {
-            cycle = parseInt(cycle  % randomWinners.length);
-        }
-
-        winner = randomWinners[cycle];
-    }
-
-    this.app.logger.debug("Winner in cycle: " + winner.address);
-
-    if (winner.address == myAccount.address) {
+    if (this.hit.lt(target)) {
         this.logger.debug("Generating block...");
+        console.log("Generating block");
 
         var sortedTransactions = [];
         var transactions = _.map(this.transactionprocessor.unconfirmedTransactions, function (obj, key) { return obj; });
@@ -519,13 +385,14 @@ forger.prototype.startForge = function () {
                 }
 
                 try {
-                    var result = this.blockchain.pushBlock(buffer, true, true, true);
+                    var result = this.blockchain.pushBlock(buffer, true, true, false);
                 } catch (e) {
                     result = null;
                     this.app.logger.error(e.toString());
                 }
 
                 this.workingForger = false;
+                this.sending = false;
             } else {
                 this.logger.error("Can't verify new generated block");
             }

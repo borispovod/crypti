@@ -43,6 +43,7 @@ var block = function (version, id, timestamp, previousBlock, transactions, total
     this.numberOfConfirmations = 0;
     this.requestsLength = 0;
     this.confirmationsLength = 0;
+    this.weight = bignum(0);
 
     if (this.transactions) {
         this.numberOfTransactions = this.transactions.length;
@@ -72,6 +73,51 @@ block.prototype.toJSON = function () {
     delete obj.logger;
 
     return obj;
+}
+
+block.prototype.getBaseTarget = function () {
+    if (!this.baseTarget) {
+        if (this.getId() == genesis.blockId && this.previousBlock == null) {
+            this.baseTarget = bignum("18446744073709551616").div(bignum(60).mul(utils.epochTime()));
+            this.cumulativeDifficulty = bignum(0);
+        } else {
+            var previousBlock = this.app.blockchain.getBlock(this.previousBlock);
+            var curBaseTarget = previousBlock.baseTarget;
+
+            var newBaseTarget = curBaseTarget.mul(this.timestamp - previousBlock.timestamp).div(60);
+
+            var maxBaseTarget = bignum("18446744073709551616").div(bignum(60).mul(this.app.blockchain.maxWeight)).mul(this.app.blockchain.maxWeight);
+
+            if (newBaseTarget.lt(0) || newBaseTarget.gt(maxBaseTarget)) {
+                newBaseTarget = bignum(1);
+            }
+
+            if (newBaseTarget.eq(0)) {
+                newBaseTarget = bignum(1);
+            }
+
+            if (newBaseTarget.lt(curBaseTarget.div(2))) {
+                newBaseTarget = curBaseTarget.div(2);
+            }
+
+            var twofoldCurBaseTarget = curBaseTarget.mul(2);
+            if (twofoldCurBaseTarget.lt(0)) {
+                twofoldCurBaseTarget = maxBaseTarget;
+            }
+
+            if (newBaseTarget.gt(twofoldCurBaseTarget)) {
+                newBaseTarget = twofoldCurBaseTarget;
+            }
+
+            this.baseTarget = newBaseTarget;
+            this.cumulativeDifficulty = previousBlock.cumulativeDifficulty.add(bignum("18446744073709551616").div(this.baseTarget));
+        }
+
+        return this.baseTarget;
+    } else {
+        return this.baseTarget;
+    }
+
 }
 
 block.prototype.analyze = function () {
@@ -400,146 +446,91 @@ block.prototype.verifyBlockSignature = function () {
 }
 
 block.prototype.verifyGenerationSignature = function () {
-    this.weight = bignum(0);
+    if (this.app.blockchain.getLastBlock().height <= 3124) {
+        this.weight = bignum(0);
 
-    var lastAliveBlock = this.app.blockchain.getLastBlock();
-    var elapsedTime = this.timestamp - lastAliveBlock.timestamp;
+        var lastAliveBlock = this.app.blockchain.getLastBlock();
+        var elapsedTime = this.timestamp - lastAliveBlock.timestamp;
 
-    if (elapsedTime < 60) {
-        this.app.logger.error("Block generation signature time not valid " + this.getId() + " must be > 60, but result is: " + elapsedTime);
-        return false;
-    }
-
-    var requests = _.map(lastAliveBlock.requests, function (v) { return v; });
-    var accounts = [];
-
-    for (var i = 0; i < requests.length; i++) {
-        var request = requests[i];
-        var account = this.app.accountprocessor.getAccountById(request.address);
-
-        if (!account || account.getEffectiveBalance() < 1000 * constants.numberLength) {
-            continue;
+        if (elapsedTime < 60) {
+            this.app.logger.error("Block generation signature time not valid " + this.getId() + " must be > 60, but result is: " + elapsedTime);
+            return false;
         }
 
-        var address = account.address;
+        var requests = _.map(lastAliveBlock.requests, function (v) {
+            return v;
+        });
+        var accounts = [];
 
-        var confirmedRequests = this.app.requestprocessor.confirmedRequests[address];
+        for (var i = 0; i < requests.length; i++) {
+            var request = requests[i];
+            var account = this.app.accountprocessor.getAccountById(request.address);
 
-        if (!confirmedRequests) {
-            confirmedRequests = [];
-        }
-
-        confirmedRequests = confirmedRequests.slice(0);
-
-        var accountWeightTimestamps = 0;
-        var popWeightAmount = 0;
-
-        var previousBlock = this.app.blockchain.getBlock(lastAliveBlock.getId());
-        for (var j = confirmedRequests.length - 1; j >= 0; j--) {
-            if (!previousBlock) {
-                break;
+            if (!account || account.getEffectiveBalance() < 1000 * constants.numberLength) {
+                continue;
             }
 
-            var confirmedRequest = confirmedRequests[j];
+            var address = account.address;
 
-            var block = this.app.blockchain.getBlock(confirmedRequest.blockId);
+            var confirmedRequests = this.app.requestprocessor.confirmedRequests[address];
 
-            if (previousBlock.getId() != block.getId()) {
-                break;
+            if (!confirmedRequests) {
+                confirmedRequests = [];
             }
 
-            accountWeightTimestamps += block.timestamp;
-            var purchases = this.app.accountprocessor.purchases[block.getId()];
+            confirmedRequests = confirmedRequests.slice(0);
 
-            if (purchases) {
-                if (purchases[address] > 10) {
-                    popWeightAmount += (Math.log(1 + purchases[address]) / Math.LN10);
-                    popWeightAmount = popWeightAmount / (Math.log(1 + (block.totalAmount + block.totalFee)) / Math.LN10)
-                } else if (purchases[address]) {
-                    popWeightAmount += purchases[address];
+            var accountWeightTimestamps = 0;
+            var popWeightAmount = 0;
+
+            var previousBlock = this.app.blockchain.getBlock(lastAliveBlock.getId());
+            for (var j = confirmedRequests.length - 1; j >= 0; j--) {
+                if (!previousBlock) {
+                    break;
                 }
+
+                var confirmedRequest = confirmedRequests[j];
+
+                var block = this.app.blockchain.getBlock(confirmedRequest.blockId);
+
+                if (previousBlock.getId() != block.getId()) {
+                    break;
+                }
+
+                accountWeightTimestamps += block.timestamp;
+                var purchases = this.app.accountprocessor.purchases[block.getId()];
+
+                if (purchases) {
+                    if (purchases[address] > 10) {
+                        popWeightAmount += (Math.log(1 + purchases[address]) / Math.LN10);
+                        popWeightAmount = popWeightAmount / (Math.log(1 + (block.totalAmount + block.totalFee)) / Math.LN10)
+                    } else if (purchases[address]) {
+                        popWeightAmount += purchases[address];
+                    }
+                }
+
+                if (block.generatorId == request.address) {
+                    break;
+                }
+
+                previousBlock = this.app.blockchain.getBlock(previousBlock.previousBlock);
             }
 
-            if (block.generatorId == request.address) {
-                break;
-            }
 
-            previousBlock = this.app.blockchain.getBlock(previousBlock.previousBlock);
+            this.app.logger.debug("Account PoT weight: " + address + " / " + accountWeightTimestamps);
+            this.app.logger.debug("Account PoP weight: " + address + " / " + popWeightAmount);
+
+            var accountTotalWeight = accountWeightTimestamps + popWeightAmount;
+            this.weight = this.weight.add(accountTotalWeight);
+
+            accounts.push({ address: address, weight: accountTotalWeight });
+
+            this.app.logger.debug("Account " + address + " / " + accountTotalWeight);
         }
 
+        this.weight = this.weight.mul(this.numberOfRequests);
 
-        this.app.logger.debug("Account PoT weight: " + address + " / " + accountWeightTimestamps);
-        this.app.logger.debug("Account PoP weight: " + address + " / " + popWeightAmount);
-
-        var accountTotalWeight = accountWeightTimestamps + popWeightAmount;
-        this.weight = this.weight.add(accountTotalWeight);
-
-        accounts.push({ address : address, weight : accountTotalWeight });
-
-        this.app.logger.debug("Account " + address + " / " + accountTotalWeight);
-    }
-
-    this.weight = this.weight.mul(this.numberOfRequests);
-
-    accounts.sort(function compare(a,b) {
-        if (a.weight > b.weight)
-            return -1;
-
-        if (a.weight < b.weight)
-            return 1;
-
-        return 0;
-    });
-
-    if (accounts.length == 0) {
-        this.app.logger.debug("Need accounts for forging...");
-        this.workingForger = false;
-        return false;
-    }
-
-    var cycle = parseInt(elapsedTime / 60) - 1;
-
-    if (cycle > accounts.length - 1) {
-        cycle = parseInt(cycle  % accounts.length);
-    }
-
-    this.logger.debug("Winner in cycle is: " + cycle);
-
-    var winner = accounts[cycle];
-    var sameWeights = [winner];
-
-    for (var i = cycle + 1; i < accounts.length; i++) {
-        var accountWeight = accounts[i];
-
-        if (winner.weight == accountWeight.weight) {
-            sameWeights.push(accountWeight);
-        } else {
-            break;
-        }
-    }
-
-    if (sameWeights.length > 1) {
-        this.app.logger.debug("Same weight in cyclet: " + sameWeights.length);
-
-        var randomWinners = [];
-        for (var i = 0; i < sameWeights.length; i++) {
-            var a = sameWeights[i];
-
-            var address = a.address.slice(0, -1);
-            var addressBuffer = bignum(address).toBuffer({ 'size' : '8' });
-            var hash = crypto.createHash('sha256').update(bignum(a.weight).toBuffer({ size : '8' })).update(addressBuffer).digest();
-
-            var result = new Buffer(8);
-            for (var j = 0; j < 8; j++) {
-                result[j] = hash[j];
-            }
-
-            var weight = bignum.fromBuffer(result, { size : '8' }).toNumber();
-            this.app.logger.debug("Account " + a.address + " new weight is: " + weight);
-            randomWinners.push({ address : a.address, weight : weight });
-        }
-
-        randomWinners.sort(function (a,b) {
+        accounts.sort(function compare(a, b) {
             if (a.weight > b.weight)
                 return -1;
 
@@ -549,29 +540,130 @@ block.prototype.verifyGenerationSignature = function () {
             return 0;
         });
 
-
-        if (cycle > randomWinners.length - 1) {
-            cycle = parseInt(cycle  % randomWinners.length);
+        if (accounts.length == 0) {
+            this.app.logger.debug("Need accounts for forging...");
+            this.workingForger = false;
+            return false;
         }
 
-        winner = randomWinners[cycle];
-    }
+        var cycle = parseInt(elapsedTime / 60) - 1;
 
-    if (this.app.blockchain.getLastBlock().height <= 2813) {
-        return true;
-    }
+        if (cycle > accounts.length - 1) {
+            cycle = parseInt(cycle % accounts.length);
+        }
 
-    var addr = this.app.accountprocessor.getAddressByPublicKey(this.generatorPublicKey);
+        this.logger.debug("Winner in cycle is: " + cycle);
+
+        var winner = accounts[cycle];
+        var sameWeights = [winner];
+
+        for (var i = cycle + 1; i < accounts.length; i++) {
+            var accountWeight = accounts[i];
+
+            if (winner.weight == accountWeight.weight) {
+                sameWeights.push(accountWeight);
+            } else {
+                break;
+            }
+        }
+
+        if (sameWeights.length > 1) {
+            this.app.logger.debug("Same weight in cyclet: " + sameWeights.length);
+
+            var randomWinners = [];
+            for (var i = 0; i < sameWeights.length; i++) {
+                var a = sameWeights[i];
+
+                var address = a.address.slice(0, -1);
+                var addressBuffer = bignum(address).toBuffer({ 'size': '8' });
+                var hash = crypto.createHash('sha256').update(bignum(a.weight).toBuffer({ size: '8' })).update(addressBuffer).digest();
+
+                var result = new Buffer(8);
+                for (var j = 0; j < 8; j++) {
+                    result[j] = hash[j];
+                }
+
+                var weight = bignum.fromBuffer(result, { size: '8' }).toNumber();
+                this.app.logger.debug("Account " + a.address + " new weight is: " + weight);
+                randomWinners.push({ address: a.address, weight: weight });
+            }
+
+            randomWinners.sort(function (a, b) {
+                if (a.weight > b.weight)
+                    return -1;
+
+                if (a.weight < b.weight)
+                    return 1;
+
+                return 0;
+            });
 
 
-    this.app.logger.debug("Winner in cycle: " + winner.address);
+            if (cycle > randomWinners.length - 1) {
+                cycle = parseInt(cycle % randomWinners.length);
+            }
 
-    if (addr == winner.address) {
-        this.app.logger.debug("Valid generator " + this.getId());
-        return true;
+            winner = randomWinners[cycle];
+        }
+
+        if (this.app.blockchain.getLastBlock().height <= 2813) {
+            return true;
+        }
+
+        var addr = this.app.accountprocessor.getAddressByPublicKey(this.generatorPublicKey);
+
+
+        this.app.logger.debug("Winner in cycle: " + winner.address);
+
+        if (addr == winner.address) {
+            this.app.logger.debug("Valid generator " + this.getId());
+            return true;
+        } else {
+            this.app.logger.error("Generator of block not valid: " + winner.address + " / " + addr);
+            return false;
+        }
     } else {
-        this.app.logger.error("Generator of block not valid: " + winner.address + " / " + addr);
-        return false;
+        var previousBlock = this.app.blockchain.getBlock(this.previousBlock);
+        if (previousBlock == null) {
+            return false;
+        }
+
+        var hash = crypto.createHash('sha256').update(previousBlock.generationSignature).update(this.generatorPublicKey);
+        var generationSignatureHash = hash.digest();
+
+        var r = ed.Verify(hash, this.generationSignature, this.generatorPublicKey);
+        if (!r) {
+            return false;
+        }
+
+        var generator = this.app.accountprocessor.getAccountByPublicKey(this.generatorPublicKey);
+
+        if (!generator) {
+            return false;
+        }
+
+        if (generator.getEffectiveBalance() < 1000 * constants.numberLength) {
+            return false;
+        }
+
+        var elapsedTime = this.timestamp - previousBlock.timestamp;
+
+        var target = bignum(this.app.blockchain.getLastBlock().getBaseTarget()).mul(generator.weight).mul(elapsedTime);
+
+        var hash = crypto.createHash('sha256').update(previousBlock.generationSignature).update(this.generatorPublicKey).digest();
+        var hit = new Buffer(8);
+
+        for (var i = 0; i < 8; i++) {
+            hit[i] = hash[i];
+        }
+
+        hit = bignum.fromBuffer(hit, { size : '8' });
+
+        if (hit.lt(target)) {
+            return true;
+        } else {
+            return false;
+        }
     }
 }
 
