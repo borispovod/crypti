@@ -161,14 +161,10 @@ forger.prototype.startForge = function () {
         return false;
     }
 
-
     var target = bignum(lastAliveBlock.getBaseTarget()).mul(myAccount.weight).mul(elapsedTime);
-
-    console.log(target.toString() + " / " + this.hit.toString());
 
     if (this.hit.lt(target)) {
         this.logger.debug("Generating block...");
-        console.log("Generating block");
 
         var sortedTransactions = [];
         var transactions = _.map(this.transactionprocessor.unconfirmedTransactions, function (obj, key) { return obj; });
