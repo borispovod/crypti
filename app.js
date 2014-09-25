@@ -450,6 +450,8 @@ async.series([
                                                                     app.requestprocessor.confirmedRequests[r.address] = [r];
 
                                                                     a = b.analyze();
+                                                                    b.getBaseTarget();
+                                                                    app.blockchain.maxWeight = utils.epochTime();
 
                                                                     if (!a) {
                                                                         c("Can't process block: " + b.getId());
@@ -476,12 +478,12 @@ async.series([
                                                                         buffer = Buffer.concat([buffer, confirmations[i].getBytes()]);
                                                                     }
 
-                                                                    try {
+                                                                    //try {
                                                                         a = app.blockchain.pushBlock(buffer, false);
-                                                                    } catch (e) {
-                                                                        a = false;
-                                                                        app.logger.error(e.toString());
-                                                                    }
+                                                                    //} catch (e) {
+                                                                        //a = false;
+                                                                        //app.logger.error(e.toString());
+                                                                    //}
 
                                                                     if (!a) {
                                                                         app.badBlock = {
