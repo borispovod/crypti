@@ -26,10 +26,11 @@ var blockchain = function (app) {
     this.actualFeeVolume = 0;
     this.totalPurchaseAmount = 0;
     this.weight = bignum(0);
+    this.maxWeight = bignum(0);
 }
 
 blockchain.prototype.getWeight = function () {
-    return this.weight;
+    return this.getLastBlock().cumulativeDifficulty.mul(1000);
 }
 
 blockchain.prototype.getBlock = function (id) {
@@ -188,7 +189,7 @@ blockchain.prototype.removeForkedBlocks = function (commonBlock, cb) {
     }.bind(this);
     if (this.app.db.blockSavingId) {
         this.app.db.queue = [];
-        this.app.db.on("blockchainLoaded", function () {
+        this.app.db.once("blockchainLoaded", function () {
             var lastBlockId = this.getLastBlock().getId();
 
             tempFunc(lastBlockId, function (b) {
@@ -623,7 +624,6 @@ blockchain.prototype.pushBlock = function (buffer, saveToDb, sendToPeers, checkR
         generationSignature[i] = bb.readByte();
     }
 
-
     var blockSignature = new Buffer(64);
 
     for (var i = 0; i < 64; i++) {
@@ -643,7 +643,7 @@ blockchain.prototype.pushBlock = function (buffer, saveToDb, sendToPeers, checkR
     }
 
     var curTime = utils.getEpochTime(new Date().getTime());
-    if (b.numberOfRequests == 0 || b.timestamp > curTime || b.timestamp <= this.getLastBlock().timestamp || curTime - this.getLastBlock().timestamp < 60) {
+    if (b.numberOfRequests == 0 || b.timestamp > curTime || b.timestamp <= this.getLastBlock().timestamp) {
         this.logger.error("Invalid block (" + b.getId() + ") time: " + b.timestamp + ", current time: " + curTime + ", last block time: " + this.getLastBlock().timestamp);
         return false;
     }
@@ -971,6 +971,10 @@ blockchain.prototype.pushBlock = function (buffer, saveToDb, sendToPeers, checkR
         numOfRequests += 1;
     }
 
+    if (numOfRequests == 0) {
+        return false;
+    }
+
     if (checkRequests) {
         if (found != Object.keys(this.app.requestprocessor.unconfirmedRequests).length) {
             this.app.logger.error("Can't process, requests in blocks invalids: " + b.getId() + " / " + found + " / " + Object.keys(this.app.requestprocessor.unconfirmedRequests).length);
@@ -1083,6 +1087,10 @@ blockchain.prototype.pushBlock = function (buffer, saveToDb, sendToPeers, checkR
         }
     }
 
+    b.generatorId = this.app.accountprocessor.getAddressByPublicKey(b.generatorPublicKey);
+
+    var generator = this.app.accountprocessor.getAccountById(b.generatorId);
+
     for (var i = 0; i < b.transactions.length; i++) {
         var r = this.transactionprocessor.removeUnconfirmedTransaction(b.transactions[i]);
 
@@ -1122,7 +1130,6 @@ blockchain.prototype.pushBlock = function (buffer, saveToDb, sendToPeers, checkR
 
         b.transactions[i].sender = this.app.accountprocessor.getAccountByPublicKey(b.transactions[i].senderPublicKey).address;
 
-
         if (r) {
             var a = this.accountprocessor.getAccountByPublicKey(b.transactions[i].senderPublicKey);
             a.setUnconfirmedBalance(a.unconfirmedBalance + b.transactions[i].amount + fee);
@@ -1130,8 +1137,30 @@ blockchain.prototype.pushBlock = function (buffer, saveToDb, sendToPeers, checkR
 
         this.transactionprocessor.getTransaction(b.transactions[i].getId()).fee = fee;
         this.transactionprocessor.getTransaction(b.transactions[i].getId()).blockId = b.getId();
-    }
 
+        var sender = b.transactions[i].sender;
+        var popWeight = 0;
+        var amount = b.transactions[i].fee + b.transactions[i].amount;
+
+        if (amount > 10) {
+            popWeight = (Math.log(1 + amount) / Math.LN10);
+            popWeight = popWeight / (Math.log(1 + (b.totalAmount + b.totalFee)) / Math.LN10);
+        } else {
+            popWeight = amount;
+        }
+
+        var senderAcc = this.app.accountprocessor.getAccountById(sender);
+
+        if (b.generatorId != senderAcc.address) {
+            senderAcc.weight = senderAcc.weight.add(b.timestamp);
+        } else {
+            senderAcc.weight = senderAcc.weight.sub(b.timestamp);
+
+            if (senderAcc.weight.lt(1)) {
+                senderAcc.weight = bignum(1);
+            }
+        }
+    }
 
     for (var r in b.requests) {
         var request = b.requests[r];
@@ -1142,11 +1171,26 @@ blockchain.prototype.pushBlock = function (buffer, saveToDb, sendToPeers, checkR
         }
 
         this.app.requestprocessor.confirmedRequests[address].push(request);
+
+        // add some for address weight
+        var acc = this.app.accountprocessor.getAccountById(address);
+
+        if (b.generatorId != acc.address) {
+            acc.weight = acc.weight.add(b.timestamp);
+        } else {
+            acc.weight = acc.weight.sub(b.timestamp);
+
+            if (acc.weight.lt(1)) {
+                acc.weight = bignum(1);
+            }
+        }
     }
 
 
+    this.maxWeight = generator.weight;
     this.lastBlock = b.getId();
-    b.generatorId = this.app.accountprocessor.getAddressByPublicKey(b.generatorPublicKey);
+
+
     this.logger.info("Block processed: " + b.getId());
 
     // save block, transactions, addresses to db.
@@ -1177,6 +1221,7 @@ blockchain.prototype.pushBlock = function (buffer, saveToDb, sendToPeers, checkR
     }
 
     b.fee = this.fee;
+    b.getBaseTarget();
 
     this.weight = this.weight.add(b.weight);
 
