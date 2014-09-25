@@ -1,9 +1,9 @@
 {
-    "port": 6040,
+    "port": 7040,
     "address": "0.0.0.0",
     "serveHttpAPI": true,
     "serveHttpWallet": true,
-    "version": "0.1.6",
+    "version": "0.1.6dt",
     "logLevel": "error",
     "adminPanel": {
         "auth": {
