@@ -446,7 +446,7 @@ block.prototype.verifyBlockSignature = function () {
 }
 
 block.prototype.verifyGenerationSignature = function () {
-    if (this.app.blockchain.getLastBlock().height <= 3124) {
+    if (this.app.blockchain.getLastBlock().height < 3124) {
         this.weight = bignum(0);
 
         var lastAliveBlock = this.app.blockchain.getLastBlock();
@@ -631,7 +631,7 @@ block.prototype.verifyGenerationSignature = function () {
         var hash = crypto.createHash('sha256').update(previousBlock.generationSignature).update(this.generatorPublicKey);
         var generationSignatureHash = hash.digest();
 
-        var r = ed.Verify(hash, this.generationSignature, this.generatorPublicKey);
+        var r = ed.Verify(generationSignatureHash, this.generationSignature, this.generatorPublicKey);
         if (!r) {
             return false;
         }
