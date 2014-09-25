@@ -163,6 +163,8 @@ forger.prototype.startForge = function () {
 
     var target = bignum(lastAliveBlock.getBaseTarget()).mul(myAccount.weight).mul(elapsedTime);
 
+    console.log(this.hit.toString() + " / " + target.toString());
+
     if (this.hit.lt(target)) {
         this.logger.debug("Generating block...");
 
