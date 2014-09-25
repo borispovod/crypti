@@ -100,6 +100,22 @@ module.exports = function (app) {
         }
     });
 
+    app.get("/api/getAccountWeight", app.basicAuth, function (req, res) {
+        var accountId = req.query.accountId;
+
+        if (!accountId) {
+            return res.json({ success : false, error : "Provide account id", status : "ACCOUNT_ID_INVALID" });
+        }
+
+        var account = app.accountprocessor.getAccountById(accountId);
+
+        if (!account) {
+            return res.json({ success : false , error : "Account not found", status : "ACCOUNT_NOT_FOUND"});
+        }
+
+        return res.json({ success : true, account : accountId, weight : account.weight.toString() });
+    });
+
     app.get("/api/getBalance", app.basicAuth, function (req, res) {
         try {
             var address = req.query.address || "";
