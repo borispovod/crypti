@@ -153,7 +153,7 @@ forger.prototype.startForge = function () {
         }
 
         this.hit = bignum.fromBuffer(this.hit, { size : '8' });
-        this.hit = this.hit.mul(this.app.blockchain.maxWeight);
+        this.hit = this.hit.mul(lastAliveBlock.generationWeight);
     }
 
     if (elapsedTime <= 0) {
