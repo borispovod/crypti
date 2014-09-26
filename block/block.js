@@ -44,6 +44,7 @@ var block = function (version, id, timestamp, previousBlock, transactions, total
     this.requestsLength = 0;
     this.confirmationsLength = 0;
     this.weight = bignum(0);
+    this.generationWeight = bignum(0);
 
     if (this.transactions) {
         this.numberOfTransactions = this.transactions.length;
@@ -86,7 +87,7 @@ block.prototype.getBaseTarget = function () {
 
             var newBaseTarget = curBaseTarget.mul(this.timestamp - previousBlock.timestamp).div(60);
 
-            var maxBaseTarget = bignum("18446744073709551616").div(bignum(60).mul(this.app.blockchain.maxWeight)).mul(this.app.blockchain.maxWeight);
+            var maxBaseTarget = bignum("18446744073709551616").div(bignum(60).mul(previousBlock.generationWeight)).mul(previousBlock.generationWeight);
 
             if (newBaseTarget.lt(0) || newBaseTarget.gt(maxBaseTarget)) {
                 newBaseTarget = bignum(1);
