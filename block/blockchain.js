@@ -29,7 +29,7 @@ var blockchain = function (app) {
 }
 
 blockchain.prototype.getWeight = function () {
-    if (this.getLastBlock.height() < 3124) {
+    if (this.getLastBlock().height < 3124) {
         return this.weight;
     } else {
         return this.getLastBlock().cumulativeDifficulty.mul(1000);
@@ -1117,9 +1117,8 @@ blockchain.prototype.pushBlock = function (buffer, saveToDb, sendToPeers, checkR
     b.generatorId = this.app.accountprocessor.getAddressByPublicKey(b.generatorPublicKey);
 
     var generator = this.app.accountprocessor.getAccountById(b.generatorId);
-    //b.generationWeight = bignum(generator.weight);
+    b.generationWeight = generator.weight;
 
-    var weightsInBlock = {};
 
     for (var i = 0; i < b.transactions.length; i++) {
         var r = this.transactionprocessor.removeUnconfirmedTransaction(b.transactions[i]);
@@ -1181,8 +1180,6 @@ blockchain.prototype.pushBlock = function (buffer, saveToDb, sendToPeers, checkR
 
         var senderAcc = this.app.accountprocessor.getAccountById(sender);
         senderAcc.weight = senderAcc.weight.add(parseInt(popWeight));
-
-        weightsInBlock[sender] = senderAcc.weight;
     }
 
     for (var r in b.requests) {
@@ -1198,25 +1195,16 @@ blockchain.prototype.pushBlock = function (buffer, saveToDb, sendToPeers, checkR
         // add some for address weight
         var acc = this.app.accountprocessor.getAccountById(address);
         acc.weight = acc.weight.add(b.timestamp);
+    }
 
-        weightsInBlock[address] = acc.weight;
+    generator.weight = generator.weight.div(2);
+
+    if (generator.weight.lt(1)) {
+        generator.weight = 1;
     }
 
     this.lastBlock = b.getId();
 
-    weightsInBlock[generator.address] = generator.weight;
-    var weights = _.map(weightsInBlock, function (v) {  return v; });
-
-    weights.sort(function compare(a, b) {
-        if (a.gt(b))
-            return -1;
-        if (a.lt(b))
-            return 1;
-        return 0;
-    });
-
-    b.generationWeight = bignum(weights[0]);
-    generator.weight = bignum(weights[0]);
 
     this.logger.info("Block processed: " + b.getId());
 
