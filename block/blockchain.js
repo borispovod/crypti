@@ -1204,8 +1204,6 @@ blockchain.prototype.pushBlock = function (buffer, saveToDb, sendToPeers, checkR
 
     this.lastBlock = b.getId();
 
-    generator.weight = bignum(1);
-
     weightsInBlock[generator.address] = generator.weight;
     var weights = _.map(weightsInBlock, function (v) {  return v; });
 
@@ -1217,7 +1215,8 @@ blockchain.prototype.pushBlock = function (buffer, saveToDb, sendToPeers, checkR
         return 0;
     });
 
-    b.generationWeight = weights[0];
+    b.generationWeight = bignum(weights[0]);
+    generator.weight = bignum(weights[0]);
 
     this.logger.info("Block processed: " + b.getId());
 
