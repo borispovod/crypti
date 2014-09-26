@@ -86,7 +86,7 @@ forger.prototype.sendRequest = function () {
 
     var lastAliveBlock = this.app.blockchain.getLastBlock().getId();
 
-    var r = new request(null, null, "127.0.0.2", keypair.publicKey, lastAliveBlock);
+    var r = new request(null, null, "127.0.0.1", keypair.publicKey, lastAliveBlock);
     r.sign(this.secretPharse);
 
     var added = this.app.requestprocessor.processRequest(r);
