@@ -450,7 +450,6 @@ async.series([
                                                                     app.requestprocessor.confirmedRequests[r.address] = [r];
 
                                                                     a = b.analyze();
-                                                                    b.getBaseTarget();
                                                                     app.blockchain.maxWeight = utils.epochTime();
 
                                                                     if (!a) {
