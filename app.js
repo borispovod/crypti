@@ -307,7 +307,7 @@ async.series([
 
                             var numberOfTransactions = b.numberOfTransactions;
                             if (id == genesisblock.blockId) {
-                                numberOfTransactions = 13;
+                                numberOfTransactions = 1;
                             }
 
                             var refs = item.refs;
@@ -450,8 +450,6 @@ async.series([
                                                                     app.requestprocessor.confirmedRequests[r.address] = [r];
 
                                                                     a = b.analyze();
-                                                                    b.getBaseTarget();
-                                                                    app.blockchain.maxWeight = utils.epochTime();
 
                                                                     if (!a) {
                                                                         c("Can't process block: " + b.getId());

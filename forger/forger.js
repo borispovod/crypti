@@ -86,7 +86,7 @@ forger.prototype.sendRequest = function () {
 
     var lastAliveBlock = this.app.blockchain.getLastBlock().getId();
 
-    var r = new request(null, null, "127.0.0.2", keypair.publicKey, lastAliveBlock);
+    var r = new request(null, null, "127.0.0.1", keypair.publicKey, lastAliveBlock);
     r.sign(this.secretPharse);
 
     var added = this.app.requestprocessor.processRequest(r);
@@ -131,6 +131,10 @@ forger.prototype.startForge = function () {
     var now = utils.getEpochTime(new Date().getTime());
     var elapsedTime = now - lastAliveBlock.timestamp;
 
+    if (elapsedTime < 60) {
+        this.workingForger = false;
+        return false;
+    }
 
     if (Object.keys(this.app.requestprocessor.unconfirmedRequests).length == 0) {
         this.app.logger.debug("Need account for forge block...");
@@ -138,33 +142,15 @@ forger.prototype.startForge = function () {
         return false;
     }
 
-    if (this.lastBlock != this.app.blockchain.getLastBlock().getId()) {
-        this.lastBlock = this.app.blockchain.getLastBlock().getId();
-        this.hit = null;
+    var circle = parseInt(elapsedTime / 10) + 1;
+
+    if (circle >= this.app.blockchain.weights.length) {
+        circle = this.app.blockchain.weights.length;
     }
 
+    var target = this.app.blockchain.weights[this.app.blockchain.weights.length - circle].weight;
 
-    if (!this.hit) {
-        var generationSignatureHash = crypto.createHash('sha256').update(lastAliveBlock.generationSignature).update(this.publicKey).digest();
-        this.hit = new Buffer(8);
-
-        for (var i = 0; i < 8; i++) {
-            this.hit[i] = generationSignatureHash[i];
-        }
-
-        this.hit = bignum.fromBuffer(this.hit, { size : '8' });
-        this.hit = this.hit.mul(this.app.blockchain.maxWeight);
-    }
-
-    if (elapsedTime <= 0) {
-        this.workingForger = false;
-        return false;
-    }
-
-
-    var target = bignum(lastAliveBlock.getBaseTarget()).mul(myAccount.weight).mul(elapsedTime);
-
-    if (this.hit.lt(target)) {
+    if (myAccount.weight.ge(target)) {
         this.logger.debug("Generating block...");
 
         var sortedTransactions = [];
