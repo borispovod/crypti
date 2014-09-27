@@ -10,7 +10,8 @@ var genesisblock = require("./genesisblock.js"),
     Long = require("long"),
     requestconfirmation = require('../request').requestconfirmation,
     async = require('async'),
-    _ = require('underscore');
+    _ = require('underscore'),
+    bs = require('binarysearch');
 
 var blockchain = function (app) {
     this.app = app;
@@ -26,6 +27,74 @@ var blockchain = function (app) {
     this.actualFeeVolume = 0;
     this.totalPurchaseAmount = 0;
     this.weight = bignum(0);
+    this.weights = [];
+}
+
+blockchain.prototype.removeWeight = function (weightObj) {
+    var index = bs(this.weights, weightObj, function (a, b) {
+        if(a.weight.gt(b.weight)) return 1
+        else if(a.weight.lt(b.weight)) return -1;
+
+        if (a.weight.eq(b.weight)) {
+            return 0;
+        }
+    });
+
+    if (index >= 0) {
+        this.weights.splice(index, 1);
+    }
+}
+
+blockchain.prototype.addWeight = function (weightObj) {
+    if (this.weights.length > 0) {
+        var max = this.weights[this.weights.length - 1],
+            min = this.weights[0];
+
+        if (weightObj.weight.gt(max.weight)) {
+            this.weights.push(weightObj);
+        } else if (weightObj.weight.lt(min.weight)) {
+            this.weights.splice(0, 0, weightObj);
+        } else if (!weightObj.weight.eq(max.weight) && !weightObj.weight.eq(min.weight))  {
+            var index = bs.last(this.weights, weightObj, function (v, search) {
+                if (v.weight.le(search.weight)) {
+                    return 0;
+                }
+
+                if (v.weight.gt(search.weight))
+                    return 1;
+
+                return -1;
+            });
+
+            if (!weightObj.weight.eq(this.weights[index].weight)) {
+                this.weights.splice(index+1, 0, weightObj);
+            }
+        }
+    } else {
+        this.weights.push(weightObj);
+    }
+}
+
+blockchain.prototype.removeWeights = function (b, weightObj) {
+    var index = bs(this.weights, weightObj, function (a, b) {
+        if(a.weight.gt(b.weight)) return 1
+        else if(a.weight.lt(b.weight)) return -1;
+
+        if (a.weight.eq(b.weight)) {
+            return 0;
+        }
+    });
+
+    if (index >= 0) {
+        for (var i = this.weights.length - 1; i >= index; i--) {
+            var weight = this.weights[i];
+            var owner = weight.account;
+
+            this.app.accountprocessor.getAccountById(owner).weight = bignum(0);
+            this.weights.splice(i, 1);
+            b.removedWeights.push(this.weights[i]);
+        }
+    }
 }
 
 blockchain.prototype.getWeight = function () {
@@ -295,6 +364,10 @@ blockchain.prototype.popLastBlock = function (cb) {
         return lastBlock;
     }
 
+    var generator = this.app.accountprocessor.getAccountById(lastBlock.generatorId);
+    generator.weight = bignum(lastBlock.generatorWeight);
+
+
     var feePercent = lastBlock.previousFee || 1;
 
     for (var r  in lastBlock.requests) {
@@ -311,6 +384,7 @@ blockchain.prototype.popLastBlock = function (cb) {
             delete this.app.requestprocessor.confirmedRequests[address];
         }
     }
+
 
     var forForger = 0;
     var senders = {};
@@ -504,9 +578,6 @@ blockchain.prototype.popLastBlock = function (cb) {
     this.nextFeeVolume = lastBlock.nextFeeVolume;
     this.actualFeeVolume = lastBlock.actualFeeVolume;
 
-    var generator = this.app.accountprocessor.getAccountById(lastBlock.generatorId);
-
-    generator.weight = generator.weight.mul(2);
 
     var toDelete = lastBlock.getId();
     this.blocks[lastBlock.getId()] = null;
@@ -1111,14 +1182,10 @@ blockchain.prototype.pushBlock = function (buffer, saveToDb, sendToPeers, checkR
         }
     }
 
-
-
-
     b.generatorId = this.app.accountprocessor.getAddressByPublicKey(b.generatorPublicKey);
-
     var generator = this.app.accountprocessor.getAccountById(b.generatorId);
-    b.generationWeight = generator.weight;
-
+    b.generatorWeight = bignum(generator.weight);
+    this.removeWeights(b, { account : b.generatorId, weight : bignum(b.generatorWeight) });
 
     for (var i = 0; i < b.transactions.length; i++) {
         var r = this.transactionprocessor.removeUnconfirmedTransaction(b.transactions[i]);
@@ -1179,7 +1246,14 @@ blockchain.prototype.pushBlock = function (buffer, saveToDb, sendToPeers, checkR
         }
 
         var senderAcc = this.app.accountprocessor.getAccountById(sender);
-        senderAcc.weight = senderAcc.weight.add(parseInt(popWeight));
+
+        if (senderAcc.address != b.generatorId) {
+            if (senderAcc.weight.gt(0)) {
+                this.removeWeight({ account: sender, weight: bignum(senderAcc.weight) });
+                senderAcc.weight = senderAcc.weight.add(parseInt(popWeight));
+                this.addWeight({ account: sender, weight: bignum(senderAcc.weight) });
+            }
+        }
     }
 
     for (var r in b.requests) {
@@ -1194,17 +1268,21 @@ blockchain.prototype.pushBlock = function (buffer, saveToDb, sendToPeers, checkR
 
         // add some for address weight
         var acc = this.app.accountprocessor.getAccountById(address);
-        acc.weight = acc.weight.add(b.timestamp);
+
+        if (acc.weight.gt(0)) {
+            this.removeWeight({ account : acc.address, weight : bignum(acc.weight) });
+        }
+
+        if (acc.address != b.generatorId) {
+            acc.weight = acc.weight.add(b.timestamp);
+            this.addWeight({ account: acc.address, weight: bignum(acc.weight) });
+        }
     }
 
-    generator.weight = generator.weight.div(2);
-
-    if (generator.weight.lt(1)) {
-        generator.weight = 1;
-    }
+    generator.weight = bignum(0);
+    this.addWeight({ account : generator.address, weight : bignum(generator.weight) });
 
     this.lastBlock = b.getId();
-
 
     this.logger.info("Block processed: " + b.getId());
 
@@ -1340,6 +1418,8 @@ module.exports.addGenesisBlock = function (app, cb) {
         app.requestprocessor.confirmedRequests[address] = [req];
         app.blockchain.blocks[b.getId()] = b;
         app.blockchain.lastBlock = b.getId();
+
+        b.getBaseTarget();
 
         app.db.writeBlock(b.getId(), function (err) {
             cb(err);
