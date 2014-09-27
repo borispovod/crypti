@@ -131,6 +131,10 @@ forger.prototype.startForge = function () {
     var now = utils.getEpochTime(new Date().getTime());
     var elapsedTime = now - lastAliveBlock.timestamp;
 
+    if (elapsedTime < 60) {
+        this.workingForger = false;
+        return false;
+    }
 
     if (Object.keys(this.app.requestprocessor.unconfirmedRequests).length == 0) {
         this.app.logger.debug("Need account for forge block...");
@@ -138,28 +142,15 @@ forger.prototype.startForge = function () {
         return false;
     }
 
-    /*if (this.lastBlock != this.app.blockchain.getLastBlock().getId()) {
-        this.lastBlock = this.app.blockchain.getLastBlock().getId();
-        this.hit = null;
+    var circle = parseInt(elapsedTime / 10) + 1;
+
+    if (circle >= this.app.blockchain.weights.length) {
+        circle = this.app.blockchain.weights.length;
     }
 
+    var target = this.app.blockchain.weights[this.app.blockchain.weights.length - circle].weight;
 
-    if (!this.hit) {
-
-    }
-
-    if (elapsedTime <= 0) {
-        this.workingForger = false;
-        return false;
-    }
-
-    var target = bignum(lastAliveBlock.getBaseTarget()).mul(myAccount.weight).mul(elapsedTime);
-
-    console.log(this.hit.toString() + " / " + target.toString());*/
-
-    console.log(this.app.blockchain.weights);
-
-    if (false) {
+    if (myAccount.weight.ge(target)) {
         this.logger.debug("Generating block...");
 
         var sortedTransactions = [];

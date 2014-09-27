@@ -77,51 +77,6 @@ block.prototype.toJSON = function () {
     return obj;
 }
 
-block.prototype.getBaseTarget = function () {
-    if (!this.baseTarget) {
-        if (this.getId() == genesis.blockId && this.previousBlock == null) {
-            this.baseTarget = bignum("18446744073709551616").div(bignum(60).mul(utils.epochTime()));
-            this.cumulativeDifficulty = bignum(0);
-        } else {
-            var previousBlock = this.app.blockchain.getBlock(this.previousBlock);
-            var curBaseTarget = previousBlock.baseTarget;
-
-            var newBaseTarget = curBaseTarget.mul(this.timestamp - previousBlock.timestamp).div(60);
-
-            var maxBaseTarget = bignum("18446744073709551616").div(bignum(60).mul(previousBlock.generationWeight)).mul(previousBlock.generationWeight);
-
-            if (newBaseTarget.lt(0) || newBaseTarget.gt(maxBaseTarget)) {
-                newBaseTarget = bignum(1);
-            }
-
-            if (newBaseTarget.eq(0)) {
-                newBaseTarget = bignum(1);
-            }
-
-            if (newBaseTarget.lt(curBaseTarget.div(2))) {
-                newBaseTarget = curBaseTarget.div(2);
-            }
-
-            var twofoldCurBaseTarget = curBaseTarget.mul(2);
-            if (twofoldCurBaseTarget.lt(0)) {
-                twofoldCurBaseTarget = maxBaseTarget;
-            }
-
-            if (newBaseTarget.gt(twofoldCurBaseTarget)) {
-                newBaseTarget = twofoldCurBaseTarget;
-            }
-
-            this.baseTarget = newBaseTarget;
-            this.cumulativeDifficulty = previousBlock.cumulativeDifficulty.add(bignum("18446744073709551616").div(this.baseTarget));
-        }
-
-        return this.baseTarget;
-    } else {
-        return this.baseTarget;
-    }
-
-}
-
 block.prototype.analyze = function () {
     if (!this.previousBlock) {
         this.id = genesis.blockId;
@@ -650,22 +605,15 @@ block.prototype.verifyGenerationSignature = function () {
 
         var elapsedTime = this.timestamp - previousBlock.timestamp;
 
-        var target = bignum(this.app.blockchain.getLastBlock().getBaseTarget()).mul(generator.weight).mul(elapsedTime);
+        var circle = parseInt(elapsedTime / 10) + 1;
 
-        var hash = crypto.createHash('sha256').update(previousBlock.generationSignature).update(this.generatorPublicKey).digest();
-        var hit = new Buffer(8);
-
-        for (var i = 0; i < 8; i++) {
-            hit[i] = hash[i];
+        if (circle >= this.app.blockchain.weights.length) {
+            circle = this.app.blockchain.weights.length;
         }
 
-        hit = bignum.fromBuffer(hit, { size : '8' });
+        var target = this.app.blockchain.weights[this.app.blockchain.weights.length - circle].weight;
 
-        if (hit.lt(target)) {
-            return true;
-        } else {
-            return false;
-        }
+        return generator.weight.ge(target);
     }
 }
 

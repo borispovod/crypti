@@ -66,9 +66,7 @@ blockchain.prototype.addWeight = function (weightObj) {
                 return -1;
             });
 
-            if (!weightObj.weight.eq(this.weights[index].weight)) {
-                this.weights.splice(index+1, 0, weightObj);
-            }
+            this.weights.splice(index+1, 0, weightObj);
         }
     } else {
         this.weights.push(weightObj);
@@ -101,7 +99,7 @@ blockchain.prototype.getWeight = function () {
     if (this.getLastBlock().height < 3124) {
         return this.weight;
     } else {
-        return this.getLastBlock().cumulativeDifficulty.mul(1000);
+        return this.weight.mul(10000000);
     }
 }
 
@@ -367,6 +365,9 @@ blockchain.prototype.popLastBlock = function (cb) {
     var generator = this.app.accountprocessor.getAccountById(lastBlock.generatorId);
     generator.weight = bignum(lastBlock.generatorWeight);
 
+    for (var i = 0; i < b.removedWeights.length; i++) {
+        this.addWeight(b.removedWeights[i]);
+    }
 
     var feePercent = lastBlock.previousFee || 1;
 
@@ -738,7 +739,7 @@ blockchain.prototype.pushBlock = function (buffer, saveToDb, sendToPeers, checkR
     }
 
     var curTime = utils.getEpochTime(new Date().getTime());
-    if (b.numberOfRequests == 0 || b.timestamp > curTime || b.timestamp <= this.getLastBlock().timestamp) {
+    if (b.numberOfRequests == 0 || b.timestamp > curTime || b.timestamp <= this.getLastBlock().timestamp || curTime - this.getLastBlock().timestamp < 60) {
         this.logger.error("Invalid block (" + b.getId() + ") time: " + b.timestamp + ", current time: " + curTime + ", last block time: " + this.getLastBlock().timestamp);
         return false;
     }
@@ -1282,6 +1283,7 @@ blockchain.prototype.pushBlock = function (buffer, saveToDb, sendToPeers, checkR
     generator.weight = bignum(0);
     this.addWeight({ account : generator.address, weight : bignum(generator.weight) });
 
+
     this.lastBlock = b.getId();
 
     this.logger.info("Block processed: " + b.getId());
@@ -1314,9 +1316,8 @@ blockchain.prototype.pushBlock = function (buffer, saveToDb, sendToPeers, checkR
     }
 
     b.fee = this.fee;
-    b.getBaseTarget();
 
-    this.weight = this.weight.add(b.weight);
+    this.weight = this.weight.add(b.generatorWeight);
 
     for (var tId in this.app.transactionprocessor.unconfirmedTransactions) {
         var t = this.app.transactionprocessor.unconfirmedTransactions[tId];
