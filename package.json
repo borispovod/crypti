@@ -8,6 +8,7 @@
   "dependencies": {
     "async": "https://github.com/crypti/async/tarball/master",
     "bignum": "https://github.com/crypti/node-bignum/tarball/master",
+    "binarysearch": "^0.2.4",
     "bytebuffer": "https://github.com/crypti/ByteBuffer.js/tarball/master",
     "ed25519": "https://github.com/crypti/Ed25519/tarball/master",
     "express": "https://github.com/crypti/express/tarball/3.5.0",
