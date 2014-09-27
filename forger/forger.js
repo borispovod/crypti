@@ -138,22 +138,14 @@ forger.prototype.startForge = function () {
         return false;
     }
 
-    if (this.lastBlock != this.app.blockchain.getLastBlock().getId()) {
+    /*if (this.lastBlock != this.app.blockchain.getLastBlock().getId()) {
         this.lastBlock = this.app.blockchain.getLastBlock().getId();
         this.hit = null;
     }
 
 
     if (!this.hit) {
-        var generationSignatureHash = crypto.createHash('sha256').update(lastAliveBlock.generationSignature).update(this.publicKey).digest();
-        this.hit = new Buffer(8);
 
-        for (var i = 0; i < 8; i++) {
-            this.hit[i] = generationSignatureHash[i];
-        }
-
-        this.hit = bignum.fromBuffer(this.hit, { size : '8' });
-        this.hit = this.hit.mul(lastAliveBlock.generationWeight);
     }
 
     if (elapsedTime <= 0) {
@@ -163,9 +155,11 @@ forger.prototype.startForge = function () {
 
     var target = bignum(lastAliveBlock.getBaseTarget()).mul(myAccount.weight).mul(elapsedTime);
 
-    console.log(this.hit.toString() + " / " + target.toString());
+    console.log(this.hit.toString() + " / " + target.toString());*/
 
-    if (this.hit.lt(target)) {
+    console.log(this.app.blockchain.weights);
+
+    if (false) {
         this.logger.debug("Generating block...");
 
         var sortedTransactions = [];
