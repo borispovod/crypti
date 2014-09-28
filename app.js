@@ -477,12 +477,13 @@ async.series([
                                                                         buffer = Buffer.concat([buffer, confirmations[i].getBytes()]);
                                                                     }
 
-                                                                    //try {
+                                                                    try {
                                                                         a = app.blockchain.pushBlock(buffer, false);
-                                                                    //} catch (e) {
-                                                                        //a = false;
-                                                                        //app.logger.error(e.toString());
-                                                                    //}
+                                                                    return c();
+                                                                    } catch (e) {
+                                                                       a = false;
+                                                                       app.logger.error(e.toString());
+                                                                    }
 
                                                                     if (!a) {
                                                                         app.badBlock = {
