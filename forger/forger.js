@@ -150,7 +150,10 @@ forger.prototype.startForge = function () {
 
     var target = this.app.blockchain.weights[this.app.blockchain.weights.length - circle].weight;
 
-    if (myAccount.weight.ge(target)) {
+    console.log(this.app.blockchain.weights);
+    console.log(target, myAccount.weight);
+
+    if (false) {
         this.logger.debug("Generating block...");
 
         var sortedTransactions = [];
