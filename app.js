@@ -463,7 +463,6 @@ async.series([
                                                                 } else {
                                                                     var buffer = b.getBytes();
 
-                                                                    var h = crypto.createHash('sha256');
                                                                     for (var t in transactions) {
                                                                         buffer = Buffer.concat([buffer, transactions[t].getBytes()]);
                                                                     }
@@ -479,7 +478,6 @@ async.series([
 
                                                                     try {
                                                                         a = app.blockchain.pushBlock(buffer, false);
-                                                                    return c();
                                                                     } catch (e) {
                                                                        a = false;
                                                                        app.logger.error(e.toString());
@@ -507,6 +505,8 @@ async.series([
                                                                     } else {
                                                                         c();
                                                                     }
+
+
                                                                 }
                                                             });
                                                         }
