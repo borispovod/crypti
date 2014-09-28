@@ -28,6 +28,7 @@ var blockchain = function (app) {
     this.totalPurchaseAmount = 0;
     this.weight = bignum(0);
     this.weights = [{
+        accounts : [],
         weight : bignum(1)
     }];
 }
@@ -47,7 +48,17 @@ blockchain.prototype.removeWeight = function (weightObj) {
     });
 
     if (index >= 0) {
-        this.weights.splice(index, 1);
+        if (this.weights[index].accounts.length == 1) {
+            this.weights.splice(index, 1);
+        } else {
+            var accountIndex = this.weights[index].accounts.indexOf(weightObj.account);
+
+            if (accountIndex > -1) {
+                this.weights[index].accounts.splice(accountIndex, 1);
+            } else {
+                this.weights.splice(index, 1);
+            }
+        }
     }
 }
 
@@ -57,10 +68,15 @@ blockchain.prototype.addWeight = function (weightObj) {
             min = this.weights[0];
 
         if (weightObj.weight.gt(max.weight)) {
-            this.weights.push(weightObj);
+            this.weights.push({ accounts : [weightObj.account], weight : weightObj.weight });
         } else if (weightObj.weight.lt(min.weight)) {
-            this.weights.splice(0, 0, weightObj);
-        } else if (!weightObj.weight.eq(max.weight) && !weightObj.weight.eq(min.weight))  {
+            this.weights.splice(0, 0, { accounts : [weightObj.account], weight : weightObj.weight });
+        } else if (weightObj.weight.eq(max.weight)) {
+            this.weights[this.weights.length - 1].accounts.push(weightObj.account);
+        } else if (weightObj.weight.eq(min.weight)) {
+            this.weights[0].accounts.push(weightObj.account);
+        }
+        else if (!weightObj.weight.eq(max.weight) && !weightObj.weight.eq(min.weight))  {
             var index = bs.last(this.weights, weightObj, function (v, search) {
                 if (v.weight.le(search.weight)) {
                     return 0;
@@ -72,10 +88,14 @@ blockchain.prototype.addWeight = function (weightObj) {
                 return -1;
             });
 
-            this.weights.splice(index+1, 0, weightObj);
+            if (!this.weights[index].weight.eq(weightObj.weight)) {
+                this.weights.splice(index + 1, 0, { accounts : [weightObj.account], weight : weightObj.weight });
+            } else {
+                this.weights[index].accounts.push(weightObj.account);
+            }
         }
     } else {
-        this.weights.push(weightObj);
+        this.weights.push({ accounts : [weightObj.account], weight : weightObj.weight });
     }
 }
 
@@ -90,22 +110,28 @@ blockchain.prototype.removeWeights = function (weightObj) {
     });
 
     var removed = [];
-    if (index >= 0) {
-        for (var i = this.weights.length - 1; i > index; i--) {
-            var weight = this.weights[i];
-            var owner = weight.account;
+    var accountList = [];
 
-            this.app.accountprocessor.getAccountById(owner).weight = bignum(1);
+    if (index >= 0) {
+        for (var i = this.weights.length - 1; i >= index; i--) {
+            var weight = this.weights[i];
+
+            for (var j = 0; j < weight.accounts.length; j++) {
+                var owner = weight.accounts[j];
+                accountList.push(owner);
+                this.app.accountprocessor.getAccountById(owner).weight = bignum(1);
+            }
+
             removed.push(this.weights[i]);
             this.weights.splice(i, 1);
         }
     }
 
     if (this.weights.length == 0) {
-        this.weights.push({ weight : bignum(1) });
+        this.weights.push({ accounts : [], weight : bignum(1) });
     }
 
-    return removed;
+    return { removed : removed, accounts : accountList };
 }
 
 blockchain.prototype.getWeight = function () {
@@ -294,14 +320,16 @@ blockchain.prototype.popLastBlock = function (cb) {
     }
 
     var generator = this.app.accountprocessor.getAccountById(lastBlock.generatorId);
+    var ignorList = [];
 
     for (var i = 0; i < lastBlock.removedWeights.length; i++) {
-        var owner = lastBlock.removedWeights[i].account;
-
-        if (owner) {
+        for (var j = 0; j < lastBlock.removedWeights[i].accounts.length; j++) {
+            var owner = lastBlock.removedWeights[i].accounts[j];
+            ignorList.push(owner);
             this.app.accountprocessor.getAccountById(owner).weight = lastBlock.removedWeights[i].weight;
-            this.addWeight(lastBlock.removedWeights[i]);
+            this.addWeight({ account : owner, weight : lastBlock.removedWeights[i].weight });
         }
+
     }
 
     generator.weight = bignum(lastBlock.generationWeight);
@@ -312,7 +340,7 @@ blockchain.prototype.popLastBlock = function (cb) {
         var request = lastBlock.requests[r];
         var address = request.address;
 
-        if (address != generator.address) {
+        if (address != generator.address && ignorList.indexOf(address) < 0) {
             var account = this.app.accountprocessor.getAccountById(address);
             this.removeWeight({ account : address, weight : account.weight });
             account.weight = account.weight.sub(lastBlock.timestamp);
@@ -507,7 +535,7 @@ blockchain.prototype.popLastBlock = function (cb) {
             popWeight = senders[s];
         }
 
-        if (sender.address != generator.address) {
+        if (sender.address != generator.address && ignorList.indexOf(sender.address) < 0) {
             if (sender.weight.gt(0)) {
                 this.removeWeight({ account : sender.address, weight : sender.weight });
                 sender.weight = sender.weight.sub(parseInt(popWeight));
@@ -1130,6 +1158,8 @@ blockchain.prototype.pushBlock = function (buffer, saveToDb, sendToPeers, checkR
 
     var generator = this.app.accountprocessor.getAccountById(b.generatorId);
     b.generatorWeight = bignum(generator.weight);
+    var tmp = this.removeWeights({ account : b.generatorId, weight : bignum(b.generatorWeight) });
+    b.removedWeights = tmp.removed;
 
     // обнуляем здесь, ибо нужно сделать так, чтоб все не форжащие обнулялись и могли набрать вес.
 
@@ -1193,7 +1223,7 @@ blockchain.prototype.pushBlock = function (buffer, saveToDb, sendToPeers, checkR
 
         var senderAcc = this.app.accountprocessor.getAccountById(sender);
 
-        if (senderAcc.address != b.generatorId) {
+        if (senderAcc.address != b.generatorId && tmp.accounts.indexOf(sender.address) < 0) {
             if (senderAcc.weight.gt(0)) {
                 this.removeWeight({ account: sender, weight: bignum(senderAcc.weight) });
                 senderAcc.weight = senderAcc.weight.add(parseInt(popWeight));
@@ -1215,7 +1245,7 @@ blockchain.prototype.pushBlock = function (buffer, saveToDb, sendToPeers, checkR
         // add some for address weight
         var acc = this.app.accountprocessor.getAccountById(address);
 
-        if (acc.address != b.generatorId) {
+        if (acc.address != b.generatorId && tmp.accounts.indexOf(acc.address) < 0) {
             if (acc.weight.gt(0)) {
                 this.removeWeight({ account : acc.address, weight : bignum(acc.weight) });
             }
@@ -1225,8 +1255,6 @@ blockchain.prototype.pushBlock = function (buffer, saveToDb, sendToPeers, checkR
         }
     }
 
-    b.removedWeights = this.removeWeights({ account : b.generatorId, weight : bignum(b.generatorWeight) });
-    this.removeWeight({ weight : bignum(generator.weight) });
 
     generator.weight = bignum(1);
 
