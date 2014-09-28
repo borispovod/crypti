@@ -21,10 +21,6 @@
                 "password": ""
             },
             "whiteList": [
-                {
-                    "ip" : "127.0.0.1",
-                    "port" : 7040
-                }
             ]
         }
     },
@@ -36,6 +32,6 @@
         ]
     },
     "forging": {
-        "secretPhrase": ""
+        "secretPhrase": "7mYmTsvJDRTApxc5dLsfBUq2XqKx9KEX43SWRT3b9"
     }
 }
