@@ -1258,10 +1258,8 @@ blockchain.prototype.pushBlock = function (buffer, saveToDb, sendToPeers, checkR
 
     generator.weight = bignum(1);
 
-    var hash = crypto.createHash('sha256').update(b.generationSignature).update(b.generatorPublicKey).digest();
-    var hit = bignum.fromBuffer(new Buffer([hash[7], hash[6], hash[5], hash[4], hash[3], hash[2], hash[1], hash[0]]));
-
-    b.weight = bignum(b.generatorWeight.mul(hit));
+    var elapsedTime = b.timestamp - this.getLastBlock().timestamp;
+    b.weight = this.getLastBlock().weight.add(bignum(b.generatorWeight.mul(elapsedTime)));
 
     this.lastBlock = b.getId();
 
