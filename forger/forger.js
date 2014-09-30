@@ -142,6 +142,7 @@ forger.prototype.startForge = function () {
         return false;
     }
 
+    elapsedTime = elapsedTime - 60;
     var circle = parseInt(elapsedTime / 10) + 1;
 
     if (circle >= this.app.blockchain.weights.length) {
@@ -150,10 +151,7 @@ forger.prototype.startForge = function () {
 
     var target = this.app.blockchain.weights[this.app.blockchain.weights.length - circle].weight;
 
-    console.log(this.app.blockchain.weights);
-    console.log(target, myAccount.weight);
-
-    if (false) {
+    if (myAccount.weight.ge(target)) {
         this.logger.debug("Generating block...");
 
         var sortedTransactions = [];
@@ -162,7 +160,7 @@ forger.prototype.startForge = function () {
             sortedTransactions.push(transactions[i]);
         }
 
-        sortedTransactions.sort(function(a, b){
+        sortedTransactions.sort(function(a, b) {
             var feeA = this.app.blockchain.getFee(a), feeB = this.app.blockchain.getFee(b);
             return feeA > feeB;
         }.bind(this));
