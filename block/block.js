@@ -43,7 +43,7 @@ var block = function (version, id, timestamp, previousBlock, transactions, total
     this.numberOfConfirmations = 0;
     this.requestsLength = 0;
     this.confirmationsLength = 0;
-    this.weight = bignum(1);
+    this.weight = bignum(0);
     this.generationWeight = bignum(1);
     this.removedWeights = [];
 
