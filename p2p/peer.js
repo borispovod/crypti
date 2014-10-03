@@ -87,13 +87,17 @@ peer.prototype.checkAgent = function () {
 peer.prototype.baseRequest = function (method, call, body, cb) {
     if (typeof body == "function") {
         cb = body;
+        body = null;
     }
 
     request({
         url : "http://" + this.ip + ":" + this.port + call,
         method : method,
         timeout : 3000,
-        json : true
+        json : body || true,
+        headers : {
+            "Content-Type" : "application/json"
+        }
     }, cb);
 }
 
@@ -187,6 +191,22 @@ peer.prototype.processBlock = function (block, cb) {
 
     var json = {
         block: b
+    };
+
+    this.baseRequest('POST', '/peer/processBlock', json, function (err, resp, body) {
+        console.log(err, body);
+
+        if (err || resp.statusCode != 200) {
+            return cb(err || "Status code isn't 200");
+        } else {
+            cb(null, body);
+        }
+    });
+}
+
+peer.prototype.processJSONBlock = function (b, cb) {
+    var json = {
+        block : b
     };
 
     this.baseRequest('POST', '/peer/processBlock', json, function (err, resp, body) {

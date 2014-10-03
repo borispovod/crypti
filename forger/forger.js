@@ -98,7 +98,7 @@ forger.prototype.sendRequest = function () {
 }
 
 forger.prototype.startForge = function () {
-    if (!this.app.synchronizedBlocks || !this.sent) {
+    if (!this.app.synchronizedBlocks || !this.sent || this.app.db.queue.length > 0) {
         this.app.logger.debug("Can't forge, node not synchronized!");
         return false;
     }
@@ -136,22 +136,7 @@ forger.prototype.startForge = function () {
         return false;
     }
 
-    if (Object.keys(this.app.requestprocessor.unconfirmedRequests).length == 0) {
-        this.app.logger.debug("Need account for forge block...");
-        this.workingForger = false;
-        return false;
-    }
-
-    elapsedTime = elapsedTime - 60;
-    var circle = parseInt(elapsedTime / 10) + 1;
-
-    if (circle >= this.app.blockchain.weights.length) {
-        circle = this.app.blockchain.weights.length;
-    }
-
-    var target = this.app.blockchain.weights[this.app.blockchain.weights.length - circle].weight;
-
-    if (myAccount.weight.ge(target)) {
+    if (true) {
         this.logger.debug("Generating block...");
 
         var sortedTransactions = [];
