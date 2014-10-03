@@ -41,7 +41,11 @@ peerprocessor.prototype.setApp = function (app) {
 peerprocessor.prototype.sendRequestToAll = function (request, cb) {
     var peers = this.getPeersAsArray();
     async.forEach(peers, function (peer, callback) {
-        peer.sendRequest(request, function () {});
+        if (peer) {
+            peer.sendRequest(request, function () {
+            });
+        }
+
         callback();
     }, function () {
         if (cb) {
@@ -114,8 +118,9 @@ peerprocessor.prototype.addPeer = function (peer) {
 peerprocessor.prototype.blockPeer = function (ip) {
     if (this.peers[ip]) {
         var peer = this.peers[ip];
-        delete this.peers[ip];
+
         this.peers[ip] = null;
+        delete this.peers[ip];
 
         peer.blockedTime = utils.getEpochTime(new Date().getTime());
         this.blockedPeers[ip] = peer;
