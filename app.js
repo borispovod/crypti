@@ -835,7 +835,8 @@ async.series([
                                                         try {
                                                             a = app.blockchain.pushBlock(buffer, true, false, false);
                                                         } catch (e) {
-                                                            app.peerprocessor.blockPeer(p.ip);
+                                                            app.logger.warn("Error in process block: " + e);
+                                                            //app.peerprocessor.blockPeer(p.ip);
                                                             return setImmediate(function () {
                                                                 return c({ error: true });
                                                             });
