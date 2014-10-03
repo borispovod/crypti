@@ -608,10 +608,6 @@ async.series([
                     peersRunning = false;
                 });
             } catch (e) {
-                if (p) {
-                    app.peerprocessor.blockPeer(p.ip);
-                }
-
                 peersRunning = false;
             }
         }, 1000 * 10);
@@ -697,20 +693,20 @@ async.series([
             }
         }, 1000 * 3);
 
-        var blocksInterval = false;
+        app.blocksInterval = false;
         setInterval(function () {
             var p = null;
             try {
-                if (blocksInterval) {
+                if (app.blocksInterval) {
                     return;
                 }
 
-                blocksInterval = true;
+                app.blocksInterval = true;
                 p = app.peerprocessor.getAnyPeer();
 
                 if (!p || !p.ip) {
                     app.synchronizedBlocks = true;
-                    blocksInterval = false;
+                    app.blocksInterval = false;
                     return;
                 }
 
@@ -836,7 +832,7 @@ async.series([
                                                             a = app.blockchain.pushBlock(buffer, true, false, false);
                                                         } catch (e) {
                                                             app.logger.warn("Error in process block: " + e);
-                                                            //app.peerprocessor.blockPeer(p.ip);
+                                                            app.peerprocessor.blockPeer(p.ip);
                                                             return setImmediate(function () {
                                                                 return c({ error: true });
                                                             });
@@ -924,7 +920,7 @@ async.series([
 
                 p.getWeight(function (err, json) {
                     if (err) {
-                        blocksInterval = false;
+                        app.blocksInterval = false;
                     } else if (json.success && json.weight) {
                         if (app.blockchain.getWeight().lt(bignum(json.weight))) {
                             var commonBlockId = genesisblock.blockId;
@@ -932,24 +928,24 @@ async.series([
                             if (app.blockchain.getLastBlock().getId() != commonBlockId) {
                                 app.blockchain.getMilestoneBlockId(p, function (err, blockId) {
                                     if (err || !blockId) {
-                                        blocksInterval = false;
+                                        app.blocksInterval = false;
                                     } else {
                                         commonBlockId = blockId;
                                         getCommonBlock(commonBlockId, p, function (err, blockId) {
                                             if (err || !blockId) {
-                                                blocksInterval = false;
+                                                app.blocksInterval = false;
                                             } else {
                                                 commonBlockId = blockId;
 
                                                 if (!app.blockchain.blocks[commonBlockId]) {
                                                     app.logger.info("Common block not found in blockchain: " + p.ip + " / " + commonBlockId);
                                                     app.synchronizedBlocks = true;
-                                                    blocksInterval = false;
+                                                    app.blocksInterval = false;
                                                 } else {
                                                     app.logger.info("Load blocks from: " + p.ip + " / " + commonBlockId);
                                                     loadBlocks(commonBlockId, commonBlockId, function () {
                                                         app.synchronizedBlocks = true;
-                                                        blocksInterval = false;
+                                                        app.blocksInterval = false;
                                                     });
                                                 }
                                             }
@@ -959,19 +955,19 @@ async.series([
                             } else {
                                 getCommonBlock(commonBlockId, p, function (err, blockId) {
                                     if (err || !blockId) {
-                                        blocksInterval = false;
+                                        app.blocksInterval = false;
                                     } else {
                                         commonBlockId = blockId;
 
                                         if (!app.blockchain.blocks[commonBlockId]) {
                                             app.logger.info("Common block not found in blockchain: " + p.ip + " / " + commonBlockId);
                                             app.synchronizedBlocks = true;
-                                            blocksInterval = false;
+                                            app.blocksInterval = false;
                                         } else {
                                             app.logger.info("Load blocks from: " + p.ip);
                                             loadBlocks(commonBlockId, commonBlockId, function () {
                                                 app.synchronizedBlocks = true;
-                                                blocksInterval = false;
+                                                app.blocksInterval = false;
                                             });
                                         }
                                     }
@@ -979,11 +975,11 @@ async.series([
                             }
                         } else {
                             app.synchronizedBlocks = true;
-                            blocksInterval = false;
+                            app.blocksInterval = false;
                         }
                     } else {
                         app.synchronizedBlocks = true;
-                        blocksInterval = false;
+                        app.blocksInterval = false;
                     }
                 });
             } catch (e) {
@@ -995,7 +991,7 @@ async.series([
                     app.peerprocessor.blockPeer(p.ip);
                 }
 
-                blocksInterval = false;
+                app.blocksInterval = false;
             }
         }, 1000 * 15);
 

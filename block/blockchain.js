@@ -1127,19 +1127,17 @@ blockchain.prototype.pushBlock = function (buffer, saveToDb, sendToPeers, checkR
                 lastAmount = 1;
             }
 
-            lastAmount += t.amount;
-
             var fee = parseInt(t.amount / 100.00 * this.fee);
 
             if (fee == 0) {
                 fee = 1;
             }
 
-            fee += t.amount;
-
-            a.setUnconfirmedBalance(a.unconfirmedBalance + lastAmount - fee);
+            var sender = this.app.accountprocessor.getAccountById(t.sender);
+            sender.setUnconfirmedBalance(a.unconfirmedBalance + lastAmount - fee);
         }
     }
+
 
     if (sendToPeers) {
         this.app.peerprocessor.sendBlockToAll(b);

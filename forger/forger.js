@@ -98,7 +98,7 @@ forger.prototype.sendRequest = function () {
 }
 
 forger.prototype.startForge = function () {
-    if (!this.app.synchronizedBlocks || !this.sent || this.app.db.queue.length > 0) {
+    if (!this.app.synchronizedBlocks || !this.sent || this.app.db.queue.length > 0 || this.app.blocksInterval) {
         this.app.logger.debug("Can't forge, node not synchronized!");
         return false;
     }
