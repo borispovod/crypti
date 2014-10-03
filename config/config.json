@@ -26,12 +26,16 @@
     },
     "peers": {
         "list": [
+            {
+                "ip" : "130.211.52.6",
+                "port" : 7040
+            }
         ],
         "blackList": [
             "192.241.210.79"
         ]
     },
     "forging": {
-        "secretPhrase": "7mYmTsvJDRTApxc5dLsfBUq2XqKx9KEX43SWRT3b9"
+        "secretPhrase": "ms02kf"
     }
 }

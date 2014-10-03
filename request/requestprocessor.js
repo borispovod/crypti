@@ -111,7 +111,7 @@ requestprocessor.prototype.processRequest = function (request, send) {
     }
 
     if (request.lastAliveBlock != lastBlock.getId()) {
-        this.app.logger.warn("Request last block not valid: " + request.getId());
+        this.app.logger.debug("Request last block not valid: " + request.getId());
         return false;
     }
 

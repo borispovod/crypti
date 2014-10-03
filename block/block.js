@@ -599,17 +599,7 @@ block.prototype.verifyGenerationSignature = function () {
             return false;
         }
 
-        var elapsedTime = this.timestamp - previousBlock.timestamp;
-
-        var circle = parseInt(elapsedTime / 10) + 1;
-
-        if (circle >= this.app.blockchain.weights.length) {
-            circle = this.app.blockchain.weights.length;
-        }
-
-        var target = this.app.blockchain.weights[this.app.blockchain.weights.length - circle].weight;
-
-        return generator.weight.ge(target);
+        return true;
     }
 }
 
