@@ -578,6 +578,13 @@ blockchain.prototype.pushBlock = function (buffer, saveToDb, sendToPeers, checkR
         return false;
     }
 
+    var generator = this.app.accountprocessor.getAccountByPublicKey(b.generatorPublicKey);
+
+    if (!generator || generator.getEffectiveBalance() < 1000 * constants.numberLength) {
+        this.logger.error("Can't accept block, generator doesn't have 1000 XCR");
+        return false;
+    }
+
     b.index = Object.keys(this.blocks).length + 1;
 
     if (b.previousBlock != this.lastBlock || this.getBlock(b.getId()) != null || !b.verifyGenerationSignature() || !b.verifyBlockSignature()) {
@@ -1134,7 +1141,7 @@ blockchain.prototype.pushBlock = function (buffer, saveToDb, sendToPeers, checkR
             }
 
             var sender = this.app.accountprocessor.getAccountById(t.sender);
-            sender.setUnconfirmedBalance(a.unconfirmedBalance + lastAmount - fee);
+            sender.setUnconfirmedBalance(sender.unconfirmedBalance + lastAmount - fee);
         }
     }
 

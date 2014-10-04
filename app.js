@@ -921,7 +921,7 @@ async.series([
                 p.getWeight(function (err, json) {
                     if (err) {
                         app.blocksInterval = false;
-                    } else if (json.success && json.weight) {
+                    } else if (json.success && json.weight && json.version == "0.1.7") {
                         if (app.blockchain.getWeight().lt(bignum(json.weight))) {
                             var commonBlockId = genesisblock.blockId;
 
