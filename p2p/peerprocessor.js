@@ -21,15 +21,11 @@ var peerprocessor = function () {
             var peer = this.blockedPeers[ip];
 
             if (peer.blockedTime + timeToBlock > now) {
-                var copy = _.extend({}, peer);
                 this.blockedPeers[ip] = null;
-                copy.blockedTime = null;
-
                 delete this.blockedPeers[ip];
-                delete copy.blockedTime;
 
                 if (Object.keys(this.peers).length < 100) {
-                    this.peers[ip] = peer;
+                    this.peers[peer.ip] = peer;
                 }
             }
         }
@@ -45,7 +41,11 @@ peerprocessor.prototype.setApp = function (app) {
 peerprocessor.prototype.sendRequestToAll = function (request, cb) {
     var peers = this.getPeersAsArray();
     async.forEach(peers, function (peer, callback) {
-        peer.sendRequest(request, function () {});
+        if (peer) {
+            peer.sendRequest(request, function () {
+            });
+        }
+
         callback();
     }, function () {
         if (cb) {
@@ -58,6 +58,18 @@ peerprocessor.prototype.sendUnconfirmedTransactionToAll = function (transaction,
     var peers = this.getPeersAsArray();
     async.forEach(peers, function (peer, callback) {
         peer.processUnconfirmedTransaction(transaction, function () {});
+        callback();
+    }, function () {
+        if (cb) {
+            cb(true);
+        }
+    });
+}
+
+peerprocessor.prototype.sendJSONBlockToAll = function (block, cb) {
+    var peers = this.getPeersAsArray();
+    async.forEach(peers, function (peer, callback) {
+        peer.processJSONBlock(block, function () {});
         callback();
     }, function () {
         if (cb) {
@@ -105,8 +117,11 @@ peerprocessor.prototype.addPeer = function (peer) {
 
 peerprocessor.prototype.blockPeer = function (ip) {
     if (this.peers[ip]) {
-        var peer = _.extend({}, this.peers[ip]);
+        var peer = this.peers[ip];
+
+        this.peers[ip] = null;
         delete this.peers[ip];
+
         peer.blockedTime = utils.getEpochTime(new Date().getTime());
         this.blockedPeers[ip] = peer;
 

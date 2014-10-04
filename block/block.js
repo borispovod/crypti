@@ -44,7 +44,7 @@ var block = function (version, id, timestamp, previousBlock, transactions, total
     this.requestsLength = 0;
     this.confirmationsLength = 0;
     this.weight = bignum(0);
-    this.generationWeight = bignum(0);
+    this.generationWeight = bignum(1);
     this.removedWeights = [];
 
     if (this.transactions) {
@@ -404,8 +404,6 @@ block.prototype.verifyBlockSignature = function () {
 
 block.prototype.verifyGenerationSignature = function () {
     if (this.app.blockchain.getLastBlock().height < 33536) {
-        this.weight = bignum(0);
-
         var lastAliveBlock = this.app.blockchain.getLastBlock();
         var elapsedTime = this.timestamp - lastAliveBlock.timestamp;
 
@@ -478,14 +476,12 @@ block.prototype.verifyGenerationSignature = function () {
             this.app.logger.debug("Account PoP weight: " + address + " / " + popWeightAmount);
 
             var accountTotalWeight = accountWeightTimestamps + popWeightAmount;
-            this.weight = this.weight.add(accountTotalWeight);
 
             accounts.push({ address: address, weight: accountTotalWeight });
 
             this.app.logger.debug("Account " + address + " / " + accountTotalWeight);
         }
 
-        this.weight = this.weight.mul(this.numberOfRequests);
 
         accounts.sort(function compare(a, b) {
             if (a.weight > b.weight)
@@ -603,17 +599,7 @@ block.prototype.verifyGenerationSignature = function () {
             return false;
         }
 
-        var elapsedTime = this.timestamp - previousBlock.timestamp;
-
-        var circle = parseInt(elapsedTime / 10) + 1;
-
-        if (circle >= this.app.blockchain.weights.length) {
-            circle = this.app.blockchain.weights.length;
-        }
-
-        var target = this.app.blockchain.weights[this.app.blockchain.weights.length - circle].weight;
-
-        return generator.weight.ge(target);
+        return true;
     }
 }
 

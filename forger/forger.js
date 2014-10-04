@@ -98,7 +98,7 @@ forger.prototype.sendRequest = function () {
 }
 
 forger.prototype.startForge = function () {
-    if (!this.app.synchronizedBlocks || !this.sent) {
+    if (!this.app.synchronizedBlocks || !this.sent || this.app.db.queue.length > 0 || this.app.blocksInterval) {
         this.app.logger.debug("Can't forge, node not synchronized!");
         return false;
     }
@@ -136,21 +136,7 @@ forger.prototype.startForge = function () {
         return false;
     }
 
-    if (Object.keys(this.app.requestprocessor.unconfirmedRequests).length == 0) {
-        this.app.logger.debug("Need account for forge block...");
-        this.workingForger = false;
-        return false;
-    }
-
-    var circle = parseInt(elapsedTime / 10) + 1;
-
-    if (circle >= this.app.blockchain.weights.length) {
-        circle = this.app.blockchain.weights.length;
-    }
-
-    var target = this.app.blockchain.weights[this.app.blockchain.weights.length - circle].weight;
-
-    if (myAccount.weight.ge(target)) {
+    if (true) {
         this.logger.debug("Generating block...");
 
         var sortedTransactions = [];
@@ -159,7 +145,7 @@ forger.prototype.startForge = function () {
             sortedTransactions.push(transactions[i]);
         }
 
-        sortedTransactions.sort(function(a, b){
+        sortedTransactions.sort(function(a, b) {
             var feeA = this.app.blockchain.getFee(a), feeB = this.app.blockchain.getFee(b);
             return feeA > feeB;
         }.bind(this));
@@ -336,7 +322,7 @@ forger.prototype.startForge = function () {
 
             var previousBlockHash = crypto.createHash('sha256').update(previousBlock.getBytes()).digest();
 
-            var block = new Block(1, null, blockTimestamp, previousBlock.getId(), null, totalAmount, totalFee, payloadLength, payloadHash, publicKey, generationSignature, null);
+            var block = new Block(2, null, blockTimestamp, previousBlock.getId(), null, totalAmount, totalFee, payloadLength, payloadHash, publicKey, generationSignature, null);
             block.requestsLength = requestsLength;
             block.numberOfConfirmations = newConfirmations.length;
             block.confirmationsLength = confirmationsLength;

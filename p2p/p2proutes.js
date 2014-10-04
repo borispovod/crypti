@@ -34,7 +34,7 @@ module.exports = function (app) {
             return res.json({ success : false });
         }
 
-        return res.json({ success : true, weight : app.blockchain.getWeight().toString() });
+        return res.json({ success : true, weight : app.blockchain.getWeight().toString(), version : "0.1.7" });
     });
 
 
@@ -450,6 +450,10 @@ module.exports = function (app) {
             return res.json({ success : false, accepted : false });
         }
 
+        if (app.db.queue.length > 0) {
+            return res.json({ success : false, accepted : false });
+        }
+
         var ip = req.connection.remoteAddress;
 
         try {
@@ -472,6 +476,39 @@ module.exports = function (app) {
             } catch (e) {
                 app.peerprocessor.blockPeer(ip);
                 return res.json({ success: false, accepted: false });
+            }
+
+            if (block.version != 2) {
+                return res.json({ success : false, accepted : false });
+            }
+
+            var lastBlock = app.blockchain.getLastBlock();
+            var savedBlock = null;
+
+            if (Object.keys(app.forgerprocessor.forgers).length > 0 && lastBlock.getId() == block.previousBlock) {
+                app.peerprocessor.sendJSONBlockToAll(req.body.block);
+                return res.json({ success : false, accepted : false });
+            }
+
+            if (lastBlock.previousBlock && block.previousBlock != app.blockchain.getLastBlock().getId() && app.blockchain.blocks[lastBlock.previousBlock].getId() == block.previousBlock) {
+                var previousBlock = app.blockchain.blocks[lastBlock.previousBlock].generationSignature;
+                var hash = crypto.createHash('sha256').update(previousBlock).update(block.generatorPublicKey).digest();
+
+                var elapsedTime = block.timestamp - previousBlock.timestamp;
+
+                var hit = bignum.fromBuffer(new Buffer([hash[7], hash[6], hash[5], hash[4], hash[3], hash[2], hash[1], hash[0]]));
+                hit = hit.div(parseInt(elapsedTime / 60));
+
+                if (hit.lt(lastBlock.hit)) {
+                    return res.json({ success : false, accepted : false});
+                } else {
+                    savedBlock = lastBlock;
+                }
+            }
+
+
+            if (!savedBlock && lastBlock.getId() != block.previousBlock) {
+                return res.json({ success : false, accepted : false });
             }
 
             var previousBlock = b.previousBlock;
@@ -509,6 +546,7 @@ module.exports = function (app) {
                 }
             }
             catch (e) {
+                console.log(e);
                 app.peerprocessor.blockPeer(ip);
                 return res.json({ success: false, accepted: false });
             }
@@ -553,20 +591,57 @@ module.exports = function (app) {
                 buffer = Buffer.concat([buffer, confirmations[i].getBytes()]);
             }
 
-            try {
-                var r = app.blockchain.pushBlock(buffer, true, true, false);
-            } catch (e) {
-                r = false;
-                app.peerprocessor.blockPeer(ip);
-                this.app.logger.error(e.toString());
-            }
+            if (savedBlock) {
+                app.blockchain.popLastBlock(function () {
+                    try {
+                        var r = app.blockchain.pushBlock(buffer, true, true, false);
+                    } catch (e) {
+                        r = false;
+                        app.peerprocessor.blockPeer(ip);
+                        this.app.logger.error(e.toString());
+                    }
 
-            if (r) {
-                return res.json({ success: true, accepted: true });
+                    if (r) {
+                        return res.json({ success: true, accepted: true });
+                    } else {
+                        buffer = savedBlock.getBytes();
+
+                        for (var i = 0; i < savedBlock.transactions.length; i++) {
+                            buffer = Buffer.concat([buffer, savedBlock.transactions[i].getBytes()]);
+                        }
+
+                        for (var r in savedBlock.requests) {
+                            buffer = Buffer.concat([buffer, savedBlock.requests[r].getBytes()]);
+                        }
+
+                        for (var i = 0; i < savedBlock.confirmations.length; i++) {
+                            buffer = Buffer.concat([buffer, savedBlock.confirmations[i].getBytes()]);
+                        }
+
+                        app.blockchain.pushBlock(buffer, true, true, false);
+
+                        return res.json({ success: false, accepted: false });
+                    }
+                });
             } else {
-                return res.json({ success: false, accepted: false });
+                var r = false;
+
+                try {
+                    r = app.blockchain.pushBlock(buffer, true, true, false);
+                } catch (e) {
+                    r = false;
+                    app.peerprocessor.blockPeer(ip);
+                    this.app.logger.error(e.toString());
+                }
+
+                if (r) {
+                    return res.json({ success: true, accepted: true });
+                } else {
+                    return res.json({ success: false, accepted: false });
+                }
             }
         } catch (e) {
+            console.log(e);
             app.peerprocessor.blockPeer(ip);
             return res.json({ success : false, accepted : false });
         }

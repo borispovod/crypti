@@ -20,7 +20,8 @@
                 "user": "",
                 "password": ""
             },
-            "whiteList": []
+            "whiteList": [
+            ]
         }
     },
     "peers": {
@@ -31,6 +32,6 @@
         ]
     },
     "forging": {
-        "secretPhrase": "4G92kut51ms02kf"
+        "secretPhrase": ""
     }
 }

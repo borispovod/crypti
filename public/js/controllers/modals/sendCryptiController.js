@@ -5,6 +5,7 @@ webApp.controller('sendCryptiController', ["$scope", "sendCryptiModal", "$http",
     $scope.onlyNumbers = /^-?\d*(\.\d+)?$/;
     $scope.secondPassphrase = userService.secondPassphrase;
 
+
     Number.prototype.roundTo = function( digitsCount ){
         var digitsCount = typeof digitsCount !== 'undefined' ? digitsCount : 2;
         var s = String(this);
