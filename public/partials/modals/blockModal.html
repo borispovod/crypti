@@ -1,7 +1,9 @@
 <div class="modal" id="block-modal">
     <div class="modal-content">
         <h1 class="heading">Transactions</h1>
-        <table border="0" width="100%" cellpadding="0" cellspacing="0">
+        <div class="row-table">
+        <table class="transactions" border="0" width="100%" cellpadding="0" cellspacing="0">
+            <thead>
             <tr>
                 <th>ID</th>
                 <th>Sender</th>
@@ -9,6 +11,8 @@
                 <th>Fee</th>
                 <th>Amount</th>
             </tr>
+            </thead>
+            <tbody>
             <tr ng-repeat="transaction in transactions">
                 <td>{{transaction.id}}</td>
                 <td>{{transaction.sender}}</td>
@@ -21,7 +25,9 @@
                     No transactions
                 </td>
             </tr>
+            </tbody>
         </table>
+        </div>
         <button class="button green small close-modal" ng-click="close()">Close</button>
     </div>
 

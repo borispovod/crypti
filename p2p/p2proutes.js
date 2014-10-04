@@ -34,7 +34,7 @@ module.exports = function (app) {
             return res.json({ success : false });
         }
 
-        return res.json({ success : true, weight : app.blockchain.getWeight().toString() });
+        return res.json({ success : true, weight : app.blockchain.getWeight().toString(), version : "0.1.7" });
     });
 
 
@@ -476,6 +476,10 @@ module.exports = function (app) {
             } catch (e) {
                 app.peerprocessor.blockPeer(ip);
                 return res.json({ success: false, accepted: false });
+            }
+
+            if (block.version != 2) {
+                return res.json({ success : false, accepted : false });
             }
 
             var lastBlock = app.blockchain.getLastBlock();
