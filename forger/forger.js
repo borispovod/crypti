@@ -322,7 +322,7 @@ forger.prototype.startForge = function () {
 
             var previousBlockHash = crypto.createHash('sha256').update(previousBlock.getBytes()).digest();
 
-            var block = new Block(1, null, blockTimestamp, previousBlock.getId(), null, totalAmount, totalFee, payloadLength, payloadHash, publicKey, generationSignature, null);
+            var block = new Block(2, null, blockTimestamp, previousBlock.getId(), null, totalAmount, totalFee, payloadLength, payloadHash, publicKey, generationSignature, null);
             block.requestsLength = requestsLength;
             block.numberOfConfirmations = newConfirmations.length;
             block.confirmationsLength = confirmationsLength;
