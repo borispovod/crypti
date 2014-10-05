@@ -403,7 +403,7 @@ block.prototype.verifyBlockSignature = function () {
 }
 
 block.prototype.verifyGenerationSignature = function () {
-    if (this.app.blockchain.getLastBlock().height < 33536) {
+    if (this.app.blockchain.getLastBlock().height < 33950) {
         var lastAliveBlock = this.app.blockchain.getLastBlock();
         var elapsedTime = this.timestamp - lastAliveBlock.timestamp;
 

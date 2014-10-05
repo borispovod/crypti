@@ -20,7 +20,7 @@ var peerprocessor = function () {
         for (var ip in this.blockedPeers) {
             var peer = this.blockedPeers[ip];
 
-            if (peer.blockedTime + timeToBlock > now) {
+            if (peer.blockedTime + peer.time > now) {
                 this.blockedPeers[ip] = null;
                 delete this.blockedPeers[ip];
 
@@ -115,7 +115,11 @@ peerprocessor.prototype.addPeer = function (peer) {
     }
 }
 
-peerprocessor.prototype.blockPeer = function (ip) {
+peerprocessor.prototype.blockPeer = function (ip, time) {
+    if (!time) {
+        time = timeToBlock;
+    }
+
     if (this.peers[ip]) {
         var peer = this.peers[ip];
 
@@ -123,6 +127,7 @@ peerprocessor.prototype.blockPeer = function (ip) {
         delete this.peers[ip];
 
         peer.blockedTime = utils.getEpochTime(new Date().getTime());
+        peer.time = time;
         this.blockedPeers[ip] = peer;
 
         this.app.logger.info("Peer blocked: " + ip);

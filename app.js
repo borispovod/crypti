@@ -976,6 +976,9 @@ async.series([
                             app.synchronizedBlocks = true;
                             app.blocksInterval = false;
                         }
+                    } else if (json.success && json.version != "0.1.7") {
+                        app.peerprocessor.blockPeer(p.ip, 1800);
+                        app.blocksInterval = false;
                     } else {
                         app.synchronizedBlocks = true;
                         app.blocksInterval = false;
