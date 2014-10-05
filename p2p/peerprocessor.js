@@ -176,7 +176,7 @@ peerprocessor.prototype.getBlockedPeersAsArray = function () {
     return peers;
 }
 
-peerprocessor.prototype.getAnyPeer = function (blacklisted) {
+peerprocessor.prototype.getAnyPeer = function (configPeer) {
     if (Object.keys(this.peers).length <= 0) {
         return null;
     }
@@ -184,7 +184,11 @@ peerprocessor.prototype.getAnyPeer = function (blacklisted) {
     var peers = this.getPeersAsArray();
 
     peers = _.filter(peers, function (p) {
-        return !p.isNat;
+        if (configPeer) {
+            return p.configPeer;
+        } else {
+            return !p.isNat;
+        }
     });
 
     if (peers.length == 0) {

@@ -550,6 +550,7 @@ async.series([
             }
 
             p = new peer(p.ip, p.port);
+            p.configPeer = true;
             app.peerprocessor.addPeer(p);
             callback();
         }, function () {
@@ -701,7 +702,7 @@ async.series([
                 }
 
                 app.blocksInterval = true;
-                p = app.peerprocessor.getAnyPeer();
+                p = app.peerprocessor.getAnyPeer(true);
 
                 if (!p || !p.ip) {
                     app.synchronizedBlocks = true;
