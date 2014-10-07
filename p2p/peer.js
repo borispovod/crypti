@@ -90,10 +90,11 @@ peer.prototype.baseRequest = function (method, call, body, cb) {
         body = null;
     }
 
+    console.log("http://" + this.ip + ":" + this.port + call);
     request({
         url : "http://" + this.ip + ":" + this.port + call,
         method : method,
-        timeout : 3000,
+        timeout : 10000,
         json : body || true,
         headers : {
             "Content-Type" : "application/json"

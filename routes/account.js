@@ -25,13 +25,18 @@ module.exports = function (app) {
             }
 
             var hash = crypto.createHash('sha256').update(secretPharse, 'utf8').digest();
+            console.log(hash.toString('hex'));
             var keypair = ed.MakeKeypair(hash);
+
+            console.log(keypair.publicKey.toString('hex'));
 
             var publicKeyHash = crypto.createHash('sha256').update(keypair.publicKey).digest();
             var temp = new Buffer(8);
             for (var i = 0; i < 8; i++) {
                 temp[i] = publicKeyHash[7 - i];
             }
+
+            console.log(temp.toString('hex'));
 
             var address = bignum.fromBuffer(temp).toString() + "C";
 
