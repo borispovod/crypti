@@ -14,7 +14,8 @@ var peer = require("./peer.js"),
     companyconfirmation = require("../company").companyconfirmation,
     requestconfirmation = require('../request').requestconfirmation,
     ByteBuffer = require('bytebuffer'),
-    genesisblock = require('../block').genesisblock;
+    genesisblock = require('../block').genesisblock,
+    async = require('async');
 
 module.exports = function (app) {
     app.get("/peer/getRequests", function (req, res) {
@@ -195,17 +196,44 @@ module.exports = function (app) {
                 return res.json({ success: false, error: "Block not found" });
             }
 
-            var r = app.db.sql.prepare("SELECT id FROM blocks WHERE height > (SELECT height FROM blocks WHERE id=$id LIMIT 1) ORDER BY height LIMIT 60");
-            r.bind({
-                $id: blockId
-            });
-            r.all(function (err, all) {
-                if (err) {
-                    return res.json({ success: false, error: "SQL error" });
-                } else {
-                    return res.json({ success: true, blockIds: all, previousBlock: app.blockchain.getLastBlock().previousBlock });
+            var block = app.blockchain.getBlock(blockId);
+
+            if (!block.nextBlock) {
+                return res.json({ success : false, error : "It's last block", hasMore : false });
+            }
+
+            blockId = block.nextBlock;
+
+            var blocks = [];
+
+            async.whilst(
+                function () {
+                    if (blocks.length >= 60) {
+                        return false;
+                    }
+
+                    if (!block) {
+                        return false;
+                    }
+
+                    return true;
+                },
+                function (next) {
+                    block = app.blockchain.getBlock(blockId);
+
+                    if (!block) {
+                        return next();
+                    }
+
+                    blocks.push({ id : block.getId() });
+
+                    blockId = block.nextBlock;
+                    return next();
+                },
+                function () {
+                    return res.json({ success : true, blockIds : blocks });
                 }
-            });
+            )
         } catch (e) {
             app.logger.error(e);
             return res.json({ success : false });
@@ -224,133 +252,42 @@ module.exports = function (app) {
                 return res.json({ success: false, error: "Block not found", found: false });
             }
 
-            var r = app.db.sql.prepare("SELECT * FROM blocks WHERE height > (SELECT height FROM blocks WHERE id=$id LIMIT 1) ORDER BY height LIMIT 60");
-            r.bind({
-                $id: blockId
-            });
+            var block = app.blockchain.getBlock(blockId);
 
-            r.all(function (err, blocks) {
-                if (err) {
-                    app.logger.error("Sqlite error: " + err);
-                    return res.json({ success: false, error: "SQL error" });
-                } else {
-                    async.eachSeries(blocks, function (item, cb) {
-                        var refs = item.refs;
+            if (!block.nextBlock) {
+                return res.json({ success : false, error : "It's last block", hasMore : false, found : true });
+            }
 
-                        var numberOfTransactions = item.numberOfTransactions;
-                        if (item.id == genesisblock.blockId) {
-                            numberOfTransactions = 13;
-                        }
+            blockId = block.nextBlock;
 
-                        var trsIds = "",
-                            requestsIds = "",
-                            companyconfirmationsIds = "";
+            var blocks = [];
 
-                        var bb = ByteBuffer.wrap(refs);
+            async.whilst(
+                function () {
+                    if (blocks.length >= 60) {
+                        return false;
+                    }
 
-                        var i = 0;
-                        for (i = 0; i < numberOfTransactions; i++) {
-                            trsIds += bb.readInt64();
+                    if (!block) {
+                        return false;
+                    }
 
-                            if (i+1 != numberOfTransactions) {
-                                trsIds += ',';
-                            }
-                        }
+                    return true;
+                },
+                function (next) {
+                    block = app.blockchain.getBlock(blockId);
 
-                        for (i = 0; i < item.numberOfRequests; i++) {
-                            requestsIds += bb.readInt64();
+                    if (!block) {
+                        return next();
+                    }
 
-                            if (i+1 != item.numberOfRequests) {
-                                requestsIds += ',';
-                            }
-                        }
-
-                        for (i = 0; i < item.numberOfConfirmations; i++) {
-                            companyconfirmationsIds += bb.readInt64();
-
-                            if (i+1 != item.numberOfConfirmations) {
-                                companyconfirmationsIds += ',';
-                            }
-                        }
-
-
-                        app.db.sql.all("SELECT * FROM trs WHERE rowid IN (" + trsIds + ")", function (err, trs) {
-                            if (err) {
-                                cb(err);
-                            } else {
-                                async.forEach(trs, function (t, cb) {
-                                    if (t.type == 2) {
-                                        if (t.subtype == 0) {
-                                            app.db.sql.get("SELECT * FROM signatures WHERE rowid=$rowid", {
-                                                $rowid : t.assetId
-                                            }, function (err, asset) {
-                                                if (err) {
-                                                    cb(err);
-                                                } else {
-                                                    t.asset = asset;
-                                                    cb();
-                                                }
-                                            });
-                                        } else {
-                                            cb();
-                                        }
-                                    } else if (t.type == 3) {
-                                        if (t.subtype == 0) {
-                                            app.db.sql.get("SELECT * FROM companies WHERE rowid=$rowid", {
-                                                $rowid : t.assetId
-                                            }, function (err, asset) {
-                                                if (err) {
-                                                    cb(err);
-                                                } else {
-                                                    t.asset = asset;
-                                                    cb();
-                                                }
-                                            });
-                                        } else {
-                                            cb();
-                                        }
-                                    } else {
-                                        cb();
-                                    }
-                                }, function (err) {
-                                    if (err) {
-                                        return cb(err);
-                                    }
-
-                                    item.trs = trs;
-
-                                    app.db.sql.all("SELECT * FROM requests WHERE rowid IN (" + requestsIds + ")", function (err, requests) {
-                                        if (err) {
-                                            cb(err);
-                                        } else {
-                                            item.requests = requests;
-                                            app.db.sql.all("SELECT * FROM companyconfirmations WHERE rowid IN (" + companyconfirmationsIds + ")", function (err, confirmations) {
-                                                if (err) {
-                                                    cb(err);
-                                                } else {
-                                                    item.confirmations = confirmations;
-
-                                                    item.refs = null;
-                                                    delete item.refs;
-                                                    cb();
-                                                }
-                                            });
-                                        }
-                                    });
-                                });
-                            }
-                        });
-                    }, function (err) {
-                        if (err) {
-                            console.log(err);
-                            app.logger.error("SQL error");
-                            return res.json({ success: false, error: "SQL error" });
-                        } else {
-                            return res.json({ success: true, blocks: blocks, found: true });
-                        }
-                    });
+                    blocks.push(block);
+                    blockId = block.nextBlock;
+                    return next();
+                }, function () {
+                    return res.json({ success : true, blocks : blocks, found : true });
                 }
-            });
+            )
         } catch (e) {
             app.logger.error(e);
             return res.json({ success : false });
@@ -491,15 +428,15 @@ module.exports = function (app) {
             }
 
             if (lastBlock.previousBlock && block.previousBlock != app.blockchain.getLastBlock().getId() && app.blockchain.blocks[lastBlock.previousBlock].getId() == block.previousBlock) {
-                var previousBlock = app.blockchain.blocks[lastBlock.previousBlock].generationSignature;
-                var hash = crypto.createHash('sha256').update(previousBlock).update(block.generatorPublicKey).digest();
+                var previousBlock = app.blockchain.blocks[lastBlock.previousBlock];
+                var hash = crypto.createHash('sha256').update(previousBlock.generationSignature).update(block.generatorPublicKey).digest();
 
                 var elapsedTime = block.timestamp - previousBlock.timestamp;
 
                 var hit = bignum.fromBuffer(new Buffer([hash[7], hash[6], hash[5], hash[4], hash[3], hash[2], hash[1], hash[0]]));
                 hit = hit.div(parseInt(elapsedTime / 60));
 
-                if (hit.lt(lastBlock.hit)) {
+                if (hit.le(lastBlock.hit)) {
                     return res.json({ success : false, accepted : false});
                 } else {
                     savedBlock = lastBlock;
