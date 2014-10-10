@@ -4,7 +4,8 @@
     "serveHttpAPI": true,
     "serveHttpWallet": true,
     "version": "0.1.6dt",
-    "logLevel": "error",
+    "logLevel": "debug",
+    "sharePort" : false,
     "adminPanel": {
         "auth": {
             "user": "",
@@ -20,12 +21,15 @@
                 "user": "",
                 "password": ""
             },
-            "whiteList": [
-            ]
+            "whiteList": []
         }
     },
     "peers": {
         "list": [
+            {
+                "ip" : "130.211.96.198",
+                "port" : 7040
+            }
         ],
         "blackList": [
             "192.241.210.79"
