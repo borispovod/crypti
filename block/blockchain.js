@@ -883,8 +883,15 @@ blockchain.prototype.pushBlock = function (buffer, saveToDb, sendToPeers, checkR
     for (var r in b.requests) {
         var request = b.requests[r];
 
+        r
         var account = this.app.accountprocessor.getAccountById(request.address);
-        if (!account || account.getEffectiveBalance() < 1000 * constants.numberLength) {
+
+        if (!account) {
+            this.logger.error("Request has not enough fee: " + request.address);
+            break;
+        }
+
+        if (account.getEffectiveBalance() < 1000 * constants.numberLength) {
             this.logger.error("Request has not enough fee: " + account.address);
             break;
         }
