@@ -50,6 +50,9 @@ app.configure(function () {
     app.set("version", config.get("version"));
     app.set("address", config.get("address"));
     app.set('port', config.get('port'));
+    app.set('config', config);
+
+    app.use(express.compress());
     app.use(express.bodyParser({limit: '300mb'}));
     app.dbLoaded = false;
 
@@ -88,13 +91,24 @@ app.configure(function () {
     app.use(express.urlencoded());
 
     app.use(function (req, res, next) {
+        var version = req.headers['Version'],
+            sharePort = req.headers['SharePort']
+
+        if (version != config.get('version')) {
+            return next();
+        }
+
+        if (sharePort != "true") {
+            return next();
+        }
+
         var url = req.path.split('/');
 
         var ip = req.connection.remoteAddress;
         var port = config.get('port');
 
         if (url[1] == 'peer' && app.synchronizedBlocks) {
-            var newPeer = new peer(ip, port);
+            var newPeer = new peer(ip, port, version, true);
             app.peerprocessor.addPeer(newPeer);
         } else if (url[1] == 'api' || req.path == '' || req.path == '/') {
             if (app.api.whiteList.length > 0) {
@@ -550,7 +564,7 @@ async.series([
                 return callback();
             }
 
-            p = new peer(p.ip, p.port);
+            p = new peer(p.ip, p.port, app.get("config").get("version"), app.get("config").get("sharePort"));
             app.peerprocessor.addPeer(p);
             callback();
         }, function () {
@@ -751,11 +765,11 @@ async.series([
                                         var id = b.getId();
 
                                         var transactions = [];
-                                        async.eachSeries(item.trs, function (t, _c) {
-                                            var tr = new transaction(t.type, t.id, t.timestamp, t.senderPublicKey, t.recipient, t.amount, t.signature);
+                                        async.eachSeries(item.transactions, function (t, _c) {
+                                            var tr = new transaction(t.type, t.id, t.timestamp, t.senderPublicKey, t.recipientId, t.amount, t.signature);
 
                                             if (t.signSignature) {
-                                                tr.signSignature = new Buffer(t.signSignature);
+                                                tr.signSignature = t.signSignature;
                                             }
 
                                             switch (tr.type) {
@@ -788,7 +802,8 @@ async.series([
                                             b.transactions = transactions;
 
                                             var requests = [];
-                                            async.eachSeries(item.requests, function (r, _c) {
+                                            var _requests = _.map(item.requests, function (v) { return v });
+                                            async.eachSeries(_requests, function (r, _c) {
                                                 var request = new requestconfirmation(r.address);
                                                 request.blockId = r.blockId;
                                                 requests.push(request);
@@ -804,7 +819,7 @@ async.series([
 
                                                 var confirmations = [];
                                                 async.eachSeries(item.confirmations, function (conf, _c) {
-                                                    var confirmation = new companyconfirmation(conf.companyId, conf.verified, conf.timestamp, conf.signature);
+                                                    var confirmation = new companyconfirmation(conf.companyId, conf.verified, conf.timestamp, new Buffer(conf.signature));
                                                     confirmations.push(confirmation);
                                                     _c();
                                                 }, function () {
@@ -828,15 +843,15 @@ async.series([
                                                             buffer = Buffer.concat([buffer, confirmations[i].getBytes()]);
                                                         }
 
-                                                        try {
+                                                        //try {
                                                             a = app.blockchain.pushBlock(buffer, true, false, false);
-                                                        } catch (e) {
+                                                        /*} catch (e) {
                                                             app.logger.warn("Error in process block: " + e);
                                                             app.peerprocessor.blockPeer(p.ip);
                                                             return setImmediate(function () {
                                                                 return c({ error: true });
                                                             });
-                                                        }
+                                                        }*/
 
                                                         if (a) {
                                                             lastAdded = b.getId();
@@ -920,6 +935,7 @@ async.series([
 
                 p.getWeight(function (err, json) {
                     if (err) {
+                        console.log(err);
                         app.blocksInterval = false;
                     } else if (json.success && json.weight && json.version == "0.1.7") {
                         if (app.blockchain.getWeight().lt(bignum(json.weight))) {
@@ -928,11 +944,13 @@ async.series([
                             if (app.blockchain.getLastBlock().getId() != commonBlockId) {
                                 app.blockchain.getMilestoneBlockId(p, function (err, blockId) {
                                     if (err || !blockId) {
+                                        console.log(err || blockId);
                                         app.blocksInterval = false;
                                     } else {
                                         commonBlockId = blockId;
                                         getCommonBlock(commonBlockId, p, function (err, blockId) {
                                             if (err || !blockId) {
+                                                console.log(err || !blockId);
                                                 app.blocksInterval = false;
                                             } else {
                                                 commonBlockId = blockId;
@@ -955,6 +973,7 @@ async.series([
                             } else {
                                 getCommonBlock(commonBlockId, p, function (err, blockId) {
                                     if (err || !blockId) {
+                                        console.log(err || blockId);
                                         app.blocksInterval = false;
                                     } else {
                                         commonBlockId = blockId;
@@ -1029,7 +1048,7 @@ async.series([
 
 
                                     if (t.signSignature) {
-                                        tr.signSignature = new Buffer(t.signSignature);
+                                        tr.signSignature = t.signSignature;
                                     }
 
                                     if (app.transactionprocessor.getUnconfirmedTransaction(tr.getId()) !== null) {
