@@ -2,12 +2,12 @@ var http = require('http'),
     _ = require('underscore'),
     request = require('request');
 
-var peer = function (address, port, platform, version) {
+var peer = function (address, port, version, sharePort) {
     this.ip = address;
     this.port = port;
     this.version = version;
     this.state = 0;
-    this.shareAddress = true;
+    this.sharePort = sharePort;
     this.platform = "";
     this.version =  1;
     this.downloadedVolume = 0;
@@ -96,7 +96,10 @@ peer.prototype.baseRequest = function (method, call, body, cb) {
         timeout : 3000,
         json : body || true,
         headers : {
-            "Content-Type" : "application/json"
+            "Content-Type" : "application/json",
+            "Version" : this.app.get("config").get('port'),
+            "User-Agent" : "Crypti Node",
+            "SharePort" : this.app.get("config").get('version')
         }
     }, cb);
 }
