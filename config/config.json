@@ -3,9 +3,9 @@
     "address": "0.0.0.0",
     "serveHttpAPI": true,
     "serveHttpWallet": true,
-    "version": "0.1.6dt",
+    "version": "0.1.7t",
     "logLevel": "debug",
-    "sharePort" : false,
+    "sharePort" : true,
     "adminPanel": {
         "auth": {
             "user": "",
