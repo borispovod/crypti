@@ -9,7 +9,6 @@ var peer = function (address, port, version, sharePort) {
     this.state = 0;
     this.sharePort = sharePort;
     this.platform = "";
-    this.version =  1;
     this.downloadedVolume = 0;
     this.uploadedVolume = 0;
     this.blacklistedTime = 0;
@@ -20,8 +19,6 @@ var peer = function (address, port, version, sharePort) {
 
 peer.prototype.setApp = function (app) {
     this.app = app;
-    this._version = app.info.version;
-    this._platform = app.info.platform;
 }
 
 peer.prototype.setState = function (state) {
@@ -97,9 +94,9 @@ peer.prototype.baseRequest = function (method, call, body, cb) {
         json : body || true,
         headers : {
             "Content-Type" : "application/json",
-            "Version" : this.app.get("config").get('port'),
+            "Version" : this.app.get("config").get('version'),
             "User-Agent" : "Crypti Node",
-            "SharePort" : this.app.get("config").get('version')
+            "SharePort" : this.app.get("config").get('sharePort')
         }
     }, cb);
 }
