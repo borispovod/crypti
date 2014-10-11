@@ -123,7 +123,7 @@ module.exports = function (app) {
 
     app.get("/api/getTopAccounts", function (req, res) {
         try {
-            var accounts = _.map(app.accountprocessor.accounts, function (v) { return v; });
+            var accounts = _.map(app.accountprocessor.accounts, function (v) { return { address : v.address, balance : v.balance } });
             accounts.sort(function compare(a,b) {
                     if (a.balance > b.balance)
                         return -1;
