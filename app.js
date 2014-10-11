@@ -94,25 +94,23 @@ app.configure(function () {
         var version = req.headers['version'],
             sharePort = req.headers['shareport']
 
-
         var url = req.path.split('/');
 
         var ip = req.connection.remoteAddress;
         var port = config.get('port');
 
+        if (url[1] == 'peer' && app.synchronizedBlocks) {
+            if (sharePort != "true" || version != app.get("config").get('version')) {
+                if (app.peerprocessor.peers[ip]) {
+                    app.peerprocessor.peers[ip] = null;
+                    delete app.peerprocessor.peers[ip];
+                }
 
-        if (sharePort != "true" || version != app.get("config").get('version')) {
-            if (app.peerprocessor.peers[ip]) {
-                app.peerprocessor.peers[ip] = null;
-                delete app.peerprocessor.peers[ip];
+                return next();
+            } else {
+                sharePort = true;
             }
 
-            return next();
-        } else {
-            sharePort = true;
-        }
-
-        if (url[1] == 'peer' && app.synchronizedBlocks) {
             var newPeer = new peer(ip, port, version, sharePort);
             newPeer.setApp(app);
             app.peerprocessor.addPeer(newPeer);
@@ -943,7 +941,6 @@ async.series([
 
                 p.getWeight(function (err, json) {
                     if (err) {
-                        console.log(err);
                         app.blocksInterval = false;
                     } else if (json.success && json.weight && json.version == "0.1.7") {
                         if (app.blockchain.getWeight().lt(bignum(json.weight))) {
@@ -952,13 +949,11 @@ async.series([
                             if (app.blockchain.getLastBlock().getId() != commonBlockId) {
                                 app.blockchain.getMilestoneBlockId(p, function (err, blockId) {
                                     if (err || !blockId) {
-                                        console.log(err || blockId);
                                         app.blocksInterval = false;
                                     } else {
                                         commonBlockId = blockId;
                                         getCommonBlock(commonBlockId, p, function (err, blockId) {
                                             if (err || !blockId) {
-                                                console.log(err || !blockId);
                                                 app.blocksInterval = false;
                                             } else {
                                                 commonBlockId = blockId;
@@ -981,7 +976,6 @@ async.series([
                             } else {
                                 getCommonBlock(commonBlockId, p, function (err, blockId) {
                                     if (err || !blockId) {
-                                        console.log(err || blockId);
                                         app.blocksInterval = false;
                                     } else {
                                         commonBlockId = blockId;

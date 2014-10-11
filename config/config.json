@@ -3,7 +3,7 @@
     "address": "0.0.0.0",
     "serveHttpAPI": true,
     "serveHttpWallet": true,
-    "version": "0.1.7t",
+    "version": "0.1.6t",
     "logLevel": "debug",
     "sharePort" : true,
     "adminPanel": {
@@ -27,7 +27,7 @@
     "peers": {
         "list": [
             {
-                "ip" : "130.211.96.198",
+                "ip" : "130.211.52.6",
                 "port" : 7040
             }
         ],
