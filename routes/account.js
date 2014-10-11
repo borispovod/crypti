@@ -121,6 +121,31 @@ module.exports = function (app) {
         return res.json({ success : true, account : accountId, weight : account.weight.toString() });
     });
 
+    app.get("/api/getTopAccounts", function (req, res) {
+        try {
+            var accounts = _.map(app.accountprocessor.accounts, function (v) { return v; });
+            accounts.sort(function compare(a,b) {
+                    if (a.balance > b.balance)
+                        return -1;
+                    if (a.balance < b.balance)
+                        return 1;
+                    return 0;
+            });
+
+            var toShow = 20;
+            if (accounts.length < toShow) {
+                toShow = accounts.length;
+            }
+
+            accounts = accounts.slice(0, toShow);
+
+            return res.json({ success : true, accounts : accounts });
+        } catch (e) {
+            console.log(e);
+            return res.json({ success : false, accounts : [] });
+        }
+    });
+
     app.get("/api/getBalance", app.basicAuth, function (req, res) {
         try {
             var address = req.query.address || "";
