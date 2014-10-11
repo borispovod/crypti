@@ -99,15 +99,31 @@ peerprocessor.prototype.addPeer = function (peer) {
         return false;
     }
 
-    if (this.blackList.indexOf(peer.ip) >= 0) {
-        return false;
-    }
-
     if (this.blockedPeers[peer.ip]) {
         return false;
     }
 
+    if (!peer.ip) {
+        return false;
+    }
+
     if (this.peers[peer.ip]) {
+        this.peers[peer.ip].sharePort = peer.sharePort;
+
+        if (!peer.sharePort) {
+            this.peers[peer.ip] = null;
+            delete this.peers[peer.ip];
+            return false
+        } else {
+            this.peers[peer.ip].version = peer.version;
+        }
+
+        if (this.peers[peer.ip].version != this.app.get('config').get('version')) {
+            this.peers[peer.ip] = null;
+            delete this.peers[peer.ip];
+            return false;
+        }
+
         return false;
     } else {
         this.peers[peer.ip] = peer;

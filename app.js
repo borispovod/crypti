@@ -50,6 +50,9 @@ app.configure(function () {
     app.set("version", config.get("version"));
     app.set("address", config.get("address"));
     app.set('port', config.get('port'));
+    app.set("config", config);
+
+    app.use(express.compress());
     app.use(express.bodyParser({limit: '300mb'}));
     app.dbLoaded = false;
 
@@ -88,13 +91,28 @@ app.configure(function () {
     app.use(express.urlencoded());
 
     app.use(function (req, res, next) {
+        var version = req.headers['version'],
+            sharePort = req.headers['shareport']
+
         var url = req.path.split('/');
 
         var ip = req.connection.remoteAddress;
         var port = config.get('port');
 
         if (url[1] == 'peer' && app.synchronizedBlocks) {
-            var newPeer = new peer(ip, port);
+            if (sharePort != "true" || version != app.get("config").get('version')) {
+                if (app.peerprocessor.peers[ip]) {
+                    app.peerprocessor.peers[ip] = null;
+                    delete app.peerprocessor.peers[ip];
+                }
+
+                return next();
+            } else {
+                sharePort = true;
+            }
+
+            var newPeer = new peer(ip, port, version, sharePort);
+            newPeer.setApp(app);
             app.peerprocessor.addPeer(newPeer);
         } else if (url[1] == 'api' || req.path == '' || req.path == '/') {
             if (app.api.whiteList.length > 0) {
@@ -548,9 +566,8 @@ async.series([
             if (!p.ip || !p.port || isNaN(p.port) || p.port <= 0 || p.port >= 65500) {
                 return callback();
             }
-
-            p = new peer(p.ip, p.port);
-            p.configPeer = true;
+            p = new peer(p.ip, p.port, app.get("config").get("version"), true);
+            p.setApp(app);
             app.peerprocessor.addPeer(p);
             callback();
         }, function () {
@@ -591,7 +608,8 @@ async.series([
                                         continue;
                                     }
 
-                                    var _peer = new peer(ps[i].ip, ps[i].port, ps[i].platform, ps[i].version);
+                                    var _peer = new peer(ps[i].ip, ps[i].port, ps[i].version, ps[i].sharePort);
+                                    _peer.setApp(app);
 
                                     if (!app.peerprocessor.peers[_peer.ip]) {
                                         app.peerprocessor.addPeer(_peer);
@@ -751,11 +769,11 @@ async.series([
                                         var id = b.getId();
 
                                         var transactions = [];
-                                        async.eachSeries(item.trs, function (t, _c) {
-                                            var tr = new transaction(t.type, t.id, t.timestamp, t.senderPublicKey, t.recipient, t.amount, t.signature);
+                                        async.eachSeries(item.transactions, function (t, _c) {
+                                            var tr = new transaction(t.type, t.id, t.timestamp, t.senderPublicKey, t.recipientId, t.amount, t.signature);
 
                                             if (t.signSignature) {
-                                                tr.signSignature = new Buffer(t.signSignature);
+                                                tr.signSignature = t.signSignature;
                                             }
 
                                             switch (tr.type) {
@@ -788,7 +806,8 @@ async.series([
                                             b.transactions = transactions;
 
                                             var requests = [];
-                                            async.eachSeries(item.requests, function (r, _c) {
+                                            var _requests = _.map(item.requests, function (v) { return v });
+                                            async.eachSeries(_requests, function (r, _c) {
                                                 var request = new requestconfirmation(r.address);
                                                 request.blockId = r.blockId;
                                                 requests.push(request);
@@ -804,7 +823,7 @@ async.series([
 
                                                 var confirmations = [];
                                                 async.eachSeries(item.confirmations, function (conf, _c) {
-                                                    var confirmation = new companyconfirmation(conf.companyId, conf.verified, conf.timestamp, conf.signature);
+                                                    var confirmation = new companyconfirmation(conf.companyId, conf.verified, conf.timestamp, new Buffer(conf.signature));
                                                     confirmations.push(confirmation);
                                                     _c();
                                                 }, function () {
@@ -828,15 +847,15 @@ async.series([
                                                             buffer = Buffer.concat([buffer, confirmations[i].getBytes()]);
                                                         }
 
-                                                        try {
+                                                        //try {
                                                             a = app.blockchain.pushBlock(buffer, true, false, false);
-                                                        } catch (e) {
+                                                        /*} catch (e) {
                                                             app.logger.warn("Error in process block: " + e);
                                                             app.peerprocessor.blockPeer(p.ip);
                                                             return setImmediate(function () {
                                                                 return c({ error: true });
                                                             });
-                                                        }
+                                                        }*/
 
                                                         if (a) {
                                                             lastAdded = b.getId();
@@ -1032,7 +1051,7 @@ async.series([
 
 
                                     if (t.signSignature) {
-                                        tr.signSignature = new Buffer(t.signSignature);
+                                        tr.signSignature = t.signSignature;
                                     }
 
                                     if (app.transactionprocessor.getUnconfirmedTransaction(tr.getId()) !== null) {
