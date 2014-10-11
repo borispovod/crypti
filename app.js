@@ -50,7 +50,7 @@ app.configure(function () {
     app.set("version", config.get("version"));
     app.set("address", config.get("address"));
     app.set('port', config.get('port'));
-    app.set('config', config);
+    app.set("config", config);
 
     app.use(express.compress());
     app.use(express.bodyParser({limit: '300mb'}));
@@ -91,24 +91,30 @@ app.configure(function () {
     app.use(express.urlencoded());
 
     app.use(function (req, res, next) {
-        var version = req.headers['Version'],
-            sharePort = req.headers['SharePort']
+        var version = req.headers['version'],
+            sharePort = req.headers['shareport']
 
-        if (version != config.get('version')) {
-            return next();
-        }
-
-        if (sharePort != "true") {
-            return next();
-        }
 
         var url = req.path.split('/');
 
         var ip = req.connection.remoteAddress;
         var port = config.get('port');
 
+
+        if (sharePort != "true" || version != app.get("config").get('version')) {
+            if (app.peerprocessor.peers[ip]) {
+                app.peerprocessor.peers[ip] = null;
+                delete app.peerprocessor.peers[ip];
+            }
+
+            return next();
+        } else {
+            sharePort = true;
+        }
+
         if (url[1] == 'peer' && app.synchronizedBlocks) {
-            var newPeer = new peer(ip, port, version, true);
+            var newPeer = new peer(ip, port, version, sharePort);
+            newPeer.setApp(app);
             app.peerprocessor.addPeer(newPeer);
         } else if (url[1] == 'api' || req.path == '' || req.path == '/') {
             if (app.api.whiteList.length > 0) {
@@ -564,7 +570,8 @@ async.series([
                 return callback();
             }
 
-            p = new peer(p.ip, p.port, app.get("config").get("version"), app.get("config").get("sharePort"));
+            p = new peer(p.ip, p.port, app.get("config").get("version"), true);
+            p.setApp(app);
             app.peerprocessor.addPeer(p);
             callback();
         }, function () {
@@ -605,7 +612,8 @@ async.series([
                                         continue;
                                     }
 
-                                    var _peer = new peer(ps[i].ip, ps[i].port, ps[i].platform, ps[i].version);
+                                    var _peer = new peer(ps[i].ip, ps[i].port, ps[i].version, ps[i].sharePort);
+                                    _peer.setApp(app);
 
                                     if (!app.peerprocessor.peers[_peer.ip]) {
                                         app.peerprocessor.addPeer(_peer);
