@@ -166,8 +166,7 @@ module.exports = function (app) {
 
         var ip = req.connection.remoteAddress;
         peers = _.filter(peers, function (v) {
-            //v.ip != ip &&
-            if (!v.isNat) {
+            if (v.ip != ip && !v.isNat) {
                 return true;
             }
         });
