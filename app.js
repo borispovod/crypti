@@ -608,6 +608,10 @@ async.series([
                                         continue;
                                     }
 
+                                    if (ps[i].version != app.get("config").get("version") || !ps[i].sharePort) {
+                                        continue;
+                                    }
+
                                     var _peer = new peer(ps[i].ip, ps[i].port, ps[i].version, ps[i].sharePort);
                                     _peer.setApp(app);
 
@@ -720,7 +724,7 @@ async.series([
                 }
 
                 app.blocksInterval = true;
-                p = app.peerprocessor.getAnyPeer(true);
+                p = app.peerprocessor.getAnyPeer();
 
                 if (!p || !p.ip) {
                     app.synchronizedBlocks = true;
