@@ -194,8 +194,6 @@ peer.prototype.processBlock = function (block, cb) {
     };
 
     this.baseRequest('POST', '/peer/processBlock', json, function (err, resp, body) {
-        console.log(err, body);
-
         if (err || resp.statusCode != 200) {
             return cb(err || "Status code isn't 200");
         } else {
