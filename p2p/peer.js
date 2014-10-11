@@ -87,7 +87,6 @@ peer.prototype.baseRequest = function (method, call, body, cb) {
         body = null;
     }
 
-    console.log("http://" + this.ip + ":" + this.port + call);
     request({
         url : "http://" + this.ip + ":" + this.port + call,
         method : method,

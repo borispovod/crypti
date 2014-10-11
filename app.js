@@ -847,15 +847,15 @@ async.series([
                                                             buffer = Buffer.concat([buffer, confirmations[i].getBytes()]);
                                                         }
 
-                                                        //try {
+                                                        try {
                                                             a = app.blockchain.pushBlock(buffer, true, false, false);
-                                                        /*} catch (e) {
+                                                        } catch (e) {
                                                             app.logger.warn("Error in process block: " + e);
                                                             app.peerprocessor.blockPeer(p.ip);
                                                             return setImmediate(function () {
                                                                 return c({ error: true });
                                                             });
-                                                        }*/
+                                                        }
 
                                                         if (a) {
                                                             lastAdded = b.getId();

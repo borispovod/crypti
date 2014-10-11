@@ -4,7 +4,7 @@
     "serveHttpAPI": true,
     "serveHttpWallet": true,
     "version": "0.1.7",
-    "logLevel": "info",
+    "logLevel": "error",
     "sharePort" : true,
     "adminPanel": {
         "auth": {
