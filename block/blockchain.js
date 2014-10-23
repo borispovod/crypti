@@ -216,8 +216,8 @@ blockchain.prototype.popLastBlock = function (cb) {
 
     var feePercent = lastBlock.previousFee || 1;
 
-    for (var r  in lastBlock.requests) {
-        var request = lastBlock.requests[r];
+    for (var i = 0; i < lastBlock.requests.length; i++) {
+        var request = lastBlock.requests[i];
         var address = request.address;
 
         this.app.requestprocessor.confirmedRequests[address].pop();
