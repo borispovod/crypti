@@ -1087,6 +1087,10 @@ blockchain.prototype.pushBlock = function (buffer, saveToDb, sendToPeers, checkR
         this.app.requestprocessor.confirmedRequests[address].push(request);
     }
 
+    b.requests = _.map(b.requests, function (v) {
+        return v;
+    });
+
     var hash = crypto.createHash('sha256').update(this.getLastBlock().generationSignature).update(b.generatorPublicKey).digest();
 
 
@@ -1217,7 +1221,7 @@ module.exports.addGenesisBlock = function (app, cb) {
 
         b.setApp(app);
         b.generatorId = '5776140615420062008C';
-
+        b.confirmations = [];
 
         var r = b.analyze();
 
@@ -1226,13 +1230,12 @@ module.exports.addGenesisBlock = function (app, cb) {
             return cb("Genesis block not added");
         }
 
-
         var address = req.address;
         app.requestprocessor.confirmedRequests[address] = [req];
         app.blockchain.blocks[b.getId()] = b;
         app.blockchain.lastBlock = b.getId();
 
-        app.db.writeBlock(b.getId(), function (err) {
+        app.db.writeBlock(b, function (err) {
             cb(err);
         });
     } else {

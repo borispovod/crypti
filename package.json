@@ -20,6 +20,7 @@
     "sqlite3": "2.2.0",
     "sqlite3-transactions": "0.0.5",
     "underscore": "https://github.com/crypti/underscore/tarball/master",
+    "wait.for": "^0.6.6",
     "winston": "https://github.com/crypti/winston/tarball/master"
   }
 }
