@@ -305,6 +305,9 @@ async.series([
             if (err) {
                 cb(err);
             } else {
+                return cb();
+
+
                 app.db = db;
                 app.db.readAllBlocks(function (err, blocks) {
                     if (err) {
