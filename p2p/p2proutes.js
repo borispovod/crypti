@@ -262,6 +262,7 @@ module.exports = function (app) {
 
             var blocks = [];
 
+
             async.whilst(
                 function () {
                     if (blocks.length >= 60) {
