@@ -58,14 +58,12 @@ db.prototype.deleteBlock = function (bId, callback) {
     }.bind(this));
 }
 
-db.prototype.updateNextBlock = function (block, nextBlock, callback) {
-    var sql = this.sql;
-
+db.prototype.updateNextBlock = function (sql, block, nextBlock, callback) {
     sql.serialize(function () {
         var st = sql.prepare("UPDATE blocks SET nextBlock = $nextBlock WHERE id = $id");
         st.bind({
             $nextBlock : nextBlock,
-            $block : $block
+            $id : block
         });
 
         st.run(function (err) {
@@ -191,7 +189,7 @@ db.prototype.writeBlock = function (block,  callback) {
                 return callback(err);
             } else {
                 sql.serialize(function () {
-                    var st = sql.prepare("INSERT INTO blocks(id, version, timestamp, previousBlock, numberOfRequests, numberOfTransactions, numberOfConfirmations, totalAmount, totalFee, payloadLength, requestsLength, confirmationsLength, payloadHash, generatorPublicKey, generationSignature, blockSignature) VALUES($id, $version, $timestamp, $previousBlock, $numberOfRequests, $numberOfTransactions, $numberOfConfirmations, $totalAmount, $totalFee, $payloadLength, $requestsLength, $confirmationsLength, $payloadHash, $generatorPublicKey, $generationSignature, $blockSignature)");
+                    var st = sql.prepare("INSERT INTO blocks(id, version, timestamp, previousBlock, numberOfRequests, numberOfTransactions, numberOfConfirmations, totalAmount, totalFee, payloadLength, requestsLength, confirmationsLength, payloadHash, generatorPublicKey, generationSignature, blockSignature, height) VALUES($id, $version, $timestamp, $previousBlock, $numberOfRequests, $numberOfTransactions, $numberOfConfirmations, $totalAmount, $totalFee, $payloadLength, $requestsLength, $confirmationsLength, $payloadHash, $generatorPublicKey, $generationSignature, $blockSignature, $height)");
                     st.bind({
                         $id : block.getId(),
                         $version : block.version,
@@ -208,7 +206,8 @@ db.prototype.writeBlock = function (block,  callback) {
                         $payloadHash : block.payloadHash,
                         $generatorPublicKey : block.generatorPublicKey,
                         $generationSignature : block.generationSignature,
-                        $blockSignature : block.blockSignature
+                        $blockSignature : block.blockSignature,
+                        $height : block.height
                     });
 
                     st.run(function (err) {
@@ -216,7 +215,7 @@ db.prototype.writeBlock = function (block,  callback) {
                             return callback(err);
                         } else {
                             if (block.previousBlock) {
-                                updateNextBlock(block.previousBlock, block.getId(), function (err) {
+                                updateNextBlock(sql, block.previousBlock, block.getId(), function (err) {
                                     return callback(err);
                                 });
                             } else {
@@ -362,6 +361,16 @@ db.prototype.deleteBlock = function (blockId, callback) {
     });
 }
 
+db.prototype.readBlocks = function (callback) {
+    var sql = this.sql;
+
+    sql.serialize(function () {
+        sql.all("SELECT * FROM blocks ORDER BY height", function (err, blocks) {
+            callback(err, blocks);
+        });
+    })
+}
+
 module.exports.initDb = function (path, app, callback) {
     var d = new db(path);
     d.setApp(app);
@@ -370,7 +379,7 @@ module.exports.initDb = function (path, app, callback) {
     d.sql.serialize(function () {
         async.series([
             function (cb) {
-                d.sql.run("CREATE TABLE IF NOT EXISTS blocks (id BIGINT NOT NULL, version INT NOT NULL, timestamp INT NOT NULL, previousBlock BIGINT, nextBlock BIGINT, numberOfRequests INT NOT NULL, numberOfTransactions INT NOT NULL, numberOfConfirmations INT NOT NULL, totalAmount INTEGER NOT NULL, totalFee INTEGER NOT NULL, payloadLength INT NOT NULL, requestsLength INT NOT NULL, confirmationsLength INT NOT NULL, payloadHash BINARY(32) NOT NULL, generatorPublicKey BINARY(32) NOT NULL, generationSignature BINARY(64) NOT NULL, blockSignature BINARY(64) NOT NULL, FOREIGN KEY (previousBlock) REFERENCES blocks(id), FOREIGN KEY (nextBlock) REFERENCES blocks(id) ON DELETE CASCADE)", cb);
+                d.sql.run("CREATE TABLE IF NOT EXISTS blocks (id BIGINT NOT NULL, version INT NOT NULL, timestamp INT NOT NULL, height INT NOT NULL, previousBlock BIGINT, nextBlock BIGINT, numberOfRequests INT NOT NULL, numberOfTransactions INT NOT NULL, numberOfConfirmations INT NOT NULL, totalAmount INTEGER NOT NULL, totalFee INTEGER NOT NULL, payloadLength INT NOT NULL, requestsLength INT NOT NULL, confirmationsLength INT NOT NULL, payloadHash BINARY(32) NOT NULL, generatorPublicKey BINARY(32) NOT NULL, generationSignature BINARY(64) NOT NULL, blockSignature BINARY(64) NOT NULL, FOREIGN KEY (previousBlock) REFERENCES blocks(id), FOREIGN KEY (nextBlock) REFERENCES blocks(id) ON DELETE CASCADE)", cb);
             },
             function (cb) {
                 d.sql.run("CREATE TABLE IF NOT EXISTS trs (id BIGINT NOT NULL, blockId BIGINT NOT NULL, type TINYINT NOT NULL, subtype TINYINT NOT NULL, timestamp INT NOT NULL, senderPublicKey BINARY(32) NOT NULL, sender BIGINT NOT NULL, recipientId BIGINT NOT NULL, amount INTEGER NOT NULL, fee INTEGER NOT NULL, signature BINARY(64) NOT NULL, signSignature BINARY(64), FOREIGN KEY(blockId) REFERENCES blocks(id) ON DELETE CASCADE)", cb);
