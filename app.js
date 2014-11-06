@@ -36,7 +36,8 @@ var express = require('express'),
     requestconfirmation = require("./request").requestconfirmation,
     crypto = require('crypto'),
     doT = require('express-dot'),
-    ByteBuffer = require("bytebuffer");
+    ByteBuffer = require("bytebuffer"),
+    wait = require("wait.for");
 
 var app = express();
 
@@ -44,6 +45,10 @@ if (process.env.NODE_ENV=="development") {
     app.set('onlyToFile', false);
 } else {
     app.set('onlyToFile', true);
+}
+
+if (fs.existsSync("./logs.log")) {
+    fs.renameSync("./logs.log", "./logs.old.logs");
 }
 
 app.configure(function () {
@@ -301,7 +306,18 @@ async.series([
     },
     function (cb) {
         logger.getInstance().info("Initializing and scanning database...");
-        initDb("./blockchain.db", app, function (err, db) {
+        wait.launchFiber(function () {
+            try {
+                wait.for(initDb, "./blockchain.db", app);
+
+                var blocks = wait.forMethod(app.db, 'readBlocks');
+                cb();
+            } catch (e) {
+                cb(e);
+            }
+        });
+
+        /*initDb("./blockchain.db", app, function (err, db) {
             if (err) {
                 cb(err);
             } else {
@@ -544,7 +560,7 @@ async.series([
                     }
                 });
             }
-        });
+        });*/
     },
     function (cb) {
         logger.getInstance().debug("Find or add genesis block...");
@@ -852,27 +868,22 @@ async.series([
                                                             buffer = Buffer.concat([buffer, confirmations[i].getBytes()]);
                                                         }
 
-                                                        try {
-                                                            a = app.blockchain.pushBlock(buffer, true, false, false);
-                                                        } catch (e) {
-                                                            app.logger.warn("Error in process block: " + e);
-                                                            app.peerprocessor.blockPeer(p.ip);
-                                                            return setImmediate(function () {
-                                                                return c({ error: true });
-                                                            });
-                                                        }
+                                                        wait.launchFiber(function () {
+                                                            try {
+                                                               wait.forMethod(app.blockchain, 'pushBlock', buffer, true, false, false);
+                                                            } catch (e) {
+                                                                app.peerprocessor.blockPeer(p.ip);
+                                                                return setImmediate(function () {
+                                                                    return c({ error: true });
+                                                                });
+                                                            }
 
-                                                        if (a) {
                                                             lastAdded = b.getId();
-                                                        } else {
-                                                            return setImmediate(function () {
-                                                                return c({ error: true });
-                                                            });
-                                                        }
+                                                            blockId = b.getId();
 
-                                                        blockId = b.getId();
-                                                        return setImmediate(function () {
-                                                            return c();
+                                                            return setImmediate(function () {
+                                                                return c();
+                                                            });
                                                         });
                                                     } else if (!app.blockchain.blocks[b.getId()]) {
                                                         if (!inFork) {
@@ -989,6 +1000,7 @@ async.series([
                                             app.blocksInterval = false;
                                         } else {
                                             app.logger.info("Load blocks from: " + p.ip);
+
                                             loadBlocks(commonBlockId, commonBlockId, function () {
                                                 app.synchronizedBlocks = true;
                                                 app.blocksInterval = false;
@@ -1125,6 +1137,7 @@ async.series([
     }
 ], function (err) {
     if (err) {
+        console.log(err);
         logger.getInstance().info("Crypti stopped!");
         logger.getInstance().error("Error: " + err);
     } else {
