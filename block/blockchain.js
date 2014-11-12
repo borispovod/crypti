@@ -594,7 +594,7 @@ blockchain.prototype.pushBlock = function (buffer, saveToDb, sendToPeers, checkR
         return cb(true);
     }
 
-    this.logger.info("Load addresses and transactions from block: " + b.getId());
+    this.logger.debug("Load addresses and transactions from block: " + b.getId());
 
     b.transactions = [];
     for (var i = 0; i < b.numberOfTransactions; i++) {
@@ -622,7 +622,7 @@ blockchain.prototype.pushBlock = function (buffer, saveToDb, sendToPeers, checkR
 
     b.forForger = 0;
 
-    this.logger.info("Process transactions in block: " + b.getId());
+    this.logger.debug("Process transactions in block: " + b.getId());
     var accumulatedAmounts = {};
     var i, calculatedTotalAmount = 0, calculatedTotalFee = 0;
     var foundsTrs = {};
@@ -1105,7 +1105,7 @@ blockchain.prototype.pushBlock = function (buffer, saveToDb, sendToPeers, checkR
 
     this.lastBlock = b.getId();
 
-    this.logger.info("Block processed: " + b.getId());
+    this.logger.debug("Block processed: " + b.getId());
 
     this.app.requestprocessor.unconfirmedRequests = {};
     this.app.requestprocessor.ips = [];
@@ -1168,7 +1168,7 @@ blockchain.prototype.pushBlock = function (buffer, saveToDb, sendToPeers, checkR
 
 module.exports.addGenesisBlock = function (app, cb) {
     var bc = app.blockchain;
-    app.logger.info("Blockchain is trying to find genesis block...");
+    app.logger.debug("Blockchain is trying to find genesis block...");
     var b = bc.getBlock(genesisblock.blockId);
 
     if (!b) {
@@ -1241,7 +1241,7 @@ module.exports.addGenesisBlock = function (app, cb) {
             cb(err);
         });
     } else {
-        app.logger.info("Genesis block is found!");
+        app.logger.debug("Genesis block is found!");
         cb();
     }
 }
