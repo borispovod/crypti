@@ -311,216 +311,167 @@ async.series([
                 wait.for(initDb, "./blockchain.db", app);
 
                 var blocks = wait.forMethod(app.db, 'readBlocks');
-                cb();
-            } catch (e) {
-                cb(e);
-            }
-        });
+                app.blocksCount = blocks.length;
 
-        /*initDb("./blockchain.db", app, function (err, db) {
-            if (err) {
-                cb(err);
-            } else {
-                return cb();
+                async.eachSeries(blocks, function (item, c) {
+                    var b = new block(item.version, null, item.timestamp, null, [], item.totalAmount, item.totalFee, item.payloadLength, item.payloadHash, item.generatorPublicKey, item.generationSignature, item.blockSignature);
 
+                    if (item.previousBlock) {
+                        b.previousBlock = bignum.fromBuffer(item.previousBlock, { size : 8 }).toString()
+                    }
 
-                app.db = db;
-                app.db.readAllBlocks(function (err, blocks) {
-                    if (err) {
-                        cb(err);
-                    } else {
-                        app.blocksCount = blocks.length;
+                    b.numberOfTransactions = item.numberOfTransactions;
+                    b.numberOfRequests = item.numberOfRequests;
+                    b.requestsLength = item.requestsLength;
+                    b.numberOfConfirmations = item.numberOfConfirmations;
+                    b.confirmationsLength = item.confirmationsLength;
+                    b.height = item.height;
+                    b.setApp(app);
 
-                        async.eachSeries(blocks, function (item, c) {
-                            var b = new block(item.version, null, item.timestamp, item.previousBlock, [], item.totalAmount, item.totalFee, item.payloadLength, item.payloadHash, item.generatorPublicKey, item.generationSignature, item.blockSignature);
-                            b.numberOfTransactions = item.numberOfTransactions;
-                            b.numberOfRequests = item.numberOfRequests;
-                            b.requestsLength = item.requestsLength;
-                            b.numberOfConfirmations = item.numberOfConfirmations;
-                            b.confirmationsLength = item.confirmationsLength;
-                            b.setApp(app);
-                            b.height = item.height;
-                            var id = b.getId();
+                    logger.getInstance().debug("Load block: " + b.getId() + ", height: " + b.height);
 
-                            var numberOfTransactions = b.numberOfTransactions;
-                            if (id == genesisblock.blockId) {
-                                numberOfTransactions = 1;
-                            }
+                    var q = app.db.sql.prepare("SELECT * FROM trs WHERE blockId=$blockId");
+                    q.bind({
+                        $blockId : bignum(b.getId()).toBuffer({ size : 8 })
+                    });
+                    q.all(function (err, rows) {
+                        if (err) {
+                            c(err);
+                        } else {
+                            var transactions = [];
+                            async.eachSeries(rows, function (t, _c) {
+                                var tr = new transaction(t.type, null, t.timestamp, t.senderPublicKey, bignum.fromBuffer(t.recipientId, { size : 8 }).toString() + "C", t.amount, t.signature);
 
-                            var refs = item.refs;
-
-                            var trsIds = "",
-                                requestsIds = "",
-                                companyconfirmationsIds = "";
-
-                            var bb = ByteBuffer.wrap(refs);
-
-                            var i = 0;
-                            for (i = 0; i < numberOfTransactions; i++) {
-                                trsIds += bb.readInt64();
-
-                                if (i+1 != numberOfTransactions) {
-                                    trsIds += ',';
+                                if (t.signSignature) {
+                                    tr.signSignature = t.signSignature;
                                 }
-                            }
 
-                            for (i = 0; i < b.numberOfRequests; i++) {
-                                requestsIds += bb.readInt64();
-
-                                if (i+1 != b.numberOfRequests) {
-                                    requestsIds += ',';
-                                }
-                            }
-
-                            for (i = 0; i < b.numberOfConfirmations; i++) {
-                                companyconfirmationsIds += bb.readInt64();
-
-                                if (i+1 != b.numberOfConfirmations) {
-                                    companyconfirmationsIds += ',';
-                                }
-                            }
-
-
-                            logger.getInstance().info("Load block: " + b.getId() + ", height: " + b.height);
-
-                            var q = app.db.sql.prepare("SELECT * FROM trs WHERE rowid IN (" + trsIds + ")");
-                            q.all(function (err, rows) {
-                                if (err) {
-                                    c(err);
-                                } else {
-                                    var transactions = [];
-                                    async.eachSeries(rows, function (t, _c) {
-                                        var tr = new transaction(t.type, t.id, t.timestamp, t.senderPublicKey, t.recipient, t.amount, t.signature);
-
-                                        if (t.signSignature) {
-                                            tr.signSignature = t.signSignature;
-                                        }
-
-                                        var req = null;
-                                        if (tr.type == 2) {
-                                            if (tr.subtype === 0) {
-                                                req = app.db.sql.prepare("SELECT * FROM signatures WHERE rowid=$rowid");
-                                                req.bind({
-                                                    $rowid : t.assetId
-                                                });
-                                                req.get(function (err, asset) {
-                                                    if (err) {
-                                                        _c(err);
-                                                    } else {
-                                                        tr.asset = new signature(asset.publicKey, asset.generatorPublicKey, asset.timestamp, asset.signature, asset.generationSignature);
-                                                        tr.asset.blockId = asset.blockId;
-                                                        tr.asset.transactionId = asset.transactionId;
-
-                                                        transactions.push(tr);
-                                                        _c();
-                                                    }
-                                                });
-                                            }
-                                        } else if (tr.type == 3) {
-                                            if (tr.subtype === 0) {
-                                                req = app.db.sql.prepare("SELECT * FROM companies WHERE rowid=$rowid");
-                                                req.bind({
-                                                    $rowid : t.assetId
-                                                });
-                                                req.get(function (err, asset) {
-                                                    if (err) {
-                                                        _c(err);
-                                                    } else {
-                                                        tr.asset = new company(asset.name, asset.description, asset.domain, asset.email, asset.timestamp, asset.generatorPublicKey, asset.signature);
-                                                        tr.asset.blockId = asset.blockId;
-                                                        tr.asset.transactionId = asset.transactionId;
-
-                                                        transactions.push(tr);
-                                                        _c();
-                                                    }
-                                                });
+                                var req = null;
+                                if (tr.type == 2) {
+                                    if (tr.subtype === 0) {
+                                        req = app.db.sql.prepare("SELECT * FROM signatures WHERE transactionId=$transactionId");
+                                        req.bind({
+                                            $transactionId : bignum(tr.getId()).toBuffer({ size : 8 })
+                                        });
+                                        req.get(function (err, asset) {
+                                            if (err) {
+                                                _c(err);
                                             } else {
+                                                tr.asset = new signature(asset.publicKey, asset.generatorPublicKey, asset.timestamp, asset.signature, asset.generationSignature);
+                                                tr.asset.blockId = bignum.fromBuffer(asset.blockId, { size : 8 }).toString();
+                                                tr.asset.transactionId = bignum.fromBuffer(asset.transactionId, { size : 8 }).toString();
+
                                                 transactions.push(tr);
                                                 _c();
                                             }
-                                        } else {
-                                            transactions.push(tr);
-                                            _c();
-                                        }
-                                    }, function (err) {
-                                        if (err) {
-                                            return c(err);
-                                        }
-
-                                        b.transactions = transactions;
-
-                                        q = app.db.sql.prepare("SELECT * FROM requests WHERE rowid IN (" + requestsIds + ")");
-                                        q.all(function (err, rows) {
+                                        });
+                                    }
+                                } else if (tr.type == 3) {
+                                    if (tr.subtype === 0) {
+                                        req = app.db.sql.prepare("SELECT * FROM companies WHERE transactionId=$transactionId");
+                                        req.bind({
+                                            $transactionId : bignum(tr.getId()).toBuffer({ size : 8 })
+                                        });
+                                        req.get(function (err, asset) {
                                             if (err) {
-                                                c(err);
+                                                _c(err);
                                             } else {
-                                                var requests = [];
-                                                async.eachSeries(rows, function (r, _c) {
-                                                    var request = new requestconfirmation(r.address);
-                                                    request.blockId = r.blockId;
-                                                    requests.push(request);
-                                                    _c();
-                                                }.bind(this), function (err) {
-                                                    if (err) {
-                                                        return c(err);
-                                                    }
+                                                tr.asset = new company(asset.name, asset.description, asset.domain, asset.email, asset.timestamp, asset.generatorPublicKey, asset.signature);
+                                                tr.asset.blockId = bignum.fromBuffer(asset.blockId, { size : 8 }).toString();
+                                                tr.asset.transactionId = bignum.fromBuffer(asset.transactionId, { size : 8 }).toString();
 
-                                                    b.requests = requests;
+                                                transactions.push(tr);
+                                                _c();
+                                            }
+                                        });
+                                    } else {
+                                        transactions.push(tr);
+                                        _c();
+                                    }
+                                } else {
+                                    transactions.push(tr);
+                                    _c();
+                                }
+                            }, function (err) {
+                                if (err) {
+                                    return c(err);
+                                }
 
-                                                    q = app.db.sql.prepare("SELECT * FROM companyconfirmations WHERE rowid IN (" + companyconfirmationsIds + ")");
-                                                    q.all(function (err, rows) {
-                                                        if (err) {
-                                                            return c(err);
+                                b.transactions = transactions;
+
+                                q = app.db.sql.prepare("SELECT * FROM requests WHERE blockId=$blockId");
+                                q.bind({
+                                    $blockId : bignum(b.getId()).toBuffer({ size : 8 })
+                                });
+                                q.all(function (err, rows) {
+                                    if (err) {
+                                        c(err);
+                                    } else {
+                                        var requests = [];
+                                        async.eachSeries(rows, function (r, _c) {
+                                            var request = new requestconfirmation(bignum.fromBuffer(r.address, { size : 8 }).toString() + "C");
+                                            request.blockId = bignum.fromBuffer(r.blockId, { size : 8 }).toString();
+                                            requests.push(request);
+                                            _c();
+                                        }.bind(this), function (err) {
+                                            if (err) {
+                                                return c(err);
+                                            }
+
+                                            b.requests = requests;
+
+                                            q = app.db.sql.prepare("SELECT * FROM companyconfirmations WHERE blockId = $blockId");
+                                            q.bind({
+                                                $blockId : bignum(b.getId()).toBuffer({ size : 8 })
+                                            });
+                                            q.all(function (err, rows) {
+                                                if (err) {
+                                                    return c(err);
+                                                } else {
+                                                    var confirmations = [];
+                                                    async.eachSeries(rows, function (conf, _c) {
+                                                        var confirmation = new companyconfirmation(bignum.fromBuffer(conf.companyId, { size : 8 }).toString(), conf.verified, conf.timestamp, conf.signature);
+                                                        confirmations.push(confirmation);
+                                                        _c();
+                                                    }, function () {
+                                                        b.confirmations = confirmations;
+
+                                                        var a = false;
+                                                        if (b.getId() == genesisblock.blockId) {
+
+                                                            var r = b.requests[0];
+                                                            app.requestprocessor.confirmedRequests[r.address] = [r];
+
+                                                            a = b.analyze();
+                                                            app.blockchain.maxWeight = utils.epochTime();
+
+                                                            if (!a) {
+                                                                c("Can't process block: " + b.getId());
+                                                            } else {
+                                                                app.blockchain.blocks[b.getId()] = b;
+                                                                app.blockchain.lastBlock = b.getId();
+
+                                                                c();
+                                                            }
                                                         } else {
-                                                            var confirmations = [];
-                                                            async.eachSeries(rows, function (conf, _c) {
-                                                                var confirmation = new companyconfirmation(conf.companyId, conf.verified, conf.timestamp, conf.signature);
-                                                                confirmations.push(confirmation);
-                                                                _c();
-                                                            }, function () {
-                                                                b.confirmations = confirmations;
+                                                            var buffer = b.getBytes();
 
-                                                                var a = false;
-                                                                if (b.getId() == genesisblock.blockId) {
+                                                            for (var t in transactions) {
+                                                                buffer = Buffer.concat([buffer, transactions[t].getBytes()]);
+                                                            }
 
-                                                                    var r = b.requests[0];
-                                                                    app.requestprocessor.confirmedRequests[r.address] = [r];
+                                                            i = 0;
+                                                            for (i = 0; i < requests.length; i++) {
+                                                                buffer = Buffer.concat([buffer, requests[i].getBytes()]);
+                                                            }
 
-                                                                    a = b.analyze();
-                                                                    app.blockchain.maxWeight = utils.epochTime();
+                                                            for (i = 0; i < confirmations.length; i++) {
+                                                                buffer = Buffer.concat([buffer, confirmations[i].getBytes()]);
+                                                            }
 
-                                                                    if (!a) {
-                                                                        c("Can't process block: " + b.getId());
-                                                                    } else {
-                                                                        app.blockchain.blocks[b.getId()] = b;
-                                                                        app.blockchain.lastBlock = b.getId();
-
-                                                                        c();
-                                                                    }
-                                                                } else {
-                                                                    var buffer = b.getBytes();
-
-                                                                    for (var t in transactions) {
-                                                                        buffer = Buffer.concat([buffer, transactions[t].getBytes()]);
-                                                                    }
-
-                                                                    i = 0;
-                                                                    for (i = 0; i < requests.length; i++) {
-                                                                        buffer = Buffer.concat([buffer, requests[i].getBytes()]);
-                                                                    }
-
-                                                                    for (i = 0; i < confirmations.length; i++) {
-                                                                        buffer = Buffer.concat([buffer, confirmations[i].getBytes()]);
-                                                                    }
-
-                                                                    try {
-                                                                        a = app.blockchain.pushBlock(buffer, false);
-                                                                    } catch (e) {
-                                                                       a = false;
-                                                                       app.logger.error(e.toString());
-                                                                    }
-
-                                                                    if (!a) {
+                                                            try {
+                                                                app.blockchain.pushBlock(buffer, false, false, false, function (r) {
+                                                                    if (r) {
                                                                         app.badBlock = {
                                                                             id : b.getId(),
                                                                             height : b.height
@@ -542,21 +493,42 @@ async.series([
                                                                     } else {
                                                                         c();
                                                                     }
-
-
-                                                                }
-                                                            });
+                                                                });
+                                                            } catch (e) {
+                                                                app.logger.error(e.toString());
+                                                                return c(e);
+                                                            }
                                                         }
                                                     });
-                                                });
-                                            }
+                                                }
+                                            });
                                         });
-                                    });
-                                }
+                                    }
+                                });
                             });
-                        }, function () {
-                            cb();
-                        });
+                        }
+                    });
+                }, function () {
+                    cb();
+                });
+            } catch (e) {
+                cb(e);
+            }
+        });
+
+        /*initDb("./blockchain.db", app, function (err, db) {
+            if (err) {
+                cb(err);
+            } else {
+                return cb();
+
+
+                app.db = db;
+                app.db.readAllBlocks(function (err, blocks) {
+                    if (err) {
+                        cb(err);
+                    } else {
+
                     }
                 });
             }
