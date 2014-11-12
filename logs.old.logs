@@ -1,0 +1,18 @@
+{"level":"info","message":"Logger initialized","timestamp":"2014-11-08T18:22:12.231Z"}
+{"level":"info","message":"Load forging panel configruation","timestamp":"2014-11-08T18:22:12.232Z"}
+{"level":"info","message":"Initializing account processor...","timestamp":"2014-11-08T18:22:12.233Z"}
+{"level":"info","message":"Account processor initialized","timestamp":"2014-11-08T18:22:12.233Z"}
+{"level":"info","message":"Initializing transaction processor...","timestamp":"2014-11-08T18:22:12.233Z"}
+{"level":"info","message":"Transaction processor initialized","timestamp":"2014-11-08T18:22:12.233Z"}
+{"level":"info","message":"Initializing blockchain...","timestamp":"2014-11-08T18:22:12.233Z"}
+{"level":"info","message":"Blockchain initialized...","timestamp":"2014-11-08T18:22:12.233Z"}
+{"level":"info","message":"Initializing company processor...","timestamp":"2014-11-08T18:22:12.233Z"}
+{"level":"info","message":"Initializing peer processor...","timestamp":"2014-11-08T18:22:12.233Z"}
+{"level":"info","message":"Initialize request processor...","timestamp":"2014-11-08T18:22:12.234Z"}
+{"level":"info","message":"Initialize signature processor...","timestamp":"2014-11-08T18:22:12.234Z"}
+{"level":"info","message":"Load system info...","timestamp":"2014-11-08T18:22:12.234Z"}
+{"level":"info","message":"Initializing forger processor...","timestamp":"2014-11-08T18:22:12.234Z"}
+{"level":"info","message":"Initialize forger...","timestamp":"2014-11-08T18:22:12.234Z"}
+{"level":"info","message":"Provide secret phrase to start forging...","timestamp":"2014-11-08T18:22:12.234Z"}
+{"level":"info","message":"Crypti started: 0.0.0.0:7040","timestamp":"2014-11-08T18:22:12.237Z"}
+{"level":"info","message":"Initializing and scanning database...","timestamp":"2014-11-08T18:22:12.238Z"}
