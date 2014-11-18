@@ -306,11 +306,16 @@ async.series([
     },
     function (cb) {
         logger.getInstance().info("Initializing and scanning database...");
-        wait.launchFiber(function () {
-            try {
-                wait.for(initDb, "./blockchain.db", app);
+        initDb("./blockchain.db", app, function (err) {
+            if (err) {
+                return cb(err);
+            }
 
-                var blocks = wait.forMethod(app.db, 'readBlocks');
+            app.db.readBlocks(function (err, blocks) {
+                if (err) {
+                    return cb(err);
+                }
+
                 app.blocksCount = blocks.length;
 
                 async.eachSeries(blocks, function (item, c) {
@@ -351,14 +356,14 @@ async.series([
                                     if (tr.subtype === 0) {
                                         req = app.db.sql.prepare("SELECT * FROM signatures WHERE transactionId=$transactionId");
                                         req.bind({
-                                            $transactionId : bignum(tr.getId()).toBuffer({ size : 8 })
+                                            $transactionId : t.id
                                         });
                                         req.get(function (err, asset) {
                                             if (err) {
                                                 _c(err);
                                             } else {
                                                 tr.asset = new signature(asset.publicKey, asset.generatorPublicKey, asset.timestamp, asset.signature, asset.generationSignature);
-                                                tr.asset.blockId = bignum.fromBuffer(asset.blockId, { size : 8 }).toString();
+                                                tr.asset.blockId = b.getId();
                                                 tr.asset.transactionId = bignum.fromBuffer(asset.transactionId, { size : 8 }).toString();
 
                                                 transactions.push(tr);
@@ -370,14 +375,14 @@ async.series([
                                     if (tr.subtype === 0) {
                                         req = app.db.sql.prepare("SELECT * FROM companies WHERE transactionId=$transactionId");
                                         req.bind({
-                                            $transactionId : bignum(tr.getId()).toBuffer({ size : 8 })
+                                            $transactionId : t.id
                                         });
                                         req.get(function (err, asset) {
                                             if (err) {
                                                 _c(err);
                                             } else {
                                                 tr.asset = new company(asset.name, asset.description, asset.domain, asset.email, asset.timestamp, asset.generatorPublicKey, asset.signature);
-                                                tr.asset.blockId = bignum.fromBuffer(asset.blockId, { size : 8 }).toString();
+                                                tr.asset.blockId = b.getId();
                                                 tr.asset.transactionId = bignum.fromBuffer(asset.transactionId, { size : 8 }).toString();
 
                                                 transactions.push(tr);
@@ -511,28 +516,8 @@ async.series([
                 }, function () {
                     cb();
                 });
-            } catch (e) {
-                cb(e);
-            }
+            });
         });
-
-        /*initDb("./blockchain.db", app, function (err, db) {
-            if (err) {
-                cb(err);
-            } else {
-                return cb();
-
-
-                app.db = db;
-                app.db.readAllBlocks(function (err, blocks) {
-                    if (err) {
-                        cb(err);
-                    } else {
-
-                    }
-                });
-            }
-        });*/
     },
     function (cb) {
         logger.getInstance().debug("Find or add genesis block...");
