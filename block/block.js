@@ -54,7 +54,6 @@ var block = function (version, id, timestamp, previousBlock, transactions, total
     }
 }
 
-
 block.prototype.setApp = function (app) {
     this.app = app;
     this.blockchain = app.blockchain;
