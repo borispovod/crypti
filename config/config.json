@@ -3,8 +3,8 @@
     "address": "0.0.0.0",
     "serveHttpAPI": true,
     "serveHttpWallet": true,
-    "version": "0.1.6t",
-    "logLevel": "info",
+    "version": "0.1.8",
+    "logLevel": "debug",
     "sharePort" : true,
     "adminPanel": {
         "auth": {
