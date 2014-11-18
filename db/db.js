@@ -31,34 +31,6 @@ db.prototype.close = function () {
     this.sql = null;
 }
 
-db.prototype.deleteBlock = function (bId, callback) {
-    var sql = this.sql;
-    sql.serialize(function () {
-        sql.beginTransaction(function (err, dbTransaction) {
-            dbTransaction.run("DELETE FROM blocks WHERE id=?", bId);
-            dbTransaction.run("DELETE FROM trs WHERE blockId=?", bId);
-            dbTransaction.run("DELETE FROM companyconfirmations WHERE blockId=?", bId);
-            dbTransaction.run("DELETE FROM requests WHERE blockId=?", bId);
-            dbTransaction.run("DELETE FROM companies WHERE blockId=?", bId);
-            dbTransaction.run("DELETE FROM signatures WHERE blockId=?", bId);
-
-            dbTransaction.commit(function (err) {
-                if (err) {
-                    dbTransaction.rollback(function () {
-                        if (callback) {
-                            callback();
-                        }
-                    }.bind(this));
-                } else {
-                    if (callback) {
-                        callback();
-                    }
-                }
-            }.bind(this));
-        }.bind(this));
-    }.bind(this));
-}
-
 db.prototype.updateNextBlock = function (sql, block, nextBlock, callback) {
     sql.serialize(function () {
         var st = sql.prepare("UPDATE blocks SET nextBlock = $nextBlock WHERE id = $id");
@@ -109,7 +81,8 @@ db.prototype.writeBlock = function (block,  callback) {
                                             $id : bignum(transaction.asset.getId()).toBuffer({ size : 8 }),
                                             $transactionId : bignum(transaction.getId()).toBuffer({ size : 8 }),
                                             $timestamp : transaction.asset.timestamp,
-                                            $publicKey : transaction.asset.generatorPublicKey,
+                                            $publicKey : transaction.asset.publicKey,
+                                            $generatorPublicKey : transaction.asset.generatorPublicKey,
                                             $signature : transaction.asset.signature,
                                             $generationSignature : transaction.asset.generationSignature
                                         });
@@ -187,6 +160,7 @@ db.prototype.writeBlock = function (block,  callback) {
             }
         ], function (err) {
             if (err) {
+                console.log(err);
                 return callback(err);
             } else {
                 sql.serialize(function () {
@@ -236,12 +210,13 @@ db.prototype.writeBlock = function (block,  callback) {
     });
 }
 
+/*
 db.prototype.deleteFromHeight = function (height, callback) {
     var sql = this.sql,
         deleteBlock = this.deleteBlock;
 
     sql.serialize(function () {
-        var st = sql.prepare("SELECT id FROM blocks WHERE height = $height");
+        var st = sql.prepare("SELECT id FROM blocks WHERE height >= $height");
         st.bind({
             $height : height
         });
@@ -256,7 +231,7 @@ db.prototype.deleteFromHeight = function (height, callback) {
             }
         });
     });
-}
+}*/
 
 db.prototype.getAssetOfTransaction = function (transactionId, type, subtype, callback) {
     var sql = this.sql;
@@ -267,7 +242,7 @@ db.prototype.getAssetOfTransaction = function (transactionId, type, subtype, cal
         if (type == 2 && subtype == 0) {
             st = sql.prepare("SELECT * FROM signatures WHERE transactionId = $transactionId");
             st.bind({
-                $transactionId : transactionId
+                $transactionId : bignum(transactionId).toBuffer({ size : 8 })
             });
 
             st.get(function (err, signature) {
@@ -276,7 +251,7 @@ db.prototype.getAssetOfTransaction = function (transactionId, type, subtype, cal
         } else if (type == 3 && subtype == 0) {
             st = sql.prepare("SELECT * FROM companies WHERE transactionId = $transactionId");
             st.bind({
-                $transactionId : transactionId
+                $transactionId : bignum(transactionId).toBuffer({ size : 8 })
             });
 
             st.get(function (err, company) {
@@ -295,7 +270,7 @@ db.prototype.getTransactionsOfBlock = function (blockId, callback) {
     sql.serialize(function () {
         var st = sql.prepare("SELECT * FROM trs WHERE blockId = $blockId");
         st.bind({
-            $blockId : blockId
+            $blockId : bignum(blockId).toBuffer({ size : 8 })
         });
 
         st.all(function (err, transactions) {
@@ -329,7 +304,7 @@ db.prototype.getRequestsOfBlock = function (blockId, callback) {
     sql.serialize(function () {
         var st = sql.prepare("SELECt * FROM requests WHERE blockId = $blockId");
         st.bind({
-            $blockId : blockId
+            $blockId : bignum(blockId).toBuffer({ size : 8 })
         });
 
         st.all(function (err, requests) {
@@ -344,7 +319,7 @@ db.prototype.getConfirmationsOfBlock = function (blockId, callback) {
     sql.serialize(function () {
         var st = sql.prepare("SELECT * FROM companyconfirmations WHERE blockId = $blockId");
         st.bind({
-            $blockId : blockId
+            $blockId : bignum(blockId).toBuffer({ size : 8 })
         });
 
         st.all(function (err, companyconfirmations) {
@@ -359,7 +334,7 @@ db.prototype.deleteBlock = function (blockId, callback) {
     sql.serialize(function () {
         var st = sql.prepare("DELETE FROM blocks WHERE id = $id");
         st.bind({
-            $id : blockId
+            $id : bignum(blockId).toBuffer({ size : 8 })
         });
 
         st.run(function (err) {
@@ -386,22 +361,22 @@ module.exports.initDb = function (path, app, callback) {
     d.sql.serialize(function () {
         async.series([
             function (cb) {
-                d.sql.run("CREATE TABLE IF NOT EXISTS blocks USING fts4 (id BINARY(8) NOT NULL, version INT NOT NULL, timestamp INT NOT NULL, height INT NOT NULL, previousBlock BINARY(8), nextBlock BINARY(8), numberOfRequests INT NOT NULL, numberOfTransactions INT NOT NULL, numberOfConfirmations INT NOT NULL, totalAmount BIGINT NOT NULL, totalFee BIGINT NOT NULL, payloadLength INT NOT NULL, requestsLength INT NOT NULL, confirmationsLength INT NOT NULL, payloadHash BINARY(32) NOT NULL, generatorPublicKey BINARY(32) NOT NULL, generationSignature BINARY(64) NOT NULL, blockSignature BINARY(64) NOT NULL, FOREIGN KEY (previousBlock) REFERENCES blocks(id), FOREIGN KEY (nextBlock) REFERENCES blocks(id) ON DELETE CASCADE)", cb);
+                d.sql.run("CREATE TABLE IF NOT EXISTS blocks (id BINARY(8) PRIMARY KEY, version INT NOT NULL, timestamp INT NOT NULL, height INT NOT NULL, previousBlock BINARY(8), nextBlock BINARY(8), numberOfRequests INT NOT NULL, numberOfTransactions INT NOT NULL, numberOfConfirmations INT NOT NULL, totalAmount BIGINT NOT NULL, totalFee BIGINT NOT NULL, payloadLength INT NOT NULL, requestsLength INT NOT NULL, confirmationsLength INT NOT NULL, payloadHash BINARY(32) NOT NULL, generatorPublicKey BINARY(32) NOT NULL, generationSignature BINARY(64) NOT NULL, blockSignature BINARY(64) NOT NULL, FOREIGN KEY (previousBlock) REFERENCES blocks(id), FOREIGN KEY (nextBlock) REFERENCES blocks(id))", cb);
             },
             function (cb) {
-                d.sql.run("CREATE TABLE IF NOT EXISTS trs (id BINARY(8) NOT NULL, blockId BINARY(8) NOT NULL, type TINYINT NOT NULL, subtype TINYINT NOT NULL, timestamp INT NOT NULL, senderPublicKey BINARY(32) NOT NULL, sender BINARY(8) NOT NULL, recipientId BINARY(8) NOT NULL, amount BIGINT NOT NULL, fee BIGINT NOT NULL, signature BINARY(64) NOT NULL, signSignature BINARY(64), FOREIGN KEY(blockId) REFERENCES blocks(id) ON DELETE CASCADE)", cb);
+                d.sql.run("CREATE TABLE IF NOT EXISTS trs (id BINARY(8) PRIMARY KEY, blockId BINARY(8) NOT NULL, type TINYINT NOT NULL, subtype TINYINT NOT NULL, timestamp INT NOT NULL, senderPublicKey BINARY(32) NOT NULL, sender BINARY(8) NOT NULL, recipientId BINARY(8) NOT NULL, amount BIGINT NOT NULL, fee BIGINT NOT NULL, signature BINARY(64) NOT NULL, signSignature BINARY(64), FOREIGN KEY(blockId) REFERENCES blocks(id))", cb);
             },
             function (cb) {
-                d.sql.run("CREATE TABLE IF NOT EXISTS requests (id BINARY(8) NOT NULL, blockId BINARY(8) NOT NULL, address BINARY(8) NOT NULL, FOREIGN KEY(blockId) REFERENCES blocks(id) ON DELETE CASCADE)", cb);
+                d.sql.run("CREATE TABLE IF NOT EXISTS requests (id BINARY(8) PRIMARY KEY, blockId BINARY(8) NOT NULL, address BINARY(8) NOT NULL, FOREIGN KEY(blockId) REFERENCES blocks(id))", cb);
             },
             function (cb) {
-                d.sql.run("CREATE TABLE IF NOT EXISTS signatures (id BINARY(8) NOT NULL, transactionId BINARY(8) NOT NULL, timestamp INT NOT NULL, publicKey BINARY(32) NOT NULL, generatorPublicKey BINARY(32) NOT NULL, signature BINARY(64) NOT NULL, generationSignature BINARY(64) NOT NULL, FOREIGN KEY(transactionId) REFERENCES trs(id) ON DELETE CASCADE)", cb);
+                d.sql.run("CREATE TABLE IF NOT EXISTS signatures (id BINARY(8) PRIMARY KEY, transactionId BINARY(8) NOT NULL, timestamp INT NOT NULL, publicKey BINARY(32) NOT NULL, generatorPublicKey BINARY(32) NOT NULL, signature BINARY(64) NOT NULL, generationSignature BINARY(64) NOT NULL, FOREIGN KEY(transactionId) REFERENCES trs(id))", cb);
             },
             function (cb) {
-                d.sql.run("CREATE TABLE IF NOT EXISTS companies (id BINARY(8) NOT NULL, transactionId BINARY(8) NOT NULL, name VARCHAR(20) NOT NULL, description VARCHAR(250) NOT NULL, domain TEXT, email TEXT NOT NULL, timestamp INT NOT NULL, generatorPublicKey BINARY(32) NOT NULL, signature BINARY(32) NOT NULL, FOREIGN KEY(transactionId) REFERENCES trs(id) ON DELETE CASCADE)", cb)
+                d.sql.run("CREATE TABLE IF NOT EXISTS companies (id BINARY(8) PRIMARY KEY, transactionId BINARY(8) NOT NULL, name VARCHAR(20) NOT NULL, description VARCHAR(250) NOT NULL, domain TEXT, email TEXT NOT NULL, timestamp INT NOT NULL, generatorPublicKey BINARY(32) NOT NULL, signature BINARY(32) NOT NULL, FOREIGN KEY(transactionId) REFERENCES trs(id))", cb)
             },
             function (cb) {
-                d.sql.run("CREATE TABLE IF NOT EXISTS companyconfirmations (id BINARY(8) NOT NULL, blockId BINARY(8) NOT NULL, companyId BINARY(8) NOT NULL, verified TINYINT(1) NOT NULL, timestamp INT NOT NULL, signature BINARY(64) NOT NULL, FOREIGN KEY(blockId) REFERENCES blocks(id) ON DELETE CASCADE)", cb);
+                d.sql.run("CREATE TABLE IF NOT EXISTS companyconfirmations (id BINARY(8) PRIMARY KEY, blockId BINARY(8) NOT NULL, companyId BINARY(8) NOT NULL, verified TINYINT(1) NOT NULL, timestamp INT NOT NULL, signature BINARY(64) NOT NULL, FOREIGN KEY(blockId) REFERENCES blocks(id))", cb);
             }
         ], function (err) {
             callback(err, d);
