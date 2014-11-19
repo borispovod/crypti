@@ -21,6 +21,11 @@ var transaction = function(type, id, timestamp, senderPublicKey, recipientId, am
 
     this.height = 0;
     this.asset = null;
+    this.rowId = null;
+}
+
+transaction.prototype.setRowId = function (rowId) {
+    this.rowId = rowId;
 }
 
 transaction.prototype.isBuffer = function (b) {

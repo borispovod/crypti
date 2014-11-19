@@ -10,6 +10,11 @@ var signature = function (publicKey, generatorPublicKey, timestamp, signature, g
     this.timestamp = timestamp;
     this.signature = this.isBuffer(signature);
     this.generationSignature = this.isBuffer(generationSignature);
+    this.rowId = null;
+}
+
+signature.prototype.setRowId = function (rowId) {
+    this.rowId = rowId;
 }
 
 signature.prototype.isBuffer = function (b) {
