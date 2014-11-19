@@ -20,6 +20,11 @@ var company = function (name, description, domain, email, timestamp, generatorPu
     this.timestamp = timestamp;
     this.generatorPublicKey = generatorPublicKey;
     this.signature = signature;
+    this.rowId = null;
+}
+
+company.prototype.setRowId = function (rowId) {
+    this.rowId = rowId;
 }
 
 company.prototype.toJSON = function () {

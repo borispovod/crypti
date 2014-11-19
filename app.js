@@ -320,6 +320,7 @@ async.series([
 
                 async.eachSeries(blocks, function (item, c) {
                     var b = new block(item.version, null, item.timestamp, null, [], item.totalAmount, item.totalFee, item.payloadLength, item.payloadHash, item.generatorPublicKey, item.generationSignature, item.blockSignature);
+                    b.setRowId(item.rowid);
 
                     if (item.previousBlock) {
                         b.previousBlock = bignum.fromBuffer(item.previousBlock, { size : 8 }).toString()
@@ -335,9 +336,9 @@ async.series([
 
                     logger.getInstance().debug("Load block: " + b.getId() + ", height: " + b.height);
 
-                    var q = app.db.sql.prepare("SELECT * FROM trs WHERE blockId=$blockId");
+                    var q = app.db.sql.prepare("SELECT rowid, * FROM trs WHERE blockRowId=$blockRowId");
                     q.bind({
-                        $blockId : bignum(b.getId()).toBuffer({ size : 8 })
+                        $blockRowId : b.rowId
                     });
                     q.all(function (err, rows) {
                         if (err) {
@@ -346,6 +347,7 @@ async.series([
                             var transactions = [];
                             async.eachSeries(rows, function (t, _c) {
                                 var tr = new transaction(t.type, null, t.timestamp, t.senderPublicKey, bignum.fromBuffer(t.recipientId, { size : 8 }).toString() + "C", t.amount, t.signature);
+                                tr.setRowId(t.rowid);
 
                                 if (t.signSignature) {
                                     tr.signSignature = t.signSignature;
@@ -354,9 +356,9 @@ async.series([
                                 var req = null;
                                 if (tr.type == 2) {
                                     if (tr.subtype === 0) {
-                                        req = app.db.sql.prepare("SELECT * FROM signatures WHERE transactionId=$transactionId");
+                                        req = app.db.sql.prepare("SELECT rowid, * FROM signatures WHERE transactionRowId=$transactionRowId");
                                         req.bind({
-                                            $transactionId : t.id
+                                            $transactionRowId : tr.rowId
                                         });
                                         req.get(function (err, asset) {
                                             if (err) {
@@ -365,6 +367,7 @@ async.series([
                                                 tr.asset = new signature(asset.publicKey, asset.generatorPublicKey, asset.timestamp, asset.signature, asset.generationSignature);
                                                 tr.asset.blockId = b.getId();
                                                 tr.asset.transactionId = bignum.fromBuffer(asset.transactionId, { size : 8 }).toString();
+                                                tr.asset.setRowId(asset.rowid);
 
                                                 transactions.push(tr);
                                                 _c();
@@ -373,9 +376,9 @@ async.series([
                                     }
                                 } else if (tr.type == 3) {
                                     if (tr.subtype === 0) {
-                                        req = app.db.sql.prepare("SELECT * FROM companies WHERE transactionId=$transactionId");
+                                        req = app.db.sql.prepare("SELECT rowid, * FROM companies WHERE transactionRowId=$transactionRowId");
                                         req.bind({
-                                            $transactionId : t.id
+                                            $transactionRowId : tr.rowId
                                         });
                                         req.get(function (err, asset) {
                                             if (err) {
@@ -384,6 +387,7 @@ async.series([
                                                 tr.asset = new company(asset.name, asset.description, asset.domain, asset.email, asset.timestamp, asset.generatorPublicKey, asset.signature);
                                                 tr.asset.blockId = b.getId();
                                                 tr.asset.transactionId = bignum.fromBuffer(asset.transactionId, { size : 8 }).toString();
+                                                tr.asset.setRowId(asset.rowid);
 
                                                 transactions.push(tr);
                                                 _c();
@@ -404,9 +408,9 @@ async.series([
 
                                 b.transactions = transactions;
 
-                                q = app.db.sql.prepare("SELECT * FROM requests WHERE blockId=$blockId");
+                                q = app.db.sql.prepare("SELECT rowid,* FROM requests WHERE blockRowId=$blockRowId");
                                 q.bind({
-                                    $blockId : bignum(b.getId()).toBuffer({ size : 8 })
+                                    $blockRowId : b.rowId
                                 });
                                 q.all(function (err, rows) {
                                     if (err) {
@@ -415,6 +419,7 @@ async.series([
                                         var requests = [];
                                         async.eachSeries(rows, function (r, _c) {
                                             var request = new requestconfirmation(bignum.fromBuffer(r.address, { size : 8 }).toString() + "C");
+                                            request.setRowId(r.rowid);
                                             request.blockId = bignum.fromBuffer(r.blockId, { size : 8 }).toString();
                                             requests.push(request);
                                             _c();
@@ -425,9 +430,9 @@ async.series([
 
                                             b.requests = requests;
 
-                                            q = app.db.sql.prepare("SELECT * FROM companyconfirmations WHERE blockId = $blockId");
+                                            q = app.db.sql.prepare("SELECT rowid, * FROM companyconfirmations WHERE blockRowId = $blockRowId");
                                             q.bind({
-                                                $blockId : bignum(b.getId()).toBuffer({ size : 8 })
+                                                $blockRowId : b.rowId
                                             });
                                             q.all(function (err, rows) {
                                                 if (err) {
@@ -436,6 +441,7 @@ async.series([
                                                     var confirmations = [];
                                                     async.eachSeries(rows, function (conf, _c) {
                                                         var confirmation = new companyconfirmation(bignum.fromBuffer(conf.companyId, { size : 8 }).toString(), conf.verified, conf.timestamp, conf.signature);
+                                                        confirmation.setRowId(conf.rowid);
                                                         confirmations.push(confirmation);
                                                         _c();
                                                     }, function () {
@@ -476,6 +482,7 @@ async.series([
 
                                                             try {
                                                                 app.blockchain.pushBlock(buffer, false, false, false, function (r) {
+                                                                    console.log("done");
                                                                     if (r) {
                                                                         app.badBlock = {
                                                                             id : b.getId(),
@@ -493,15 +500,15 @@ async.series([
                                                                             app.badBlock = null;
                                                                             delete app.badBlock;
 
-                                                                            return c(true);
+                                                                            return setImmediate(function () { c(true) } );
                                                                         });
                                                                     } else {
-                                                                        c();
+                                                                        setImmediate(c);
                                                                     }
                                                                 });
                                                             } catch (e) {
                                                                 app.logger.error(e.toString());
-                                                                return c(e);
+                                                                return setImmediate(function () { c(e) } );
                                                             }
                                                         }
                                                     });
@@ -513,8 +520,8 @@ async.series([
                             });
                         }
                     });
-                }, function () {
-                    cb();
+                }, function (err) {
+                    cb(err);
                 });
             });
         });
