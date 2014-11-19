@@ -19,6 +19,11 @@ var request = function (id, blockId, ip, publicKey, lastAliveBlock, signature) {
     this.signature = signature;
     this.lastAliveBlock = lastAliveBlock;
     this.blockId = blockId;
+    this.rowId = null;
+}
+
+request.prototype.setRowId = function (rowId) {
+    this.rowId = rowId;
 }
 
 request.prototype.toJSON = function () {

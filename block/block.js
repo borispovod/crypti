@@ -46,6 +46,7 @@ var block = function (version, id, timestamp, previousBlock, transactions, total
     this.weight = bignum(0);
     this.generationWeight = bignum(1);
     this.removedWeights = [];
+    this.rowId = null;
 
     if (this.transactions) {
         this.numberOfTransactions = this.transactions.length;
@@ -59,6 +60,10 @@ block.prototype.setApp = function (app) {
     this.blockchain = app.blockchain;
     this.accountprocessor = app.accountprocessor;
     this.logger = app.logger;
+}
+
+block.prototype.setRowId = function (rowId) {
+    this.rowId = rowId;
 }
 
 block.prototype.toJSON = function () {

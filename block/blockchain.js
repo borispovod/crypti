@@ -885,7 +885,6 @@ blockchain.prototype.pushBlock = function (buffer, saveToDb, sendToPeers, checkR
     for (var r in b.requests) {
         var request = b.requests[r];
 
-        r
         var account = this.app.accountprocessor.getAccountById(request.address);
 
         if (!account) {

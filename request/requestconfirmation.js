@@ -6,6 +6,11 @@ var ed = require('ed25519'),
 
 var requestconfirmation = function (address) {
     this.address = address;
+    this.rowId = null;
+}
+
+requestconfirmation.prototype.setRowId = function (rowId) {
+    this.rowId = rowId;
 }
 
 requestconfirmation.prototype.getBytes = function () {
