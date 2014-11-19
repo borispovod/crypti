@@ -31,207 +31,188 @@ db.prototype.close = function () {
     this.sql = null;
 }
 
-db.prototype.updateNextBlock = function (sql, block, nextBlock, callback) {
-    sql.serialize(function () {
-        var st = sql.prepare("UPDATE blocks SET nextBlock = $nextBlock WHERE id = $id");
-        st.bind({
-            $nextBlock : bignum(nextBlock).toBuffer({ size : 8 }),
-            $id : bignum(block).toBuffer({ size : 8 })
-        });
-
-        st.run(function (err) {
-            return callback(err);
-        })
-    });
-}
 
 db.prototype.writeBlock = function (block,  callback) {
     var sql = this.sql,
         updateNextBlock = this.updateNextBlock;
 
     sql.serialize(function () {
-        async.series([
-            function (cb) {
-                async.eachSeries(block.transactions, function (transaction, c) {
-                    sql.serialize(function () {
-                        var st = sql.prepare("INSERT INTO trs(id, blockId, type, subtype, timestamp, senderPublicKey, sender, recipientId, amount, fee, signature,signSignature) VALUES($id, $blockId, $type, $subtype, $timestamp, $senderPublicKey, $sender, $recipientId, $amount, $fee, $signature, $signSignature)")
-                        st.bind({
-                            $id : bignum(transaction.getId()).toBuffer({ size : 8 }),
-                            $blockId : bignum(block.getId()).toBuffer({ size : 8 }),
-                            $type : transaction.type,
-                            $subtype : transaction.subtype,
-                            $timestamp : transaction.timestamp,
-                            $senderPublicKey : transaction.senderPublicKey,
-                            $sender : bignum(transaction.sender.substring(0, transaction.sender.length - 1)).toBuffer({ size : 8 }),
-                            $recipientId : bignum(transaction.recipientId).toBuffer({ size : 8 }),
-                            $amount : transaction.amount,
-                            $fee : transaction.fee,
-                            $signature : transaction.signature,
-                            $signSignature : transaction.signSignature
-                        })
+        var previousBlock = null;
+        if (block.previousBlock) {
+            previousBlock = bignum(block.previousBlock).toBuffer({ size: 8 })
+        }
 
-                        st.run(function (err) {
-                            if (err) {
-                                return c(err);
-                            } else {
-                                if (transaction.type == 2 && transaction.subtype == 0) {
-                                    sql.serialize(function () {
-                                        st = sql.prepare("INSERT INTO signatures(id, transactionId, timestamp, publicKey, generatorPublicKey, signature, generationSignature) VALUES($id, $transactionId, $timestamp, $publicKey, $generatorPublicKey, $signature, $generationSignature)");
-                                        st.bind({
-                                            $id : bignum(transaction.asset.getId()).toBuffer({ size : 8 }),
-                                            $transactionId : bignum(transaction.getId()).toBuffer({ size : 8 }),
-                                            $timestamp : transaction.asset.timestamp,
-                                            $publicKey : transaction.asset.publicKey,
-                                            $generatorPublicKey : transaction.asset.generatorPublicKey,
-                                            $signature : transaction.asset.signature,
-                                            $generationSignature : transaction.asset.generationSignature
-                                        });
+        var st = sql.prepare("INSERT INTO blocks(id, version, timestamp, previousBlock, numberOfRequests, numberOfTransactions, numberOfConfirmations, totalAmount, totalFee, payloadLength, requestsLength, confirmationsLength, payloadHash, generatorPublicKey, generationSignature, blockSignature, height) VALUES($id, $version, $timestamp, $previousBlock, $numberOfRequests, $numberOfTransactions, $numberOfConfirmations, $totalAmount, $totalFee, $payloadLength, $requestsLength, $confirmationsLength, $payloadHash, $generatorPublicKey, $generationSignature, $blockSignature, $height)");
+        st.bind({
+            $id : bignum(block.getId()).toBuffer({ size : 8 }),
+            $version : block.version,
+            $timestamp : block.timestamp,
+            $previousBlock : previousBlock,
+            $numberOfRequests : block.numberOfRequests,
+            $numberOfTransactions : block.numberOfTransactions,
+            $numberOfConfirmations : block.numberOfConfirmations,
+            $totalAmount : block.totalAmount,
+            $totalFee : block.totalFee,
+            $payloadLength : block.payloadLength,
+            $requestsLength : block.requestsLength,
+            $confirmationsLength : block.confirmationsLength,
+            $payloadHash : block.payloadHash,
+            $generatorPublicKey : block.generatorPublicKey,
+            $generationSignature : block.generationSignature,
+            $blockSignature : block.blockSignature,
+            $height : block.height
+        });
 
-                                        st.run(function (err) {
-                                            return c(err);
-                                        });
-                                    });
-                                } else if (transaction.type == 3 && transaction.subtype == 0) {
-                                    sql.serialize(function () {
-                                        st = sql.prepare("INSERT INTO companies(id, transactionId, name, description, domain, email, timestamp, generatorPublicKey, signature) VALUES($id, $transactionId, $name, $description, $domain, $email, $timestamp, $generatorPublicKey, $signature)");
-                                        st.bind({
-                                            $id : bignum(transaction.asset.getId()).toBuffer({ size : 8 }),
-                                            $transactionId : bignum(transaction.getId()).toBuffer({ size : 8 }),
-                                            $name : transaction.asset.name,
-                                            $description : transaction.asset.description,
-                                            $email : transaction.asset.email,
-                                            $timestamp : transaction.asset.timestamp,
-                                            $generatorPublicKey : transaction.asset.generatorPublicKey,
-                                            $signature : transaction.asset.signature
-                                        });
-
-                                        st.run(function (err) {
-                                            return c(err);
-                                        });
-                                    });
-                                } else {
-                                    c();
-                                }
-                            }
-                        });
-                    });
-                }, function (err) {
-                    return cb(err);
-                });
-            },
-            function (cb) {
-                async.eachSeries(block.requests, function (request, c) {
-                    sql.serialize(function () {
-                        var st = sql.prepare("INSERT INTO requests(id, blockId, address) VALUES($id, $blockId, $address)");
-                        st.bind({
-                            $id : bignum(request.getId()).toBuffer({ size : 8 }),
-                            $address : bignum(request.address.substr(0, request.address.length - 1)).toBuffer({ size : 8 }),
-                            $blockId : bignum(block.getId()).toBuffer({ size : 8 })
-                        });
-
-                        st.run(function (err) {
-                            return c(err);
-                        });
-                    });
-                }, function (err) {
-                    cb(err);
-                });
-            },
-            function (cb) {
-                async.eachSeries(block.confirmations, function (confirmation, c) {
-                    sql.serialize(function () {
-                        var st = sql.prepare("INSERT INTO companyconfirmations(id, blockId, companyId, verified, timestamp, signature) VALUES($id, $blockId, $companyId, $verified, $timestamp, $signature)");
-                        st.bind({
-                            $id : bignum(confirmation.getId()).toBuffer({ size : 8 }),
-                            $blockId : bignum(block.getId()).toBuffer({ size : 8 }),
-                            $companyId : bignum(confirmation.companyId).toBuffer({ size : 8 }),
-                            $verified : confirmation.verified,
-                            $timestamp : confirmation.timestamp,
-                            $signature : confirmation.signature
-                        });
-
-                        st.run(function (err) {
-                            return c(err);
-                        });
-                    });
-                }, function (err) {
-                    cb(err);
-                });
-            }
-        ], function (err) {
+        st.run(function (err) {
             if (err) {
-                console.log(err);
                 return callback(err);
             } else {
-                sql.serialize(function () {
+                var blockRowId = this.lastID;
+                block.setRowId(blockRowId);
 
-                    var previousBlock = null;
-                    if (block.previousBlock) {
-                        previousBlock = bignum(block.previousBlock).toBuffer({ size: 8 })
+                async.series([
+                    function (cb) {
+                        async.eachSeries(block.transactions, function (transaction, c) {
+                            sql.serialize(function () {
+                                var st = sql.prepare("INSERT INTO trs(id, blockId, blockRowId, type, subtype, timestamp, senderPublicKey, sender, recipientId, amount, fee, signature,signSignature) VALUES($id, $blockId, $blockRowId, $type, $subtype, $timestamp, $senderPublicKey, $sender, $recipientId, $amount, $fee, $signature, $signSignature)")
+                                st.bind({
+                                    $id : bignum(transaction.getId()).toBuffer({ size : 8 }),
+                                    $blockId : bignum(block.getId()).toBuffer({ size : 8 }),
+                                    $blockRowId : blockRowId,
+                                    $type : transaction.type,
+                                    $subtype : transaction.subtype,
+                                    $timestamp : transaction.timestamp,
+                                    $senderPublicKey : transaction.senderPublicKey,
+                                    $sender : bignum(transaction.sender.substring(0, transaction.sender.length - 1)).toBuffer({ size : 8 }),
+                                    $recipientId : bignum(transaction.recipientId).toBuffer({ size : 8 }),
+                                    $amount : transaction.amount,
+                                    $fee : transaction.fee,
+                                    $signature : transaction.signature,
+                                    $signSignature : transaction.signSignature
+                                })
+
+                                st.run(function (err) {
+                                    if (err) {
+                                        return c(err);
+                                    } else {
+                                        var transactionRowId = this.lastID;
+                                        transaction.setRowId(transactionRowId);
+
+                                        if (transaction.type == 2 && transaction.subtype == 0) {
+                                            sql.serialize(function () {
+                                                st = sql.prepare("INSERT INTO signatures(id, transactionId, transactionRowId, timestamp, publicKey, generatorPublicKey, signature, generationSignature) VALUES($id, $transactionId, $transactionRowId, $timestamp, $publicKey, $generatorPublicKey, $signature, $generationSignature)");
+                                                st.bind({
+                                                    $id : bignum(transaction.asset.getId()).toBuffer({ size : 8 }),
+                                                    $transactionId : bignum(transaction.getId()).toBuffer({ size : 8 }),
+                                                    $timestamp : transaction.asset.timestamp,
+                                                    $publicKey : transaction.asset.publicKey,
+                                                    $generatorPublicKey : transaction.asset.generatorPublicKey,
+                                                    $signature : transaction.asset.signature,
+                                                    $generationSignature : transaction.asset.generationSignature,
+                                                    $transactionRowId : transactionRowId
+                                                });
+
+                                                st.run(function (err) {
+                                                    if (!err) {
+                                                        transaction.asset.setRowId(this.lastID);
+                                                    }
+
+                                                    return c(err);
+                                                });
+                                            });
+                                        } else if (transaction.type == 3 && transaction.subtype == 0) {
+                                            sql.serialize(function () {
+                                                st = sql.prepare("INSERT INTO companies(id, transactionId, transactionRowId, name, description, domain, email, timestamp, generatorPublicKey, signature) VALUES($id, $transactionId, $transactionRowId, $name, $description, $domain, $email, $timestamp, $generatorPublicKey, $signature)");
+                                                st.bind({
+                                                    $id : bignum(transaction.asset.getId()).toBuffer({ size : 8 }),
+                                                    $transactionId : bignum(transaction.getId()).toBuffer({ size : 8 }),
+                                                    $name : transaction.asset.name,
+                                                    $description : transaction.asset.description,
+                                                    $email : transaction.asset.email,
+                                                    $timestamp : transaction.asset.timestamp,
+                                                    $generatorPublicKey : transaction.asset.generatorPublicKey,
+                                                    $signature : transaction.asset.signature,
+                                                    $transactionRowId : transactionRowId
+                                                });
+
+                                                st.run(function (err) {
+                                                    if (!err) {
+                                                        transaction.asset.setRowId(this.lastID);
+                                                    }
+
+                                                    return c(err);
+                                                });
+                                            });
+                                        } else {
+                                            c();
+                                        }
+                                    }
+                                });
+                            });
+                        }, function (err) {
+                            return cb(err);
+                        });
+                    },
+                    function (cb) {
+                        async.eachSeries(block.requests, function (request, c) {
+                            sql.serialize(function () {
+                                var st = sql.prepare("INSERT INTO requests(id, blockId, blockRowId, address) VALUES($id, $blockId, $blockRowId, $address)");
+                                st.bind({
+                                    $id : bignum(request.getId()).toBuffer({ size : 8 }),
+                                    $address : bignum(request.address.substr(0, request.address.length - 1)).toBuffer({ size : 8 }),
+                                    $blockId : bignum(block.getId()).toBuffer({ size : 8 }),
+                                    $blockRowId : blockRowId
+                                });
+
+                                st.run(function (err) {
+                                    if (!err) {
+                                        request.setRowId(this.lastID);
+                                    }
+
+                                    return c(err);
+                                });
+                            });
+                        }, function (err) {
+                            cb(err);
+                        });
+                    },
+                    function (cb) {
+                        async.eachSeries(block.confirmations, function (confirmation, c) {
+                            sql.serialize(function () {
+                                var st = sql.prepare("INSERT INTO companyconfirmations(id, blockId, blockRowId, companyId, verified, timestamp, signature) VALUES($id, $blockId, $blockRowId, $companyId, $verified, $timestamp, $signature)");
+                                st.bind({
+                                    $id : bignum(confirmation.getId()).toBuffer({ size : 8 }),
+                                    $blockId : bignum(block.getId()).toBuffer({ size : 8 }),
+                                    $companyId : bignum(confirmation.companyId).toBuffer({ size : 8 }),
+                                    $verified : confirmation.verified,
+                                    $timestamp : confirmation.timestamp,
+                                    $signature : confirmation.signature,
+                                    $blockRowId : blockRowId
+                                });
+
+                                st.run(function (err) {
+                                    if (!err) {
+                                        confirmation.setRowId(this.lastID);
+                                    }
+
+                                    return c(err);
+                                });
+                            });
+                        }, function (err) {
+                            cb(err);
+                        });
+                    }
+                ], function (err) {
+                    if (err) {
+                        console.log(err);
                     }
 
-                    var st = sql.prepare("INSERT INTO blocks(id, version, timestamp, previousBlock, numberOfRequests, numberOfTransactions, numberOfConfirmations, totalAmount, totalFee, payloadLength, requestsLength, confirmationsLength, payloadHash, generatorPublicKey, generationSignature, blockSignature, height) VALUES($id, $version, $timestamp, $previousBlock, $numberOfRequests, $numberOfTransactions, $numberOfConfirmations, $totalAmount, $totalFee, $payloadLength, $requestsLength, $confirmationsLength, $payloadHash, $generatorPublicKey, $generationSignature, $blockSignature, $height)");
-                    st.bind({
-                        $id : bignum(block.getId()).toBuffer({ size : 8 }),
-                        $version : block.version,
-                        $timestamp : block.timestamp,
-                        $previousBlock : previousBlock,
-                        $numberOfRequests : block.numberOfRequests,
-                        $numberOfTransactions : block.numberOfTransactions,
-                        $numberOfConfirmations : block.numberOfConfirmations,
-                        $totalAmount : block.totalAmount,
-                        $totalFee : block.totalFee,
-                        $payloadLength : block.payloadLength,
-                        $requestsLength : block.requestsLength,
-                        $confirmationsLength : block.confirmationsLength,
-                        $payloadHash : block.payloadHash,
-                        $generatorPublicKey : block.generatorPublicKey,
-                        $generationSignature : block.generationSignature,
-                        $blockSignature : block.blockSignature,
-                        $height : block.height
-                    });
-
-                    st.run(function (err) {
-                        if (err) {
-                            return callback(err);
-                        } else {
-                            if (block.previousBlock) {
-                                updateNextBlock(sql, block.previousBlock, block.getId(), function (err) {
-                                    return callback(err);
-                                });
-                            } else {
-                                return callback();
-                            }
-                        }
-                    });
-                });
-            }
-        });
-    });
-}
-
-/*
-db.prototype.deleteFromHeight = function (height, callback) {
-    var sql = this.sql,
-        deleteBlock = this.deleteBlock;
-
-    sql.serialize(function () {
-        var st = sql.prepare("SELECT id FROM blocks WHERE height >= $height");
-        st.bind({
-            $height : height
-        });
-
-        st.get(function (err, block) {
-            if (err) {
-                return callback(err);
-            } else {
-                deleteBlock(block.id, function (err) {
                     return callback(err);
                 });
             }
         });
     });
-}*/
+}
 
 db.prototype.getAssetOfTransaction = function (transactionId, type, subtype, callback) {
     var sql = this.sql;
@@ -302,7 +283,7 @@ db.prototype.getRequestsOfBlock = function (blockId, callback) {
     var sql = this.sql;
 
     sql.serialize(function () {
-        var st = sql.prepare("SELECt * FROM requests WHERE blockId = $blockId");
+        var st = sql.prepare("SELECT * FROM requests WHERE blockId = $blockId");
         st.bind({
             $blockId : bignum(blockId).toBuffer({ size : 8 })
         });
@@ -328,13 +309,13 @@ db.prototype.getConfirmationsOfBlock = function (blockId, callback) {
     });
 }
 
-db.prototype.deleteBlock = function (blockId, callback) {
+db.prototype.deleteBlock = function (rowId, callback) {
     var sql = this.sql;
 
     sql.serialize(function () {
-        var st = sql.prepare("DELETE FROM blocks WHERE id = $id");
+        var st = sql.prepare("DELETE FROM blocks WHERE rowId = $rowId");
         st.bind({
-            $id : bignum(blockId).toBuffer({ size : 8 })
+            $rowId : rowId
         });
 
         st.run(function (err) {
@@ -347,7 +328,7 @@ db.prototype.readBlocks = function (callback) {
     var sql = this.sql;
 
     sql.serialize(function () {
-        sql.all("SELECT * FROM blocks ORDER BY height", function (err, blocks) {
+        sql.all("SELECT rowid, * FROM blocks ORDER BY height", function (err, blocks) {
             callback(err, blocks);
         });
     })
@@ -361,24 +342,42 @@ module.exports.initDb = function (path, app, callback) {
     d.sql.serialize(function () {
         async.series([
             function (cb) {
-                d.sql.run("CREATE TABLE IF NOT EXISTS blocks (id BINARY(8) PRIMARY KEY, version INT NOT NULL, timestamp INT NOT NULL, height INT NOT NULL, previousBlock BINARY(8), nextBlock BINARY(8), numberOfRequests INT NOT NULL, numberOfTransactions INT NOT NULL, numberOfConfirmations INT NOT NULL, totalAmount BIGINT NOT NULL, totalFee BIGINT NOT NULL, payloadLength INT NOT NULL, requestsLength INT NOT NULL, confirmationsLength INT NOT NULL, payloadHash BINARY(32) NOT NULL, generatorPublicKey BINARY(32) NOT NULL, generationSignature BINARY(64) NOT NULL, blockSignature BINARY(64) NOT NULL, FOREIGN KEY (previousBlock) REFERENCES blocks(id), FOREIGN KEY (nextBlock) REFERENCES blocks(id))", cb);
+                d.sql.run("CREATE TABLE IF NOT EXISTS blocks (id BINARY(8) UNIQUE, version INT NOT NULL, timestamp INT NOT NULL, height INT NOT NULL, previousBlock BINARY(8), numberOfRequests INT NOT NULL, numberOfTransactions INT NOT NULL, numberOfConfirmations INT NOT NULL, totalAmount BIGINT NOT NULL, totalFee BIGINT NOT NULL, payloadLength INT NOT NULL, requestsLength INT NOT NULL, confirmationsLength INT NOT NULL, payloadHash BINARY(32) NOT NULL, generatorPublicKey BINARY(32) NOT NULL, generationSignature BINARY(64) NOT NULL, blockSignature BINARY(64) NOT NULL, FOREIGN KEY (previousBlock) REFERENCES blocks(id))", cb);
             },
             function (cb) {
-                d.sql.run("CREATE TABLE IF NOT EXISTS trs (id BINARY(8) PRIMARY KEY, blockId BINARY(8) NOT NULL, type TINYINT NOT NULL, subtype TINYINT NOT NULL, timestamp INT NOT NULL, senderPublicKey BINARY(32) NOT NULL, sender BINARY(8) NOT NULL, recipientId BINARY(8) NOT NULL, amount BIGINT NOT NULL, fee BIGINT NOT NULL, signature BINARY(64) NOT NULL, signSignature BINARY(64), FOREIGN KEY(blockId) REFERENCES blocks(id))", cb);
+                d.sql.run("CREATE TABLE IF NOT EXISTS trs (id BINARY(8) UNIQUE, blockId BINARY(8) NOT NULL, blockRowId INTEGER NOT NULL, type TINYINT NOT NULL, subtype TINYINT NOT NULL, timestamp INT NOT NULL, senderPublicKey BINARY(32) NOT NULL, sender BINARY(8) NOT NULL, recipientId BINARY(8) NOT NULL, amount BIGINT NOT NULL, fee BIGINT NOT NULL, signature BINARY(64) NOT NULL, signSignature BINARY(64), FOREIGN KEY(blockId) REFERENCES blocks(id), FOREIGN KEY(blockRowId) REFERENCES blocks(rowid))", cb);
             },
             function (cb) {
-                d.sql.run("CREATE TABLE IF NOT EXISTS requests (id BINARY(8) PRIMARY KEY, blockId BINARY(8) NOT NULL, address BINARY(8) NOT NULL, FOREIGN KEY(blockId) REFERENCES blocks(id))", cb);
+                d.sql.run("CREATE TABLE IF NOT EXISTS requests (id BINARY(8) UNIQUE, blockId BINARY(8) NOT NULL, blockRowId INTEGER NOT NULL, address BINARY(8) NOT NULL, FOREIGN KEY(blockId) REFERENCES blocks(id), FOREIGN KEY(blockRowId) REFERENCES blocks(rowid))", cb);
             },
             function (cb) {
-                d.sql.run("CREATE TABLE IF NOT EXISTS signatures (id BINARY(8) PRIMARY KEY, transactionId BINARY(8) NOT NULL, timestamp INT NOT NULL, publicKey BINARY(32) NOT NULL, generatorPublicKey BINARY(32) NOT NULL, signature BINARY(64) NOT NULL, generationSignature BINARY(64) NOT NULL, FOREIGN KEY(transactionId) REFERENCES trs(id))", cb);
+                d.sql.run("CREATE TABLE IF NOT EXISTS signatures (id BINARY(8) UNIQUE, transactionId BINARY(8) NOT NULL, transactionRowId INTEGER NOT NULL, timestamp INT NOT NULL, publicKey BINARY(32) NOT NULL, generatorPublicKey BINARY(32) NOT NULL, signature BINARY(64) NOT NULL, generationSignature BINARY(64) NOT NULL, FOREIGN KEY(transactionId) REFERENCES trs(id), FOREIGN KEY(transactionRowId) REFERENCES trs(rowid))", cb);
             },
             function (cb) {
-                d.sql.run("CREATE TABLE IF NOT EXISTS companies (id BINARY(8) PRIMARY KEY, transactionId BINARY(8) NOT NULL, name VARCHAR(20) NOT NULL, description VARCHAR(250) NOT NULL, domain TEXT, email TEXT NOT NULL, timestamp INT NOT NULL, generatorPublicKey BINARY(32) NOT NULL, signature BINARY(32) NOT NULL, FOREIGN KEY(transactionId) REFERENCES trs(id))", cb)
+                d.sql.run("CREATE TABLE IF NOT EXISTS companies (id BINARY(8) UNIQUE, transactionId BINARY(8) NOT NULL, transactionRowId INTEGER NOT NULL, name VARCHAR(20) NOT NULL, description VARCHAR(250) NOT NULL, domain TEXT, email TEXT NOT NULL, timestamp INT NOT NULL, generatorPublicKey BINARY(32) NOT NULL, signature BINARY(32) NOT NULL, FOREIGN KEY(transactionId) REFERENCES trs(id), FOREIGN KEY(transactionRowId) REFERENCES trs(rowid))", cb)
             },
             function (cb) {
-                d.sql.run("CREATE TABLE IF NOT EXISTS companyconfirmations (id BINARY(8) PRIMARY KEY, blockId BINARY(8) NOT NULL, companyId BINARY(8) NOT NULL, verified TINYINT(1) NOT NULL, timestamp INT NOT NULL, signature BINARY(64) NOT NULL, FOREIGN KEY(blockId) REFERENCES blocks(id))", cb);
+                d.sql.run("CREATE TABLE IF NOT EXISTS companyconfirmations (id BINARY(8) UNIQUE, blockId BINARY(8) NOT NULL, blockRowId INTEGER NOT NULL, companyId BINARY(8) NOT NULL, verified TINYINT(1) NOT NULL, timestamp INT NOT NULL, signature BINARY(64) NOT NULL, FOREIGN KEY(blockId) REFERENCES blocks(id), FOREIGN KEY(blockRowId) REFERENCES blocks(rowid))", cb);
+            },
+            function (cb) {
+                d.sql.run("CREATE INDEX IF NOT EXISTS block_row_trs_id ON trs (blockRowId)", cb);
+            },
+            function (cb) {
+                d.sql.run("CREATE INDEX IF NOT EXISTS block_row_requests_id ON requests(blockRowId)", cb);
+            },
+            function (cb) {
+                d.sql.run("CREATE INDEX IF NOT EXISTS transaction_row_signatures_id ON signatures(transactionRowId)", cb);
+            },
+            function (cb) {
+                d.sql.run("CREATE INDEX IF NOT EXISTS transaction_row_companies_id ON companies(transactionRowId)", cb);
+            },
+            function (cb) {
+                d.sql.run("CREATE INDEX IF NOT EXISTS block_row_confirmations_id ON companyconfirmations(blockId)", cb);
             }
         ], function (err) {
+            if (err) {
+                console.log(err);
+            }
             callback(err, d);
         });
     });
