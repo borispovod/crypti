@@ -346,8 +346,14 @@ async.series([
                         } else {
                             var transactions = [];
                             async.eachSeries(rows, function (t, _c) {
-                                var tr = new transaction(t.type, null, t.timestamp, t.senderPublicKey, bignum.fromBuffer(t.recipientId, { size : 8 }).toString() + "C", t.amount, t.signature);
+                                var tr = new transaction(t.type, null, t.timestamp, t.senderPublicKey, bignum.fromBuffer(t.recipientId, { size : 8 }).toString(), t.amount, t.signature);
                                 tr.setRowId(t.rowid);
+
+                                if (t.type == 1 && t.subtype == 0) {
+                                    tr.recipientId += "D";
+                                } else {
+                                    tr.recipientId += "C";
+                                }
 
                                 if (t.signSignature) {
                                     tr.signSignature = t.signSignature;
@@ -370,7 +376,7 @@ async.series([
                                                 tr.asset.setRowId(asset.rowid);
 
                                                 transactions.push(tr);
-                                                _c();
+                                                setImmediate(_c);
                                             }
                                         });
                                     }
@@ -390,16 +396,16 @@ async.series([
                                                 tr.asset.setRowId(asset.rowid);
 
                                                 transactions.push(tr);
-                                                _c();
+                                                setImmediate(_c);
                                             }
                                         });
                                     } else {
                                         transactions.push(tr);
-                                        _c();
+                                        setImmediate(_c);
                                     }
                                 } else {
                                     transactions.push(tr);
-                                    _c();
+                                    setImmediate(_c);
                                 }
                             }, function (err) {
                                 if (err) {
@@ -422,7 +428,7 @@ async.series([
                                             request.setRowId(r.rowid);
                                             request.blockId = bignum.fromBuffer(r.blockId, { size : 8 }).toString();
                                             requests.push(request);
-                                            _c();
+                                            setImmediate(_c);
                                         }.bind(this), function (err) {
                                             if (err) {
                                                 return c(err);
@@ -443,7 +449,7 @@ async.series([
                                                         var confirmation = new companyconfirmation(bignum.fromBuffer(conf.companyId, { size : 8 }).toString(), conf.verified, conf.timestamp, conf.signature);
                                                         confirmation.setRowId(conf.rowid);
                                                         confirmations.push(confirmation);
-                                                        _c();
+                                                        setImmediate(_c);
                                                     }, function () {
                                                         b.confirmations = confirmations;
 
@@ -482,7 +488,6 @@ async.series([
 
                                                             try {
                                                                 app.blockchain.pushBlock(buffer, false, false, false, function (r) {
-                                                                    console.log("done");
                                                                     if (r) {
                                                                         app.badBlock = {
                                                                             id : b.getId(),
@@ -503,6 +508,38 @@ async.series([
                                                                             return setImmediate(function () { c(true) } );
                                                                         });
                                                                     } else {
+                                                                        // добавляем rowid для всего материала
+                                                                        var block = app.blockchain.getBlock(b.getId());
+
+                                                                        for (var i = 0; i < block.transactions.length; i++) {
+                                                                            for (var j = 0; j < b.transactions.length; j++) {
+                                                                                if (block.transactions[i].getId() == b.transactions[j].getId()) {
+                                                                                    block.transactions[i].rowId = b.transactions[j].rowId;
+
+                                                                                    if (block.transactions[i].asset) {
+                                                                                        block.transactions[i].asset.rowId = b.transactions[j].asset.rowId;
+                                                                                    }
+                                                                                }
+                                                                            }
+                                                                        }
+
+                                                                        for (var i = 0; i < block.requests.length; i++) {
+                                                                            for (var j = 0; j < b.requests.length; j++) {
+                                                                                if (block.requests[i].getId() == b.requests[j].getId()) {
+                                                                                    block.requests[i].rowId = b.requests[j].rowId;
+                                                                                }
+                                                                            }
+                                                                        }
+
+                                                                        for (var i = 0; i < block.confirmations.length; i++) {
+                                                                            for (var j = 0; j < b.confirmations.length; j++) {
+                                                                                if (block.confirmations[i].getId() == b.confirmations[j].getId()) {
+                                                                                    block.confirmations[i].rowId = b.confirmations[j].rowId;
+                                                                                }
+                                                                            }
+                                                                        }
+
+
                                                                         setImmediate(c);
                                                                     }
                                                                 });
