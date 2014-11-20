@@ -532,50 +532,50 @@ module.exports = function (app) {
             if (savedBlock) {
                 app.blockchain.popLastBlock(function () {
                     try {
-                        var r = app.blockchain.pushBlock(buffer, true, true, false);
+                        app.blockchain.pushBlock(buffer, true, true, false, function (r) {
+                            if (!r) {
+                                return res.json({ success: true, accepted: true });
+                            } else {
+                                buffer = savedBlock.getBytes();
+
+                                for (var i = 0; i < savedBlock.transactions.length; i++) {
+                                    buffer = Buffer.concat([buffer, savedBlock.transactions[i].getBytes()]);
+                                }
+
+                                for (var r in savedBlock.requests) {
+                                    buffer = Buffer.concat([buffer, savedBlock.requests[r].getBytes()]);
+                                }
+
+                                for (var i = 0; i < savedBlock.confirmations.length; i++) {
+                                    buffer = Buffer.concat([buffer, savedBlock.confirmations[i].getBytes()]);
+                                }
+
+                                app.blockchain.pushBlock(buffer, true, true, false, function () {
+                                    return res.json({ success: false, accepted: false });
+                                });
+                            }
+                        });
                     } catch (e) {
                         r = false;
                         app.peerprocessor.blockPeer(ip);
                         this.app.logger.error(e.toString());
-                    }
-
-                    if (r) {
-                        return res.json({ success: true, accepted: true });
-                    } else {
-                        buffer = savedBlock.getBytes();
-
-                        for (var i = 0; i < savedBlock.transactions.length; i++) {
-                            buffer = Buffer.concat([buffer, savedBlock.transactions[i].getBytes()]);
-                        }
-
-                        for (var r in savedBlock.requests) {
-                            buffer = Buffer.concat([buffer, savedBlock.requests[r].getBytes()]);
-                        }
-
-                        for (var i = 0; i < savedBlock.confirmations.length; i++) {
-                            buffer = Buffer.concat([buffer, savedBlock.confirmations[i].getBytes()]);
-                        }
-
-                        app.blockchain.pushBlock(buffer, true, true, false);
-
-                        return res.json({ success: false, accepted: false });
                     }
                 });
             } else {
                 var r = false;
 
                 try {
-                    r = app.blockchain.pushBlock(buffer, true, true, false);
+                    r = app.blockchain.pushBlock(buffer, true, true, false, function () {
+                        if (!r) {
+                            return res.json({ success: true, accepted: true });
+                        } else {
+                            return res.json({ success: false, accepted: false });
+                        }
+                    });
                 } catch (e) {
                     r = false;
                     app.peerprocessor.blockPeer(ip);
                     this.app.logger.error(e.toString());
-                }
-
-                if (r) {
-                    return res.json({ success: true, accepted: true });
-                } else {
-                    return res.json({ success: false, accepted: false });
                 }
             }
         } catch (e) {
