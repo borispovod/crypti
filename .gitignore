@@ -1,4 +1,5 @@
 logs.log
+logs.old.log
 .project
 .DS_Store
 node_modules
