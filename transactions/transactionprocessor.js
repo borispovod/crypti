@@ -301,7 +301,7 @@ transactionprocessor.prototype.transactionFromBuffer = function (bb) {
 
     var recipient = bignum.fromBuffer(recipientBuffer, { size : '8' }).toString();
 
-    if (t.type == 1) {
+    if (t.type == 1 && t.subtype == 0) {
         t.recipientId = recipient + "D";
     } else {
         t.recipientId = recipient + "C";
