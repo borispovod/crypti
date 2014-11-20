@@ -411,7 +411,7 @@ blockchain.prototype.popLastBlock = function (cb) {
     this.nextFeeVolume = lastBlock.nextFeeVolume;
     this.actualFeeVolume = lastBlock.actualFeeVolume;
 
-    var toDelete = lastBlock.getId();
+    var toDelete = lastBlock.rowId;
     this.blocks[lastBlock.getId()] = null;
     delete this.blocks[lastBlock.getId()];
 

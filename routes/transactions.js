@@ -3,7 +3,8 @@ var async = require('async'),
     _ = require('underscore'),
     utils = require('../utils.js'),
     ByteBuffer = require('bytebuffer'),
-    genesisblock = require('../block').genesisblock;
+    genesisblock = require('../block').genesisblock,
+    bignum = require('bignum');
 
 module.exports = function (app) {
     var getFee = function (item) {
@@ -50,47 +51,43 @@ module.exports = function (app) {
                 return res.json({ success: false, error: "Provide block id", status: "PROVIDE_BLOCK_ID" });
             }
 
+            var block = app.blockchain.getBlock(blockId);
+
+            if (!blockId) {
+                return res.json({ success : false, error : "Block not found", status : "INVALID_BLOCK_ID" });
+            }
+
             app.db.sql.serialize(function () {
-                app.db.sql.all("SELECT * FROM blocks WHERE id=? LIMIT 1", [blockId], function (err, rows) {
+                app.db.sql.all("SELECT * FROM blocks WHERE rowid=? LIMIT 1", [block.rowId], function (err, rows) {
                     if (err) {
                         app.logger.error(err);
                         return res.json({ success: false, success: false, error: "Sql error", status: "SQL_ERROR" });
                     } else {
                         async.forEach(rows, function (item, callback) {
+                            item.id = bignum.fromBuffer(item.id, { size : '8' });
+                            item.previousBlock = bignum.fromBuffer(item.id, { size : '8' });
                             item.nextBlock = app.blockchain.blocks[item.id].nextBlock;
                             item.timestamp += utils.epochTime();
                             item.generator = app.accountprocessor.getAddressByPublicKey(new Buffer(item.generatorPublicKey, 'hex'));
 
-                            var refs = item.refs;
-
-                            var numberOfTransactions = item.numberOfTransactions;
-                            if (item.id == genesisblock.blockId) {
-                                numberOfTransactions = 13;
-                            }
-
-                            var trsIds = "",
-                                requestsIds = "",
-                                companyconfirmationsIds = "";
-
-                            var bb = ByteBuffer.wrap(refs);
-
-                            var i = 0;
-                            for (i = 0; i < numberOfTransactions; i++) {
-                                trsIds += bb.readInt64();
-
-                                if (i+1 != numberOfTransactions) {
-                                    trsIds += ',';
-                                }
-                            }
-
                             app.db.sql.serialize(function () {
-                                app.db.sql.all("SELECT * FROM trs WHERE rowid IN (" + trsIds + ")", function (err, rows) {
+                                app.db.sql.all("SELECT * FROM trs WHERE blockRowId = $blockRowId", { $blockRowId : block.rowId }, function (err, rows) {
                                     if (err) {
                                         callback(err);
                                     } else {
                                         item.transactions = rows;
 
                                         async.forEach(item.transactions, function (t, cb) {
+                                            t.id = bignum.fromBuffer(item.id, { size : 8 }).toString();
+                                            t.blockId = bignum.fromBuffer(item.blockId, { size : 8 }).toString();
+                                            t.recipientId = bignum.fromBuffer(item.recipientId, { size : 8 }).toString();
+
+                                            if (t.type == 1 && t.subtype == 0) {
+                                                t.recipientId += "D";
+                                            } else {
+                                                t.recipientId += "C";
+                                            }
+
                                             t.timestamp += utils.epochTime();
                                             t.sender = app.accountprocessor.getAddressByPublicKey(new Buffer(t.senderPublicKey, 'hex'));
                                             cb();
@@ -155,14 +152,32 @@ module.exports = function (app) {
                     return res.json({ success: false, status: "SQL_ERROR", error: "Sql error"});
                 } else {
                     async.forEach(trs, function (t, cb) {
-                        var blockId = t.blockId;
+                        var blockId = bignum.fromBuffer(t.blockId, { size : 8 });
+
+                        if (!app.blockchain.blocks[blockId]) {
+                            return cb(true);
+                        }
+
+                        t.id = bignum.fromBuffer(t.id, { size : 8 }).toString();
+                        t.recipientId = bignum.fromBuffer(t.recipientId, { size : 8 }).toString();
+
+                        if (t.type == 1 && t.subtype == 0) {
+                            t.recipientId += "D";
+                        } else {
+                            t.recipientId += "C";
+                        }
+
                         t.confirmations = app.blockchain.getLastBlock().height - app.blockchain.blocks[blockId].height + 1;
                         t.sender = app.accountprocessor.getAddressByPublicKey(new Buffer(t.senderPublicKey, 'hex'));
                         t.timestamp += utils.epochTime();
                         t.confirmed = true;
                         cb();
-                    }, function () {
-                        return res.json({ success: true, transactions: trs, status: "OK" });
+                    }, function (err) {
+                        if (err) {
+                            return res.json({ success : false, status : "ERROR", error : "Internal error" });
+                        } else {
+                            return res.json({ success: true, transactions: trs, status: "OK" });
+                        }
                     });
                 }
             });
@@ -181,12 +196,32 @@ module.exports = function (app) {
                 return res.json({ success: false, error: "Provide transaction id", status: "PROVIDE_TRANSACTION_ID" });
             }
 
-                app.db.sql.get("SELECT * FROM trs WHERE id=? LIMIT 1", [transactionId], function (err, t) {
+            var transaction = app.transactionrprocessor.getTransaction(transactionId);
+
+            if (!transaction) {
+                return res.json({ success: false, status: "TRANSACTION_NOT_FOUND", error: "Transaction not found" })
+            }
+
+                app.db.sql.get("SELECT * FROM trs WHERE rowid=? LIMIT 1", [transaction.rowId], function (err, t) {
                     if (err) {
                         return res.json({ success: false, status: "SQL_ERROR", error: "Sql error"});
                     } else {
                         if (t) {
-                            var blockId = t.blockId;
+                            var blockId = bignum.fromBuffer(t.blockId, { size : 8 });
+
+                            if (!app.blockchain.blocks[blockId]) {
+                                return res.json({ success : false, error : "Internal error", status : "INTERNAL_ERROR_TRY_AGAIN" });
+                            }
+
+                            t.id = bignum.fromBuffer(t.id, { size : 8 }).toString();
+                            t.recipientId = bignum.fromBuffer(t.recipientId, { size : 8 }).toString();
+
+                            if (t.type == 1 && t.subtype == 0) {
+                                t.recipientId += "D";
+                            } else {
+                                t.recipientId += "C";
+                            }
+
                             t.confirmations = app.blockchain.getLastBlock().height - app.blockchain.blocks[blockId].height + 1;
                             t.sender = app.accountprocessor.getAddressByPublicKey(new Buffer(t.senderPublicKey, 'hex'));
                             t.timestamp += utils.epochTime();
@@ -225,12 +260,18 @@ module.exports = function (app) {
                 return res.json({ success: false, error: "Provide transaction id", status: "Provide transaction id" });
             }
 
-                app.db.sql.get("SELECT * FROM trs WHERE id=? LIMIT 1", [transactionId], function (err, t) {
+            var transaction = app.transactionrprocessor.getTransaction(transactionId);
+
+            if (!transaction) {
+                return res.json({ success: false, status: "TRANSACTION_NOT_FOUND", error: "Transaction not found" })
+            }
+
+                app.db.sql.get("SELECT * FROM trs WHERE rowid=? LIMIT 1", [transaction.rowId], function (err, t) {
                     if (err) {
                         return res.json({ success: false, status: "SQL_ERROR", error: "Sql error"});
                     } else {
                         if (t) {
-                            var blockId = t.blockId;
+                            var blockId = bignum.fromBuffer(t.blockId, { size : 8 }).toString();
 
                             return res.json({ success: true, status: "OK", blockId: blockId });
                         } else {
@@ -253,12 +294,23 @@ module.exports = function (app) {
                 return res.json({ success: false, error: "Provide transaction id", status: "Provide transaction id" });
             }
 
-                app.db.sql.get("SELECT * FROM trs WHERE id=? LIMIT 1", [transactionId], function (err, t) {
+            var transaction = app.transactionrprocessor.getTransaction(transactionId);
+
+            if (!transaction) {
+                return res.json({ success: false, status: "TRANSACTION_NOT_FOUND", error: "Transaction not found" })
+            }
+
+                app.db.sql.get("SELECT * FROM trs WHERE rowid=? LIMIT 1", [transaction.rowId], function (err, t) {
                     if (err) {
                         return res.json({ success: false, status: "SQL_ERROR", error: "Sql error"});
                     } else {
                         if (t) {
-                            var blockId = t.blockId;
+                            var blockId = bignum.fromBuffer(t.blockId, { size : 8 }).toString();
+
+                            if (!app.blockchain.blocks[blockId]) {
+                                return res.json({ success: false, status: "INTERNAL_ERROR", error: "Internal error" });
+                            }
+
                             var confirmations = app.blockchain.getLastBlock().height - app.blockchain.blocks[blockId].height + 1;
                             return res.json({ success: true, confirmations: confirmations, status: "OK" });
                         } else {
@@ -323,14 +375,14 @@ module.exports = function (app) {
             var a = [];
             addresses = _.filter(addresses, function (v) {
                 if (app.accountprocessor.getAddressByPublicKey(v.generatorPublicKey) == accountId) {
-                    a.push(v.address);
+                    a.push(bignum(v.address).toBuffer({ size : 8 }));
                     return true;
                 }
             });
 
                 var q = app.db.sql.prepare("SELECT * FROM trs WHERE (recipientId=$accountId OR sender=$accountId OR recipientId IN " + JSON.stringify(a).replace('[', '(').replace(']', ')') + ") ORDER BY timestamp " + desc + " LIMIT " + limit + " OFFSET " + offset);
                 q.bind({
-                    $accountId: accountId
+                    $accountId: bignum(accountId).toBuffer({ size : 8 })
                 });
                 q.all(function (err, rows) {
                     if (err) {
@@ -343,10 +395,20 @@ module.exports = function (app) {
 
                         var transactions = [];
                         async.eachSeries(rows, function (item, cb) {
-                            var blockId = item.blockId;
+                            var blockId = bignum.fromBuffer(item.blockId, { size : 8 }).toString();
                             if (!app.blockchain.blocks[blockId]) {
                                 cb();
                             } else {
+                                item.id = bignum.fromBuffer(item.id, { size : 8 }).toString();
+                                item.recipientId = bignum.fromBuffer(t.recipientId, { size : 8 }).toString();
+
+                                if (t.type == 1 && t.subtype == 0) {
+                                    item.recipientId += "D";
+                                } else {
+                                    item.recipientId += "C";
+                                }
+
+                                item.blockId = blockId;
                                 item.confirmations = app.blockchain.getLastBlock().height - app.blockchain.blocks[blockId].height + 1;
                                 item.sender = app.accountprocessor.getAddressByPublicKey(new Buffer(item.senderPublicKey, 'hex'));
                                 item.timestamp += utils.epochTime();
@@ -389,7 +451,7 @@ module.exports = function (app) {
         try {
             var accountId = req.query.address || "";
                 var q = app.db.sql.prepare("SELECT * FROM trs WHERE recipientId = ? ORDER BY timestamp");
-                q.bind(accountId);
+                q.bind(bignum(accountId).toBuffer({ size : 8 }));
                 q.all(function (err, rows) {
                     if (err) {
                         app.logger.error(err);
@@ -398,7 +460,8 @@ module.exports = function (app) {
                         var transactions = rows;
                         var unconfirmedTransactions = [];
                         async.forEach(transactions, function (item, cb) {
-                            var blockId = item.blockId;
+                            var blockId = bignum.fromBuffer(item.blockId, { size : 8 }).toString();
+
                             item.confirmations = app.blockchain.getLastBlock().height - app.blockchain.blocks[blockId].height + 1;
                             item.confirmed = true;
 
@@ -442,7 +505,7 @@ module.exports = function (app) {
 
             app.db.sql.serialize(function () {
                 var q = app.db.sql.prepare("SELECT * FROM trs WHERE sender = ? ORDER BY timestamp");
-                q.bind(sender);
+                q.bind(bignum(sender).toBuffer({ size : 8 }));
                 q.all(function (err, rows) {
                     if (err) {
                         app.logger.error(err);

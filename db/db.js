@@ -309,6 +309,21 @@ db.prototype.getConfirmationsOfBlock = function (blockId, callback) {
     });
 }
 
+db.prototype.deleteFromHeight = function (height, callback) {
+    var sql = this.sql;
+
+    sql.serialize(function () {
+        var st = sql.prepare("DELETE FROM blocks WHERE height >= $height");
+        st.bind({
+            $height : height
+        });
+
+        st.run(function (err) {
+            return callback(err);
+        });
+    });
+}
+
 db.prototype.deleteBlock = function (rowId, callback) {
     var sql = this.sql;
 
@@ -345,19 +360,19 @@ module.exports.initDb = function (path, app, callback) {
                 d.sql.run("CREATE TABLE IF NOT EXISTS blocks (id BINARY(8) UNIQUE, version INT NOT NULL, timestamp INT NOT NULL, height INT NOT NULL, previousBlock BINARY(8), numberOfRequests INT NOT NULL, numberOfTransactions INT NOT NULL, numberOfConfirmations INT NOT NULL, totalAmount BIGINT NOT NULL, totalFee BIGINT NOT NULL, payloadLength INT NOT NULL, requestsLength INT NOT NULL, confirmationsLength INT NOT NULL, payloadHash BINARY(32) NOT NULL, generatorPublicKey BINARY(32) NOT NULL, generationSignature BINARY(64) NOT NULL, blockSignature BINARY(64) NOT NULL, FOREIGN KEY (previousBlock) REFERENCES blocks(id))", cb);
             },
             function (cb) {
-                d.sql.run("CREATE TABLE IF NOT EXISTS trs (id BINARY(8) UNIQUE, blockId BINARY(8) NOT NULL, blockRowId INTEGER NOT NULL, type TINYINT NOT NULL, subtype TINYINT NOT NULL, timestamp INT NOT NULL, senderPublicKey BINARY(32) NOT NULL, sender BINARY(8) NOT NULL, recipientId BINARY(8) NOT NULL, amount BIGINT NOT NULL, fee BIGINT NOT NULL, signature BINARY(64) NOT NULL, signSignature BINARY(64), FOREIGN KEY(blockId) REFERENCES blocks(id), FOREIGN KEY(blockRowId) REFERENCES blocks(rowid))", cb);
+                d.sql.run("CREATE TABLE IF NOT EXISTS trs (id BINARY(8) UNIQUE, blockId BINARY(8) NOT NULL, blockRowId INTEGER NOT NULL, type TINYINT NOT NULL, subtype TINYINT NOT NULL, timestamp INT NOT NULL, senderPublicKey BINARY(32) NOT NULL, sender BINARY(8) NOT NULL, recipientId BINARY(8) NOT NULL, amount BIGINT NOT NULL, fee BIGINT NOT NULL, signature BINARY(64) NOT NULL, signSignature BINARY(64), FOREIGN KEY(blockId) REFERENCES blocks(id), FOREIGN KEY(blockRowId) REFERENCES blocks(rowid) ON DELETE CASCADE)", cb);
             },
             function (cb) {
-                d.sql.run("CREATE TABLE IF NOT EXISTS requests (id BINARY(8) UNIQUE, blockId BINARY(8) NOT NULL, blockRowId INTEGER NOT NULL, address BINARY(8) NOT NULL, FOREIGN KEY(blockId) REFERENCES blocks(id), FOREIGN KEY(blockRowId) REFERENCES blocks(rowid))", cb);
+                d.sql.run("CREATE TABLE IF NOT EXISTS requests (id BINARY(8) UNIQUE, blockId BINARY(8) NOT NULL, blockRowId INTEGER NOT NULL, address BINARY(8) NOT NULL, FOREIGN KEY(blockId) REFERENCES blocks(id), FOREIGN KEY(blockRowId) REFERENCES blocks(rowid) ON DELETE CASCADE)", cb);
             },
             function (cb) {
-                d.sql.run("CREATE TABLE IF NOT EXISTS signatures (id BINARY(8) UNIQUE, transactionId BINARY(8) NOT NULL, transactionRowId INTEGER NOT NULL, timestamp INT NOT NULL, publicKey BINARY(32) NOT NULL, generatorPublicKey BINARY(32) NOT NULL, signature BINARY(64) NOT NULL, generationSignature BINARY(64) NOT NULL, FOREIGN KEY(transactionId) REFERENCES trs(id), FOREIGN KEY(transactionRowId) REFERENCES trs(rowid))", cb);
+                d.sql.run("CREATE TABLE IF NOT EXISTS signatures (id BINARY(8) UNIQUE, transactionId BINARY(8) NOT NULL, transactionRowId INTEGER NOT NULL, timestamp INT NOT NULL, publicKey BINARY(32) NOT NULL, generatorPublicKey BINARY(32) NOT NULL, signature BINARY(64) NOT NULL, generationSignature BINARY(64) NOT NULL, FOREIGN KEY(transactionId) REFERENCES trs(id), FOREIGN KEY(transactionRowId) REFERENCES trs(rowid) ON DELETE CASCADE)", cb);
             },
             function (cb) {
-                d.sql.run("CREATE TABLE IF NOT EXISTS companies (id BINARY(8) UNIQUE, transactionId BINARY(8) NOT NULL, transactionRowId INTEGER NOT NULL, name VARCHAR(20) NOT NULL, description VARCHAR(250) NOT NULL, domain TEXT, email TEXT NOT NULL, timestamp INT NOT NULL, generatorPublicKey BINARY(32) NOT NULL, signature BINARY(32) NOT NULL, FOREIGN KEY(transactionId) REFERENCES trs(id), FOREIGN KEY(transactionRowId) REFERENCES trs(rowid))", cb)
+                d.sql.run("CREATE TABLE IF NOT EXISTS companies (id BINARY(8) UNIQUE, transactionId BINARY(8) NOT NULL, transactionRowId INTEGER NOT NULL, name VARCHAR(20) NOT NULL, description VARCHAR(250) NOT NULL, domain TEXT, email TEXT NOT NULL, timestamp INT NOT NULL, generatorPublicKey BINARY(32) NOT NULL, signature BINARY(32) NOT NULL, FOREIGN KEY(transactionId) REFERENCES trs(id), FOREIGN KEY(transactionRowId) REFERENCES trs(rowid) ON DELETE CASCADE)", cb)
             },
             function (cb) {
-                d.sql.run("CREATE TABLE IF NOT EXISTS companyconfirmations (id BINARY(8) UNIQUE, blockId BINARY(8) NOT NULL, blockRowId INTEGER NOT NULL, companyId BINARY(8) NOT NULL, verified TINYINT(1) NOT NULL, timestamp INT NOT NULL, signature BINARY(64) NOT NULL, FOREIGN KEY(blockId) REFERENCES blocks(id), FOREIGN KEY(blockRowId) REFERENCES blocks(rowid))", cb);
+                d.sql.run("CREATE TABLE IF NOT EXISTS companyconfirmations (id BINARY(8) UNIQUE, blockId BINARY(8) NOT NULL, blockRowId INTEGER NOT NULL, companyId BINARY(8) NOT NULL, verified TINYINT(1) NOT NULL, timestamp INT NOT NULL, signature BINARY(64) NOT NULL, FOREIGN KEY(blockId) REFERENCES blocks(id), FOREIGN KEY(blockRowId) REFERENCES blocks(rowid) ON DELETE CASCADE)", cb);
             },
             function (cb) {
                 d.sql.run("CREATE INDEX IF NOT EXISTS block_row_trs_id ON trs (blockRowId)", cb);
@@ -373,6 +388,9 @@ module.exports.initDb = function (path, app, callback) {
             },
             function (cb) {
                 d.sql.run("CREATE INDEX IF NOT EXISTS block_row_confirmations_id ON companyconfirmations(blockId)", cb);
+            },
+            function (cb) {
+                d.sql.run("CREATE INDEX IF NOT EXISTS block_height ON blocks(height)", cb);
             }
         ], function (err) {
             if (err) {
