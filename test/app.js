@@ -2,12 +2,13 @@ async = require('async');
 
 var config = {
 	"db": "../blockchain.db",
-	"models": ["blockchain"],
+	"models": ["blocks"],
 	"services": ["transport"]
 }
 
 async.auto({
 	db: function (cb) {
+		var sqlite3 = require('sqlite3')
 		var db = new sqlite3.cached.Database(config.db);
 		cb(null, db);
 	},
