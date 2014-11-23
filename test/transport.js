@@ -1,4 +1,5 @@
 //require
+var genesis = require('../block/genesisblock.js')
 var util = require('util');
 var async = require('async');
 
@@ -15,7 +16,12 @@ function Transport(cb, scope) {
 Transport.prototype.run = function (scope) {
 	modules = scope;
 
-	console.log(Object.keys(modules.blocks.getAll()).length);
+	var blocks = modules.blocks.getAll();
+	console.log(Object.keys(blocks).length)
+	//async.eachLimit(Object.keys(blocks), 10, function (item, cb) {
+	//		var res = modules.blocks.verify(blocks[item]);
+	//	setImmediate(cb)
+	//})
 }
 
 //export
