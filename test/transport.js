@@ -1,15 +1,22 @@
-var	async = require('async');
+//require
+var util = require('util');
+var async = require('async');
 
-function Module(modules, cb) {
-	var public = {};
+//private
+var modules, library;
 
-	modules.models.blocks.open(function(err, blockchain){
-		if (!err) {
-			console.log(blockchain.blocks.length);
-		}
-	})
-
-	cb(null, public);
+//constructor
+function Transport(cb, scope) {
+	library = scope;
+	cb(null, this);
 }
 
-module.exports.create = Module;
+//public
+Transport.prototype.run = function (scope) {
+	modules = scope;
+
+	console.log(Object.keys(modules.blocks.getAll()).length);
+}
+
+//export
+module.exports = Transport;
