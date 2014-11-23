@@ -1,37 +1,52 @@
 async = require('async');
 
-var config = {
-	"db": "../blockchain.db",
-	"models": ["blocks"],
-	"services": ["transport"]
-}
+var d = require('domain').create();
+d.on('error', function (er) {
+	console.error('domain master', er.message, er.stack);
+	process.exit(0);
+});
+d.run(function () {
+	async.auto({
+		config: function (cb) {
+			cb(null, {
+				"db": "../blockchain.db",
+				"modules": {
+					"blocks": "./blocks.js",
+					"transport": "./transport.js"
+				}
+			});
+		},
 
-async.auto({
-	db: function (cb) {
-		var sqlite3 = require('sqlite3')
-		var db = new sqlite3.cached.Database(config.db);
-		cb(null, db);
-	},
-	models: ['db', function (cb, scope) {
-		var models = {};
-		config.models.length && config.models.forEach(function (module) {
-			models[module] = function (cb) {
-				require('./' + module + '.js').create(scope, cb);
-			}
-		});
-		async.parallel(models, cb);
-	}],
-	services: ['models', function (cb, scope) {
-		var services = {};
-		config.services.length && config.services.forEach(function (module) {
-			services[module] = function (cb) {
-				require('./' + module + '.js').create(scope, cb);
-			}
-		});
-		async.parallel(services, cb);
-	}]
-}, function (err, scope) {
-	if (err) {
-		console.log(err)
-	}
+		db: ['config', function (cb, scope) {
+			var sqlite3 = require('sqlite3');
+
+			var db = new sqlite3.cached.Database(scope.config.db);
+
+			cb(null, db);
+		}],
+
+		modules: ['db', 'config', function (cb, scope) {
+			var tasks = {};
+			Object.keys(scope.config.modules).forEach(function (name) {
+				tasks[name] = function (cb) {
+					var Klass = new require(scope.config.modules[name]);
+					new Klass(cb, scope);
+				}
+			});
+			async.parallel(tasks, function (err, results) {
+				cb(err, results);
+			});
+		}],
+		ready: ['modules', function (cb, scope) {
+			Object.keys(scope.modules).forEach(function (name) {
+				if (typeof(scope.modules[name].run) == 'function') {
+					scope.modules[name].run(scope.modules);
+				}
+			})
+		}]
+	}, function (err, scope) {
+		if (err) {
+			console.log(err)
+		}
+	});
 });
