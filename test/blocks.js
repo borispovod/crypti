@@ -1,7 +1,10 @@
 //require
+var crypto = require('crypto'),
+	ed = require('ed25519'),
+	bignum = require('bignum'),
+	ByteBuffer = require("bytebuffer");
 var util = require('util');
 var async = require('async');
-var ed = require('ed25519')
 
 //private
 var modules, library;
@@ -95,7 +98,7 @@ function getCompany(raw) {
 	}
 }
 
-function getBytes() {
+function getBytes(block) {
 	var size = 4 + 4 + 8 + 4 + 4 + 4 + 8 + 8 + 4 + 4 + 4 + 32 + 32 + 64 + 64;
 
 	var bb = new ByteBuffer(size, true);
@@ -114,49 +117,37 @@ function getBytes() {
 		}
 	}
 
-	bb.writeInt(this.numberOfTransactions);
-	bb.writeInt(this.numberOfRequests);
-	bb.writeInt(this.numberOfConfirmations);
-	bb.writeLong(this.totalAmount);
-	bb.writeLong(this.totalFee);
+	bb.writeInt(block.numberOfTransactions);
+	bb.writeInt(block.numberOfRequests);
+	bb.writeInt(block.numberOfConfirmations);
+	bb.writeLong(block.totalAmount);
+	bb.writeLong(block.totalFee);
 
-	bb.writeInt(this.payloadLength);
-	bb.writeInt(this.requestsLength);
-	bb.writeInt(this.confirmationsLength);
+	bb.writeInt(block.payloadLength);
+	bb.writeInt(block.requestsLength);
+	bb.writeInt(block.confirmationsLength);
 
-	for (var i = 0; i < this.payloadHash.length; i++) {
-		bb.writeByte(this.payloadHash[i]);
+	for (var i = 0; i < block.payloadHash.length; i++) {
+		bb.writeByte(block.payloadHash[i]);
 	}
 
-	for (var i = 0; i < this.generatorPublicKey.length; i++) {
-		bb.writeByte(this.generatorPublicKey[i]);
+	for (var i = 0; i < block.generatorPublicKey.length; i++) {
+		bb.writeByte(block.generatorPublicKey[i]);
 	}
 
-	for (var i = 0; i < this.generationSignature.length; i++) {
-		bb.writeByte(this.generationSignature[i]);
+	for (var i = 0; i < block.generationSignature.length; i++) {
+		bb.writeByte(block.generationSignature[i]);
 	}
 
-	if (this.blockSignature) {
-		for (var i = 0; i < this.blockSignature.length; i++) {
-			bb.writeByte(this.blockSignature[i]);
+	if (block.blockSignature) {
+		for (var i = 0; i < block.blockSignature.length; i++) {
+			bb.writeByte(block.blockSignature[i]);
 		}
 	}
 
 	bb.flip();
 	var b = bb.toBuffer();
 	return b;
-}
-
-function verifyBlockSignature(block) {
-	var data = this.getBytes();
-	var data2 = new Buffer(data.length - 64);
-
-	for (var i = 0; i < data2.length; i++) {
-		data2[i] = data[i];
-	}
-
-	var hash = crypto.createHash('sha256').update(data2).digest();
-	return ed.Verify(hash, block.blockSignature, block.generatorPublicKey);
 }
 
 //constructor
@@ -214,6 +205,19 @@ function Blocks(cb, scope) {
 //public
 Blocks.prototype.run = function (scope) {
 	modules = scope;
+}
+
+Blocks.prototype.verifySignature = function (block) {
+	debugger;
+	var data = getBytes(block);
+	var data2 = new Buffer(data.length - 64);
+
+	for (var i = 0; i < data2.length; i++) {
+		data2[i] = data[i];
+	}
+
+	var hash = crypto.createHash('sha256').update(data2).digest();
+	return ed.Verify(hash, block.blockSignature, block.generatorPublicKey);
 }
 
 Blocks.prototype.getAll = function () {
