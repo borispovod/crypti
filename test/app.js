@@ -11,6 +11,7 @@ d.run(function () {
 			cb(null, {
 				"db": "../blockchain.db",
 				"modules": {
+           //         "db" : "./db.js",
 					"blocks": "./blocks.js",
 					"transport": "./transport.js",
                     "accounts" : "./accounts.js"
@@ -20,12 +21,10 @@ d.run(function () {
 
 		db: ['config', function (cb, scope) {
 			var sqlite3 = require('sqlite3');
-
 			var db = new sqlite3.Database(scope.config.db);
 
 			cb(null, db);
 		}],
-
 
 		modules: ['db', 'config', function (cb, scope) {
 			var tasks = {};
