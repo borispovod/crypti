@@ -27,9 +27,11 @@ Account.prototype.setUnconfirmedBalance = function (unconfirmedBalance) {
     this.unconfirmedBalance = unconfirmedBalance;
 }
 
-function Accounts(cb) {
+function Accounts(cb, scope) {
+    library = scope;
+    accounts = {};
+
     setImmediate(function () {
-        accounts = {};
         cb(null, this);
     }.bind(this));
 }
