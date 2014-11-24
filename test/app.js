@@ -9,9 +9,9 @@ d.run(function () {
 	async.auto({
 		config: function (cb) {
 			cb(null, {
-				"db": "../blockchain.db",
+				"db": "./blockchain.db",
 				"modules": {
-           //         "db" : "./db.js",
+                    "database" : "./database.js",
 					"blocks": "./blocks.js",
 					"transport": "./transport.js",
                     "accounts" : "./accounts.js"
@@ -19,7 +19,7 @@ d.run(function () {
 			});
 		},
 
-        configuration : function () {
+        configuration : function (cb) {
             var config = require("./config.json");
             cb(null, config);
         },
