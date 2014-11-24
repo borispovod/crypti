@@ -471,7 +471,7 @@ async.series([
                                                                 c();
                                                             }
                                                         } else {
-                                                            var buffer = b.getBytes();
+                                                            var buffer =  b.getBytes();
 
                                                             for (var t in transactions) {
                                                                 buffer = Buffer.concat([buffer, transactions[t].getBytes()]);
