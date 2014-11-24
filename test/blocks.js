@@ -102,11 +102,11 @@ function getBytes(block) {
 	var size = 4 + 4 + 8 + 4 + 4 + 4 + 8 + 8 + 4 + 4 + 4 + 32 + 32 + 64 + 64;
 
 	var bb = new ByteBuffer(size, true);
-	bb.writeInt(this.version);
-	bb.writeInt(this.timestamp);
+	bb.writeInt(block.version);
+	bb.writeInt(block.timestamp);
 
-	if (this.previousBlock) {
-		var pb = bignum(this.previousBlock.toString()).toBuffer({size: '8'});
+	if (block.previousBlock) {
+		var pb = bignum(block.previousBlock.toString()).toBuffer({size: '8'});
 
 		for (var i = 0; i < 8; i++) {
 			bb.writeByte(pb[i]);
@@ -159,7 +159,7 @@ function Blocks(cb, scope) {
 			library.db.serialize(function () {
 				library.db.all(
 					"SELECT " +
-					"b.rowid b_rowId, b.id b_id, b.version b_version, b.timestamp b_timestamp, b.height b_height, b.previousBlock b_previousBlock, b.totalAmount b_totalAmount, b.totalFee b_totalFee, b.payloadLength b_payloadLength, b.requestsLength b_requestsLength, b.confirmationsLength b_confirmationsLength, b.payloadHash b_payloadHash, b.generatorPublicKey b_generatorPublicKey, b.generationSignature b_generationSignature, b.blockSignature b_blockSignature, " +
+					"b.rowid b_rowId, b.id b_id, b.version b_version, b.timestamp b_timestamp, b.height b_height, b.previousBlock b_previousBlock, b.numberOfRequests b_numberOfRequests, b.numberOfTransactions b_numberOfTransactions, b.numberOfConfirmations b_numberOfConfirmations, b.totalAmount b_totalAmount, b.totalFee b_totalFee, b.payloadLength b_payloadLength, b.requestsLength b_requestsLength, b.confirmationsLength b_confirmationsLength, b.payloadHash b_payloadHash, b.generatorPublicKey b_generatorPublicKey, b.generationSignature b_generationSignature, b.blockSignature b_blockSignature, " +
 					"t.rowid t_rowId, t.id t_id, t.blockId t_blockId, t.blockRowId t_blockRowId, t.type t_type, t.subtype t_subtype, t.timestamp t_timestamp, t.senderPublicKey t_senderPublicKey, t.sender t_sender, t.recipientId t_recipientId, t.amount t_amount, t.fee t_fee, t.signature t_signature, t.signSignature t_signSignature, " +
 					"s.rowid s_rowId, s.id s_id, s.transactionId s_transactionId, s.transactionRowId s_transactionRowId, s.timestamp s_timestamp, s.publicKey s_publicKey, s.generatorPublicKey s_generatorPublicKey, s.signature s_signature, s.generationSignature s_generationSignature, " +
 					"c.rowid c_rowId, c.id c_id, c.transactionId c_transactionId, c.transactionRowId c_transactionRowId, c.name c_name, c.description c_description, c.domain c_domain, c.email c_email, c.timestamp c_timestamp, c.generatorPublicKey c_generatorPublicKey, c.signature c_signature " +
@@ -168,7 +168,7 @@ function Blocks(cb, scope) {
 					"left outer join signatures as s on s.transactionRowId=t.rowid " +
 					"left outer join companies as c on c.transactionRowId=t.rowid " +
 					"ORDER BY height " +
-					"", cb);
+					"limit 15", cb);
 			})
 		}
 	}, function (err, scope) {
