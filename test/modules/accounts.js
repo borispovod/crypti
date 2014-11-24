@@ -62,8 +62,7 @@ Accounts.prototype.getAddressByPublicKey = function (publicKey) {
     return address;
 }
 
-Accounts.prototype.getAccountOrCreate = function (publicKey) {
-    var address = this.getAddressByPublicKey(publicKey);
+Accounts.prototype.getAccountOrCreate = function (address) {
     var account = this.getAccount(address);
 
     if (!account) {

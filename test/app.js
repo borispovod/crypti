@@ -3,9 +3,10 @@ async = require('async');
 var config = {
 	"db": "./blockchain.db",
 	"modules": {
+        "accounts": "./modules/accounts.js",
+        "transactions" : "./modules/transactions.js",
 		"blocks": "./modules/blocks.js",
-		"transport": "./modules/transport.js",
-		"accounts": "./modules/accounts.js"
+		"transport": "./modules/transport.js"
 	}
 }
 
