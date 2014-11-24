@@ -1,5 +1,14 @@
 async = require('async');
 
+var config = {
+	"db": "./blockchain.db",
+	"modules": {
+		"blocks": "./modules/blocks.js",
+		"transport": "./modules/transport.js",
+		"accounts": "./modules/accounts.js"
+	}
+}
+
 var d = require('domain').create();
 d.on('error', function (er) {
 	console.error('domain master', er.message, er.stack);
@@ -7,37 +16,26 @@ d.on('error', function (er) {
 });
 d.run(function () {
 	async.auto({
-        config: function (cb) {
-            cb(null, {
-                "db": "./blockchain.db",
-                "modules": {
-                    "blocks": "./modules/blocks.js",
-                    "transport": "./modules/transport.js",
-                    "accounts": "./modules/accounts.js"
-                }
-            });
-        },
-
-        configuration : function (cb) {
-            var config = require("./config.json");
-            cb(null, config);
-        },
+		config: function (cb) {
+			var config = require("./config.json");
+			cb(null, config);
+		},
 
 		logger: function (cb) {
 			var logger = require('./logger.js');
 			cb(null, logger);
 		},
 
-		db: ['config', function (cb, scope) {
+		db: function (cb, scope) {
 			var sqlite3 = require('./helpers/db.js');
-			sqlite3.connect(scope.config.db, cb);
-		}],
+			sqlite3.connect(config.db, cb);
+		},
 
-		modules: ['db', 'config', function (cb, scope) {
+		modules: ['db', 'config', 'logger', function (cb, scope) {
 			var tasks = {};
-			Object.keys(scope.config.modules).forEach(function (name) {
+			Object.keys(config.modules).forEach(function (name) {
 				tasks[name] = function (cb) {
-					var Klass = new require(scope.config.modules[name]);
+					var Klass = new require(config.modules[name]);
 					new Klass(cb, scope);
 				}
 			});
