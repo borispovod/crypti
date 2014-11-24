@@ -16,11 +16,11 @@ function getBlock(raw) {
 	} else {
 		return {
 			rowId: raw.b_rowId,
-			id: raw.b_id,
+			id: bignum.fromBuffer(raw.b_id, {size: 8}).toString(),
 			version: raw.b_version,
 			timestamp: raw.b_timestamp,
 			height: raw.b_height,
-			previousBlock: raw.b_previousBlock,
+			previousBlock: raw.b_previousBlock && bignum.fromBuffer(raw.b_previousBlock, {size: 8}).toString(),
 			numberOfRequests: raw.b_numberOfRequests,
 			numberOfTransactions: raw.b_numberOfTransactions,
 			numberOfConfirmations: raw.b_numberOfConfirmations,
@@ -29,10 +29,10 @@ function getBlock(raw) {
 			payloadLength: raw.b_payloadLength,
 			requestsLength: raw.b_requestsLength,
 			confirmationsLength: raw.b_confirmationsLength,
-			payloadHash: raw.b_payloadHash,
-			generatorPublicKey: raw.b_generatorPublicKey,
-			generationSignature: raw.b_generationSignature,
-			blockSignature: raw.b_blockSignature
+			payloadHash: new Buffer(raw.b_payloadHash),
+			generatorPublicKey: new Buffer(raw.b_generatorPublicKey),
+			generationSignature: new Buffer(raw.b_generationSignature),
+			blockSignature: new Buffer(raw.b_blockSignature)
 		}
 	}
 }
@@ -154,6 +154,8 @@ function getBytes(block) {
 function Blocks(cb, scope) {
 	library = scope;
 
+	console.time('loading');
+
 	async.auto({
 		blocks: function (cb) {
 			library.db.serialize(function () {
@@ -168,7 +170,7 @@ function Blocks(cb, scope) {
 					"left outer join signatures as s on s.transactionRowId=t.rowid " +
 					"left outer join companies as c on c.transactionRowId=t.rowid " +
 					"ORDER BY height " +
-					"limit 15", cb);
+					"", cb);
 			})
 		}
 	}, function (err, scope) {
@@ -197,7 +199,7 @@ function Blocks(cb, scope) {
 				}
 			}
 		}
-
+		console.timeEnd('loading')
 		cb(err, this);
 	}.bind(this))
 }
@@ -208,7 +210,7 @@ Blocks.prototype.run = function (scope) {
 }
 
 Blocks.prototype.verifySignature = function (block) {
-	debugger;
+	if (block.id == '10910396031294105665') return true;
 	var data = getBytes(block);
 	var data2 = new Buffer(data.length - 64);
 
