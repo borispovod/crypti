@@ -3,8 +3,8 @@ var crypto = require('crypto'),
 	ed = require('ed25519'),
 	bignum = require('bignum'),
 	ByteBuffer = require("bytebuffer"),
-	constants = require("../Constants.js"),
-	blockHelper = require("./heplers/block.js");
+	constants = require("../../Constants.js"),
+	blockHelper = require("../helpers/block.js");
 var util = require('util');
 var async = require('async');
 
