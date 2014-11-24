@@ -1,11 +1,7 @@
-var async = require('async');
+var sqlite3 = require('sqlite3');
 
-//private
-var modules, library;
-
-//public
-function Database(cb, scope) {
-    library = scope;
+module.exports.connect = function (connectString, cb) {
+	var db = new sqlite3.Database(connectString);
 
     // varchar(20) for ids, varchar(21) for addresses
     var sql = [
@@ -20,21 +16,15 @@ function Database(cb, scope) {
         "CREATE INDEX IF NOT EXISTS trs_block_id ON trs (blockId)",
         "CREATE INDEX IF NOT EXISTS trs_sender_id ON trs(sender)",
         "CREATE INDEX IF NOT EXISTS trs_recipient_id ON trs(recipientId)",
+        "CREATE INDEX IF NOT EXISTS signatures_trs_id ON signatures(transactionId)",
         "CREATE INDEX IF NOT EXISTS companies_trs_id ON companies(transactionId)",
-        "CREATE INDEX IF NOT EXISTS companies_generator_public_key ON companies(generatorPublicKey)",
         "CREATE INDEX IF NOT EXISTS companyconfirmations_block_id ON companyconfirmations(blockId)",
         "CREATE INDEX IF NOT EXISTS companyconfirmations_company_id ON companyconfirmations(companyId)"
     ];
 
     async.eachSeries(sql, function (command, cb) {
-        library.db.run(command, cb);
+        db.run(command, cb);
     }, function (err) {
-        cb(err, this);
+        cb(err, db);
     }.bind(this));
 }
-
-Database.prototype.run = function (scope) {
-    modules = scope;
-}
-
-module.exports = Database;
