@@ -19,6 +19,11 @@ d.run(function () {
 			});
 		},
 
+		logger: function(cb){
+			var logger = require('./logger.js');
+			cb(null, logger);
+		},
+
 		db: ['config', function (cb, scope) {
 			var sqlite3 = require('sqlite3');
 			var db = new sqlite3.Database(scope.config.db);
