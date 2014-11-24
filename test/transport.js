@@ -18,10 +18,12 @@ Transport.prototype.run = function (scope) {
 
 	var blocks = modules.blocks.getAll();
 	console.log(Object.keys(blocks).length)
-	//async.eachLimit(Object.keys(blocks), 10, function (item, cb) {
-	//		var res = modules.blocks.verify(blocks[item]);
-	//	setImmediate(cb)
-	//})
+	async.eachLimit(Object.keys(blocks), 10, function (item, cb) {
+		if (blocks[item].rowId == 1) return cb();
+		var res = modules.blocks.verifySignature(blocks[item]);
+		console.log(res)
+		setImmediate(cb)
+	})
 }
 
 //export
