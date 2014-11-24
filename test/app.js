@@ -7,33 +7,30 @@ d.on('error', function (er) {
 });
 d.run(function () {
 	async.auto({
-		config: function (cb) {
-			cb(null, {
-				"db": "./blockchain.db",
-				"modules": {
-                    "database" : "./database.js",
-					"blocks": "./blocks.js",
-					"transport": "./transport.js",
-                    "accounts" : "./accounts.js"
-				}
-			});
-		},
+        config: function (cb) {
+            cb(null, {
+                "db": "./blockchain.db",
+                "modules": {
+                    "blocks": "./modules/blocks.js",
+                    "transport": "./modules/transport.js",
+                    "accounts": "./modules/accounts.js"
+                }
+            });
+        },
 
         configuration : function (cb) {
             var config = require("./config.json");
             cb(null, config);
         },
 
-		logger: function(cb){
+		logger: function (cb) {
 			var logger = require('./logger.js');
 			cb(null, logger);
 		},
 
 		db: ['config', function (cb, scope) {
-			var sqlite3 = require('sqlite3');
-			var db = new sqlite3.Database(scope.config.db);
-
-			cb(null, db);
+			var sqlite3 = require('./helpers/db.js');
+			sqlite3.connect(scope.config.db, cb);
 		}],
 
 		modules: ['db', 'config', function (cb, scope) {
