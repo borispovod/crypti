@@ -16,13 +16,13 @@ function Transport(cb, scope) {
 Transport.prototype.run = function (scope) {
 	modules = scope;
 
+	console.time('verifying');
 	var blocks = modules.blocks.getAll();
-	console.log(Object.keys(blocks).length)
 	async.eachLimit(Object.keys(blocks), 10, function (item, cb) {
-		if (blocks[item].rowId == 1) return cb();
 		var res = modules.blocks.verifySignature(blocks[item]);
-		console.log(res)
 		setImmediate(cb)
+	}, function(){
+		console.timeEnd('verifying');
 	})
 }
 
