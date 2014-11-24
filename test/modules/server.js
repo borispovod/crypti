@@ -27,7 +27,6 @@ function Server(cb, scope) {
 		app.set("version", library.config.version);
 		app.set("address", library.config.address);
 		app.set('port', library.config.port);
-		app.set("config", library.config);
 
 		app.use(express.compress());
 		app.use(express.bodyParser({limit: '300mb'}));
@@ -55,11 +54,11 @@ function Server(cb, scope) {
 		}
 
 		app.api = {
-			whiteList: config.get('api').access.whiteList,
-			auth: config.get('api').access.auth
+			whiteList: library.config.api.access.whiteList,
+			auth: library.config.api.access.auth
 		};
 
-		if (config.get("serveHttpWallet")) {
+		if (library.config.serveHttpWallet) {
 			app.use(express.static(path.join(__dirname, "public")));
 		}
 
@@ -76,7 +75,7 @@ function Server(cb, scope) {
 			var port = config.get('port');
 
 			if (url[1] == 'peer' && app.synchronizedBlocks) {
-				if (sharePort != "true" || version != app.get("config").get('version')) {
+				if (sharePort != "true" || version != library.config.version) {
 					if (app.peerprocessor.peers[ip]) {
 						app.peerprocessor.peers[ip] = null;
 						delete app.peerprocessor.peers[ip];
@@ -113,9 +112,9 @@ function Server(cb, scope) {
 		app.use(app.router);
 	});
 
-	app.listen(app.get('port'), app.get('address'), function () {
-		logger.getInstance().info("Crypti started: " + app.get("address") + ":" + app.get("port"));
-		console.log("Crypti started: " + app.get("address") + ":" + app.get("port"));
+	app.listen(library.config.port, library.config.address, function () {
+		library.logger.info("Crypti started: " + library.config.address + ":" + library.config.port);
+		console.log("Crypti started: " + library.config.address + ":" + library.config.port);
 
 		app.get('/', function (req, res) {
 			var ip = req.connection.remoteAddress;
