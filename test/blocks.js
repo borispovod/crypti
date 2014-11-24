@@ -226,198 +226,31 @@ Blocks.prototype.verifySignature = function (block) {
 }
 
 Blocks.prototype.verifyGenerationSignature = function (block) {
-	if (lastBlock.height < 3124) {
-		var elapsedTime = block.timestamp - lastBlock.timestamp;
+    // maybe need to add requests to see how it's working
+    var previousBlock = blocks[block.previousBlock];
+    if (previousBlock == null) {
+        return false;
+    }
 
-		if (elapsedTime < 60) {
-			modules.logger.error("Block generation signature time not valid " + block.id + " must be > 60, but result is: " + elapsedTime);
-			return false;
-		}
+    var hash = crypto.createHash('sha256').update(previousBlock.generationSignature).update(block.generatorPublicKey);
+    var generationSignatureHash = hash.digest();
 
-		var accounts = [];
+    var r = ed.Verify(generationSignatureHash, block.generationSignature, block.generatorPublicKey);
+    if (!r) {
+        return false;
+    }
 
-		for (var i = 0, length = lastBlock.requests.length; i < length; i++) {
-			var request = lastBlock.requests[i];
-			var account = modules.accounts.getAccountById(request.address);
+    var generator = modules.accounts.getAccountByPublicKey(block.generatorPublicKey);
 
-			if (!account || account.getEffectiveBalance() < 1000 * constants.numberLength) {
-				continue;
-			}
+    if (!generator) {
+        return false;
+    }
 
-			var address = account.address;
+    if (generator.getEffectiveBalance() < 1000 * constants.numberLength) {
+        return false;
+    }
 
-			var confirmedRequests = this.app.requestprocessor.confirmedRequests[address];
-
-			if (!confirmedRequests) {
-				confirmedRequests = [];
-			}
-
-			confirmedRequests = confirmedRequests.slice(0);
-
-			var accountWeightTimestamps = 0;
-			var popWeightAmount = 0;
-
-			var previousBlock = blocks[lastBlock.id];
-			for (var j = confirmedRequests.length - 1; j >= 0; j--) {
-				if (!previousBlock) {
-					break;
-				}
-
-				var confirmedRequest = confirmedRequests[j];
-
-				var block = blocks[confirmedRequest.blockRowId];
-
-				if (previousBlock.id != block.id) {
-					break;
-				}
-
-				accountWeightTimestamps += block.timestamp;
-				var purchases = this.app.accountprocessor.purchases[block.id];
-
-				if (purchases) {
-					if (purchases[address] > 10) {
-						popWeightAmount += (Math.log(1 + purchases[address]) / Math.LN10);
-						popWeightAmount = popWeightAmount / (Math.log(1 + (block.totalAmount + block.totalFee)) / Math.LN10)
-					} else if (purchases[address]) {
-						popWeightAmount += purchases[address];
-					}
-				}
-
-				if (block.generatorId == request.address) {
-					break;
-				}
-
-				previousBlock = blocks[previousBlock.previousBlock];
-			}
-
-			modules.logger.debug("Account PoT weight: " + address + " / " + accountWeightTimestamps);
-			modules.logger.debug("Account PoP weight: " + address + " / " + popWeightAmount);
-
-			var accountTotalWeight = accountWeightTimestamps + popWeightAmount;
-
-			accounts.push({address: address, weight: accountTotalWeight});
-
-			modules.logger.debug("Account " + address + " / " + accountTotalWeight);
-		}
-
-
-		accounts.sort(function compare(a, b) {
-			if (a.weight > b.weight)
-				return -1;
-
-			if (a.weight < b.weight)
-				return 1;
-
-			return 0;
-		});
-
-		if (accounts.length == 0) {
-			modules.logger.debug("Need accounts for forging...");
-			//this.workingForger = false;
-			return false;
-		}
-
-		var cycle = parseInt(elapsedTime / 60) - 1;
-
-		if (cycle > accounts.length - 1) {
-			cycle = parseInt(cycle % accounts.length);
-		}
-
-		modules.logger.debug("Winner in cycle is: " + cycle);
-
-		var winner = accounts[cycle];
-		var sameWeights = [winner];
-
-		for (var i = cycle + 1; i < accounts.length; i++) {
-			var accountWeight = accounts[i];
-
-			if (winner.weight == accountWeight.weight) {
-				sameWeights.push(accountWeight);
-			} else {
-				break;
-			}
-		}
-
-		if (sameWeights.length > 1) {
-			modules.logger.debug("Same weight in cyclet: " + sameWeights.length);
-
-			var randomWinners = [];
-			for (var i = 0; i < sameWeights.length; i++) {
-				var a = sameWeights[i];
-
-				var address = a.address.slice(0, -1);
-				var addressBuffer = bignum(address).toBuffer({'size': '8'});
-				var hash = crypto.createHash('sha256').update(bignum(a.weight).toBuffer({size: '8'})).update(addressBuffer).digest();
-
-				var result = new Buffer(8);
-				for (var j = 0; j < 8; j++) {
-					result[j] = hash[j];
-				}
-
-				var weight = bignum.fromBuffer(result, {size: '8'}).toNumber();
-				modules.logger.debug("Account " + a.address + " new weight is: " + weight);
-				randomWinners.push({address: a.address, weight: weight});
-			}
-
-			randomWinners.sort(function (a, b) {
-				if (a.weight > b.weight)
-					return -1;
-
-				if (a.weight < b.weight)
-					return 1;
-
-				return 0;
-			});
-
-
-			if (cycle > randomWinners.length - 1) {
-				cycle = parseInt(cycle % randomWinners.length);
-			}
-
-			winner = randomWinners[cycle];
-		}
-
-		if (lastBlock.height <= 2813) {
-			return true;
-		}
-
-		var addr = modules.accounts.getAddressByPublicKey(block.generatorPublicKey);
-
-		modules.logger.debug("Winner in cycle: " + winner.address);
-
-		if (addr == winner.address) {
-			modules.logger.debug("Valid generator " + block.id);
-			return true;
-		} else {
-			modules.logger.error("Generator of block not valid: " + winner.address + " / " + addr);
-			return false;
-		}
-	} else {
-		var previousBlock = blocks[block.previousBlock];
-		if (previousBlock == null) {
-			return false;
-		}
-
-		var hash = crypto.createHash('sha256').update(previousBlock.generationSignature).update(block.generatorPublicKey);
-		var generationSignatureHash = hash.digest();
-
-		var r = ed.Verify(generationSignatureHash, block.generationSignature, block.generatorPublicKey);
-		if (!r) {
-			return false;
-		}
-
-		var generator = modules.accounts.getAccountByPublicKey(block.generatorPublicKey);
-
-		if (!generator) {
-			return false;
-		}
-
-		if (generator.getEffectiveBalance() < 1000 * constants.numberLength) {
-			return false;
-		}
-
-		return true;
-	}
+    return true;
 }
 
 Blocks.prototype.getAll = function () {
