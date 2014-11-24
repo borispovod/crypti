@@ -37,6 +37,9 @@ function Blocks(cb, scope) {
 			})
 		}
 	}, function (err, scope) {
+        // Some notes:
+        // If loading catch error, for example, invalid signature on block & transaction, need to stop loading and remove all blocks after last good block.
+        // We need to process all transactions of block
 		if (!err) {
 			blocks = {};
 			lastBlock = scope.blocks.length && scope.blocks[0];
@@ -63,7 +66,7 @@ function Blocks(cb, scope) {
 				}
 			}
 		}
-		console.timeEnd('loading')
+		console.timeEnd('loading');
 		cb(err, this);
 	}.bind(this))
 }
@@ -74,7 +77,6 @@ Blocks.prototype.run = function (scope) {
 }
 
 Blocks.prototype.verifySignature = function (block) {
-	if (block.id == '10910396031294105665') return true;
 	var data = blockHelper.getBytes(block);
 	var data2 = new Buffer(data.length - 64);
 
