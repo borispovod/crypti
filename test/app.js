@@ -5,7 +5,6 @@ d.on('error', function (er) {
 	console.error('domain master', er.message, er.stack);
 	process.exit(0);
 });
-d.run(function () {
 	async.auto({
 		config: function (cb) {
 			cb(null, {
@@ -19,7 +18,7 @@ d.run(function () {
 			});
 		},
 
-        configuration : function () {
+        configuration : function (cb) {
             var config = require("./config.json");
             cb(null, config);
         },
@@ -60,4 +59,3 @@ d.run(function () {
 			console.log(err)
 		}
 	});
-});
