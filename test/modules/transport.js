@@ -1,5 +1,5 @@
 //require
-var genesis = require('../block/genesisblock.js')
+var genesis = require('../../block/genesisblock.js')
 var util = require('util');
 var async = require('async');
 
