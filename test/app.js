@@ -19,6 +19,11 @@ d.run(function () {
 			});
 		},
 
+        configuration : function () {
+            var config = require("./config.json");
+            cb(null, config);
+        },
+
 		logger: function(cb){
 			var logger = require('./logger.js');
 			cb(null, logger);
