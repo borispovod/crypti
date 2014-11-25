@@ -70,7 +70,7 @@ function Blocks(cb, scope) {
 							!blocks[b_index].transactions[t_index].signatures && (blocks[b_index].transactions[t_index].signatures = []);
 							blocks[b_index].transactions[t_index].signatures.push(signature);
 						}
-						var company = blockHelper.getSignature(scope.blocks[i]);
+						var company = blockHelper.getCompany(scope.blocks[i]);
 						if (company) {
 							!blocks[b_index].transactions[t_index].companies && (blocks[b_index].transactions[t_index].companies = []);
 							blocks[b_index].transactions[t_index].companies.push(company);
