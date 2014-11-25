@@ -17,43 +17,16 @@ var modules, library;
 function Server(cb, scope) {
 	library = scope;
 
-	if (process.env.NODE_ENV == "development") {
-		app.set('onlyToFile', false);
-	} else {
-		app.set('onlyToFile', true);
-	}
-
 	app.configure(function () {
-		app.set("version", library.config.version);
-		app.set("address", library.config.address);
-		app.set('port', library.config.port);
-
 		app.use(express.compress());
-		app.use(express.bodyParser({limit: '300mb'}));
-
 		app.set('views', path.join(__dirname, 'public'));
 		app.set('view engine', 'html');
 		app.engine('html', doT.__express);
 
-		app.writePassphrase = function (passphrase) {
-			try {
-				var jsonString = configFunctions.readConfig();
+        app.use(express.json());
+        app.use(express.urlencoded());
 
-				var json = JSON.parse(jsonString);
-
-				json.forging.secretPhrase = passphrase;
-				jsonString = JSON.stringify(json, null, 4);
-
-				configFunctions.writeConfig(jsonString);
-
-				return true;
-			} catch (e) {
-				library.logger.error("Can't write/read config: " + e);
-				return false;
-			}
-		}
-
-		app.api = {
+        app.api = {
 			whiteList: library.config.api.access.whiteList,
 			auth: library.config.api.access.auth
 		};
@@ -61,44 +34,6 @@ function Server(cb, scope) {
 		if (library.config.serveHttpWallet) {
 			app.use(express.static(path.join(__dirname, "public")));
 		}
-
-		app.use(express.json());
-		app.use(express.urlencoded());
-
-		app.use(function (req, res, next) {
-			var version = req.headers['version'],
-				sharePort = req.headers['shareport']
-
-			var url = req.path.split('/');
-
-			var ip = req.connection.remoteAddress;
-			var port = config.get('port');
-
-			if (url[1] == 'peer' && app.synchronizedBlocks) {
-				if (sharePort != "true" || version != library.config.version) {
-					if (app.peerprocessor.peers[ip]) {
-						app.peerprocessor.peers[ip] = null;
-						delete app.peerprocessor.peers[ip];
-					}
-
-					return next();
-				} else {
-					sharePort = true;
-				}
-
-				var newPeer = new peer(ip, port, version, sharePort);
-				newPeer.setApp(app);
-				app.peerprocessor.addPeer(newPeer);
-			} else if (url[1] == 'api' || req.path == '' || req.path == '/') {
-				if (app.api.whiteList.length > 0) {
-					if (app.api.whiteList.indexOf(ip) < 0) {
-						return res.send(401);
-					}
-				}
-			}
-
-			return next();
-		});
 
 
 		if (app.api.auth.user || app.api.auth.password) {
@@ -114,7 +49,6 @@ function Server(cb, scope) {
 
 	app.listen(library.config.port, library.config.address, function () {
 		library.logger.info("Crypti started: " + library.config.address + ":" + library.config.port);
-		console.log("Crypti started: " + library.config.address + ":" + library.config.port);
 
 		app.get('/', function (req, res) {
 			var ip = req.connection.remoteAddress;
