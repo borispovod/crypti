@@ -131,11 +131,11 @@ Blocks.prototype.verifyGenerationSignature = function (block) {
 }
 
 Blocks.prototype.getAll = function () {
-	return blocks;
+	return blocks || [];
 }
 
 Blocks.prototype.getLastBlock = function(){
-	return lastBlock;
+	return lastBlock || {};
 }
 
 //export
