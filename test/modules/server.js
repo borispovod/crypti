@@ -17,22 +17,25 @@ var modules, library;
 function Server(cb, scope) {
 	library = scope;
 
+	this.app = app;
+	this.express = express;
+
 	app.configure(function () {
 		app.use(express.compress());
-		app.set('views', path.join(__dirname, 'public'));
+		app.set('views', path.join(__dirname, '/../', '/../', 'public'));
 		app.set('view engine', 'html');
 		app.engine('html', doT.__express);
 
-        app.use(express.json());
-        app.use(express.urlencoded());
+		app.use(express.json());
+		app.use(express.urlencoded());
 
-        app.api = {
+		app.api = {
 			whiteList: library.config.api.access.whiteList,
 			auth: library.config.api.access.auth
 		};
 
 		if (library.config.serveHttpWallet) {
-			app.use(express.static(path.join(__dirname, "public")));
+			app.use(express.static(path.join(__dirname, '/../', '/../', "public")));
 		}
 
 
@@ -55,7 +58,7 @@ function Server(cb, scope) {
 
 			var showLinkToAdminPanel = false;
 
-			if (app.forgingConfig.whiteList.length > 0 && app.forgingConfig.whiteList.indexOf(ip) >= 0) {
+			if (library.config.adminPanel.whiteList.length > 0 && library.config.adminPanel.whiteList.indexOf(ip) >= 0) {
 				showLinkToAdminPanel = true;
 			}
 
@@ -63,26 +66,20 @@ function Server(cb, scope) {
 				if (app.api.whiteList.indexOf(ip) < 0) {
 					return res.send(401);
 				} else {
-					if (app.dbLoaded) {
-						res.render('wallet', {showAdmin: showLinkToAdminPanel, layout: false});
-					} else {
-						res.sendfile(path.join(__dirname, "public", "loading.html"));
-					}
+					res.render('wallet', {showAdmin: showLinkToAdminPanel, layout: false});
+					//res.sendfile(path.join(__dirname, "public", "loading.html"));
 				}
 			} else {
-				if (app.dbLoaded) {
-					res.render('wallet', {showAdmin: showLinkToAdminPanel, layout: false});
-				} else {
-					res.sendfile(path.join(__dirname, "public", "loading.html"));
-				}
+				res.render('wallet', {showAdmin: showLinkToAdminPanel, layout: false});
+				//res.sendfile(path.join(__dirname, "public", "loading.html"));
 			}
 		});
 
 		app.get("/api/getLoading", function (req, res) {
-			if (app.blockchain.getLastBlock() && app.blocksCount) {
+			if (modules.blocks.getLastBlock()) {
 				return res.json({
 					success: true,
-					height: app.blockchain.getLastBlock().height,
+					height: modules.blocks.getLastBlock().height,
 					blocksCount: app.blocksCount,
 					loaded: app.dbLoaded
 				});
@@ -94,11 +91,9 @@ function Server(cb, scope) {
 		app.get("*", function (req, res) {
 			return res.redirect('/');
 		});
+		cb(null, this);
+	}.bind(this));
 
-		cb();
-	});
-
-	cb(null, this);
 }
 
 //public
