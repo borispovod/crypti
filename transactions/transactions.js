@@ -107,6 +107,7 @@ transaction.prototype.getBytes = function () {
     return bb.toBuffer();
 }
 
+
 transaction.prototype.toJSON = function () {
     var obj = _.extend({}, this);
 
