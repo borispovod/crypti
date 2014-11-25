@@ -43,6 +43,7 @@ function Blocks(cb, scope) {
         // We need to process all transactions of block
 		if (!err) {
 			blocks = [];
+			blocksById = {};
 			lastBlock = scope.blocks.length && scope.blocks[scope.blocks.length - 1];
 
 			var prevBlockId = null, prevTransactionId = null, b_index, t_index;
