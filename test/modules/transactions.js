@@ -128,6 +128,10 @@ Transactions.prototype.undoUnconfirmed = function (transaction) {
     return true;
 }
 
+Transactions.prototype.verifySignature = function (transaction) {
+
+}
+
 Transactions.prototype.run = function (cb, scope) {
     modules = scope;
 }
