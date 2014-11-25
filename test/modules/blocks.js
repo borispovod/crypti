@@ -12,6 +12,7 @@ var async = require('async');
 var modules, library;
 var blocks;
 var lastBlock;
+var blocksById;
 
 //constructor
 function Blocks(cb, scope) {
@@ -48,6 +49,7 @@ function Blocks(cb, scope) {
 					if (prevBlockId != block.id) {
 						blocks.push(block);
 						b_index = blocks.length - 1;
+						blocksById[block.id] = b_index;
 						prevBlockId = block.id;
 					}
 
@@ -98,7 +100,7 @@ Blocks.prototype.verifySignature = function (block) {
 
 Blocks.prototype.verifyGenerationSignature = function (block) {
 	// maybe need to add requests to see how it's working
-	var previousBlock = blocks[block.previousBlock];
+	var previousBlock = blocks[blocksById[block.previousBlock]];
 	if (previousBlock == null) {
 		return false;
 	}
