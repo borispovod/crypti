@@ -33,7 +33,7 @@ function Blocks(cb, scope) {
 					"left outer join trs as t on blockId=b.id " +
 					"left outer join signatures as s on s.transactionId=t.id " +
 					"left outer join companies as c on c.transactionId=t.id " +
-					"ORDER BY b.rowid, t.rowid, s.rowid, c.rowid " +
+					"ORDER BY b.height, t.rowid, s.rowid, c.rowid " +
 					"", cb);
 			})
 		}
@@ -49,6 +49,7 @@ function Blocks(cb, scope) {
 			var prevBlockId = null, prevTransactionId = null, b_index, t_index;
 			for (var i = 0, length = scope.blocks.length; i < length; i++) {
 				var block = blockHelper.getBlock(scope.blocks[i]);
+
 				if (block) {
 					if (prevBlockId != block.id) {
 						blocks.push(block);
@@ -65,6 +66,7 @@ function Blocks(cb, scope) {
 							t_index = blocks[b_index].transactions.length - 1;
 							prevTransactionId = transaction.id;
 						}
+
 						var signature = blockHelper.getSignature(scope.blocks[i]);
 						if (signature) {
 							!blocks[b_index].transactions[t_index].signatures && (blocks[b_index].transactions[t_index].signatures = []);
