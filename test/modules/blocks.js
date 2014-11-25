@@ -134,5 +134,9 @@ Blocks.prototype.getAll = function () {
 	return blocks;
 }
 
+Blocks.prototype.getLastBlock = function(){
+	return lastBlock;
+}
+
 //export
 module.exports = Blocks;

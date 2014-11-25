@@ -3,6 +3,7 @@ async = require('async');
 var config = {
 	"db": "./blockchain.db",
 	"modules": {
+		"server": "./modules/server.js",
         "accounts": "./modules/accounts.js",
         "transactions" : "./modules/transactions.js",
 		"blocks": "./modules/blocks.js",
