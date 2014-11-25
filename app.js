@@ -28,15 +28,18 @@ d.run(function () {
 			cb(null, logger);
 		},
 
-		express: function (cb) {
+		express: ['config', 'logger', function (cb, scope) {
 			var express = require('express');
 			var app = express();
 
-			cb(null, {
-				express: express,
-				app: app
-			})
-		},
+			app.listen(scope.config.port, scope.config.address, function (err) {
+				scope.logger.info("Crypti started: " + scope.config.address + ":" + scope.config.port);
+				cb(err, {
+					express: express,
+					app: app
+				})
+			});
+		}],
 
 		db: function (cb, scope) {
 			var sqlite3 = require('./helpers/db.js');

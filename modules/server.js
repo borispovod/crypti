@@ -1,9 +1,7 @@
 //require
 var util = require('util');
 var async = require('async');
-var express = require('express');
 var path = require('path');
-var app = express();
 var doT = require('express-dot');
 
 //private
@@ -13,80 +11,76 @@ var modules, library;
 function Server(cb, scope) {
 	library = scope;
 
-	app.configure(function () {
-		app.use(express.compress());
-		app.set('views', '../public');
-		app.set('view engine', 'html');
-		app.engine('html', doT.__express);
+	library.express.app.configure(function () {
+		library.express.app.use(library.express.express.compress());
+		library.express.app.set('views', path.join(__dirname, '/../', 'public'));
+		library.express.app.set('view engine', 'html');
+		library.express.app.engine('html', doT.__express);
 
-		app.use(express.json());
-		app.use(express.urlencoded());
+		library.express.app.use(library.express.express.json());
+		library.express.app.use(library.express.express.urlencoded());
 
-		app.api = {
+		library.express.app.api = {
 			whiteList: library.config.api.access.whiteList,
 			auth: library.config.api.access.auth
 		};
 
 		if (library.config.serveHttpWallet) {
-			app.use(express.static('../public'));
+			library.express.app.use(library.express.express.static(path.join(__dirname, '/../', 'public')));
 		}
 
 
-		if (app.api.auth.user || app.api.auth.password) {
-			app.basicAuth = express.basicAuth(app.api.auth.user, app.api.auth.password);
+		if (library.express.app.api.auth.user || library.express.app.api.auth.password) {
+			library.express.app.basicAuth = library.express.express.basicAuth(library.express.app.api.auth.user, library.express.app.api.auth.password);
 		} else {
-			app.basicAuth = function (req, res, next) {
+			library.express.app.basicAuth = function (req, res, next) {
 				return next();
 			}
 		}
 
-		app.use(app.router);
+		library.express.app.use(library.express.app.router);
 	});
 
-	app.listen(library.config.port, library.config.address, function () {
-		library.logger.info("Crypti started: " + library.config.address + ":" + library.config.port);
 
-		app.get('/', function (req, res) {
-			var ip = req.connection.remoteAddress;
+	library.express.app.get('/', function (req, res) {
+		var ip = req.connection.remoteAddress;
 
-			var showLinkToAdminPanel = false;
+		var showLinkToAdminPanel = false;
 
-			if (library.config.adminPanel.whiteList.length > 0 && library.config.adminPanel.whiteList.indexOf(ip) >= 0) {
-				showLinkToAdminPanel = true;
-			}
+		if (library.config.adminPanel.whiteList.length > 0 && library.config.adminPanel.whiteList.indexOf(ip) >= 0) {
+			showLinkToAdminPanel = true;
+		}
 
-			if (app.api.whiteList.length > 0) {
-				if (app.api.whiteList.indexOf(ip) < 0) {
-					return res.send(401);
-				} else {
-					res.render('wallet', {showAdmin: showLinkToAdminPanel, layout: false});
-					//res.sendfile(path.join(__dirname, "public", "loading.html"));
-				}
+		if (library.express.app.api.whiteList.length > 0) {
+			if (library.express.app.api.whiteList.indexOf(ip) < 0) {
+				return res.send(401);
 			} else {
 				res.render('wallet', {showAdmin: showLinkToAdminPanel, layout: false});
 				//res.sendfile(path.join(__dirname, "public", "loading.html"));
 			}
-		});
+		} else {
+			res.render('wallet', {showAdmin: showLinkToAdminPanel, layout: false});
+			//res.sendfile(path.join(__dirname, "public", "loading.html"));
+		}
+	});
 
-		app.get("/api/getLoading", function (req, res) {
-			if (modules.blocks.getLastBlock()) {
-				return res.json({
-					success: true,
-					height: modules.blocks.getLastBlock().height,
-					blocksCount: app.blocksCount,
-					loaded: app.dbLoaded
-				});
-			} else {
-				return res.json({success: false});
-			}
-		});
+	library.express.app.get("/api/getLoading", function (req, res) {
+		if (modules.blocks.getLastBlock()) {
+			return res.json({
+				success: true,
+				height: modules.blocks.getLastBlock().height,
+				blocksCount: modules.blocks.getAll().length,
+				loaded: true
+			});
+		} else {
+			return res.json({success: false});
+		}
+	});
 
-		app.get("*", function (req, res) {
-			return res.redirect('/');
-		});
-		cb(null, this);
-	}.bind(this));
-
+	library.express.app.get("*", function (req, res) {
+		return res.redirect('/');
+	});
+	cb(null, this);
 }
 
 //public
