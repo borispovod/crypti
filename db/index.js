@@ -1,1 +1,0 @@
-module.exports.initDb = require("./db.js").initDb;
