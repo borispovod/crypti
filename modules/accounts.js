@@ -1,4 +1,5 @@
-var crypto = require('crypto');
+var crypto = require('crypto'),
+    bignum = require('bignum');
 
 //private
 var modules, library;
@@ -38,7 +39,7 @@ function Accounts(cb, scope) {
 
 Accounts.prototype.addAccount = function (account) {
     if (!accounts[account.address]) {
-        accounts[account.id] = account;
+        accounts[account.address] = account;
     }
 }
 
@@ -62,8 +63,16 @@ Accounts.prototype.getAddressByPublicKey = function (publicKey) {
     return address;
 }
 
-Accounts.prototype.getAccountOrCreate = function (address) {
-    var account = this.getAccount(address);
+Accounts.prototype.getAccountOrCreate = function (addressOrPublicKey) {
+    var account, address;
+
+    if (typeof(addressOrPublicKey) == 'string') {
+        address = addressOrPublicKey;
+        account = this.getAccount(address);
+    } else {
+        address = this.getAddressByPublicKey(addressOrPublicKey);
+        account = this.getAccount(address);
+    }
 
     if (!account) {
         account = new Account(address);
