@@ -42,19 +42,6 @@ Server.prototype.run = function (scope) {
 		}
 	});
 
-	router.get('/api/getLoading', function (req, res) {
-		if (modules.blocks.getLastBlock()) {
-			return res.json({
-				success: true,
-				height: modules.blocks.getLastBlock().height,
-				blocksCount: modules.blocks.getAll().length,
-				loaded: modules.blocks.loaded()
-			});
-		} else {
-			return res.json({success: false});
-		}
-	});
-
 	router.get("*", function (req, res) {
 		return res.redirect('/');
 	});
