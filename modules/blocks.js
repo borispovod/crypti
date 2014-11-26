@@ -1,18 +1,11 @@
 //require
 var crypto = require('crypto'),
-<<<<<<< HEAD:test/modules/blocks.js
-    ed = require('ed25519'),
-    bignum = require('bignum'),
-    ByteBuffer = require("bytebuffer"),
-    constants = require("../../Constants.js"),
-    blockHelper = require("../helpers/block.js");
-=======
 	ed = require('ed25519'),
 	bignum = require('bignum'),
 	ByteBuffer = require("bytebuffer"),
 	constants = require("../helpers/constants.js"),
-	blockHelper = require("../helpers/block.js");
->>>>>>> bf90e40b8158faeeee3ad84d2a9d7f7416ca1d32:modules/blocks.js
+	blockHelper = require("../helpers/block.js"),
+    genesisblock = require("../helpers/genesisblock.js");
 var util = require('util');
 var async = require('async');
 
@@ -21,12 +14,23 @@ var modules, library;
 var blocks;
 var lastBlock;
 var blocksById;
+var loaded;
 
 //constructor
 function Blocks(cb, scope) {
-<<<<<<< HEAD:test/modules/blocks.js
-    library = scope;
+	library = scope;
+    loaded = false;
 
+    setImmediate(function () {
+        cb(null, this);
+    }.bind(this));
+}
+
+Blocks.prototype.loaded = function () {
+    return loaded;
+}
+
+Blocks.prototype.loadBlocks = function (cb) {
     console.time('loading');
 
     async.auto({
@@ -35,7 +39,7 @@ function Blocks(cb, scope) {
                 library.db.all(
                         "SELECT " +
                         "b.id b_id, b.version b_version, b.timestamp b_timestamp, b.height b_height, b.previousBlock b_previousBlock, b.nextBlock b_nextBlock, b.numberOfRequests b_numberOfRequests, b.numberOfTransactions b_numberOfTransactions, b.numberOfConfirmations b_numberOfConfirmations, b.totalAmount b_totalAmount, b.totalFee b_totalFee, b.payloadLength b_payloadLength, b.requestsLength b_requestsLength, b.confirmationsLength b_confirmationsLength, b.payloadHash b_payloadHash, b.generatorPublicKey b_generatorPublicKey, b.generationSignature b_generationSignature, b.blockSignature b_blockSignature, " +
-                        "t.id t_id, t.blockId t_blockId, t.type t_type, t.subtype t_subtype, t.timestamp t_timestamp, t.senderPublicKey t_senderPublicKey, t.sender t_sender, t.recipientId t_recipientId, t.amount t_amount, t.fee t_fee, t.signature t_signature, t.signSignature t_signSignature, c_t.generatorPublicKey t_companyGeneratorPublicKey " +
+                        "t.id t_id, t.blockId t_blockId, t.type t_type, t.subtype t_subtype, t.timestamp t_timestamp, t.senderPublicKey t_senderPublicKey, t.sender t_sender, t.recipientId t_recipientId, t.amount t_amount, t.fee t_fee, t.signature t_signature, t.signSignature t_signSignature, c_t.generatorPublicKey t_companyGeneratorPublicKey, " +
                         "s.id s_id, s.transactionId s_transactionId, s.timestamp s_timestamp, s.publicKey s_publicKey, s.generatorPublicKey s_generatorPublicKey, s.signature s_signature, s.generationSignature s_generationSignature, " +
                         "c.id c_id, c.transactionId c_transactionId, c.name c_name, c.description c_description, c.domain c_domain, c.email c_email, c.timestamp c_timestamp, c.generatorPublicKey c_generatorPublicKey, c.signature c_signature " +
                         "FROM blocks as b " +
@@ -43,36 +47,11 @@ function Blocks(cb, scope) {
                         "left outer join signatures as s on s.transactionId=t.id " +
                         "left outer join companies as c on c.transactionId=t.id " +
                         "left outer join companies as c_t on c_t.address=t.recipientId " +
-                        "ORDER BY b.height, t.rowid, s.rowid, c.rowid " +
+                        "ORDER BY b.rowid, t.rowid, s.rowid, c.rowid " +
                         "", cb);
             })
         }
     }, function (err, scope) {
-=======
-	library = scope;
-
-	console.time('loading');
-
-	async.auto({
-		blocks: function (cb) {
-			library.db.serialize(function () {
-				library.db.all(
-					"SELECT " +
-					"b.id b_id, b.version b_version, b.timestamp b_timestamp, b.height b_height, b.previousBlock b_previousBlock, b.nextBlock b_nextBlock, b.numberOfRequests b_numberOfRequests, b.numberOfTransactions b_numberOfTransactions, b.numberOfConfirmations b_numberOfConfirmations, b.totalAmount b_totalAmount, b.totalFee b_totalFee, b.payloadLength b_payloadLength, b.requestsLength b_requestsLength, b.confirmationsLength b_confirmationsLength, b.payloadHash b_payloadHash, b.generatorPublicKey b_generatorPublicKey, b.generationSignature b_generationSignature, b.blockSignature b_blockSignature, " +
-					"t.id t_id, t.blockId t_blockId, t.type t_type, t.subtype t_subtype, t.timestamp t_timestamp, t.senderPublicKey t_senderPublicKey, t.sender t_sender, t.recipientId t_recipientId, t.amount t_amount, t.fee t_fee, t.signature t_signature, t.signSignature t_signSignature, c_t.generatorPublicKey t_companyGeneratorPublicKey, " +
-					"s.id s_id, s.transactionId s_transactionId, s.timestamp s_timestamp, s.publicKey s_publicKey, s.generatorPublicKey s_generatorPublicKey, s.signature s_signature, s.generationSignature s_generationSignature, " +
-					"c.id c_id, c.transactionId c_transactionId, c.name c_name, c.description c_description, c.domain c_domain, c.email c_email, c.timestamp c_timestamp, c.generatorPublicKey c_generatorPublicKey, c.signature c_signature " +
-					"FROM blocks as b " +
-					"left outer join trs as t on blockId=b.id " +
-					"left outer join signatures as s on s.transactionId=t.id " +
-					"left outer join companies as c on c.transactionId=t.id " +
-					"left outer join companies as c_t on c_t.address=t.recipientId " +
-					"ORDER BY b.rowid, t.rowid, s.rowid, c.rowid " +
-					"", cb);
-			})
-		}
-	}, function (err, scope) {
->>>>>>> bf90e40b8158faeeee3ad84d2a9d7f7416ca1d32:modules/blocks.js
         // Some notes:
         // If loading catch error, for example, invalid signature on block & transaction, need to stop loading and remove all blocks after last good block.
         // We need to process all transactions of block
@@ -87,6 +66,15 @@ function Blocks(cb, scope) {
                 if (block) {
                     if (prevBlockId != block.id) {
                         blocks.push(block);
+
+                        if (block.id != genesisblock.blockId) {
+                            if (!this.verifySignature(block)) { //|| !this.verifyGenerationSignature(block)) {
+                                // need to break cicle and delete this block and blocks after this block
+                                console.log("Can't verify signature...");
+                                break;
+                            }
+                        }
+
                         b_index = blocks.length - 1;
                         blocksById[block.id] = b_index;
                         prevBlockId = block.id;
@@ -97,6 +85,19 @@ function Blocks(cb, scope) {
                         !blocks[b_index].transactions && (blocks[b_index].transactions = []);
                         if (prevTransactionId != transaction.id) {
                             blocks[b_index].transactions.push(transaction);
+
+                            if (block.id != genesisblock.blockId) {
+                                if (!modules.transactions.verifySignature(transaction)) {
+                                    console.log("Can't verify transaction: " + transaction.id); // need to remove after tests
+                                    break;
+                                }
+                            }
+
+                            if (!modules.transactions.applyUnconfirmed(transaction) || !modules.transactions.apply(transaction)) {
+                                console.log("Can't apply transaction: " + transaction.id);
+                                break;
+                            }
+
                             t_index = blocks[b_index].transactions.length - 1;
                             prevTransactionId = transaction.id;
                         }
@@ -114,8 +115,16 @@ function Blocks(cb, scope) {
                 }
             }
         }
+
         console.timeEnd('loading');
-        cb(err, this);
+
+        loaded = true;
+
+        // free memory
+        delete blocks;
+        delete blocksById;
+
+        cb(err);
     }.bind(this))
 }
 
@@ -147,6 +156,7 @@ Blocks.prototype.verifyGenerationSignature = function (block) {
     var generationSignatureHash = hash.digest();
 
     var r = ed.Verify(generationSignatureHash, block.generationSignature, block.generatorPublicKey);
+
     if (!r) {
         return false;
     }
@@ -157,7 +167,7 @@ Blocks.prototype.verifyGenerationSignature = function (block) {
         return false;
     }
 
-    if (generator.getEffectiveBalance() < 1000 * constants.numberLength) {
+    if (generator.getEffectiveBalance() < 1000 * constants.fixedPoint) {
         return false;
     }
 
@@ -165,15 +175,11 @@ Blocks.prototype.verifyGenerationSignature = function (block) {
 }
 
 Blocks.prototype.getAll = function () {
-<<<<<<< HEAD:test/modules/blocks.js
-    return blocks;
-=======
 	return blocks || [];
 }
 
 Blocks.prototype.getLastBlock = function(){
 	return lastBlock || {};
->>>>>>> bf90e40b8158faeeee3ad84d2a9d7f7416ca1d32:modules/blocks.js
 }
 
 //export

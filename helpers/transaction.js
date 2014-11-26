@@ -1,4 +1,8 @@
-var fixedPoint = require('./common.js').fixedPoint;
+var crypto = require('crypto'),
+    ed = require('ed25519'),
+    bignum = require('bignum'),
+    ByteBuffer = require("bytebuffer"),
+    constants = require("./constants.js");
 
 // get valid transaction fee, if we need to get fee for block generator, use isGenerator = true
 function getTransactionFee(transaction, isGenerator) {
@@ -50,7 +54,7 @@ function getTransactionFee(transaction, isGenerator) {
         case 3:
             switch (transaction.subtype) {
                 case 0:
-                    fee = 100 * fixedPoint;
+                    fee = 100 * constants.fixedPoint;
                     break;
             }
             break;
@@ -94,7 +98,7 @@ function getBytes(transaction) {
     }
 
     var recipient = transaction.recipientId.slice(0, -1);
-    recipient = bignum(recipient).toBuffer({ size : '8' });
+    recipient = bignum(recipient).toBuffer({ size : 8 });
 
     for (var i = 0; i < 8; i++) {
         bb.writeByte(recipient[i] || 0);
@@ -111,13 +115,13 @@ function getBytes(transaction) {
         }
     }
 
-    if (this.signature) {
+    if (transaction.signature) {
         for (var i = 0; i < transaction.signature.length; i++) {
             bb.writeByte(transaction.signature[i]);
         }
     }
 
-    if (this.signSignature) {
+    if (transaction.signSignature) {
         for (var i = 0; i < transaction.signSignature.length; i++) {
             bb.writeByte(transaction.signSignature[i]);
         }
