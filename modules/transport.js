@@ -16,6 +16,7 @@ function Transport(cb, scope) {
 Transport.prototype.run = function (scope) {
 	modules = scope;
 
+    /*
 	console.time('verifying');
 	var blocks = modules.blocks.getAll();
 	async.eachLimit(Object.keys(blocks), 10, function (item, cb) {
@@ -23,7 +24,8 @@ Transport.prototype.run = function (scope) {
 		setImmediate(cb)
 	}, function(){
 		console.timeEnd('verifying');
-	})
+	});
+	*/
 }
 
 //export
