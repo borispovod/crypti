@@ -6,7 +6,7 @@ var crypto = require('crypto'),
 	constants = require("../helpers/constants.js"),
 	blockHelper = require("../helpers/block.js"),
     genesisblock = require("../helpers/genesisblock.js");
-var router = require('../helpers/router.js');
+var Router = require('../helpers/router.js');
 var util = require('util');
 var async = require('async');
 
@@ -21,6 +21,8 @@ var loaded;
 function Blocks(cb, scope) {
 	library = scope;
     loaded = false;
+
+	var router = new Router();
 
 	router.get('/status', function (req, res) {
 		if (modules.blocks.getLastBlock()) {
