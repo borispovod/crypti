@@ -7,6 +7,7 @@ var crypto = require('crypto'),
 	blockHelper = require("../helpers/block.js"),
     genesisblock = require("../helpers/genesisblock.js");
 
+var Router = require('../helpers/router.js');
 var util = require('util');
 var async = require('async');
 
@@ -22,9 +23,24 @@ function Blocks(cb, scope) {
 	library = scope;
     loaded = false;
 
-    setImmediate(function () {
-        cb(null, this);
-    }.bind(this));
+	var router = new Router();
+
+	router.get('/status', function (req, res) {
+		if (modules.blocks.getLastBlock()) {
+			return res.json({
+				success: true,
+				height: modules.blocks.getLastBlock().height,
+				blocksCount: modules.blocks.getAll().length,
+				loaded: modules.blocks.loaded()
+			});
+		} else {
+			return res.json({success: false});
+		}
+	});
+
+	library.app.use('/blocks', router);
+
+    setImmediate(cb, null, this);
 }
 
 Blocks.prototype.loaded = function () {
