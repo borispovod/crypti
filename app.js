@@ -3,12 +3,12 @@ async = require('async');
 var config = {
 	"db": "./blockchain.db",
 	"modules": {
-		"server": "./modules/server.js",
-		"accounts": "./modules/accounts.js",
-		"transactions": "./modules/transactions.js",
-		"blocks": "./modules/blocks.js",
-		"transport": "./modules/transport.js"
-	}
+        "server": "./modules/server.js",
+        "accounts": "./modules/accounts.js",
+        "transactions": "./modules/transactions.js",
+        "blocks": "./modules/blocks.js",
+        "transport": "./modules/transport.js"
+    }
 }
 
 var d = require('domain').create();
@@ -59,12 +59,18 @@ d.run(function () {
 			});
 		}],
 		ready: ['modules', function (cb, scope) {
+            // need to load it as it written in config: server, accounts and etc.
 			Object.keys(scope.modules).forEach(function (name) {
 				if (typeof(scope.modules[name].run) == 'function') {
 					scope.modules[name].run(scope.modules);
 				}
 			})
-		}]
+		}],
+        loadBlocks : ['modules', function (cb, scope) {
+            scope.modules.blocks.loadBlocks(function (err) {
+                cb(err);
+            });
+        }]
 	}, function (err, scope) {
 		if (err) {
 			console.log(err)
