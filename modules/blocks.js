@@ -6,6 +6,7 @@ var crypto = require('crypto'),
 	constants = require("../helpers/constants.js"),
 	blockHelper = require("../helpers/block.js"),
     genesisblock = require("../helpers/genesisblock.js");
+
 var util = require('util');
 var async = require('async');
 
