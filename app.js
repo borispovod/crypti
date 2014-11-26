@@ -37,7 +37,8 @@ d.run(function () {
 		app: ['config', 'logger', 'express', function (cb, scope) {
 			var app = scope.express();
 			var path = require('path');
-			var bodyParser = require('body-parser')
+			var bodyParser = require('body-parser');
+			var methodOverride = require('method-override');
 
 			app.engine('html', require('ejs').renderFile);
 			app.set('view engine', 'ejs');
@@ -45,6 +46,7 @@ d.run(function () {
 			app.use(scope.express.static(path.join(__dirname, 'public')));
 			app.use(bodyParser.urlencoded({extended: true, parameterLimit: 5000}));
 			app.use(bodyParser.json());
+			app.use(methodOverride());
 
 			app.listen(scope.config.port, scope.config.address, function (err) {
 				scope.logger.info("Crypti started: " + scope.config.address + ":" + scope.config.port);

@@ -2,7 +2,7 @@
 var util = require('util');
 var async = require('async');
 var path = require('path');
-var router = require('../helpers/router.js');
+var Router = require('../helpers/router.js');
 
 //private
 var modules, library;
@@ -17,6 +17,8 @@ function Server(cb, scope) {
 //public
 Server.prototype.run = function (scope) {
 	modules = scope;
+
+	var router = new Router();
 
 	router.get('/', function (req, res) {
 		var ip = req.connection.remoteAddress;
@@ -54,7 +56,7 @@ Server.prototype.run = function (scope) {
 		}
 	}
 
-	library.app.use(router);
+	library.app.use('/', router);
 }
 
 //export
