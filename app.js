@@ -3,12 +3,13 @@ async = require('async');
 var config = {
 	"db": "./blockchain.db",
 	"modules": {
-        "server": "./modules/server.js",
-        "accounts": "./modules/accounts.js",
-        "transactions": "./modules/transactions.js",
-        "blocks": "./modules/blocks.js",
-        "transport": "./modules/transport.js"
-    }
+		"server": "./modules/server.js",
+		"accounts": "./modules/accounts.js",
+		"transactions": "./modules/transactions.js",
+		"blocks": "./modules/blocks.js",
+		"transport": "./modules/transport.js",
+		"loader": "./modules/loader.js"
+	}
 }
 
 var d = require('domain').create();
@@ -28,16 +29,26 @@ d.run(function () {
 			cb(null, logger);
 		},
 
-		express: ['config', 'logger', function (cb, scope) {
+		express: function (cb) {
 			var express = require('express');
-			var app = express();
+			cb(null, express);
+		},
+
+		app: ['config', 'logger', 'express', function (cb, scope) {
+			var app = scope.express();
+			var path = require('path');
+			var bodyParser = require('body-parser')
+
+			app.engine('html', require('ejs').renderFile);
+			app.set('view engine', 'ejs');
+			app.set('views', path.join(__dirname, 'public'));
+			app.use(scope.express.static(path.join(__dirname, 'public')));
+			app.use(bodyParser.urlencoded({extended: true, parameterLimit: 5000}));
+			app.use(bodyParser.json());
 
 			app.listen(scope.config.port, scope.config.address, function (err) {
 				scope.logger.info("Crypti started: " + scope.config.address + ":" + scope.config.port);
-				cb(err, {
-					express: express,
-					app: app
-				})
+				cb(err, app)
 			});
 		}],
 
@@ -46,7 +57,7 @@ d.run(function () {
 			sqlite3.connect(config.db, cb);
 		},
 
-		modules: ['db', 'express', 'config', 'logger', function (cb, scope) {
+		modules: ['db', 'express', 'app', 'config', 'logger', function (cb, scope) {
 			var tasks = {};
 			Object.keys(config.modules).forEach(function (name) {
 				tasks[name] = function (cb) {
@@ -59,18 +70,13 @@ d.run(function () {
 			});
 		}],
 		ready: ['modules', function (cb, scope) {
-            // need to load it as it written in config: server, accounts and etc.
+			// need to load it as it written in config: server, accounts and etc.
 			Object.keys(scope.modules).forEach(function (name) {
 				if (typeof(scope.modules[name].run) == 'function') {
 					scope.modules[name].run(scope.modules);
 				}
 			})
-		}],
-        loadBlocks : ['modules', function (cb, scope) {
-            scope.modules.blocks.loadBlocks(function (err) {
-                cb(err);
-            });
-        }]
+		}]
 	}, function (err, scope) {
 		if (err) {
 			console.log(err)
