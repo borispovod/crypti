@@ -69,17 +69,17 @@ Transactions.prototype.list = function (filter, cb) {
 		params.$recipientId = filter.recipientId;
 	}
 	if (filter.limit) {
-		fields.push('limit = $limit')
 		params.$limit = filter.limit;
 	}
 	if (filter.orderBy) {
-		fields.push('orderBy = $orderBy')
 		params.$orderBy = filter.orderBy;
 	}
 	var stmt = library.db.prepare("select t.id t_id, t.blockId t_blockId, t.type t_type, t.subtype t_subtype, t.timestamp t_timestamp, t.senderPublicKey t_senderPublicKey, t.sender t_sender, t.recipientId t_recipientId, t.amount t_amount, t.fee t_fee, t.signature t_signature, t.signSignature t_signSignature, c_t.generatorPublicKey t_companyGeneratorPublicKey " +
 	"from trs t " +
 	"left outer join companies as c_t on c_t.address=t.recipientId " +
-	(fields.length ? "where " + fields.join(' and ') : ''));
+	(fields.length ? "where " + fields.join(' and ') : '') + " " +
+	(filter.orderBy ? 'order by $orderBy' : '') + " " +
+	(filter.limit ? 'limit $limit' : ''));
 
 	stmt.bind(params);
 
