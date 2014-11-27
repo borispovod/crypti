@@ -13,14 +13,14 @@ var async = require('async');
 
 //private
 var modules, library;
-var blocks;
-var lastBlock;
-var blocksById;
-var loaded;
+var blocks, lastBlock, blocksById, loaded, self;
 
 //constructor
 function Blocks(cb, scope) {
 	library = scope;
+
+	self = this;
+
     loaded = false;
 
 	var router = new Router();
@@ -38,10 +38,37 @@ function Blocks(cb, scope) {
 		}
 	});
 
+	router.get('/get', function (req, res) {
+		if (!req.query.id) {
+			return res.json({success: false, error: "Provide id in url"});
+		}
+		self.get(req.query.id, function (err, block) {
+			if (!block || err) {
+				return res.json({success: false, error: "Block not found"});
+			}
+			block.success = true;
+			return res.json(block);
+		});
+	});
+
 	library.app.use('/api/blocks', router);
 
-    setImmediate(cb, null, this);
+    setImmediate(cb, null, self);
 }
+
+Blocks.prototype.get = function (id, cb) {
+	var stmt = library.db.prepare("select b.id b_id, b.version b_version, b.timestamp b_timestamp, b.height b_height, b.previousBlock b_previousBlock, b.nextBlock b_nextBlock, b.numberOfRequests b_numberOfRequests, b.numberOfTransactions b_numberOfTransactions, b.numberOfConfirmations b_numberOfConfirmations, b.totalAmount b_totalAmount, b.totalFee b_totalFee, b.payloadLength b_payloadLength, b.requestsLength b_requestsLength, b.confirmationsLength b_confirmationsLength, b.payloadHash b_payloadHash, b.generatorPublicKey b_generatorPublicKey, b.generationSignature b_generationSignature, b.blockSignature b_blockSignature " +
+	"from blocks b " +
+	"where b.id = ?");
+
+	stmt.bind(id);
+
+	stmt.get(function (err, row) {
+		var block = row && blockHelper.getBlock(row);
+		cb(err, block);
+	});
+}
+
 
 Blocks.prototype.loaded = function () {
     return loaded;
