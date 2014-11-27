@@ -54,7 +54,7 @@ d.run(function () {
 			});
 		}],
 
-		db: function (cb, scope) {
+		db: function (cb) {
 			var sqlite3 = require('./helpers/db.js');
 			sqlite3.connect(config.db, cb);
 		},
