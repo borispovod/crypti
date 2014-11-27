@@ -22,7 +22,7 @@ function Transactions(cb, scope) {
 			blockId: req.query.blockId,
 			sender: req.query.sender,
 			recipientId: req.query.recipientId,
-			limit: req.query.limit,
+			limit: req.query.limit || 20,
 			orderBy: req.query.orderBy
 		}, function (err, transactions) {
 			if (err) {
@@ -102,7 +102,6 @@ Transactions.prototype.get = function (id, cb) {
 	stmt.bind(id);
 
 	stmt.get(function (err, row) {
-		console.log(err, row)
 		var transacton = row && blockHelper.getTransaction(row);
 		cb(err, transacton);
 	});
