@@ -38,7 +38,7 @@ function Blocks(cb, scope) {
 		}
 	});
 
-	library.app.use('/blocks', router);
+	library.app.use('/api/blocks', router);
 
     setImmediate(cb, null, this);
 }
