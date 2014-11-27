@@ -26,7 +26,7 @@ function Transactions(cb, scope) {
 		return res.json({});
 	});
 
-	library.app.use('/transactions', router);
+	library.app.use('/api/transactions', router);
 
 	setImmediate(cb, null, this);
 }

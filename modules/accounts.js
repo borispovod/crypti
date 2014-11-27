@@ -37,27 +37,27 @@ function Accounts(cb, scope) {
 
 	router.post('/open', function (req, res) {
 		if (!req.body.secret || req.body.secret.length == 0) {
-			return res.json({ success : false, error : "Provide secret key of account" });
+			return res.json({success: false, error: "Provide secret key of account"});
 		}
 
 		var account = this.openAccount(req.body.secret);
 
-		return res.json({ success : true, account : account });
+		return res.json({success: true, account: account});
 	});
 
 	router.get('/getBalance', function (req, res) {
 		if (!req.query.address) {
-			return res.json({ success : false, error : "Provide address in url" });
+			return res.json({success: false, error: "Provide address in url"});
 		}
 
 		var account = this.getAccount(req.query.address);
-		var balance = account? account.balance : 0;
-		var unconfirmedBalance = account? account.unconfirmedBalance : 0;
+		var balance = account ? account.balance : 0;
+		var unconfirmedBalance = account ? account.unconfirmedBalance : 0;
 
-		return res.json({ success : true, balance : balance, unconfirmedBalance : unconfirmedBalance });
+		return res.json({success: true, balance: balance, unconfirmedBalance: unconfirmedBalance});
 	});
 
-	library.app.use('/accounts', router);
+	library.app.use('/api/accounts', router);
 
 	setImmediate(cb, null, this);
 }
