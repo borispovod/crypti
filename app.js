@@ -1,4 +1,5 @@
 async = require('async');
+var logger = require('./logger.js');
 
 var config = {
 	"db": "./blockchain.db",
@@ -7,6 +8,7 @@ var config = {
 		"accounts": "./modules/accounts.js",
 		"transactions": "./modules/transactions.js",
 		"blocks": "./modules/blocks.js",
+		"companies": "./modules/companies.js",
 		"transport": "./modules/transport.js",
 		"loader": "./modules/loader.js"
 	}
@@ -14,7 +16,7 @@ var config = {
 
 var d = require('domain').create();
 d.on('error', function (er) {
-	console.error('domain master', er.message, er.stack);
+	logger.error('domain master', {message: er.message, stack: er.stack});
 	process.exit(0);
 });
 d.run(function () {
@@ -25,7 +27,6 @@ d.run(function () {
 		},
 
 		logger: function (cb) {
-			var logger = require('./logger.js');
 			cb(null, logger);
 		},
 
@@ -81,7 +82,7 @@ d.run(function () {
 		}]
 	}, function (err, scope) {
 		if (err) {
-			console.log(err)
+			logger.fatal(err)
 		}
 	});
 });
