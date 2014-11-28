@@ -40,8 +40,7 @@ function Transactions(cb, scope) {
 			if (!transaction || err) {
 				return res.json({success: false, error: "Transaction not found"});
 			}
-			transaction.success = true;
-			return res.json(transaction);
+			return res.json({success: true, transaction: transaction});
 		});
 	});
 
