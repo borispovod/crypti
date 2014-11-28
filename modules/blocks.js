@@ -46,8 +46,20 @@ function Blocks(cb, scope) {
 			if (!block || err) {
 				return res.json({success: false, error: "Block not found"});
 			}
-			block.success = true;
-			return res.json(block);
+			return res.json({success: true, block: block});
+		});
+	});
+
+	router.get('/', function (req, res) {
+		self.list({
+			generatorId: req.query.generatorId,
+			limit: req.query.limit || 20,
+			orderBy: req.query.orderBy
+		}, function (err, blocks) {
+			if (err) {
+				return res.json({success: false, error: "Blocks not found"});
+			}
+			return res.json({success: true, blocks: blocks});
 		});
 	});
 
@@ -69,6 +81,35 @@ Blocks.prototype.get = function (id, cb) {
 	});
 }
 
+Blocks.prototype.list = function (filter, cb) {
+	var params = {}, fields = [];
+	if (filter.generatorId) {
+		fields.push('generatorId = $generatorId')
+		params.$blockId = filter.blockId;
+	}
+	if (filter.limit) {
+		params.$limit = filter.limit;
+	}
+	if (filter.orderBy) {
+		params.$orderBy = filter.orderBy;
+	}
+	var stmt = library.db.prepare("select b.id b_id, b.version b_version, b.timestamp b_timestamp, b.height b_height, b.previousBlock b_previousBlock, b.nextBlock b_nextBlock, b.numberOfRequests b_numberOfRequests, b.numberOfTransactions b_numberOfTransactions, b.numberOfConfirmations b_numberOfConfirmations, b.totalAmount b_totalAmount, b.totalFee b_totalFee, b.payloadLength b_payloadLength, b.requestsLength b_requestsLength, b.confirmationsLength b_confirmationsLength, b.payloadHash b_payloadHash, b.generatorPublicKey b_generatorPublicKey, b.generationSignature b_generationSignature, b.blockSignature b_blockSignature " +
+	"from blocks b " +
+	(fields.length ? "where " + fields.join(' and ') : '') + " " +
+	(filter.orderBy ? 'order by $orderBy' : '') + " " +
+	(filter.limit ? 'limit $limit' : ''));
+
+	stmt.bind(params);
+
+	stmt.all(function (err, rows) {
+		if (err) {
+			return cb(err)
+		}
+		async.mapSeries(rows, function (row, cb) {
+			setImmediate(cb, null, blockHelper.getBlock(row));
+		}, cb)
+	})
+}
 
 Blocks.prototype.loaded = function () {
     return loaded;
@@ -114,7 +155,7 @@ Blocks.prototype.loadBlocks = function (cb) {
                         if (block.id != genesisblock.blockId) {
                             if (!this.verifySignature(block)) { //|| !this.verifyGenerationSignature(block)) {
                                 // need to break cicle and delete this block and blocks after this block
-                                console.log("Can't verify signature...");
+                                library.logger.warn("Can't verify signature...");
                                 break;
                             }
                         }
@@ -132,13 +173,13 @@ Blocks.prototype.loadBlocks = function (cb) {
 
                             if (block.id != genesisblock.blockId) {
                                 if (!modules.transactions.verifySignature(transaction)) {
-                                    console.log("Can't verify transaction: " + transaction.id); // need to remove after tests
+                                    library.logger.warn("Can't verify transaction: " + transaction.id); // need to remove after tests
                                     break;
                                 }
                             }
 
                             if (!modules.transactions.applyUnconfirmed(transaction) || !modules.transactions.apply(transaction)) {
-                                console.log("Can't apply transaction: " + transaction.id);
+                                library.logger.warn("Can't apply transaction: " + transaction.id);
                                 break;
                             }
 
