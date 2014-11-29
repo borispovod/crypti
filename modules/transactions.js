@@ -48,6 +48,22 @@ function Transactions(cb, scope) {
 		});
 	});
 
+	router.get('/unconfirmed/get', function (req, res) {
+		if (!req.query.id) {
+			return res.json({success: false, error: "Provide id in url"});
+		}
+		var transaction = self.getUnconfirmedTransaction(req.query.id);
+		if (!transaction) {
+			return res.json({success: false, error: "Transaction not found"});
+		}
+		return res.json({success: true, transaction: transaction});
+	});
+
+	router.get('/unconfirmed/', function (req, res) {
+		var transactions = self.getAllTransactions();
+		return res.json({success: true, transactions: transactions});
+	});
+
 	router.put('/', function (req, res) {
 		return res.json({});
 	});
@@ -126,12 +142,12 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, cb
 
 	// later need to check second signature
 	/*
-	if (transaction.signSignature) {
-		if (!this.verifySecondSignature(transaction)) {
-			return cb("Can't verify second signature");
-		}
-	}
-	*/
+	 if (transaction.signSignature) {
+	 if (!this.verifySecondSignature(transaction)) {
+	 return cb("Can't verify second signature");
+	 }
+	 }
+	 */
 
 	if (transaction.amount < 0) {
 		return cb("Invalid transaction amount");
