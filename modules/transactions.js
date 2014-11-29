@@ -4,26 +4,48 @@ var transactionHelper = require('../helpers/transaction.js'),
 	ByteBuffer = require("bytebuffer"),
 	crypto = require('crypto'),
 	genesisblock = require('../helpers/genesisblock.js'),
-	constants = require("../helpers/constants.js");
+	constants = require("../helpers/constants.js"),
+	blockHelper = require("../helpers/block.js");
 
 var Router = require('../helpers/router.js');
+var async = require('async');
 
 // private
-var modules, library;
+var modules, library, self;
 var unconfirmedTransactions;
 
 function Transactions(cb, scope) {
 	library = scope;
 	unconfirmedTransactions = {};
+	self = this;
 
 	var router = new Router();
 
 	router.get('/', function (req, res) {
-		return res.json({});
+		self.list({
+			blockId: req.query.blockId,
+			sender: req.query.sender,
+			recipientId: req.query.recipientId,
+			limit: req.query.limit || 20,
+			orderBy: req.query.orderBy
+		}, function (err, transactions) {
+			if (err) {
+				return res.json({success: false, error: "Transactions not found"});
+			}
+			return res.json({success: true, transactions: transactions});
+		});
 	});
 
 	router.get('/get', function (req, res) {
-		return res.json({});
+		if (!req.query.id) {
+			return res.json({success: false, error: "Provide id in url"});
+		}
+		self.get(req.query.id, function (err, transaction) {
+			if (!transaction || err) {
+				return res.json({success: false, error: "Transaction not found"});
+			}
+			return res.json({success: true, transaction: transaction});
+		});
 	});
 
 	router.put('/', function (req, res) {
@@ -32,7 +54,60 @@ function Transactions(cb, scope) {
 
 	library.app.use('/api/transactions', router);
 
-	setImmediate(cb, null, this);
+	setImmediate(cb, null, self);
+}
+
+Transactions.prototype.list = function (filter, cb) {
+	var params = {}, fields = [];
+	if (filter.blockId) {
+		fields.push('blockId = $blockId')
+		params.$blockId = filter.blockId;
+	}
+	if (filter.sender) {
+		fields.push('sender = $sender')
+		params.$sender = filter.sender;
+	}
+	if (filter.recipientId) {
+		fields.push('recipientId = $recipientId')
+		params.$recipientId = filter.recipientId;
+	}
+	if (filter.limit) {
+		params.$limit = filter.limit;
+	}
+	if (filter.orderBy) {
+		params.$orderBy = filter.orderBy;
+	}
+	var stmt = library.db.prepare("select t.id t_id, t.blockId t_blockId, t.type t_type, t.subtype t_subtype, t.timestamp t_timestamp, t.senderPublicKey t_senderPublicKey, t.sender t_sender, t.recipientId t_recipientId, t.amount t_amount, t.fee t_fee, t.signature t_signature, t.signSignature t_signSignature, c_t.generatorPublicKey t_companyGeneratorPublicKey " +
+	"from trs t " +
+	"left outer join companies as c_t on c_t.address=t.recipientId " +
+	(fields.length ? "where " + fields.join(' and ') : '') + " " +
+	(filter.orderBy ? 'order by $orderBy' : '') + " " +
+	(filter.limit ? 'limit $limit' : ''));
+
+	stmt.bind(params);
+
+	stmt.all(function (err, rows) {
+		if (err) {
+			return cb(err)
+		}
+		async.mapSeries(rows, function (row, cb) {
+			setImmediate(cb, null, blockHelper.getTransaction(row));
+		}, cb)
+	})
+}
+
+Transactions.prototype.get = function (id, cb) {
+	var stmt = library.db.prepare("select t.id t_id, t.blockId t_blockId, t.type t_type, t.subtype t_subtype, t.timestamp t_timestamp, t.senderPublicKey t_senderPublicKey, t.sender t_sender, t.recipientId t_recipientId, t.amount t_amount, t.fee t_fee, t.signature t_signature, t.signSignature t_signSignature, c_t.generatorPublicKey t_companyGeneratorPublicKey " +
+	"from trs t " +
+	"left outer join companies as c_t on c_t.address=t.recipientId " +
+	"where t.id = ?");
+
+	stmt.bind(id);
+
+	stmt.get(function (err, row) {
+		var transacton = row && blockHelper.getTransaction(row);
+		cb(err, transacton);
+	});
 }
 
 Transactions.prototype.getUnconfirmedTransaction = function (id) {
