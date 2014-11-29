@@ -16,7 +16,7 @@ Loader.prototype.run = function (scope) {
 
 	modules.blocks.loadBlocks(function (err) {
 		if (err){
-			console.log(err)
+			library.logger.error(err)
 		}
 	});
 }
