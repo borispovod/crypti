@@ -10,6 +10,7 @@ var config = {
 		"transactions": "./modules/transactions.js",
 		"blocks": "./modules/blocks.js",
 		"companies": "./modules/companies.js",
+		"signatures": "./modules/signatures.js",
 		"transport": "./modules/transport.js",
 		"loader": "./modules/loader.js"
 	}
