@@ -3,14 +3,18 @@ var transactionHelper = require('../helpers/transaction.js'),
 	bignum = require('bignum'),
 	ByteBuffer = require("bytebuffer"),
 	crypto = require('crypto'),
-	genesisblock = require('../helpers/genesisblock.js');
+	genesisblock = require('../helpers/genesisblock.js'),
+	constants = require("../helpers/constants.js");
+
 var Router = require('../helpers/router.js');
 
 // private
 var modules, library;
+var unconfirmedTransactions;
 
 function Transactions(cb, scope) {
 	library = scope;
+	unconfirmedTransactions = {};
 
 	var router = new Router();
 
@@ -29,6 +33,97 @@ function Transactions(cb, scope) {
 	library.app.use('/api/transactions', router);
 
 	setImmediate(cb, null, this);
+}
+
+Transactions.prototype.getUnconfirmedTransaction = function (id) {
+	return unconfirmedTransactions[id];
+}
+
+Transactions.prototype.getAllTransactions = function () {
+	return unconfirmedTransactions;
+}
+
+Transactions.prototype.processUnconfirmedTransaction = function (transaction, cb) {
+	// process unconfirmed transaction
+	if (!this.verifySignature(transaction)) {
+		return cb("Can't verify signature")
+	}
+
+	// later need to check second signature
+	/*
+	if (transaction.signSignature) {
+		if (!this.verifySecondSignature(transaction)) {
+			return cb("Can't verify second signature");
+		}
+	}
+	*/
+
+	if (transaction.amount < 0) {
+		return cb("Invalid transaction amount");
+	}
+
+	var minimalFee = 1 * constants.fixedPoint;
+
+	switch (transaction.type) {
+		case 0:
+			switch (transaction.subtype) {
+				case 0:
+					if (transaction.fee < minimalFee) {
+						return cb("Invalid transaction fee, minimal amount is: " + minimalFee);
+					}
+					break;
+
+				default:
+					return cb("Invalid transaction type");
+			}
+			break;
+
+		case 1:
+			switch (transaction.subtype) {
+				case 0:
+					if (transaction.fee < minimalFee) {
+						return cb("Invalid transaction fee, minimal amount is: " + minimalFee)
+					}
+					break;
+
+				default:
+					return cb("Invalid transaction type");
+			}
+			break;
+
+		case 2:
+			switch (transaction.subtype) {
+				case 0:
+					if (transaction.fee != 100 * constants.fixedPoint) {
+						return cb("Invalid transaction fee, fee must be: " + 100 * constants.fixedPoint);
+					}
+					break;
+
+				default:
+					return cb("Invalid transaction type");
+			}
+			break;
+
+		case 3:
+			switch (transaction.subtype) {
+				case 0:
+					if (transaction.fee != 1000 * constants.fixedPoint) {
+						return cb("Invalid transaction fee, fee must be: " + 1000 * constants.fixedPoint);
+					}
+					break;
+
+				default:
+					return cb("Invalid transaction type");
+			}
+			break;
+
+		default:
+			return cb("Invalid transaction type");
+	}
+
+	// need to check company address existing in database if type is 1 and subtype is 0, later
+
+
 }
 
 Transactions.prototype.apply = function (transaction) {
