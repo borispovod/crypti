@@ -16,18 +16,21 @@ Loader.prototype.run = function (scope) {
 
 	var offset = 0, limit = 10000;
 	modules.blocks.count(function (err, count) {
-		console.log('count = ' + count)
+		library.logger.info('count = ' + count)
 		async.until(
 			function () {
 				return count < offset
 			}, function (cb) {
-				console.log('offset = ' + offset)
-				modules.blocks.loadBlocks(limit, offset, function(err, res){
+				library.logger.info('offset = ' + offset)
+				modules.blocks.loadBlocks(limit, offset, function (err, res) {
 					offset = offset + limit;
 					cb(err, res)
 				});
 			}, function (err, res) {
-				console.log(err, res)
+				if (err) {
+					library.logger.error(err);
+				}
+				library.logger.info('loaded')
 			}
 		)
 	})
