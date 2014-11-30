@@ -3,7 +3,7 @@ var crypto = require('crypto'),
 var Router = require('../helpers/router.js');
 
 //private
-var modules, library;
+var modules, library, self;
 var accounts;
 
 //public
@@ -30,6 +30,7 @@ Account.prototype.setUnconfirmedBalance = function (unconfirmedBalance) {
 }
 
 function Accounts(cb, scope) {
+	self = this;
 	library = scope;
 	accounts = {};
 
@@ -40,7 +41,7 @@ function Accounts(cb, scope) {
 			return res.json({success: false, error: "Provide secret key of account"});
 		}
 
-		var account = this.openAccount(req.body.secret);
+		var account = self.openAccount(req.body.secret);
 
 		return res.json({success: true, account: account});
 	});
@@ -50,16 +51,27 @@ function Accounts(cb, scope) {
 			return res.json({success: false, error: "Provide address in url"});
 		}
 
-		var account = this.getAccount(req.query.address);
+		var account = self.getAccount(req.query.address);
 		var balance = account ? account.balance : 0;
 		var unconfirmedBalance = account ? account.unconfirmedBalance : 0;
 
 		return res.json({success: true, balance: balance, unconfirmedBalance: unconfirmedBalance});
 	});
 
+	router.get('/getPublicKey', function (req, res) {
+		if (!req.query.address) {
+			return res.json({success: false, error: "Provide address in url"});
+		}
+
+		var account = self.getAccount(req.query.address);
+		var publicKey = '';
+
+		return res.json({success: true, publicKey: publicKey});
+	});
+
 	library.app.use('/api/accounts', router);
 
-	setImmediate(cb, null, this);
+	setImmediate(cb, null, self);
 }
 
 Accounts.prototype.addAccount = function (account) {
