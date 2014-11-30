@@ -14,11 +14,23 @@ function Loader(cb, scope) {
 Loader.prototype.run = function (scope) {
 	modules = scope;
 
-	modules.blocks.loadBlocks(function (err) {
-		if (err){
-			library.logger.error(err)
-		}
-	});
+	var offset = 0, limit = 10000;
+	modules.blocks.count(function (err, count) {
+		console.log('count = ' + count)
+		async.until(
+			function () {
+				return count < offset
+			}, function (cb) {
+				console.log('offset = ' + offset)
+				modules.blocks.loadBlocks(limit, offset, function(err, res){
+					offset = offset + limit;
+					cb(err, res)
+				});
+			}, function (err, res) {
+				console.log(err, res)
+			}
+		)
+	})
 }
 
 //export

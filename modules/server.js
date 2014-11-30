@@ -29,18 +29,18 @@ Server.prototype.run = function (scope) {
 			if (library.config.api.access.whiteList.indexOf(ip) < 0) {
 				return res.send(401);
 			} else {
-				if (modules.blocks.loaded()) {
-					res.render('wallet.html', {showAdmin: showLinkToAdminPanel, layout: false});
-				} else {
-					res.render('loading.html');
-				}
+				//if (modules.blocks.loaded()) {
+				res.render('wallet.html', {showAdmin: showLinkToAdminPanel, layout: false});
+				//} else {
+				//	res.render('loading.html');
+				//}
 			}
 		} else {
-			if (modules.blocks.loaded()) {
-				res.render('wallet.html', {showAdmin: showLinkToAdminPanel, layout: false});
-			} else {
-				res.render('loading.html');
-			}
+			//if (modules.blocks.loaded()) {
+			res.render('wallet.html', {showAdmin: showLinkToAdminPanel, layout: false});
+			//} else {
+			//	res.render('loading.html');
+			//}
 		}
 	});
 
