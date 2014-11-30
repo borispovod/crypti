@@ -8,7 +8,6 @@
 	"dependencies": {
 		"async": "https://github.com/crypti/async/tarball/master",
 		"bignum": "https://github.com/crypti/node-bignum/tarball/master",
-		"binarysearch": "^0.2.4",
 		"bytebuffer": "https://github.com/crypti/ByteBuffer.js/tarball/master",
 		"ed25519": "https://github.com/crypti/Ed25519/tarball/master",
 		"express": "4.x",
@@ -17,14 +16,9 @@
 		"method-override": "*",
 		"grunt": "^0.4.5",
 		"long": "^1.1.5",
-		"nconf": "https://github.com/crypti/nconf/tarball/master",
 		"request": "https://github.com/crypti/request/tarball/master",
 		"sqlite3": "2.2.0",
-		"sqlite3-transactions": "0.0.5",
 		"underscore": "https://github.com/crypti/underscore/tarball/master",
-		"wait.for": "^0.6.6",
-		"winston": "https://github.com/crypti/winston/tarball/master",
-		"strftime": "*",
-		"winston": "*"
+		"strftime": "*"
 	}
 }
