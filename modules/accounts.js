@@ -43,7 +43,7 @@ function Accounts(cb, scope) {
 
 		var account = self.openAccount(req.body.secret);
 
-		return res.json({success: true, account: account});
+		return res.json({success: true, account : account });
 	});
 
 	router.get('/getBalance', function (req, res) {
@@ -64,9 +64,21 @@ function Accounts(cb, scope) {
 		}
 
 		var account = self.getAccount(req.query.address);
-		var publicKey = '';
 
-		return res.json({success: true, publicKey: publicKey});
+		if (!account || !account.publicKey) {
+			return res.json({ success : false, error : "Account public key can't be found "});
+		}
+
+		return res.json({ success: true, publicKey: account.publicKey });
+	});
+
+	router.post("/generatePublicKey", function (req, res) {
+		if (!req.body.secret) {
+			return res.json({ success : false, error : "Provide secret key to generate public key" });
+		}
+
+		var account = self.openAccount(req.body.secret);
+		return res.json({ success : true, publicKey : account.publicKey });
 	});
 
 	library.app.use('/api/accounts', router);
