@@ -1,5 +1,7 @@
 var crypto = require('crypto'),
-	bignum = require('bignum');
+	bignum = require('bignum'),
+	ed = require('ed25519');
+
 var Router = require('../helpers/router.js');
 
 //private
@@ -122,12 +124,15 @@ Accounts.prototype.getAccountOrCreate = function (addressOrPublicKey) {
 		publicKey = addressOrPublicKey;
 		address = this.getAddressByPublicKey(publicKey);
 		account = this.getAccount(address);
+
+		if (account && !account.publicKey) {
+			account.publicKey = publicKey;
+		}
 	}
 
 	if (!account) {
 		account = new Account(address, publicKey);
 		this.addAccount(account);
-
 		return account;
 	} else {
 		return account;
