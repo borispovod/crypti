@@ -74,6 +74,10 @@ function Blocks(cb, scope) {
 		return lastBlock.height;
 	});
 
+	router.get('/getLast', function (req, res) {
+		return res.json({success: true, block: lastBlock});
+	});
+
 	library.app.use('/api/blocks', router);
 
 	setImmediate(cb, null, self);
@@ -137,13 +141,17 @@ Blocks.prototype.loadBlocks = function (limit, offset, cb) {
 		"b.id b_id, b.version b_version, b.timestamp b_timestamp, b.height b_height, b.previousBlock b_previousBlock, b.nextBlock b_nextBlock, b.numberOfRequests b_numberOfRequests, b.numberOfTransactions b_numberOfTransactions, b.numberOfConfirmations b_numberOfConfirmations, b.totalAmount b_totalAmount, b.totalFee b_totalFee, b.payloadLength b_payloadLength, b.requestsLength b_requestsLength, b.confirmationsLength b_confirmationsLength, b.payloadHash b_payloadHash, b.generatorPublicKey b_generatorPublicKey, b.generationSignature b_generationSignature, b.blockSignature b_blockSignature, " +
 		"t.id t_id, t.blockId t_blockId, t.type t_type, t.subtype t_subtype, t.timestamp t_timestamp, t.senderPublicKey t_senderPublicKey, t.sender t_sender, t.recipientId t_recipientId, t.amount t_amount, t.fee t_fee, t.signature t_signature, t.signSignature t_signSignature, c_t.generatorPublicKey t_companyGeneratorPublicKey, " +
 		"s.id s_id, s.transactionId s_transactionId, s.timestamp s_timestamp, s.publicKey s_publicKey, s.generatorPublicKey s_generatorPublicKey, s.signature s_signature, s.generationSignature s_generationSignature, " +
-		"c.id c_id, c.transactionId c_transactionId, c.name c_name, c.description c_description, c.domain c_domain, c.email c_email, c.timestamp c_timestamp, c.generatorPublicKey c_generatorPublicKey, c.signature c_signature " +
+		"c.id c_id, c.transactionId c_transactionId, c.name c_name, c.description c_description, c.domain c_domain, c.email c_email, c.timestamp c_timestamp, c.generatorPublicKey c_generatorPublicKey, c.signature c_signature, " +
+		"cc.id cc_id, cc.blockId cc_blockId, cc.companyId cc_companyId, cc.verified cc_verified, cc.timestamp cc_timestamp, cc.signature cc_signature, " +
+		"r.id r_id, r.blockId r_blockId, r.address r_address " +
 		"FROM (select * from blocks limit $limit offset $offset) as b " +
-		"left outer join trs as t on blockId=b.id " +
+		"left outer join trs as t on t.blockId=b.id " +
 		"left outer join signatures as s on s.transactionId=t.id " +
 		"left outer join companies as c on c.transactionId=t.id " +
 		"left outer join companies as c_t on c_t.address=t.recipientId " +
-		"ORDER BY b.rowid, t.rowid, s.rowid, c.rowid " +
+		"left outer join companyconfirmations as cc on cc.blockId=b.id " +
+		"left outer join requests as r on r.blockId=b.id " +
+		"ORDER BY b.rowid, t.rowid, s.rowid, c.rowid, r.rowid, cc.rowid " +
 		"", {$limit: limit, $offset: offset}, function (err, rows) {
 			// Some notes:
 			// If loading catch error, for example, invalid signature on block & transaction, need to stop loading and remove all blocks after last good block.
@@ -151,15 +159,12 @@ Blocks.prototype.loadBlocks = function (limit, offset, cb) {
 			if (!err) {
 				blocks = [];
 				blocksById = {};
-				lastBlock = rows.length && rows[rows.length - 1];
 
-				var prevBlockId = null, prevTransactionId = null, b_index, t_index;
+				var prevBlockId = null, prevTransactionId = null, b_index, t_index, prevRequestId = null, prevCompanyComfirmationId = null;
 				for (var i = 0, length = rows.length; i < length; i++) {
 					var block = blockHelper.getBlock(rows[i]);
 					if (block) {
 						if (prevBlockId != block.id) {
-							blocks.push(block);
-
 							if (block.id != genesisblock.blockId) {
 								if (!self.verifySignature(block)) { //|| !self.verifyGenerationSignature(block)) {
 									// need to break cicle and delete this block and blocks after this block
@@ -168,13 +173,34 @@ Blocks.prototype.loadBlocks = function (limit, offset, cb) {
 								}
 							}
 
+							blocks.push(block);
+
+							lastBlock = block;
+
 							b_index = blocks.length - 1;
 							blocksById[block.id] = b_index;
 							prevBlockId = block.id;
 						}
 
-						var transaction = blockHelper.getTransaction(rows[i]);
+						var request = blockHelper.getRequest(rows[i]);
+						if (request) {
+							!blocks[b_index].requests && (blocks[b_index].requests = []);
+							if (prevRequestId != request.id) {
+								blocks[b_index].requests.push(request);
+								prevRequestId = request.id;
+							}
+						}
 
+						var companyComfirmation = blockHelper.getCompanyComfirmation(rows[i]);
+						if (companyComfirmation) {
+							!blocks[b_index].companyComfirmations && (blocks[b_index].companyComfirmations = []);
+							if (prevCompanyComfirmationId != companyComfirmation.id) {
+								blocks[b_index].companyComfirmations.push(companyComfirmation);
+								prevCompanyComfirmationId = companyComfirmation.id;
+							}
+						}
+
+						var transaction = blockHelper.getTransaction(rows[i]);
 						if (transaction) {
 							!blocks[b_index].transactions && (blocks[b_index].transactions = []);
 							if (prevTransactionId != transaction.id) {
@@ -224,6 +250,8 @@ Blocks.prototype.loadBlocks = function (limit, offset, cb) {
 					}
 				}
 
+			} else {
+				console.log(err)
 			}
 
 			console.timeEnd('loading');
@@ -233,7 +261,11 @@ Blocks.prototype.loadBlocks = function (limit, offset, cb) {
 			delete blocksById;
 
 			cb(err);
-		}.bind(this));
+		}
+			.
+			bind(this)
+	)
+	;
 }
 
 //public
