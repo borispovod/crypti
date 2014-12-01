@@ -5,7 +5,8 @@ var transactionHelper = require('../helpers/transaction.js'),
 	crypto = require('crypto'),
 	genesisblock = require('../helpers/genesisblock.js'),
 	constants = require("../helpers/constants.js"),
-	blockHelper = require("../helpers/block.js");
+	blockHelper = require("../helpers/block.js"),
+	timeHelper = require("../helpers/time.js");
 
 var Router = require('../helpers/router.js');
 var async = require('async');
@@ -65,7 +66,90 @@ function Transactions(cb, scope) {
 	});
 
 	router.put('/', function (req, res) {
-		return res.json({});
+		var secret = req.body.secret,
+			amount = req.body.amount,
+			recipientId = req.body.recipientId,
+			publicKey = req.body.publicKey,
+			secondSecret = req.body.secondSecret;
+
+		var hash = crypto.createHash('sha256').update(secret, 'utf8').digest();
+		var keypair = ed.MakeKeypair(hash);
+
+		if (publicKey) {
+			if (keypair.publicKey.toString('hex') != new Buffer(publicKey).toString('hex')) {
+				return res.json({ success : false, error : "Please, provide valid secret key of your account" });
+			}
+		}
+
+		var account = modules.accounts.getAccountByPublicKey(keypair.publicKey);
+
+		if (!account) {
+			return res.json({ success : false, error : "Account doesn't has balance" });
+		}
+
+		//
+
+		// fee is dynamic value, later need to calculate fee.
+		var fee = 1 * constants.fixedPoint;
+		var totalAmount = amount + fee;
+
+		if (totalAmount > account.unconfirmedBalance) {
+			return res.json({ success : false, error : "Account doesn't have enough amount" });
+		}
+
+		async.parallel([
+			function (cb) {
+				library.sql.serialize(function () {
+					library.sql.get("SELECT publicKey FROM signatures WHERE generatorPublicKey = $generatorPublicKey", { $generatorPublicKey : account.publicKey }, function (err, signature) {
+						if (err) {
+							return cb("Internal sql error");
+						} else {
+							if (!signature && secondSecret) {
+								return cb("Provide second secret key from second signature");
+							} else if (signature) {
+								hash = crypto.createHash('sha256').update(secondSecret, 'utf8').digest();
+								keypair = ed.MakeKeypair(hash);
+
+								if (keypair.publicKey.toString('hex') == signature.publicKey.toString('hex')) {
+									return cb("Invalid second secret key")
+								}
+							} else {
+								return cb();
+							}
+						}
+					});
+				})
+			},
+			function (cb) {
+				if (recipientId[recipientId.length - 1] == 'D') {
+					type = 1;
+
+					library.sql.serialize(function () {
+						library.sql.get("SELECT id FROM companies WHERE address = $address", { $address : recipientId }, function (err, company) {
+							if (err) {
+								return cb("Internal sql error");
+							} else if (company) {
+								return cb();
+							} else {
+								return cb("Company with this address as recipient not found");
+							}
+						});
+					});
+				} else {
+					return cb();
+				}
+			}
+		], function (errors) {
+			if (errors) {
+				return res.json({ success : false, error : errors.pop() });
+			} else {
+				// make transaction
+				var transaction = {
+					amount : amount,
+
+				};
+			}
+		});
 	});
 
 	library.app.use('/api/transactions', router);
@@ -135,24 +219,30 @@ Transactions.prototype.getAllTransactions = function () {
 }
 
 Transactions.prototype.processUnconfirmedTransaction = function (transaction, cb) {
-	// process unconfirmed transaction
-	if (!this.verifySignature(transaction)) {
-		return cb("Can't verify signature")
-	}
+	setImmediate(function () {
+		// process transaction
+		if (!this.verifySignature(transaction)) {
+			return cb("Can't verify signature")
+		}
 
-	// later need to check second signature
+		// check if transaction is not float and great then 0
+		if (transaction.amount < 0 || transaction.amount.toString().indexOf('.') >= 0) {
+			return cb("Invalid transaction amount");
+		}
+
+		if (transaction.timestamp > timeHelper.getNow()) {
+			return cb("Invalid transaction timestamp");
+		}
+
+
+	}.bind(this));
+
+	// validate transaction type, fee, recipient last character
+
+
+	// validate transaction if it has company,
+
 	/*
-	 if (transaction.signSignature) {
-	 if (!this.verifySecondSignature(transaction)) {
-	 return cb("Can't verify second signature");
-	 }
-	 }
-	 */
-
-	if (transaction.amount < 0) {
-		return cb("Invalid transaction amount");
-	}
-
 	var minimalFee = 1 * constants.fixedPoint;
 
 	switch (transaction.type) {
@@ -211,6 +301,7 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, cb
 		default:
 			return cb("Invalid transaction type");
 	}
+	*/
 
 	// need to check company address existing in database if type is 1 and subtype is 0, later
 
