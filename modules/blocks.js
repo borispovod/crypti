@@ -5,7 +5,9 @@ var crypto = require('crypto'),
 	ByteBuffer = require("bytebuffer"),
 	constants = require("../helpers/constants.js"),
 	blockHelper = require("../helpers/block.js"),
-	genesisblock = require("../helpers/genesisblock.js");
+	genesisblock = require("../helpers/genesisblock.js"),
+	transactionHelper = require("../helpers/transaction.js"),
+	constants = require('../helpers/constants.js');
 
 var Router = require('../helpers/router.js');
 var util = require('util');
@@ -14,6 +16,9 @@ var async = require('async');
 //private
 var modules, library;
 var blocks, lastBlock, blocksById, self;
+var fee = constants.feeStart;
+var nextFeeVolume = constants.feeStartVolume;
+var feeVolume = 0;
 
 //constructor
 function Blocks(cb, scope) {
@@ -161,6 +166,7 @@ Blocks.prototype.loadBlocks = function (limit, offset, cb) {
 						}
 
 						var transaction = blockHelper.getTransaction(rows[i]);
+
 						if (transaction) {
 							!blocks[b_index].transactions && (blocks[b_index].transactions = []);
 							if (prevTransactionId != transaction.id) {
@@ -178,6 +184,11 @@ Blocks.prototype.loadBlocks = function (limit, offset, cb) {
 									break;
 								}
 
+								if (!this.applyForger(block.generatorPublicKey, transaction)) {
+									library.logger.warn("Can't apply transaction to forger: " + transaction.id);
+									break;
+								}
+
 								t_index = blocks[b_index].transactions.length - 1;
 								prevTransactionId = transaction.id;
 							}
@@ -187,13 +198,24 @@ Blocks.prototype.loadBlocks = function (limit, offset, cb) {
 								blocks[b_index].transactions[t_index].signatures.push(signature);
 							}
 							var company = blockHelper.getCompany(rows[i]);
+
 							if (company) {
 								!blocks[b_index].transactions[t_index].companies && (blocks[b_index].transactions[t_index].companies = []);
 								blocks[b_index].transactions[t_index].companies.push(company);
 							}
 						}
 					}
+
+					// process and recalculate fee
+					feeVolume += block.totalFee + block.totalAmount;
+
+					if (nextFeeVolume <= feeVolume) {
+						fee -= fee / 100 * 25;
+						nextFeeVolume *= 2;
+						feeVolume = 0;
+					}
 				}
+
 			}
 
 			console.timeEnd('loading');
@@ -203,12 +225,26 @@ Blocks.prototype.loadBlocks = function (limit, offset, cb) {
 			delete blocksById;
 
 			cb(err);
-		});
+		}.bind(this));
 }
 
 //public
 Blocks.prototype.run = function (scope) {
 	modules = scope;
+}
+
+Blocks.prototype.applyForger = function (generatorPublicKey, transaction) {
+	var forger = modules.accounts.getAccountByPublicKey(generatorPublicKey);
+
+	if (!forger) {
+		return false;
+	}
+
+	var fee = transactionHelper.getTransactionFee(transaction, true);
+	forger.addToUnconfirmedBalance(fee);
+	forger.addToBalance(fee);
+
+	return true;
 }
 
 Blocks.prototype.verifySignature = function (block) {
