@@ -66,6 +66,14 @@ function Blocks(cb, scope) {
 		});
 	});
 
+	router.get('/getFee', function (req, res) {
+		return fee;
+	});
+
+	router.get('/getHeight', function (req, res) {
+		return lastBlock.height;
+	});
+
 	library.app.use('/api/blocks', router);
 
 	setImmediate(cb, null, self);
@@ -286,6 +294,10 @@ Blocks.prototype.verifyGenerationSignature = function (block) {
 	}
 
 	return true;
+}
+
+Blocks.prototype.getFee = function () {
+	return fee;
 }
 
 Blocks.prototype.getAll = function () {
