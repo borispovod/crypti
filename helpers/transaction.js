@@ -135,7 +135,30 @@ function getBytes(transaction) {
     return bb.toBuffer();
 }
 
+function getId(transaction) {
+	var hash = crypto.createHash('sha256').update(getBytes(transaction)).digest();
+	var temp = new Buffer(8);
+	for (var i = 0; i < 8; i++) {
+		temp[i] = hash[7 - i];
+	}
+
+	var id =  bignum.fromBuffer(temp).toString();
+	return id;
+}
+
+function getHash(transaction) {
+	return crypto.createHash('sha256').update(getBytes(transaction)).digest();
+}
+
+function getFee(transaction, percent) {
+	return parseInt(transaction.amount / 100 * percent);
+}
+
 module.exports = {
     getTransactionFee : getTransactionFee,
-    getBytes : getBytes
+    getBytes : getBytes,
+	getId : getId,
+	getLastChar : getLastChar,
+	getHash : getHash,
+	getFee : getFee
 };
