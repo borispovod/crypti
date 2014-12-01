@@ -13,11 +13,12 @@ var async = require('async');
 
 // private
 var modules, library, self;
-var unconfirmedTransactions;
+var unconfirmedTransactions, doubleSpendingTransactions;
 
 function Transactions(cb, scope) {
 	library = scope;
 	unconfirmedTransactions = {};
+	doubleSpendingTransactions = {};
 	self = this;
 
 	var router = new Router();
@@ -87,67 +88,30 @@ function Transactions(cb, scope) {
 			return res.json({ success : false, error : "Account doesn't has balance" });
 		}
 
-		//
-
-		// fee is dynamic value, later need to calculate fee.
-		var fee = 1 * constants.fixedPoint;
-		var totalAmount = amount + fee;
-
-		if (totalAmount > account.unconfirmedBalance) {
-			return res.json({ success : false, error : "Account doesn't have enough amount" });
+		if (!account.publicKey) {
+			return res.json({ success : false, error : "Open account to send funds" });
 		}
 
-		async.parallel([
-			function (cb) {
-				library.sql.serialize(function () {
-					library.sql.get("SELECT publicKey FROM signatures WHERE generatorPublicKey = $generatorPublicKey", { $generatorPublicKey : account.publicKey }, function (err, signature) {
-						if (err) {
-							return cb("Internal sql error");
-						} else {
-							if (!signature && secondSecret) {
-								return cb("Provide second secret key from second signature");
-							} else if (signature) {
-								hash = crypto.createHash('sha256').update(secondSecret, 'utf8').digest();
-								keypair = ed.MakeKeypair(hash);
+		var transaction = {
+			type : 0,
+			subtype : 0,
+			amount : amount,
+			recipientId : recipientId,
+			senderPublicKey : account.publicKey,
+			timestamp : timeHelper.getNow()
+		};
 
-								if (keypair.publicKey.toString('hex') == signature.publicKey.toString('hex')) {
-									return cb("Invalid second secret key")
-								}
-							} else {
-								return cb();
-							}
-						}
-					});
-				})
-			},
-			function (cb) {
-				if (recipientId[recipientId.length - 1] == 'D') {
-					type = 1;
+		self.sign(secret, transaction);
 
-					library.sql.serialize(function () {
-						library.sql.get("SELECT id FROM companies WHERE address = $address", { $address : recipientId }, function (err, company) {
-							if (err) {
-								return cb("Internal sql error");
-							} else if (company) {
-								return cb();
-							} else {
-								return cb("Company with this address as recipient not found");
-							}
-						});
-					});
-				} else {
-					return cb();
-				}
-			}
-		], function (errors) {
-			if (errors) {
-				return res.json({ success : false, error : errors.pop() });
+		if (secondSecret) {
+			self.secondSign(secret, transaction);
+		}
+
+		self.processUnconfirmedTransaction(transaction, true, function (err) {
+			if (err) {
+				return res.json({ success : false, error : err });
 			} else {
-				// make transaction
-				var transaction = {
-					amount : amount,
-
-				};
+				return res.json({ success : true, transaction : transaction });
 			}
 		});
 	});
@@ -155,6 +119,20 @@ function Transactions(cb, scope) {
 	library.app.use('/api/transactions', router);
 
 	setImmediate(cb, null, self);
+}
+
+Transactions.prototype.sign = function (secret, transaction) {
+	var hash = transactionHelper.getHash(transaction);
+	var passHash = crypto.createHash('sha256').update(secret, 'utf8').digest();
+	var keypair = ed.MakeKeypair(passHash);
+	transaction.signature = ed.Sign(hash, keypair);
+}
+
+Transactions.prototype.secondSign = function (secret, transaction) {
+	var hash = transactionHelper.getHash(transaction);
+	var passHash = crypto.createHash('sha256').update(secret, 'utf8').digest();
+	var keypair = ed.MakeKeypair(passHash);
+	transaction.signSignature = ed.Sign(hash, keypair);
 }
 
 Transactions.prototype.list = function (filter, cb) {
@@ -218,10 +196,30 @@ Transactions.prototype.getAllTransactions = function () {
 	return unconfirmedTransactions;
 }
 
-Transactions.prototype.processUnconfirmedTransaction = function (transaction, cb) {
+Transactions.prototype.removeUnconfirmedTransaction = function (transaction) {
+	if (unconfirmedTransactions[transaction.id]) {
+		delete unconfirmedTransactions[transaction.id];
+	}
+}
+
+Transactions.prototype.processUnconfirmedTransaction = function (transaction, sendToPeers, cb) {
+	var self = this;
+
 	setImmediate(function () {
 		// process transaction
-		if (!this.verifySignature(transaction)) {
+		var txId = transactionHelper.getId(transaction);
+
+		if (transaction.id && transaction.id != txId) {
+			return cb("Invalid transaction id");
+		} else {
+			transaction.id = txId;
+		}
+
+		if (unconfirmedTransactions[transaction.id] || doubleSpendingTransactions[transaction.id]) {
+			return cb("This transaction already exists");
+		}
+
+		if (!self.verifySignature(transaction)) {
 			return cb("Can't verify signature")
 		}
 
@@ -230,88 +228,148 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, cb
 			return cb("Invalid transaction amount");
 		}
 
-		if (transaction.timestamp > timeHelper.getNow()) {
+		if (transaction.timestamp > timeHelper.getNow() + 15) {
 			return cb("Invalid transaction timestamp");
 		}
 
+		var fee = transactionHelper.getFee(transaction, modules.blocks.getFee());
 
-	}.bind(this));
+		if (fee <= 0) {
+			fee = 1;
+		}
 
-	// validate transaction type, fee, recipient last character
+		switch (transaction.type) {
+			case 0:
+				switch (transaction.subtype) {
+					case 0:
+						if (transactionHelper.getLastChar(transaction) != "C") {
+							return cb("Invalid transaction recipient id");
+						}
+
+						transaction.fee = fee;
+						break;
+
+					default:
+						return cb("Unknown transaction type");
+				}
+				break;
+
+			case 1:
+				switch (transaction.subtype) {
+					case 0:
+						if (transactionHelper.getLastChar(transaction) != "D") {
+							return cb("Invalid transaction recipient id");
+						}
+
+						transaction.fee = fee;
+						break;
+
+					default:
+						return cb("Unknown transaction type");
+				}
+				break;
+
+			case 2:
+				switch (transaction.subtype) {
+					case 0:
+						if (transaction.fee != 100 * constants.fixedPoint) {
+							return cb("Invalid transaction fee");
+						}
+
+						if (!transaction.asset) {
+							return cb("Empty transaction asset for company transaction")
+						}
+
+						// process signature of transaction
+						break;
+
+					default:
+						return cb("Unknown transaction type");
+				}
+				break;
+
+			case 3:
+				switch (transaction.subtype) {
+					case 0:
+						if (transaction.fee != 1000 * constants.fixedPoint) {
+							return cb("Invalid transaction fee");
+						}
+
+						if (!transaction.asset) {
+							return cb("Empty transaction asset for company transaction")
+						}
+
+						// process company of transaction
+						break;
+
+					default:
+						return cb("Unknown transaction type");
+				}
+				break;
+
+			default:
+				return cb("Unknown transaction type");
+		}
 
 
-	// validate transaction if it has company,
-
-	/*
-	var minimalFee = 1 * constants.fixedPoint;
-
-	switch (transaction.type) {
-		case 0:
-			switch (transaction.subtype) {
-				case 0:
-					if (transaction.fee < minimalFee) {
-						return cb("Invalid transaction fee, minimal amount is: " + minimalFee);
-					}
-					break;
-
-				default:
-					return cb("Invalid transaction type");
+		async.parallel([
+			function (cb) {
+				library.db.serialize(function () {
+					library.db.get("SELECT publicKey FROM signatures WHERE generatorPublicKey = $generatorPublicKey", { $generatorPublicKey : transaction.senderPublicKey }, function (err, signature) {
+						if (err) {
+							return cb("Internal sql error");
+						} else {
+							if (signature) {
+								if (!self.verifySecondSignature(transaction, signature.publicKey)) {
+									return cb("Can't verify second signature");
+								}
+							} else {
+								return cb();
+							}
+						}
+					});
+				})
+			},
+			function (cb) {
+				if (transaction.type == 1 && transaction.subtype == 0) {
+					library.db.serialize(function () {
+						library.db.get("SELECT id FROM companies WHERE address = $address", { $address : transaction.recipientId }, function (err, company) {
+							if (err) {
+								return cb("Internal sql error");
+							} else if (company) {
+								return cb();
+							} else {
+								return cb("Company with this address as recipient not found");
+							}
+						});
+					});
+				} else {
+					return cb();
+				}
 			}
-			break;
+		], function (errors) {
+			if (errors) {
+				return cb(errors.pop());
+			} else {
+				if (self.applyUnconfirmed(transaction)) {
+					unconfirmedTransactions[transaction.id] = transaction;
 
-		case 1:
-			switch (transaction.subtype) {
-				case 0:
-					if (transaction.fee < minimalFee) {
-						return cb("Invalid transaction fee, minimal amount is: " + minimalFee)
+					if (sendToPeers) {
+						// broadcast transaction with peers
 					}
-					break;
+				} else {
+					doubleSpendingTransactions[transaction.id] = transaction;
+				}
 
-				default:
-					return cb("Invalid transaction type");
+				return cb(null, transaction.id);
 			}
-			break;
-
-		case 2:
-			switch (transaction.subtype) {
-				case 0:
-					if (transaction.fee != 100 * constants.fixedPoint) {
-						return cb("Invalid transaction fee, fee must be: " + 100 * constants.fixedPoint);
-					}
-					break;
-
-				default:
-					return cb("Invalid transaction type");
-			}
-			break;
-
-		case 3:
-			switch (transaction.subtype) {
-				case 0:
-					if (transaction.fee != 1000 * constants.fixedPoint) {
-						return cb("Invalid transaction fee, fee must be: " + 1000 * constants.fixedPoint);
-					}
-					break;
-
-				default:
-					return cb("Invalid transaction type");
-			}
-			break;
-
-		default:
-			return cb("Invalid transaction type");
-	}
-	*/
-
-	// need to check company address existing in database if type is 1 and subtype is 0, later
-
-
+		});
+	});
 }
 
 Transactions.prototype.apply = function (transaction) {
 	var sender = modules.accounts.getAccountByPublicKey(transaction.senderPublicKey);
 	var amount = transaction.amount + transaction.fee;
-
 
 	if (sender.balance < amount && transaction.blockId != genesisblock.blockId) {
 		return false;
