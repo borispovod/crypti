@@ -46,7 +46,7 @@ function getTransactionFee(transaction, isGenerator) {
         case 2:
             switch (transaction.subtype) {
                 case 0:
-                    fee = transaction.fee;
+                    fee = 100 * constants.fixedPoint;
                     break;
             }
             break;
@@ -65,6 +65,10 @@ function getTransactionFee(transaction, isGenerator) {
     }
 
     return fee;
+}
+
+function getLastChar(transaction) {
+	return transaction.recipientId[transaction.recipientId.length - 1];
 }
 
 function getBytes(transaction) {
