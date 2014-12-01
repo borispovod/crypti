@@ -129,7 +129,7 @@ webApp.controller('sendCryptiController', ["$scope", "sendCryptiModal", "$http",
     }
 
     $scope.getCurrentFee = function () {
-        $http.get("/api/getFee", { params : { accountId : userService.address }})
+        $http.get("/api/blocks/getFee")
             .then(function (resp) {
                 $scope.currentFee = resp.data.fee;
             });
@@ -182,17 +182,17 @@ webApp.controller('sendCryptiController', ["$scope", "sendCryptiModal", "$http",
         var data = {
             secret: $scope.secretPhrase,
             amount: $scope.convertXCR($scope.amount),
-            recipient: $scope.to,
+            recipientId: $scope.to,
             accountAddress: userService.address,
             amountIsInteger : true
         };
 
         if ($scope.secondPassphrase) {
-            data.secondPhrase = $scope.secondPhrase;
+            data.secondSecret = $scope.secondPhrase;
         }
 
         if (!$scope.amountError) {
-            $http.post("/api/sendFunds", data).then(function (resp) {
+            $http.put("/api/transactions", data).then(function (resp) {
                 if (resp.data.error) {
                     $scope.fromServer = resp.data.error;
                 }
