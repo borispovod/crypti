@@ -14,7 +14,7 @@ webApp.controller('accountController', ['$scope', '$rootScope', '$http', "userSe
     }
 
     $scope.getBalance = function () {
-        $http.get("/api/getBalance", { params : { address : userService.address }})
+        $http.get("/api/accounts/getBalance", { params : { address : userService.address }})
             .then(function (resp) {
                 userService.balance = resp.data.balance / 100000000;
                 userService.unconfirmedBalance = resp.data.unconfirmedBalance / 100000000;
