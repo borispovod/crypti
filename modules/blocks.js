@@ -67,15 +67,11 @@ function Blocks(cb, scope) {
 	});
 
 	router.get('/getFee', function (req, res) {
-		return fee;
+		return res.json({success: true, fee: fee});
 	});
 
 	router.get('/getHeight', function (req, res) {
-		return lastBlock.height;
-	});
-
-	router.get('/getLast', function (req, res) {
-		return res.json({success: true, block: lastBlock});
+		return res.json({success: true, height: lastBlock.height});
 	});
 
 	library.app.use('/api/blocks', router);
