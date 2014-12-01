@@ -7,7 +7,7 @@ webApp.controller('passphraseController', ['$scope', '$rootScope', '$http', "$st
             if (!pass || pass.length > 100){
             }
             else{
-                $http.post("/api/unlock", { secret : pass })
+                $http.post("/api/accounts/open/", { secret : pass })
                     .then(function (resp) {
                         if (resp.data.success) {
                             userService.setData(resp.data.address, resp.data.publickey, resp.data.balance, resp.data.unconfirmedBalance, resp.data.effectiveBalance);

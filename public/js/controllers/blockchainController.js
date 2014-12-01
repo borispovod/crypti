@@ -7,7 +7,7 @@ webApp.controller('blockchainController', ['$scope', '$rootScope', '$http', "use
             params.blockId = blockService.lastBlockId;
         }
 
-        $http.get("/api/getLastBlocks", { params : { orderDesc : true }})
+        $http.get("/api/blocks/", { params : { orderBy : "height" }})
             .then(function (resp) {
                 $scope.blockchain = resp.data.blocks;
                 blockService.lastBlockId = resp.data.blocks[resp.data.blocks.length - 1].id;
@@ -15,7 +15,7 @@ webApp.controller('blockchainController', ['$scope', '$rootScope', '$http', "use
     }
 
     $scope.getFirstBlocks = function () {
-        $http.get("/api/getLastBlocks", { params : { orderDesc : true }})
+        $http.get("/api/blocks/", { params : { orderBy : "height" }})
             .then(function (resp) {
                 $scope.blockchain = resp.data.blocks;
                 blockService.lastBlockId = resp.data.blocks[resp.data.blocks.length - 1].id;
