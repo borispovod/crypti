@@ -95,10 +95,21 @@ Blocks.prototype.get = function (id, cb) {
 }
 
 Blocks.prototype.list = function (filter, cb) {
-	var params = {}, fields = [];
+	var params = {}, fields = [], sortMethod = '', sortBy = '';
 	if (filter.generatorPublicKey) {
 		fields.push('generatorPublicKey = $generatorPublicKey')
 		params.generatorPublicKey = filter.generatorPublicKey;
+	}
+
+	if (filter.limit) {
+		params.$limit = filter.limit;
+	}
+	if (filter.orderBy) {
+		var sort = filter.orderBy.split(':');
+		sortBy = sort[0].replace(/[^\w\s]/gi, '');
+		if (sort.length == 2) {
+			sortMethod = sort[1] == 'desc' ? 'desc' : 'asc'
+		}
 	}
 
 	if (filter.limit > 1000) {
@@ -111,9 +122,8 @@ Blocks.prototype.list = function (filter, cb) {
 	var stmt = library.db.prepare("select b.id b_id, b.version b_version, b.timestamp b_timestamp, b.height b_height, b.previousBlock b_previousBlock, b.nextBlock b_nextBlock, b.numberOfRequests b_numberOfRequests, b.numberOfTransactions b_numberOfTransactions, b.numberOfConfirmations b_numberOfConfirmations, b.totalAmount b_totalAmount, b.totalFee b_totalFee, b.payloadLength b_payloadLength, b.requestsLength b_requestsLength, b.confirmationsLength b_confirmationsLength, b.payloadHash b_payloadHash, b.generatorPublicKey b_generatorPublicKey, b.generationSignature b_generationSignature, b.blockSignature b_blockSignature " +
 	"from blocks b " +
 	(fields.length ? "where " + fields.join(' and ') : '') + " " +
-	(filter.orderBy ? 'order by ' + filter.orderBy : '') + " " +
-	((filter.orderBy && filter.orderMethod)? filter.orderMethod + " " : '') +
-	(filter.limit ? 'limit ' + filter.limit : ''));
+	(filter.orderBy ? 'order by ' + sortBy + ' ' + sortMethod : '') + " " +
+	(filter.limit ? 'limit $limit' : ''));
 
 	stmt.bind(params);
 
