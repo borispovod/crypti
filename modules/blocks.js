@@ -7,7 +7,8 @@ var crypto = require('crypto'),
 	blockHelper = require("../helpers/block.js"),
 	genesisblock = require("../helpers/genesisblock.js"),
 	transactionHelper = require("../helpers/transaction.js"),
-	constants = require('../helpers/constants.js');
+	constants = require('../helpers/constants.js'),
+	confirmationsHelper = require('../helpers/confirmations.js');
 
 var Router = require('../helpers/router.js');
 var util = require('util');
@@ -146,7 +147,6 @@ Blocks.prototype.loadBlocks = function (limit, offset, cb) {
 		"left outer join companies as c on c.transactionId=t.id " +
 		"left outer join companies as c_t on c_t.address=t.recipientId " +
 		"left outer join companyconfirmations as cc on cc.blockId=b.id " +
-		"left outer join requests as r on r.blockId=b.id " +
 		"ORDER BY b.rowid, t.rowid, s.rowid, c.rowid, r.rowid, cc.rowid " +
 		"", {$limit: limit, $offset: offset}, function (err, rows) {
 			// Some notes:
@@ -178,19 +178,19 @@ Blocks.prototype.loadBlocks = function (limit, offset, cb) {
 							prevBlockId = block.id;
 						}
 
-						var request = blockHelper.getRequest(rows[i]);
-						if (request) {
-							!blocks[b_index].requests && (blocks[b_index].requests = []);
-							if (prevRequestId != request.id) {
-								blocks[b_index].requests.push(request);
-								prevRequestId = request.id;
-							}
-						}
-
 						var companyComfirmation = blockHelper.getCompanyComfirmation(rows[i]);
 						if (companyComfirmation) {
 							!blocks[b_index].companyComfirmations && (blocks[b_index].companyComfirmations = []);
 							if (prevCompanyComfirmationId != companyComfirmation.id) {
+								// verify
+								if (!confirmationsHelper.verifySignature(companyComfirmation, block.generatorPublicKey)) {
+									library.logger.error("Can't verify company confirmation signature...");
+									return false;
+								}
+
+								// apply
+								self.applyConfirmation(companyComfirmation, block.generatorPublicKey);
+
 								blocks[b_index].companyComfirmations.push(companyComfirmation);
 								prevCompanyComfirmationId = companyComfirmation.id;
 							}
@@ -320,6 +320,19 @@ Blocks.prototype.verifyGenerationSignature = function (block) {
 	if (generator.getEffectiveBalance() < 1000 * constants.fixedPoint) {
 		return false;
 	}
+
+	return true;
+}
+
+Blocks.prototype.applyConfirmation = function (generatorPublicKey, confirmation) {
+	var generator = modules.accounts.getAccountByPublicKey(generatorPublicKey);
+
+	if (!generator) {
+		return false;
+	}
+
+	generator.addToUnconfirmedBalance(100 * constants.fixedPoint);
+	generator.addToBalance(100 * constants.fixedPoint);
 
 	return true;
 }
