@@ -56,9 +56,10 @@ function Blocks(cb, scope) {
 
 	router.get('/', function (req, res) {
 		self.list({
-			generatorId: req.query.generatorId,
+			generatorPublicKey: req.query.generatorPublicKey,
 			limit: req.query.limit || 20,
-			orderBy: req.query.orderBy
+			orderBy: req.query.orderBy,
+			orderMethod : req.query.orderMethod
 		}, function (err, blocks) {
 			if (err) {
 				return res.json({success: false, error: "Blocks not found"});
@@ -95,28 +96,24 @@ Blocks.prototype.get = function (id, cb) {
 
 Blocks.prototype.list = function (filter, cb) {
 	var params = {}, fields = [];
-	if (filter.generatorId) {
-		fields.push('generatorId = $generatorId')
-		params.$blockId = filter.blockId;
-	}
-	if (filter.limit) {
-		params.$limit = filter.limit;
-	}
-	if (filter.orderBy) {
-		params.$orderBy = filter.orderBy;
+	if (filter.generatorPublicKey) {
+		fields.push('generatorPublicKey = $generatorPublicKey')
+		params.generatorPublicKey = filter.generatorPublicKey;
 	}
 
-	if (filter.orderMethod) {
-		params.$orderMethod = filter.orderMethod;
+	if (filter.limit > 1000) {
+		return cb('Maximum of limit is 1000');
 	}
 
 	// why we don't use sql.serialize?
+
+	// orderBy fixed, prepare not works for order by
 	var stmt = library.db.prepare("select b.id b_id, b.version b_version, b.timestamp b_timestamp, b.height b_height, b.previousBlock b_previousBlock, b.nextBlock b_nextBlock, b.numberOfRequests b_numberOfRequests, b.numberOfTransactions b_numberOfTransactions, b.numberOfConfirmations b_numberOfConfirmations, b.totalAmount b_totalAmount, b.totalFee b_totalFee, b.payloadLength b_payloadLength, b.requestsLength b_requestsLength, b.confirmationsLength b_confirmationsLength, b.payloadHash b_payloadHash, b.generatorPublicKey b_generatorPublicKey, b.generationSignature b_generationSignature, b.blockSignature b_blockSignature " +
 	"from blocks b " +
 	(fields.length ? "where " + fields.join(' and ') : '') + " " +
-	(filter.orderBy ? 'order by $orderBy' : '') + " " +
-	((filter.orderBy && filter.orderMethod)? '$orderMethod ' : '') +
-	(filter.limit ? 'limit $limit' : ''));
+	(filter.orderBy ? 'order by ' + filter.orderBy : '') + " " +
+	((filter.orderBy && filter.orderMethod)? filter.orderMethod + " " : '') +
+	(filter.limit ? 'limit ' + filter.limit : ''));
 
 	stmt.bind(params);
 
