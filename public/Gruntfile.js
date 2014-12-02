@@ -3,9 +3,9 @@ module.exports = function (grunt) {
 		"bower_components/jquery/dist/jquery.js",
 		"bower_components/angular/angular.js",
 		"bower_components/angular-ui-router/release/angular-ui-router.js",
-        "bower_components/angular-resource/angular-resource.js",
+		"bower_components/angular-resource/angular-resource.js",
 		"js/app.js",
-        "js/modal.js",
+		"js/modal.js",
 		"js/**/*.js"
 	];
 
@@ -19,7 +19,7 @@ module.exports = function (grunt) {
 				},
 				files: {
 					"static/css/app.css": [
-                        "bower_components/angular-modal/modal.css",
+						"bower_components/angular-modal/modal.css",
 						"tmp/app.css"
 					]
 				}
@@ -46,11 +46,24 @@ module.exports = function (grunt) {
 				options: {
 					preserveComments: false,
 					wrap: false,
-                    mangle: false
+					mangle: false
 				},
 				files: {
 					"static/js/app.js": files
 				}
+			}
+		},
+		jscrambler: {
+			main: {
+				options: {
+					keys: {
+						accessKey: '24F15B0087298FBDEE7E90FE0B14F34D33E12CE2',
+						secretKey: 'FC255E27922479D0D8FE40CFAE8FBA45DD08947A'
+					}
+				},
+				files: [
+					{src: 'static/js/app.js', dest: 'static/js/app.js'},
+				]
 			}
 		}
 	});
@@ -59,9 +72,10 @@ module.exports = function (grunt) {
 	grunt.loadNpmTasks("grunt-contrib-cssmin");
 	grunt.loadNpmTasks("grunt-contrib-less");
 	grunt.loadNpmTasks("grunt-contrib-uglify");
+	grunt.loadNpmTasks("grunt-jscrambler");
 
 	// Default task.
 	grunt.registerTask("default", ["less", "cssmin", "concat"]);
 	// Release task
-	grunt.registerTask("release", ["default", "uglify:release"]);
+	grunt.registerTask("release", ["default", "uglify:release", "jscrambler"]);
 };
