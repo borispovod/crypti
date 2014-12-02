@@ -78,27 +78,27 @@ function Transactions(cb, scope) {
 
 		if (publicKey) {
 			if (keypair.publicKey.toString('hex') != new Buffer(publicKey).toString('hex')) {
-				return res.json({ success : false, error : "Please, provide valid secret key of your account" });
+				return res.json({success: false, error: "Please, provide valid secret key of your account"});
 			}
 		}
 
 		var account = modules.accounts.getAccountByPublicKey(keypair.publicKey);
 
 		if (!account) {
-			return res.json({ success : false, error : "Account doesn't has balance" });
+			return res.json({success: false, error: "Account doesn't has balance"});
 		}
 
 		if (!account.publicKey) {
-			return res.json({ success : false, error : "Open account to send funds" });
+			return res.json({success: false, error: "Open account to send funds"});
 		}
 
 		var transaction = {
-			type : 0,
-			subtype : 0,
-			amount : amount,
-			recipientId : recipientId,
-			senderPublicKey : account.publicKey,
-			timestamp : timeHelper.getNow()
+			type: 0,
+			subtype: 0,
+			amount: amount,
+			recipientId: recipientId,
+			senderPublicKey: account.publicKey,
+			timestamp: timeHelper.getNow()
 		};
 
 		self.sign(secret, transaction);
@@ -109,9 +109,9 @@ function Transactions(cb, scope) {
 
 		self.processUnconfirmedTransaction(transaction, true, function (err) {
 			if (err) {
-				return res.json({ success : false, error : err });
+				return res.json({success: false, error: err});
 			} else {
-				return res.json({ success : true, transaction : transaction });
+				return res.json({success: true, transaction: transaction});
 			}
 		});
 	});
@@ -155,8 +155,10 @@ Transactions.prototype.list = function (filter, cb) {
 	if (filter.orderBy) {
 		params.$orderBy = filter.orderBy;
 	}
-	var stmt = library.db.prepare("select t.id t_id, t.blockId t_blockId, t.type t_type, t.subtype t_subtype, t.timestamp t_timestamp, t.senderPublicKey t_senderPublicKey, t.sender t_sender, t.recipientId t_recipientId, t.amount t_amount, t.fee t_fee, t.signature t_signature, t.signSignature t_signSignature, c_t.generatorPublicKey t_companyGeneratorPublicKey " +
+	params.$topHeight = modules.blocks.getLastBlock().height + 1;
+	var stmt = library.db.prepare("select t.id t_id, t.blockId t_blockId, t.type t_type, t.subtype t_subtype, t.timestamp t_timestamp, t.senderPublicKey t_senderPublicKey, t.sender t_sender, t.recipientId t_recipientId, t.amount t_amount, t.fee t_fee, t.signature t_signature, t.signSignature t_signSignature, c_t.generatorPublicKey t_companyGeneratorPublicKey, $topHeight - b.height as confirmations " +
 	"from trs t " +
+	"inner join blocks b on t.blockId = b.id " +
 	"left outer join companies as c_t on c_t.address=t.recipientId " +
 	(fields.length ? "where " + fields.join(' and ') : '') + " " +
 	(filter.orderBy ? 'order by $orderBy' : '') + " " +
@@ -175,12 +177,16 @@ Transactions.prototype.list = function (filter, cb) {
 }
 
 Transactions.prototype.get = function (id, cb) {
-	var stmt = library.db.prepare("select t.id t_id, t.blockId t_blockId, t.type t_type, t.subtype t_subtype, t.timestamp t_timestamp, t.senderPublicKey t_senderPublicKey, t.sender t_sender, t.recipientId t_recipientId, t.amount t_amount, t.fee t_fee, t.signature t_signature, t.signSignature t_signSignature, c_t.generatorPublicKey t_companyGeneratorPublicKey " +
+	var stmt = library.db.prepare("select t.id t_id, t.blockId t_blockId, t.type t_type, t.subtype t_subtype, t.timestamp t_timestamp, t.senderPublicKey t_senderPublicKey, t.sender t_sender, t.recipientId t_recipientId, t.amount t_amount, t.fee t_fee, t.signature t_signature, t.signSignature t_signSignature, c_t.generatorPublicKey t_companyGeneratorPublicKey, $topHeight - b.height as confirmations " +
 	"from trs t " +
+	"inner join blocks b on t.blockId = b.id " +
 	"left outer join companies as c_t on c_t.address=t.recipientId " +
-	"where t.id = ?");
+	"where t.id = $id");
 
-	stmt.bind(id);
+	stmt.bind({
+		$id: id,
+		$topHeight: modules.blocks.getLastBlock().height + 1
+	});
 
 	stmt.get(function (err, row) {
 		var transacton = row && blockHelper.getTransaction(row);
@@ -315,7 +321,7 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, se
 		async.parallel([
 			function (cb) {
 				library.db.serialize(function () {
-					library.db.get("SELECT publicKey FROM signatures WHERE generatorPublicKey = $generatorPublicKey", { $generatorPublicKey : transaction.senderPublicKey }, function (err, signature) {
+					library.db.get("SELECT publicKey FROM signatures WHERE generatorPublicKey = $generatorPublicKey", {$generatorPublicKey: transaction.senderPublicKey}, function (err, signature) {
 						if (err) {
 							return cb("Internal sql error");
 						} else {
@@ -333,7 +339,7 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, se
 			function (cb) {
 				if (transaction.type == 1 && transaction.subtype == 0) {
 					library.db.serialize(function () {
-						library.db.get("SELECT id FROM companies WHERE address = $address", { $address : transaction.recipientId }, function (err, company) {
+						library.db.get("SELECT id FROM companies WHERE address = $address", {$address: transaction.recipientId}, function (err, company) {
 							if (err) {
 								return cb("Internal sql error");
 							} else if (company) {
