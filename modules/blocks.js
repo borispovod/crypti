@@ -139,15 +139,14 @@ Blocks.prototype.loadBlocks = function (limit, offset, cb) {
 		"t.id t_id, t.blockId t_blockId, t.type t_type, t.subtype t_subtype, t.timestamp t_timestamp, t.senderPublicKey t_senderPublicKey, t.sender t_sender, t.recipientId t_recipientId, t.amount t_amount, t.fee t_fee, t.signature t_signature, t.signSignature t_signSignature, c_t.generatorPublicKey t_companyGeneratorPublicKey, " +
 		"s.id s_id, s.transactionId s_transactionId, s.timestamp s_timestamp, s.publicKey s_publicKey, s.generatorPublicKey s_generatorPublicKey, s.signature s_signature, s.generationSignature s_generationSignature, " +
 		"c.id c_id, c.transactionId c_transactionId, c.name c_name, c.description c_description, c.domain c_domain, c.email c_email, c.timestamp c_timestamp, c.generatorPublicKey c_generatorPublicKey, c.signature c_signature, " +
-		"cc.id cc_id, cc.blockId cc_blockId, cc.companyId cc_companyId, cc.verified cc_verified, cc.timestamp cc_timestamp, cc.signature cc_signature, " +
-		"r.id r_id, r.blockId r_blockId, r.address r_address " +
+		"cc.id cc_id, cc.blockId cc_blockId, cc.companyId cc_companyId, cc.verified cc_verified, cc.timestamp cc_timestamp, cc.signature cc_signature " +
 		"FROM (select * from blocks limit $limit offset $offset) as b " +
 		"left outer join trs as t on t.blockId=b.id " +
 		"left outer join signatures as s on s.transactionId=t.id " +
 		"left outer join companies as c on c.transactionId=t.id " +
 		"left outer join companies as c_t on c_t.address=t.recipientId " +
 		"left outer join companyconfirmations as cc on cc.blockId=b.id " +
-		"ORDER BY b.rowid, t.rowid, s.rowid, c.rowid, r.rowid, cc.rowid " +
+		"ORDER BY b.height, t.rowid, s.rowid, c.rowid, cc.rowid " +
 		"", {$limit: limit, $offset: offset}, function (err, rows) {
 			// Some notes:
 			// If loading catch error, for example, invalid signature on block & transaction, need to stop loading and remove all blocks after last good block.
