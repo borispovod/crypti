@@ -59,7 +59,7 @@ function Blocks(cb, scope) {
 			generatorPublicKey: req.query.generatorPublicKey,
 			limit: req.query.limit || 20,
 			orderBy: req.query.orderBy,
-			orderMethod : req.query.orderMethod
+			orderMethod: req.query.orderMethod
 		}, function (err, blocks) {
 			if (err) {
 				return res.json({success: false, error: "Blocks not found"});
@@ -70,6 +70,18 @@ function Blocks(cb, scope) {
 
 	router.get('/getFee', function (req, res) {
 		return res.json({success: true, fee: fee});
+	});
+
+	router.get('/getForgedByAccount', function (req, res) {
+		if (!req.query.generatorPublicKey) {
+			return res.json({success: false, error: "Provide generatorPublicKey in url"});
+		}
+		self.getForgedByAccount(req.query.generatorPublicKey, function (err, sum) {
+			if (err) {
+				return res.json({success: false, error: "Account not found"});
+			}
+			res.json({success: true, sum: sum});
+		});
 	});
 
 	router.get('/getHeight', function (req, res) {
@@ -348,6 +360,46 @@ Blocks.prototype.applyConfirmation = function (generatorPublicKey, confirmation)
 	generator.addToBalance(100 * constants.fixedPoint);
 
 	return true;
+}
+
+Blocks.prototype.getForgedByAccount = function (generatorPublicKey, cb) {
+	var stmt = library.db.prepare("select b.generatorPublicKey, t.type, " +
+	 "CASE WHEN t.type = 0 "  +
+	 "THEN sum(t.fee)  " +
+	 "ELSE  " +
+	  "CASE WHEN t.type = 1 " +
+	  "THEN " +
+	   "CASE WHEN t.fee >= 2 " +
+	   "THEN " +
+		"CASE WHEN t.fee % 2 != 0 " +
+		"THEN sum(t.fee - round(t.fee / 2)) " +
+		"ELSE sum(t.fee / 2) " +
+		"END " +
+	   "ELSE sum(t.fee) " +
+	   "END " +
+	  "ELSE " +
+	   "CASE WHEN t.type = 2 " +
+	   "THEN sum(100 * 100000000) " +
+	   "ELSE " +
+		"CASE WHEN t.type = 3 " +
+		"THEN sum(100 * 100000000) " +
+		"ELSE " +
+		 "sum(0) " +
+		"END " +
+	   "END " +
+	  "END " +
+	"END sum " +
+	"from blocks b " +
+	"inner join trs t on t.blockId = b.id " +
+	"where b.generatorPublicKey = ? " +
+	"group by t.type");
+
+	stmt.bind(generatorPublicKey);
+
+	stmt.get(function (err, row) {
+		var sum = row ? row.sum : null;
+		cb(err, sum);
+	});
 }
 
 Blocks.prototype.getFee = function () {
