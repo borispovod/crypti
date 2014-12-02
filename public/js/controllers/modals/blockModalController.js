@@ -11,11 +11,6 @@ webApp.controller('blockModalController', ["$scope", "$http", "blockModal", func
 
 	$scope.getTransactionsOfBlock($scope.block.id);
 
-	/*
-    $scope.addresses = $scope.block.addresses;
-    $scope.transactions = $scope.block.transactions;
-    */
-
     $scope.close = function () {
         blockModal.deactivate();
     }
