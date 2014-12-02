@@ -2,12 +2,12 @@ webApp.controller('accountController', ['$scope', '$rootScope', '$http', "userSe
     $scope.address = userService.address;
     $scope.balance = userService.balance;
     $scope.unconfirmedBalance = userService.unconfirmedBalance;
-    $scope.effectiveBalance = userService.effectiveBalance;
-    $scope.secondPassphrase = userService.secondPassphrase;
-    $scope.unconfirmedPassphrase = userService.unconfirmedPassphrase;
+    $scope.secondPassphrase = userService.secondPassphrase || false;
+    $scope.unconfirmedPassphrase = userService.unconfirmedPassphrase || false;
+	$scope.transactionsLoading = true;
 
     $scope.getTransactions = function () {
-        $http.get("/api/getAddressTransactions", { params : { address : userService.address, limit : 20, descOrder : true }})
+        $http.get("/api/transactions", { params : { senderPublicKey : userService.senderPublicKey, recipientId : $scope.address, limit : 20, orderBy : 'timestamp' }})
             .then(function (resp) {
                 $scope.transactions = resp.data.transactions;
             });
@@ -19,14 +19,12 @@ webApp.controller('accountController', ['$scope', '$rootScope', '$http', "userSe
             .then(function (resp) {
                 userService.balance = resp.data.balance / 100000000;
                 userService.unconfirmedBalance = resp.data.unconfirmedBalance / 100000000;
-                userService.effectiveBalance = resp.data.effectiveBalance / 100000000;
-                userService.secondPassphrase = resp.data.secondPassphrase;
-                userService.unconfirmedPassphrase = resp.data.unconfirmedPassphrase;
+                userService.secondPassphrase = resp.data.secondPassphrase || false;
+                userService.unconfirmedPassphrase = resp.data.unconfirmedPassphrase || false;
                 $scope.balance = userService.balance;
                 $scope.unconfirmedBalance = userService.unconfirmedBalance;
-                $scope.effectiveBalance = userService.effectiveBalance;
-                $scope.secondPassphrase = userService.secondPassphrase;
-                $scope.unconfirmedPassphrase = userService.unconfirmedPassphrase;
+                $scope.secondPassphrase = userService.secondPassphrase || false;
+                $scope.unconfirmedPassphrase = userService.unconfirmedPassphrase || false;
             });
     }
 
