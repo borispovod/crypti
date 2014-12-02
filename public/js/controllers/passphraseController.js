@@ -10,10 +10,10 @@ webApp.controller('passphraseController', ['$scope', '$rootScope', '$http', "$st
                 $http.post("/api/accounts/open/", { secret : pass })
                     .then(function (resp) {
                         if (resp.data.success) {
-                            userService.setData(resp.data.address, resp.data.publickey, resp.data.balance, resp.data.unconfirmedBalance, resp.data.effectiveBalance);
-                            userService.setForging(resp.data.forging);
-                            userService.setSecondPassphrase(resp.data.secondPassphrase);
-                            userService.unconfirmedPassphrase = resp.data.unconfirmedPassphrase;
+                            userService.setData(resp.data.account.address, resp.data.account.publickey, resp.data.account.balance, resp.data.account.unconfirmedBalance, resp.data.account.effectiveBalance);
+                            userService.setForging(resp.data.account.forging);
+                            userService.setSecondPassphrase(resp.data.account.secondPassphrase);
+                            userService.unconfirmedPassphrase = resp.data.account.unconfirmedPassphrase;
 
                             angular.element(document.getElementById("forgingButton")).hide();
                             $state.go('main.account');
