@@ -105,10 +105,17 @@ Blocks.prototype.list = function (filter, cb) {
 	if (filter.orderBy) {
 		params.$orderBy = filter.orderBy;
 	}
+
+	if (filter.orderMethod) {
+		params.$orderMethod = filter.orderMethod;
+	}
+
+	// why we don't use sql.serialize?
 	var stmt = library.db.prepare("select b.id b_id, b.version b_version, b.timestamp b_timestamp, b.height b_height, b.previousBlock b_previousBlock, b.nextBlock b_nextBlock, b.numberOfRequests b_numberOfRequests, b.numberOfTransactions b_numberOfTransactions, b.numberOfConfirmations b_numberOfConfirmations, b.totalAmount b_totalAmount, b.totalFee b_totalFee, b.payloadLength b_payloadLength, b.requestsLength b_requestsLength, b.confirmationsLength b_confirmationsLength, b.payloadHash b_payloadHash, b.generatorPublicKey b_generatorPublicKey, b.generationSignature b_generationSignature, b.blockSignature b_blockSignature " +
 	"from blocks b " +
 	(fields.length ? "where " + fields.join(' and ') : '') + " " +
 	(filter.orderBy ? 'order by $orderBy' : '') + " " +
+	((filter.orderBy && filter.orderMethod)? '$orderMethod ' : '') +
 	(filter.limit ? 'limit $limit' : ''));
 
 	stmt.bind(params);
