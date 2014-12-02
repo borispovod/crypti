@@ -1,6 +1,10 @@
 webApp.filter('timestampFilter', function () {
     return function (timestamp) {
-        var d = new Date(timestamp * 1000);
+		// epoch time
+		var d = new Date(Date.UTC(2014, 4, 2, 0, 0, 0, 0));
+		var t = parseInt(d.getTime() / 1000);
+
+        var d = new Date((timestamp + t) * 1000);
         var month = d.getMonth() + 1;
 
         if (month < 10) {
