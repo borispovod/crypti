@@ -18,7 +18,7 @@
             <td ng-show="item.timestamp == 0">-</td>
             <td>{{item.totalAmount / 100000000 | feeFilter}}</td>
             <td>{{item.totalFee / 100000000 | feeFilter}}</td>
-            <td>{{item.generator}}</td>
+            <td>{{item.generatorId}}</td>
             <td ng-click="showBlock(item)" class="pointer">Click to see</td>
         </tr>
         <tr ng-show="blockchain.length == 0">
