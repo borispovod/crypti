@@ -3,6 +3,18 @@ var crypto = require('crypto'),
 	bignum = require('bignum'),
 	ByteBuffer = require("bytebuffer");
 
+// need to remove all helpers and move it to objects
+function getAddressByPublicKey(publicKey) {
+	var publicKeyHash = crypto.createHash('sha256').update(publicKey).digest();
+	var temp = new Buffer(8);
+	for (var i = 0; i < 8; i++) {
+		temp[i] = publicKeyHash[7 - i];
+	}
+
+	var address = bignum.fromBuffer(temp).toString() + "C";
+	return address;
+}
+
 function getBlock(raw) {
 	if (!raw.b_id) {
 		return null
@@ -24,6 +36,7 @@ function getBlock(raw) {
 			confirmationsLength: raw.b_confirmationsLength,
 			payloadHash: new Buffer(raw.b_payloadHash),
 			generatorPublicKey: new Buffer(raw.b_generatorPublicKey),
+			generatorId : getAddressByPublicKey(new Buffer(raw.b_generatorPublicKey)),
 			generationSignature: new Buffer(raw.b_generationSignature),
 			blockSignature: new Buffer(raw.b_blockSignature)
 		}
