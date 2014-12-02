@@ -87,7 +87,8 @@ function getTransaction(raw) {
 			fee: raw.t_fee,
 			signature: new Buffer(raw.t_signature),
 			signSignature: raw.t_signSignature && new Buffer(raw.t_signSignature),
-			companyGeneratorPublicKey: raw.t_companyGeneratorPublicKey && new Buffer(raw.t_companyGeneratorPublicKey)
+			companyGeneratorPublicKey: raw.t_companyGeneratorPublicKey && new Buffer(raw.t_companyGeneratorPublicKey),
+			confirmations: raw.confirmations
 		}
 	}
 }
