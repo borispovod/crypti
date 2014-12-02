@@ -58,8 +58,7 @@ function Blocks(cb, scope) {
 		self.list({
 			generatorPublicKey: req.query.generatorPublicKey,
 			limit: req.query.limit || 20,
-			orderBy: req.query.orderBy,
-			orderMethod : req.query.orderMethod
+			orderBy: req.query.orderBy
 		}, function (err, blocks) {
 			if (err) {
 				return res.json({success: false, error: "Blocks not found"});

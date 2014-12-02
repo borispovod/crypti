@@ -26,7 +26,7 @@ function Transactions(cb, scope) {
 	router.get('/', function (req, res) {
 		self.list({
 			blockId: req.query.blockId,
-			sender: req.query.sender,
+			senderPublicKey: req.query.senderPublicKey,
 			recipientId: req.query.recipientId,
 			limit: req.query.limit || 20,
 			orderBy: req.query.orderBy
@@ -141,9 +141,9 @@ Transactions.prototype.list = function (filter, cb) {
 		fields.push('blockId = $blockId')
 		params.$blockId = filter.blockId;
 	}
-	if (filter.sender) {
-		fields.push('sender = $sender')
-		params.$sender = filter.sender;
+	if (filter.senderPublicKey) {
+		fields.push('senderPublicKey = $senderPublicKey')
+		params.$senderPublicKey = filter.senderPublicKey;
 	}
 	if (filter.recipientId) {
 		fields.push('recipientId = $recipientId')
