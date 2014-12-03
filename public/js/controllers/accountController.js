@@ -14,7 +14,6 @@ webApp.controller('accountController', ['$scope', '$rootScope', '$http', "userSe
     }
 
     $scope.getBalance = function () {
-		console.log('userService', userService)
         $http.get("/api/accounts/getBalance", { params : { address : userService.address }})
             .then(function (resp) {
                 userService.balance = resp.data.balance / 100000000;
