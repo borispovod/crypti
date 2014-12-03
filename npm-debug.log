@@ -1,0 +1,1257 @@
+0 info it worked if it ends with ok
+1 verbose cli [ 'node', '/usr/local/bin/npm', 'install' ]
+2 info using npm@1.4.28
+3 info using node@v0.10.32
+4 verbose readDependencies using package.json deps
+5 verbose install where, deps [ '/Users/borispovod/Documents/crypti',
+5 verbose install   [ 'async',
+5 verbose install     'bignum',
+5 verbose install     'bytebuffer',
+5 verbose install     'ed25519',
+5 verbose install     'express',
+5 verbose install     'body-parser',
+5 verbose install     'ejs',
+5 verbose install     'method-override',
+5 verbose install     'grunt',
+5 verbose install     'long',
+5 verbose install     'request',
+5 verbose install     'sqlite3',
+5 verbose install     'underscore',
+5 verbose install     'strftime' ] ]
+6 info preinstall application-name@0.1.8
+7 verbose readDependencies using package.json deps
+8 verbose cache add [ 'async@https://github.com/crypti/async/tarball/master', null ]
+9 verbose cache add name=undefined spec="async@https://github.com/crypti/async/tarball/master" args=["async@https://github.com/crypti/async/tarball/master",null]
+10 verbose parsed url { protocol: null,
+10 verbose parsed url   slashes: null,
+10 verbose parsed url   auth: null,
+10 verbose parsed url   host: null,
+10 verbose parsed url   port: null,
+10 verbose parsed url   hostname: null,
+10 verbose parsed url   hash: null,
+10 verbose parsed url   search: null,
+10 verbose parsed url   query: null,
+10 verbose parsed url   pathname: 'async@https://github.com/crypti/async/tarball/master',
+10 verbose parsed url   path: 'async@https://github.com/crypti/async/tarball/master',
+10 verbose parsed url   href: 'async@https://github.com/crypti/async/tarball/master' }
+11 verbose cache add [ 'bignum@https://github.com/crypti/node-bignum/tarball/master',
+11 verbose cache add   null ]
+12 verbose cache add name=undefined spec="bignum@https://github.com/crypti/node-bignum/tarball/master" args=["bignum@https://github.com/crypti/node-bignum/tarball/master",null]
+13 verbose parsed url { protocol: null,
+13 verbose parsed url   slashes: null,
+13 verbose parsed url   auth: null,
+13 verbose parsed url   host: null,
+13 verbose parsed url   port: null,
+13 verbose parsed url   hostname: null,
+13 verbose parsed url   hash: null,
+13 verbose parsed url   search: null,
+13 verbose parsed url   query: null,
+13 verbose parsed url   pathname: 'bignum@https://github.com/crypti/node-bignum/tarball/master',
+13 verbose parsed url   path: 'bignum@https://github.com/crypti/node-bignum/tarball/master',
+13 verbose parsed url   href: 'bignum@https://github.com/crypti/node-bignum/tarball/master' }
+14 verbose cache add [ 'bytebuffer@https://github.com/crypti/ByteBuffer.js/tarball/master',
+14 verbose cache add   null ]
+15 verbose cache add name=undefined spec="bytebuffer@https://github.com/crypti/ByteBuffer.js/tarball/master" args=["bytebuffer@https://github.com/crypti/ByteBuffer.js/tarball/master",null]
+16 verbose parsed url { protocol: null,
+16 verbose parsed url   slashes: null,
+16 verbose parsed url   auth: null,
+16 verbose parsed url   host: null,
+16 verbose parsed url   port: null,
+16 verbose parsed url   hostname: null,
+16 verbose parsed url   hash: null,
+16 verbose parsed url   search: null,
+16 verbose parsed url   query: null,
+16 verbose parsed url   pathname: 'bytebuffer@https://github.com/crypti/ByteBuffer.js/tarball/master',
+16 verbose parsed url   path: 'bytebuffer@https://github.com/crypti/ByteBuffer.js/tarball/master',
+16 verbose parsed url   href: 'bytebuffer@https://github.com/crypti/ByteBuffer.js/tarball/master' }
+17 verbose cache add [ 'ed25519@https://github.com/crypti/Ed25519/tarball/master',
+17 verbose cache add   null ]
+18 verbose cache add name=undefined spec="ed25519@https://github.com/crypti/Ed25519/tarball/master" args=["ed25519@https://github.com/crypti/Ed25519/tarball/master",null]
+19 verbose parsed url { protocol: null,
+19 verbose parsed url   slashes: null,
+19 verbose parsed url   auth: null,
+19 verbose parsed url   host: null,
+19 verbose parsed url   port: null,
+19 verbose parsed url   hostname: null,
+19 verbose parsed url   hash: null,
+19 verbose parsed url   search: null,
+19 verbose parsed url   query: null,
+19 verbose parsed url   pathname: 'ed25519@https://github.com/crypti/Ed25519/tarball/master',
+19 verbose parsed url   path: 'ed25519@https://github.com/crypti/Ed25519/tarball/master',
+19 verbose parsed url   href: 'ed25519@https://github.com/crypti/Ed25519/tarball/master' }
+20 verbose cache add name="async" spec="https://github.com/crypti/async/tarball/master" args=["async","https://github.com/crypti/async/tarball/master"]
+21 verbose parsed url { protocol: 'https:',
+21 verbose parsed url   slashes: true,
+21 verbose parsed url   auth: null,
+21 verbose parsed url   host: 'github.com',
+21 verbose parsed url   port: null,
+21 verbose parsed url   hostname: 'github.com',
+21 verbose parsed url   hash: null,
+21 verbose parsed url   search: null,
+21 verbose parsed url   query: null,
+21 verbose parsed url   pathname: '/crypti/async/tarball/master',
+21 verbose parsed url   path: '/crypti/async/tarball/master',
+21 verbose parsed url   href: 'https://github.com/crypti/async/tarball/master' }
+22 verbose cache add name="bignum" spec="https://github.com/crypti/node-bignum/tarball/master" args=["bignum","https://github.com/crypti/node-bignum/tarball/master"]
+23 verbose parsed url { protocol: 'https:',
+23 verbose parsed url   slashes: true,
+23 verbose parsed url   auth: null,
+23 verbose parsed url   host: 'github.com',
+23 verbose parsed url   port: null,
+23 verbose parsed url   hostname: 'github.com',
+23 verbose parsed url   hash: null,
+23 verbose parsed url   search: null,
+23 verbose parsed url   query: null,
+23 verbose parsed url   pathname: '/crypti/node-bignum/tarball/master',
+23 verbose parsed url   path: '/crypti/node-bignum/tarball/master',
+23 verbose parsed url   href: 'https://github.com/crypti/node-bignum/tarball/master' }
+24 verbose cache add name="bytebuffer" spec="https://github.com/crypti/ByteBuffer.js/tarball/master" args=["bytebuffer","https://github.com/crypti/ByteBuffer.js/tarball/master"]
+25 verbose parsed url { protocol: 'https:',
+25 verbose parsed url   slashes: true,
+25 verbose parsed url   auth: null,
+25 verbose parsed url   host: 'github.com',
+25 verbose parsed url   port: null,
+25 verbose parsed url   hostname: 'github.com',
+25 verbose parsed url   hash: null,
+25 verbose parsed url   search: null,
+25 verbose parsed url   query: null,
+25 verbose parsed url   pathname: '/crypti/ByteBuffer.js/tarball/master',
+25 verbose parsed url   path: '/crypti/ByteBuffer.js/tarball/master',
+25 verbose parsed url   href: 'https://github.com/crypti/ByteBuffer.js/tarball/master' }
+26 verbose cache add [ 'express@4.x', null ]
+27 verbose cache add name=undefined spec="express@4.x" args=["express@4.x",null]
+28 verbose parsed url { protocol: null,
+28 verbose parsed url   slashes: null,
+28 verbose parsed url   auth: null,
+28 verbose parsed url   host: null,
+28 verbose parsed url   port: null,
+28 verbose parsed url   hostname: null,
+28 verbose parsed url   hash: null,
+28 verbose parsed url   search: null,
+28 verbose parsed url   query: null,
+28 verbose parsed url   pathname: 'express@4.x',
+28 verbose parsed url   path: 'express@4.x',
+28 verbose parsed url   href: 'express@4.x' }
+29 verbose cache add [ 'body-parser@*', null ]
+30 verbose cache add name=undefined spec="body-parser@*" args=["body-parser@*",null]
+31 verbose parsed url { protocol: null,
+31 verbose parsed url   slashes: null,
+31 verbose parsed url   auth: null,
+31 verbose parsed url   host: null,
+31 verbose parsed url   port: null,
+31 verbose parsed url   hostname: null,
+31 verbose parsed url   hash: null,
+31 verbose parsed url   search: null,
+31 verbose parsed url   query: null,
+31 verbose parsed url   pathname: 'body-parser@*',
+31 verbose parsed url   path: 'body-parser@*',
+31 verbose parsed url   href: 'body-parser@*' }
+32 verbose cache add name="ed25519" spec="https://github.com/crypti/Ed25519/tarball/master" args=["ed25519","https://github.com/crypti/Ed25519/tarball/master"]
+33 verbose parsed url { protocol: 'https:',
+33 verbose parsed url   slashes: true,
+33 verbose parsed url   auth: null,
+33 verbose parsed url   host: 'github.com',
+33 verbose parsed url   port: null,
+33 verbose parsed url   hostname: 'github.com',
+33 verbose parsed url   hash: null,
+33 verbose parsed url   search: null,
+33 verbose parsed url   query: null,
+33 verbose parsed url   pathname: '/crypti/Ed25519/tarball/master',
+33 verbose parsed url   path: '/crypti/Ed25519/tarball/master',
+33 verbose parsed url   href: 'https://github.com/crypti/Ed25519/tarball/master' }
+34 silly lockFile d784ca79--com-crypti-async-tarball-master https://github.com/crypti/async/tarball/master
+35 verbose lock https://github.com/crypti/async/tarball/master /Users/borispovod/.npm/d784ca79--com-crypti-async-tarball-master.lock
+36 silly lockFile d4a912a5-rypti-node-bignum-tarball-master https://github.com/crypti/node-bignum/tarball/master
+37 verbose lock https://github.com/crypti/node-bignum/tarball/master /Users/borispovod/.npm/d4a912a5-rypti-node-bignum-tarball-master.lock
+38 silly lockFile d0345eb8-pti-ByteBuffer-js-tarball-master https://github.com/crypti/ByteBuffer.js/tarball/master
+39 verbose lock https://github.com/crypti/ByteBuffer.js/tarball/master /Users/borispovod/.npm/d0345eb8-pti-ByteBuffer-js-tarball-master.lock
+40 silly lockFile 883d2e10-om-crypti-Ed25519-tarball-master https://github.com/crypti/Ed25519/tarball/master
+41 verbose lock https://github.com/crypti/Ed25519/tarball/master /Users/borispovod/.npm/883d2e10-om-crypti-Ed25519-tarball-master.lock
+42 verbose cache add name="express" spec="4.x" args=["express","4.x"]
+43 verbose parsed url { protocol: null,
+43 verbose parsed url   slashes: null,
+43 verbose parsed url   auth: null,
+43 verbose parsed url   host: null,
+43 verbose parsed url   port: null,
+43 verbose parsed url   hostname: null,
+43 verbose parsed url   hash: null,
+43 verbose parsed url   search: null,
+43 verbose parsed url   query: null,
+43 verbose parsed url   pathname: '4.x',
+43 verbose parsed url   path: '4.x',
+43 verbose parsed url   href: '4.x' }
+44 verbose addNamed [ 'express', '4.x' ]
+45 verbose addNamed [ null, '>=4.0.0-0 <5.0.0-0' ]
+46 silly lockFile 72215064-express-4-x express@4.x
+47 verbose lock express@4.x /Users/borispovod/.npm/72215064-express-4-x.lock
+48 verbose cache add [ 'ejs@*', null ]
+49 verbose cache add name=undefined spec="ejs@*" args=["ejs@*",null]
+50 verbose parsed url { protocol: null,
+50 verbose parsed url   slashes: null,
+50 verbose parsed url   auth: null,
+50 verbose parsed url   host: null,
+50 verbose parsed url   port: null,
+50 verbose parsed url   hostname: null,
+50 verbose parsed url   hash: null,
+50 verbose parsed url   search: null,
+50 verbose parsed url   query: null,
+50 verbose parsed url   pathname: 'ejs@*',
+50 verbose parsed url   path: 'ejs@*',
+50 verbose parsed url   href: 'ejs@*' }
+51 verbose cache add [ 'method-override@*', null ]
+52 verbose cache add name=undefined spec="method-override@*" args=["method-override@*",null]
+53 verbose parsed url { protocol: null,
+53 verbose parsed url   slashes: null,
+53 verbose parsed url   auth: null,
+53 verbose parsed url   host: null,
+53 verbose parsed url   port: null,
+53 verbose parsed url   hostname: null,
+53 verbose parsed url   hash: null,
+53 verbose parsed url   search: null,
+53 verbose parsed url   query: null,
+53 verbose parsed url   pathname: 'method-override@*',
+53 verbose parsed url   path: 'method-override@*',
+53 verbose parsed url   href: 'method-override@*' }
+54 verbose cache add [ 'grunt@^0.4.5', null ]
+55 verbose cache add name=undefined spec="grunt@^0.4.5" args=["grunt@^0.4.5",null]
+56 verbose parsed url { protocol: null,
+56 verbose parsed url   slashes: null,
+56 verbose parsed url   auth: null,
+56 verbose parsed url   host: null,
+56 verbose parsed url   port: null,
+56 verbose parsed url   hostname: null,
+56 verbose parsed url   hash: null,
+56 verbose parsed url   search: null,
+56 verbose parsed url   query: null,
+56 verbose parsed url   pathname: 'grunt@^0.4.5',
+56 verbose parsed url   path: 'grunt@^0.4.5',
+56 verbose parsed url   href: 'grunt@^0.4.5' }
+57 verbose cache add name="body-parser" spec="*" args=["body-parser","*"]
+58 verbose parsed url { protocol: null,
+58 verbose parsed url   slashes: null,
+58 verbose parsed url   auth: null,
+58 verbose parsed url   host: null,
+58 verbose parsed url   port: null,
+58 verbose parsed url   hostname: null,
+58 verbose parsed url   hash: null,
+58 verbose parsed url   search: null,
+58 verbose parsed url   query: null,
+58 verbose parsed url   pathname: '*',
+58 verbose parsed url   path: '*',
+58 verbose parsed url   href: '*' }
+59 verbose addNamed [ 'body-parser', '*' ]
+60 verbose addNamed [ null, '*' ]
+61 silly lockFile 12b67fc9-body-parser body-parser@*
+62 verbose lock body-parser@* /Users/borispovod/.npm/12b67fc9-body-parser.lock
+63 verbose cache add name="ejs" spec="*" args=["ejs","*"]
+64 verbose parsed url { protocol: null,
+64 verbose parsed url   slashes: null,
+64 verbose parsed url   auth: null,
+64 verbose parsed url   host: null,
+64 verbose parsed url   port: null,
+64 verbose parsed url   hostname: null,
+64 verbose parsed url   hash: null,
+64 verbose parsed url   search: null,
+64 verbose parsed url   query: null,
+64 verbose parsed url   pathname: '*',
+64 verbose parsed url   path: '*',
+64 verbose parsed url   href: '*' }
+65 verbose addNamed [ 'ejs', '*' ]
+66 verbose addNamed [ null, '*' ]
+67 silly lockFile 9d73ed50-ejs ejs@*
+68 verbose lock ejs@* /Users/borispovod/.npm/9d73ed50-ejs.lock
+69 verbose cache add name="method-override" spec="*" args=["method-override","*"]
+70 verbose parsed url { protocol: null,
+70 verbose parsed url   slashes: null,
+70 verbose parsed url   auth: null,
+70 verbose parsed url   host: null,
+70 verbose parsed url   port: null,
+70 verbose parsed url   hostname: null,
+70 verbose parsed url   hash: null,
+70 verbose parsed url   search: null,
+70 verbose parsed url   query: null,
+70 verbose parsed url   pathname: '*',
+70 verbose parsed url   path: '*',
+70 verbose parsed url   href: '*' }
+71 verbose addNamed [ 'method-override', '*' ]
+72 verbose addNamed [ null, '*' ]
+73 silly lockFile 55aed036-method-override method-override@*
+74 verbose lock method-override@* /Users/borispovod/.npm/55aed036-method-override.lock
+75 verbose cache add [ 'long@^1.1.5', null ]
+76 verbose cache add name=undefined spec="long@^1.1.5" args=["long@^1.1.5",null]
+77 verbose parsed url { protocol: null,
+77 verbose parsed url   slashes: null,
+77 verbose parsed url   auth: null,
+77 verbose parsed url   host: null,
+77 verbose parsed url   port: null,
+77 verbose parsed url   hostname: null,
+77 verbose parsed url   hash: null,
+77 verbose parsed url   search: null,
+77 verbose parsed url   query: null,
+77 verbose parsed url   pathname: 'long@^1.1.5',
+77 verbose parsed url   path: 'long@^1.1.5',
+77 verbose parsed url   href: 'long@^1.1.5' }
+78 verbose cache add name="grunt" spec="^0.4.5" args=["grunt","^0.4.5"]
+79 verbose parsed url { protocol: null,
+79 verbose parsed url   slashes: null,
+79 verbose parsed url   auth: null,
+79 verbose parsed url   host: null,
+79 verbose parsed url   port: null,
+79 verbose parsed url   hostname: null,
+79 verbose parsed url   hash: null,
+79 verbose parsed url   search: null,
+79 verbose parsed url   query: null,
+79 verbose parsed url   pathname: '^0.4.5',
+79 verbose parsed url   path: '^0.4.5',
+79 verbose parsed url   href: '^0.4.5' }
+80 verbose addNamed [ 'grunt', '^0.4.5' ]
+81 verbose addNamed [ null, '>=0.4.5-0 <0.5.0-0' ]
+82 silly lockFile 73541f84-grunt-0-4-5 grunt@^0.4.5
+83 verbose lock grunt@^0.4.5 /Users/borispovod/.npm/73541f84-grunt-0-4-5.lock
+84 verbose addRemoteTarball [ 'https://github.com/crypti/async/tarball/master', null ]
+85 verbose addRemoteTarball [ 'https://github.com/crypti/ByteBuffer.js/tarball/master',
+85 verbose addRemoteTarball   null ]
+86 verbose addRemoteTarball [ 'https://github.com/crypti/node-bignum/tarball/master', null ]
+87 verbose addRemoteTarball [ 'https://github.com/crypti/Ed25519/tarball/master', null ]
+88 silly addNameRange { name: 'express', range: '>=4.0.0-0 <5.0.0-0', hasData: false }
+89 verbose cache add [ 'request@https://github.com/crypti/request/tarball/master',
+89 verbose cache add   null ]
+90 verbose cache add name=undefined spec="request@https://github.com/crypti/request/tarball/master" args=["request@https://github.com/crypti/request/tarball/master",null]
+91 verbose parsed url { protocol: null,
+91 verbose parsed url   slashes: null,
+91 verbose parsed url   auth: null,
+91 verbose parsed url   host: null,
+91 verbose parsed url   port: null,
+91 verbose parsed url   hostname: null,
+91 verbose parsed url   hash: null,
+91 verbose parsed url   search: null,
+91 verbose parsed url   query: null,
+91 verbose parsed url   pathname: 'request@https://github.com/crypti/request/tarball/master',
+91 verbose parsed url   path: 'request@https://github.com/crypti/request/tarball/master',
+91 verbose parsed url   href: 'request@https://github.com/crypti/request/tarball/master' }
+92 verbose cache add [ 'sqlite3@2.2.0', null ]
+93 verbose cache add name=undefined spec="sqlite3@2.2.0" args=["sqlite3@2.2.0",null]
+94 verbose parsed url { protocol: null,
+94 verbose parsed url   slashes: null,
+94 verbose parsed url   auth: null,
+94 verbose parsed url   host: null,
+94 verbose parsed url   port: null,
+94 verbose parsed url   hostname: null,
+94 verbose parsed url   hash: null,
+94 verbose parsed url   search: null,
+94 verbose parsed url   query: null,
+94 verbose parsed url   pathname: 'sqlite3@2.2.0',
+94 verbose parsed url   path: 'sqlite3@2.2.0',
+94 verbose parsed url   href: 'sqlite3@2.2.0' }
+95 verbose cache add [ 'underscore@https://github.com/crypti/underscore/tarball/master',
+95 verbose cache add   null ]
+96 verbose cache add name=undefined spec="underscore@https://github.com/crypti/underscore/tarball/master" args=["underscore@https://github.com/crypti/underscore/tarball/master",null]
+97 verbose parsed url { protocol: null,
+97 verbose parsed url   slashes: null,
+97 verbose parsed url   auth: null,
+97 verbose parsed url   host: null,
+97 verbose parsed url   port: null,
+97 verbose parsed url   hostname: null,
+97 verbose parsed url   hash: null,
+97 verbose parsed url   search: null,
+97 verbose parsed url   query: null,
+97 verbose parsed url   pathname: 'underscore@https://github.com/crypti/underscore/tarball/master',
+97 verbose parsed url   path: 'underscore@https://github.com/crypti/underscore/tarball/master',
+97 verbose parsed url   href: 'underscore@https://github.com/crypti/underscore/tarball/master' }
+98 verbose cache add name="long" spec="^1.1.5" args=["long","^1.1.5"]
+99 verbose parsed url { protocol: null,
+99 verbose parsed url   slashes: null,
+99 verbose parsed url   auth: null,
+99 verbose parsed url   host: null,
+99 verbose parsed url   port: null,
+99 verbose parsed url   hostname: null,
+99 verbose parsed url   hash: null,
+99 verbose parsed url   search: null,
+99 verbose parsed url   query: null,
+99 verbose parsed url   pathname: '^1.1.5',
+99 verbose parsed url   path: '^1.1.5',
+99 verbose parsed url   href: '^1.1.5' }
+100 verbose addNamed [ 'long', '^1.1.5' ]
+101 verbose addNamed [ null, '>=1.1.5-0 <2.0.0-0' ]
+102 silly lockFile 7d14b741-long-1-1-5 long@^1.1.5
+103 verbose lock long@^1.1.5 /Users/borispovod/.npm/7d14b741-long-1-1-5.lock
+104 silly addNameRange { name: 'body-parser', range: '*', hasData: false }
+105 silly addNameRange { name: 'ejs', range: '*', hasData: false }
+106 silly addNameRange { name: 'method-override', range: '*', hasData: false }
+107 verbose cache add name="request" spec="https://github.com/crypti/request/tarball/master" args=["request","https://github.com/crypti/request/tarball/master"]
+108 verbose parsed url { protocol: 'https:',
+108 verbose parsed url   slashes: true,
+108 verbose parsed url   auth: null,
+108 verbose parsed url   host: 'github.com',
+108 verbose parsed url   port: null,
+108 verbose parsed url   hostname: 'github.com',
+108 verbose parsed url   hash: null,
+108 verbose parsed url   search: null,
+108 verbose parsed url   query: null,
+108 verbose parsed url   pathname: '/crypti/request/tarball/master',
+108 verbose parsed url   path: '/crypti/request/tarball/master',
+108 verbose parsed url   href: 'https://github.com/crypti/request/tarball/master' }
+109 silly lockFile 6e03560b-om-crypti-request-tarball-master https://github.com/crypti/request/tarball/master
+110 verbose lock https://github.com/crypti/request/tarball/master /Users/borispovod/.npm/6e03560b-om-crypti-request-tarball-master.lock
+111 verbose cache add name="sqlite3" spec="2.2.0" args=["sqlite3","2.2.0"]
+112 verbose parsed url { protocol: null,
+112 verbose parsed url   slashes: null,
+112 verbose parsed url   auth: null,
+112 verbose parsed url   host: null,
+112 verbose parsed url   port: null,
+112 verbose parsed url   hostname: null,
+112 verbose parsed url   hash: null,
+112 verbose parsed url   search: null,
+112 verbose parsed url   query: null,
+112 verbose parsed url   pathname: '2.2.0',
+112 verbose parsed url   path: '2.2.0',
+112 verbose parsed url   href: '2.2.0' }
+113 verbose addNamed [ 'sqlite3', '2.2.0' ]
+114 verbose addNamed [ '2.2.0', '2.2.0' ]
+115 silly lockFile 277f5035-sqlite3-2-2-0 sqlite3@2.2.0
+116 verbose lock sqlite3@2.2.0 /Users/borispovod/.npm/277f5035-sqlite3-2-2-0.lock
+117 verbose cache add [ 'strftime@*', null ]
+118 verbose cache add name=undefined spec="strftime@*" args=["strftime@*",null]
+119 verbose parsed url { protocol: null,
+119 verbose parsed url   slashes: null,
+119 verbose parsed url   auth: null,
+119 verbose parsed url   host: null,
+119 verbose parsed url   port: null,
+119 verbose parsed url   hostname: null,
+119 verbose parsed url   hash: null,
+119 verbose parsed url   search: null,
+119 verbose parsed url   query: null,
+119 verbose parsed url   pathname: 'strftime@*',
+119 verbose parsed url   path: 'strftime@*',
+119 verbose parsed url   href: 'strftime@*' }
+120 verbose cache add name="underscore" spec="https://github.com/crypti/underscore/tarball/master" args=["underscore","https://github.com/crypti/underscore/tarball/master"]
+121 verbose parsed url { protocol: 'https:',
+121 verbose parsed url   slashes: true,
+121 verbose parsed url   auth: null,
+121 verbose parsed url   host: 'github.com',
+121 verbose parsed url   port: null,
+121 verbose parsed url   hostname: 'github.com',
+121 verbose parsed url   hash: null,
+121 verbose parsed url   search: null,
+121 verbose parsed url   query: null,
+121 verbose parsed url   pathname: '/crypti/underscore/tarball/master',
+121 verbose parsed url   path: '/crypti/underscore/tarball/master',
+121 verbose parsed url   href: 'https://github.com/crypti/underscore/tarball/master' }
+122 silly lockFile b970d6b2-crypti-underscore-tarball-master https://github.com/crypti/underscore/tarball/master
+123 verbose lock https://github.com/crypti/underscore/tarball/master /Users/borispovod/.npm/b970d6b2-crypti-underscore-tarball-master.lock
+124 silly addNameRange { name: 'grunt', range: '>=0.4.5-0 <0.5.0-0', hasData: false }
+125 verbose cache add name="strftime" spec="*" args=["strftime","*"]
+126 verbose parsed url { protocol: null,
+126 verbose parsed url   slashes: null,
+126 verbose parsed url   auth: null,
+126 verbose parsed url   host: null,
+126 verbose parsed url   port: null,
+126 verbose parsed url   hostname: null,
+126 verbose parsed url   hash: null,
+126 verbose parsed url   search: null,
+126 verbose parsed url   query: null,
+126 verbose parsed url   pathname: '*',
+126 verbose parsed url   path: '*',
+126 verbose parsed url   href: '*' }
+127 verbose addNamed [ 'strftime', '*' ]
+128 verbose addNamed [ null, '*' ]
+129 silly lockFile ac4344b8-strftime strftime@*
+130 verbose lock strftime@* /Users/borispovod/.npm/ac4344b8-strftime.lock
+131 silly addNameRange { name: 'long', range: '>=1.1.5-0 <2.0.0-0', hasData: false }
+132 verbose addRemoteTarball [ 'https://github.com/crypti/request/tarball/master', null ]
+133 verbose addRemoteTarball [ 'https://github.com/crypti/underscore/tarball/master', null ]
+134 silly addNameRange { name: 'strftime', range: '*', hasData: false }
+135 verbose request where is /express
+136 verbose request registry https://registry.npmjs.org/
+137 verbose request id 761d238c4ee8aefe
+138 verbose url raw /express
+139 verbose url resolving [ 'https://registry.npmjs.org/', './express' ]
+140 verbose url resolved https://registry.npmjs.org/express
+141 verbose request where is https://registry.npmjs.org/express
+142 info trying registry request attempt 1 at 10:32:49
+143 verbose etag "C8QLLLHQADFSMF8PRQWQ7W57"
+144 http GET https://registry.npmjs.org/express
+145 verbose request where is /ejs
+146 verbose request registry https://registry.npmjs.org/
+147 verbose url raw /ejs
+148 verbose url resolving [ 'https://registry.npmjs.org/', './ejs' ]
+149 verbose url resolved https://registry.npmjs.org/ejs
+150 verbose request where is https://registry.npmjs.org/ejs
+151 info trying registry request attempt 1 at 10:32:49
+152 verbose etag "DFS9PA0D97GJNWG4SMGBGXXH0"
+153 http GET https://registry.npmjs.org/ejs
+154 verbose request where is /grunt
+155 verbose request registry https://registry.npmjs.org/
+156 verbose url raw /grunt
+157 verbose url resolving [ 'https://registry.npmjs.org/', './grunt' ]
+158 verbose url resolved https://registry.npmjs.org/grunt
+159 verbose request where is https://registry.npmjs.org/grunt
+160 info trying registry request attempt 1 at 10:32:49
+161 verbose etag "3Y0N1NC98YPY51B72SU10DTM1"
+162 http GET https://registry.npmjs.org/grunt
+163 verbose request where is /body-parser
+164 verbose request registry https://registry.npmjs.org/
+165 verbose url raw /body-parser
+166 verbose url resolving [ 'https://registry.npmjs.org/', './body-parser' ]
+167 verbose url resolved https://registry.npmjs.org/body-parser
+168 verbose request where is https://registry.npmjs.org/body-parser
+169 info trying registry request attempt 1 at 10:32:49
+170 verbose etag "5X0SU04JVGRH1KU6UBX5M5BJS"
+171 http GET https://registry.npmjs.org/body-parser
+172 verbose request where is /method-override
+173 verbose request registry https://registry.npmjs.org/
+174 verbose url raw /method-override
+175 verbose url resolving [ 'https://registry.npmjs.org/', './method-override' ]
+176 verbose url resolved https://registry.npmjs.org/method-override
+177 verbose request where is https://registry.npmjs.org/method-override
+178 info trying registry request attempt 1 at 10:32:49
+179 verbose etag "ARSLRG3HPV6L40NZ27OSUG5GE"
+180 http GET https://registry.npmjs.org/method-override
+181 verbose request where is /long
+182 verbose request registry https://registry.npmjs.org/
+183 verbose url raw /long
+184 verbose url resolving [ 'https://registry.npmjs.org/', './long' ]
+185 verbose url resolved https://registry.npmjs.org/long
+186 verbose request where is https://registry.npmjs.org/long
+187 info trying registry request attempt 1 at 10:32:50
+188 verbose etag "3OXYWDBGKQYV7J3HRJM7RXQES"
+189 http GET https://registry.npmjs.org/long
+190 verbose request where is /sqlite3
+191 verbose request registry https://registry.npmjs.org/
+192 verbose url raw /sqlite3
+193 verbose url resolving [ 'https://registry.npmjs.org/', './sqlite3' ]
+194 verbose url resolved https://registry.npmjs.org/sqlite3
+195 verbose request where is https://registry.npmjs.org/sqlite3
+196 info trying registry request attempt 1 at 10:32:50
+197 verbose etag "1E9RLVFNO863KYLKGO5C6CZR8"
+198 http GET https://registry.npmjs.org/sqlite3
+199 info retry fetch attempt 1 at 10:32:50
+200 verbose fetch to= /var/folders/j5/_nhxpx017cj1_q2y4w58nm300000gn/T/npm-31326-apTFGSBa/github.com/crypti/request/tarball/master
+201 info retry fetch attempt 1 at 10:32:50
+202 verbose fetch to= /var/folders/j5/_nhxpx017cj1_q2y4w58nm300000gn/T/npm-31326-apTFGSBa/github.com/crypti/underscore/tarball/master
+203 info retry fetch attempt 1 at 10:32:50
+204 verbose fetch to= /var/folders/j5/_nhxpx017cj1_q2y4w58nm300000gn/T/npm-31326-apTFGSBa/github.com/crypti/async/tarball/master
+205 http GET https://github.com/crypti/request/tarball/master
+206 http GET https://github.com/crypti/underscore/tarball/master
+207 info retry fetch attempt 1 at 10:32:50
+208 verbose fetch to= /var/folders/j5/_nhxpx017cj1_q2y4w58nm300000gn/T/npm-31326-apTFGSBa/github.com/crypti/Ed25519/tarball/master
+209 http GET https://github.com/crypti/async/tarball/master
+210 info retry fetch attempt 1 at 10:32:50
+211 verbose fetch to= /var/folders/j5/_nhxpx017cj1_q2y4w58nm300000gn/T/npm-31326-apTFGSBa/github.com/crypti/node-bignum/tarball/master
+212 info retry fetch attempt 1 at 10:32:50
+213 verbose fetch to= /var/folders/j5/_nhxpx017cj1_q2y4w58nm300000gn/T/npm-31326-apTFGSBa/github.com/crypti/ByteBuffer.js/tarball/master
+214 verbose request where is /strftime
+215 verbose request registry https://registry.npmjs.org/
+216 verbose url raw /strftime
+217 verbose url resolving [ 'https://registry.npmjs.org/', './strftime' ]
+218 verbose url resolved https://registry.npmjs.org/strftime
+219 verbose request where is https://registry.npmjs.org/strftime
+220 info trying registry request attempt 1 at 10:32:50
+221 verbose etag "3LZOW6NN0ZK1RIE19VNUNH57O"
+222 http GET https://registry.npmjs.org/strftime
+223 http GET https://github.com/crypti/Ed25519/tarball/master
+224 http GET https://github.com/crypti/node-bignum/tarball/master
+225 http GET https://github.com/crypti/ByteBuffer.js/tarball/master
+226 http 304 https://registry.npmjs.org/grunt
+227 silly registry.get cb [ 304,
+227 silly registry.get   { date: 'Wed, 03 Dec 2014 07:31:55 GMT',
+227 silly registry.get     server: 'Apache',
+227 silly registry.get     via: '1.1 varnish',
+227 silly registry.get     'last-modified': 'Wed, 03 Dec 2014 07:31:55 GMT',
+227 silly registry.get     'cache-control': 'max-age=60',
+227 silly registry.get     etag: '"3Y0N1NC98YPY51B72SU10DTM1"',
+227 silly registry.get     age: '43',
+227 silly registry.get     'x-served-by': 'cache-ams4145-AMS',
+227 silly registry.get     'x-cache': 'HIT',
+227 silly registry.get     'x-cache-hits': '1',
+227 silly registry.get     'x-timer': 'S1417591915.209932,VS0,VE0',
+227 silly registry.get     vary: 'Accept',
+227 silly registry.get     'content-length': '0',
+227 silly registry.get     'keep-alive': 'timeout=10, max=50',
+227 silly registry.get     connection: 'Keep-Alive' } ]
+228 verbose etag https://registry.npmjs.org/grunt from cache
+229 silly addNameRange number 2 { name: 'grunt', range: '>=0.4.5-0 <0.5.0-0', hasData: true }
+230 silly addNameRange versions [ 'grunt',
+230 silly addNameRange   [ '0.1.0',
+230 silly addNameRange     '0.1.1',
+230 silly addNameRange     '0.1.2',
+230 silly addNameRange     '0.2.0',
+230 silly addNameRange     '0.2.1',
+230 silly addNameRange     '0.2.2',
+230 silly addNameRange     '0.2.3',
+230 silly addNameRange     '0.2.4',
+230 silly addNameRange     '0.2.5',
+230 silly addNameRange     '0.2.6',
+230 silly addNameRange     '0.2.7',
+230 silly addNameRange     '0.2.8',
+230 silly addNameRange     '0.2.9',
+230 silly addNameRange     '0.2.10',
+230 silly addNameRange     '0.2.11',
+230 silly addNameRange     '0.2.12',
+230 silly addNameRange     '0.2.13',
+230 silly addNameRange     '0.2.14',
+230 silly addNameRange     '0.2.15',
+230 silly addNameRange     '0.3.0',
+230 silly addNameRange     '0.3.1',
+230 silly addNameRange     '0.3.2',
+230 silly addNameRange     '0.3.3',
+230 silly addNameRange     '0.3.4',
+230 silly addNameRange     '0.3.5',
+230 silly addNameRange     '0.3.6',
+230 silly addNameRange     '0.3.7',
+230 silly addNameRange     '0.3.8',
+230 silly addNameRange     '0.3.9',
+230 silly addNameRange     '0.3.10',
+230 silly addNameRange     '0.3.11',
+230 silly addNameRange     '0.3.12',
+230 silly addNameRange     '0.3.13',
+230 silly addNameRange     '0.3.14',
+230 silly addNameRange     '0.3.15',
+230 silly addNameRange     '0.3.16',
+230 silly addNameRange     '0.3.17',
+230 silly addNameRange     '0.4.0',
+230 silly addNameRange     '0.4.1',
+230 silly addNameRange     '0.4.2',
+230 silly addNameRange     '0.4.3',
+230 silly addNameRange     '0.4.4',
+230 silly addNameRange     '0.4.5',
+230 silly addNameRange     '0.3.13-a',
+230 silly addNameRange     '0.4.0-a',
+230 silly addNameRange     '0.4.0-rc1',
+230 silly addNameRange     '0.4.0-rc2',
+230 silly addNameRange     '0.4.0-rc3',
+230 silly addNameRange     '0.4.0-rc4',
+230 silly addNameRange     '0.4.0-rc5',
+230 silly addNameRange     '0.4.0-rc6',
+230 silly addNameRange     '0.4.0-rc7',
+230 silly addNameRange     '0.4.0-rc8' ] ]
+231 verbose addNamed [ 'grunt', '0.4.5' ]
+232 verbose addNamed [ '0.4.5', '0.4.5' ]
+233 silly lockFile 81abf7ad-grunt-0-4-5 grunt@0.4.5
+234 verbose lock grunt@0.4.5 /Users/borispovod/.npm/81abf7ad-grunt-0-4-5.lock
+235 silly lockFile 81abf7ad-grunt-0-4-5 grunt@0.4.5
+236 silly lockFile 81abf7ad-grunt-0-4-5 grunt@0.4.5
+237 silly lockFile 73541f84-grunt-0-4-5 grunt@^0.4.5
+238 silly lockFile 73541f84-grunt-0-4-5 grunt@^0.4.5
+239 http 304 https://registry.npmjs.org/method-override
+240 silly registry.get cb [ 304,
+240 silly registry.get   { date: 'Wed, 03 Dec 2014 07:31:55 GMT',
+240 silly registry.get     server: 'Apache',
+240 silly registry.get     via: '1.1 varnish',
+240 silly registry.get     'last-modified': 'Wed, 03 Dec 2014 07:31:55 GMT',
+240 silly registry.get     'cache-control': 'max-age=60',
+240 silly registry.get     etag: '"ARSLRG3HPV6L40NZ27OSUG5GE"',
+240 silly registry.get     age: '58',
+240 silly registry.get     'x-served-by': 'cache-ams4124-AMS',
+240 silly registry.get     'x-cache': 'HIT',
+240 silly registry.get     'x-cache-hits': '1',
+240 silly registry.get     'x-timer': 'S1417591915.252206,VS0,VE0',
+240 silly registry.get     vary: 'Accept',
+240 silly registry.get     'content-length': '0',
+240 silly registry.get     'keep-alive': 'timeout=10, max=50',
+240 silly registry.get     connection: 'Keep-Alive' } ]
+241 verbose etag https://registry.npmjs.org/method-override from cache
+242 silly addNameRange number 2 { name: 'method-override', range: '*', hasData: true }
+243 silly addNameRange versions [ 'method-override',
+243 silly addNameRange   [ '1.0.0',
+243 silly addNameRange     '1.0.1',
+243 silly addNameRange     '1.0.2',
+243 silly addNameRange     '2.0.0',
+243 silly addNameRange     '2.0.1',
+243 silly addNameRange     '2.0.2',
+243 silly addNameRange     '2.1.0',
+243 silly addNameRange     '2.1.1',
+243 silly addNameRange     '2.1.2',
+243 silly addNameRange     '2.1.3',
+243 silly addNameRange     '2.2.0',
+243 silly addNameRange     '2.3.0' ] ]
+244 verbose addNamed [ 'method-override', '2.3.0' ]
+245 verbose addNamed [ '2.3.0', '2.3.0' ]
+246 silly lockFile d0db1aff-method-override-2-3-0 method-override@2.3.0
+247 verbose lock method-override@2.3.0 /Users/borispovod/.npm/d0db1aff-method-override-2-3-0.lock
+248 silly lockFile d0db1aff-method-override-2-3-0 method-override@2.3.0
+249 silly lockFile d0db1aff-method-override-2-3-0 method-override@2.3.0
+250 silly lockFile 55aed036-method-override method-override@*
+251 silly lockFile 55aed036-method-override method-override@*
+252 error fetch failed https://github.com/crypti/Ed25519/tarball/master
+253 info retry will retry, error on last attempt: Error: read ECONNRESET
+254 error fetch failed https://github.com/crypti/async/tarball/master
+255 info retry will retry, error on last attempt: Error: read ECONNRESET
+256 error fetch failed https://github.com/crypti/underscore/tarball/master
+257 info retry will retry, error on last attempt: Error: read ECONNRESET
+258 error fetch failed https://github.com/crypti/request/tarball/master
+259 info retry will retry, error on last attempt: Error: read ECONNRESET
+260 error fetch failed https://github.com/crypti/node-bignum/tarball/master
+261 info retry will retry, error on last attempt: Error: read ECONNRESET
+262 http 200 https://registry.npmjs.org/body-parser
+263 silly registry.get cb [ 200,
+263 silly registry.get   { date: 'Wed, 03 Dec 2014 07:31:55 GMT',
+263 silly registry.get     server: 'CouchDB/1.5.0 (Erlang OTP/R16B03)',
+263 silly registry.get     etag: '"D50YWX8L0PQWHRVLT5RVLQ2VE"',
+263 silly registry.get     'content-type': 'application/json',
+263 silly registry.get     'cache-control': 'max-age=60',
+263 silly registry.get     'content-length': '75649',
+263 silly registry.get     'accept-ranges': 'bytes',
+263 silly registry.get     via: '1.1 varnish',
+263 silly registry.get     age: '17',
+263 silly registry.get     'x-served-by': 'cache-ams4148-AMS',
+263 silly registry.get     'x-cache': 'HIT',
+263 silly registry.get     'x-cache-hits': '1',
+263 silly registry.get     'x-timer': 'S1417591915.224302,VS0,VE0',
+263 silly registry.get     vary: 'Accept',
+263 silly registry.get     'keep-alive': 'timeout=10, max=50',
+263 silly registry.get     connection: 'Keep-Alive' } ]
+264 http 304 https://registry.npmjs.org/ejs
+265 silly registry.get cb [ 304,
+265 silly registry.get   { date: 'Wed, 03 Dec 2014 07:31:55 GMT',
+265 silly registry.get     server: 'Apache',
+265 silly registry.get     via: '1.1 varnish',
+265 silly registry.get     'last-modified': 'Wed, 03 Dec 2014 07:31:55 GMT',
+265 silly registry.get     'cache-control': 'max-age=60',
+265 silly registry.get     etag: '"DFS9PA0D97GJNWG4SMGBGXXH0"',
+265 silly registry.get     age: '0',
+265 silly registry.get     'x-served-by': 'cache-ams4126-AMS',
+265 silly registry.get     'x-cache': 'HIT',
+265 silly registry.get     'x-cache-hits': '1',
+265 silly registry.get     'x-timer': 'S1417591915.232539,VS0,VE407',
+265 silly registry.get     vary: 'Accept',
+265 silly registry.get     'content-length': '0',
+265 silly registry.get     'keep-alive': 'timeout=10, max=50',
+265 silly registry.get     connection: 'Keep-Alive' } ]
+266 verbose etag https://registry.npmjs.org/ejs from cache
+267 silly addNameRange number 2 { name: 'ejs', range: '*', hasData: true }
+268 silly addNameRange versions [ 'ejs',
+268 silly addNameRange   [ '0.0.1',
+268 silly addNameRange     '0.0.2',
+268 silly addNameRange     '0.0.3',
+268 silly addNameRange     '0.0.4',
+268 silly addNameRange     '0.1.0',
+268 silly addNameRange     '0.2.0',
+268 silly addNameRange     '0.2.1',
+268 silly addNameRange     '0.3.0',
+268 silly addNameRange     '0.3.1',
+268 silly addNameRange     '0.4.0',
+268 silly addNameRange     '0.4.1',
+268 silly addNameRange     '0.4.2',
+268 silly addNameRange     '0.4.3',
+268 silly addNameRange     '0.5.0',
+268 silly addNameRange     '0.6.0',
+268 silly addNameRange     '0.6.1',
+268 silly addNameRange     '0.7.0',
+268 silly addNameRange     '0.7.1',
+268 silly addNameRange     '0.7.2',
+268 silly addNameRange     '0.8.0',
+268 silly addNameRange     '0.8.1',
+268 silly addNameRange     '0.8.2',
+268 silly addNameRange     '0.8.3',
+268 silly addNameRange     '0.8.4',
+268 silly addNameRange     '0.8.5',
+268 silly addNameRange     '0.8.6',
+268 silly addNameRange     '0.8.8',
+268 silly addNameRange     '1.0.0' ] ]
+269 verbose addNamed [ 'ejs', '1.0.0' ]
+270 verbose addNamed [ '1.0.0', '1.0.0' ]
+271 silly lockFile 3b9d58f7-ejs-1-0-0 ejs@1.0.0
+272 verbose lock ejs@1.0.0 /Users/borispovod/.npm/3b9d58f7-ejs-1-0-0.lock
+273 silly addNameRange number 2 { name: 'body-parser', range: '*', hasData: true }
+274 silly addNameRange versions [ 'body-parser',
+274 silly addNameRange   [ '1.0.0',
+274 silly addNameRange     '1.0.1',
+274 silly addNameRange     '1.0.2',
+274 silly addNameRange     '1.1.0',
+274 silly addNameRange     '1.1.1',
+274 silly addNameRange     '1.1.2',
+274 silly addNameRange     '1.2.0',
+274 silly addNameRange     '1.2.1',
+274 silly addNameRange     '1.2.2',
+274 silly addNameRange     '1.3.0',
+274 silly addNameRange     '1.3.1',
+274 silly addNameRange     '1.4.0',
+274 silly addNameRange     '1.4.1',
+274 silly addNameRange     '1.4.2',
+274 silly addNameRange     '1.4.3',
+274 silly addNameRange     '1.5.0',
+274 silly addNameRange     '1.5.1',
+274 silly addNameRange     '1.5.2',
+274 silly addNameRange     '1.6.0',
+274 silly addNameRange     '1.6.1',
+274 silly addNameRange     '1.6.2',
+274 silly addNameRange     '1.6.3',
+274 silly addNameRange     '1.6.4',
+274 silly addNameRange     '1.6.5',
+274 silly addNameRange     '1.6.6',
+274 silly addNameRange     '1.6.7',
+274 silly addNameRange     '1.7.0',
+274 silly addNameRange     '1.8.0',
+274 silly addNameRange     '1.8.1',
+274 silly addNameRange     '1.8.2',
+274 silly addNameRange     '1.8.3',
+274 silly addNameRange     '1.8.4',
+274 silly addNameRange     '1.9.0',
+274 silly addNameRange     '1.9.1',
+274 silly addNameRange     '1.9.2',
+274 silly addNameRange     '1.9.3',
+274 silly addNameRange     '1.10.0' ] ]
+275 verbose addNamed [ 'body-parser', '1.10.0' ]
+276 verbose addNamed [ '1.10.0', '1.10.0' ]
+277 silly lockFile 17c720c0-body-parser-1-10-0 body-parser@1.10.0
+278 verbose lock body-parser@1.10.0 /Users/borispovod/.npm/17c720c0-body-parser-1-10-0.lock
+279 silly lockFile 3b9d58f7-ejs-1-0-0 ejs@1.0.0
+280 silly lockFile 3b9d58f7-ejs-1-0-0 ejs@1.0.0
+281 silly lockFile 85818e41-dy-parser-body-parser-1-10-0-tgz https://registry.npmjs.org/body-parser/-/body-parser-1.10.0.tgz
+282 verbose lock https://registry.npmjs.org/body-parser/-/body-parser-1.10.0.tgz /Users/borispovod/.npm/85818e41-dy-parser-body-parser-1-10-0-tgz.lock
+283 silly lockFile 9d73ed50-ejs ejs@*
+284 silly lockFile 9d73ed50-ejs ejs@*
+285 verbose addRemoteTarball [ 'https://registry.npmjs.org/body-parser/-/body-parser-1.10.0.tgz',
+285 verbose addRemoteTarball   'f884d11839af09e3c61e5011059e29cbfe452085' ]
+286 info retry fetch attempt 1 at 10:32:51
+287 verbose fetch to= /var/folders/j5/_nhxpx017cj1_q2y4w58nm300000gn/T/npm-31326-apTFGSBa/registry.npmjs.org/body-parser/-/body-parser-1.10.0.tgz
+288 http GET https://registry.npmjs.org/body-parser/-/body-parser-1.10.0.tgz
+289 error fetch failed https://github.com/crypti/ByteBuffer.js/tarball/master
+290 info retry will retry, error on last attempt: Error: read ECONNRESET
+291 http 304 https://registry.npmjs.org/sqlite3
+292 silly registry.get cb [ 304,
+292 silly registry.get   { date: 'Wed, 03 Dec 2014 07:31:55 GMT',
+292 silly registry.get     server: 'Apache',
+292 silly registry.get     via: '1.1 varnish',
+292 silly registry.get     'last-modified': 'Wed, 03 Dec 2014 07:31:55 GMT',
+292 silly registry.get     'cache-control': 'max-age=60',
+292 silly registry.get     etag: '"1E9RLVFNO863KYLKGO5C6CZR8"',
+292 silly registry.get     age: '0',
+292 silly registry.get     'x-served-by': 'cache-ams4124-AMS',
+292 silly registry.get     'x-cache': 'HIT',
+292 silly registry.get     'x-cache-hits': '1',
+292 silly registry.get     'x-timer': 'S1417591915.430816,VS0,VE365',
+292 silly registry.get     vary: 'Accept',
+292 silly registry.get     'content-length': '0',
+292 silly registry.get     'keep-alive': 'timeout=10, max=49',
+292 silly registry.get     connection: 'Keep-Alive' } ]
+293 verbose etag https://registry.npmjs.org/sqlite3 from cache
+294 silly lockFile 277f5035-sqlite3-2-2-0 sqlite3@2.2.0
+295 silly lockFile 277f5035-sqlite3-2-2-0 sqlite3@2.2.0
+296 http 304 https://registry.npmjs.org/long
+297 silly registry.get cb [ 304,
+297 silly registry.get   { date: 'Wed, 03 Dec 2014 07:31:55 GMT',
+297 silly registry.get     server: 'Apache',
+297 silly registry.get     via: '1.1 varnish',
+297 silly registry.get     'last-modified': 'Wed, 03 Dec 2014 07:31:55 GMT',
+297 silly registry.get     'cache-control': 'max-age=60',
+297 silly registry.get     etag: '"3OXYWDBGKQYV7J3HRJM7RXQES"',
+297 silly registry.get     age: '0',
+297 silly registry.get     'x-served-by': 'cache-ams4145-AMS',
+297 silly registry.get     'x-cache': 'MISS',
+297 silly registry.get     'x-cache-hits': '0',
+297 silly registry.get     'x-timer': 'S1417591915.357664,VS0,VE565',
+297 silly registry.get     vary: 'Accept',
+297 silly registry.get     'content-length': '0',
+297 silly registry.get     'keep-alive': 'timeout=10, max=49',
+297 silly registry.get     connection: 'Keep-Alive' } ]
+298 verbose etag https://registry.npmjs.org/long from cache
+299 silly addNameRange number 2 { name: 'long', range: '>=1.1.5-0 <2.0.0-0', hasData: true }
+300 silly addNameRange versions [ 'long',
+300 silly addNameRange   [ '1.0.0',
+300 silly addNameRange     '1.0.1',
+300 silly addNameRange     '1.1.0',
+300 silly addNameRange     '1.1.1',
+300 silly addNameRange     '1.1.2',
+300 silly addNameRange     '1.1.4',
+300 silly addNameRange     '1.1.5',
+300 silly addNameRange     '1.2.0',
+300 silly addNameRange     '1.2.1',
+300 silly addNameRange     '1.2.3',
+300 silly addNameRange     '2.0.0',
+300 silly addNameRange     '2.0.1',
+300 silly addNameRange     '2.1.0',
+300 silly addNameRange     '2.2.0',
+300 silly addNameRange     '2.2.1',
+300 silly addNameRange     '2.2.2',
+300 silly addNameRange     '2.2.3' ] ]
+301 verbose addNamed [ 'long', '1.2.3' ]
+302 verbose addNamed [ '1.2.3', '1.2.3' ]
+303 silly lockFile a8ec38ea-long-1-2-3 long@1.2.3
+304 verbose lock long@1.2.3 /Users/borispovod/.npm/a8ec38ea-long-1-2-3.lock
+305 silly lockFile a8ec38ea-long-1-2-3 long@1.2.3
+306 silly lockFile a8ec38ea-long-1-2-3 long@1.2.3
+307 silly lockFile 7d14b741-long-1-1-5 long@^1.1.5
+308 silly lockFile 7d14b741-long-1-1-5 long@^1.1.5
+309 http 200 https://registry.npmjs.org/body-parser/-/body-parser-1.10.0.tgz
+310 silly lockFile 85818e41-dy-parser-body-parser-1-10-0-tgz https://registry.npmjs.org/body-parser/-/body-parser-1.10.0.tgz
+311 silly lockFile 85818e41-dy-parser-body-parser-1-10-0-tgz https://registry.npmjs.org/body-parser/-/body-parser-1.10.0.tgz
+312 silly lockFile 17c720c0-body-parser-1-10-0 body-parser@1.10.0
+313 silly lockFile 17c720c0-body-parser-1-10-0 body-parser@1.10.0
+314 silly lockFile 12b67fc9-body-parser body-parser@*
+315 silly lockFile 12b67fc9-body-parser body-parser@*
+316 http 200 https://registry.npmjs.org/express
+317 silly registry.get cb [ 200,
+317 silly registry.get   { date: 'Wed, 03 Dec 2014 07:31:55 GMT',
+317 silly registry.get     server: 'CouchDB/1.5.0 (Erlang OTP/R14B04)',
+317 silly registry.get     etag: '"ANRW6H3N2X8N53G0V20AJPOIF"',
+317 silly registry.get     'content-type': 'application/json',
+317 silly registry.get     'cache-control': 'max-age=60',
+317 silly registry.get     'content-length': '431401',
+317 silly registry.get     'accept-ranges': 'bytes',
+317 silly registry.get     via: '1.1 varnish',
+317 silly registry.get     age: '5',
+317 silly registry.get     'x-served-by': 'cache-ams4140-AMS',
+317 silly registry.get     'x-cache': 'HIT',
+317 silly registry.get     'x-cache-hits': '1',
+317 silly registry.get     'x-timer': 'S1417591915.243364,VS0,VE1',
+317 silly registry.get     vary: 'Accept',
+317 silly registry.get     'keep-alive': 'timeout=10, max=50',
+317 silly registry.get     connection: 'Keep-Alive' } ]
+318 http 304 https://registry.npmjs.org/strftime
+319 silly registry.get cb [ 304,
+319 silly registry.get   { date: 'Wed, 03 Dec 2014 07:31:55 GMT',
+319 silly registry.get     server: 'Apache',
+319 silly registry.get     via: '1.1 varnish',
+319 silly registry.get     'last-modified': 'Wed, 03 Dec 2014 07:31:56 GMT',
+319 silly registry.get     'cache-control': 'max-age=60',
+319 silly registry.get     etag: '"3LZOW6NN0ZK1RIE19VNUNH57O"',
+319 silly registry.get     age: '0',
+319 silly registry.get     'x-served-by': 'cache-ams4148-AMS',
+319 silly registry.get     'x-cache': 'MISS',
+319 silly registry.get     'x-cache-hits': '0',
+319 silly registry.get     'x-timer': 'S1417591915.788287,VS0,VE795',
+319 silly registry.get     vary: 'Accept',
+319 silly registry.get     'content-length': '0',
+319 silly registry.get     'keep-alive': 'timeout=10, max=49',
+319 silly registry.get     connection: 'Keep-Alive' } ]
+320 verbose etag https://registry.npmjs.org/strftime from cache
+321 silly addNameRange number 2 { name: 'strftime', range: '*', hasData: true }
+322 silly addNameRange versions [ 'strftime',
+322 silly addNameRange   [ '0.2.0',
+322 silly addNameRange     '0.2.1',
+322 silly addNameRange     '0.2.2',
+322 silly addNameRange     '0.2.3',
+322 silly addNameRange     '0.3.0',
+322 silly addNameRange     '0.4.0',
+322 silly addNameRange     '0.4.1',
+322 silly addNameRange     '0.4.2',
+322 silly addNameRange     '0.4.3',
+322 silly addNameRange     '0.4.4',
+322 silly addNameRange     '0.4.5',
+322 silly addNameRange     '0.4.6',
+322 silly addNameRange     '0.4.7',
+322 silly addNameRange     '0.5.0',
+322 silly addNameRange     '0.5.1',
+322 silly addNameRange     '0.5.2',
+322 silly addNameRange     '0.6.0',
+322 silly addNameRange     '0.6.1',
+322 silly addNameRange     '0.6.2',
+322 silly addNameRange     '0.7.0',
+322 silly addNameRange     '0.8.0',
+322 silly addNameRange     '0.8.1',
+322 silly addNameRange     '0.8.2' ] ]
+323 verbose addNamed [ 'strftime', '0.8.2' ]
+324 verbose addNamed [ '0.8.2', '0.8.2' ]
+325 silly lockFile 663703bb-strftime-0-8-2 strftime@0.8.2
+326 verbose lock strftime@0.8.2 /Users/borispovod/.npm/663703bb-strftime-0-8-2.lock
+327 silly lockFile 663703bb-strftime-0-8-2 strftime@0.8.2
+328 silly lockFile 663703bb-strftime-0-8-2 strftime@0.8.2
+329 silly lockFile ac4344b8-strftime strftime@*
+330 silly lockFile ac4344b8-strftime strftime@*
+331 silly addNameRange number 2 { name: 'express', range: '>=4.0.0-0 <5.0.0-0', hasData: true }
+332 silly addNameRange versions [ 'express',
+332 silly addNameRange   [ '0.14.0',
+332 silly addNameRange     '0.14.1',
+332 silly addNameRange     '1.0.0',
+332 silly addNameRange     '1.0.1',
+332 silly addNameRange     '1.0.2',
+332 silly addNameRange     '1.0.3',
+332 silly addNameRange     '1.0.4',
+332 silly addNameRange     '1.0.5',
+332 silly addNameRange     '1.0.6',
+332 silly addNameRange     '1.0.7',
+332 silly addNameRange     '1.0.8',
+332 silly addNameRange     '2.0.0',
+332 silly addNameRange     '2.1.0',
+332 silly addNameRange     '2.1.1',
+332 silly addNameRange     '2.2.0',
+332 silly addNameRange     '2.2.1',
+332 silly addNameRange     '2.2.2',
+332 silly addNameRange     '2.3.0',
+332 silly addNameRange     '2.3.1',
+332 silly addNameRange     '2.3.2',
+332 silly addNameRange     '2.3.3',
+332 silly addNameRange     '2.3.4',
+332 silly addNameRange     '2.3.5',
+332 silly addNameRange     '2.3.6',
+332 silly addNameRange     '2.3.7',
+332 silly addNameRange     '2.3.8',
+332 silly addNameRange     '2.3.9',
+332 silly addNameRange     '2.3.10',
+332 silly addNameRange     '2.3.11',
+332 silly addNameRange     '2.3.12',
+332 silly addNameRange     '2.4.0',
+332 silly addNameRange     '2.4.1',
+332 silly addNameRange     '2.4.2',
+332 silly addNameRange     '2.4.3',
+332 silly addNameRange     '2.4.4',
+332 silly addNameRange     '2.4.5',
+332 silly addNameRange     '2.4.6',
+332 silly addNameRange     '2.4.7',
+332 silly addNameRange     '2.5.0',
+332 silly addNameRange     '2.5.1',
+332 silly addNameRange     '2.5.2',
+332 silly addNameRange     '2.5.3',
+332 silly addNameRange     '2.5.4',
+332 silly addNameRange     '2.5.5',
+332 silly addNameRange     '2.5.6',
+332 silly addNameRange     '2.5.7',
+332 silly addNameRange     '2.5.8',
+332 silly addNameRange     '2.5.9',
+332 silly addNameRange     '2.5.10',
+332 silly addNameRange     '2.5.11',
+332 silly addNameRange     '3.0.0',
+332 silly addNameRange     '3.0.1',
+332 silly addNameRange     '3.0.2',
+332 silly addNameRange     '3.0.3',
+332 silly addNameRange     '3.0.4',
+332 silly addNameRange     '3.0.5',
+332 silly addNameRange     '3.0.6',
+332 silly addNameRange     '3.1.0',
+332 silly addNameRange     '3.1.1',
+332 silly addNameRange     '3.1.2',
+332 silly addNameRange     '3.2.0',
+332 silly addNameRange     '3.2.1',
+332 silly addNameRange     '3.2.2',
+332 silly addNameRange     '3.2.3',
+332 silly addNameRange     '3.2.4',
+332 silly addNameRange     '3.2.5',
+332 silly addNameRange     '3.2.6',
+332 silly addNameRange     '3.3.0',
+332 silly addNameRange     '3.3.1',
+332 silly addNameRange     '3.3.2',
+332 silly addNameRange     '3.3.3',
+332 silly addNameRange     '3.3.4',
+332 silly addNameRange     '3.3.5',
+332 silly addNameRange     '3.3.6',
+332 silly addNameRange     '1.0.0-beta',
+332 silly addNameRange     '1.0.0-beta2',
+332 silly addNameRange     '1.0.0-rc',
+332 silly addNameRange     '1.0.0-rc2',
+332 silly addNameRange     '1.0.0-rc3',
+332 silly addNameRange     '1.0.0-rc4',
+332 silly addNameRange     '2.0.0-beta',
+332 silly addNameRange     '2.0.0-beta2',
+332 silly addNameRange     '2.0.0-beta3',
+332 silly addNameRange     '2.0.0-rc',
+332 silly addNameRange     '2.0.0-rc2',
+332 silly addNameRange     '2.0.0-rc3',
+332 silly addNameRange     '3.0.0-alpha1',
+332 silly addNameRange     '3.0.0-alpha2',
+332 silly addNameRange     '3.0.0-alpha3',
+332 silly addNameRange     '3.0.0-alpha4',
+332 silly addNameRange     '3.0.0-alpha5',
+332 silly addNameRange     '3.0.0-beta1',
+332 silly addNameRange     '3.0.0-beta2',
+332 silly addNameRange     '3.0.0-beta3',
+332 silly addNameRange     '3.0.0-beta4',
+332 silly addNameRange     '3.0.0-beta6',
+332 silly addNameRange     '3.0.0-beta7',
+332 silly addNameRange     '3.0.0-rc1',
+332 silly addNameRange     '3.0.0-rc2',
+332 silly addNameRange     '3.0.0-rc3',
+332 silly addNameRange     '3.0.0-rc4',
+332 silly addNameRange     '3.0.0-rc5',
+332 silly addNameRange     '3.3.7',
+332 silly addNameRange     '3.3.8',
+332 silly addNameRange     '3.4.0',
+332 silly addNameRange     '3.4.1',
+332 silly addNameRange     '3.4.2',
+332 silly addNameRange     '3.4.3',
+332 silly addNameRange     '3.4.4',
+332 silly addNameRange     '3.4.5',
+332 silly addNameRange     '3.4.6',
+332 silly addNameRange     '3.4.7',
+332 silly addNameRange     '3.4.8',
+332 silly addNameRange     '4.0.0-rc1',
+332 silly addNameRange     '4.0.0-rc2',
+332 silly addNameRange     '3.5.0',
+332 silly addNameRange     '4.0.0-rc3',
+332 silly addNameRange     '4.0.0-rc4',
+332 silly addNameRange     '3.5.1',
+332 silly addNameRange     '4.0.0',
+332 silly addNameRange     '3.5.2',
+332 silly addNameRange     '4.1.0',
+332 silly addNameRange     '4.1.1',
+332 silly addNameRange     '3.5.3',
+332 silly addNameRange     '4.1.2',
+332 silly addNameRange     '3.6.0',
+332 silly addNameRange     '4.2.0',
+332 silly addNameRange     '3.7.0',
+332 silly addNameRange     '3.8.0',
+332 silly addNameRange     '4.3.0',
+332 silly addNameRange     '4.3.1',
+332 silly addNameRange     '3.8.1',
+332 silly addNameRange     '4.3.2',
+332 silly addNameRange     '3.9.0',
+332 silly addNameRange     '4.4.0',
+332 silly addNameRange     '4.4.1',
+332 silly addNameRange     '3.10.0',
+332 silly addNameRange     '3.10.1',
+332 silly addNameRange     '3.10.2',
+332 silly addNameRange     '3.10.3',
+332 silly addNameRange     '3.10.4',
+332 silly addNameRange     '4.4.2',
+332 silly addNameRange     '3.10.5',
+332 silly addNameRange     '4.4.3',
+332 silly addNameRange     '3.11.0',
+332 silly addNameRange     '4.4.4',
+332 silly addNameRange     '3.12.0',
+332 silly addNameRange     '3.12.1',
+332 silly addNameRange     '4.4.5',
+332 silly addNameRange     '3.13.0',
+332 silly addNameRange     '4.5.0',
+332 silly addNameRange     '4.5.1',
+332 silly addNameRange     '3.14.0',
+332 silly addNameRange     '4.6.0',
+332 silly addNameRange     '4.6.1',
+332 silly addNameRange     '3.15.0',
+332 silly addNameRange     '4.7.0',
+332 silly addNameRange     '3.15.1',
+332 silly addNameRange     '4.7.1',
+332 silly addNameRange     '3.15.2',
+332 silly addNameRange     '4.7.2',
+332 silly addNameRange     '4.7.3',
+332 silly addNameRange     '3.15.3',
+332 silly addNameRange     '4.7.4',
+332 silly addNameRange     '3.16.0',
+332 silly addNameRange     '4.8.0',
+332 silly addNameRange     '3.16.1',
+332 silly addNameRange     '4.8.1',
+332 silly addNameRange     '3.16.2',
+332 silly addNameRange     '4.8.2',
+332 silly addNameRange     '3.16.3',
+332 silly addNameRange     '3.16.4',
+332 silly addNameRange     '4.8.3',
+332 silly addNameRange     '3.16.5',
+332 silly addNameRange     '3.16.6',
+332 silly addNameRange     '4.8.4',
+332 silly addNameRange     '3.16.7',
+332 silly addNameRange     '4.8.5',
+332 silly addNameRange     '3.16.8',
+332 silly addNameRange     '4.8.6',
+332 silly addNameRange     '3.16.9',
+332 silly addNameRange     '4.8.7',
+332 silly addNameRange     '3.16.10',
+332 silly addNameRange     '4.8.8',
+332 silly addNameRange     '3.17.0',
+332 silly addNameRange     '3.17.1',
+332 silly addNameRange     '4.9.0',
+332 silly addNameRange     '3.17.2',
+332 silly addNameRange     '4.9.1',
+332 silly addNameRange     '4.9.2',
+332 silly addNameRange     '3.17.3',
+332 silly addNameRange     '4.9.3',
+332 silly addNameRange     '3.17.4',
+332 silly addNameRange     '4.9.4',
+332 silly addNameRange     '3.17.5',
+332 silly addNameRange     '4.9.5',
+332 silly addNameRange     '3.17.6',
+332 silly addNameRange     '3.17.7',
+332 silly addNameRange     '4.9.6',
+332 silly addNameRange     '4.9.7',
+332 silly addNameRange     '3.17.8',
+332 silly addNameRange     '4.9.8',
+332 silly addNameRange     '3.18.0',
+332 silly addNameRange     '3.18.1',
+332 silly addNameRange     '4.10.0',
+332 silly addNameRange     '3.18.2',
+332 silly addNameRange     '4.10.1',
+332 silly addNameRange     '5.0.0-alpha.1',
+332 silly addNameRange     '3.18.3',
+332 silly addNameRange     '4.10.2',
+332 silly addNameRange     '3.18.4',
+332 silly addNameRange     '4.10.3',
+332 silly addNameRange     '4.10.4' ] ]
+333 verbose addNamed [ 'express', '4.10.4' ]
+334 verbose addNamed [ '4.10.4', '4.10.4' ]
+335 silly lockFile c05f2c08-express-4-10-4 express@4.10.4
+336 verbose lock express@4.10.4 /Users/borispovod/.npm/c05f2c08-express-4-10-4.lock
+337 silly lockFile c05f2c08-express-4-10-4 express@4.10.4
+338 silly lockFile c05f2c08-express-4-10-4 express@4.10.4
+339 silly lockFile 72215064-express-4-x express@4.x
+340 silly lockFile 72215064-express-4-x express@4.x
+341 info retry fetch attempt 2 at 10:33:01
+342 verbose fetch to= /var/folders/j5/_nhxpx017cj1_q2y4w58nm300000gn/T/npm-31326-apTFGSBa/github.com/crypti/Ed25519/tarball/master
+343 http GET https://github.com/crypti/Ed25519/tarball/master
+344 info retry fetch attempt 2 at 10:33:01
+345 verbose fetch to= /var/folders/j5/_nhxpx017cj1_q2y4w58nm300000gn/T/npm-31326-apTFGSBa/github.com/crypti/async/tarball/master
+346 info retry fetch attempt 2 at 10:33:01
+347 verbose fetch to= /var/folders/j5/_nhxpx017cj1_q2y4w58nm300000gn/T/npm-31326-apTFGSBa/github.com/crypti/underscore/tarball/master
+348 info retry fetch attempt 2 at 10:33:01
+349 verbose fetch to= /var/folders/j5/_nhxpx017cj1_q2y4w58nm300000gn/T/npm-31326-apTFGSBa/github.com/crypti/request/tarball/master
+350 http GET https://github.com/crypti/async/tarball/master
+351 http GET https://github.com/crypti/underscore/tarball/master
+352 http GET https://github.com/crypti/request/tarball/master
+353 info retry fetch attempt 2 at 10:33:01
+354 verbose fetch to= /var/folders/j5/_nhxpx017cj1_q2y4w58nm300000gn/T/npm-31326-apTFGSBa/github.com/crypti/node-bignum/tarball/master
+355 http GET https://github.com/crypti/node-bignum/tarball/master
+356 info retry fetch attempt 2 at 10:33:01
+357 verbose fetch to= /var/folders/j5/_nhxpx017cj1_q2y4w58nm300000gn/T/npm-31326-apTFGSBa/github.com/crypti/ByteBuffer.js/tarball/master
+358 http GET https://github.com/crypti/ByteBuffer.js/tarball/master
+359 error fetch failed https://github.com/crypti/request/tarball/master
+360 info retry will retry, error on last attempt: Error: read ECONNRESET
+361 error fetch failed https://github.com/crypti/underscore/tarball/master
+362 info retry will retry, error on last attempt: Error: read ECONNRESET
+363 error fetch failed https://github.com/crypti/Ed25519/tarball/master
+364 info retry will retry, error on last attempt: Error: read ECONNRESET
+365 error fetch failed https://github.com/crypti/async/tarball/master
+366 info retry will retry, error on last attempt: Error: read ECONNRESET
+367 error fetch failed https://github.com/crypti/node-bignum/tarball/master
+368 info retry will retry, error on last attempt: Error: read ECONNRESET
+369 error fetch failed https://github.com/crypti/ByteBuffer.js/tarball/master
+370 info retry will retry, error on last attempt: Error: read ECONNRESET
+371 info retry fetch attempt 3 at 10:34:02
+372 verbose fetch to= /var/folders/j5/_nhxpx017cj1_q2y4w58nm300000gn/T/npm-31326-apTFGSBa/github.com/crypti/request/tarball/master
+373 http GET https://github.com/crypti/request/tarball/master
+374 info retry fetch attempt 3 at 10:34:02
+375 verbose fetch to= /var/folders/j5/_nhxpx017cj1_q2y4w58nm300000gn/T/npm-31326-apTFGSBa/github.com/crypti/underscore/tarball/master
+376 info retry fetch attempt 3 at 10:34:02
+377 verbose fetch to= /var/folders/j5/_nhxpx017cj1_q2y4w58nm300000gn/T/npm-31326-apTFGSBa/github.com/crypti/Ed25519/tarball/master
+378 info retry fetch attempt 3 at 10:34:02
+379 verbose fetch to= /var/folders/j5/_nhxpx017cj1_q2y4w58nm300000gn/T/npm-31326-apTFGSBa/github.com/crypti/async/tarball/master
+380 info retry fetch attempt 3 at 10:34:02
+381 verbose fetch to= /var/folders/j5/_nhxpx017cj1_q2y4w58nm300000gn/T/npm-31326-apTFGSBa/github.com/crypti/node-bignum/tarball/master
+382 http GET https://github.com/crypti/underscore/tarball/master
+383 http GET https://github.com/crypti/Ed25519/tarball/master
+384 http GET https://github.com/crypti/async/tarball/master
+385 http GET https://github.com/crypti/node-bignum/tarball/master
+386 info retry fetch attempt 3 at 10:34:02
+387 verbose fetch to= /var/folders/j5/_nhxpx017cj1_q2y4w58nm300000gn/T/npm-31326-apTFGSBa/github.com/crypti/ByteBuffer.js/tarball/master
+388 http GET https://github.com/crypti/ByteBuffer.js/tarball/master
+389 error fetch failed https://github.com/crypti/async/tarball/master
+390 silly lockFile d784ca79--com-crypti-async-tarball-master https://github.com/crypti/async/tarball/master
+391 silly lockFile d784ca79--com-crypti-async-tarball-master https://github.com/crypti/async/tarball/master
+392 error fetch failed https://github.com/crypti/underscore/tarball/master
+393 silly lockFile b970d6b2-crypti-underscore-tarball-master https://github.com/crypti/underscore/tarball/master
+394 silly lockFile b970d6b2-crypti-underscore-tarball-master https://github.com/crypti/underscore/tarball/master
+395 error fetch failed https://github.com/crypti/Ed25519/tarball/master
+396 silly lockFile 883d2e10-om-crypti-Ed25519-tarball-master https://github.com/crypti/Ed25519/tarball/master
+397 silly lockFile 883d2e10-om-crypti-Ed25519-tarball-master https://github.com/crypti/Ed25519/tarball/master
+398 error fetch failed https://github.com/crypti/request/tarball/master
+399 silly lockFile 6e03560b-om-crypti-request-tarball-master https://github.com/crypti/request/tarball/master
+400 silly lockFile 6e03560b-om-crypti-request-tarball-master https://github.com/crypti/request/tarball/master
+401 error fetch failed https://github.com/crypti/node-bignum/tarball/master
+402 silly lockFile d4a912a5-rypti-node-bignum-tarball-master https://github.com/crypti/node-bignum/tarball/master
+403 silly lockFile d4a912a5-rypti-node-bignum-tarball-master https://github.com/crypti/node-bignum/tarball/master
+404 error fetch failed https://github.com/crypti/ByteBuffer.js/tarball/master
+405 silly lockFile d0345eb8-pti-ByteBuffer-js-tarball-master https://github.com/crypti/ByteBuffer.js/tarball/master
+406 silly lockFile d0345eb8-pti-ByteBuffer-js-tarball-master https://github.com/crypti/ByteBuffer.js/tarball/master
+407 error network read ECONNRESET
+407 error network This is most likely not a problem with npm itself
+407 error network and is related to network connectivity.
+407 error network In most cases you are behind a proxy or have bad network settings.
+407 error network
+407 error network If you are behind a proxy, please make sure that the
+407 error network 'proxy' config is set properly.  See: 'npm help config'
+408 error System Darwin 13.3.0
+409 error command "node" "/usr/local/bin/npm" "install"
+410 error cwd /Users/borispovod/Documents/crypti
+411 error node -v v0.10.32
+412 error npm -v 1.4.28
+413 error syscall read
+414 error code ECONNRESET
+415 error errno ECONNRESET
+416 verbose exit [ 1, true ]
