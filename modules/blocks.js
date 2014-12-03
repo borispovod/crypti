@@ -15,8 +15,10 @@ var util = require('util');
 var async = require('async');
 
 //private
+var blocksById, blocks;
+
 var modules, library;
-var blocks, lastBlock, blocksById, self;
+var lastBlock, self;
 var fee = constants.feeStart;
 var nextFeeVolume = constants.feeStartVolume;
 var feeVolume = 0;
@@ -276,8 +278,12 @@ Blocks.prototype.loadBlocks = function (limit, offset, cb) {
 			console.timeEnd('loading');
 
 			// free memory
-			delete blocks;
-			delete blocksById;
+			blocks = null;
+			blocksById = null;
+			delete blocks, blocksById;
+
+			//blocks = null;
+			//blocksById = null;
 
 			cb(err);
 		}
@@ -285,6 +291,8 @@ Blocks.prototype.loadBlocks = function (limit, offset, cb) {
 			bind(this)
 	)
 	;
+
+	cb();
 }
 
 //public
