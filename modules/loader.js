@@ -30,7 +30,7 @@ Loader.prototype.run = function (scope) {
 				if (err) {
 					library.logger.error(err);
 				}
-				library.logger.info('loaded')
+				library.logger.info('loaded');
 			}
 		)
 	})
