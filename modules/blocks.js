@@ -134,7 +134,6 @@ Blocks.prototype.list = function (filter, cb) {
 	(filter.orderBy ? 'order by ' + sortBy + ' ' + sortMethod : '') + " " +
 	(filter.limit ? 'limit $limit' : ''));
 
-	console.log(params);
 	stmt.bind(params);
 
 	stmt.all(function (err, rows) {
