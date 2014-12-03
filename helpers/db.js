@@ -1,4 +1,5 @@
-var sqlite3 = require('sqlite3');
+var sqlite3 = require('sqlite3'),
+	async = require('async');
 
 module.exports.connect = function (connectString, cb) {
 	var db = new sqlite3.Database(connectString);
