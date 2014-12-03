@@ -271,7 +271,7 @@ Blocks.prototype.loadBlocks = function (limit, offset, cb) {
 				}
 
 			} else {
-				console.log(err)
+				console.log(err);
 			}
 
 			console.timeEnd('loading');
