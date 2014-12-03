@@ -15,8 +15,6 @@ var util = require('util');
 var async = require('async');
 
 //private
-var blocksById, blocks;
-
 var modules, library;
 var lastBlock, self;
 var fee = constants.feeStart;
@@ -36,7 +34,7 @@ function Blocks(cb, scope) {
 			return res.json({
 				success: true,
 				height: modules.blocks.getLastBlock().height,
-				blocksCount: modules.blocks.getAll().length,
+				blocksCount: 1,
 				loaded: true
 			});
 		} else {
@@ -58,7 +56,7 @@ function Blocks(cb, scope) {
 
 	router.get('/', function (req, res) {
 		self.list({
-			generatorPublicKey: req.query.generatorPublicKey? new Buffer(req.query.generatorPublicKey, 'hex') : null,
+			generatorPublicKey: req.query.generatorPublicKey ? new Buffer(req.query.generatorPublicKey, 'hex') : null,
 			limit: req.query.limit || 20,
 			orderBy: req.query.orderBy
 		}, function (err, blocks) {
@@ -178,34 +176,36 @@ Blocks.prototype.loadBlocks = function (limit, offset, cb) {
 			// If loading catch error, for example, invalid signature on block & transaction, need to stop loading and remove all blocks after last good block.
 			// We need to process all transactions of block
 			if (!err) {
-				blocks = [];
-				blocksById = {};
+				var currentBlock = null, previousBlock = null;
+				//var blocksById = {};
 
-				var prevBlockId = null, prevTransactionId = null, b_index, t_index, prevRequestId = null, prevCompanyComfirmationId = null;
+				var prevBlockId = null, prevTransactionId = null, t_index, prevRequestId = null, prevCompanyComfirmationId = null;
 				for (var i = 0, length = rows.length; i < length; i++) {
 					var block = blockHelper.getBlock(rows[i]);
 					if (block) {
 						if (prevBlockId != block.id) {
+							if (currentBlock && block.previousBlock == currentBlock.id) {
+								previousBlock = currentBlock;
+							}
+
 							if (block.id != genesisblock.blockId) {
-								if (!self.verifySignature(block)) { //|| !self.verifyGenerationSignature(block)) {
+								if (!self.verifySignature(block)) { //|| !self.verifyGenerationSignature(block, previousBlock)) {
 									// need to break cicle and delete this block and blocks after this block
 									library.logger.warn("Can't verify signature...");
 									break;
 								}
 							}
 
-							blocks.push(block);
+							currentBlock = block;
 
-							lastBlock = block;
+							lastBlock = currentBlock;
 
-							b_index = blocks.length - 1;
-							blocksById[block.id] = b_index;
 							prevBlockId = block.id;
 						}
 
 						var companyComfirmation = blockHelper.getCompanyComfirmation(rows[i]);
 						if (companyComfirmation) {
-							!blocks[b_index].companyComfirmations && (blocks[b_index].companyComfirmations = []);
+							!currentBlock.companyComfirmations && (currentBlock.companyComfirmations = []);
 							if (prevCompanyComfirmationId != companyComfirmation.id) {
 								// verify
 								if (!confirmationsHelper.verifySignature(companyComfirmation, block.generatorPublicKey)) {
@@ -216,16 +216,16 @@ Blocks.prototype.loadBlocks = function (limit, offset, cb) {
 								// apply
 								self.applyConfirmation(companyComfirmation, block.generatorPublicKey);
 
-								blocks[b_index].companyComfirmations.push(companyComfirmation);
+								currentBlock.companyComfirmations.push(companyComfirmation);
 								prevCompanyComfirmationId = companyComfirmation.id;
 							}
 						}
 
 						var transaction = blockHelper.getTransaction(rows[i]);
 						if (transaction) {
-							!blocks[b_index].transactions && (blocks[b_index].transactions = []);
+							!currentBlock.transactions && (currentBlock.transactions = []);
 							if (prevTransactionId != transaction.id) {
-								blocks[b_index].transactions.push(transaction);
+								currentBlock.transactions.push(transaction);
 
 								if (block.id != genesisblock.blockId) {
 									if (!modules.transactions.verifySignature(transaction)) {
@@ -239,24 +239,24 @@ Blocks.prototype.loadBlocks = function (limit, offset, cb) {
 									break;
 								}
 
-								if (!this.applyForger(block.generatorPublicKey, transaction)) {
+								if (!self.applyForger(block.generatorPublicKey, transaction)) {
 									library.logger.warn("Can't apply transaction to forger: " + transaction.id);
 									break;
 								}
 
-								t_index = blocks[b_index].transactions.length - 1;
+								t_index = currentBlock.transactions.length - 1;
 								prevTransactionId = transaction.id;
 							}
 							var signature = blockHelper.getSignature(rows[i]);
 							if (signature) {
-								!blocks[b_index].transactions[t_index].signatures && (blocks[b_index].transactions[t_index].signatures = []);
-								blocks[b_index].transactions[t_index].signatures.push(signature);
+								!currentBlock.transactions[t_index].signatures && (currentBlock.transactions[t_index].signatures = []);
+								currentBlock.transactions[t_index].signatures.push(signature);
 							}
 							var company = blockHelper.getCompany(rows[i]);
 
 							if (company) {
-								!blocks[b_index].transactions[t_index].companies && (blocks[b_index].transactions[t_index].companies = []);
-								blocks[b_index].transactions[t_index].companies.push(company);
+								!currentBlock.transactions[t_index].companies && (currentBlock.transactions[t_index].companies = []);
+								currentBlock.transactions[t_index].companies.push(company);
 							}
 						}
 					}
@@ -277,23 +277,8 @@ Blocks.prototype.loadBlocks = function (limit, offset, cb) {
 
 			console.timeEnd('loading');
 
-			// free memory
-			rows = null;
-			blocks = null;
-			blocksById = null;
-			delete blocks, blocksById, rows;
-
-			//blocks = null;
-			//blocksById = null;
-
 			cb(err);
-		}
-			.
-			bind(this)
-	)
-	;
-
-	cb();
+		});
 }
 
 //public
@@ -327,9 +312,8 @@ Blocks.prototype.verifySignature = function (block) {
 	return ed.Verify(hash, block.blockSignature, block.generatorPublicKey);
 }
 
-Blocks.prototype.verifyGenerationSignature = function (block) {
+Blocks.prototype.verifyGenerationSignature = function (block, previousBlock) {
 	// maybe need to add requests to see how it's working
-	var previousBlock = blocks[blocksById[block.previousBlock]];
 	if (previousBlock == null) {
 		return false;
 	}
@@ -411,10 +395,6 @@ Blocks.prototype.getForgedByAccount = function (generatorPublicKey, cb) {
 
 Blocks.prototype.getFee = function () {
 	return fee;
-}
-
-Blocks.prototype.getAll = function () {
-	return blocks || [];
 }
 
 Blocks.prototype.getLastBlock = function () {
