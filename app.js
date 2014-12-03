@@ -81,7 +81,7 @@ d.run(function () {
 					scope.modules[name].run(scope.modules);
 				}
 			})
-			//cb()
+			cb();
 		}]
 	}, function (err, scope) {
 		if (err) {
