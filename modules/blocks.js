@@ -56,7 +56,7 @@ function Blocks(cb, scope) {
 
 	router.get('/', function (req, res) {
 		self.list({
-			generatorPublicKey: req.query.generatorPublicKey,
+			generatorPublicKey: req.query.generatorPublicKey? new Buffer(req.query.generatorPublicKey, 'hex') : null,
 			limit: req.query.limit || 20,
 			orderBy: req.query.orderBy
 		}, function (err, blocks) {
@@ -75,7 +75,8 @@ function Blocks(cb, scope) {
 		if (!req.query.generatorPublicKey) {
 			return res.json({success: false, error: "Provide generatorPublicKey in url"});
 		}
-		self.getForgedByAccount(req.query.generatorPublicKey, function (err, sum) {
+
+		self.getForgedByAccount(new Buffer(req.query.generatorPublicKey, 'hex'), function (err, sum) {
 			if (err) {
 				return res.json({success: false, error: "Account not found"});
 			}
@@ -109,7 +110,7 @@ Blocks.prototype.list = function (filter, cb) {
 	var params = {}, fields = [], sortMethod = '', sortBy = '';
 	if (filter.generatorPublicKey) {
 		fields.push('generatorPublicKey = $generatorPublicKey')
-		params.generatorPublicKey = filter.generatorPublicKey;
+		params.$generatorPublicKey = filter.generatorPublicKey;
 	}
 
 	if (filter.limit) {
@@ -127,15 +128,13 @@ Blocks.prototype.list = function (filter, cb) {
 		return cb('Maximum of limit is 1000');
 	}
 
-	// why we don't use sql.serialize?
-
-	// orderBy fixed, prepare not works for order by
 	var stmt = library.db.prepare("select b.id b_id, b.version b_version, b.timestamp b_timestamp, b.height b_height, b.previousBlock b_previousBlock, b.nextBlock b_nextBlock, b.numberOfRequests b_numberOfRequests, b.numberOfTransactions b_numberOfTransactions, b.numberOfConfirmations b_numberOfConfirmations, b.totalAmount b_totalAmount, b.totalFee b_totalFee, b.payloadLength b_payloadLength, b.requestsLength b_requestsLength, b.confirmationsLength b_confirmationsLength, b.payloadHash b_payloadHash, b.generatorPublicKey b_generatorPublicKey, b.generationSignature b_generationSignature, b.blockSignature b_blockSignature " +
 	"from blocks b " +
 	(fields.length ? "where " + fields.join(' and ') : '') + " " +
 	(filter.orderBy ? 'order by ' + sortBy + ' ' + sortMethod : '') + " " +
 	(filter.limit ? 'limit $limit' : ''));
 
+	console.log(params);
 	stmt.bind(params);
 
 	stmt.all(function (err, rows) {
@@ -161,7 +160,7 @@ Blocks.prototype.loadBlocks = function (limit, offset, cb) {
 	library.db.all(
 		"SELECT " +
 		"b.id b_id, b.version b_version, b.timestamp b_timestamp, b.height b_height, b.previousBlock b_previousBlock, b.nextBlock b_nextBlock, b.numberOfRequests b_numberOfRequests, b.numberOfTransactions b_numberOfTransactions, b.numberOfConfirmations b_numberOfConfirmations, b.totalAmount b_totalAmount, b.totalFee b_totalFee, b.payloadLength b_payloadLength, b.requestsLength b_requestsLength, b.confirmationsLength b_confirmationsLength, b.payloadHash b_payloadHash, b.generatorPublicKey b_generatorPublicKey, b.generationSignature b_generationSignature, b.blockSignature b_blockSignature, " +
-		"t.id t_id, t.blockId t_blockId, t.type t_type, t.subtype t_subtype, t.timestamp t_timestamp, t.senderPublicKey t_senderPublicKey, t.sender t_sender, t.recipientId t_recipientId, t.amount t_amount, t.fee t_fee, t.signature t_signature, t.signSignature t_signSignature, c_t.generatorPublicKey t_companyGeneratorPublicKey, " +
+		"t.id t_id, t.blockId t_blockId, t.type t_type, t.subtype t_subtype, t.timestamp t_timestamp, t.senderPublicKey t_senderPublicKey, t.senderId t_senderId, t.recipientId t_recipientId, t.amount t_amount, t.fee t_fee, t.signature t_signature, t.signSignature t_signSignature, c_t.generatorPublicKey t_companyGeneratorPublicKey, " +
 		"s.id s_id, s.transactionId s_transactionId, s.timestamp s_timestamp, s.publicKey s_publicKey, s.generatorPublicKey s_generatorPublicKey, s.signature s_signature, s.generationSignature s_generationSignature, " +
 		"c.id c_id, c.transactionId c_transactionId, c.name c_name, c.description c_description, c.domain c_domain, c.email c_email, c.timestamp c_timestamp, c.generatorPublicKey c_generatorPublicKey, c.signature c_signature, " +
 		"cc.id cc_id, cc.blockId cc_blockId, cc.companyId cc_companyId, cc.verified cc_verified, cc.timestamp cc_timestamp, cc.signature cc_signature " +

@@ -7,9 +7,15 @@ webApp.controller('accountController', ['$scope', '$rootScope', '$http', "userSe
 	$scope.transactionsLoading = true;
 
     $scope.getTransactions = function () {
-        $http.get("/api/transactions", { params : { senderPublicKey : userService.senderPublicKey, recipientId : $scope.address, limit : 20, orderBy : 'timestamp' }})
+        $http.get("/api/transactions", { params : { senderPublicKey : userService.publicKey, recipientId : $scope.address, limit : 20, orderBy : 'confirmations:asc' }})
             .then(function (resp) {
-                $scope.transactions = resp.data.transactions;
+				var transactions = resp.data.transactions;
+
+				$http.get('/api/transactions/unconfirmed', { params : { senderPublicKey : userService.publicKey }})
+					.then(function (resp) {
+						var unconfirmedTransactions = resp.data.transactions;
+						$scope.transactions = unconfirmedTransactions.concat(transactions);
+					});
             });
     }
 

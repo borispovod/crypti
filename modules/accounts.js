@@ -9,8 +9,9 @@ var modules, library, self;
 var accounts;
 
 //public
-function Account(address, balance, unconfirmedBalance) {
+function Account(address, publicKey, balance, unconfirmedBalance) {
 	this.address = address;
+	this.publicKey = publicKey;
 	this.balance = balance || 0;
 	this.unconfirmedBalance = unconfirmedBalance || 0;
 }
@@ -45,7 +46,12 @@ function Accounts(cb, scope) {
 
 		var account = self.openAccount(req.body.secret);
 
-		return res.json({success: true, account : account });
+		return res.json({success: true, account : {
+			address : account.address,
+			unconfirmedBalance : account.unconfirmedBalance,
+			balance : account.balance,
+			publicKey : account.publicKey.toString('hex')
+		}});
 	});
 
 	router.get('/getBalance', function (req, res) {

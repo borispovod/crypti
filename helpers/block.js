@@ -81,7 +81,7 @@ function getTransaction(raw) {
 			subtype: raw.t_subtype,
 			timestamp: raw.t_timestamp,
 			senderPublicKey: new Buffer(raw.t_senderPublicKey),
-			sender: raw.t_sender,
+			senderId: raw.t_senderId,
 			recipientId: raw.t_recipientId,
 			amount: raw.t_amount,
 			fee: raw.t_fee,
