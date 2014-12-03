@@ -1,4 +1,4 @@
-//require
+var async = require('async');
 
 //private
 var modules, library;
