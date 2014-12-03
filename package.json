@@ -17,7 +17,7 @@
     "grunt": "^0.4.5",
     "long": "^1.1.5",
     "request": "https://github.com/crypti/request/tarball/master",
-    "sqlite3": "2.2.0",
+    "sqlite3": "*",
     "underscore": "https://github.com/crypti/underscore/tarball/master",
     "strftime": "*"
   },
