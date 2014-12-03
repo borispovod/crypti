@@ -2,7 +2,7 @@ var sqlite3 = require('sqlite3'),
 	async = require('async');
 
 module.exports.connect = function (connectString, cb) {
-	var db = new sqlite3.Database(connectString);
+	var db = new sqlite3.cached.Database(connectString);
 
     // varchar(20) for ids, varchar(21) for addresses
     var sql = [
