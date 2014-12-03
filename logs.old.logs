@@ -1,18 +1,28 @@
-{"level":"info","message":"Logger initialized","timestamp":"2014-11-08T18:22:12.231Z"}
-{"level":"info","message":"Load forging panel configruation","timestamp":"2014-11-08T18:22:12.232Z"}
-{"level":"info","message":"Initializing account processor...","timestamp":"2014-11-08T18:22:12.233Z"}
-{"level":"info","message":"Account processor initialized","timestamp":"2014-11-08T18:22:12.233Z"}
-{"level":"info","message":"Initializing transaction processor...","timestamp":"2014-11-08T18:22:12.233Z"}
-{"level":"info","message":"Transaction processor initialized","timestamp":"2014-11-08T18:22:12.233Z"}
-{"level":"info","message":"Initializing blockchain...","timestamp":"2014-11-08T18:22:12.233Z"}
-{"level":"info","message":"Blockchain initialized...","timestamp":"2014-11-08T18:22:12.233Z"}
-{"level":"info","message":"Initializing company processor...","timestamp":"2014-11-08T18:22:12.233Z"}
-{"level":"info","message":"Initializing peer processor...","timestamp":"2014-11-08T18:22:12.233Z"}
-{"level":"info","message":"Initialize request processor...","timestamp":"2014-11-08T18:22:12.234Z"}
-{"level":"info","message":"Initialize signature processor...","timestamp":"2014-11-08T18:22:12.234Z"}
-{"level":"info","message":"Load system info...","timestamp":"2014-11-08T18:22:12.234Z"}
-{"level":"info","message":"Initializing forger processor...","timestamp":"2014-11-08T18:22:12.234Z"}
-{"level":"info","message":"Initialize forger...","timestamp":"2014-11-08T18:22:12.234Z"}
-{"level":"info","message":"Provide secret phrase to start forging...","timestamp":"2014-11-08T18:22:12.234Z"}
-{"level":"info","message":"Crypti started: 0.0.0.0:7040","timestamp":"2014-11-08T18:22:12.237Z"}
-{"level":"info","message":"Initializing and scanning database...","timestamp":"2014-11-08T18:22:12.238Z"}
+{"level":"info","message":"Logger initialized","timestamp":"2014-12-03T13:52:05.528Z"}
+{"level":"info","message":"Load forging panel configruation","timestamp":"2014-12-03T13:52:05.529Z"}
+{"level":"info","message":"Initializing account processor...","timestamp":"2014-12-03T13:52:05.530Z"}
+{"level":"info","message":"Account processor initialized","timestamp":"2014-12-03T13:52:05.530Z"}
+{"level":"info","message":"Initializing transaction processor...","timestamp":"2014-12-03T13:52:05.530Z"}
+{"level":"info","message":"Transaction processor initialized","timestamp":"2014-12-03T13:52:05.530Z"}
+{"level":"info","message":"Initializing blockchain...","timestamp":"2014-12-03T13:52:05.530Z"}
+{"level":"info","message":"Blockchain initialized...","timestamp":"2014-12-03T13:52:05.530Z"}
+{"level":"info","message":"Initializing company processor...","timestamp":"2014-12-03T13:52:05.530Z"}
+{"level":"info","message":"Initializing peer processor...","timestamp":"2014-12-03T13:52:05.530Z"}
+{"level":"info","message":"Initialize request processor...","timestamp":"2014-12-03T13:52:05.530Z"}
+{"level":"info","message":"Initialize signature processor...","timestamp":"2014-12-03T13:52:05.531Z"}
+{"level":"info","message":"Load system info...","timestamp":"2014-12-03T13:52:05.531Z"}
+{"level":"info","message":"Initializing forger processor...","timestamp":"2014-12-03T13:52:05.531Z"}
+{"level":"info","message":"Initialize forger...","timestamp":"2014-12-03T13:52:05.531Z"}
+{"level":"info","message":"Provide secret phrase to start forging...","timestamp":"2014-12-03T13:52:05.531Z"}
+{"level":"info","message":"Crypti started: 0.0.0.0:7040","timestamp":"2014-12-03T13:52:05.534Z"}
+{"level":"info","message":"Initializing and scanning database...","timestamp":"2014-12-03T13:52:05.535Z"}
+{"level":"info","message":"Load block: 10910396031294105665, height: 1","timestamp":"2014-12-03T13:52:05.559Z"}
+{"level":"info","message":"Load block: 11947184391940534194, height: 4","timestamp":"2014-12-03T13:52:05.563Z"}
+{"level":"debug","message":"Account PoT weight: 2334212999465599568C / 0","timestamp":"2014-12-03T13:52:05.567Z"}
+{"level":"debug","message":"Account PoP weight: 2334212999465599568C / 0","timestamp":"2014-12-03T13:52:05.567Z"}
+{"level":"debug","message":"Account 2334212999465599568C / 0","timestamp":"2014-12-03T13:52:05.567Z"}
+{"level":"debug","message":"Winner in cycle is: 0","timestamp":"2014-12-03T13:52:05.567Z"}
+{"level":"error","message":"Invalid block signatures: 11947184391940534194, previous block: 13160878426968321044/10910396031294105665, generation signature verification: true, block signature verification: true","timestamp":"2014-12-03T13:52:05.568Z"}
+{"level":"error","message":"TypeError: undefined is not a function","timestamp":"2014-12-03T13:52:05.569Z"}
+{"level":"warn","message":"Bad block found, will remove now...","timestamp":"2014-12-03T13:52:05.569Z"}
+{"level":"warn","message":"Invalid blocks deleted...","timestamp":"2014-12-03T13:52:05.591Z"}
