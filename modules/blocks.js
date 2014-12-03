@@ -278,9 +278,10 @@ Blocks.prototype.loadBlocks = function (limit, offset, cb) {
 			console.timeEnd('loading');
 
 			// free memory
+			rows = null;
 			blocks = null;
 			blocksById = null;
-			delete blocks, blocksById;
+			delete blocks, blocksById, rows;
 
 			//blocks = null;
 			//blocksById = null;
