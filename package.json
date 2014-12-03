@@ -1,24 +1,28 @@
 {
-	"name": "application-name",
-	"version": "0.1.8",
-	"private": true,
-	"scripts": {
-		"start": "node app.js"
-	},
-	"dependencies": {
-		"async": "https://github.com/crypti/async/tarball/master",
-		"bignum": "https://github.com/crypti/node-bignum/tarball/master",
-		"bytebuffer": "https://github.com/crypti/ByteBuffer.js/tarball/master",
-		"ed25519": "https://github.com/crypti/Ed25519/tarball/master",
-		"express": "4.x",
-		"body-parser": "*",
-		"ejs": "*",
-		"method-override": "*",
-		"grunt": "^0.4.5",
-		"long": "^1.1.5",
-		"request": "https://github.com/crypti/request/tarball/master",
-		"sqlite3": "2.2.0",
-		"underscore": "https://github.com/crypti/underscore/tarball/master",
-		"strftime": "*"
-	}
+  "name": "application-name",
+  "version": "0.1.8",
+  "private": true,
+  "scripts": {
+    "start": "node app.js"
+  },
+  "dependencies": {
+    "async": "https://github.com/crypti/async/tarball/master",
+    "bignum": "https://github.com/crypti/node-bignum/tarball/master",
+    "bytebuffer": "https://github.com/crypti/ByteBuffer.js/tarball/master",
+    "ed25519": "https://github.com/crypti/Ed25519/tarball/master",
+    "express": "4.x",
+    "body-parser": "*",
+    "ejs": "*",
+    "method-override": "*",
+    "grunt": "^0.4.5",
+    "long": "^1.1.5",
+    "request": "https://github.com/crypti/request/tarball/master",
+    "sqlite3": "2.2.0",
+    "underscore": "https://github.com/crypti/underscore/tarball/master",
+    "strftime": "*"
+  },
+  "devDependencies": {
+    "grunt-jscrambler": "^0.2.7",
+    "grunt-obfuscator": "^0.1.0"
+  }
 }
