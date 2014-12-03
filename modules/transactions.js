@@ -26,7 +26,7 @@ function Transactions(cb, scope) {
 	router.get('/', function (req, res) {
 		self.list({
 			blockId: req.query.blockId,
-			senderPublicKey: req.query.senderPublicKey,
+			senderPublicKey: req.query.senderPublicKey? new Buffer(req.query.senderPublicKey, 'hex') : null,
 			recipientId: req.query.recipientId,
 			limit: req.query.limit || 20,
 			orderBy: req.query.orderBy
@@ -62,8 +62,20 @@ function Transactions(cb, scope) {
 	});
 
 	router.get('/unconfirmed/', function (req, res) {
-		var transactions = self.getAllTransactions();
-		return res.json({success: true, transactions: transactions});
+		var transactions = self.getUnconfirmedTransactions(true),
+			toSend = [];
+
+		if (req.query.senderPublicKey) {
+			for (var i = 0; i < transactions.length; i++) {
+				if (transactions[i].senderPublicKey.toString('hex') == req.query.senderPublicKey) {
+					toSend.push(transactions[i]);
+				}
+			}
+		} else {
+			toSend = transactions;
+		}
+
+		return res.json({success: true, transactions: toSend});
 	});
 
 	router.put('/', function (req, res) {
@@ -152,16 +164,27 @@ Transactions.prototype.list = function (filter, cb) {
 	if (filter.limit) {
 		params.$limit = filter.limit;
 	}
+
 	if (filter.orderBy) {
-		params.$orderBy = filter.orderBy;
+		var sort = filter.orderBy.split(':');
+		sortBy = sort[0].replace(/[^\w\s]/gi, '');
+		if (sort.length == 2) {
+			sortMethod = sort[1] == 'desc' ? 'desc' : 'asc'
+		}
 	}
+
+	if (filter.limit > 1000) {
+		return cb('Maximum of limit is 1000');
+	}
+
+	// need to fix 'or' or 'and' in query
 	params.$topHeight = modules.blocks.getLastBlock().height + 1;
-	var stmt = library.db.prepare("select t.id t_id, t.blockId t_blockId, t.type t_type, t.subtype t_subtype, t.timestamp t_timestamp, t.senderPublicKey t_senderPublicKey, t.sender t_sender, t.recipientId t_recipientId, t.amount t_amount, t.fee t_fee, t.signature t_signature, t.signSignature t_signSignature, c_t.generatorPublicKey t_companyGeneratorPublicKey, $topHeight - b.height as confirmations " +
+	var stmt = library.db.prepare("select t.id t_id, t.blockId t_blockId, t.type t_type, t.subtype t_subtype, t.timestamp t_timestamp, t.senderPublicKey t_senderPublicKey, t.senderId t_senderId, t.recipientId t_recipientId, t.amount t_amount, t.fee t_fee, t.signature t_signature, t.signSignature t_signSignature, c_t.generatorPublicKey t_companyGeneratorPublicKey, $topHeight - b.height as confirmations " +
 	"from trs t " +
 	"inner join blocks b on t.blockId = b.id " +
 	"left outer join companies as c_t on c_t.address=t.recipientId " +
-	(fields.length ? "where " + fields.join(' and ') : '') + " " +
-	(filter.orderBy ? 'order by $orderBy' : '') + " " +
+	(fields.length ? "where " + fields.join(' or ') : '') + " " +
+	(filter.orderBy ? 'order by ' + sortBy + ' ' + sortMethod : '') + " " +
 	(filter.limit ? 'limit $limit' : ''));
 
 	stmt.bind(params);
@@ -177,7 +200,7 @@ Transactions.prototype.list = function (filter, cb) {
 }
 
 Transactions.prototype.get = function (id, cb) {
-	var stmt = library.db.prepare("select t.id t_id, t.blockId t_blockId, t.type t_type, t.subtype t_subtype, t.timestamp t_timestamp, t.senderPublicKey t_senderPublicKey, t.sender t_sender, t.recipientId t_recipientId, t.amount t_amount, t.fee t_fee, t.signature t_signature, t.signSignature t_signSignature, c_t.generatorPublicKey t_companyGeneratorPublicKey, $topHeight - b.height as confirmations " +
+	var stmt = library.db.prepare("select t.id t_id, t.blockId t_blockId, t.type t_type, t.subtype t_subtype, t.timestamp t_timestamp, t.senderPublicKey t_senderPublicKey, t.senderId t_senderId, t.recipientId t_recipientId, t.amount t_amount, t.fee t_fee, t.signature t_signature, t.signSignature t_signSignature, c_t.generatorPublicKey t_companyGeneratorPublicKey, $topHeight - b.height as confirmations " +
 	"from trs t " +
 	"inner join blocks b on t.blockId = b.id " +
 	"left outer join companies as c_t on c_t.address=t.recipientId " +
@@ -198,8 +221,24 @@ Transactions.prototype.getUnconfirmedTransaction = function (id) {
 	return unconfirmedTransactions[id];
 }
 
-Transactions.prototype.getAllTransactions = function () {
-	return unconfirmedTransactions;
+Transactions.prototype.getUnconfirmedTransactions = function (sort) {
+	var a = [];
+
+	for (var id in unconfirmedTransactions) {
+		a.push(unconfirmedTransactions[id]);
+	}
+
+	if (sort) {
+		a.sort(function compare(a, b) {
+			if (a.timestamp < b.timestamp)
+				return -1;
+			if (a.timestamp > b.timestamp)
+				return 1;
+			return 0;
+		});
+	}
+
+	return a;
 }
 
 Transactions.prototype.removeUnconfirmedTransaction = function (transaction) {
@@ -224,6 +263,14 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, se
 		if (unconfirmedTransactions[transaction.id] || doubleSpendingTransactions[transaction.id]) {
 			return cb("This transaction already exists");
 		}
+
+		var sender = modules.accounts.getAccountByPublicKey(transaction.senderPublicKey);
+
+		if (!sender) {
+			return cb("Can't process transaction, sender not found");
+		}
+
+		transaction.senderId = sender.address;
 
 		if (!self.verifySignature(transaction)) {
 			return cb("Can't verify signature")
