@@ -3,6 +3,7 @@ logs.old.log
 .project
 .DS_Store
 node_modules
+npm-debug.log
 .idea
 .ed25519-node
 blockchain.*
