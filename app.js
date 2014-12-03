@@ -1,6 +1,6 @@
-async = require('async');
 var Logger = require('./logger.js');
 var logger = new Logger();
+var async = require('async');
 
 var config = {
 	"db": "./blockchain.db",

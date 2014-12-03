@@ -53,9 +53,10 @@ module.exports = function (grunt) {
 
 	grunt.loadNpmTasks('grunt-obfuscator');
 	grunt.loadNpmTasks("grunt-jscrambler");
-	grunt.loadNpmTasks('grunt-contrib-compress');
+	//grunt.loadNpmTasks('grunt-contrib-compress');
 
 	grunt.registerTask("default", ["obfuscator"]);
 
-	grunt.registerTask("release", ["default", "jscrambler", "compress"]);
+	//compress removed
+	grunt.registerTask("release", ["default", "jscrambler"]);
 };
