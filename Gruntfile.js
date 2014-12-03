@@ -1,60 +1,61 @@
 module.exports = function (grunt) {
-    grunt.loadNpmTasks('grunt-obfuscator');
+	var files = [
+		'logger.js',
+		'helpers/*.js',
+		'modules/*.js',
+		'app.js'
+	];
 
-    grunt.initConfig({
-        obfuscator: {
-            files: [
-                'app.js',
-                'account/account.js',
-                'account/accountprocessor.js',
-                'account/index.js',
-                'block/block.js',
-                'block/blockchain.js',
-                'block/genesisblock.js',
-                'block/index.js',
-                'config/index.js',
-                'db/db.js',
-                'db/index.js',
-                'forger/forger.js',
-                'forger/forgerprocessor.js',
-                'forger/index.js',
-                'libs/log.js',
-                'logger/index.js',
-                'logger/logger.js',
-                'p2p/index.js',
-                'p2p/p2proutes.js',
-                'p2p/peer.js',
-                'p2p/peerprocessor.js',
-                'routes/account.js',
-                'routes/addresses.js',
-                'routes/transactions.js',
-                'routes/index.js',
-                'routes/transaction.js',
-                'routes/forging.js',
-                'transactions/index.js',
-                'transactions/transactions.js',
-                'transactions/transactionprocessor.js',
-                'company/index.js',
-                'company/company.js',
-                'company/companyprocessor.js',
-                'company/companyconfirmation.js',
-                'utils/loader.js',
-                'Constants.js',
-                'utils.js',
-                'request/index.js',
-                'request/request.js',
-                'request/requestprocessor.js',
-                'request/requestconfirmation.js',
-                'signature/index.js',
-                'signature/signature.js',
-                'signature/signatureprocessor.js'
-            ],
-            entry: 'app.js',
-            out: 'builded/app.js',
-            strings: true,
-            root: __dirname
-        }
-    });
+	grunt.initConfig({
+		obfuscator: {
+			files: files,
+			entry: 'app.js',
+			out: 'builded/app.js',
+			strings: true,
+			root: __dirname
+		},
 
-    grunt.registerTask("default", ["obfuscator"]);
+		jscrambler: {
+			main: {
+				files: [
+					{src: 'builded/app.js', dest: './'}
+				],
+				options: {
+					keys: {
+						accessKey: '24F15B0087298FBDEE7E90FE0B14F34D33E12CE2',
+						secretKey: 'FC255E27922479D0D8FE40CFAE8FBA45DD08947A'
+					}
+					//params: {
+					//	rename_local: '%DEFAULT%',
+					//	whitespace: '%DEFAULT%',
+					//	literal_hooking: '%DEFAULT%',
+					//	dead_code: '%DEFAULT%',
+					//	dot_notation_elimination: '%DEFAULT%',
+					//	literal_duplicates: '%DEFAULT%',
+					//	function_outlining: '%DEFAULT%',
+					//	string_splitting: '%DEFAULT%'
+					//}
+				}
+			}
+		},
+
+		compress: {
+			main: {
+				options: {
+					archive: 'crypti.zip'
+				},
+				files: [
+					{src: ['builded/**'], dest: '/'}
+				]
+			}
+		}
+	});
+
+	grunt.loadNpmTasks('grunt-obfuscator');
+	grunt.loadNpmTasks("grunt-jscrambler");
+	grunt.loadNpmTasks('grunt-contrib-compress');
+
+	grunt.registerTask("default", ["obfuscator"]);
+
+	grunt.registerTask("release", ["default", "jscrambler", "compress"]);
 };
