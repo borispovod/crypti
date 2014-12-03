@@ -1,6 +1,5 @@
 webApp.service('userService', function () {
 	this.setData = function (address, publicKey, balance, unconfirmedBalance, effectiveBalance) {
-		console.log('userService.params', address, publicKey, balance, unconfirmedBalance, effectiveBalance)
 		this.address = address;
 		this.publicKey = publicKey;
 		this.balance = balance / 100000000;
@@ -8,7 +7,6 @@ webApp.service('userService', function () {
 		this.effectiveBalance = effectiveBalance / 100000000;
 		this._balance = balance;
 		this._unconfirmedBalance = unconfirmedBalance;
-		console.log('userService.create', this)
 
 	}
 
