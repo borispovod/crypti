@@ -1,5 +1,7 @@
 webApp.controller('blockchainController', ['$scope', '$rootScope', '$http', "userService", "$interval", 'blockService', 'blockModal', function($rootScope, $scope, $http, userService, $interval, blockService, blockModal) {
     $scope.address = userService.address;
+	$scope.loading = true;
+
     $scope.getBlocks = function () {
         var params = {};
 
@@ -19,6 +21,7 @@ webApp.controller('blockchainController', ['$scope', '$rootScope', '$http', "use
             .then(function (resp) {
                 $scope.blockchain = resp.data.blocks;
                 blockService.lastBlockId = resp.data.blocks[resp.data.blocks.length - 1].id;
+				$scope.loading = false;
             });
     }
 

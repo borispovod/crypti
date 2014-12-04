@@ -5,11 +5,13 @@ webApp.controller('accountController', ['$scope', '$rootScope', '$http', "userSe
     $scope.effectiveBalance = userService.effectiveBalance;
     $scope.secondPassphrase = userService.secondPassphrase;
     $scope.unconfirmedPassphrase = userService.unconfirmedPassphrase;
+	$scope.loading = true;
 
     $scope.getTransactions = function () {
         $http.get("/api/getAddressTransactions", { params : { address : userService.address, limit : 20, descOrder : true }})
             .then(function (resp) {
                 $scope.transactions = resp.data.transactions;
+				$scope.loading = false;
             });
     }
 

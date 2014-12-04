@@ -15,13 +15,20 @@
             <table border="0" width="100%" cellpadding="0" cellspacing="0" id="blocks">
                 <tr>
                     <th>Block</th>
+                    <th>Height</th>
                 </tr>
                 <tr ng-repeat="item in blocks">
                     <td>{{item.id}}</td>
+                    <td>{{item.height}}</td>
                 </tr>
-                <tr ng-show="!blocks || blocks.length == 0">
-                    <td colspan="1">
+                <tr ng-show="!loading && !blocks || blocks.length == 0">
+                    <td colspan="2">
                         No blocks generated
+                    </td>
+                </tr>
+                <tr ng-show="loading">
+                    <td colspan="2">
+                        Loading...
                     </td>
                 </tr>
             </table>
@@ -51,7 +58,7 @@
                     </td>
                 </tr>
             </table>
-            <button class="button green small" id="newAddress" ng-click="newCompany()" ng-disabled="effectiveBalance <= 0">New company</button>
+            <button class="button green small" id="newAddress" ng-click="newCompany()" ng-disabled="true" title="Disabled before DPOS version">New company</button>
         </div>
     </div>
 </div>

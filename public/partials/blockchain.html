@@ -21,8 +21,11 @@
             <td>{{item.generator}}</td>
             <td ng-click="showBlock(item)" class="pointer">Click to see</td>
         </tr>
-        <tr ng-show="blockchain.length == 0">
+        <tr ng-show="!loading && blockchain.length == 0">
             <td colspan="6">No blocks yet</td>
+        </tr>
+        <tr ng-show="loading">
+            <td colspan="6">Loading...</td>
         </tr>
     </table>
 </div>

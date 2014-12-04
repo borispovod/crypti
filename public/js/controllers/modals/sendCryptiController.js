@@ -63,33 +63,18 @@ webApp.controller('sendCryptiController', ["$scope", "sendCryptiModal", "$http",
             var fee = parseInt($scope.amount * 100000000 / 100 * $scope.currentFee) / 100000000; //($scope.amount / 100 * $scope.currentFee).roundTo(8);
 
             if ($scope.amount == 0) {
-                fee = 0;
+                $scope.fee = 0;
             } else if (parseFloat(fee) == 0) {
                 fee = "0.00000001";
                 $scope.fee = fee;
             } else {
                 $scope.fee = fee.toFixed(8);
             }
-        }
 
-        /*
-        if (!$scope.amount) {
-            $scope.fee = "";
-            return;
+			if (isNaN($scope.fee)) {
+				$scope.fee = "";
+			}
         }
-
-        if($scope.moreThanEightDigits(parseFloat($scope.amount))){
-            console.log('fee');
-            $scope.amount = parseFloat($scope.amount).roundTo(8).toString();
-            console.log($scope.amount);
-        }
-        if($scope.currentFee){
-            var fee = $scope.amount * $scope.currentFee * 0.01;
-        }
-
-
-        $scope.fee = fee.roundTo(8);
-        */
     }
 
 
@@ -142,17 +127,18 @@ webApp.controller('sendCryptiController', ["$scope", "sendCryptiModal", "$http",
 
         var amount = parts[0];
 
-        //no fractional part
         if (parts.length == 1) {
             var fraction = "00000000";
         } else if (parts.length == 2) {
             if (parts[1].length <= 8) {
                 var fraction = parts[1];
             } else {
-                var fraction = parts[1].substring(0, 8);
+				$scope.amountError = true;
+				return 0;
             }
         } else {
-            throw "Invalid input";
+			$scope.amountError = true;
+			return;
         }
 
         for (var i = fraction.length; i < 8; i++) {
@@ -161,9 +147,9 @@ webApp.controller('sendCryptiController', ["$scope", "sendCryptiModal", "$http",
 
         var result = amount + "" + fraction;
 
-        //in case there's a comma or something else in there.. at this point there should only be numbers
         if (!/^\d+$/.test(result)) {
-            throw "Invalid input.";
+			$scope.amountError = true;
+			return 0;
         }
 
         //remove leading zeroes
@@ -177,7 +163,16 @@ webApp.controller('sendCryptiController', ["$scope", "sendCryptiModal", "$http",
     }
 
     $scope.sendCrypti = function () {
-        $scope.amountError = $scope.convertXCR($scope.fee) + $scope.convertXCR($scope.amount) > userService._unconfirmedBalance;
+		$scope.amountError = false;
+
+        if ($scope.convertXCR($scope.fee) + $scope.convertXCR($scope.amount) > userService._unconfirmedBalance) {
+			$scope.amountError = true;
+			return;
+		}
+
+		if ($scope.amountError) {
+			return;
+		}
 
         var data = {
             secret: $scope.secretPhrase,

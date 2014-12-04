@@ -1159,10 +1159,10 @@ blockchain.prototype.pushBlock = function (buffer, saveToDb, sendToPeers, checkR
 
     if (saveToDb) {
         this.app.db.writeBlock(b, function () {
-            return cb();
+            return setImmediate(cb);
         });
     } else {
-        return cb();
+        return setImmediate(cb);
     }
 }
 

@@ -5,7 +5,8 @@ var sqlite3 = require('sqlite3'),
     ByteBuffer = require('bytebuffer'),
     EventEmitter = require('events').EventEmitter,
     util = require('util'),
-    bignum = require('bignum');
+    bignum = require('bignum'),
+	transactionDatabase = require("sqlite3-transactions").TransactionDatabase;;
 
 var db = function (path) {
     this.path = path;
@@ -23,7 +24,7 @@ db.prototype.setApp = function (app) {
 }
 
 db.prototype.open = function () {
-    this.sql = new sqlite3.cached.Database(this.path);
+    this.sql = new transactionDatabase(new sqlite3.Database(this.path));
 }
 
 db.prototype.close = function () {
@@ -36,149 +37,143 @@ db.prototype.writeBlock = function (block,  callback) {
     var sql = this.sql;
 
     sql.serialize(function () {
-        async.series([
-            function (cb) {
-                async.eachSeries(block.transactions, function (transaction, c) {
-                    sql.serialize(function () {
-                        var st = sql.prepare("INSERT INTO trs(id, blockId, type, subtype, timestamp, senderPublicKey, sender, recipientId, amount, fee, signature,signSignature) VALUES($id, $blockId, $type, $subtype, $timestamp, $senderPublicKey, $sender, $recipientId, $amount, $fee, $signature, $signSignature)")
-                        st.bind({
-                            $id : transaction.getId(),
-                            $blockId : block.getId(),
-                            $type : transaction.type,
-                            $subtype : transaction.subtype,
-                            $timestamp : transaction.timestamp,
-                            $senderPublicKey : transaction.senderPublicKey,
-                            $sender : transaction.sender,
-                            $recipientId : transaction.recipientId,
-                            $amount : transaction.amount,
-                            $fee : transaction.fee,
-                            $signature : transaction.signature,
-                            $signSignature : transaction.signSignature
-                        })
+		sql.beginTransaction(function (err, trDb) {
+			async.series([
+				function (cb) {
+					async.eachSeries(block.transactions, function (transaction, c) {
+							var st = trDb.prepare("INSERT INTO trs(id, blockId, type, subtype, timestamp, senderPublicKey, sender, recipientId, amount, fee, signature,signSignature) VALUES($id, $blockId, $type, $subtype, $timestamp, $senderPublicKey, $sender, $recipientId, $amount, $fee, $signature, $signSignature)")
+							st.bind({
+								$id : transaction.getId(),
+								$blockId : block.getId(),
+								$type : transaction.type,
+								$subtype : transaction.subtype,
+								$timestamp : transaction.timestamp,
+								$senderPublicKey : transaction.senderPublicKey,
+								$sender : transaction.sender,
+								$recipientId : transaction.recipientId,
+								$amount : transaction.amount,
+								$fee : transaction.fee,
+								$signature : transaction.signature,
+								$signSignature : transaction.signSignature
+							})
 
-                        st.run(function (err) {
-                            if (err) {
-                                return c(err);
-                            } else {
-                                if (transaction.type == 2 && transaction.subtype == 0) {
-                                    sql.serialize(function () {
-                                        st = sql.prepare("INSERT INTO signatures(id, transactionId, timestamp, publicKey, generatorPublicKey, signature, generationSignature) VALUES($id, $transactionId, $timestamp, $publicKey, $generatorPublicKey, $signature, $generationSignature)");
-                                        st.bind({
-                                            $id : transaction.asset.getId(),
-                                            $transactionId : transaction.getId(),
-                                            $timestamp : transaction.asset.timestamp,
-                                            $publicKey : transaction.asset.generatorPublicKey,
-                                            $signature : transaction.asset.signature,
-                                            $generationSignature : transaction.asset.generationSignature
-                                        });
+							st.run(function (err) {
+								if (err) {
+									return c(err);
+								} else {
+									if (transaction.type == 2 && transaction.subtype == 0) {
+										st = trDb.prepare("INSERT INTO signatures(id, transactionId, blockId, timestamp, publicKey, generatorPublicKey, signature, generationSignature) VALUES($id, $transactionId, $blockId, $timestamp, $publicKey, $generatorPublicKey, $signature, $generationSignature)");
+										st.bind({
+											$id : transaction.asset.getId(),
+											$transactionId : transaction.getId(),
+											$blockId : block.getId(),
+											$timestamp : transaction.asset.timestamp,
+											$publicKey : transaction.asset.publicKey,
+											$generatorPublicKey : transaction.asset.generatorPublicKey,
+											$signature : transaction.asset.signature,
+											$generationSignature : transaction.asset.generationSignature
+										});
 
-                                        st.run(function (err) {
-                                            return c(err);
-                                        });
-                                    });
-                                } else if (transaction.type == 3 && transaction.subtype == 0) {
-                                    sql.serialize(function () {
-                                        st = sql.prepare("INSERT INTO companies(id, transactionId, name, description, domain, email, timestamp, generatorPublicKey, signature) VALUES($id, $transactionId, $name, $description, $domain, $email, $timestamp, $generatorPublicKey, $signature)");
-                                        st.bind({
-                                            $id : transaction.asset.getId(),
-                                            $transactionId : transaction.getId(),
-                                            $name : transaction.asset.name,
-                                            $description : transaction.asset.description,
-                                            $email : transaction.asset.email,
-                                            $timestamp : transaction.asset.timestamp,
-                                            $generatorPublicKey : transaction.asset.generatorPublicKey,
-                                            $signature : transaction.asset.signature
-                                        });
+										st.run(function (err) {
+											return c(err);
+										});
+									} else if (transaction.type == 3 && transaction.subtype == 0) {
+										st = trDb.prepare("INSERT INTO companies(id, transactionId, blockId, name, description, domain, email, timestamp, generatorPublicKey, signature) VALUES($id, $transactionId, $blockId, $name, $description, $domain, $email, $timestamp, $generatorPublicKey, $signature)");
+										st.bind({
+											$id : transaction.asset.getId(),
+											$transactionId : transaction.getId(),
+											$blockId : block.getId(),
+											$name : transaction.asset.name,
+											$description : transaction.asset.description,
+											$email : transaction.asset.email,
+											$timestamp : transaction.asset.timestamp,
+											$generatorPublicKey : transaction.asset.generatorPublicKey,
+											$signature : transaction.asset.signature
+										});
 
-                                        st.run(function (err) {
-                                            return c(err);
-                                        });
-                                    });
-                                } else {
-                                    c();
-                                }
-                            }
-                        });
-                    });
-                }, function (err) {
-                    return cb(err);
-                });
-            },
-            function (cb) {
-                async.eachSeries(block.requests, function (request, c) {
-                    sql.serialize(function () {
-                        var st = sql.prepare("INSERT INTO requests(id, blockId, address) VALUES($id, $blockId, $address)");
-                        st.bind({
-                            $id : request.getId(),
-                            $address : request.address,
-                            $blockId : block.getId()
-                        });
+										st.run(function (err) {
+											return c(err);
+										});
+									} else {
+										c();
+									}
+								}
+							});
+					}, function (err) {
+						return cb(err);
+					});
+				},
+				function (cb) {
+					async.eachSeries(block.requests, function (request, c) {
+						var st = trDb.prepare("INSERT INTO requests(id, blockId, address) VALUES($id, $blockId, $address)");
+						st.bind({
+							$id : request.getId(),
+							$address : request.address,
+							$blockId : block.getId()
+						});
 
-                        st.run(function (err) {
-                            return c(err);
-                        });
-                    });
-                }, function (err) {
-                    cb(err);
-                });
-            },
-            function (cb) {
-                async.eachSeries(block.confirmations, function (confirmation, c) {
-                    sql.serialize(function () {
-                        var st = sql.prepare("INSERT INTO companyconfirmations(id, blockId, companyId, verified, timestamp, signature) VALUES($id, $blockId, $companyId, $verified, $timestamp, $signature)");
-                        st.bind({
-                            $id : confirmation.getId(),
-                            $blockId : block.getId(),
-                            $companyId : confirmation.companyId,
-                            $verified : confirmation.verified,
-                            $timestamp : confirmation.timestamp,
-                            $signature : confirmation.signature
-                        });
+						st.run(function (err) {
+							return c(err);
+						});
+					}, function (err) {
+						cb(err);
+					});
+				},
+				function (cb) {
+					async.eachSeries(block.confirmations, function (confirmation, c) {
+						var st = trDb.prepare("INSERT INTO companyconfirmations(id, blockId, companyId, verified, timestamp, signature) VALUES($id, $blockId, $companyId, $verified, $timestamp, $signature)");
+						st.bind({
+							$id : confirmation.getId(),
+							$blockId : block.getId(),
+							$companyId : confirmation.companyId,
+							$verified : confirmation.verified,
+							$timestamp : confirmation.timestamp,
+							$signature : confirmation.signature
+						});
 
-                        st.run(function (err) {
-                            return c(err);
-                        });
-                    });
-                }, function (err) {
-                    cb(err);
-                });
-            }
-        ], function (err) {
-            if (err) {
-                return callback(err);
-            } else {
-                sql.serialize(function () {
-                    var st = sql.prepare("INSERT INTO blocks(id, version, timestamp, previousBlock, numberOfRequests, numberOfTransactions, numberOfConfirmations, totalAmount, totalFee, payloadLength, requestsLength, confirmationsLength, payloadHash, generatorPublicKey, generationSignature, blockSignature, height) VALUES($id, $version, $timestamp, $previousBlock, $numberOfRequests, $numberOfTransactions, $numberOfConfirmations, $totalAmount, $totalFee, $payloadLength, $requestsLength, $confirmationsLength, $payloadHash, $generatorPublicKey, $generationSignature, $blockSignature, $height)");
-                    st.bind({
-                        $id : block.getId(),
-                        $version : block.version,
-                        $timestamp : block.timestamp,
-                        $previousBlock : block.previousBlock,
-                        $numberOfRequests : block.numberOfRequests,
-                        $numberOfTransactions : block.numberOfTransactions,
-                        $numberOfConfirmations : block.numberOfConfirmations,
-                        $totalAmount : block.totalAmount,
-                        $totalFee : block.totalFee,
-                        $payloadLength : block.payloadLength,
-                        $requestsLength : block.requestsLength,
-                        $confirmationsLength : block.confirmationsLength,
-                        $payloadHash : block.payloadHash,
-                        $generatorPublicKey : block.generatorPublicKey,
-                        $generationSignature : block.generationSignature,
-                        $blockSignature : block.blockSignature,
-                        $height : block.height
-                    });
+						st.run(function (err) {
+							return c(err);
+						});
+					}, function (err) {
+						cb(err);
+					});
+				}
+			], function (err) {
+				if (err) {
+					console.log(err);
+					return callback(err);
+				} else {
+					var st = trDb.prepare("INSERT INTO blocks(id, version, timestamp, previousBlock, numberOfRequests, numberOfTransactions, numberOfConfirmations, totalAmount, totalFee, payloadLength, requestsLength, confirmationsLength, payloadHash, generatorPublicKey, generationSignature, blockSignature, height) VALUES($id, $version, $timestamp, $previousBlock, $numberOfRequests, $numberOfTransactions, $numberOfConfirmations, $totalAmount, $totalFee, $payloadLength, $requestsLength, $confirmationsLength, $payloadHash, $generatorPublicKey, $generationSignature, $blockSignature, $height)");
+					st.bind({
+						$id : block.getId(),
+						$version : block.version,
+						$timestamp : block.timestamp,
+						$previousBlock : block.previousBlock,
+						$numberOfRequests : block.numberOfRequests,
+						$numberOfTransactions : block.numberOfTransactions,
+						$numberOfConfirmations : block.numberOfConfirmations,
+						$totalAmount : block.totalAmount,
+						$totalFee : block.totalFee,
+						$payloadLength : block.payloadLength,
+						$requestsLength : block.requestsLength,
+						$confirmationsLength : block.confirmationsLength,
+						$payloadHash : block.payloadHash,
+						$generatorPublicKey : block.generatorPublicKey,
+						$generationSignature : block.generationSignature,
+						$blockSignature : block.blockSignature,
+						$height : block.height
+					});
 
-                    st.run(function (err) {
-                        if (err) {
-                            return callback(err);
-                        } else {
-							return callback();
-                        }
-                    });
-                });
-            }
-        });
+					st.run(function (err) {
+						if (err) {
+							return callback(err);
+						} else {
+							trDb.commit(callback);
+						}
+					});
+				}
+			});
+		});
     });
 }
 
@@ -191,14 +186,33 @@ db.prototype.deleteFromHeight = function (height, callback) {
 		} else {
 			async.eachSeries(blockIds, function (b, cb) {
 				var bId = b.id;
-				sql.run("DELETE FROM blocks WHERE id=?", bId);
-				sql.run("DELETE FROM trs WHERE blockId=?", bId);
-				sql.run("DELETE FROM companyconfirmations WHERE blockId=?", bId);
-				sql.run("DELETE FROM requests WHERE blockId=?", bId);
-				sql.run("DELETE FROM companies WHERE blockId=?", bId);
-				sql.run("DELETE FROM signatures WHERE blockId=?", bId);
-				return cb();
+				sql.beginTransaction(function (err, tDb) {
+					async.parallel([
+						function (c) {
+							tDb.run("DELETE FROM blocks WHERE id=?", bId, c);
+						},
+						function (c) {
+							tDb.run("DELETE FROM trs WHERE blockId=?", bId, c);
+						},
+						function (c) {
+							tDb.run("DELETE FROM companyconfirmations WHERE blockId=?", bId, c);
+						},
+						function (c) {
+							tDb.run("DELETE FROM requests WHERE blockId=?", bId, c);
+						},
+						function (c) {
+							tDb.run("DELETE FROM companies WHERE blockId=?", bId, c);
+						},
+						function (c) {
+							tDb.run("DELETE FROM signatures WHERE blockId=?", bId, c);
+						}
+					], function () {
+						tDb.commit(cb);
+					})
+				});
+
 			}, function (err) {
+				console.log("finished");
 				callback(err);
 			});
 		}
@@ -207,31 +221,34 @@ db.prototype.deleteFromHeight = function (height, callback) {
 
 
 db.prototype.deleteBlock = function (bId, callback) {
-	var sql = this.sql;
-	sql.serialize(function () {
-		sql.beginTransaction(function (err, dbTransaction) {
-			dbTransaction.run("DELETE FROM blocks WHERE id=?", bId);
-			dbTransaction.run("DELETE FROM trs WHERE blockId=?", bId);
-			dbTransaction.run("DELETE FROM companyconfirmations WHERE blockId=?", bId);
-			dbTransaction.run("DELETE FROM requests WHERE blockId=?", bId);
-			dbTransaction.run("DELETE FROM companies WHERE blockId=?", bId);
-			dbTransaction.run("DELETE FROM signatures WHERE blockId=?", bId);
+	var self = this;
 
-			dbTransaction.commit(function (err) {
-				if (err) {
-					dbTransaction.rollback(function () {
-						if (callback) {
-							callback();
-						}
-					}.bind(this));
-				} else {
-					if (callback) {
-						callback();
-					}
+	self.sql.serialize(function () {
+		self.sql.beginTransaction(function (err, tDb) {
+			async.parallel([
+				function (c) {
+					tDb.run("DELETE FROM blocks WHERE id=?", bId, c);
+				},
+				function (c) {
+					tDb.run("DELETE FROM trs WHERE blockId=?", bId, c);
+				},
+				function (c) {
+					tDb.run("DELETE FROM companyconfirmations WHERE blockId=?", bId, c);
+				},
+				function (c) {
+					tDb.run("DELETE FROM requests WHERE blockId=?", bId, c);
+				},
+				function (c) {
+					tDb.run("DELETE FROM companies WHERE blockId=?", bId, c);
+				},
+				function (c) {
+					tDb.run("DELETE FROM signatures WHERE blockId=?", bId, c);
 				}
-			}.bind(this));
-		}.bind(this));
-	}.bind(this));
+			], function () {
+				tDb.commit(callback);
+			})
+		});
+	});
 }
 
 db.prototype.readBlocks = function (callback) {
@@ -261,10 +278,10 @@ module.exports.initDb = function (path, app, callback) {
                 d.sql.run("CREATE TABLE IF NOT EXISTS requests (id VARCHAR(20) PRIMARY KEY, blockId VARCHAR(20) NOT NULL, address VARCHAR(21) NOT NULL)", cb);
             },
             function (cb) {
-                d.sql.run("CREATE TABLE IF NOT EXISTS signatures (id VARCHAR(20) PRIMARY KEY, transactionId VARCHAR(20) NOT NULL, timestamp INT NOT NULL, publicKey BINARY(32) NOT NULL, generatorPublicKey BINARY(32) NOT NULL, signature BINARY(64) NOT NULL, generationSignature BINARY(64) NOT NULL)", cb);
+                d.sql.run("CREATE TABLE IF NOT EXISTS signatures (id VARCHAR(20) PRIMARY KEY, blockId VARCHAR(20) NOT NULL, transactionId VARCHAR(20) NOT NULL, timestamp INT NOT NULL, publicKey BINARY(32) NOT NULL, generatorPublicKey BINARY(32) NOT NULL, signature BINARY(64) NOT NULL, generationSignature BINARY(64) NOT NULL)", cb);
             },
             function (cb) {
-                d.sql.run("CREATE TABLE IF NOT EXISTS companies (id VARCHAR(20) PRIMARY KEY, transactionId VARCHAR(20) NOT NULL, name VARCHAR(20) NOT NULL, description VARCHAR(250) NOT NULL, domain TEXT, email TEXT NOT NULL, timestamp INT NOT NULL, generatorPublicKey BINARY(32) NOT NULL, signature BINARY(32) NOT NULL)", cb)
+                d.sql.run("CREATE TABLE IF NOT EXISTS companies (id VARCHAR(20) PRIMARY KEY, blockId VARCHAR(20) NOT NULL, transactionId VARCHAR(20) NOT NULL, name VARCHAR(20) NOT NULL, description VARCHAR(250) NOT NULL, domain TEXT, email TEXT NOT NULL, timestamp INT NOT NULL, generatorPublicKey BINARY(32) NOT NULL, signature BINARY(32) NOT NULL)", cb)
             },
             function (cb) {
                 d.sql.run("CREATE TABLE IF NOT EXISTS companyconfirmations (id VARCHAR(20) PRIMARY KEY, blockId VARCHAR(20) NOT NULL, companyId VARCHAR(21) NOT NULL, verified TINYINT(1) NOT NULL, timestamp INT NOT NULL, signature BINARY(64) NOT NULL, FOREIGN KEY(blockId) REFERENCES blocks(id) ON DELETE CASCADE)", cb);
@@ -283,6 +300,12 @@ module.exports.initDb = function (path, app, callback) {
 			},
 			function (cb) {
 				d.sql.run("CREATE INDEX IF NOT EXISTS signatures_trs_id ON signatures(transactionId)", cb)
+			},
+			function (cb) {
+				d.sql.run("CREATE INDEX IF NOT EXISTS signatures_block_id ON signatures(blockId)", cb)
+			},
+			function (cb) {
+				d.sql.run("CREATE INDEX IF NOT EXISTS companies_block_id ON companies(blockId)", cb)
 			},
 			function (cb) {
 				d.sql.run("CREATE INDEX IF NOT EXISTS companies_trs_id ON companies(transactionId)", cb)
