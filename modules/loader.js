@@ -31,6 +31,7 @@ Loader.prototype.run = function (scope) {
 					library.logger.error(err);
 				}
 				library.logger.info('loaded');
+				modules.blocks.setLoading(false);
 			}
 		)
 	})
