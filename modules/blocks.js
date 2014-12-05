@@ -20,6 +20,8 @@ var lastBlock, self;
 var fee = constants.feeStart;
 var nextFeeVolume = constants.feeStartVolume;
 var feeVolume = 0;
+var weight = bignum('0');
+var isLoading = true; // when blocks loading from disk or when from peer
 
 //constructor
 function Blocks(cb, scope) {
@@ -29,6 +31,7 @@ function Blocks(cb, scope) {
 
 	var router = new Router();
 
+	// need to fix it, last block will exists all time
 	router.get('/status', function (req, res) {
 		if (modules.blocks.getLastBlock()) {
 			return res.json({
@@ -91,6 +94,14 @@ function Blocks(cb, scope) {
 	library.app.use('/api/blocks', router);
 
 	setImmediate(cb, null, self);
+}
+
+Blocks.prototype.isLoading = function () {
+	return isLoading;
+}
+
+Blocks.prototype.setLoading = function (isLoading) {
+	isLoading = isLoading;
 }
 
 Blocks.prototype.get = function (id, cb) {
@@ -258,15 +269,13 @@ Blocks.prototype.loadBlocks = function (limit, offset, cb) {
 								currentBlock.transactions[t_index].companies.push(company);
 							}
 						}
-					}
 
-					// process and recalculate fee
-					feeVolume += block.totalFee + block.totalAmount;
+						if (block.id != genesisblock.blockId) {
+							self.applyFee(block);
+							self.applyWeight(block);
+						}
 
-					if (nextFeeVolume <= feeVolume) {
-						fee -= fee / 100 * 25;
-						nextFeeVolume *= 2;
-						feeVolume = 0;
+						lastBlock = block;
 					}
 				}
 
@@ -392,12 +401,101 @@ Blocks.prototype.getForgedByAccount = function (generatorPublicKey, cb) {
 	});
 }
 
+Blocks.prototype.applyWeight = function (block) {
+	var hash = crypto.createHash('sha256').update(lastBlock.generationSignature).update(block.generatorPublicKey).digest();
+	var elapsedTime = block.timestamp - lastBlock.timestamp;
+
+	var hit = bignum.fromBuffer(new Buffer([hash[7], hash[6], hash[5], hash[4], hash[3], hash[2], hash[1], hash[0]]));
+	hit = hit.div(parseInt(elapsedTime / 60));
+
+	weight = weight.add(hit);
+
+	return weight;
+}
+
+Blocks.prototype.applyFee = function (block) {
+	feeVolume += block.totalFee + block.totalAmount;
+
+	if (nextFeeVolume <= feeVolume) {
+		fee -= fee / 100 * 25;
+		nextFeeVolume *= 2;
+		feeVolume = 0;
+	}
+}
+
 Blocks.prototype.getFee = function () {
 	return fee;
 }
 
 Blocks.prototype.getLastBlock = function () {
 	return lastBlock || {};
+}
+
+Blocks.prototype.processBlock = function (block, cb) {
+	return cb();
+}
+
+// generate block
+Blocks.prototype.generateBlock = function (secret, cb) {
+	var transactions = modules.transactions.getUnconfirmedTransactions();
+	transactions.sort(function compare(a, b) {
+		if (a.fee < b.fee)
+			return -1;
+		if (a.fee > b.fee)
+			return 1;
+		return 0;
+	});
+
+	var totalFee = 0, totalAmount = 0, size = 0;
+	var blockTransactions = [];
+	var payloadHash = crypto.createHash('sha256');
+
+	for (var i = 0; i < transactions.length; i++) {
+		var transaction = transactions[i];
+		var bytes = transactionHelper.getBytes(transaction);
+
+		if (size + bytes.length > constants.maxPayloadLength) {
+			break;
+		}
+
+		size += bytes.length;
+
+		totalFee += transaction.fee;
+		totalAmount += transaction.amount;
+
+		blockTransactions.push(transaction);
+		payloadHash.update(bytes);
+	}
+
+	payloadHash = payloadHash.digest();
+
+	var secretHash = ed.MakeKeypair(crypto.createHash('sh256').update(secret, 'utf8').digest());
+	var keypair = ed.MakeKeypair(secretHash);
+
+	var generationSignature = crypto.createHash('sha256').update(lastBlock.generationSignature).update(keypair.publicKey).digest();
+	generationSignature = ed.Sign(generationSignature, keypair);
+
+	var block = {
+		version : 2,
+		totalAmount : totalAmount,
+		totalFee : totalFee,
+		payloadHash : payloadHash,
+		timestamp : timeHelper.getNow(),
+		numberOfTransactions : blockTransactions.length,
+		payloadLength : size,
+		payloadHash : payloadHash,
+		generationSignature : generationSignature,
+		previousBlock : lastBlock.id,
+		generatorPublicKey : keypair.publicKey,
+		requestsLength : 0,
+		numberOfRequests : 0,
+		confirmationsLength : 0,
+		numberOfConfirmations : 0
+	};
+
+	block.blockSignature = blockHelper.sign(secret, block);
+
+	setImmediate(this.processBlock, block, cb);
 }
 
 //export

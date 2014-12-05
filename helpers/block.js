@@ -179,6 +179,17 @@ function getBytes(block) {
 	return b;
 }
 
+function getHash(block) {
+	return crypto.createHash('sha256').update(getBytes(block)).digest();
+}
+
+function sign(secret, block) {
+	var hash = getHash(block);
+	var secretHash = crypto.createHash('sha256').update(secret, 'utf8').digest();
+	var keypair = ed.MakeKeypair(secretHash);
+	return ed.Sign(hash, keypair);
+}
+
 module.exports = {
 	getBlock: getBlock,
 	getCompanyComfirmation: getCompanyComfirmation,
@@ -186,5 +197,6 @@ module.exports = {
 	getTransaction: getTransaction,
 	getSignature: getSignature,
 	getCompany: getCompany,
-	getBytes: getBytes
+	getBytes: getBytes,
+	sign : sign
 }
