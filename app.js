@@ -12,13 +12,14 @@ var config = {
 		"companies": "./modules/companies.js",
 		"signatures": "./modules/signatures.js",
 		"transport": "./modules/transport.js",
-		"loader": "./modules/loader.js"
+		"loader": "./modules/loader.js",
+		"forger" : "./modules/forger.js"
 	}
 }
 
 var d = require('domain').create();
-d.on('error', function (er) {
-	logger.error('domain master', {message: er.message, stack: er.stack});
+d.on('error', function (err) {
+	logger.error('domain master', {message: err.message, stack: err.stack});
 	process.exit(0);
 });
 d.run(function () {

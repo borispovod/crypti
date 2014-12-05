@@ -249,125 +249,128 @@ Transactions.prototype.removeUnconfirmedTransaction = function (transaction) {
 
 Transactions.prototype.processUnconfirmedTransaction = function (transaction, sendToPeers, cb) {
 	var self = this;
+	var txId = transactionHelper.getId(transaction);
 
-	setImmediate(function () {
-		// process transaction
-		var txId = transactionHelper.getId(transaction);
+	if (transaction.id && transaction.id != txId) {
+		return cb("Invalid transaction id");
+	} else {
+		transaction.id = txId;
+	}
 
-		if (transaction.id && transaction.id != txId) {
-			return cb("Invalid transaction id");
+	library.db.get("SELECT id FROM trs WHERE id=$id", { $id : transaction.id }, function (err, confirmed) {
+		if (err) {
+			return cb("Internal sql error");
+		} else if (confirmed) {
+			return cb("Can't process transaction, transaction already confirmed");
 		} else {
-			transaction.id = txId;
-		}
+			// check in confirmed transactions
+			if (unconfirmedTransactions[transaction.id] || doubleSpendingTransactions[transaction.id]) {
+				return cb("This transaction already exists");
+			}
 
-		if (unconfirmedTransactions[transaction.id] || doubleSpendingTransactions[transaction.id]) {
-			return cb("This transaction already exists");
-		}
+			var sender = modules.accounts.getAccountByPublicKey(transaction.senderPublicKey);
 
-		var sender = modules.accounts.getAccountByPublicKey(transaction.senderPublicKey);
+			if (!sender) {
+				return cb("Can't process transaction, sender not found");
+			}
 
-		if (!sender) {
-			return cb("Can't process transaction, sender not found");
-		}
+			transaction.senderId = sender.address;
 
-		transaction.senderId = sender.address;
+			if (!self.verifySignature(transaction)) {
+				return cb("Can't verify signature")
+			}
 
-		if (!self.verifySignature(transaction)) {
-			return cb("Can't verify signature")
-		}
+			// check if transaction is not float and great then 0
+			if (transaction.amount < 0 || transaction.amount.toString().indexOf('.') >= 0) {
+				return cb("Invalid transaction amount");
+			}
 
-		// check if transaction is not float and great then 0
-		if (transaction.amount < 0 || transaction.amount.toString().indexOf('.') >= 0) {
-			return cb("Invalid transaction amount");
-		}
+			if (transaction.timestamp > timeHelper.getNow() + 15) {
+				return cb("Invalid transaction timestamp");
+			}
 
-		if (transaction.timestamp > timeHelper.getNow() + 15) {
-			return cb("Invalid transaction timestamp");
-		}
+			var fee = transactionHelper.getFee(transaction, modules.blocks.getFee());
 
-		var fee = transactionHelper.getFee(transaction, modules.blocks.getFee());
+			if (fee <= 0) {
+				fee = 1;
+			}
 
-		if (fee <= 0) {
-			fee = 1;
-		}
+			switch (transaction.type) {
+				case 0:
+					switch (transaction.subtype) {
+						case 0:
+							if (transactionHelper.getLastChar(transaction) != "C") {
+								return cb("Invalid transaction recipient id");
+							}
 
-		switch (transaction.type) {
-			case 0:
-				switch (transaction.subtype) {
-					case 0:
-						if (transactionHelper.getLastChar(transaction) != "C") {
-							return cb("Invalid transaction recipient id");
-						}
+							transaction.fee = fee;
+							break;
 
-						transaction.fee = fee;
-						break;
+						default:
+							return cb("Unknown transaction type");
+					}
+					break;
 
-					default:
-						return cb("Unknown transaction type");
-				}
-				break;
+				case 1:
+					switch (transaction.subtype) {
+						case 0:
+							if (transactionHelper.getLastChar(transaction) != "D") {
+								return cb("Invalid transaction recipient id");
+							}
 
-			case 1:
-				switch (transaction.subtype) {
-					case 0:
-						if (transactionHelper.getLastChar(transaction) != "D") {
-							return cb("Invalid transaction recipient id");
-						}
+							transaction.fee = fee;
+							break;
 
-						transaction.fee = fee;
-						break;
+						default:
+							return cb("Unknown transaction type");
+					}
+					break;
 
-					default:
-						return cb("Unknown transaction type");
-				}
-				break;
+				case 2:
+					switch (transaction.subtype) {
+						case 0:
+							if (transaction.fee != 100 * constants.fixedPoint) {
+								return cb("Invalid transaction fee");
+							}
 
-			case 2:
-				switch (transaction.subtype) {
-					case 0:
-						if (transaction.fee != 100 * constants.fixedPoint) {
-							return cb("Invalid transaction fee");
-						}
+							if (!transaction.asset) {
+								return cb("Empty transaction asset for company transaction")
+							}
 
-						if (!transaction.asset) {
-							return cb("Empty transaction asset for company transaction")
-						}
+							// process signature of transaction
+							break;
 
-						// process signature of transaction
-						break;
+						default:
+							return cb("Unknown transaction type");
+					}
+					break;
 
-					default:
-						return cb("Unknown transaction type");
-				}
-				break;
+				case 3:
+					switch (transaction.subtype) {
+						case 0:
+							if (transaction.fee != 1000 * constants.fixedPoint) {
+								return cb("Invalid transaction fee");
+							}
 
-			case 3:
-				switch (transaction.subtype) {
-					case 0:
-						if (transaction.fee != 1000 * constants.fixedPoint) {
-							return cb("Invalid transaction fee");
-						}
+							if (!transaction.asset) {
+								return cb("Empty transaction asset for company transaction")
+							}
 
-						if (!transaction.asset) {
-							return cb("Empty transaction asset for company transaction")
-						}
+							// process company of transaction
+							break;
 
-						// process company of transaction
-						break;
+						default:
+							return cb("Unknown transaction type");
+					}
+					break;
 
-					default:
-						return cb("Unknown transaction type");
-				}
-				break;
-
-			default:
-				return cb("Unknown transaction type");
-		}
+				default:
+					return cb("Unknown transaction type");
+			}
 
 
-		async.parallel([
-			function (cb) {
-				library.db.serialize(function () {
+			async.parallel([
+				function (cb) {
 					library.db.get("SELECT publicKey FROM signatures WHERE generatorPublicKey = $generatorPublicKey", {$generatorPublicKey: transaction.senderPublicKey}, function (err, signature) {
 						if (err) {
 							return cb("Internal sql error");
@@ -381,42 +384,42 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, se
 							}
 						}
 					});
-				})
-			},
-			function (cb) {
-				if (transaction.type == 1 && transaction.subtype == 0) {
-					library.db.serialize(function () {
-						library.db.get("SELECT id FROM companies WHERE address = $address", {$address: transaction.recipientId}, function (err, company) {
-							if (err) {
-								return cb("Internal sql error");
-							} else if (company) {
-								return cb();
-							} else {
-								return cb("Company with this address as recipient not found");
-							}
+				},
+				function (cb) {
+					if (transaction.type == 1 && transaction.subtype == 0) {
+						library.db.serialize(function () {
+							library.db.get("SELECT id FROM companies WHERE address = $address", {$address: transaction.recipientId}, function (err, company) {
+								if (err) {
+									return cb("Internal sql error");
+								} else if (company) {
+									return cb();
+								} else {
+									return cb("Company with this address as recipient not found");
+								}
+							});
 						});
-					});
-				} else {
-					return cb();
-				}
-			}
-		], function (errors) {
-			if (errors) {
-				return cb(errors.pop());
-			} else {
-				if (self.applyUnconfirmed(transaction)) {
-					unconfirmedTransactions[transaction.id] = transaction;
-
-					if (sendToPeers) {
-						// broadcast transaction with peers
+					} else {
+						return cb();
 					}
-				} else {
-					doubleSpendingTransactions[transaction.id] = transaction;
 				}
+			], function (errors) {
+				if (errors) {
+					return cb(errors.pop());
+				} else {
+					if (self.applyUnconfirmed(transaction)) {
+						unconfirmedTransactions[transaction.id] = transaction;
 
-				return cb(null, transaction.id);
-			}
-		});
+						if (sendToPeers) {
+							// broadcast transaction with peers
+						}
+					} else {
+						doubleSpendingTransactions[transaction.id] = transaction;
+					}
+
+					return cb(null, transaction.id);
+				}
+			});
+		}
 	});
 }
 
