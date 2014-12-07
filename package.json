@@ -16,7 +16,6 @@
     "grunt": "^0.4.5",
     "long": "^1.1.5",
     "method-override": "*",
-    "nanotimer": "^0.3.3",
     "request": "https://github.com/crypti/request/tarball/master",
     "sqlite3": "*",
     "strftime": "*",
