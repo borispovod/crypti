@@ -56,10 +56,15 @@ Server.prototype.run = function (scope) {
 		res.render('forging.html');
 	});
 
+	library.app.use('/', router);
+}
+
+Server.prototype.onPeerReady = function () {
+	var router = new Router();
+
 	router.get("*", function (req, res) {
 		return res.redirect('/');
 	});
-
 
 	library.app.use('/', router);
 }
