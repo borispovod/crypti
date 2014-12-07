@@ -108,8 +108,8 @@ db.prototype.writeBlock = function (block,  callback) {
 						var st = trDb.prepare("INSERT INTO requests(id, blockId, address) VALUES($id, $blockId, $address)");
 						st.bind({
 							$id : request.getId(),
-							$address : request.address,
-							$blockId : block.getId()
+							$blockId : block.getId(),
+							$address : request.address
 						});
 
 						st.run(function (err) {
