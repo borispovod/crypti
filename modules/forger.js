@@ -26,7 +26,7 @@ function Forger(cb, scope) {
 		keypair = ed.MakeKeypair(crypto.createHash('sha256').update(req.body.secret, 'utf').digest());
 		self.startForging(keypair);
 
-		return res.json({ success : true });
+		return res.json({ success : true, address : modules.accounts.getAddressByPublicKey(keypair.publicKey) });
 	});
 
 	router.post('/disable', function (req, res) {
@@ -42,9 +42,10 @@ function Forger(cb, scope) {
 			return res.json({ success : false, error : "Provide valid secret key to stop forging" });
 		}
 
+		var address = modules.accounts.getAddressByPublicKey(keypair.publicKey);
 		self.stopForging();
 
-		return res.json({ success : true });
+		return res.json({ success : true, address : address });
 	});
 
 	router.get("/", function (req, res) {
