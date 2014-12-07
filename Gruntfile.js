@@ -24,17 +24,16 @@ module.exports = function (grunt) {
 					keys: {
 						accessKey: '24F15B0087298FBDEE7E90FE0B14F34D33E12CE2',
 						secretKey: 'FC255E27922479D0D8FE40CFAE8FBA45DD08947A'
+					},
+					params: {
+						whitespace: '%DEFAULT%',
+						rename_local: '%DEFAULT%',
+						duplicate_literals: '%DEFAULT%',
+						function_reorder: '%DEFAULT%',
+						expiration_date: '2015/12/31',
+						dot_notation_elimination: '%DEFAULT%',
+						function_outlining: '%DEFAULT%'
 					}
-					//params: {
-					//	rename_local: '%DEFAULT%',
-					//	whitespace: '%DEFAULT%',
-					//	literal_hooking: '%DEFAULT%',
-					//	dead_code: '%DEFAULT%',
-					//	dot_notation_elimination: '%DEFAULT%',
-					//	literal_duplicates: '%DEFAULT%',
-					//	function_outlining: '%DEFAULT%',
-					//	string_splitting: '%DEFAULT%'
-					//}
 				}
 			}
 		},
@@ -52,7 +51,7 @@ module.exports = function (grunt) {
 	});
 
 	grunt.loadNpmTasks('grunt-obfuscator');
-	//grunt.loadNpmTasks("grunt-jscrambler");
+	grunt.loadNpmTasks("grunt-jscrambler");
 	//grunt.loadNpmTasks('grunt-contrib-compress');
 
 	grunt.registerTask("default", ["obfuscator"]);
