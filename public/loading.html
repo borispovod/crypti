@@ -14,7 +14,7 @@
                 <div id="logo-grey"></div>
                 <div class="loading" ng-controller="loadingController">
                     <h3 class="heading" ng-show="!height || !blocksCount">Blockchain loading...</h3>
-                    <h3 class="heading" ng-show="height && blocksCount">Blockchain loading: ({{height}}/{{blocksCount}} blocks)</h3>
+                    <h3 class="heading" ng-show="height">Blockchain loading: ({{height}}/{{blocksCount}} blocks)</h3>
                 </div>
             </div>
         </div>
