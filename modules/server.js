@@ -44,9 +44,9 @@ Server.prototype.run = function (scope) {
 		}
 	});
 
-	router.get("*", function (req, res) {
-		return res.redirect('/');
-	});
+	//router.get("*", function (req, res) {
+	//	return res.redirect('/');
+	//});
 
 	if (library.config.api.access.auth.user || library.config.api.access.auth.password) {
 		library.app.basicAuth = library.express.basicAuth(library.config.api.access.auth.user, library.config.api.access.auth.password);
@@ -55,6 +55,16 @@ Server.prototype.run = function (scope) {
 			return next();
 		}
 	}
+
+	library.app.use('/', router);
+}
+
+Server.prototype.onPeerReady = function () {
+	var router = new Router();
+
+	router.get("*", function (req, res) {
+		return res.redirect('/');
+	});
 
 	library.app.use('/', router);
 }

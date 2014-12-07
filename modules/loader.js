@@ -42,14 +42,14 @@ Loader.prototype.run = function (scope) {
 	var offset = 0, limit = 1000;
 	modules.blocks.count(function (err, count) {
 		total = count;
-		library.logger.info('count = ' + count)
+		library.logger.info('blocks ' + count)
 		async.until(
 			function () {
 				return count < offset
 			}, function (cb) {
-				library.logger.info('offset = ' + offset);
+				library.logger.info('current ' + offset);
 				process.nextTick(function () {
-					modules.blocks.loadBlocks(limit, offset, function (err, res) {
+					modules.blocks.loadBlocksPart(limit, offset, function (err, res) {
 						offset = offset + limit;
 						cb(err, res)
 					});
@@ -58,8 +58,10 @@ Loader.prototype.run = function (scope) {
 				if (err) {
 					library.logger.error(err);
 				}
-				library.logger.info('loaded');
-				modules.blocks.setLoading(false);
+				library.logger.info('blockchain loaded');
+
+				library.bus.message('blockchain ready');
+				//modules.transport.start();
 			}
 		)
 	})
