@@ -1,14 +1,15 @@
 //require
-var genesis = require('../helpers/genesisblock.js')
-var util = require('util');
-var async = require('async');
+var Router = require('../helpers/router.js');
 
 //private
-var modules, library;
+var modules, library, self;
+var headers = {};
 
 //constructor
 function Transport(cb, scope) {
 	library = scope;
+	self = this;
+
 	cb(null, this);
 }
 
@@ -16,16 +17,29 @@ function Transport(cb, scope) {
 Transport.prototype.run = function (scope) {
 	modules = scope;
 
-    /*
-	console.time('verifying');
-	var blocks = modules.blocks.getAll();
-	async.eachLimit(Object.keys(blocks), 10, function (item, cb) {
-		var res = modules.blocks.verifySignature(blocks[item]);
-		setImmediate(cb)
-	}, function(){
-		console.timeEnd('verifying');
+	headers = {
+		os: modules.system.getOS(),
+		version: modules.system.getVersion(),
+		port: modules.system.getPort(),
+		sharePort: modules.system.getSharePort()
+	}
+}
+
+Transport.prototype.onBlockchainReady = function () {
+	var router = new Router();
+
+	router.get('/list', function (req, res) {
+		//res.set(headers);
+		res.json({success: true});
 	});
-	*/
+
+	library.app.use('/peer', router);
+
+	library.bus.message('peer ready');
+
+	//modules.server.closeRoutes();
+
+	library.logger.info('peer api started')
 }
 
 //export
