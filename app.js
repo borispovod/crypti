@@ -19,6 +19,7 @@ var config = {
 
 var d = require('domain').create();
 d.on('error', function (err) {
+	console.log(err);
 	logger.error('domain master', {message: err.message, stack: err.stack});
 	process.exit(0);
 });

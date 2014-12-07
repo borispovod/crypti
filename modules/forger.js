@@ -1,10 +1,13 @@
 var	timeHelper = require("../helpers/time.js"),
-	async = require('async');
+	async = require('async'),
+	ed = require('ed25519'),
+	constants = require('../helpers/constants.js'),
+	crypto = require('crypto');
 
 var Router = require('../helpers/router.js');
 
 var library, modules;
-var secret, forgingStarted, timer;
+var keypair, forgingStarted, timer;
 
 function Forger(cb, scope) {
 	library = scope;
@@ -20,8 +23,8 @@ function Forger(cb, scope) {
 			return res.json({ success : false, error : "Forging already started" });
 		}
 
-		secret = req.body.secret;
-		self.startForging(req.body.secret);
+		keypair = ed.MakeKeypair(crypto.createHash('sha256').update(req.body.secret, 'utf').digest());
+		self.startForging(keypair);
 
 		return res.json({ success : true });
 	});
@@ -35,7 +38,7 @@ function Forger(cb, scope) {
 			return res.json({ success : false, error : "Forging already disabled" });
 		}
 
-		if (secret != req.body.secret) {
+		if (keypair.privateKey.toString('hex') != ed.MakeKeypair(crypto.createHash('sha256').update(req.body.secret, 'utf').digest()).privateKey.toString('hex')) {
 			return res.json({ success : false, error : "Provide valid secret key to stop forging" });
 		}
 
@@ -54,33 +57,42 @@ function Forger(cb, scope) {
 }
 
 Forger.prototype.stopForging = function () {
-	timer.clearInterval();
-	timer = null;
 	forgingStarted = false;
-	secret = null;
+	keypair = null;
 }
 
-Forger.prototype.startForging = function (secret) {
+Forger.prototype.startForging = function (keypair) {
 	var self = this;
-	secret = secret;
+	keypair = keypair;
 	forgingStarted = true;
 
-	async.forever(
+	var address = modules.accounts.getAddressByPublicKey(keypair.publicKey);
+
+	async.until(
+		function () { return !forgingStarted },
 		function (callback) {
 			if (modules.blocks.isLoading()) {
+				return setTimeout(callback, 1000);
+			}
+
+			var account = modules.accounts.getAccount(address);
+
+			if (!account || account.balance < 1000 * constants.fixedPoint) {
+				console.log(account);
 				return setTimeout(callback, 1000);
 			}
 
 			var now = timeHelper.getNow();
 
 			if (now - modules.blocks.getLastBlock().timestamp >= 60) {
-				modules.blocks.generateBlock(secret, callback);
+				modules.blocks.generateBlock(keypair, callback);
 			} else {
 				setTimeout(callback, 1000);
 			}
 		},
 		function (err) {
 			if (err) {
+				console.log(err);
 				library.logger.error("Problem in block generation: " + err);
 				self.stopForging();
 			}
