@@ -20,6 +20,14 @@ Server.prototype.run = function (scope) {
 
 	var router = new Router();
 
+	if (library.config.api.access.auth.user || library.config.api.access.auth.password) {
+		library.app.basicAuth = library.express.basicAuth(library.config.api.access.auth.user, library.config.api.access.auth.password);
+	} else {
+		library.app.basicAuth = function (req, res, next) {
+			return next();
+		}
+	}
+
 	router.get('/', function (req, res) {
 		var ip = req.connection.remoteAddress;
 
@@ -29,14 +37,14 @@ Server.prototype.run = function (scope) {
 			if (library.config.api.access.whiteList.indexOf(ip) < 0) {
 				return res.send(401);
 			} else {
-				if (modules.loader.loaded()) {
+				if (!modules.blocks.isLoading()) {
 					res.render('wallet.html', {showAdmin: showLinkToAdminPanel, layout: false});
 				} else {
 					res.render('loading.html');
 				}
 			}
 		} else {
-			if (modules.loader.loaded()) {
+			if (!modules.blocks.isLoading()) {
 				res.render('wallet.html', {showAdmin: showLinkToAdminPanel, layout: false});
 			} else {
 				res.render('loading.html');
@@ -44,17 +52,14 @@ Server.prototype.run = function (scope) {
 		}
 	});
 
+	router.get("/panel/forging", function (req, res) {
+		res.render('forging.html');
+	});
+
 	router.get("*", function (req, res) {
 		return res.redirect('/');
 	});
 
-	if (library.config.api.access.auth.user || library.config.api.access.auth.password) {
-		library.app.basicAuth = library.express.basicAuth(library.config.api.access.auth.user, library.config.api.access.auth.password);
-	} else {
-		library.app.basicAuth = function (req, res, next) {
-			return next();
-		}
-	}
 
 	library.app.use('/', router);
 }
