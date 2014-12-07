@@ -241,9 +241,9 @@ Transactions.prototype.getUnconfirmedTransactions = function (sort) {
 	return a;
 }
 
-Transactions.prototype.removeUnconfirmedTransaction = function (transaction) {
-	if (unconfirmedTransactions[transaction.id]) {
-		delete unconfirmedTransactions[transaction.id];
+Transactions.prototype.removeUnconfirmedTransaction = function (id) {
+	if (unconfirmedTransactions[id]) {
+		delete unconfirmedTransactions[id];
 	}
 }
 
@@ -485,6 +485,7 @@ Transactions.prototype.applyUnconfirmed = function (transaction, cb) {
 
 	return true;
 }
+
 
 Transactions.prototype.undo = function (transaction, cb) {
 	var sender = modules.accounts.getAccountByPublicKey(transaction.senderPublicKey);
