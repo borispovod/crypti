@@ -48,12 +48,12 @@ Loader.prototype.run = function (scope) {
 				return count < offset
 			}, function (cb) {
 				library.logger.info('offset = ' + offset);
-				setTimeout(function () {
+				process.nextTick(function () {
 					modules.blocks.loadBlocks(limit, offset, function (err, res) {
 						offset = offset + limit;
 						cb(err, res)
 					});
-				},100)
+				})
 			}, function (err, res) {
 				if (err) {
 					library.logger.error(err);
