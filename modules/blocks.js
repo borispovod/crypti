@@ -33,20 +33,6 @@ function Blocks(cb, scope) {
 
 	var router = new Router();
 
-	// need to fix it, last block will exists all time
-	router.get('/status', function (req, res) {
-		if (modules.blocks.getLastBlock()) {
-			return res.json({
-				success: true,
-				height: modules.blocks.getLastBlock().height,
-				blocksCount: 1,
-				loaded: true
-			});
-		} else {
-			return res.json({success: false});
-		}
-	});
-
 	router.get('/get', function (req, res) {
 		if (!req.query.id) {
 			return res.json({success: false, error: "Provide id in url"});
