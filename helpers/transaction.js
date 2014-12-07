@@ -61,7 +61,7 @@ function getTransactionFee(transaction, isGenerator) {
     }
 
     if (fee == -1) {
-        throw new Error("Invalid transaction type: " + t.id);
+        return false;
     }
 
     return fee;
@@ -130,6 +130,8 @@ function getBytes(transaction) {
             bb.writeByte(transaction.signSignature[i]);
         }
     }
+
+
 
     bb.flip();
     return bb.toBuffer();
