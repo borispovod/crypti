@@ -72,7 +72,7 @@ Forger.prototype.startForging = function (keypair) {
 	async.until(
 		function () { return !forgingStarted },
 		function (callback) {
-			if (modules.blocks.isLoading()) {
+			if (!modules.loader.loaded()) {
 				return setTimeout(callback, 1000);
 			}
 
