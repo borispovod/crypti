@@ -1,5 +1,5 @@
 var Logger = require('./logger.js');
-var logger = new Logger();
+var logger = new Logger({echo: true, errorLevel: "log"});
 var async = require('async');
 
 var config = {
@@ -13,7 +13,8 @@ var config = {
 		"signatures": "./modules/signatures.js",
 		"transport": "./modules/transport.js",
 		"loader": "./modules/loader.js",
-		"forger" : "./modules/forger.js"
+		"forger": "./modules/forger.js",
+		"system": "./modules/system.js"
 	}
 }
 
@@ -24,6 +25,7 @@ d.on('error', function (err) {
 	process.exit(0);
 });
 d.run(function () {
+	var modules = [];
 	async.auto({
 		config: function (cb) {
 			var config = require("./config.json");
@@ -59,17 +61,31 @@ d.run(function () {
 			});
 		}],
 
+		bus: function(cb){
+			var changeCase = require('change-case');
+			var bus = function(){
+				this.message = function(topic, body){
+					modules.forEach(function(module){
+						if (typeof(module['on' + changeCase.pascalCase(topic)]) == 'function') {
+							module['on' + changeCase.pascalCase(topic)](body);
+						}
+					})
+				}
+			}
+			cb(null, new bus)
+		},
+
 		db: function (cb) {
 			var sqlite3 = require('./helpers/db.js');
 			sqlite3.connect(config.db, cb);
 		},
 
-		modules: ['db', 'express', 'app', 'config', 'logger', function (cb, scope) {
+		modules: ['db', 'express', 'app', 'config', 'logger', 'bus', function (cb, scope) {
 			var tasks = {};
 			Object.keys(config.modules).forEach(function (name) {
 				tasks[name] = function (cb) {
 					var Klass = new require(config.modules[name]);
-					new Klass(cb, scope);
+					modules.push(new Klass(cb, scope));
 				}
 			});
 			async.parallel(tasks, function (err, results) {

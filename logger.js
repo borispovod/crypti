@@ -36,6 +36,7 @@ module.exports = function (config) {
 			data && (log["data"] = data);
 
 			log_file.write(JSON.stringify(log) + '\n');
+			config.echo && console.log(log);
 		}
 
 		exports[name] = log;

@@ -93,12 +93,9 @@ function Blocks(cb, scope) {
 
 }
 
-Blocks.prototype.isLoading = function () {
-	return isLoading;
-}
-
-Blocks.prototype.setLoading = function (loaded) {
-	isLoading = loaded;
+//public
+Blocks.prototype.run = function (scope) {
+	modules = scope;
 }
 
 Blocks.prototype.get = function (id, cb) {
@@ -161,7 +158,7 @@ Blocks.prototype.count = function (cb) {
 	});
 }
 
-Blocks.prototype.loadBlocks = function (limit, offset, cb) {
+Blocks.prototype.loadBlocksPart = function (limit, offset, cb) {
 	console.time('loading');
 
 	library.db.all(
@@ -286,11 +283,6 @@ Blocks.prototype.loadBlocks = function (limit, offset, cb) {
 
 			cb(err);
 		});
-}
-
-//public
-Blocks.prototype.run = function (scope) {
-	modules = scope;
 }
 
 Blocks.prototype.applyForger = function (generatorPublicKey, transaction) {
