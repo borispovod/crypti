@@ -9,7 +9,8 @@ var crypto = require('crypto'),
 	transactionHelper = require("../helpers/transaction.js"),
 	constants = require('../helpers/constants.js'),
 	confirmationsHelper = require('../helpers/confirmations.js'),
-	timeHelper = require('../helpers/time.js');
+	timeHelper = require('../helpers/time.js'),
+	requestHelper = require('../helpers/request.js');
 
 var Router = require('../helpers/router.js');
 var util = require('util');
@@ -342,7 +343,7 @@ Blocks.prototype.verifyGenerationSignature = function (block, previousBlock) {
 		return false;
 	}
 
-	if (generator.getEffectiveBalance() < 1000 * constants.fixedPoint) {
+	if (generator.balance < 1000 * constants.fixedPoint) {
 		return false;
 	}
 
@@ -433,13 +434,312 @@ Blocks.prototype.getLastBlock = function () {
 }
 
 Blocks.prototype.processBlock = function (block, cb) {
-	lastBlock = block;
-	console.log("process block");
-	return setImmediate(cb);
+	var self = this;
+
+	block.id = blockHelper.getId(block);
+	block.height = lastBlock.height + 1;
+
+	library.db.get("SELECT id FROM blocks WHERE id=$id", { $id : block.id }, function (err, bId) {
+		if (err) {
+			return setImmediate(cb, err);
+		} else if (bId) {
+			return setImmediate(cb, "Block already exists: " + b.id);
+		} else {
+			if (!self.verifySignature(block)) {
+				return setImmediate(cb, "Can't verify signature: " + block.id);
+			}
+
+			if (!self.verifyGenerationSignature(block, lastBlock)) {
+				return setImmediate(cb, "Can't verify generator signature: " + block.id);
+			}
+
+			if (block.previousBlock != lastBlock.id) {
+				return setImmediate(cb, "Can't verify previous block: " + block.id);
+			}
+
+			if (block.version > 2 || block.version <= 0) {
+				return setImmediate(cb, "Invalid version of block: " + block.id)
+			}
+
+			var now = timeHelper.getNow();
+
+			if (block.timestamp > now + 15 || block.timestamp < lastBlock.timestamp || block.timestamp - lastBlock.timestamp < 60) {
+				return setImmediate(cb, "Can't verify block timestamp: " + block.id);
+			}
+
+			if (block.payloadLength > constants.maxPayloadLength
+				|| block.requestsLength > constants.maxRequestsLength
+				|| block.confirmationsLength > constants.maxConfirmations) {
+				return setImmediate(cb, "Can't verify payload length of block: " + block.id);
+			}
+
+			if (block.transactions.length != block.numberOfTransactions
+				|| block.requests.length != block.numberOfRequests
+				|| block.companyconfirmations.length != block.numberOfConfirmations
+				|| block.transactions.length > 100
+				|| block.requests.length > 1000
+				|| block.companyconfirmations.length > 1000) {
+				return setImmediate(cb, "Invalid amount of block assets: " + block.id);
+			}
+
+			// check payload hash, transaction, number of confirmations
+
+			var totalAmount = 0, totalFee = 0, payloadHash = crypto.createHash('sha256'), appliedTransactions = {}, acceptedRequests = {}, acceptedConfirmations = {};
+
+			async.parallel([
+				function (done) {
+					async.forEach(block.transactions, function (transaction, cb) {
+						transaction.id = transactionHelper.getId(transaction);
+
+						if (modules.transactions.getUnconfirmedTransaction(transaction.id)) {
+							totalAmount += transaction.amount;
+							totalFee += transaction.fee;
+							appliedTransactions[transaction.id] = transaction;
+							payloadHash.update(transactionHelper.getBytes(transaction));
+							return cb();
+						}
+
+						library.db.get("SELECT id FROM trs WHERE id=$id", { $id : transaction.id }, function (err, tId) {
+							if (err) {
+								return cb(err);
+							} else if (tId) {
+								return cb("Transaction already exists: " + transaction.id);
+							} else {
+								if (appliedTransactions[transaction.id]) {
+									return cb("Dublicated transaction in block: " + transaction.id);
+								}
+
+								if (!modules.transactions.verifySignature(transaction)) {
+									return cb("Can't verify transaction signature: " + transaction.id);
+								}
+
+								if (transaction.timestamp > now + 15 || transaction.timestamp > block.timestamp + 15) {
+									return cb("Can't accept transaction timestamp: " + transaction.id);
+								}
+
+								transaction.fee = transactionHelper.getTransactionFee(transaction);
+
+								if (transaction.fee === false) {
+									return cb("Invalid transaction type/fee: " + transaction.id);
+								}
+
+								if (transaction.amount < 0) {
+									return cb("Invalid transaction amount: " + transaction.id);
+								}
+
+								if (!modules.transactions.applyUnconfirmed(transaction)) {
+									return cb("Can't apply transaction: " + transaction);
+								}
+
+								appliedTransactions[transaction.id] = transaction;
+								payloadHash.update(transactionHelper.getBytes(transaction));
+								totalAmount += transaction.amount;
+								totalFee += transaction.fee;
+
+								return cb();
+							}
+						});
+					}, function (err) {
+						return done(err);
+					});
+				},
+				function (done) {
+					async.forEach(block.requests, function (request, cb) {
+						request.id = requestHelper.getId(request);
+
+						if (acceptedRequests[request.id]) {
+							return cb("Dublicated request: " + request.id);
+						}
+
+						library.db.get("SELECT id FROM requests WHERE id=$id", { $id : request.id }, function (err, rId) {
+							if (err) {
+								return cb(err);
+							} else if (rId) {
+								return cb("Request already exists: " + request.id);
+							} else {
+								var account = modules.accounts.getAccount(request.address);
+
+								if (!account || account.balance < 1000 * constants.fixedPoint) {
+									return cb("Can't process request, invalid account");
+								}
+
+								acceptedRequests[request.id] = request;
+								return cb();
+							}
+						});
+					}, function (err) {
+						return done(err);
+					});
+				},
+				function (done) {
+					/*
+					//need to finish later
+					async.forEach(block.companyconfirmations, function (confirmation, cb) {
+						if (!confirmationsHelper.verifySignature(confirmation, block.generatorPublicKey)) {
+							return cb("Can't verify company confirmation: " + confirmation.id);
+						}
+
+						if (confirmation.timestamp > now + 15 || confirmation.timestamp < block.timestamp) {
+							return cb("Can't accept confirmation timestamp: " + confirmation.id);
+						}
+
+
+						if (acceptedConfirmations[confirmation.id]) {
+							return cb("Doublicated confirmation: " + confirmation.id);
+						}
+
+					}, function (err) {
+						return done(err);
+					});*/
+					return done();
+				}
+			], function (errors) {
+				errors = errors || [];
+
+				payloadHash = payloadHash.digest();
+
+				if (payloadHash.toString('hex') !== block.payloadHash.toString('hex')) {
+					errors.push("Invalid payload hash: " + block.id);
+				}
+
+				if (totalAmount != block.totalAmount) {
+					errors.push("Invalid total amount: " + block.id);
+				}
+
+				if (totalFee != block.totalFee) {
+					errors.push("Invalid total fee: " + block.id);
+				}
+
+				if (errors.length > 0) {
+					for (var i = 0; i < block.transactions.length; i++) {
+						var transaction = block.transactions[i];
+
+						if (appliedTransactions[transaction.id]) {
+							modules.transactions.undoUnconfirmed(transaction);
+						}
+					}
+
+					return setImmediate(cb, errors.pop());
+				} else {
+					for (var i = 0; i < block.transactions.length; i++) {
+						var transaction = block.transactions[i];
+
+						modules.transactions.apply(transaction);
+						modules.transactions.removeUnconfirmedTransaction(transaction.id);
+					}
+
+					self.saveBlock(block, function (err) {
+						if (err) {
+							return cb(err);
+						}
+
+						lastBlock = block;
+						return cb();
+					});
+				}
+			});
+		}
+	})
+}
+
+Blocks.prototype.saveBlock = function (block, cb) {
+	library.db.beginTransaction(function (err, transactionDb) {
+		if (err) {
+			return cb(err);
+		} else {
+			var st = transactionDb.prepare("INSERT INTO blocks(id, version, timestamp, height, previousBlock, numberOfRequests, numberOfTransactions, numberOfConfirmations, totalAmount, totalFee, payloadLength, requestsLength, confirmationsLength, payloadHash, generatorPublicKey, generationSignature, blockSignature) VALUES($id, $version, $timestamp, $height, $previousBlock, $numberOfRequests, $numberOfTransactions, $numberOfConfirmations, $totalAmount, $totalFee, $payloadLength, $requestsLength, $confirmationsLength, $payloadHash, $generatorPublicKey, $generationSignature, $blockSignature)");
+			st.bind({
+				$id : block.id,
+				$version : block.version,
+				$timestamp : block.timestamp,
+				$height : block.height,
+				$previousBlock : block.previousBlock,
+				$numberOfRequests : block.numberOfRequests,
+				$numberOfTransactions : block.numberOfTransactions,
+				$numberOfConfirmations : block.numberOfConfirmations,
+				$totalAmount : block.totalAmount,
+				$totalFee : block.totalFee,
+				$payloadLength : block.payloadLength,
+				$requestsLength : block.requestsLength,
+				$confirmationsLength : block.confirmationsLength,
+				$payloadHash : block.payloadHash,
+				$generatorPublicKey : block.generatorPublicKey,
+				$generationSignature : block.generationSignature,
+				$blockSignature : block.blockSignature
+			});
+			st.run(function () {
+				async.parallel([
+					function (done) {
+						async.eachSeries(block.transactions, function (transaction, cb) {
+							st = transactionDb.prepare("INSERT INTO trs(id, blockId, type, subtype, timestamp, senderPublicKey, senderId, recipientId, amount, fee, signature, signSignature) VALUES($id, $blockId, $type, $subtype, $timestamp, $senderPublicKey, $senderId, $recipientId, $amount, $fee, $signature, $signSignature)");
+							st.bind({
+								$id : transaction.id,
+								$blockId : block.id,
+								$type : transaction.type,
+								$subtype : transaction.subtype,
+								$timestamp : transaction.timestamp,
+								$senderPublicKey : transaction.senderPublicKey,
+								$senderId : modules.accounts.getAddressByPublicKey(transaction.senderPublicKey),
+								$senderPublicKey : transaction.senderPublicKey,
+								$recipientId : transaction.recipientId,
+								$amount : transaction.amount,
+								$fee : transaction.fee,
+								$signature : transaction.signature,
+								$signSignature : transaction.signSignature
+							})
+							st.run(function (err) {
+								return cb(err);
+							})
+						}, function (err) {
+							return done(err);
+						})
+					},
+					function (done) {
+						async.eachSeries(block.requests, function (request, cb) {
+							st = transactionDb.prepare("INSERT INTO requests(id, blockId, address) VALUES($id, $blockId, $address)");
+							st.bind({
+								$id : request.id,
+								$blockId : block.id,
+								$address : request.address
+							});
+							st.run(function (err) {
+								return cb(err);
+							});
+						}, function (err) {
+							return done(err);
+						});
+					},
+					function (done) {
+						// confirmations
+						return done();
+					}
+				], function (errors) {
+					if (errors && errors.length > 0) {
+						return cb(errors.pop());
+					} else {
+						st = transactionDb.prepare("UPDATE blocks SET nextBlock=$nextBlock WHERE id=$id");
+						st.bind({
+							$id : block.previousBlock,
+							$nextBlock : block.id
+						});
+						st.run(function (err) {
+							if (err) {
+								return cb(err);
+							} else {
+								transactionDb.commit(function (err) {
+									return cb(err);
+								})
+							}
+						})
+					}
+				});
+			})
+		}
+	})
 }
 
 // generate block
-Blocks.prototype.generateBlock = function (secret, cb) {
+Blocks.prototype.generateBlock = function (keypair, cb) {
 	var transactions = modules.transactions.getUnconfirmedTransactions();
 	transactions.sort(function compare(a, b) {
 		if (a.fee < b.fee)
@@ -472,7 +772,6 @@ Blocks.prototype.generateBlock = function (secret, cb) {
 
 	payloadHash = payloadHash.digest();
 
-	var keypair = ed.MakeKeypair(crypto.createHash('sha256').update(secret, 'utf8').digest());
 
 	var generationSignature = crypto.createHash('sha256').update(lastBlock.generationSignature).update(keypair.publicKey).digest();
 	generationSignature = ed.Sign(generationSignature, keypair);
@@ -492,12 +791,15 @@ Blocks.prototype.generateBlock = function (secret, cb) {
 		requestsLength : 0,
 		numberOfRequests : 0,
 		confirmationsLength : 0,
-		numberOfConfirmations : 0
+		numberOfConfirmations : 0,
+		requests : [],
+		companyconfirmations : [],
+		transactions : blockTransactions
 	};
 
-	block.blockSignature = blockHelper.sign(secret, block);
+	block.blockSignature = blockHelper.sign(keypair, block);
 
-	setImmediate(this.processBlock, block, cb);
+	this.processBlock(block, cb);
 }
 
 //export
