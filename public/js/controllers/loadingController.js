@@ -2,7 +2,7 @@ webApp.controller("loadingController", ["$scope", "$http", "$interval", "$window
     $scope.height = null;
 
     $scope.getHeight = function () {
-        $http.get("/api/blocks/status")
+        $http.get("/api/loader/status")
             .then(function (resp) {
                 if (resp.data.success) {
                     if (!resp.data.loaded) {
