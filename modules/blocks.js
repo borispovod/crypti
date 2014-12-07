@@ -23,7 +23,6 @@ var fee = constants.feeStart;
 var nextFeeVolume = constants.feeStartVolume;
 var feeVolume = 0;
 var weight = bignum('0');
-var isLoading = true, loaded = 0, initialBlocksCount = 0; // when blocks loading from disk or when from peer
 
 //constructor
 function Blocks(cb, scope) {
@@ -32,10 +31,6 @@ function Blocks(cb, scope) {
 	self = this;
 
 	var router = new Router();
-
-	router.get('/status', function (req, res) {
-		return res.json({ success : true, loaded : !isLoading, now : loaded, blocksCount : initialBlocksCount });
-	})
 
 	router.get('/get', function (req, res) {
 		if (!req.query.id) {
@@ -89,8 +84,6 @@ function Blocks(cb, scope) {
 		initialBlocksCount = c.count;
 		cb(null, self);
 	});
-
-
 }
 
 //public

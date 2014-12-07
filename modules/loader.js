@@ -2,29 +2,24 @@ var async = require('async');
 var Router = require('../helpers/router.js');
 
 //private
-var modules, library, self;
+var modules, library, self, loaded;
 var total = 0;
 
 //constructor
 function Loader(cb, scope) {
 	library = scope;
+	loaded = false;
 	self = this;
 
 	var router = new Router();
 
-	// need to fix it, last block will exists all time
 	router.get('/status', function (req, res) {
 		if (modules.blocks.getLastBlock()) {
-			return res.json({
-				success: true,
-				height: modules.blocks.getLastBlock().height,
-				blocksCount: total,
-				loaded: self.loaded()
-			});
+			return res.json({ success: true, loaded: self.loaded(), now: modules.blocks.getLastBlock().height, blocksCount: total });
 		} else {
-			return res.json({success: false});
+			return res.json({ success : false });
 		}
-	});
+	})
 
 	library.app.use('/api/loader', router);
 
@@ -32,7 +27,7 @@ function Loader(cb, scope) {
 }
 
 Loader.prototype.loaded = function(){
-	return modules.blocks.getLastBlock().height == total;
+	return loaded;
 }
 
 //public
@@ -58,6 +53,8 @@ Loader.prototype.run = function (scope) {
 				if (err) {
 					library.logger.error(err);
 				}
+
+				loaded = true;
 				library.logger.info('blockchain loaded');
 
 				library.bus.message('blockchain ready');
