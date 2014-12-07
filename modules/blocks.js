@@ -8,7 +8,8 @@ var crypto = require('crypto'),
 	genesisblock = require("../helpers/genesisblock.js"),
 	transactionHelper = require("../helpers/transaction.js"),
 	constants = require('../helpers/constants.js'),
-	confirmationsHelper = require('../helpers/confirmations.js');
+	confirmationsHelper = require('../helpers/confirmations.js'),
+	timeHelper = require('../helpers/time.js');
 
 var Router = require('../helpers/router.js');
 var util = require('util');
@@ -100,8 +101,8 @@ Blocks.prototype.isLoading = function () {
 	return isLoading;
 }
 
-Blocks.prototype.setLoading = function (isLoading) {
-	isLoading = isLoading;
+Blocks.prototype.setLoading = function (loaded) {
+	isLoading = loaded;
 }
 
 Blocks.prototype.get = function (id, cb) {
@@ -432,7 +433,9 @@ Blocks.prototype.getLastBlock = function () {
 }
 
 Blocks.prototype.processBlock = function (block, cb) {
-	return cb();
+	lastBlock = block;
+	console.log("process block");
+	return setImmediate(cb);
 }
 
 // generate block
@@ -469,8 +472,7 @@ Blocks.prototype.generateBlock = function (secret, cb) {
 
 	payloadHash = payloadHash.digest();
 
-	var secretHash = ed.MakeKeypair(crypto.createHash('sh256').update(secret, 'utf8').digest());
-	var keypair = ed.MakeKeypair(secretHash);
+	var keypair = ed.MakeKeypair(crypto.createHash('sha256').update(secret, 'utf8').digest());
 
 	var generationSignature = crypto.createHash('sha256').update(lastBlock.generationSignature).update(keypair.publicKey).digest();
 	generationSignature = ed.Sign(generationSignature, keypair);
