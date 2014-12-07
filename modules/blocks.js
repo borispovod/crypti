@@ -22,7 +22,6 @@ var fee = constants.feeStart;
 var nextFeeVolume = constants.feeStartVolume;
 var feeVolume = 0;
 var weight = bignum('0');
-var isLoading = true; // when blocks loading from disk or when from peer
 
 //constructor
 function Blocks(cb, scope) {
@@ -83,12 +82,9 @@ function Blocks(cb, scope) {
 	setImmediate(cb, null, self);
 }
 
-Blocks.prototype.isLoading = function () {
-	return isLoading;
-}
-
-Blocks.prototype.setLoading = function (loaded) {
-	isLoading = loaded;
+//public
+Blocks.prototype.run = function (scope) {
+	modules = scope;
 }
 
 Blocks.prototype.get = function (id, cb) {
@@ -151,7 +147,7 @@ Blocks.prototype.count = function (cb) {
 	});
 }
 
-Blocks.prototype.loadBlocks = function (limit, offset, cb) {
+Blocks.prototype.loadBlocksPart = function (limit, offset, cb) {
 	console.time('loading');
 
 	library.db.all(
@@ -274,11 +270,6 @@ Blocks.prototype.loadBlocks = function (limit, offset, cb) {
 
 			cb(err);
 		});
-}
-
-//public
-Blocks.prototype.run = function (scope) {
-	modules = scope;
 }
 
 Blocks.prototype.applyForger = function (generatorPublicKey, transaction) {
