@@ -184,10 +184,26 @@ function getHash(block) {
 }
 
 function sign(secret, block) {
+	var keypair = secret;
 	var hash = getHash(block);
-	var secretHash = crypto.createHash('sha256').update(secret, 'utf8').digest();
-	var keypair = ed.MakeKeypair(secretHash);
+
+	if (typeof(secret) == 'string') {;
+		var secretHash = crypto.createHash('sha256').update(secret, 'utf8').digest();
+		keypair = ed.MakeKeypair(secretHash);
+	}
+
 	return ed.Sign(hash, keypair);
+}
+
+function getId(block) {
+	var hash = crypto.createHash('sha256').update(getBytes(block)).digest();
+	var temp = new Buffer(8);
+	for (var i = 0; i < 8; i++) {
+		temp[i] = hash[7 - i];
+	}
+
+	var id =  bignum.fromBuffer(temp).toString();
+	return id;
 }
 
 module.exports = {
@@ -198,5 +214,6 @@ module.exports = {
 	getSignature: getSignature,
 	getCompany: getCompany,
 	getBytes: getBytes,
-	sign : sign
+	sign : sign,
+	getId : getId
 }
