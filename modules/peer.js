@@ -20,19 +20,14 @@ Peer.prototype.run = function (scope) {
 Peer.prototype.list = function (limit, cb) {
 	limit = limit || 100;
 	var params = {$limit: limit};
-	if (library.ip){
-		params['$self'] = ip.toLong(library.ip)
-	}
 
-	library.db.all("select ip, port from peers where blocked = 0 " + (params['$self'] ? "and ip != $self" : "") + " ORDER BY RANDOM() LIMIT $limit", params, cb)
+	library.db.all("select ip, port from peers where blocked = 0 ORDER BY RANDOM() LIMIT $limit", params, cb)
 }
 
 Peer.prototype.count = function (cb) {
 	var params = {};
-	if (library.ip){
-		params['$self'] = ip.toLong(library.ip)
-	}
-	library.db.get("select count(rowid) as count from peers " + (params['$self'] ? "where ip != $self" : "") + "", params, function (err, res) {
+
+	library.db.get("select count(rowid) as count from peers", params, function (err, res) {
 		cb(err, res.count)
 	})
 }
