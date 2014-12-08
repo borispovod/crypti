@@ -30,61 +30,48 @@ Transport.prototype.run = function (scope) {
 }
 
 function _request(url, data, cb) {
-	request.post(url, data, function (err, response, body) {
+	var req = {
+		url: url,
+		method: 'POST'
+	};
+	if (Object.prototype.toString.call(data) == "[object Object]" || util.isArray(data)){
+		req.json = data;
+	}else{
+		req.body = data;
+	}
+	request(req, function (err, response, body) {
 		if (!err && response.statusCode == 200) {
-			cb(null, JSON.parse(body));
+			cb(null, body);
 		} else {
 			cb(err || response)
 		}
 	});
 }
 
-Transport.prototype.request = function (peer, method, data, cb) {
+Transport.prototype.request = function (peersCount, method, data, cb) {
+	peersCount = peersCount || 1;
 	if (!cb && (typeof(data) == 'function')) {
 		cb = data;
 		data = {};
 	}
-	if (!peer) {
-		modules.peer.random(function (err, peer) {
-			if (!err) {
+	modules.peer.list(peersCount, function (err, peers) {
+		if (!err) {
+			async.eachLimit(peers, 3, function (peer, cb) {
 				_request('http://' + ip.fromLong(peer.ip) + ':' + peer.port + '/peer' + method, data, function (err, body) {
 					if (err) {
-						modules.peer.remove(peer, function () {
-							cb(err);
-						});
+						//modules.peer.remove(peer, function () {
+						//	cb();
+						//});
+						cb(err);
 					} else {
-						cb(null, body);
+						cb();
 					}
 				});
-			}else{
-				setImmediate(cb, err);
-			}
-		});
-	} else if (util.isArray(peer)) {
-		async.eachLimit(peer, 2, function (item, cb) {
-			_request('http://' + ip.fromLong(item.ip) + ':' + item.port + '/peer' + method, data, function (err, body) {
-				if (err) {
-					modules.peer.remove(peer, function () {
-						cb();
-					});
-				} else {
-					cb();
-				}
-			});
-		}, cb)
-	} else if (Object.prototype.toString.call(peer) == "[object Object]") {
-		_request('http://' + ip.fromLong(peer.ip) + ':' + peer.port + '/peer' + method, data, function (err, body) {
-			if (err) {
-				modules.peer.remove(peer, function () {
-					cb(err);
-				});
-			} else {
-				cb(null, body);
-			}
-		});
-	} else {
-		cb('provide peer, method, [data,] cb')
-	}
+			}, cb)
+		} else {
+			setImmediate(cb, err);
+		}
+	});
 }
 
 Transport.prototype.onBlockchainReady = function () {
@@ -99,7 +86,7 @@ Transport.prototype.onBlockchainReady = function () {
 
 	router.post('/transaction', function (req, res) {
 		res.set(headers);
-		console.log(req.body)
+		console.log('get /transaction', req.body)
 		//modules.transactions.processUnconfirmedTransaction
 		return res.send(200)
 	});
