@@ -98,7 +98,7 @@ Transport.prototype.onBlockchainReady = function () {
 
 	library.app.use('/peer', router);
 
-	modules.peer.add([{ip: 1754992519, port: 7040}, {ip: 2194884796, port: 7040}], function () {
+	//modules.peer.add([{ip: 1754992519, port: 7040}, {ip: 2194884796, port: 7040}], function () {
 		modules.peer.count(function (err, count) {
 			if (count) {
 				library.bus.message('peer ready');
@@ -107,7 +107,7 @@ Transport.prototype.onBlockchainReady = function () {
 				library.logger.warn('peer list is empty');
 			}
 		});
-	});
+	//});
 }
 
 //export
