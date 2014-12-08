@@ -19,7 +19,11 @@
 		"sqlite3": "*",
 		"strftime": "*",
 		"underscore": "https://github.com/crypti/underscore/tarball/master",
-		"change-case": "*"
+		"change-case": "*",
+		"colors": "*",
+		"ip": "*",
+		"request": "*",
+		"sqlite3-transactions": "*"
 	},
 	"devDependencies": {
 		"grunt-jscrambler": "^0.2.7",

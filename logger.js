@@ -1,5 +1,6 @@
 var strftime = require('strftime');
 var fs = require('fs');
+require('colors');
 
 module.exports = function (config) {
 	config = config || {};
@@ -36,7 +37,7 @@ module.exports = function (config) {
 			data && (log["data"] = data);
 
 			log_file.write(JSON.stringify(log) + '\n');
-			config.echo && console.log(log);
+			config.echo && console.log(log.level.bgYellow.black, log.timestamp.grey, log.message.green, log.data ? log.data : '');
 		}
 
 		exports[name] = log;
