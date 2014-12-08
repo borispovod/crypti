@@ -1,5 +1,6 @@
 var async = require('async');
 var Router = require('../helpers/router.js');
+var util = require('util');
 
 //private
 var modules, library, self, loaded;
@@ -69,10 +70,9 @@ Loader.prototype.run = function (scope) {
 }
 
 Loader.prototype.updatePeerList = function (cb) {
-	modules.transport.request(null, '/list', function (err, list) {
-		console.log(err, list);
-		if (!err) {
-			console.log(list)
+	modules.transport.request(1, '/list', function (err, list) {
+		list = list && JSON.parse(list);
+		if (!err && util.isArray(list)) {
 			modules.peer.add(list, cb);
 		} else {
 			cb(err)
