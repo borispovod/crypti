@@ -80,30 +80,7 @@ d.run(function () {
 			sqlite3.connect(config.db, cb);
 		},
 
-		ip: function (cb) {
-			require('http').request({
-				hostname: 'fugal.net',
-				path: '/ip.cgi',
-				agent: false
-			}, function (res) {
-				if (res.statusCode != 200) {
-					return cb()
-				}
-				res.setEncoding('utf-8');
-				var ipAddress = '';
-				res.on('data', function (chunk) {
-					ipAddress += chunk;
-				});
-				res.on('end', function () {
-					cb(null, ipAddress.trim());
-					// ipAddress contains the external IP address
-				});
-			}).on('error', function (err) {
-				return cb()
-			}).end();
-		},
-
-		modules: ['db', 'express', 'app', 'config', 'logger', 'bus', 'ip', function (cb, scope) {
+		modules: ['db', 'express', 'app', 'config', 'logger', 'bus', function (cb, scope) {
 			var tasks = {};
 			Object.keys(config.modules).forEach(function (name) {
 				tasks[name] = function (cb) {
