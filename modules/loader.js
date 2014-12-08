@@ -15,9 +15,14 @@ function Loader(cb, scope) {
 
 	router.get('/status', function (req, res) {
 		if (modules.blocks.getLastBlock()) {
-			return res.json({ success: true, loaded: self.loaded(), now: modules.blocks.getLastBlock().height, blocksCount: total });
+			return res.json({
+				success: true,
+				loaded: self.loaded(),
+				now: modules.blocks.getLastBlock().height,
+				blocksCount: total
+			});
 		} else {
-			return res.json({ success : false });
+			return res.json({success: false});
 		}
 	})
 
@@ -26,7 +31,7 @@ function Loader(cb, scope) {
 	cb(null, this);
 }
 
-Loader.prototype.loaded = function(){
+Loader.prototype.loaded = function () {
 	return loaded;
 }
 
@@ -55,13 +60,32 @@ Loader.prototype.run = function (scope) {
 				}
 
 				loaded = true;
-				library.logger.info('blockchain loaded');
+				library.logger.info('blockchain ready');
 
 				library.bus.message('blockchain ready');
-				//modules.transport.start();
 			}
 		)
 	})
+}
+
+Loader.prototype.updatePeerList = function (cb) {
+	modules.transport.request(null, '/list', function (err, list) {
+		console.log(err, list);
+		if (!err) {
+			console.log(list)
+			modules.peer.add(list, cb);
+		} else {
+			cb(err)
+		}
+	});
+}
+
+Loader.prototype.onPeerReady = function () {
+	setTimeout(function next() {
+		self.updatePeerList(function () {
+			setTimeout(next, 10000)
+		})
+	}, 0)
 }
 
 //export
