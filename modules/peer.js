@@ -27,16 +27,6 @@ Peer.prototype.list = function (limit, cb) {
 	library.db.all("select ip, port from peers where blocked = 0 " + (params['$self'] ? "and ip != $self" : "") + " ORDER BY RANDOM() LIMIT $limit", params, cb)
 }
 
-Peer.prototype.random = function (cb) {
-	this.list(1, function (err, rows) {
-		if (!err && !rows.length) {
-			cb('peer list is empty');
-		}else{
-			cb(err, rows[0]);
-		}
-	})
-}
-
 Peer.prototype.count = function (cb) {
 	var params = {};
 	if (library.ip){
