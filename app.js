@@ -14,14 +14,14 @@ var config = {
 		"transport": "./modules/transport.js",
 		"loader": "./modules/loader.js",
 		"forger": "./modules/forger.js",
-		"system": "./modules/system.js"
+		"system": "./modules/system.js",
+		"peer": "./modules/peer.js"
 	}
 }
 
 var d = require('domain').create();
 d.on('error', function (err) {
-	console.log(err);
-	logger.error('domain master', {message: err.message, stack: err.stack});
+	logger.fatal('domain master', {message: err.message, stack: err.stack});
 	process.exit(0);
 });
 d.run(function () {
@@ -56,16 +56,16 @@ d.run(function () {
 			app.use(methodOverride());
 
 			app.listen(scope.config.port, scope.config.address, function (err) {
-				scope.logger.info("Crypti started: " + scope.config.address + ":" + scope.config.port);
+				scope.logger.log("Crypti started: " + scope.config.address + ":" + scope.config.port);
 				cb(err, app)
 			});
 		}],
 
-		bus: function(cb){
+		bus: function (cb) {
 			var changeCase = require('change-case');
-			var bus = function(){
-				this.message = function(topic, body){
-					modules.forEach(function(module){
+			var bus = function () {
+				this.message = function (topic, body) {
+					modules.forEach(function (module) {
 						if (typeof(module['on' + changeCase.pascalCase(topic)]) == 'function') {
 							module['on' + changeCase.pascalCase(topic)](body);
 						}
@@ -80,7 +80,30 @@ d.run(function () {
 			sqlite3.connect(config.db, cb);
 		},
 
-		modules: ['db', 'express', 'app', 'config', 'logger', 'bus', function (cb, scope) {
+		ip: function (cb) {
+			require('http').request({
+				hostname: 'fugal.net',
+				path: '/ip.cgi',
+				agent: false
+			}, function (res) {
+				if (res.statusCode != 200) {
+					return cb()
+				}
+				res.setEncoding('utf-8');
+				var ipAddress = '';
+				res.on('data', function (chunk) {
+					ipAddress += chunk;
+				});
+				res.on('end', function () {
+					cb(null, ipAddress.trim());
+					// ipAddress contains the external IP address
+				});
+			}).on('error', function (err) {
+				return cb()
+			}).end();
+		},
+
+		modules: ['db', 'express', 'app', 'config', 'logger', 'bus', 'ip', function (cb, scope) {
 			var tasks = {};
 			Object.keys(config.modules).forEach(function (name) {
 				tasks[name] = function (cb) {

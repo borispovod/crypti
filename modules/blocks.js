@@ -80,10 +80,7 @@ function Blocks(cb, scope) {
 
 	library.app.use('/api/blocks', router);
 
-	library.db.get("SELECT count(rowid) count FROM blocks", function (err, c) {
-		initialBlocksCount = c.count;
-		cb(null, self);
-	});
+	cb(null, self)
 }
 
 //public
@@ -152,7 +149,7 @@ Blocks.prototype.count = function (cb) {
 }
 
 Blocks.prototype.loadBlocksPart = function (limit, offset, cb) {
-	console.time('loading');
+	//console.time('loading');
 
 	library.db.all(
 		"SELECT " +
@@ -272,7 +269,7 @@ Blocks.prototype.loadBlocksPart = function (limit, offset, cb) {
 				console.log(err);
 			}
 
-			console.timeEnd('loading');
+			//console.timeEnd('loading');
 
 			cb(err);
 		});
@@ -397,6 +394,10 @@ Blocks.prototype.applyWeight = function (block) {
 	return weight;
 }
 
+Blocks.prototype.getWeight = function(){
+	return weight;
+}
+
 Blocks.prototype.applyFee = function (block) {
 	feeVolume += block.totalFee + block.totalAmount;
 
@@ -421,7 +422,7 @@ Blocks.prototype.processBlock = function (block, cb) {
 	block.id = blockHelper.getId(block);
 	block.height = lastBlock.height + 1;
 
-	library.db.get("SELECT id FROM blocks WHERE id=$id", { $id : block.id }, function (err, bId) {
+	library.db.get("SELECT id FROM blocks WHERE id=$id", {$id: block.id}, function (err, bId) {
 		if (err) {
 			return setImmediate(cb, err);
 		} else if (bId) {
@@ -481,7 +482,7 @@ Blocks.prototype.processBlock = function (block, cb) {
 							return cb();
 						}
 
-						library.db.get("SELECT id FROM trs WHERE id=$id", { $id : transaction.id }, function (err, tId) {
+						library.db.get("SELECT id FROM trs WHERE id=$id", {$id: transaction.id}, function (err, tId) {
 							if (err) {
 								return cb(err);
 							} else if (tId) {
@@ -533,7 +534,7 @@ Blocks.prototype.processBlock = function (block, cb) {
 							return cb("Dublicated request: " + request.id);
 						}
 
-						library.db.get("SELECT id FROM requests WHERE id=$id", { $id : request.id }, function (err, rId) {
+						library.db.get("SELECT id FROM requests WHERE id=$id", {$id: request.id}, function (err, rId) {
 							if (err) {
 								return cb(err);
 							} else if (rId) {
@@ -555,24 +556,24 @@ Blocks.prototype.processBlock = function (block, cb) {
 				},
 				function (done) {
 					/*
-					//need to finish later
-					async.forEach(block.companyconfirmations, function (confirmation, cb) {
-						if (!confirmationsHelper.verifySignature(confirmation, block.generatorPublicKey)) {
-							return cb("Can't verify company confirmation: " + confirmation.id);
-						}
+					 //need to finish later
+					 async.forEach(block.companyconfirmations, function (confirmation, cb) {
+					 if (!confirmationsHelper.verifySignature(confirmation, block.generatorPublicKey)) {
+					 return cb("Can't verify company confirmation: " + confirmation.id);
+					 }
 
-						if (confirmation.timestamp > now + 15 || confirmation.timestamp < block.timestamp) {
-							return cb("Can't accept confirmation timestamp: " + confirmation.id);
-						}
+					 if (confirmation.timestamp > now + 15 || confirmation.timestamp < block.timestamp) {
+					 return cb("Can't accept confirmation timestamp: " + confirmation.id);
+					 }
 
 
-						if (acceptedConfirmations[confirmation.id]) {
-							return cb("Doublicated confirmation: " + confirmation.id);
-						}
+					 if (acceptedConfirmations[confirmation.id]) {
+					 return cb("Doublicated confirmation: " + confirmation.id);
+					 }
 
-					}, function (err) {
-						return done(err);
-					});*/
+					 }, function (err) {
+					 return done(err);
+					 });*/
 					return done();
 				}
 			], function (errors) {
@@ -631,23 +632,23 @@ Blocks.prototype.saveBlock = function (block, cb) {
 		} else {
 			var st = transactionDb.prepare("INSERT INTO blocks(id, version, timestamp, height, previousBlock, numberOfRequests, numberOfTransactions, numberOfConfirmations, totalAmount, totalFee, payloadLength, requestsLength, confirmationsLength, payloadHash, generatorPublicKey, generationSignature, blockSignature) VALUES($id, $version, $timestamp, $height, $previousBlock, $numberOfRequests, $numberOfTransactions, $numberOfConfirmations, $totalAmount, $totalFee, $payloadLength, $requestsLength, $confirmationsLength, $payloadHash, $generatorPublicKey, $generationSignature, $blockSignature)");
 			st.bind({
-				$id : block.id,
-				$version : block.version,
-				$timestamp : block.timestamp,
-				$height : block.height,
-				$previousBlock : block.previousBlock,
-				$numberOfRequests : block.numberOfRequests,
-				$numberOfTransactions : block.numberOfTransactions,
-				$numberOfConfirmations : block.numberOfConfirmations,
-				$totalAmount : block.totalAmount,
-				$totalFee : block.totalFee,
-				$payloadLength : block.payloadLength,
-				$requestsLength : block.requestsLength,
-				$confirmationsLength : block.confirmationsLength,
-				$payloadHash : block.payloadHash,
-				$generatorPublicKey : block.generatorPublicKey,
-				$generationSignature : block.generationSignature,
-				$blockSignature : block.blockSignature
+				$id: block.id,
+				$version: block.version,
+				$timestamp: block.timestamp,
+				$height: block.height,
+				$previousBlock: block.previousBlock,
+				$numberOfRequests: block.numberOfRequests,
+				$numberOfTransactions: block.numberOfTransactions,
+				$numberOfConfirmations: block.numberOfConfirmations,
+				$totalAmount: block.totalAmount,
+				$totalFee: block.totalFee,
+				$payloadLength: block.payloadLength,
+				$requestsLength: block.requestsLength,
+				$confirmationsLength: block.confirmationsLength,
+				$payloadHash: block.payloadHash,
+				$generatorPublicKey: block.generatorPublicKey,
+				$generationSignature: block.generationSignature,
+				$blockSignature: block.blockSignature
 			});
 			st.run(function () {
 				async.parallel([
@@ -655,19 +656,19 @@ Blocks.prototype.saveBlock = function (block, cb) {
 						async.eachSeries(block.transactions, function (transaction, cb) {
 							st = transactionDb.prepare("INSERT INTO trs(id, blockId, type, subtype, timestamp, senderPublicKey, senderId, recipientId, amount, fee, signature, signSignature) VALUES($id, $blockId, $type, $subtype, $timestamp, $senderPublicKey, $senderId, $recipientId, $amount, $fee, $signature, $signSignature)");
 							st.bind({
-								$id : transaction.id,
-								$blockId : block.id,
-								$type : transaction.type,
-								$subtype : transaction.subtype,
-								$timestamp : transaction.timestamp,
-								$senderPublicKey : transaction.senderPublicKey,
-								$senderId : modules.accounts.getAddressByPublicKey(transaction.senderPublicKey),
-								$senderPublicKey : transaction.senderPublicKey,
-								$recipientId : transaction.recipientId,
-								$amount : transaction.amount,
-								$fee : transaction.fee,
-								$signature : transaction.signature,
-								$signSignature : transaction.signSignature
+								$id: transaction.id,
+								$blockId: block.id,
+								$type: transaction.type,
+								$subtype: transaction.subtype,
+								$timestamp: transaction.timestamp,
+								$senderPublicKey: transaction.senderPublicKey,
+								$senderId: modules.accounts.getAddressByPublicKey(transaction.senderPublicKey),
+								$senderPublicKey: transaction.senderPublicKey,
+								$recipientId: transaction.recipientId,
+								$amount: transaction.amount,
+								$fee: transaction.fee,
+								$signature: transaction.signature,
+								$signSignature: transaction.signSignature
 							})
 							st.run(function (err) {
 								return cb(err);
@@ -680,9 +681,9 @@ Blocks.prototype.saveBlock = function (block, cb) {
 						async.eachSeries(block.requests, function (request, cb) {
 							st = transactionDb.prepare("INSERT INTO requests(id, blockId, address) VALUES($id, $blockId, $address)");
 							st.bind({
-								$id : request.id,
-								$blockId : block.id,
-								$address : request.address
+								$id: request.id,
+								$blockId: block.id,
+								$address: request.address
 							});
 							st.run(function (err) {
 								return cb(err);
@@ -701,8 +702,8 @@ Blocks.prototype.saveBlock = function (block, cb) {
 					} else {
 						st = transactionDb.prepare("UPDATE blocks SET nextBlock=$nextBlock WHERE id=$id");
 						st.bind({
-							$id : block.previousBlock,
-							$nextBlock : block.id
+							$id: block.previousBlock,
+							$nextBlock: block.id
 						});
 						st.run(function (err) {
 							if (err) {
@@ -759,24 +760,24 @@ Blocks.prototype.generateBlock = function (keypair, cb) {
 	generationSignature = ed.Sign(generationSignature, keypair);
 
 	var block = {
-		version : 2,
-		totalAmount : totalAmount,
-		totalFee : totalFee,
-		payloadHash : payloadHash,
-		timestamp : timeHelper.getNow(),
-		numberOfTransactions : blockTransactions.length,
-		payloadLength : size,
-		payloadHash : payloadHash,
-		generationSignature : generationSignature,
-		previousBlock : lastBlock.id,
-		generatorPublicKey : keypair.publicKey,
-		requestsLength : 0,
-		numberOfRequests : 0,
-		confirmationsLength : 0,
-		numberOfConfirmations : 0,
-		requests : [],
-		companyconfirmations : [],
-		transactions : blockTransactions
+		version: 2,
+		totalAmount: totalAmount,
+		totalFee: totalFee,
+		payloadHash: payloadHash,
+		timestamp: timeHelper.getNow(),
+		numberOfTransactions: blockTransactions.length,
+		payloadLength: size,
+		payloadHash: payloadHash,
+		generationSignature: generationSignature,
+		previousBlock: lastBlock.id,
+		generatorPublicKey: keypair.publicKey,
+		requestsLength: 0,
+		numberOfRequests: 0,
+		confirmationsLength: 0,
+		numberOfConfirmations: 0,
+		requests: [],
+		companyconfirmations: [],
+		transactions: blockTransactions
 	};
 
 	block.blockSignature = blockHelper.sign(keypair, block);
