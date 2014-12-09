@@ -55,6 +55,49 @@ d.run(function () {
 			app.use(bodyParser.json());
 			app.use(methodOverride());
 
+			app.use(function (req, res, next) {
+				var parts = req.url.split('/');
+				var ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+
+				if (parts.length > 1) {
+					if (parts[1] == 'api') {
+						if (scope.config.api.access.whiteList.length > 0) {
+							if (scope.config.api.access.whiteList.indexOf(ip) < 0) {
+								return res.sendStatus(403);
+							} else {
+								return next();
+							}
+						} else {
+							return next();
+						}
+					} else if (parts[1] == 'peer') {
+						if (scope.config.peers.blackList.length > 0) {
+							if (scope.config.peers.blackList.indexOf(ip) >= 0) {
+								return res.sendStatus(403);
+							} else {
+								return next();
+							}
+						} else {
+							return next();
+						}
+					} else if (parts[1] == 'forging' || parts[1] == 'panel') {
+						if (scope.config.adminPanel.whiteList.length > 0) {
+							if (scope.config.adminPanel.whiteList.indexOf(ip) < 0) {
+								return res.sendStatus(403);
+							} else {
+								return next();
+							}
+						} else {
+							return next();
+						}
+					} else {
+						return next();
+					}
+				} else {
+					return next();
+				}
+			});
+
 			app.listen(scope.config.port, scope.config.address, function (err) {
 				scope.logger.log("Crypti started: " + scope.config.address + ":" + scope.config.port);
 				cb(err, app)
