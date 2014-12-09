@@ -56,10 +56,6 @@ Server.prototype.run = function (scope) {
 		res.render('forging.html');
 	});
 
-	router.get("*", function (req, res) {
-		res.redirect('/');
-	})
-
 	library.app.use('/', router);
 }
 
