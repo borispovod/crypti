@@ -81,7 +81,7 @@ Loader.prototype.updatePeerList = function (cb) {
 }
 
 Loader.prototype.loadBlocks = function (cb) {
-	modules.transport.getFromRandomPeer('/peer/weight', function (err, data) {
+	modules.transport.getFromRandomPeer('/weight', function (err, data) {
 		if (err) {
 			return cb(err);
 		} else {
