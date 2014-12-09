@@ -343,7 +343,7 @@ Blocks.prototype.getCommonBlock = function (milestoneBlock, peer, cb) {
 					return next(err || resp.error);
 				} else if (resp.ids.length == 0) {
 					async.eachSeries(resp.ids, function (id, cb) {
-						library.db.get("SELECT id FROM blocks WHERE id=$id", { $id : id }, function (err, block) {
+						library.db.get("SELECT id FROM blocks WHERE id=$id", { $id: id }, function (err, block) {
 							if (err) {
 								return cb(err);
 							} else if (block) {
