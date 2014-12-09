@@ -72,7 +72,11 @@ Loader.prototype.run = function (scope) {
 
 Loader.prototype.updatePeerList = function (cb) {
 	modules.transport.getFromRandomPeer('/list', function (err, list) {
-		modules.peer.add(list, cb);
+		if (!err) {
+			modules.peer.add(list, cb);
+		} else {
+			cb(err);
+		}
 	});
 }
 
@@ -107,12 +111,12 @@ Loader.prototype.loadBlocks = function (cb) {
 									return next(resp.error);
 								} else {
 									async.eachSeries(resp.milestoneBlockIds, function (blockId, cb) {
-										library.db.get("SELECT id FROM blocks WHERE id = $id", { $id : blockId }, function (err, block) {
+										library.db.get("SELECT id FROM blocks WHERE id = $id", {$id: blockId}, function (err, block) {
 											if (err) {
 												return cb(err);
 											} else if (block) {
 												return cb();
-											} else  {
+											} else {
 												return cb(true);
 											}
 										}, function (errOrFinish) {
@@ -123,23 +127,23 @@ Loader.prototype.loadBlocks = function (cb) {
 									});
 									/*
 
-									if (!json.milestoneBlockIds) {
-										return next({ err : "Can't find block" });
-									} else if (json.milestoneBlockIds.length == 0) {
-										return next({ err : null, milestoneBlock : genesisblock.blockId});
-									} else {
-										for (var i = 0; i < json.milestoneBlockIds.length; i++) {
-											var blockId = json.milestoneBlockIds[i];
+									 if (!json.milestoneBlockIds) {
+									 return next({ err : "Can't find block" });
+									 } else if (json.milestoneBlockIds.length == 0) {
+									 return next({ err : null, milestoneBlock : genesisblock.blockId});
+									 } else {
+									 for (var i = 0; i < json.milestoneBlockIds.length; i++) {
+									 var blockId = json.milestoneBlockIds[i];
 
-											if (this.blocks[blockId]) {
-												return next({ err : null, milestoneBlock : blockId });
-											} else {
-												lastMilestoneBlockId = blockId;
-											}
-										}
+									 if (this.blocks[blockId]) {
+									 return next({ err : null, milestoneBlock : blockId });
+									 } else {
+									 lastMilestoneBlockId = blockId;
+									 }
+									 }
 
-										next();
-									}*/
+									 next();
+									 }*/
 								}
 							});
 						},
@@ -161,12 +165,23 @@ Loader.prototype.loadBlocks = function (cb) {
 }
 
 Loader.prototype.onPeerReady = function () {
-	// once we got new peers need to start loadBlocks
-	setTimeout(function next() {
+	process.nextTick(function nextUpdatePeerList() {
 		self.updatePeerList(function () {
-			setTimeout(next, 60 * 1000)
+			setTimeout(nextUpdatePeerList, 60 * 1000);
+
+			process.nextTick(function nextLoadBlock() {
+				self.loadBlocks(function () {
+					setTimeout(nextLoadBlock, 30 * 1000)
+				})
+			});
+
+			process.nextTick(function nextGetUnconfirmedTransactions() {
+				self.getUnconfirmedTransactions(function () {
+					setTimeout(GetUnconfirmedTransactions, 15 * 1000)
+				})
+			});
 		})
-	}, 0);
+	});
 }
 
 //export
