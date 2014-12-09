@@ -559,7 +559,7 @@ Transactions.prototype.verifySignature = function (transaction) {
 
 	var hash = crypto.createHash('sha256').update(data2).digest();
 
-	return ed.Verify(hash, transaction.signature, transaction.senderPublicKey);
+	return ed.Verify(hash, transaction.signature || ' ', transaction.senderPublicKey || ' ');
 }
 
 Transactions.prototype.verifySecondSignature = function (transaction, publicKey) {
@@ -571,7 +571,7 @@ Transactions.prototype.verifySecondSignature = function (transaction, publicKey)
 	}
 
 	var hash = crypto.createHash('sha256').update(data2).digest();
-	return ed.Verify(hash, transaction.signSignature, publicKey);
+	return ed.Verify(hash, transaction.signSignature || ' ', publicKey || ' ');
 }
 
 Transactions.prototype.run = function (scope) {
