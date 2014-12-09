@@ -44,6 +44,7 @@ function _request(url, method, data, cb) {
 	if (cb) {
 		request(req, function (err, response, body) {
 			if (!err && response.statusCode == 200) {
+				console.log(url, method, data, body)
 				cb(null, body);
 			} else {
 				cb(err || response)
@@ -229,7 +230,7 @@ Transport.prototype.onBlockchainReady = function () {
 
 	router.get('/weight', function (req, res) {
 		res.set(headers);
-		return res.status(200).json({weight: modules.block.getWeight()});
+		return res.status(200).json({weight: modules.blocks.getWeight()});
 	});
 
 	library.app.use('/peer', router);
