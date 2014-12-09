@@ -301,7 +301,7 @@ Blocks.prototype.verifySignature = function (block) {
 	}
 
 	var hash = crypto.createHash('sha256').update(data2).digest();
-	return ed.Verify(hash, block.blockSignature, block.generatorPublicKey);
+	return ed.Verify(hash, block.blockSignature || ' ', block.generatorPublicKey || ' ');
 }
 
 Blocks.prototype.verifyGenerationSignature = function (block, previousBlock) {
@@ -313,7 +313,7 @@ Blocks.prototype.verifyGenerationSignature = function (block, previousBlock) {
 	var hash = crypto.createHash('sha256').update(previousBlock.generationSignature).update(block.generatorPublicKey);
 	var generationSignatureHash = hash.digest();
 
-	var r = ed.Verify(generationSignatureHash, block.generationSignature, block.generatorPublicKey);
+	var r = ed.Verify(generationSignatureHash, block.generationSignature || ' ', block.generatorPublicKey || ' ');
 
 	if (!r) {
 		return false;
