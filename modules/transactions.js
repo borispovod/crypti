@@ -26,7 +26,7 @@ function Transactions(cb, scope) {
 	router.get('/', function (req, res) {
 		self.list({
 			blockId: req.query.blockId,
-			senderPublicKey: req.query.senderPublicKey? new Buffer(req.query.senderPublicKey, 'hex') : null,
+			senderPublicKey: req.query.senderPublicKey ? new Buffer(req.query.senderPublicKey, 'hex') : null,
 			recipientId: req.query.recipientId,
 			limit: req.query.limit || 20,
 			orderBy: req.query.orderBy
@@ -257,7 +257,7 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, se
 		transaction.id = txId;
 	}
 
-	library.db.get("SELECT id FROM trs WHERE id=$id", { $id : transaction.id }, function (err, confirmed) {
+	library.db.get("SELECT id FROM trs WHERE id=$id", {$id: transaction.id}, function (err, confirmed) {
 		if (err) {
 			return cb("Internal sql error");
 		} else if (confirmed) {
@@ -417,9 +417,7 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, se
 						doubleSpendingTransactions[transaction.id] = transaction;
 					}
 
-					if (cb) {
-						return cb(null, transaction.id);
-					}
+					return cb && cb(null, transaction.id);
 				}
 			});
 		}
