@@ -341,7 +341,7 @@ Blocks.prototype.getCommonBlock = function (milestoneBlock, peer, cb) {
 			return !!!commonBlock;
 		},
 		function (next) {
-			modules.transport.getFromPeer(peer, "/peer/blocks/ids?id=" + tempBlock, function (err, resp) {
+			modules.transport.getFromPeer(peer, "/blocks/ids?id=" + tempBlock, function (err, resp) {
 				if (err || resp.error) {
 					return next(err || resp.error);
 				} else if (resp.ids.length == 0) {
@@ -389,7 +389,7 @@ Blocks.prototype.getMilestoneBlock = function (peer, cb) {
 				lastMilestoneBlockId = lastMilestoneBlockId;
 			}
 
-			modules.transport.getFromPeer(peer, "/peer/blocks/milestone?lastBlockId=" + lastBlock + "&" + "lastMilestoneBlockId=" + lastMilestoneBlockId, function (err, resp) {
+			modules.transport.getFromPeer(peer, "/blocks/milestone?lastBlockId=" + lastBlock + "&" + "lastMilestoneBlockId=" + lastMilestoneBlockId, function (err, resp) {
 				if (err) {
 					return next(err);
 				} else if (resp.error) {
@@ -707,6 +707,9 @@ Blocks.prototype.processBlock = function (block, cb) {
 						modules.transactions.apply(transaction);
 						modules.transactions.removeUnconfirmedTransaction(transaction.id);
 					}
+
+					self.applyFee(block);
+					self.applyWeight(block);
 
 					self.saveBlock(block, function (err) {
 						if (err) {
