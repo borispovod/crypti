@@ -79,7 +79,6 @@ Forger.prototype.startForging = function (keypair) {
 			var account = modules.accounts.getAccount(address);
 
 			if (!account || account.balance < 1000 * constants.fixedPoint) {
-				console.log(account);
 				return setTimeout(callback, 1000);
 			}
 

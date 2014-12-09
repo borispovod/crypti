@@ -51,7 +51,7 @@ Loader.prototype.run = function (scope) {
 			}, function (cb) {
 				library.logger.info('current ' + offset);
 				process.nextTick(function () {
-					modules.blocks.loadBlocksPart(limit, offset, function (err, res) {
+					modules.blocks.loadBlocksPart(limit, offset, null, function (err, res) {
 						offset = offset + limit;
 						cb(err, res)
 					});
@@ -71,9 +71,9 @@ Loader.prototype.run = function (scope) {
 }
 
 Loader.prototype.updatePeerList = function (cb) {
-	modules.transport.getFromRandomPeer('/list', function (err, list) {
+	modules.transport.getFromRandomPeer('/list', function (err, data) {
 		if (!err) {
-			modules.peer.add(list, cb);
+			modules.peer.add(data.body.peers, cb);
 		} else {
 			cb(err);
 		}
@@ -81,11 +81,11 @@ Loader.prototype.updatePeerList = function (cb) {
 }
 
 Loader.prototype.loadBlocks = function (cb) {
-	modules.transport.getFromRandomPeer('/peer/weight', function (err, resp, peer) {
+	modules.transport.getFromRandomPeer('/weight', function (err, data) {
 		if (err) {
 			return cb(err);
 		} else {
-			if (modules.blocks.getWeight().lt(resp.weight)) {
+			if (modules.blocks.getWeight().lt(data.body.weight)) {
 				var commonBlock = genesisBlock.blockId;
 
 				if (modules.blocks.getLastBlock().id != commonBlock) {
@@ -104,13 +104,13 @@ Loader.prototype.loadBlocks = function (cb) {
 								lastMilestoneBlockId = lastMilestoneBlockId;
 							}
 
-							modules.transport.getFromPeer(peer, "/peer/blocks/milestone?lastBlockId=" + lastBlock + "&" + "lastMilestoneBlockId=" + lastMilestoneBlockId, function (err, resp) {
+							modules.transport.getFromPeer(data.peer, "/blocks/milestone?lastBlockId=" + lastBlock + "&" + "lastMilestoneBlockId=" + lastMilestoneBlockId, function (err, data) {
 								if (err) {
 									return next(err);
-								} else if (resp.error) {
-									return next(resp.error);
+								} else if (data.body.error) {
+									return next(data.body.error);
 								} else {
-									async.eachSeries(resp.milestoneBlockIds, function (blockId, cb) {
+									async.eachSeries(data.body.milestoneBlockIds, function (blockId, cb) {
 										library.db.get("SELECT id FROM blocks WHERE id = $id", {$id: blockId}, function (err, block) {
 											if (err) {
 												return cb(err);
@@ -164,6 +164,17 @@ Loader.prototype.loadBlocks = function (cb) {
 	});
 }
 
+Loader.prototype.getUnconfirmedTransactions = function (cb) {
+	modules.transport.getFromRandomPeer('/transactions', function (err, data) {
+		cb(err, data.body)
+		//if (!err) {
+		//	modules.peer.add(data.body, cb);
+		//} else {
+		//	cb(err);
+		//}
+	});
+}
+
 Loader.prototype.onPeerReady = function () {
 	process.nextTick(function nextUpdatePeerList() {
 		self.updatePeerList(function () {
@@ -177,7 +188,7 @@ Loader.prototype.onPeerReady = function () {
 
 			process.nextTick(function nextGetUnconfirmedTransactions() {
 				self.getUnconfirmedTransactions(function () {
-					setTimeout(GetUnconfirmedTransactions, 15 * 1000)
+					setTimeout(nextGetUnconfirmedTransactions, 15 * 1000)
 				})
 			});
 		})

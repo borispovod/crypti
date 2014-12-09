@@ -410,7 +410,6 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, se
 						unconfirmedTransactions[transaction.id] = transaction;
 
 						if (sendToPeers) {
-							console.log('send /transaction', transaction)
 							modules.transport.request(1, '/transaction', transaction);
 						}
 					} else {
