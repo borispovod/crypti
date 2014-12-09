@@ -24,6 +24,17 @@ Peer.prototype.list = function (limit, cb) {
 	library.db.all("select ip, port from peers where blocked = 0 ORDER BY RANDOM() LIMIT $limit", params, cb)
 }
 
+Peer.prototype.updateHeaders = function (ip, headers, cb) {
+	var st = library.db.prepare("UPDATE peers SET port = $port WHERE ip = $ip AND (port != $port)");
+	st.bind({
+		$ip : ip,
+		$port : headers.port
+	});
+	st.run(function (err) {
+		return cb(err);
+	});
+}
+
 Peer.prototype.count = function (cb) {
 	var params = {};
 
