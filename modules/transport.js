@@ -54,21 +54,20 @@ function _request(url, method, data, cb) {
 	}
 }
 
-Transport.prototype.broadcast = function (peersCount, method, data) {
+Transport.prototype.broadcast = function (peersCount, method, data, cb) {
 	peersCount = peersCount || 1;
-	if (!cb) {
-		cb = (typeof(data) == 'function') ? data : null;
-		data = null;
+	if (!cb && (typeof(data) == 'function')) {
+		cb = data;
+		data = undefined;
 	}
-	data = data || {};
 	modules.peer.list(peersCount, function (err, peers) {
 		if (!err) {
 			async.eachLimit(peers, 3, function (peer, cb) {
 				// not need to check peer is offline or online, just send.
 				_request('http://' + ip.fromLong(peer.ip) + ':' + peer.port + '/peer' + method, "POST", data);
-				return cb();
+				setImmediate(cb);
 			}, function () {
-				cb && cb(null, peers);
+				cb && cb(null, {body: null, peer: peers});
 			})
 		} else {
 			cb && setImmediate(cb, err);
@@ -78,10 +77,10 @@ Transport.prototype.broadcast = function (peersCount, method, data) {
 
 Transport.prototype.getFromRandomPeer = function (method, cb) {
 	modules.peer.list(1, function (err, peers) {
-		if (!err && peers.length > 0) {
-			var peer = peers.pop();
-			_request('http://' + ip.fromLong(peer.ip) + ":" + peer.port + "/peer" + method, "GET", function (err, resp, body) {
-				cb(err, body, peer);
+		if (!err && peers.length) {
+			var peer = peers[0];
+			_request('http://' + ip.fromLong(peer.ip) + ":" + peer.port + "/peer" + method, "GET", undefined, function (err, body) {
+				cb(err, {body: body, peer: peer});
 			});
 		} else {
 			return cb(err || "Nothing peers in db");
@@ -90,22 +89,22 @@ Transport.prototype.getFromRandomPeer = function (method, cb) {
 }
 
 Transport.prototype.getFromPeer = function (peer, method, cb) {
-	_request('http://' + ip.fromLong(peer.ip) + ":" + peer.port + "/peer" + method, "GET", function (err, resp, body) {
-		cb(err, body);
+	_request('http://' + ip.fromLong(peer.ip) + ":" + peer.port + "/peer" + method, "GET", undefined, function (err, body) {
+		cb(err, {body: body, peer: peer});
 	});
 }
 
 Transport.prototype.onBlockchainReady = function () {
 	var router = new Router();
 
-	router.post('/list', function (req, res) {
+	router.get('/list', function (req, res) {
 		res.set(headers);
 		modules.peer.list(100, function (err, peers) {
-			return res.status(200).json(peers || []);
+			return res.status(200).json({peers: !err ? peers : []});
 		})
 	});
 
-	router.post('/transaction', function (req, res) {
+	router.get('/transaction', function (req, res) {
 		res.set(headers);
 
 		var transaction = req.body.transaction;
@@ -218,6 +217,9 @@ Transport.prototype.onBlockchainReady = function () {
 
 	router.get("/blocks", function (req, res) {
 		// get 1400+ blocks with all data (joins) from provided block id
+		modules.blocks.loadBlocksPart(1440, 0, req.query.lastBlockId, function (err, res) {
+			return res.status(200).json({blocks: !err ? res : []});
+		});
 	});
 
 	router.get("/transactions", function (req, res) {
@@ -225,9 +227,9 @@ Transport.prototype.onBlockchainReady = function () {
 		return res.status(200).json({transactions: modules.transactions.getUnconfirmedTransactions()});
 	});
 
-	router.post('/weight', function (req, res) {
+	router.get('/weight', function (req, res) {
 		res.set(headers);
-		return res.status(200).json({weight: modules.block.getWeight()});
+		return res.status(200).json({weight: modules.blocks.getWeight()});
 	});
 
 	library.app.use('/peer', router);
