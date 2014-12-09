@@ -18,10 +18,12 @@
     "api": {
         "access": {
             "auth": {
-                "user": "",
-                "password": ""
+                "user": "boris",
+                "password": "ms02kf"
             },
-            "whiteList": []
+            "whiteList": [
+				"127.0.0.1"
+			]
         }
     },
     "peers": {
