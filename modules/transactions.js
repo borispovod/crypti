@@ -411,13 +411,15 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, se
 
 						if (sendToPeers) {
 							console.log('send /transaction', transaction)
-							modules.transport.request(1, '/transaction', transaction, function(){})
+							modules.transport.request(1, '/transaction', transaction);
 						}
 					} else {
 						doubleSpendingTransactions[transaction.id] = transaction;
 					}
 
-					return cb(null, transaction.id);
+					if (cb) {
+						return cb(null, transaction.id);
+					}
 				}
 			});
 		}
