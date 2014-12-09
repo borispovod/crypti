@@ -56,11 +56,11 @@ function _request(url, method, data, cb) {
 
 Transport.prototype.broadcast = function (peersCount, method, data) {
 	peersCount = peersCount || 1;
-	if (!cb && (typeof(data) == 'function')) {
-		cb = data;
-		data = {};
+	if (!cb) {
+		cb = (typeof(data) == 'function') ? data : null;
+		data = null;
 	}
-
+	data = data || {};
 	modules.peer.list(peersCount, function (err, peers) {
 		if (!err) {
 			async.eachLimit(peers, 3, function (peer, cb) {
@@ -68,15 +68,15 @@ Transport.prototype.broadcast = function (peersCount, method, data) {
 				_request('http://' + ip.fromLong(peer.ip) + ':' + peer.port + '/peer' + method, "POST", data);
 				return cb();
 			}, function () {
-				return cb(null, peers);
+				cb && cb(null, peers);
 			})
 		} else {
-			setImmediate(cb, err);
+			cb && setImmediate(cb, err);
 		}
 	});
 }
 
-Transport.prototype.getFromRandomPeer = function (method, data, cb) {
+Transport.prototype.getFromRandomPeer = function (method, cb) {
 	modules.peer.list(1, function (err, peers) {
 		if (!err && peers.length > 0) {
 			var peer = peers.pop();
@@ -89,7 +89,7 @@ Transport.prototype.getFromRandomPeer = function (method, data, cb) {
 	});
 }
 
-Transport.prototype.getFromPeer = function (peer, method, data, cb) {
+Transport.prototype.getFromPeer = function (peer, method, cb) {
 	_request('http://' + ip.fromLong(peer.ip) + ":" + peer.port + "/peer" + method, "GET", function (err, resp, body) {
 		cb(err, body);
 	});
@@ -115,10 +115,10 @@ Transport.prototype.onBlockchainReady = function () {
 	});
 
 	router.get("/blocks/ids", function (req, res) {
-		library.db.all("SELECT id FROM blocks WHERE height > (SELECT height FROM blocks where id=$id) LIMIT 1440 ORDER BY height", { $id: req.query.id }, function (err, blocks) {
+		library.db.all("SELECT id FROM blocks WHERE height > (SELECT height FROM blocks where id=$id) LIMIT 1440", {$id: req.query.id}, function (err, blocks) {
 			if (err) {
 				console.log(err);
-				return res.status(200).json({ error: "Internal sql error" });
+				return res.status(200).json({error: "Internal sql error"});
 			} else {
 				var ids = [];
 
@@ -126,7 +126,7 @@ Transport.prototype.onBlockchainReady = function () {
 					ids.push(blocks[i].id);
 				}
 
-				return res.status(200).json({ ids: ids });
+				return res.status(200).json({ids: ids});
 			}
 		});
 	});
@@ -145,7 +145,7 @@ Transport.prototype.onBlockchainReady = function () {
 		async.series([
 			function (cb) {
 				if (lastMilestoneBlockId != null) {
-					var st = library.db.get("SELECT height FROM blocks WHERE id=$id", { $id: lastMilestoneBlockId }, function (err, block) {
+					library.db.get("SELECT height FROM blocks WHERE id=$id", {$id: lastMilestoneBlockId}, function (err, block) {
 						st.run(function (err, block) {
 							if (err) {
 								console.log(err);
