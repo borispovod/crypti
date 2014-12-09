@@ -1,5 +1,6 @@
 var Logger = require('./logger.js');
-var logger = new Logger({echo: true, errorLevel: "log"});
+var appConfig = require("./config.json");
+var logger = new Logger({echo: true, errorLevel: appConfig.logLevel });
 var async = require('async');
 
 var config = {
@@ -28,8 +29,7 @@ d.run(function () {
 	var modules = [];
 	async.auto({
 		config: function (cb) {
-			var config = require("./config.json");
-			cb(null, config);
+			cb(null, appConfig);
 		},
 
 		logger: function (cb) {
