@@ -29,57 +29,71 @@ Transport.prototype.run = function (scope) {
 	}
 }
 
-function _request(url, data, cb) {
+function _request(url, method, data, cb) {
 	var req = {
 		url: url,
-		method: 'POST'
+		method: method,
+		json : true
 	};
 	if (Object.prototype.toString.call(data) == "[object Object]" || util.isArray(data)){
 		req.json = data;
-	}else{
+	}else {
 		req.body = data;
 	}
-	request(req, function (err, response, body) {
-		if (!err && response.statusCode == 200) {
-			cb(null, body);
-		} else {
-			cb(err || response)
-		}
-	});
+
+	if (cb) {
+		request(req, function (err, response, body) {
+			if (!err && response.statusCode == 200) {
+				cb(null, body);
+			} else {
+				cb(err || response)
+			}
+		});
+	} else {
+		request(req);
+	}
 }
 
-Transport.prototype.request = function (peersCount, method, data, cb) {
+Transport.prototype.broadcast = function (peersCount, method, data) {
 	peersCount = peersCount || 1;
 	if (!cb && (typeof(data) == 'function')) {
 		cb = data;
 		data = {};
 	}
+
 	modules.peer.list(peersCount, function (err, peers) {
 		if (!err) {
 			async.eachLimit(peers, 3, function (peer, cb) {
-				_request('http://' + ip.fromLong(peer.ip) + ':' + peer.port + '/peer' + method, data, function (err, body) {
-					if (err) {
-						//modules.peer.remove(peer, function () {
-						//	cb();
-						//});
-						cb(err);
-					} else {
-						cb();
-					}
-				});
+				// not need to check peer is offline or online, just send.
+				_request('http://' + ip.fromLong(peer.ip) + ':' + peer.port + '/peer' + method, "POST", data);
+				return cb();
 			}, function () {
-				if (cb) {
-					cb();
-				}
+				return cb(null, peers);
 			})
 		} else {
-			if (cb) {
-				setImmediate(cb, err);
-			}
+			setImmediate(cb, err);
 		}
 	});
 }
 
+Transport.prototype.getFromRandomPeer = function (method, data, cb) {
+	modules.peer.list(1, function (err, peers) {
+		if (!err && peers.length > 0) {
+			var peer = peers.pop();
+			_request('http://' + ip.fromLong(peer.ip) + ":" + peer.port + "/peer" + method, "GET", function (err, resp, body) {
+				cb(err, body, peer);
+			});
+		} else {
+			return cb(err || "Nothing peers in db");
+		}
+	});
+}
+
+Transport.prototype.getFromPeer = function (peer, method, data, cb) {
+	_request('http://' + ip.fromLong(peer.ip) + ":" + peer.port + "/peer" + method, "GET", function (err, resp, body) {
+		cb(err, body);
+	});
+}
 
 Transport.prototype.onBlockchainReady = function () {
 	var router = new Router();
