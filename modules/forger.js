@@ -1,4 +1,4 @@
-var	timeHelper = require("../helpers/time.js"),
+var timeHelper = require("../helpers/time.js"),
 	async = require('async'),
 	ed = require('ed25519'),
 	constants = require('../helpers/constants.js'),
@@ -17,11 +17,11 @@ function Forger(cb, scope) {
 
 	router.post('/enable', function (req, res) {
 		if (!req.body.secret || req.body.secret.length == 0) {
-			return res.json({ success : false, error : "Provide secret key" });
+			return res.json({ success: false, error: "Provide secret key" });
 		}
 
 		if (forgingStarted) {
-			return res.json({ success : false, error : "Forging already started" });
+			return res.json({ success: false, error: "Forging already started" });
 		}
 
 		keypair = ed.MakeKeypair(crypto.createHash('sha256').update(req.body.secret, 'utf').digest());
@@ -31,34 +31,34 @@ function Forger(cb, scope) {
 
 		if (req.body.saveToConfig) {
 			configHelper.saveSecret(req.body.secret, function (err) {
-				return res.json({ success : true, address : address});
+				return res.json({ success: true, address: address});
 			})
 		} else {
-			return res.json({ success : true, address : address });
+			return res.json({ success: true, address: address });
 		}
 	});
 
 	router.post('/disable', function (req, res) {
 		if (!req.body.secret || req.body.secret.length == 0) {
-			return res.json({ success : false, error : "Provide secret key" });
+			return res.json({ success: false, error: "Provide secret key" });
 		}
 
 		if (!forgingStarted) {
-			return res.json({ success : false, error : "Forging already disabled" });
+			return res.json({ success: false, error: "Forging already disabled" });
 		}
 
 		if (keypair.privateKey.toString('hex') != ed.MakeKeypair(crypto.createHash('sha256').update(req.body.secret, 'utf').digest()).privateKey.toString('hex')) {
-			return res.json({ success : false, error : "Provide valid secret key to stop forging" });
+			return res.json({ success: false, error: "Provide valid secret key to stop forging" });
 		}
 
 		var address = modules.accounts.getAddressByPublicKey(keypair.publicKey);
 		self.stopForging();
 
-		return res.json({ success : true, address : address });
+		return res.json({ success: true, address: address });
 	});
 
 	router.get("/", function (req, res) {
-		return res.json({ success : true, enabled : forgingStarted || false });
+		return res.json({ success: true, enabled: forgingStarted || false });
 	});
 
 	library.app.use('/api/forging', router);
@@ -79,7 +79,9 @@ Forger.prototype.startForging = function (keypair) {
 	var address = modules.accounts.getAddressByPublicKey(keypair.publicKey);
 
 	async.until(
-		function () { return !forgingStarted },
+		function () {
+			return !forgingStarted
+		},
 		function (callback) {
 			if (!modules.loader.loaded()) {
 				return setTimeout(callback, 1000);
