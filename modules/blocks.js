@@ -90,8 +90,8 @@ Blocks.prototype.run = function (scope) {
 
 Blocks.prototype.get = function (id, cb) {
 	var stmt = library.db.prepare("select b.id b_id, b.version b_version, b.timestamp b_timestamp, b.height b_height, b.previousBlock b_previousBlock, b.nextBlock b_nextBlock, b.numberOfRequests b_numberOfRequests, b.numberOfTransactions b_numberOfTransactions, b.numberOfConfirmations b_numberOfConfirmations, b.totalAmount b_totalAmount, b.totalFee b_totalFee, b.payloadLength b_payloadLength, b.requestsLength b_requestsLength, b.confirmationsLength b_confirmationsLength, b.payloadHash b_payloadHash, b.generatorPublicKey b_generatorPublicKey, b.generationSignature b_generationSignature, b.blockSignature b_blockSignature " +
-	"from blocks b " +
-	"where b.id = ?");
+		"from blocks b " +
+		"where b.id = ?");
 
 	stmt.bind(id);
 
@@ -124,10 +124,10 @@ Blocks.prototype.list = function (filter, cb) {
 	}
 
 	var stmt = library.db.prepare("select b.id b_id, b.version b_version, b.timestamp b_timestamp, b.height b_height, b.previousBlock b_previousBlock, b.nextBlock b_nextBlock, b.numberOfRequests b_numberOfRequests, b.numberOfTransactions b_numberOfTransactions, b.numberOfConfirmations b_numberOfConfirmations, b.totalAmount b_totalAmount, b.totalFee b_totalFee, b.payloadLength b_payloadLength, b.requestsLength b_requestsLength, b.confirmationsLength b_confirmationsLength, b.payloadHash b_payloadHash, b.generatorPublicKey b_generatorPublicKey, b.generationSignature b_generationSignature, b.blockSignature b_blockSignature " +
-	"from blocks b " +
-	(fields.length ? "where " + fields.join(' and ') : '') + " " +
-	(filter.orderBy ? 'order by ' + sortBy + ' ' + sortMethod : '') + " " +
-	(filter.limit ? 'limit $limit' : ''));
+		"from blocks b " +
+		(fields.length ? "where " + fields.join(' and ') : '') + " " +
+		(filter.orderBy ? 'order by ' + sortBy + ' ' + sortMethod : '') + " " +
+		(filter.limit ? 'limit $limit' : ''));
 
 	stmt.bind(params);
 
@@ -143,7 +143,7 @@ Blocks.prototype.list = function (filter, cb) {
 
 Blocks.prototype.count = function (cb) {
 	library.db.get("select count(rowid) count " +
-	"from blocks", function (err, res) {
+		"from blocks", function (err, res) {
 		cb(err, res.count);
 	});
 }
@@ -332,6 +332,100 @@ Blocks.prototype.verifyGenerationSignature = function (block, previousBlock) {
 	return true;
 }
 
+Blocks.prototype.getCommonBlock = function (milestoneBlock, peer, cb) {
+	var tempBlock = milestoneBlock,
+		commonBlock = null;
+
+	async.whilst(
+		function () {
+			return !!!commonBlock;
+		},
+		function (next) {
+			modules.transport.getFromPeer(peer, "/peer/blocks/ids?id=" + tempBlock, function (err, resp) {
+				if (err || resp.error) {
+					return next(err || resp.error);
+				} else if (resp.ids.length == 0) {
+					async.eachSeries(resp.ids, function (id, cb) {
+						library.db.get("SELECT id FROM blocks WHERE id=$id", { $id: id }, function (err, block) {
+							if (err) {
+								return cb(err);
+							} else if (block) {
+								tempBlock = block.id;
+								return cb();
+							} else {
+								commonBlock = tempBlock;
+								return cb(true);
+							}
+						})
+					}, function (errOrFinish) {
+						if (errOrFinish === true) {
+							return next();
+						} else {
+							return next(errOrFinish)
+						}
+					});
+				}
+			});
+		},
+		function (err) {
+			return cb(err, commonBlock);
+		}
+	)
+}
+
+Blocks.prototype.getMilestoneBlock = function (peer, cb) {
+	var lastBlock = null,
+		lastMilestoneBlockId = null,
+		milestoneBlock = null;
+
+	async.whilst(
+		function () {
+			return !!!milestoneBlock;
+		},
+		function (next) {
+			if (lastMilestoneBlockId == null) {
+				lastBlock = lastBlock.id;
+			} else {
+				lastMilestoneBlockId = lastMilestoneBlockId;
+			}
+
+			modules.transport.getFromPeer(peer, "/peer/blocks/milestone?lastBlockId=" + lastBlock + "&" + "lastMilestoneBlockId=" + lastMilestoneBlockId, function (err, resp) {
+				if (err) {
+					return next(err);
+				} else if (resp.error) {
+					return next(resp.error);
+				} else if (resp.milestoneBlockIds.length == 0) {
+					milestoneBlock = genesisBlock.blockId;
+					return next();
+				} else {
+					async.eachSeries(resp.milestoneBlockIds, function (blockId, cb) {
+						library.db.get("SELECT id FROM blocks WHERE id = $id", { $id: blockId }, function (err, block) {
+							if (err) {
+								return cb(err);
+							} else if (block) {
+								lastMilestoneBlockId = blockId;
+								return cb();
+							} else {
+								milestoneBlock = blockId;
+								return cb(true);
+							}
+						});
+					}, function (errOrFinish) {
+						return next(errOrFinish);
+					});
+				}
+			});
+		},
+		function (err) {
+			if (err === true) {
+				return cb(null, milestoneBlock);
+			} else {
+				return cb(err, milestoneBlock);
+			}
+		}
+	);
+}
+
 Blocks.prototype.applyConfirmation = function (generatorPublicKey, confirmation) {
 	var generator = modules.accounts.getAccountByPublicKey(generatorPublicKey);
 
@@ -397,7 +491,7 @@ Blocks.prototype.applyWeight = function (block) {
 	return weight;
 }
 
-Blocks.prototype.getWeight = function(){
+Blocks.prototype.getWeight = function () {
 	return weight;
 }
 
