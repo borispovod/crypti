@@ -20,14 +20,6 @@ Server.prototype.run = function (scope) {
 
 	var router = new Router();
 
-	if (library.config.api.access.auth.user || library.config.api.access.auth.password) {
-		library.app.basicAuth = library.express.basicAuth(library.config.api.access.auth.user, library.config.api.access.auth.password);
-	} else {
-		library.app.basicAuth = function (req, res, next) {
-			return next();
-		}
-	}
-
 	router.get('/', function (req, res) {
 		var ip = req.connection.remoteAddress;
 
@@ -35,7 +27,7 @@ Server.prototype.run = function (scope) {
 
 		if (library.config.api.access.whiteList.length > 0) {
 			if (library.config.api.access.whiteList.indexOf(ip) < 0) {
-				return res.send(401);
+				return res.sendStatus(401);
 			} else {
 				if (modules.loader.loaded()) {
 					res.render('wallet.html', {showAdmin: showLinkToAdminPanel, layout: false});
