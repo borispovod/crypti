@@ -191,7 +191,6 @@ Transport.prototype.onBlockchainReady = function () {
 								milestoneBlockIds.push(blockId);
 								library.db.get("SELECT id FROM blocks WHERE height = $height", { $height: height }, function (err, block) {
 									if (err) {
-										console.log(err);
 										return next(err);
 									} else if (!block) {
 										return next("Internal error");
