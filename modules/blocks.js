@@ -148,9 +148,11 @@ Blocks.prototype.count = function (cb) {
 	});
 }
 
-Blocks.prototype.loadBlocksPart = function (limit, offset, cb) {
+Blocks.prototype.loadBlocksPart = function (limit, offset, lastId, cb) {
 	//console.time('loading');
 
+	var params = {$limit: limit, $offset: offset};
+	lastId && (params['$lastId'] = lastId);
 	library.db.all(
 		"SELECT " +
 		"b.id b_id, b.version b_version, b.timestamp b_timestamp, b.height b_height, b.previousBlock b_previousBlock, b.nextBlock b_nextBlock, b.numberOfRequests b_numberOfRequests, b.numberOfTransactions b_numberOfTransactions, b.numberOfConfirmations b_numberOfConfirmations, b.totalAmount b_totalAmount, b.totalFee b_totalFee, b.payloadLength b_payloadLength, b.requestsLength b_requestsLength, b.confirmationsLength b_confirmationsLength, b.payloadHash b_payloadHash, b.generatorPublicKey b_generatorPublicKey, b.generationSignature b_generationSignature, b.blockSignature b_blockSignature, " +
@@ -164,8 +166,9 @@ Blocks.prototype.loadBlocksPart = function (limit, offset, cb) {
 		"left outer join companies as c on c.transactionId=t.id " +
 		"left outer join companies as c_t on c_t.address=t.recipientId " +
 		"left outer join companyconfirmations as cc on cc.blockId=b.id " +
+		(lastId ? "where b.height > (SELECT height FROM blocks where id = $lastId) " : "") +
 		"ORDER BY b.height, t.rowid, s.rowid, c.rowid, cc.rowid " +
-		"", {$limit: limit, $offset: offset}, function (err, rows) {
+		"", params, function (err, rows) {
 			// Some notes:
 			// If loading catch error, for example, invalid signature on block & transaction, need to stop loading and remove all blocks after last good block.
 			// We need to process all transactions of block
