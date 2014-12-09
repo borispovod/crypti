@@ -76,7 +76,7 @@ Transport.prototype.broadcast = function (peersCount, method, data) {
 	});
 }
 
-Transport.prototype.getFromRandomPeer = function (method, data, cb) {
+Transport.prototype.getFromRandomPeer = function (method, cb) {
 	modules.peer.list(1, function (err, peers) {
 		if (!err && peers.length > 0) {
 			var peer = peers.pop();
@@ -89,7 +89,7 @@ Transport.prototype.getFromRandomPeer = function (method, data, cb) {
 	});
 }
 
-Transport.prototype.getFromPeer = function (peer, method, data, cb) {
+Transport.prototype.getFromPeer = function (peer, method, cb) {
 	_request('http://' + ip.fromLong(peer.ip) + ":" + peer.port + "/peer" + method, "GET", function (err, resp, body) {
 		cb(err, body);
 	});
