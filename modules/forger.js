@@ -2,7 +2,8 @@ var	timeHelper = require("../helpers/time.js"),
 	async = require('async'),
 	ed = require('ed25519'),
 	constants = require('../helpers/constants.js'),
-	crypto = require('crypto');
+	crypto = require('crypto'),
+	configHelper = require('../helpers/config.js');
 
 var Router = require('../helpers/router.js');
 
@@ -26,7 +27,15 @@ function Forger(cb, scope) {
 		keypair = ed.MakeKeypair(crypto.createHash('sha256').update(req.body.secret, 'utf').digest());
 		self.startForging(keypair);
 
-		return res.json({ success : true, address : modules.accounts.getAddressByPublicKey(keypair.publicKey) });
+		var address = modules.accounts.getAddressByPublicKey(keypair.publicKey);
+
+		if (req.body.saveToConfig) {
+			configHelper.saveSecret(req.body.secret, function (err) {
+				return res.json({ success : true, address : address});
+			})
+		} else {
+			return res.json({ success : true, address : address });
+		}
 	});
 
 	router.post('/disable', function (req, res) {
@@ -103,6 +112,12 @@ Forger.prototype.startForging = function (keypair) {
 
 Forger.prototype.run = function (scope) {
 	modules = scope;
+	var secret = library.config.forging.secret
+
+	if (secret) {
+		keypair = ed.MakeKeypair(crypto.createHash('sha256').update(secret, 'utf').digest());
+		this.startForging(keypair);
+	}
 }
 
 module.exports = Forger;
