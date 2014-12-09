@@ -72,7 +72,11 @@ Loader.prototype.run = function (scope) {
 
 Loader.prototype.updatePeerList = function (cb) {
 	modules.transport.getFromRandomPeer('/list', function (err, list) {
-		modules.peer.add(list, cb);
+		if (!err) {
+			modules.peer.add(list, cb);
+		} else {
+			cb(err);
+		}
 	});
 }
 
@@ -108,12 +112,23 @@ Loader.prototype.loadBlocks = function (cb) {
 }
 
 Loader.prototype.onPeerReady = function () {
-	// once we got new peers need to start loadBlocks
-	setTimeout(function next() {
+	process.nextTick(function nextUpdatePeerList() {
 		self.updatePeerList(function () {
-			setTimeout(next, 60 * 1000)
+			setTimeout(nextUpdatePeerList, 60 * 1000);
+
+			process.nextTick(function nextLoadBlock() {
+				self.loadBlocks(function () {
+					setTimeout(nextLoadBlock, 30 * 1000)
+				})
+			});
+
+			process.nextTick(function nextGetUnconfirmedTransactions() {
+				self.getUnconfirmedTransactions(function () {
+					setTimeout(GetUnconfirmedTransactions, 15 * 1000)
+				})
+			});
 		})
-	}, 0);
+	});
 }
 
 //export
