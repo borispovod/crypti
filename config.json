@@ -7,20 +7,12 @@
     "logLevel": "debug",
     "sharePort": true,
     "adminPanel": {
-        "auth": {
-            "user": "",
-            "password": ""
-        },
         "whiteList": [
             "127.0.0.1"
         ]
     },
     "api": {
         "access": {
-            "auth": {
-                "user": "boris",
-                "password": "ms02kf"
-            },
             "whiteList": [
 				"127.0.0.1"
 			]
