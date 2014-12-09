@@ -34,7 +34,7 @@ function verifySignature(confirmation, publicKey) {
 	}
 
 	var hash = crypto.createHash('sha256').update(data2).digest();
-	return ed.Verify(hash, confirmation.signature, publicKey);
+	return ed.Verify(hash, confirmation.signature || ' ', publicKey || ' ');
 }
 
 module.exports = {
