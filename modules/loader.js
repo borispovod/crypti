@@ -1,6 +1,7 @@
 var async = require('async');
 var Router = require('../helpers/router.js');
 var util = require('util');
+var genesisBlock = require("../helpers/genesisblock.js")
 
 //private
 var modules, library, self, loaded;
@@ -70,22 +71,102 @@ Loader.prototype.run = function (scope) {
 }
 
 Loader.prototype.updatePeerList = function (cb) {
-	modules.transport.request(1, '/list', function (err, list) {
-		list = list && JSON.parse(list);
-		if (!err && util.isArray(list)) {
-			modules.peer.add(list, cb);
+	modules.transport.getFromRandomPeer('/list', function (err, list) {
+		modules.peer.add(list, cb);
+	});
+}
+
+Loader.prototype.loadBlocks = function (cb) {
+	modules.transport.getFromRandomPeer('/peer/weight', function (err, resp, peer) {
+		if (err) {
+			return cb(err);
 		} else {
-			cb(err)
+			if (modules.blocks.getWeight().lt(resp.weight)) {
+				var commonBlock = genesisBlock.blockId;
+
+				if (modules.blocks.getLastBlock().id != commonBlock) {
+					var isLastBlock = false,
+						lastBlock = null,
+						lastMilestoneBlockId = null;
+
+					async.whilst(
+						function () {
+							return !isLastBlock;
+						},
+						function (next) {
+							if (lastMilestoneBlockId == null) {
+								lastBlock = modules.blocks.getLastBlock().id;
+							} else {
+								lastMilestoneBlockId = lastMilestoneBlockId;
+							}
+
+							modules.transport.getFromPeer(peer, "/peer/blocks/milestone?lastBlockId=" + lastBlock + "&" + "lastMilestoneBlockId=" + lastMilestoneBlockId, function (err, resp) {
+								if (err) {
+									return next(err);
+								} else if (resp.error) {
+									return next(resp.error);
+								} else {
+									async.eachSeries(resp.milestoneBlockIds, function (blockId, cb) {
+										library.db.get("SELECT id FROM blocks WHERE id = $id", { $id : blockId }, function (err, block) {
+											if (err) {
+												return cb(err);
+											} else if (block) {
+												return cb();
+											} else  {
+												return cb(true);
+											}
+										}, function (errOrFinish) {
+											if (errOrFinish === true) {
+												//
+											}
+										});
+									});
+									/*
+
+									if (!json.milestoneBlockIds) {
+										return next({ err : "Can't find block" });
+									} else if (json.milestoneBlockIds.length == 0) {
+										return next({ err : null, milestoneBlock : genesisblock.blockId});
+									} else {
+										for (var i = 0; i < json.milestoneBlockIds.length; i++) {
+											var blockId = json.milestoneBlockIds[i];
+
+											if (this.blocks[blockId]) {
+												return next({ err : null, milestoneBlock : blockId });
+											} else {
+												lastMilestoneBlockId = blockId;
+											}
+										}
+
+										next();
+									}*/
+								}
+							});
+						},
+						function (err) {
+							if (err) {
+								return cb(err);
+							}
+						}
+					)
+
+				} else {
+					modules.transport
+				}
+			} else {
+				return cb();
+			}
 		}
 	});
 }
 
 Loader.prototype.onPeerReady = function () {
+	// once we got new peers need to start loadBlocks
 	setTimeout(function next() {
 		self.updatePeerList(function () {
-			setTimeout(next, 10000)
+			setTimeout(next, 60 * 1000)
 		})
-	}, 0)
+	}, 0);
 }
 
 //export
