@@ -67,12 +67,19 @@ Transport.prototype.request = function (peersCount, method, data, cb) {
 						cb();
 					}
 				});
-			}, cb)
+			}, function () {
+				if (cb) {
+					cb();
+				}
+			})
 		} else {
-			setImmediate(cb, err);
+			if (cb) {
+				setImmediate(cb, err);
+			}
 		}
 	});
 }
+
 
 Transport.prototype.onBlockchainReady = function () {
 	var router = new Router();
@@ -86,14 +93,127 @@ Transport.prototype.onBlockchainReady = function () {
 
 	router.post('/transaction', function (req, res) {
 		res.set(headers);
-		console.log('get /transaction', req.body)
-		//modules.transactions.processUnconfirmedTransaction
-		return res.send(200)
+
+		var transaction = req.body.transaction;
+		modules.transactions.processUnconfirmedTransaction(transaction, true);
+
+		return res.send(200);
+	});
+
+	router.get("/blocks/ids", function (req, res) {
+		library.db.all("SELECT id FROM blocks WHERE height > (SELECT height FROM blocks where id=$id) LIMIT 1440", { $id : req.query.id }, function (err, blocks) {
+			if (err) {
+				console.log(err);
+				return res.status(200).json({ error : "Internal sql error" });
+			} else {
+				var ids = [];
+
+				for (var i = 0; i < blocks.length; i++) {
+					ids.push(blocks[i].id);
+				}
+
+				return res.status(200).json({ ids : ids });
+			}
+		});
+	});
+
+	router.get("/blocks/milestone", function (req, res) {
+		// get milestone block
+		var lastBlockId = req.query.lastBlockId,
+			lastMilestoneBlockId = req.query.lastMilestoneBlockId;
+
+		if (lastBlockId == modules.blocks.getLastBlock().id) {
+			return res.status(200).json({ last : true, milestoneBlockIds : [lastBlockId] });
+		}
+
+		var blockId, height, jump, limit;
+		var milestoneBlockIds = [];
+		async.series([
+			function (cb) {
+				if (lastMilestoneBlockId != null) {
+					var st = library.db.get("SELECT height FROM blocks WHERE id=$id", { $id : lastMilestoneBlockId }, function (err, block) {
+						st.run(function (err, block) {
+							if (err) {
+								console.log(err);
+								return cb("Internal sql error");
+							} else if (!block) {
+								return cb("Can't find block: " + lastMilestoneBlockId);
+							} else {
+								height = block.height;
+								jump = Math.min(1440, modules.blocks.getLastBlock().height - height);
+								height = Math.max(height - jump, 0);
+								limit = 10;
+								return cb();
+							}
+						})
+					});
+				} else if (lastBlockId != null) {
+					height = modules.blocks.getLastBlock().height;
+					jump = 10;
+					limit = 10;
+					return cb();
+				} else {
+					return cb("Error, provide lastBlockId or lastMilestoneBlockId");
+				}
+			}
+		], function (errors) {
+			if (errors) {
+				return res.status(200).json({ error : errors.pop() });
+			} else {
+				library.db.get("SELECT id FROM blocks WHERE height = $height", { $height : height }, function (err, block) {
+					if (err) {
+						console.log(err);
+						return res.status(200).json({ error : "Internal sql error" });
+					} else if (!block) {
+						return res.status(200).json({ error : "Internal error" });
+					} else {
+						blockId = block.id;
+
+						async.whilst(
+							function () {
+								return (height > 0 && limit-- > 0);
+							},
+							function (next) {
+								milestoneBlockIds.push(blockId);
+								library.db.get("SELECT id FROM blocks WHERE height = $height", { $height : height }, function (err, block) {
+									if (err) {
+										console.log(err);
+										return next(err);
+									} else if (!block) {
+										return next("Internal error");
+									} else {
+										blockId = block.id;
+										height = height - jump;
+										return next();
+									}
+								});
+							},
+							function (err) {
+								if (err) {
+									return res.status(200).json({ error : err });
+								} else {
+									return res.status(200).json({ milestoneBlockIds : milestoneBlockIds });
+								}
+							}
+						)
+					}
+				});
+			}
+		});
+	});
+
+	router.get("/blocks", function (req, res) {
+		// get 1400+ blocks with all data (joins) from provided block id
+	});
+
+	router.get("/transactions", function (req, res) {
+		// need to process headers from peer
+		return res.status(200).json({ transactions : modules.transactions.getUnconfirmedTransactions() });
 	});
 
 	router.post('/weight', function (req, res) {
 		res.set(headers);
-		return res.send(200, modules.block.getWeight());
+		return res.status(200).json({ weight : modules.block.getWeight()});
 	});
 
 	library.app.use('/peer', router);
