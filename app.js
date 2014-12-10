@@ -1,7 +1,12 @@
 var Logger = require('./logger.js');
 var appConfig = require("./config.json");
-var logger = new Logger({echo: true, errorLevel: appConfig.logLevel });
+var logger = new Logger({echo: true, errorLevel: appConfig.logLevel});
 var async = require('async');
+
+process.on('uncaughtException', function(err) {
+    // handle the error safely
+    logger.fatal('system error', {message: err.message, stack: err.stack});
+});
 
 var config = {
 	"db": "./blockchain.db",
@@ -23,7 +28,7 @@ var config = {
 var d = require('domain').create();
 d.on('error', function (err) {
 	logger.fatal('domain master', {message: err.message, stack: err.stack});
-	process.exit(0);
+	//process.exit(0);
 });
 d.run(function () {
 	var modules = [];
@@ -48,6 +53,7 @@ d.run(function () {
 			var methodOverride = require('method-override');
 
 			app.engine('html', require('ejs').renderFile);
+			app.use(require('express-domain-middleware'));
 			app.set('view engine', 'ejs');
 			app.set('views', path.join(__dirname, 'public'));
 			app.use(scope.express.static(path.join(__dirname, 'public')));
@@ -127,8 +133,15 @@ d.run(function () {
 			var tasks = {};
 			Object.keys(config.modules).forEach(function (name) {
 				tasks[name] = function (cb) {
-					var Klass = new require(config.modules[name]);
-					modules.push(new Klass(cb, scope));
+					var d = require('domain').create();
+					d.on('error', function (err) {
+						scope.logger.log('domain ' + name, {message: err.message, stack: err.stack});
+					});
+					d.run(function() {
+						var Klass = new require(config.modules[name]);
+						var obj = new Klass(cb, scope)
+						modules.push(obj);
+					});
 				}
 			});
 			async.parallel(tasks, function (err, results) {
