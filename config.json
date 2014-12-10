@@ -8,13 +8,11 @@
     "sharePort": true,
     "adminPanel": {
         "whiteList": [
-            "127.0.0.1"
         ]
     },
     "api": {
         "access": {
             "whiteList": [
-				"127.0.0.1"
 			]
         }
     },
