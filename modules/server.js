@@ -25,22 +25,10 @@ Server.prototype.run = function (scope) {
 
 		var showLinkToAdminPanel = library.config.adminPanel.whiteList.length && library.config.adminPanel.whiteList.indexOf(ip) >= 0;
 
-		if (library.config.api.access.whiteList.length > 0) {
-			if (library.config.api.access.whiteList.indexOf(ip) < 0) {
-				return res.sendStatus(401);
-			} else {
-				if (modules.loader.loaded()) {
-					res.render('wallet.html', {showAdmin: showLinkToAdminPanel, layout: false});
-				} else {
-					res.render('loading.html');
-				}
-			}
+		if (modules.loader.loaded()) {
+			res.render('wallet.html', {showAdmin: showLinkToAdminPanel, layout: false});
 		} else {
-			if (modules.loader.loaded()) {
-				res.render('wallet.html', {showAdmin: showLinkToAdminPanel, layout: false});
-			} else {
-				res.render('loading.html');
-			}
+			res.render('loading.html');
 		}
 	});
 
