@@ -73,7 +73,9 @@ Loader.prototype.run = function (scope) {
 Loader.prototype.updatePeerList = function (cb) {
 	modules.transport.getFromRandomPeer('/list', function (err, data) {
 		if (!err) {
-			modules.peer.add(data.body.peers, cb);
+			async.eachLimit(data.body.peers, 2, function(peer, cb){
+				modules.peer.update(peer, cb);
+			}, cb)
 		} else {
 			cb(err);
 		}
@@ -114,11 +116,6 @@ Loader.prototype.loadBlocks = function (cb) {
 Loader.prototype.getUnconfirmedTransactions = function (cb) {
 	modules.transport.getFromRandomPeer('/transactions', function (err, data) {
 		cb(err, data.body)
-		//if (!err) {
-		//	modules.peer.add(data.body, cb);
-		//} else {
-		//	cb(err);
-		//}
 	});
 }
 
