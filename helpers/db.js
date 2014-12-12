@@ -27,7 +27,6 @@ module.exports.connect = function (connectString, cb) {
 		"CREATE INDEX IF NOT EXISTS companyconfirmations_company_id ON companyconfirmations(companyId)",
 		"UPDATE peers SET state = 1, clock = null where (state != 0) or (state = 0 and clock - " + Date.now() + " < 0)"
 	];
-	console.log('now', Date.now())
 
 	async.eachSeries(sql, function (command, cb) {
 		db.run(command, cb);
