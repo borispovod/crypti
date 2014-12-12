@@ -54,7 +54,7 @@ function _request(peer, api, method, data, cb) {
 				});
 				cb(null, body);
 			} else {
-				modules.peer.state(peer.ip, peer.port, 1);
+				modules.peer.state(peer.ip, peer.port, 0, 10);
 				cb(err || response);
 			}
 		});

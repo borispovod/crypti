@@ -24,9 +24,16 @@ Peer.prototype.list = function (limit, cb) {
 	library.db.all("select ip, port, state, os, sharePort, version from peers where state != 0 and sharePort = 1 ORDER BY RANDOM() LIMIT $limit", params, cb);
 }
 
-Peer.prototype.state = function (ip, port, state, cb) {
-	var st = library.db.prepare("UPDATE peers SET state = $state WHERE ip = $ip and port = $port;");
-	st.bind({$state: state, $ip: ip, $port: port});
+Peer.prototype.state = function (ip, port, state, clock, cb) {
+	if (state == 0){
+		clock = clock || 10;
+		clock = Date.now() + (clock * 60 * 1000);
+	}else{
+		clock = null;
+	}
+	console.log('ban', clock)
+	var st = library.db.prepare("UPDATE peers SET state = $state, clock = $clock WHERE ip = $ip and port = $port;");
+	st.bind({$state: state, $clock: clock, $ip: ip, $port: port});
 	st.run(function (err) {
 		err && console.log(err);
 		cb && cb()
