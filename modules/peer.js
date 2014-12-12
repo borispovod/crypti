@@ -1,6 +1,7 @@
 var async = require('async');
 var util = require('util');
 var ip = require('ip');
+var Router = require('../helpers/router.js');
 
 //private
 var modules, library, self;
@@ -9,6 +10,46 @@ var modules, library, self;
 function Peer(cb, scope) {
 	library = scope;
 	self = this;
+
+	var router = new Router();
+
+	router.get('/', function (req, res) {
+		self.filter({}, function (err, peers) {
+			if (err) {
+				return res.json({success: false, error: "Peers not found"});
+			}
+			return res.json({success: true, peers: peers});
+		});
+	});
+
+	router.get('/banned', function (req, res) {
+		self.filter({status: 0}, function (err, peers) {
+			if (err) {
+				return res.json({success: false, error: "Peers not found"});
+			}
+			return res.json({success: true, peers: peers});
+		});
+	});
+
+	router.get('/connected', function (req, res) {
+		self.filter({status: 1}, function (err, peers) {
+			if (err) {
+				return res.json({success: false, error: "Peers not found"});
+			}
+			return res.json({success: true, peers: peers});
+		});
+	});
+
+	router.get('/shared', function (req, res) {
+		self.filter({sharePort: 1}, function (err, peers) {
+			if (err) {
+				return res.json({success: false, error: "Peers not found"});
+			}
+			return res.json({success: true, peers: peers});
+		});
+	});
+
+	library.app.use('/api/peers', router);
 
 	cb(null, this);
 }
@@ -24,14 +65,29 @@ Peer.prototype.list = function (limit, cb) {
 	library.db.all("select ip, port, state, os, sharePort, version from peers where state != 0 and sharePort = 1 ORDER BY RANDOM() LIMIT $limit", params, cb);
 }
 
+Peer.prototype.filter = function (filter, cb) {
+	var limit = filter.limit || 100;
+	delete filter.limit;
+
+	var where = [];
+	var params = {};
+	Object.keys(filter).forEach(function (key) {
+		where.push(key + " = " + '$' + key);
+		params['$' + key] = filter[key];
+	});
+
+	params['$limit'] = limit;
+
+	library.db.all("select ip, port, state, os, sharePort, version from peers" + (where.length ? (' where ' + where.join(' and ')) : '') + ' limit $limit', params, cb);
+}
+
 Peer.prototype.state = function (ip, port, state, clock, cb) {
-	if (state == 0){
+	if (state == 0) {
 		clock = clock || 10;
 		clock = Date.now() + (clock * 60 * 1000);
-	}else{
+	} else {
 		clock = null;
 	}
-	console.log('ban', clock)
 	var st = library.db.prepare("UPDATE peers SET state = $state, clock = $clock WHERE ip = $ip and port = $port;");
 	st.bind({$state: state, $clock: clock, $ip: ip, $port: port});
 	st.run(function (err) {
