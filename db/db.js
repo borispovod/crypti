@@ -140,7 +140,7 @@ db.prototype.writeBlock = function (block,  callback) {
 				}
 			], function (err) {
 				if (err) {
-					console.log(err);
+					process.exit();
 					return callback(err);
 				} else {
 					var st = trDb.prepare("INSERT INTO blocks(id, version, timestamp, previousBlock, numberOfRequests, numberOfTransactions, numberOfConfirmations, totalAmount, totalFee, payloadLength, requestsLength, confirmationsLength, payloadHash, generatorPublicKey, generationSignature, blockSignature, height) VALUES($id, $version, $timestamp, $previousBlock, $numberOfRequests, $numberOfTransactions, $numberOfConfirmations, $totalAmount, $totalFee, $payloadLength, $requestsLength, $confirmationsLength, $payloadHash, $generatorPublicKey, $generationSignature, $blockSignature, $height)");
