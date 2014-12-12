@@ -47,14 +47,14 @@ function _request(peer, api, method, data, cb) {
 				modules.peer.update({
 					ip: peer.ip,
 					port: Number(response.headers['port']),
-					state: 2,
+					state: 1,
 					os: response.headers['os'],
 					sharePort: Number(!!response.headers['share-port']),
 					version: response.headers['version']
 				});
 				cb(null, body);
 			} else {
-				modules.peer.state(peer.ip, peer.port, 0, 10);
+				modules.peer.state(peer.ip, peer.port, 2, 10);
 				cb(err || response);
 			}
 		});
