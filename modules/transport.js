@@ -117,7 +117,7 @@ Transport.prototype.onBlockchainReady = function () {
 		res.set(headers);
 
 		var transaction = req.body.transaction;
-		modules.transactions.processUnconfirmedTransaction(transaction, true);
+		modules.transactions.processUnconfirmedTransaction(transaction);
 
 		return res.send(200);
 	});
@@ -258,6 +258,10 @@ Transport.prototype.onBlockchainReady = function () {
 		}
 	});
 	//});
+}
+
+Transport.prototype.onUnconfirmedTransaction = function(transaction){
+	self.broadcast(100, '/transaction', {transaction: transaction});
 }
 
 //export
