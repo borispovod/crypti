@@ -3,6 +3,7 @@ webApp.controller('forgingController', ['$scope', '$rootScope', '$http', "userSe
     $scope.effectiveBalance = userService.effectiveBalance;
     $scope.totalBalance = userService.balance;
     $scope.unconfirmedBalance = userService.unconfirmedBalance;
+	$scope.loading = true;
 
     $scope.getInfo = function () {
         $http.get("/api/getMiningInfo", { params : { publicKey : userService.publicKey, descOrder : true }})
@@ -11,6 +12,7 @@ webApp.controller('forgingController', ['$scope', '$rootScope', '$http', "userSe
                 $scope.companies = resp.data.companies;
                 $scope.totalForged = resp.data.totalForged;
                 $scope.forging = resp.data.forging;
+				$scope.loading = false;
             });
     }
 

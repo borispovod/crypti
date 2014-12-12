@@ -10,7 +10,8 @@ var genesisblock = require("./genesisblock.js"),
     Long = require("long"),
     requestconfirmation = require('../request').requestconfirmation,
     async = require('async'),
-    _ = require('underscore');
+    _ = require('underscore'),
+    wait = require('wait.for');
 
 var blockchain = function (app) {
     this.app = app;
@@ -185,6 +186,7 @@ blockchain.prototype.removeForkedBlocks = function (commonBlock, cb) {
             }.bind(this)
         )
     }.bind(this);
+
     if (this.app.db.blockSavingId) {
         this.app.db.queue = [];
         this.app.db.once("blockchainLoaded", function () {
@@ -216,8 +218,8 @@ blockchain.prototype.popLastBlock = function (cb) {
 
     var feePercent = lastBlock.previousFee || 1;
 
-    for (var r  in lastBlock.requests) {
-        var request = lastBlock.requests[r];
+    for (var i = 0; i < lastBlock.requests.length; i++) {
+        var request = lastBlock.requests[i];
         var address = request.address;
 
         this.app.requestprocessor.confirmedRequests[address].pop();
@@ -497,9 +499,9 @@ blockchain.prototype.getFee = function (transaction) {
 }
 
 
-blockchain.prototype.pushBlock = function (buffer, saveToDb, sendToPeers, checkRequests) {
+blockchain.prototype.pushBlock = function (buffer, saveToDb, sendToPeers, checkRequests, cb) {
     if (this.forkProcessingRunning) {
-        return;
+        return cb(true);
     }
 
     var b = null;
@@ -563,36 +565,36 @@ blockchain.prototype.pushBlock = function (buffer, saveToDb, sendToPeers, checkR
 
     if (this.getLastBlock().previousBlock == b.previousBlock) {
         this.logger.error("Invalid previous block: " + b.getId() + ", " + b.previousBlock + " must be " + this.getLastBlock().getId());
-        return false;
+        return cb(true);
     }
 
     var curTime = utils.getEpochTime(new Date().getTime());
     if (b.timestamp > curTime || b.timestamp <= this.getLastBlock().timestamp || b.timestamp - this.getLastBlock().timestamp < 60) {
         this.logger.error("Invalid block (" + b.getId() + ") time: " + b.timestamp + ", current time: " + curTime + ", last block time: " + this.getLastBlock().timestamp);
-        return false;
+        return cb(true);
     }
 
 
     if (b.payloadLength > constants.maxPayloadLength || b.requestsLength > constants.maxRequestsLength || b.confirmationsLength > constants.maxConfirmations || b.payloadLength + constants.blockHeaderLength + b.confirmationsLength + b.requestsLength  != buffer.length) {
         this.logger.error("Invalid payload length: " + b.getId(), " length: " + (b.payloadLength + constants.blockHeaderLength + b.requestsLength + b.confirmationsLength), "buffer length: " + buffer.length);
-        return false;
+        return cb(true);
     }
 
     var generator = this.app.accountprocessor.getAccountByPublicKey(b.generatorPublicKey);
 
     if (!generator || generator.getEffectiveBalance() < 1000 * constants.numberLength) {
         this.logger.error("Can't accept block, generator doesn't have 1000 XCR");
-        return false;
+        return cb(true);
     }
 
     b.index = Object.keys(this.blocks).length + 1;
 
     if (b.previousBlock != this.lastBlock || this.getBlock(b.getId()) != null || !b.verifyGenerationSignature() || !b.verifyBlockSignature()) {
         this.logger.error("Invalid block signatures: " + b.getId() + ", previous block: " + b.previousBlock + "/" + this.lastBlock + ", generation signature verification: " + b.verifyGenerationSignature() + ", block signature verification: " + b.verifyBlockSignature());
-        return false;
+        return cb(true);
     }
 
-    this.logger.info("Load addresses and transactions from block: " + b.getId());
+    this.logger.debug("Load addresses and transactions from block: " + b.getId());
 
     b.transactions = [];
     for (var i = 0; i < b.numberOfTransactions; i++) {
@@ -620,7 +622,7 @@ blockchain.prototype.pushBlock = function (buffer, saveToDb, sendToPeers, checkR
 
     b.forForger = 0;
 
-    this.logger.info("Process transactions in block: " + b.getId());
+    this.logger.debug("Process transactions in block: " + b.getId());
     var accumulatedAmounts = {};
     var i, calculatedTotalAmount = 0, calculatedTotalFee = 0;
     var foundsTrs = {};
@@ -869,12 +871,12 @@ blockchain.prototype.pushBlock = function (buffer, saveToDb, sendToPeers, checkR
 
     if (confirmationsLength != b.numberOfConfirmations) {
         this.logger.error("Invalid number of confirmations: " + b.getId());
-        return false;
+        return cb(true);
     }
 
     if (calculatedTotalAmount != b.totalAmount || calculatedTotalFee != b.totalFee || i != b.transactions.length) {
         this.logger.error("Total amount, fee, transactions count invalid: " + b.getId() + ", total amount: " + calculatedTotalAmount + "/" + b.totalAmount + ", total fee: " + calculatedTotalFee + "/" + b.totalFee + ", transactions count: " + i + "/" + b.transactions.length);
-        return false;
+        return cb(true);
     }
 
     var numOfRequests = 0;
@@ -906,19 +908,19 @@ blockchain.prototype.pushBlock = function (buffer, saveToDb, sendToPeers, checkR
     }
 
     if (numOfRequests == 0) {
-        return false;
+        return cb(true);
     }
 
     if (checkRequests) {
         if (found != Object.keys(this.app.requestprocessor.unconfirmedRequests).length) {
             this.app.logger.error("Can't process, requests in blocks invalids: " + b.getId() + " / " + found + " / " + Object.keys(this.app.requestprocessor.unconfirmedRequests).length);
-            return false;
+            return cb(true);
         }
     }
 
     if (numOfRequests != b.numberOfRequests) {
         this.app.logger.error("Can't process block: " + b.getId() + ", invalid requests invalid: " + numOfRequests + '/' + b.numberOfRequests);
-        return false;
+        return cb(true);
     }
 
     var hash = crypto.createHash('sha256');
@@ -940,7 +942,7 @@ blockchain.prototype.pushBlock = function (buffer, saveToDb, sendToPeers, checkR
     if (this.getLastBlock().height >= 350) {
         if (!utils.bufferEqual(a, b.payloadHash)) {
             this.logger.error("Payload hash invalid: " + b.getId());
-            return false;
+            return cb(true);
         }
     }
 
@@ -949,13 +951,13 @@ blockchain.prototype.pushBlock = function (buffer, saveToDb, sendToPeers, checkR
 
         if (account.balance < accumulatedAmounts[a]) {
             this.logger.error("Amount not valid: " + b.getId() + ", with account: " + account.address + ", amount: " + account.balance + "/" + accumulatedAmounts[a]);
-            return false;
+            return cb(true);
         }
     }
 
     if (b.previousBlock != this.getLastBlock().getId()) {
         this.logger.error("Previous block not valid: " + b.getId() + ", " + b.previousBlock + " must be " + this.getLastBlock().getId());
-        return false;
+        return cb(true);
     }
 
     // reset popWeight
@@ -963,7 +965,7 @@ blockchain.prototype.pushBlock = function (buffer, saveToDb, sendToPeers, checkR
 
     if (!b.analyze()) {
         this.logger.error("Block can't be analyzed: " + b.getId());
-        return false;
+        return cb(true);
     }
 
     for (var i = 0; i < b.transactions.length; i++) {
@@ -971,7 +973,7 @@ blockchain.prototype.pushBlock = function (buffer, saveToDb, sendToPeers, checkR
 
         if (!this.transactionprocessor.addTransaction(b.transactions[i])) {
             this.logger.error("Can't add transaction: " + b.getId() + ", transaction: " + b.transactions[i].getId());
-            return false;
+            return cb(true);
         }
     }
 
@@ -1087,6 +1089,10 @@ blockchain.prototype.pushBlock = function (buffer, saveToDb, sendToPeers, checkR
         this.app.requestprocessor.confirmedRequests[address].push(request);
     }
 
+    b.requests = _.map(b.requests, function (v) {
+        return v;
+    });
+
     var hash = crypto.createHash('sha256').update(this.getLastBlock().generationSignature).update(b.generatorPublicKey).digest();
 
 
@@ -1099,13 +1105,7 @@ blockchain.prototype.pushBlock = function (buffer, saveToDb, sendToPeers, checkR
 
     this.lastBlock = b.getId();
 
-    this.logger.info("Block processed: " + b.getId());
-
-    // save block, transactions, addresses to db.
-
-    if (saveToDb) {
-        this.app.db.writeBlock(b.getId());
-    }
+    this.logger.debug("Block processed: " + b.getId());
 
     this.app.requestprocessor.unconfirmedRequests = {};
     this.app.requestprocessor.ips = [];
@@ -1152,17 +1152,23 @@ blockchain.prototype.pushBlock = function (buffer, saveToDb, sendToPeers, checkR
         }
     }
 
-
     if (sendToPeers) {
         this.app.peerprocessor.sendBlockToAll(b);
     }
 
-    return true;
+
+    if (saveToDb) {
+        this.app.db.writeBlock(b, function () {
+            return setImmediate(cb);
+        });
+    } else {
+        return setImmediate(cb);
+    }
 }
 
 module.exports.addGenesisBlock = function (app, cb) {
     var bc = app.blockchain;
-    app.logger.info("Blockchain is trying to find genesis block...");
+    app.logger.debug("Blockchain is trying to find genesis block...");
     var b = bc.getBlock(genesisblock.blockId);
 
     if (!b) {
@@ -1217,7 +1223,7 @@ module.exports.addGenesisBlock = function (app, cb) {
 
         b.setApp(app);
         b.generatorId = '5776140615420062008C';
-
+        b.confirmations = [];
 
         var r = b.analyze();
 
@@ -1226,17 +1232,16 @@ module.exports.addGenesisBlock = function (app, cb) {
             return cb("Genesis block not added");
         }
 
-
         var address = req.address;
         app.requestprocessor.confirmedRequests[address] = [req];
         app.blockchain.blocks[b.getId()] = b;
         app.blockchain.lastBlock = b.getId();
 
-        app.db.writeBlock(b.getId(), function (err) {
+        app.db.writeBlock(b, function (err) {
             cb(err);
         });
     } else {
-        app.logger.info("Genesis block is found!");
+        app.logger.debug("Genesis block is found!");
         cb();
     }
 }

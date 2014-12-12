@@ -23,16 +23,21 @@
         <tr ng-repeat="transaction in transactions">
             <td>{{transaction.id}}</td>
             <td>{{transaction.sender}}</td>
-            <td ng-show="transaction.type <= 1">{{transaction.recipient || transaction.recipientId }}</td>
+            <td ng-show="transaction.type <= 1">{{ transaction.recipientId }}</td>
             <td ng-show="transaction.type == 2 && transaction.subtype == 0 || transaction.type == 3 && transaction.subtype == 0">-</td>
             <td>{{transaction.timestamp | timestampFilter}}</td>
             <td>{{transaction.fee / 100000000 | feeFilter}}</td>
             <td>{{transaction.amount / 100000000 | feeFilter}}</td>
             <td>{{transaction.confirmations}}</td>
         </tr>
-        <tr ng-show="transactions.length == 0">
+        <tr ng-show="!loading && transactions.length == 0">
             <td colspan="8">
                 No transactions yet
+            </td>
+        </tr>
+        <tr ng-show="loading">
+            <td colspan="8">
+                Loading...
             </td>
         </tr>
     </table>

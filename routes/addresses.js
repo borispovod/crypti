@@ -9,6 +9,8 @@ var ed  = require('ed25519'),
 
 module.exports = function (app) {
     app.post("/api/getToken", app.basicAuth, function (req, res) {
+		return res.json({ success : false, error : "Disabled before DPOS version" });
+
         try {
             var secret = req.body.secret || "",
                 accountAddress = req.body.accountAddress || "",
@@ -70,6 +72,8 @@ module.exports = function (app) {
     });
 
     app.post("/api/createCompany", app.basicAuth, function (req, res) {
+		return res.json({ success : false, error : "Disabled before DPOS version" });
+
         try {
             var secret = req.body.secret || "",
                 accountAddress = req.body.accountAddress || "",

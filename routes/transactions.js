@@ -328,7 +328,7 @@ module.exports = function (app) {
                 }
             });
 
-                var q = app.db.sql.prepare("SELECT * FROM trs WHERE (recipient=$accountId OR sender=$accountId OR recipient IN " + JSON.stringify(a).replace('[', '(').replace(']', ')') + ") ORDER BY timestamp " + desc + " LIMIT " + limit + " OFFSET " + offset);
+                var q = app.db.sql.prepare("SELECT * FROM trs WHERE (recipientId=$accountId OR sender=$accountId OR recipientId IN " + JSON.stringify(a).replace('[', '(').replace(']', ')') + ") ORDER BY timestamp " + desc + " LIMIT " + limit + " OFFSET " + offset);
                 q.bind({
                     $accountId: accountId
                 });
@@ -365,7 +365,6 @@ module.exports = function (app) {
                                 if (item.recipientId == accountId || item.sender == accountId || a.indexOf(item.recipientId) >= 0) {
                                     item.timestamp += utils.epochTime();
                                     item.confirmations = "-";
-                                    item.recipient = item.recipientId;
                                     item.confirmed = false;
                                     item.fee = getFee(item);
 
@@ -389,7 +388,7 @@ module.exports = function (app) {
     app.get("/api/getReceivedTransactionsByAddress", app.basicAuth, function (req, res) {
         try {
             var accountId = req.query.address || "";
-                var q = app.db.sql.prepare("SELECT * FROM trs WHERE recipient = ? ORDER BY timestamp");
+                var q = app.db.sql.prepare("SELECT * FROM trs WHERE recipientId = ? ORDER BY timestamp");
                 q.bind(accountId);
                 q.all(function (err, rows) {
                     if (err) {
@@ -581,8 +580,8 @@ module.exports = function (app) {
 
                             async.eachSeries(addresses, function (a, cb) {
                                 app.db.sql.serialize(function () {
-                                    app.db.sql.all("SELECT * FROM trs WHERE recipient = $recipient", {
-                                        $recipient: a.address
+                                    app.db.sql.all("SELECT * FROM trs WHERE recipientId = $recipientId", {
+                                        $recipientId: a.address
                                     }, function (err, trs) {
                                         if (err) {
                                             return cb(err);
@@ -807,46 +806,23 @@ module.exports = function (app) {
             }
 
             app.db.sql.serialize(function () {
-                app.db.sql.all("SELECT * FROM blocks ORDER BY timestamp " + order + "  LIMIT " + limit + " OFFSET " + offset, function (err, rows) {
+                app.db.sql.all("SELECT * FROM blocks ORDER BY timestamp " + order + "  LIMIT " + limit + " OFFSET " + offset, function (err, blocks) {
                     if (err) {
                         app.logger.error(err.toString());
                         return res.json({ success: false, blocks: [], status: "SQL_ERROR", error: "Sql error" });
                     } else {
-                        async.forEach(rows, function (item, callback) {
-                            item.timestamp += utils.epochTime();
-                            item.generator = app.accountprocessor.getAddressByPublicKey(new Buffer(item.generatorPublicKey, 'hex'))
-
-                            var refs = item.refs;
-
-                            var numberOfTransactions = item.numberOfTransactions;
-                            if (item.id == genesisblock.blockId) {
-                                numberOfTransactions = 1;
-                                item.numberOfTransactions = 1;
-                            }
-
-
-                            var trsIds = "";
-
-                            var bb = ByteBuffer.wrap(refs);
-
-                            var i = 0;
-                            for (i = 0; i < numberOfTransactions; i++) {
-                                trsIds += bb.readInt64();
-
-                                if (i+1 != numberOfTransactions) {
-                                    trsIds += ',';
-                                }
-                            }
+                        async.forEach(blocks, function (block, callback) {
+                            block.timestamp += utils.epochTime();
+                            block.generator = app.accountprocessor.getAddressByPublicKey(new Buffer(block.generatorPublicKey, 'hex'))
 
                             app.db.sql.serialize(function () {
-                                app.db.sql.all("SELECT * FROM trs WHERE rowid IN (" + trsIds + ")", function (err, rows) {
+                                app.db.sql.all("SELECT * FROM trs WHERE blockId = $blockId", {
+                                    $blockId : block.id
+                                }, function (err, rows) {
                                     if (err) {
                                         callback(err);
                                     } else {
-                                        item.transactions = rows;
-
-                                        item.refs = null;
-                                        delete item.refs;
+                                        block.transactions = rows;
                                         callback();
                                     }
                                 });
@@ -857,7 +833,7 @@ module.exports = function (app) {
                                 return res.json({ success: false, blocks: [], error: "Sql error", status: "SQL_ERROR" });
                             }
 
-                            return res.json({ success: true, blocks: rows, status: "OK" });
+                            return res.json({ success: true, blocks: blocks, status: "OK" });
                         });
                     }
                 });

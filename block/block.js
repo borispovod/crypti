@@ -319,7 +319,7 @@ block.prototype.getBytes = function () {
     bb.writeInt(this.timestamp);
 
     if (this.previousBlock) {
-        var pb = bignum(this.previousBlock).toBuffer({ size : '8' });
+        var pb = bignum(this.previousBlock.toString()).toBuffer({ size : '8' });
 
         for (var i = 0; i < 8; i++) {
             bb.writeByte(pb[i]);
@@ -415,6 +415,7 @@ block.prototype.verifyGenerationSignature = function () {
         var requests = _.map(lastAliveBlock.requests, function (v) {
             return v;
         });
+
         var accounts = [];
 
         for (var i = 0; i < requests.length; i++) {
@@ -564,7 +565,6 @@ block.prototype.verifyGenerationSignature = function () {
         }
 
         var addr = this.app.accountprocessor.getAddressByPublicKey(this.generatorPublicKey);
-
 
         this.app.logger.debug("Winner in cycle: " + winner.address);
 
