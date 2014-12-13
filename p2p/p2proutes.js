@@ -35,7 +35,7 @@ module.exports = function (app) {
             return res.json({ success : false });
         }
 
-        return res.json({ success : true, weight : app.blockchain.getWeight().toString(), version : "0.1.7" });
+        return res.json({ success : true, weight : app.blockchain.getWeight().toString(), version : "0.1.8" });
     });
 
 
@@ -265,7 +265,7 @@ module.exports = function (app) {
 
             async.whilst(
                 function () {
-                    if (blocks.length >= 60) {
+                    if (blocks.length >= 10) {
                         return false;
                     }
 

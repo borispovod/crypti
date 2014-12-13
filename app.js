@@ -39,6 +39,8 @@ var express = require('express'),
     ByteBuffer = require("bytebuffer"),
     wait = require("wait.for");
 
+process.setMaxListeners(0);
+
 var app = express();
 
 if (process.env.NODE_ENV=="development") {
@@ -105,7 +107,7 @@ app.configure(function () {
         var port = config.get('port');
 
         if (url[1] == 'peer' && app.synchronizedBlocks) {
-            if (sharePort != "true" || version != app.get("config").get('version')) {
+            if (sharePort != "true") {
                 if (app.peerprocessor.peers[ip]) {
                     app.peerprocessor.peers[ip] = null;
                     delete app.peerprocessor.peers[ip];
@@ -422,7 +424,7 @@ async.series([
 															async.eachSeries(rows, function (conf, _c) {
 																var confirmation = new companyconfirmation(conf.companyId, conf.verified, conf.timestamp, conf.signature);
 																confirmations.push(confirmation);
-																setImmediate(__c);
+																setImmediate(_c);
 															}, function () {
 																b.confirmations = confirmations;
 
@@ -957,9 +959,6 @@ async.series([
                             app.synchronizedBlocks = true;
                             app.blocksInterval = false;
                         }
-                    } else if (json.success && json.version != "0.1.7") {
-                        app.peerprocessor.blockPeer(p.ip, 1800);
-                        app.blocksInterval = false;
                     } else {
                         app.synchronizedBlocks = true;
                         app.blocksInterval = false;

@@ -83,6 +83,7 @@ db.prototype.writeBlock = function (block,  callback) {
 											$id : transaction.asset.getId(),
 											$transactionId : transaction.getId(),
 											$blockId : block.getId(),
+											$domain : transaction.asset.domain,
 											$name : transaction.asset.name,
 											$description : transaction.asset.description,
 											$email : transaction.asset.email,
@@ -281,7 +282,7 @@ module.exports.initDb = function (path, app, callback) {
                 d.sql.run("CREATE TABLE IF NOT EXISTS signatures (id VARCHAR(20) PRIMARY KEY, blockId VARCHAR(20) NOT NULL, transactionId VARCHAR(20) NOT NULL, timestamp INT NOT NULL, publicKey BINARY(32) NOT NULL, generatorPublicKey BINARY(32) NOT NULL, signature BINARY(64) NOT NULL, generationSignature BINARY(64) NOT NULL)", cb);
             },
             function (cb) {
-                d.sql.run("CREATE TABLE IF NOT EXISTS companies (id VARCHAR(20) PRIMARY KEY, blockId VARCHAR(20) NOT NULL, transactionId VARCHAR(20) NOT NULL, name VARCHAR(20) NOT NULL, description VARCHAR(250) NOT NULL, domain TEXT, email TEXT NOT NULL, timestamp INT NOT NULL, generatorPublicKey BINARY(32) NOT NULL, signature BINARY(32) NOT NULL)", cb)
+                d.sql.run("CREATE TABLE IF NOT EXISTS companies (id VARCHAR(20) PRIMARY KEY, blockId VARCHAR(20) NOT NULL, transactionId VARCHAR(20) NOT NULL, name VARCHAR(20) NOT NULL, description VARCHAR(250) NOT NULL, domain TEXT NOT NULL, email TEXT NOT NULL, timestamp INT NOT NULL, generatorPublicKey BINARY(32) NOT NULL, signature BINARY(32) NOT NULL)", cb)
             },
             function (cb) {
                 d.sql.run("CREATE TABLE IF NOT EXISTS companyconfirmations (id VARCHAR(20) PRIMARY KEY, blockId VARCHAR(20) NOT NULL, companyId VARCHAR(21) NOT NULL, verified TINYINT(1) NOT NULL, timestamp INT NOT NULL, signature BINARY(64) NOT NULL, FOREIGN KEY(blockId) REFERENCES blocks(id) ON DELETE CASCADE)", cb);
