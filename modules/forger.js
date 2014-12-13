@@ -4,6 +4,7 @@ var timeHelper = require("../helpers/time.js"),
 	constants = require('../helpers/constants.js'),
 	crypto = require('crypto'),
 	configHelper = require('../helpers/config.js');
+var basicAuth = require('basic-auth');
 
 var Router = require('../helpers/router.js');
 
@@ -13,15 +14,42 @@ var keypair, forgingStarted, timer;
 function Forger(cb, scope) {
 	library = scope;
 	var self = this;
+
+	var auth = function (req, res, next) {
+		function unauthorized(res) {
+			res.set('WWW-Authenticate', 'Basic realm=Authorization Required');
+			return res.send(401);
+		}
+
+		var user = basicAuth(req);
+
+		if (!user || !user.name || !user.pass) {
+			return unauthorized(res);
+		}
+
+		if (user.name === library.config.adminPanel.auth.user && user.pass === library.config.adminPanel.auth.password) {
+			return next();
+		} else {
+			return unauthorized(res);
+		}
+	};
+
+
 	var router = new Router();
+
+	if (library.config.adminPanel && library.config.adminPanel.auth && library.config.adminPanel.auth.user && library.config.adminPanel.auth.password) {
+		router.get('/', auth, function (req, res) {
+			return res.status(200).json({success: true, enabled: forgingStarted || false});
+		})
+	}
 
 	router.post('/enable', function (req, res) {
 		if (!req.body.secret || req.body.secret.length == 0) {
-			return res.json({ success: false, error: "Provide secret key" });
+			return res.json({success: false, error: "Provide secret key"});
 		}
 
 		if (forgingStarted) {
-			return res.json({ success: false, error: "Forging already started" });
+			return res.json({success: false, error: "Forging already started"});
 		}
 
 		keypair = ed.MakeKeypair(crypto.createHash('sha256').update(req.body.secret, 'utf').digest());
@@ -31,34 +59,30 @@ function Forger(cb, scope) {
 
 		if (req.body.saveToConfig) {
 			configHelper.saveSecret(req.body.secret, function (err) {
-				return res.json({ success: true, address: address});
+				return res.json({success: true, address: address});
 			})
 		} else {
-			return res.json({ success: true, address: address });
+			return res.json({success: true, address: address});
 		}
 	});
 
 	router.post('/disable', function (req, res) {
 		if (!req.body.secret || req.body.secret.length == 0) {
-			return res.json({ success: false, error: "Provide secret key" });
+			return res.json({success: false, error: "Provide secret key"});
 		}
 
 		if (!forgingStarted) {
-			return res.json({ success: false, error: "Forging already disabled" });
+			return res.json({success: false, error: "Forging already disabled"});
 		}
 
 		if (keypair.privateKey.toString('hex') != ed.MakeKeypair(crypto.createHash('sha256').update(req.body.secret, 'utf').digest()).privateKey.toString('hex')) {
-			return res.json({ success: false, error: "Provide valid secret key to stop forging" });
+			return res.json({success: false, error: "Provide valid secret key to stop forging"});
 		}
 
 		var address = modules.accounts.getAddressByPublicKey(keypair.publicKey);
 		self.stopForging();
 
-		return res.json({ success: true, address: address });
-	});
-
-	router.get("/", function (req, res) {
-		return res.json({ success: true, enabled: forgingStarted || false });
+		return res.json({success: true, address: address});
 	});
 
 	library.app.use('/api/forging', router);

@@ -47,6 +47,15 @@ Server.prototype.onPeerReady = function () {
 	});
 
 	library.app.use('/', router);
+
+	library.app.use(function errorHandler(err, req, res, next) {
+		library.logger.error('Bad Request', {method: req.method, url: req.url, message: err});
+		res.send(500, "Something bad happened. :(");
+		if (err.domain) {
+			//you should think about gracefully stopping & respawning your server
+			//since an unhandled error might put your application into an unknown state
+		}
+	});
 }
 
 //export
