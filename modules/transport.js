@@ -248,7 +248,18 @@ Transport.prototype.onBlockchainReady = function () {
 
 	library.app.use('/peer', router);
 
-	modules.peer.add([{ip: 1754992519, port: 7040}, {ip: 2194884796, port: 7040}], function () {
+	async.forEach(library.config.peers.list, function (peer, cb) {
+		var st = library.db.prepare("INSERT INTO peers(ip, port, state, sharePort) VALUES($ip, $port, $state, $sharePort)");
+		st.bind({
+			$ip: ip.toLong(peer.ip),
+			$port: peer.port,
+			$state: 1,
+			$sharePort: Number(true)
+		});
+		st.run(function () {
+			cb();
+		});
+	}, function () {
 		modules.peer.count(function (err, count) {
 			if (count) {
 				library.bus.message('peer ready');
@@ -260,8 +271,8 @@ Transport.prototype.onBlockchainReady = function () {
 	});
 }
 
-Transport.prototype.onUnconfirmedTransaction = function(transaction){
-	self.broadcast(100, '/transaction', {transaction: transaction});
+Transport.prototype.onUnconfirmedTransaction = function (transaction) {
+	self.broadcast(100, '/transaction', { transaction: transaction });
 }
 
 //export
