@@ -119,7 +119,7 @@ function Transactions(cb, scope) {
 			self.secondSign(secret, transaction);
 		}
 
-		self.processUnconfirmedTransaction(transaction, true, function (err) {
+		self.processUnconfirmedTransaction(transaction, function (err) {
 			if (err) {
 				return res.json({success: false, error: err});
 			} else {
@@ -247,46 +247,46 @@ Transactions.prototype.removeUnconfirmedTransaction = function (id) {
 	}
 }
 
-Transactions.prototype.processUnconfirmedTransaction = function (transaction, sendToPeers, cb) {
+Transactions.prototype.processUnconfirmedTransaction = function (transaction, cb) {
 	var self = this;
 	var txId = transactionHelper.getId(transaction);
 
 	if (transaction.id && transaction.id != txId) {
-		return cb("Invalid transaction id");
+		return cb && cb("Invalid transaction id");
 	} else {
 		transaction.id = txId;
 	}
 
 	library.db.get("SELECT id FROM trs WHERE id=$id", {$id: transaction.id}, function (err, confirmed) {
 		if (err) {
-			return cb("Internal sql error");
+			return cb && cb("Internal sql error");
 		} else if (confirmed) {
-			return cb("Can't process transaction, transaction already confirmed");
+			return cb && cb("Can't process transaction, transaction already confirmed");
 		} else {
 			// check in confirmed transactions
 			if (unconfirmedTransactions[transaction.id] || doubleSpendingTransactions[transaction.id]) {
-				return cb("This transaction already exists");
+				return cb && cb("This transaction already exists");
 			}
 
 			var sender = modules.accounts.getAccountByPublicKey(transaction.senderPublicKey);
 
 			if (!sender) {
-				return cb("Can't process transaction, sender not found");
+				return cb && cb("Can't process transaction, sender not found");
 			}
 
 			transaction.senderId = sender.address;
 
 			if (!self.verifySignature(transaction)) {
-				return cb("Can't verify signature")
+				return cb && cb("Can't verify signature")
 			}
 
 			// check if transaction is not float and great then 0
 			if (transaction.amount < 0 || transaction.amount.toString().indexOf('.') >= 0) {
-				return cb("Invalid transaction amount");
+				return cb && cb("Invalid transaction amount");
 			}
 
 			if (transaction.timestamp > timeHelper.getNow() + 15) {
-				return cb("Invalid transaction timestamp");
+				return cb && cb("Invalid transaction timestamp");
 			}
 
 			var fee = transactionHelper.getFee(transaction, modules.blocks.getFee());
@@ -300,14 +300,14 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, se
 					switch (transaction.subtype) {
 						case 0:
 							if (transactionHelper.getLastChar(transaction) != "C") {
-								return cb("Invalid transaction recipient id");
+								return cb && cb("Invalid transaction recipient id");
 							}
 
 							transaction.fee = fee;
 							break;
 
 						default:
-							return cb("Unknown transaction type");
+							return cb && cb("Unknown transaction type");
 					}
 					break;
 
@@ -315,14 +315,14 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, se
 					switch (transaction.subtype) {
 						case 0:
 							if (transactionHelper.getLastChar(transaction) != "D") {
-								return cb("Invalid transaction recipient id");
+								return cb && cb("Invalid transaction recipient id");
 							}
 
 							transaction.fee = fee;
 							break;
 
 						default:
-							return cb("Unknown transaction type");
+							return cb && cb("Unknown transaction type");
 					}
 					break;
 
@@ -330,18 +330,18 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, se
 					switch (transaction.subtype) {
 						case 0:
 							if (transaction.fee != 100 * constants.fixedPoint) {
-								return cb("Invalid transaction fee");
+								return cb && cb("Invalid transaction fee");
 							}
 
 							if (!transaction.asset) {
-								return cb("Empty transaction asset for company transaction")
+								return cb && cb("Empty transaction asset for company transaction")
 							}
 
 							// process signature of transaction
 							break;
 
 						default:
-							return cb("Unknown transaction type");
+							return cb && cb("Unknown transaction type");
 					}
 					break;
 
@@ -349,23 +349,23 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, se
 					switch (transaction.subtype) {
 						case 0:
 							if (transaction.fee != 1000 * constants.fixedPoint) {
-								return cb("Invalid transaction fee");
+								return cb && cb("Invalid transaction fee");
 							}
 
 							if (!transaction.asset) {
-								return cb("Empty transaction asset for company transaction")
+								return cb && cb("Empty transaction asset for company transaction")
 							}
 
 							// process company of transaction
 							break;
 
 						default:
-							return cb("Unknown transaction type");
+							return cb && cb("Unknown transaction type");
 					}
 					break;
 
 				default:
-					return cb("Unknown transaction type");
+					return cb && cb("Unknown transaction type");
 			}
 
 
@@ -404,14 +404,12 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, se
 				}
 			], function (errors) {
 				if (errors) {
-					return cb(errors.pop());
+					return cb && cb(errors.pop());
 				} else {
 					if (self.applyUnconfirmed(transaction)) {
 						unconfirmedTransactions[transaction.id] = transaction;
 
-						if (sendToPeers) {
-							modules.transport.broadcast(100, '/transaction', {transaction: transaction});
-						}
+						library.bus.message('unconfirmed transaction', transaction)
 					} else {
 						doubleSpendingTransactions[transaction.id] = transaction;
 					}

@@ -16,7 +16,7 @@ function System(cb, scope) {
 
 	version = library.config.version;
 	port = library.config.port;
-	sharePort = library.config.sharePort;
+	sharePort = Number(!!library.config.sharePort);
     osName = os.platform() + os.release();
 
 	cb(null, this);
