@@ -255,11 +255,11 @@ db.prototype.deleteBlock = function (bId, callback) {
 db.prototype.readBlocks = function (callback) {
     var sql = this.sql;
 
-    sql.serialize(function () {
+    //sql.serialize(function () {
         sql.all("SELECT * FROM blocks ORDER BY height", function (err, blocks) {
             callback(err, blocks);
         });
-    })
+    //})
 }
 
 module.exports.initDb = function (path, app, callback) {

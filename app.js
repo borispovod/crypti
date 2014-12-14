@@ -336,7 +336,7 @@ async.series([
 							q.bind({$blockId : b.getId()});
 							q.all(function (err, rows) {
 								if (err) {
-									setImmediate(function () { c(err) });
+									setImmediate(c, err);
 								} else {
 									var transactions = [];
 									async.eachSeries(rows, function (t, _c) {
@@ -353,7 +353,7 @@ async.series([
 												req.bind({$transactionId: t.id});
 												req.get(function (err, asset) {
 													if (err) {
-														setImmediate(function () { _c(err) });
+														setImmediate(_c, err);
 													} else {
 														tr.asset = new signature(asset.publicKey, asset.generatorPublicKey, asset.timestamp, asset.signature, asset.generationSignature);
 														tr.asset.blockId = asset.blockId;
@@ -370,7 +370,7 @@ async.series([
 												req.bind({$transactionId: t.id});
 												req.get(function (err, asset) {
 													if (err) {
-														setImmediate(function () { _c(err) });
+														setImmediate(_c, err);
 													} else {
 														tr.asset = new company(asset.name, asset.description, asset.domain, asset.email, asset.timestamp, asset.generatorPublicKey, asset.signature);
 														tr.asset.blockId = asset.blockId;
@@ -390,7 +390,7 @@ async.series([
 										}
 									}, function (err) {
 										if (err) {
-											return setImmediate(function () {  c(err) });
+											return setImmediate(c, err);
 										}
 
 										b.transactions = transactions;
@@ -399,7 +399,7 @@ async.series([
 										q.bind({$blockId : b.getId()})
 										q.all(function (err, rows) {
 											if (err) {
-												setImmediate(function () { c(err) });
+												setImmediate(c, err);
 											} else {
 												var requests = [];
 												async.eachSeries(rows, function (r, _c) {
@@ -418,7 +418,7 @@ async.series([
 													q.bind({$blockId : b.getId()});
 													q.all(function (err, rows) {
 														if (err) {
-															return setImmediate(function () {c(err)});
+															return setImmediate(c, err);
 														} else {
 															var confirmations = [];
 															async.eachSeries(rows, function (conf, _c) {
@@ -478,9 +478,7 @@ async.series([
 																				app.badBlock = null;
 																				delete app.badBlock;
 
-																				return setImmediate(function () {
-																					c(true);
-																				});
+																				return setImmediate(c, true);
 																			});
 																		} else {
 																			return setImmediate(c);
