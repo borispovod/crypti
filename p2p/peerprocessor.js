@@ -9,29 +9,25 @@ var peerprocessor = function () {
     this.peers = {};
     this.blockedPeers = {};
 
-    var blockedInterval = false;
-    setInterval(function () {
-        if (blockedInterval) {
-            return;
-        }
+    var self = this;
+    process.nextTick(function next() {
 
-        blockedInterval = true;
         var now = utils.getEpochTime(new Date().getTime());
-        for (var ip in this.blockedPeers) {
-            var peer = this.blockedPeers[ip];
+        for (var ip in self.blockedPeers) {
+            var peer = self.blockedPeers[ip];
 
             if (peer.blockedTime + peer.time > now) {
-                this.blockedPeers[ip] = null;
-                delete this.blockedPeers[ip];
+                self.blockedPeers[ip] = null;
+                delete self.blockedPeers[ip];
 
-                if (Object.keys(this.peers).length < 100) {
-                    this.peers[peer.ip] = peer;
+                if (Object.keys(self.peers).length < 100) {
+                    self.peers[peer.ip] = peer;
                 }
             }
         }
 
-        blockedInterval = false;
-    }.bind(this), 1000 * 60 * 5);
+        setTimeout(next, 1000 * 60 * 5);
+    });
 }
 
 peerprocessor.prototype.setApp = function (app) {

@@ -24,13 +24,15 @@ forgerprocessor.prototype.startForger = function (forger) {
     this.forgers[forger.accountId] = forger;
     forger.startForge();
 
-    this.timers[forger.accountId] = setInterval(function () {
+    this.timers[forger.accountId] = process.nextTick(function next() {
         forger.startForge();
-    }, 1000);
+        setTimeout(next, 1000);
+    });
 
-    this.sendingTimers[forger.accountId] = setInterval(function () {
+    this.sendingTimers[forger.accountId] = process.nextTick(function next() {
         forger.sendRequest();
-    }, 1000 * 10);
+        setTimeout(next, 1000 * 10);
+    });
 
     //forger.sendRequest();
 
