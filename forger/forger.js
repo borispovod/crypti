@@ -145,10 +145,12 @@ forger.prototype.startForge = function () {
             sortedTransactions.push(transactions[i]);
         }
 
+        var self = this;
+
         sortedTransactions.sort(function(a, b) {
-            var feeA = this.app.blockchain.getFee(a), feeB = this.app.blockchain.getFee(b);
+            var feeA = self.app.blockchain.getFee(a), feeB = self.app.blockchain.getFee(b);
             return feeA > feeB;
-        }.bind(this));
+        });
 
         var newTransactions = {};
         var newTransactionsLength = sortedTransactions.length;
@@ -277,6 +279,9 @@ forger.prototype.startForge = function () {
         var companies = _.map(this.app.companyprocessor.addedCompanies, function (v) { return v; });
         var newConfirmations = [];
         var confirmationsLength = 0;
+
+        var self = this;
+
         async.forEach(companies, function (company, cb) {
             var size = 77;
 
@@ -284,22 +289,22 @@ forger.prototype.startForge = function () {
                 return setImmediate(cb, true);
             }
 
-            this.checkCompany(company, function (r) {
+            self.checkCompany(company, function (r) {
                 if (!company) {
                     return setImmediate(cb);
                 }
 
                 var cm = new companyconfirmation(company.getId(), r, blockTimestamp);
-                cm.sign(this.secretPharse);
+                cm.sign(self.secretPharse);
 
                 newConfirmations.push(cm);
                 confirmationsLength += size;
                 totalFee += 100 * constants.numberLength;
 
                 setImmediate(cb);
-            }.bind(this));
-        }.bind(this), function () {
-            var publicKey = this.publicKey;
+            });
+        }, function () {
+            var publicKey = self.publicKey;
             var hash = crypto.createHash('sha256');
 
             for (var t in newTransactions) {
@@ -316,7 +321,7 @@ forger.prototype.startForge = function () {
 
             var payloadHash = hash.digest();
 
-            var previousBlock = this.blockchain.getLastBlock();
+            var previousBlock = self.blockchain.getLastBlock();
             hash = crypto.createHash('sha256').update(previousBlock.generationSignature).update(publicKey);
             var generationSignature = hash.digest();
 
@@ -327,17 +332,17 @@ forger.prototype.startForge = function () {
             block.numberOfConfirmations = newConfirmations.length;
             block.confirmationsLength = confirmationsLength;
             block.numberOfRequests = newRequests.length;
-            block.setApp(this.app);
+            block.setApp(self.app);
             block.numberOfTransactions = Object.keys(newTransactions).length;
 
-            var passHash = crypto.createHash('sha256').update(this.secretPharse, 'utf8').digest();
+            var passHash = crypto.createHash('sha256').update(self.secretPharse, 'utf8').digest();
             var keypair = ed.MakeKeypair(passHash);
 
             block.generationSignature = ed.Sign(generationSignature, keypair);
-            block.sign(this.secretPharse);
+            block.sign(self.secretPharse);
 
             if (block.verifyBlockSignature() && block.verifyGenerationSignature()) {
-                this.logger.debug("Block generated: " + block.getId());
+                self.logger.debug("Block generated: " + block.getId());
 
                 var buffer = block.getBytes();
 
@@ -354,18 +359,18 @@ forger.prototype.startForge = function () {
                 }
 
                 try {
-                    var result = this.blockchain.pushBlock(buffer, true, true, false);
+                    var result = self.blockchain.pushBlock(buffer, true, true, false);
                 } catch (e) {
                     result = null;
-                    this.app.logger.error(e.toString());
+                    self.app.logger.error(e.toString());
                 }
 
-                this.workingForger = false;
-                this.sending = false;
+                self.workingForger = false;
+                self.sending = false;
             } else {
-                this.logger.error("Can't verify new generated block");
+                self.logger.error("Can't verify new generated block");
             }
-        }.bind(this));
+        });
 
     } else {
         this.workingForger = false;

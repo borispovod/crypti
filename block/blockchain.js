@@ -62,6 +62,8 @@ blockchain.prototype.getBlockIdAtHeight = function (height) {
 blockchain.prototype.getCommonBlockId = function (commonBlock, peer, cb) {
     var finished = false;
 
+    var self = this;
+
     async.whilst(
         function () {
             return !finished;
@@ -80,7 +82,7 @@ blockchain.prototype.getCommonBlockId = function (commonBlock, peer, cb) {
                     for (var i = 0; i < json.blockIds.length; i++) {
                         var blockId = json.blockIds[i].id;
 
-                        if (!this.blocks[blockId]) {
+                        if (!self.blocks[blockId]) {
                             finished = true;
                             return setImmediate(next);
                         }
@@ -90,8 +92,8 @@ blockchain.prototype.getCommonBlockId = function (commonBlock, peer, cb) {
 
                     setImmediate(next);
                 }
-            }.bind(this));
-        }.bind(this),
+            });
+        },
         function (err) {
             if (err) {
                 return cb(err, null);
@@ -109,6 +111,8 @@ blockchain.prototype.getMilestoneBlockId = function (peer,  cb) {
     var milestoneBlock = null;
     var finished = false;
 
+    var self = this;
+
     async.whilst(
         function () {
             return !finished;
@@ -118,7 +122,7 @@ blockchain.prototype.getMilestoneBlockId = function (peer,  cb) {
                 _lastMilestoneBlockId = null;
 
             if (lastMilestoneBlockId == null) {
-                _lastBlockId = this.getLastBlock().getId();
+                _lastBlockId = self.getLastBlock().getId();
             } else {
                 _lastMilestoneBlockId = lastMilestoneBlockId;
             }
@@ -139,7 +143,7 @@ blockchain.prototype.getMilestoneBlockId = function (peer,  cb) {
                         for (var i = 0; i < json.milestoneBlockIds.length; i++) {
                             var blockId = json.milestoneBlockIds[i];
 
-                            if (this.blocks[blockId]) {
+                            if (self.blocks[blockId]) {
                                 finished = true;
                                 milestoneBlock = blockId;
                                 return setImmediate(next);
@@ -152,8 +156,8 @@ blockchain.prototype.getMilestoneBlockId = function (peer,  cb) {
                         setImmediate(next);
                     }
                 }
-            }.bind(this));
-        }.bind(this),
+            });
+        },
         function (err) {
             if (err) {
                 return cb(err, null);
@@ -169,41 +173,43 @@ blockchain.prototype.getMilestoneBlockId = function (peer,  cb) {
 blockchain.prototype.removeForkedBlocks = function (commonBlock, cb) {
     this.forkProcessingRunning = true;
 
+    var self = this;
+
     var tempFunc = function (lastBlockId, callback) {
         async.whilst(
             function () {
                 return (lastBlockId != commonBlock) && (lastBlockId != genesisblock.blockId);
             },
             function (next) {
-                this.popLastBlock(function (lBId) {
+                self.popLastBlock(function (lBId) {
                     lastBlockId = lBId;
 
                     setImmediate(next);
                 });
-            }.bind(this),
+            },
             function () {
-                callback(lastBlockId);
-            }.bind(this)
+                setImmediate(callback,lastBlockId);
+            }
         )
-    }.bind(this);
+    };
 
     if (this.app.db.blockSavingId) {
         this.app.db.queue = [];
         this.app.db.once("blockchainLoaded", function () {
-            var lastBlockId = this.getLastBlock().getId();
+            var lastBlockId = self.getLastBlock().getId();
 
             tempFunc(lastBlockId, function (b) {
-                this.forkProcessingRunning = false;
+                self.forkProcessingRunning = false;
                 cb(b);
-            }.bind(this));
-        }.bind(this));
+            });
+        });
     } else {
-        var lastBlockId = this.getLastBlock().getId();
+        var lastBlockId = self.getLastBlock().getId();
 
         tempFunc(lastBlockId, function (b) {
-            this.forkProcessingRunning = false;
+            self.forkProcessingRunning = false;
             cb(b);
-        }.bind(this));
+        });
     }
 }
 
@@ -418,9 +424,11 @@ blockchain.prototype.popLastBlock = function (cb) {
     this.app.requestprocessor.unconfirmedRequests = {};
     this.app.requestprocessor.ips = [];
 
+    var self = this;
+
     this.app.db.deleteBlock(toDelete, function () {
-        cb(this.getLastBlock().getId());
-    }.bind(this));
+        cb(self.getLastBlock().getId());
+    });
 }
 
 blockchain.prototype.blockFromBytes = function (buffer) {

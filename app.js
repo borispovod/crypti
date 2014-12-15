@@ -407,7 +407,7 @@ async.series([
 													request.blockId = r.blockId;
 													requests.push(request);
 													setImmediate(_c);
-												}.bind(this), function (err) {
+												}, function (err) {
 													if (err) {
 														return setImmediate(c, err);
 													}
@@ -776,7 +776,7 @@ async.series([
                                                 request.blockId = r.blockId;
                                                 requests.push(request);
                                                 setImmediate(_c);
-                                            }.bind(this), function (err) {
+                                            }, function (err) {
                                                 if (err) {
                                                     return setImmediate(c,{ error: true });
                                                 }
