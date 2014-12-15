@@ -222,13 +222,13 @@ module.exports = function (app) {
                     block = app.blockchain.getBlock(blockId);
 
                     if (!block) {
-                        return next();
+                        return setImmediate(next);
                     }
 
                     blocks.push({ id : block.getId() });
 
                     blockId = block.nextBlock;
-                    return next();
+                    return setImmediate(next);
                 },
                 function () {
                     return res.json({ success : true, blockIds : blocks });
@@ -279,12 +279,12 @@ module.exports = function (app) {
                     block = app.blockchain.getBlock(blockId);
 
                     if (!block) {
-                        return next();
+                        return setImmediate(next);
                     }
 
                     blocks.push(block);
                     blockId = block.nextBlock;
-                    return next();
+                    return setImmediate(next);
                 }, function () {
                     return res.json({ success : true, blocks : blocks, found : true });
                 }

@@ -71,10 +71,10 @@ blockchain.prototype.getCommonBlockId = function (commonBlock, peer, cb) {
                 if (err) {
                     return next(true);
                 } if (!json.success) {
-                    return next(true);
+                    return setImmediate(next, true);
                 } else if (json.blockIds.length == 0) {
                     finished = true;
-                    return next();
+                    return setImmediate(next);
                 }
                 else {
                     for (var i = 0; i < json.blockIds.length; i++) {
@@ -82,13 +82,13 @@ blockchain.prototype.getCommonBlockId = function (commonBlock, peer, cb) {
 
                         if (!this.blocks[blockId]) {
                             finished = true;
-                            return next();
+                            return setImmediate(next);
                         }
 
                         commonBlock = blockId;
                     }
 
-                    next();
+                    setImmediate(next);
                 }
             }.bind(this));
         }.bind(this),
@@ -125,16 +125,16 @@ blockchain.prototype.getMilestoneBlockId = function (peer,  cb) {
 
             peer.getMilestoneBlocks(_lastBlockId, _lastMilestoneBlockId, function (err, json) {
                 if (err) {
-                    return next(true);
+                    return setImmediate(next, true);
                 } else {
                     if (!json.milestoneBlockIds) {
-                        return next(true);
+                        return setImmediate(next, true);
                     }  else if (json.success == false) {
-                        return next(true);
+                        return setImmediate(next, true);
                     } else if (json.milestoneBlockIds.length == 0) {
                         finished = true;
                         milestoneBlock = genesisblock.blockId;
-                        return next();
+                        return setImmediate(next);
                     } else {
                         for (var i = 0; i < json.milestoneBlockIds.length; i++) {
                             var blockId = json.milestoneBlockIds[i];
@@ -142,14 +142,14 @@ blockchain.prototype.getMilestoneBlockId = function (peer,  cb) {
                             if (this.blocks[blockId]) {
                                 finished = true;
                                 milestoneBlock = blockId;
-                                return next();
+                                return setImmediate(next);
                                 break;
                             } else {
                                 lastMilestoneBlockId = blockId;
                             }
                         }
 
-                        next();
+                        setImmediate(next);
                     }
                 }
             }.bind(this));

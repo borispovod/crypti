@@ -74,9 +74,7 @@ db.prototype.writeBlock = function (block,  callback) {
 											$generationSignature : transaction.asset.generationSignature
 										});
 
-										st.run(function (err) {
-											return c(err);
-										});
+										st.run(c);
 									} else if (transaction.type == 3 && transaction.subtype == 0) {
 										st = trDb.prepare("INSERT INTO companies(id, transactionId, blockId, name, description, domain, email, timestamp, generatorPublicKey, signature) VALUES($id, $transactionId, $blockId, $name, $description, $domain, $email, $timestamp, $generatorPublicKey, $signature)");
 										st.bind({
@@ -92,17 +90,13 @@ db.prototype.writeBlock = function (block,  callback) {
 											$signature : transaction.asset.signature
 										});
 
-										st.run(function (err) {
-											return c(err);
-										});
+										st.run(c);
 									} else {
-										c();
+										setImmediate(c);
 									}
 								}
 							});
-					}, function (err) {
-						return cb(err);
-					});
+					}, cb);
 				},
 				function (cb) {
 					async.eachSeries(block.requests, function (request, c) {
@@ -113,12 +107,8 @@ db.prototype.writeBlock = function (block,  callback) {
 							$address : request.address
 						});
 
-						st.run(function (err) {
-							return c(err);
-						});
-					}, function (err) {
-						cb(err);
-					});
+						st.run(c);
+					}, cb);
 				},
 				function (cb) {
 					async.eachSeries(block.confirmations, function (confirmation, c) {
@@ -132,12 +122,8 @@ db.prototype.writeBlock = function (block,  callback) {
 							$signature : confirmation.signature
 						});
 
-						st.run(function (err) {
-							return c(err);
-						});
-					}, function (err) {
-						cb(err);
-					});
+						st.run(c);
+					}, cb);
 				}
 			], function (err) {
 				if (err) {

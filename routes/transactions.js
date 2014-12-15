@@ -50,7 +50,7 @@ module.exports = function (app) {
                 return res.json({ success: false, error: "Provide block id", status: "PROVIDE_BLOCK_ID" });
             }
 
-            app.db.sql.serialize(function () {
+            //app.db.sql.serialize(function () {
                 app.db.sql.all("SELECT * FROM blocks WHERE id=? LIMIT 1", [blockId], function (err, rows) {
                     if (err) {
                         app.logger.error(err);
@@ -61,7 +61,7 @@ module.exports = function (app) {
                             item.timestamp += utils.epochTime();
                             item.generator = app.accountprocessor.getAddressByPublicKey(new Buffer(item.generatorPublicKey, 'hex'));
 
-                            app.db.sql.serialize(function () {
+                            //app.db.sql.serialize(function () {
                                 app.db.sql.all("SELECT * FROM trs WHERE blockId=$blockId", { $blockId : item.id }, function (err, rows) {
                                     if (err) {
                                         callback(err);
@@ -71,13 +71,13 @@ module.exports = function (app) {
                                         async.forEach(item.transactions, function (t, cb) {
                                             t.timestamp += utils.epochTime();
                                             t.sender = app.accountprocessor.getAddressByPublicKey(new Buffer(t.senderPublicKey, 'hex'));
-                                            cb();
+                                            setImmediate(cb);
                                         }, function () {
-                                            callback();
+                                            setImmediate(callback);
                                         });
                                     }
                                 });
-                            });
+                            //});
                         }, function (err) {
                             if (err) {
                                 app.logger.error(err);
@@ -88,7 +88,7 @@ module.exports = function (app) {
                         });
                     }
                 });
-            });
+            //});
         } catch (e) {
             app.logger.error("Exception, notify developers: ");
             app.logger.error(e);
@@ -138,7 +138,7 @@ module.exports = function (app) {
                         t.sender = app.accountprocessor.getAddressByPublicKey(new Buffer(t.senderPublicKey, 'hex'));
                         t.timestamp += utils.epochTime();
                         t.confirmed = true;
-                        cb();
+                        setImmediate(cb);
                     }, function () {
                         return res.json({ success: true, transactions: trs, status: "OK" });
                     });
@@ -323,7 +323,7 @@ module.exports = function (app) {
                         async.eachSeries(rows, function (item, cb) {
                             var blockId = item.blockId;
                             if (!app.blockchain.blocks[blockId]) {
-                                cb();
+                                setImmediate(cb);
                             } else {
                                 item.confirmations = app.blockchain.getLastBlock().height - app.blockchain.blocks[blockId].height + 1;
                                 item.sender = app.accountprocessor.getAddressByPublicKey(new Buffer(item.senderPublicKey, 'hex'));
@@ -331,7 +331,7 @@ module.exports = function (app) {
                                 item.confirmed = true;
 
                                 transactions.push(item);
-                                cb();
+                                setImmediate(cb);
                             }
                         }, function () {
                             var unconfirmedTransactions = _.map(app.transactionprocessor.unconfirmedTransactions, function (v) {
@@ -349,7 +349,7 @@ module.exports = function (app) {
                                     transactions.unshift(item.toJSON());
                                 }
 
-                                с();
+                                setImmediate(с);
                             }, function () {
                                 return res.json({ success: true, status: "OK", transactions: transactions });
                             });
@@ -380,7 +380,7 @@ module.exports = function (app) {
                             item.confirmations = app.blockchain.getLastBlock().height - app.blockchain.blocks[blockId].height + 1;
                             item.confirmed = true;
 
-                            cb();
+                            setImmediate(cb);
                         }, function () {
                             async.forEach(app.transactionprocessor.unconfirmedTransactions, function (item, cb) {
                                 if (item.recipientId == accountId) {
@@ -391,7 +391,7 @@ module.exports = function (app) {
 
                                     unconfirmedTransactions.push(item.toJSON());
 
-                                    cb();
+                                    setImmediate(cb);
                                 }
                             }, function () {
                                 transactions = transactions.concat(unconfirmedTransactions);
@@ -418,7 +418,7 @@ module.exports = function (app) {
 
             var sender = account.address;
 
-            app.db.sql.serialize(function () {
+            //app.db.sql.serialize(function () {
                 var q = app.db.sql.prepare("SELECT * FROM trs WHERE sender = ? ORDER BY timestamp");
                 q.bind(sender);
                 q.all(function (err, rows) {
@@ -432,7 +432,7 @@ module.exports = function (app) {
                             var blockId = item.blockId;
                             item.confirmations = app.blockchain.getLastBlock().height - app.blockchain.blocks[blockId].height + 1;
                             item.confirmed = true;
-                            cb();
+                            setImmediate(cb);
                         }, function () {
                             async.forEach(app.transactionprocessor.unconfirmedTransactions, function (item, cb) {
                                 item.sender = app.accountprocessor.getAddressByPublicKey(item.senderPublicKey);
@@ -442,7 +442,7 @@ module.exports = function (app) {
                                     item.fee = getFee(item);
 
                                     unconfirmedTransactions.push(item.toJSON());
-                                    cb();
+                                    setImmediate(cb);
                                 }
                             }, function () {
                                 transactions = transactions.concat(unconfirmedTransactions);
@@ -451,7 +451,7 @@ module.exports = function (app) {
                         });
                     }
                 });
-            });
+            //});
         } catch (e) {
             app.logger.error("Exception, notify developers: ");
             app.logger.error(e);
@@ -492,7 +492,7 @@ module.exports = function (app) {
 
             var totalForged = 0;
 
-            app.db.sql.serialize(function () {
+            //app.db.sql.serialize(function () {
                 app.db.sql.all("SELECT * FROM blocks WHERE generatorPublicKey=$publicKey ORDER BY timestamp " + order, {
                     $publicKey: publicKey
                 }, function (err, blocks) {
@@ -501,7 +501,7 @@ module.exports = function (app) {
                         return res.json({ success: false });
                     } else {
                         async.eachSeries(blocks, function (b, cb) {
-                            app.db.sql.serialize(function () {
+                            //app.db.sql.serialize(function () {
                                 app.db.sql.all("SELECT * FROM trs WHERE blockId=$blockId", { $blockId: b.id }, function (err, trs) {
                                     if (err) {
                                         return cb(err);
@@ -524,7 +524,7 @@ module.exports = function (app) {
                                                 totalForged += t.fee;
                                             }
 
-                                            tcb();
+                                            setImmediate(tcb);
                                         }, function () {
                                             app.db.sql.all("SELECT * FROM companyconfirmations WHERE blockId=$blockId", { $blockId: b.id }, function (err, cms) {
                                                 if (err) {
@@ -537,7 +537,7 @@ module.exports = function (app) {
                                         });
                                     }
                                 });
-                            });
+                            //});
                         }, function (err) {
                             if (err) {
                                 return res.json({ success: false, status: "SQL_ERROR", error: "Sql error" });
@@ -557,12 +557,12 @@ module.exports = function (app) {
                             });
 
                             async.eachSeries(addresses, function (a, cb) {
-                                app.db.sql.serialize(function () {
+                                //app.db.sql.serialize(function () {
                                     app.db.sql.all("SELECT * FROM trs WHERE recipientId = $recipientId", {
                                         $recipientId: a.address
                                     }, function (err, trs) {
                                         if (err) {
-                                            return cb(err);
+                                            return setImmediate(cb, err);
                                         } else {
                                             async.eachSeries(trs, function (t, tcb) {
                                                 if (t.fee >= 2) {
@@ -574,13 +574,13 @@ module.exports = function (app) {
                                                     }
                                                 }
 
-                                                tcb();
+                                                setImmediate(tcb);
                                             }, function () {
-                                                cb();
+                                                setImmediate(cb);
                                             });
                                         }
                                     });
-                                });
+                                //});
                             }, function (err) {
                                 if (err) {
                                     return res.json({ success: false, status: "SQL_ERROR", error: "Sql error" });
@@ -632,7 +632,7 @@ module.exports = function (app) {
                                         dels.push(i.toJSON());
                                     }
 
-                                    cb();
+                                    setImmediate(cb);
                                 }, function () {
                                     addresses = dels.concat(addresses);
                                     addresses = addresses.concat(addedCompanies);
@@ -649,7 +649,7 @@ module.exports = function (app) {
                         });
                     }
                 });
-            });
+            //});
         } catch (e) {
             app.logger.error("Exception, notify developers: ");
             app.logger.error(e);
@@ -674,7 +674,7 @@ module.exports = function (app) {
                 return res.json({ success: false, error: "Provide block id", status: "PROVIDE_BLOCK_ID" });
             }
 
-            app.db.sql.serialize(function () {
+            //app.db.sql.serialize(function () {
                 var r = app.db.sql.prepare("SELECT * FROM blocks WHERE height > (SELECT height FROM blocks WHERE id=$id LIMIT 1) ORDER BY height LIMIT " + limit);
                 r.bind({
                     $id: blockId
@@ -686,7 +686,7 @@ module.exports = function (app) {
                         return res.json({ success: false, error: "SQL error", status: "SQL_ERROR" });
                     } else {
                         async.eachSeries(blocks, function (item, cb) {
-                            app.db.sql.serialize(function () {
+                            //app.db.sql.serialize(function () {
 
                                 app.db.sql.all("SELECT * FROM trs WHERE blockId=$id", {
                                     $id: item.id
@@ -697,21 +697,19 @@ module.exports = function (app) {
                                         async.forEach(trs, function (t, cb) {
                                             if (t.type == 2) {
                                                 if (t.subtype == 0) {
-                                                    app.db.sql.serialize(function () {
+                                                    //app.db.sql.serialize(function () {
                                                         app.db.sql.get("SELECT * FROM signatures WHERE transactionId=$transactionId", {
                                                             $transactionId: t.id
                                                         }, function (err, asset) {
-                                                            if (err) {
-                                                                cb(err);
-                                                            } else {
+                                                            if (!err) {
                                                                 trs.asset = asset;
-                                                                cb();
                                                             }
+															cb(err);
                                                         });
-                                                    });
+                                                    //});
                                                 }
                                             } else {
-                                                cb();
+                                                setImmediate(cb);
                                             }
                                         }, function (err) {
                                             if (err) {
@@ -719,7 +717,7 @@ module.exports = function (app) {
                                             }
 
                                             item.trs = trs;
-                                            app.db.sql.serialize(function () {
+                                            //app.db.sql.serialize(function () {
                                                 app.db.sql.all("SELECT * FROM requests WHERE blockId=$id", {
                                                     $id: item.id
                                                 }, function (err, requests) {
@@ -730,11 +728,11 @@ module.exports = function (app) {
                                                         cb();
                                                     }
                                                 });
-                                            });
+                                            //});
                                         });
                                     }
                                 });
-                            });
+                            //});
                         }, function (err) {
                             if (err) {
                                 app.logger.error("SQL error");
@@ -745,7 +743,7 @@ module.exports = function (app) {
                         });
                     }
                 });
-            });
+            //});
         } catch (e) {
             app.logger.error("Exception, notify developers: ");
             app.logger.error(e);
@@ -781,7 +779,7 @@ module.exports = function (app) {
                 order = "ASC";
             }
 
-            app.db.sql.serialize(function () {
+            //app.db.sql.serialize(function () {
                 app.db.sql.all("SELECT * FROM blocks ORDER BY timestamp " + order + "  LIMIT " + limit + " OFFSET " + offset, function (err, blocks) {
                     if (err) {
                         app.logger.error(err.toString());
@@ -791,18 +789,16 @@ module.exports = function (app) {
                             block.timestamp += utils.epochTime();
                             block.generator = app.accountprocessor.getAddressByPublicKey(new Buffer(block.generatorPublicKey, 'hex'))
 
-                            app.db.sql.serialize(function () {
+                            //app.db.sql.serialize(function () {
                                 app.db.sql.all("SELECT * FROM trs WHERE blockId = $blockId", {
                                     $blockId : block.id
                                 }, function (err, rows) {
-                                    if (err) {
-                                        callback(err);
-                                    } else {
+                                    if (!err) {
                                         block.transactions = rows;
-                                        callback();
                                     }
+                                    callback(err);
                                 });
-                            });
+                            //});
                         }, function (err) {
                             if (err) {
                                 app.logger.error(err);
@@ -813,7 +809,7 @@ module.exports = function (app) {
                         });
                     }
                 });
-            });
+            //});
         } catch (e) {
             app.logger.error("Exception, notify developers: ");
             app.logger.error(e);
@@ -823,7 +819,7 @@ module.exports = function (app) {
 
     app.get('/api/lastBlock', app.basicAuth, function (req, res) {
         try {
-            app.db.sql.serialize(function () {
+            //app.db.sql.serialize(function () {
                 app.db.sql.all("SELECT * FROM blocks ORDER BY height DESC LIMIT 1", function (err, rows) {
                     if (err) {
                         app.logger.error(err);
@@ -833,23 +829,23 @@ module.exports = function (app) {
                             item.timestamp += utils.epochTime();
                             item.generator = app.accountprocessor.getAddressByPublicKey(new Buffer(item.generatorPublicKey, 'hex'));
 
-                            app.db.sql.serialize(function () {
+                            //app.db.sql.serialize(function () {
                                 app.db.sql.all("SELECT * FROM trs WHERE blockId='" + item.id + "'", function (err, rows) {
                                     if (err) {
-                                        callback(err);
+                                        setImmediate(callback, err);
                                     } else {
                                         item.transactions = rows;
 
                                         async.forEach(item.transactions, function (t, cb) {
                                             t.timestamp += utils.epochTime();
                                             t.sender = app.accountprocessor.getAddressByPublicKey(new Buffer(t.senderPublicKey, 'hex'));
-                                            cb();
+                                            setImmediate(cb);
                                         }, function () {
                                             callback();
                                         });
                                     }
                                 });
-                            });
+                            //});
                         }, function (err) {
                             if (err) {
                                 app.logger.error(err);
@@ -860,7 +856,7 @@ module.exports = function (app) {
                         });
                     }
                 });
-            });
+            //});
         } catch (e) {
             app.logger.error("Exception, notify developers: ");
             app.logger.error(e);

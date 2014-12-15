@@ -281,12 +281,12 @@ forger.prototype.startForge = function () {
             var size = 77;
 
             if (size + confirmationsLength > constants.maxConfirmations) {
-                return cb(true);
+                return setImmediate(cb, true);
             }
 
             this.checkCompany(company, function (r) {
                 if (!company) {
-                    return cb();
+                    return setImmediate(cb);
                 }
 
                 var cm = new companyconfirmation(company.getId(), r, blockTimestamp);
@@ -296,7 +296,7 @@ forger.prototype.startForge = function () {
                 confirmationsLength += size;
                 totalFee += 100 * constants.numberLength;
 
-                cb();
+                setImmediate(cb);
             }.bind(this));
         }.bind(this), function () {
             var publicKey = this.publicKey;

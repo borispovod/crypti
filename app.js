@@ -147,7 +147,7 @@ async.series([
         logger.init("logs.log", config.get('logLevel'), app.get('onlyToFile'));
         logger.getInstance().info("Logger initialized");
         app.logger = logger.getInstance();
-        cb();
+        setImmediate(cb);
     },
     function (cb) {
         logger.getInstance().info("Load forging panel configruation");
@@ -161,56 +161,56 @@ async.series([
 
         app.forgingFile = fs.readFileSync(path.join(__dirname, "public", "forging.html"));
 
-        cb();
+        setImmediate(cb);
     },
     function (cb) {
         logger.getInstance().info("Initializing account processor...");
         app.accountprocessor = accountprocessor.init();
         app.accountprocessor.setApp(app);
         logger.getInstance().info("Account processor initialized");
-        cb();
+        setImmediate(cb);
     },
     function (cb) {
         logger.getInstance().info("Initializing transaction processor...");
         app.transactionprocessor = transactionprocessor.init();
         app.transactionprocessor.setApp(app);
         logger.getInstance().info("Transaction processor initialized");
-        cb();
+        setImmediate(cb);
     },
     function (cb) {
         logger.getInstance().info("Initializing blockchain...");
         app.blockchain = blockchain.init(app);
         logger.getInstance().info("Blockchain initialized...");
-        cb();
+        setImmediate(cb);
     },
     function (cb) {
         logger.getInstance().info("Initializing company processor...");
         app.companyprocessor = new companyprocessor();
         app.companyprocessor.setApp(app);
-        cb();
+        setImmediate(cb);
     },
     function (cb) {
       logger.getInstance().info("Initializing peer processor...");
       app.peerprocessor = new peerprocessor();
       app.peerprocessor.setApp(app);
-      cb();
+      setImmediate(cb);
     },
     function (cb) {
         logger.getInstance().info("Initialize request processor...");
         app.requestprocessor = new requestprocessor();
         app.requestprocessor.setApp(app);
-        cb();
+        setImmediate(cb);
     },
     function (cb) {
         logger.getInstance().info("Initialize signature processor...");
         app.signatureprocessor = new signatureprocessor();
         app.signatureprocessor.setApp(app);
-        cb();
+        setImmediate(cb);
     },
     function (cb) {
         logger.getInstance().info("Load system info...");
         app.info = { platform : os.platform, version : config.get('version') };
-        cb();
+        setImmediate(cb);
     },
     function (cb) {
         logger.getInstance().info("Initializing forger processor...");
@@ -227,7 +227,7 @@ async.series([
         if (!forgerPassphrase) {
             logger.getInstance().info("Provide secret phrase to start forging...");
             console.log("Provide secret phrase to start forging...");
-            return cb();
+            return setImmediate(cb);
         }
 
         forgerPassphrase = forgerPassphrase.secretPhrase;
@@ -235,7 +235,7 @@ async.series([
         if (forgerPassphrase.length === 0) {
             logger.getInstance().info("Provide secret phrase to start forging...");
             console.log("Provide secret phrase to start forging...");
-            return cb();
+            return setImmediate(cb);
         }
 
         if (forgerPassphrase && forgerPassphrase.length > 0) {
@@ -256,7 +256,7 @@ async.series([
             logger.getInstance().info("Forging not enabled...");
         }
 
-        cb();
+        setImmediate(cb);
     },
     function (cb) {
         app.listen(app.get('port'), app.get('address'), function () {
@@ -303,14 +303,14 @@ async.series([
                 return res.redirect('/');
             });
 
-            cb();
+            setImmediate(cb);
         });
     },
 	function (cb) {
 		logger.getInstance().info("Initializing and scanning database...");
 		initDb("./blockchain.db", app, function (err, db) {
 			if (err) {
-				cb(err);
+				setImmediate(cb,err);
 			} else {
 				app.db = db;
 				app.db.readBlocks(function (err, blocks) {
@@ -495,7 +495,7 @@ async.series([
 								}
 							});
 						}, function () {
-							cb();
+							setImmediate(cb);
 						});
 					}
 				});
@@ -510,10 +510,10 @@ async.series([
 
             if (err) {
                logger.getInstance().debug("Genesis block not added");
-               cb(err);
+               setImmediate(cb, err);
             } else {
                 logger.getInstance().debug("Genesis block added...");
-                cb();
+                setImmediate(cb);
             }
         });
     },
@@ -524,14 +524,14 @@ async.series([
         app.peerprocessor.blackList = blackList;
         async.forEach(peers, function (p, callback) {
             if (!p.ip || !p.port || isNaN(p.port) || p.port <= 0 || p.port >= 65500) {
-                return callback();
+                return setImmediate(callback);
             }
             p = new peer(p.ip, p.port, app.get("config").get("version"), true);
             p.setApp(app);
             app.peerprocessor.addPeer(p);
-            callback();
+            setImmediate(callback);
         }, function () {
-            cb();
+            setImmediate(cb);
         });
     },
     function (cb) {
@@ -557,7 +557,7 @@ async.series([
                     p.getPeers(function (err, peersJSON) {
                         if (err) {
                             p = app.peerprocessor.getAnyPeer();
-                            return callback(true);
+                            return setImmediate(callback,true);
                         } else {
                             var ps = peersJSON.peers;
 
@@ -579,10 +579,10 @@ async.series([
                                         app.peerprocessor.addPeer(_peer);
                                     }
                                 }
-                                callback();
+                                setImmediate(callback);
                             } else {
                                 p = app.peerprocessor.getAnyPeer();
-                                return callback();
+                                return setImmediate(callback);
                             }
                         }
                     });
@@ -623,7 +623,7 @@ async.series([
                         app.logger.debug("Get requests from " + p.ip);
                         p.getRequests(function (err, requests) {
                             if (err) {
-                                return next(true);
+                                return setImmediate(next,true);
                             } else {
                                 var answer = requests;
 
@@ -645,20 +645,20 @@ async.series([
                                         }
 
                                         if (!added) {
-                                            return c(true);
+                                            return setImmediate(c,true);
                                         }
 
                                         c();
                                     }, function (err) {
                                         if (err) {
-                                            return next(true);
+                                            return setImmediate(next,true);
                                         } else {
                                             finished = true;
-                                            next();
+                                            setImmediate(next);
                                         }
                                     });
                                 } else {
-                                    return next(true);
+                                    return setImmediate(next,true);
                                 }
                             }
                         });
@@ -717,7 +717,7 @@ async.series([
                     }, function (next) {
                         p.getNextBlocks(blockId, function (err, json) {
                             if (err) {
-                                return next(true);
+                                return setImmediate(next,true);
                             } else {
                                 if (json.success && json.blocks.length > 0) {
                                     app.syncFromPeer = true;
@@ -761,12 +761,10 @@ async.series([
                                             }
 
                                             transactions.push(tr);
-                                            _c();
+                                            setImmediate(_c);
                                         }, function (err) {
                                             if (err) {
-                                                return setImmediate(function () {
-                                                    return c({ error: true });
-                                                });
+                                                return setImmediate(c,{ error: true });
                                             }
 
                                             b.transactions = transactions;
@@ -777,12 +775,10 @@ async.series([
                                                 var request = new requestconfirmation(r.address);
                                                 request.blockId = r.blockId;
                                                 requests.push(request);
-                                                _c();
+                                                setImmediate(_c);
                                             }.bind(this), function (err) {
                                                 if (err) {
-                                                    return setImmediate(function () {
-                                                        return c({ error: true });
-                                                    });
+                                                    return setImmediate(c,{ error: true });
                                                 }
 
                                                 b.requests = requests;
@@ -791,7 +787,7 @@ async.series([
                                                 async.eachSeries(item.confirmations, function (conf, _c) {
                                                     var confirmation = new companyconfirmation(conf.companyId, conf.verified, conf.timestamp, new Buffer(conf.signature));
                                                     confirmations.push(confirmation);
-                                                    _c();
+                                                    setImmediate(_c);
                                                 }, function () {
                                                     b.confirmations = confirmations;
 
@@ -862,9 +858,9 @@ async.series([
                                         });
                                     }, function (s) {
                                         if (s && s._continue) {
-                                            return next();
+                                            return setImmediate(next);
                                         } else if (s && s.error) {
-                                            return next(true);
+                                            return setImmediate(next, true);
                                         } else {
                                             if (json.blocks && json.blocks.length === 0) {
                                                 if (inFork && lastWeight.gt(app.blockchain.getWeight())) {
@@ -875,21 +871,21 @@ async.series([
                                                     app.blockchain.removeForkedBlocks(forkBlock, function () {
                                                         app.logger.info("Remove invalid fork blocks...");
                                                         app.peerprocessor.blockPeer(p.ip);
-                                                        return next(true);
+                                                        return setImmediate(next,true);
                                                     });
                                                 } else {
-                                                    return next(true);
+                                                    return setImmediate(next,true);
                                                 }
                                             } else {
-                                                return next();
+                                                return setImmediate(next);
                                             }
                                         }
                                     });
                                 } else if (!json.success) {
-                                    return next(true);
+                                    return setImmediate(next,true);
                                 } else {
                                     finished = true;
-                                    return next();
+                                    return setImmediate(next);
                                 }
                             }
                         });
@@ -1010,7 +1006,7 @@ async.series([
                     p.getUnconfirmedTransactions(function (err, trs) {
                         if (err) {
                             p = app.peerprocessor.getAnyPeer();
-                            next(true);
+                            setImmediate(next,true);
                         } else {
                             var answer = trs;
                             if (answer.success) {
@@ -1023,7 +1019,7 @@ async.series([
                                     }
 
                                     if (app.transactionprocessor.getUnconfirmedTransaction(tr.getId()) !== null) {
-                                        return cb();
+                                        return setImmediate(cb);
                                     }
 
                                     switch (tr.type) {
@@ -1054,20 +1050,20 @@ async.series([
                                     }
 
                                     if (r) {
-                                        cb();
+                                        setImmediate(cb);
                                     } else {
-                                        cb("Can't process transaction " + tr.getId() + " from " + p.ip);
+                                        setImmediate(cb,"Can't process transaction " + tr.getId() + " from " + p.ip);
                                     }
                                 }, function (err) {
                                     if (err) {
-                                        return next(true);
+                                        return setImmediate(next, true);
                                     }
 
                                     finished = true;
-                                    return next();
+                                    return setImmediate(next);
                                 });
                             } else {
-                                return next(true);
+                                return setImmediate(next, true);
                             }
                         }
                     });
