@@ -821,6 +821,10 @@ Blocks.prototype.saveBlock = function (block, cb) {
 	})
 }
 
+Blocks.prototype.deleteById = function (blockId, cb) {
+	library.db.get("DELETE FROM blocks WHERE height >= (SELECT height FROM blocks where id = $id)", {$id: blockId}, cb);
+}
+
 // generate block
 Blocks.prototype.generateBlock = function (keypair, cb) {
 	var transactions = modules.transactions.getUnconfirmedTransactions();
