@@ -111,7 +111,7 @@ Loader.prototype.loadBlocks = function (cb) {
 					})
 				} else {
 					var commonBlock = genesisBlock.blockId;
-					// load blocks from common
+					
 				}
 			} else {
 				return cb();
