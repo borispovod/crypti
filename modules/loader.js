@@ -70,6 +70,7 @@ Loader.prototype.run = function (scope) {
 				} else {
 					loaded = true;
 					library.logger.info('blockchain ready');
+					library.bus.message('blockchain ready');
 				}
 			}
 		)
