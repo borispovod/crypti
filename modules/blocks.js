@@ -90,8 +90,8 @@ Blocks.prototype.run = function (scope) {
 
 Blocks.prototype.get = function (id, cb) {
 	var stmt = library.db.prepare("select b.id b_id, b.version b_version, b.timestamp b_timestamp, b.height b_height, b.previousBlock b_previousBlock, b.nextBlock b_nextBlock, b.numberOfRequests b_numberOfRequests, b.numberOfTransactions b_numberOfTransactions, b.numberOfConfirmations b_numberOfConfirmations, b.totalAmount b_totalAmount, b.totalFee b_totalFee, b.payloadLength b_payloadLength, b.requestsLength b_requestsLength, b.confirmationsLength b_confirmationsLength, b.payloadHash b_payloadHash, b.generatorPublicKey b_generatorPublicKey, b.generationSignature b_generationSignature, b.blockSignature b_blockSignature " +
-		"from blocks b " +
-		"where b.id = ?");
+	"from blocks b " +
+	"where b.id = ?");
 
 	stmt.bind(id);
 
@@ -124,10 +124,10 @@ Blocks.prototype.list = function (filter, cb) {
 	}
 
 	var stmt = library.db.prepare("select b.id b_id, b.version b_version, b.timestamp b_timestamp, b.height b_height, b.previousBlock b_previousBlock, b.nextBlock b_nextBlock, b.numberOfRequests b_numberOfRequests, b.numberOfTransactions b_numberOfTransactions, b.numberOfConfirmations b_numberOfConfirmations, b.totalAmount b_totalAmount, b.totalFee b_totalFee, b.payloadLength b_payloadLength, b.requestsLength b_requestsLength, b.confirmationsLength b_confirmationsLength, b.payloadHash b_payloadHash, b.generatorPublicKey b_generatorPublicKey, b.generationSignature b_generationSignature, b.blockSignature b_blockSignature " +
-		"from blocks b " +
-		(fields.length ? "where " + fields.join(' and ') : '') + " " +
-		(filter.orderBy ? 'order by ' + sortBy + ' ' + sortMethod : '') + " " +
-		(filter.limit ? 'limit $limit' : ''));
+	"from blocks b " +
+	(fields.length ? "where " + fields.join(' and ') : '') + " " +
+	(filter.orderBy ? 'order by ' + sortBy + ' ' + sortMethod : '') + " " +
+	(filter.limit ? 'limit $limit' : ''));
 
 	stmt.bind(params);
 
@@ -143,7 +143,7 @@ Blocks.prototype.list = function (filter, cb) {
 
 Blocks.prototype.count = function (cb) {
 	library.db.get("select count(rowid) count " +
-		"from blocks", function (err, res) {
+	"from blocks", function (err, res) {
 		cb(err, res.count);
 	});
 }
@@ -190,7 +190,7 @@ Blocks.prototype.loadBlocksPart = function (limit, offset, lastId, cb) {
 							if (block.id != genesisblock.blockId) {
 								if (!self.verifySignature(block)) { //|| !self.verifyGenerationSignature(block, previousBlock)) {
 									// need to break cicle and delete this block and blocks after this block
-									library.logger.warn("Can't verify signature...");
+									err = {message: "Can't verify signature", block: block};
 									break;
 								}
 							}
@@ -208,8 +208,8 @@ Blocks.prototype.loadBlocksPart = function (limit, offset, lastId, cb) {
 							if (prevCompanyComfirmationId != companyComfirmation.id) {
 								// verify
 								if (!confirmationsHelper.verifySignature(companyComfirmation, block.generatorPublicKey)) {
-									library.logger.error("Can't verify company confirmation signature...");
-									return false;
+									err = {message: "Can't verify company confirmation signature", block: block};
+									break;
 								}
 
 								// apply
@@ -228,18 +228,18 @@ Blocks.prototype.loadBlocksPart = function (limit, offset, lastId, cb) {
 
 								if (block.id != genesisblock.blockId) {
 									if (!modules.transactions.verifySignature(transaction)) {
-										library.logger.warn("Can't verify transaction: " + transaction.id); // need to remove after tests
+										err = {message: "Can't verify transaction: " + transaction.id, block: block};
 										break;
 									}
 								}
 
 								if (!modules.transactions.applyUnconfirmed(transaction) || !modules.transactions.apply(transaction)) {
-									library.logger.warn("Can't apply transaction: " + transaction.id);
+									err = {message: "Can't apply transaction: " + transaction.id, block: block};
 									break;
 								}
 
 								if (!self.applyForger(block.generatorPublicKey, transaction)) {
-									library.logger.warn("Can't apply transaction to forger: " + transaction.id);
+									err = {message: "Can't apply transaction to forger: " + transaction.id, block: block};
 									break;
 								}
 
@@ -268,8 +268,6 @@ Blocks.prototype.loadBlocksPart = function (limit, offset, lastId, cb) {
 					}
 				}
 
-			} else {
-				console.log(err);
 			}
 
 			//console.timeEnd('loading');
@@ -346,7 +344,7 @@ Blocks.prototype.getCommonBlock = function (milestoneBlock, peer, cb) {
 					return next(err || resp.error);
 				} else if (resp.ids.length == 0) {
 					async.eachSeries(resp.ids, function (id, cb) {
-						library.db.get("SELECT id FROM blocks WHERE id=$id", { $id: id }, function (err, block) {
+						library.db.get("SELECT id FROM blocks WHERE id=$id", {$id: id}, function (err, block) {
 							if (err) {
 								return cb(err);
 							} else if (block) {
@@ -399,7 +397,7 @@ Blocks.prototype.getMilestoneBlock = function (peer, cb) {
 					return next();
 				} else {
 					async.eachSeries(resp.milestoneBlockIds, function (blockId, cb) {
-						library.db.get("SELECT id FROM blocks WHERE id = $id", { $id: blockId }, function (err, block) {
+						library.db.get("SELECT id FROM blocks WHERE id = $id", {$id: blockId}, function (err, block) {
 							if (err) {
 								return cb(err);
 							} else if (block) {
@@ -441,30 +439,30 @@ Blocks.prototype.applyConfirmation = function (generatorPublicKey, confirmation)
 
 Blocks.prototype.getForgedByAccount = function (generatorPublicKey, cb) {
 	var stmt = library.db.prepare("select b.generatorPublicKey, t.type, " +
-	 "CASE WHEN t.type = 0 "  +
-	 "THEN sum(t.fee)  " +
-	 "ELSE  " +
-	  "CASE WHEN t.type = 1 " +
-	  "THEN " +
-	   "CASE WHEN t.fee >= 2 " +
-	   "THEN " +
-		"CASE WHEN t.fee % 2 != 0 " +
-		"THEN sum(t.fee - round(t.fee / 2)) " +
-		"ELSE sum(t.fee / 2) " +
-		"END " +
-	   "ELSE sum(t.fee) " +
-	   "END " +
-	  "ELSE " +
-	   "CASE WHEN t.type = 2 " +
-	   "THEN sum(100 * 100000000) " +
-	   "ELSE " +
-		"CASE WHEN t.type = 3 " +
-		"THEN sum(100 * 100000000) " +
-		"ELSE " +
-		 "sum(0) " +
-		"END " +
-	   "END " +
-	  "END " +
+	"CASE WHEN t.type = 0 " +
+	"THEN sum(t.fee)  " +
+	"ELSE  " +
+	"CASE WHEN t.type = 1 " +
+	"THEN " +
+	"CASE WHEN t.fee >= 2 " +
+	"THEN " +
+	"CASE WHEN t.fee % 2 != 0 " +
+	"THEN sum(t.fee - round(t.fee / 2)) " +
+	"ELSE sum(t.fee / 2) " +
+	"END " +
+	"ELSE sum(t.fee) " +
+	"END " +
+	"ELSE " +
+	"CASE WHEN t.type = 2 " +
+	"THEN sum(100 * 100000000) " +
+	"ELSE " +
+	"CASE WHEN t.type = 3 " +
+	"THEN sum(100 * 100000000) " +
+	"ELSE " +
+	"sum(0) " +
+	"END " +
+	"END " +
+	"END " +
 	"END sum " +
 	"from blocks b " +
 	"inner join trs t on t.blockId = b.id " +
