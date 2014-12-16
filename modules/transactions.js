@@ -409,7 +409,7 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, cb
 					if (self.applyUnconfirmed(transaction)) {
 						unconfirmedTransactions[transaction.id] = transaction;
 
-						library.bus.message('unconfirmed transaction', transaction)
+						library.bus.message('unconfirmedTransaction', transaction)
 					} else {
 						doubleSpendingTransactions[transaction.id] = transaction;
 					}
