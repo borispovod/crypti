@@ -133,7 +133,8 @@ Loader.prototype.onPeerReady = function () {
 
 			process.nextTick(function nextLoadBlock() {
 				self.loadBlocks(function () {
-					setTimeout(nextLoadBlock, 30 * 1000)
+					// 10 seconds for testing
+					setTimeout(nextLoadBlock, 10 * 1000)
 				})
 			});
 
