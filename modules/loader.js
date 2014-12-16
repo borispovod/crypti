@@ -64,12 +64,13 @@ Loader.prototype.run = function (scope) {
 						modules.blocks.deleteById(err.block.id, function (err, res) {
 							loaded = true;
 							library.logger.error('blockchain clipped');
-							library.bus.message('blockchain ready');
+							library.bus.message('blockchainReady');
 						})
 					}
 				} else {
 					loaded = true;
 					library.logger.info('blockchain ready');
+					library.bus.message('blockchainReady');
 				}
 			}
 		)
