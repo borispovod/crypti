@@ -42,6 +42,7 @@ function _request(peer, api, method, data, cb) {
 		req.body = data;
 	}
 
+
 	if (cb) {
 		request(req, function (err, response, body) {
 			if (!err && response.statusCode == 200) {
@@ -74,8 +75,8 @@ Transport.prototype.broadcast = function (peersCount, method, data, cb) {
 		if (!err) {
 			async.eachLimit(peers, 3, function (peer, cb) {
 				// not need to check peer is offline or online, just send.
-				_request(peer, method, "POST", data, cb);
-				//setImmediate(cb);
+				_request(peer, method, "POST", data);
+				setImmediate(cb);
 			}, function () {
 				cb && cb(null, {body: null, peer: peers});
 			})
@@ -118,15 +119,18 @@ Transport.prototype.onBlockchainReady = function () {
 		res.set(headers);
 
 		var transaction = req.body.transaction;
+		transaction.senderPublicKey = new Buffer(transaction.senderPublicKey);
+		transaction.signature = new Buffer(transaction.signature);
+
 		modules.transactions.processUnconfirmedTransaction(transaction);
 
-		return res.send(200);
+		return res.sendStatus(200);
 	});
 
 	router.get("/blocks/ids", function (req, res) {
 		res.set(headers);
 
-		library.db.all("SELECT id FROM blocks WHERE height > (SELECT height FROM blocks where id=$id) LIMIT 1440", {$id: req.query.id}, function (err, blocks) {
+		library.db.all("SELECT id FROM blocks WHERE height > (SELECT height FROM blocks where id=$id) LIMIT 1440", { $id : req.query.id }, function (err, blocks) {
 			if (err) {
 				console.log(err);
 				return res.status(200).json({error: "Internal sql error"});
