@@ -209,7 +209,7 @@ Blocks.prototype.count = function (cb) {
 	});
 }
 
-Blocks.prototype.loadBlocksPart = function (limit, offset, lastId, cb) {
+Blocks.prototype.loadBlocksPart = function (limit, offset, lastId, verify, cb) {
 	//console.time('loading');
 
 	var params = {$limit: limit, $offset: offset};
@@ -235,20 +235,18 @@ Blocks.prototype.loadBlocksPart = function (limit, offset, lastId, cb) {
 			// We need to process all transactions of block
 			if (!err) {
 				var currentBlock = null, previousBlock = null;
-				//var blocksById = {};
+				var blocks = [];
 
 				var prevBlockId = null, prevTransactionId = null, t_index, prevRequestId = null, prevCompanyComfirmationId = null;
 				for (var i = 0, length = rows.length; i < length; i++) {
 					var block = blockHelper.getBlock(rows[i]);
 					if (block) {
-						loaded = block.height;
-
 						if (prevBlockId != block.id) {
 							if (currentBlock && block.previousBlock == currentBlock.id) {
 								previousBlock = currentBlock;
 							}
 
-							if (block.id != genesisblock.blockId) {
+							if (verify && block.id != genesisblock.blockId) {
 								if (!self.verifySignature(block)) { //|| !self.verifyGenerationSignature(block, previousBlock)) {
 									// need to break cicle and delete this block and blocks after this block
 									err = {message: "Can't verify signature", block: block};
@@ -268,13 +266,15 @@ Blocks.prototype.loadBlocksPart = function (limit, offset, lastId, cb) {
 							!currentBlock.companyComfirmations && (currentBlock.companyComfirmations = []);
 							if (prevCompanyComfirmationId != companyComfirmation.id) {
 								// verify
-								if (!confirmationsHelper.verifySignature(companyComfirmation, block.generatorPublicKey)) {
+								if (verify && !confirmationsHelper.verifySignature(companyComfirmation, block.generatorPublicKey)) {
 									err = {message: "Can't verify company confirmation signature", block: block};
 									break;
 								}
 
 								// apply
-								self.applyConfirmation(companyComfirmation, block.generatorPublicKey);
+								if (verify) {
+									self.applyConfirmation(companyComfirmation, block.generatorPublicKey);
+								}
 
 								currentBlock.companyComfirmations.push(companyComfirmation);
 								prevCompanyComfirmationId = companyComfirmation.id;
@@ -287,21 +287,23 @@ Blocks.prototype.loadBlocksPart = function (limit, offset, lastId, cb) {
 							if (prevTransactionId != transaction.id) {
 								currentBlock.transactions.push(transaction);
 
-								if (block.id != genesisblock.blockId) {
+								if (verify && block.id != genesisblock.blockId) {
 									if (!modules.transactions.verifySignature(transaction)) {
 										err = {message: "Can't verify transaction: " + transaction.id, block: block};
 										break;
 									}
 								}
 
-								if (!modules.transactions.applyUnconfirmed(transaction) || !modules.transactions.apply(transaction)) {
-									err = {message: "Can't apply transaction: " + transaction.id, block: block};
-									break;
-								}
+								if (verify) {
+									if (!modules.transactions.applyUnconfirmed(transaction) || !modules.transactions.apply(transaction)) {
+										err = {message: "Can't apply transaction: " + transaction.id, block: block};
+										break;
+									}
 
-								if (!self.applyForger(block.generatorPublicKey, transaction)) {
-									err = {message: "Can't apply transaction to forger: " + transaction.id, block: block};
-									break;
+									if (!self.applyForger(block.generatorPublicKey, transaction)) {
+										err = {message: "Can't apply transaction to forger: " + transaction.id, block: block};
+										break;
+									}
 								}
 
 								t_index = currentBlock.transactions.length - 1;
@@ -320,20 +322,22 @@ Blocks.prototype.loadBlocksPart = function (limit, offset, lastId, cb) {
 							}
 						}
 
-						if (block.id != genesisblock.blockId) {
+						if (verify && block.id != genesisblock.blockId) {
 							self.applyFee(block);
 							self.applyWeight(block);
 						}
 
-						lastBlock = block;
+						if (verify) {
+							lastBlock = block;
+						} else {
+							blocks.push(block);
+						}
 					}
 				}
 
 			}
 
-			//console.timeEnd('loading');
-
-			cb(err);
+			cb(err, blocks);
 		});
 }
 
