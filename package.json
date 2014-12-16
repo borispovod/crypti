@@ -1,35 +1,38 @@
 {
-	"name": "Crypti",
-	"version": "0.1.9",
-	"private": true,
-	"scripts": {
-		"start": "node app.js"
-	},
-	"dependencies": {
-		"async": "https://github.com/crypti/async/tarball/master",
-		"basic-auth-connect": "^1.0.0",
-		"bignum": "https://github.com/crypti/node-bignum/tarball/master",
-		"body-parser": "*",
-		"bytebuffer": "https://github.com/crypti/ByteBuffer.js/tarball/master",
-		"change-case": "*",
-		"colors": "^1.0.3",
-		"ed25519": "https://github.com/crypti/Ed25519/tarball/master",
-		"ejs": "*",
-		"express": "4.x",
-		"grunt": "^0.4.5",
-		"ip": "^0.3.2",
-		"long": "^1.1.5",
-		"method-override": "*",
-		"request": "*",
-		"sqlite3": "*",
-		"sqlite3-transactions": "*",
-		"strftime": "*",
-		"underscore": "https://github.com/crypti/underscore/tarball/master",
-		"basic-auth": "*",
-		"express-domain-middleware": "*"
-	},
-	"devDependencies": {
-		"grunt-jscrambler": "^0.2.7",
-		"grunt-obfuscator": "^0.1.0"
-	}
+  "name": "Crypti",
+  "version": "0.1.9",
+  "private": true,
+  "scripts": {
+    "start": "node app.js"
+  },
+  "dependencies": {
+    "async": "https://github.com/crypti/async/tarball/master",
+    "basic-auth": "*",
+    "basic-auth-connect": "^1.0.0",
+    "bignum": "https://github.com/crypti/node-bignum/tarball/master",
+    "body-parser": "*",
+    "bytebuffer": "https://github.com/crypti/ByteBuffer.js/tarball/master",
+    "change-case": "*",
+    "colors": "^1.0.3",
+    "cycle": "^1.0.3",
+    "ed25519": "https://github.com/crypti/Ed25519/tarball/master",
+    "ejs": "*",
+    "express": "4.x",
+    "express-domain-middleware": "*",
+    "grunt": "^0.4.5",
+    "ip": "^0.3.2",
+    "long": "^1.1.5",
+    "method-override": "*",
+    "pkginfo": "^0.3.0",
+    "request": "*",
+    "sqlite3": "*",
+    "sqlite3-transactions": "*",
+    "stack-trace": "0.0.9",
+    "strftime": "*",
+    "underscore": "https://github.com/crypti/underscore/tarball/master"
+  },
+  "devDependencies": {
+    "grunt-jscrambler": "^0.2.7",
+    "grunt-obfuscator": "^0.1.0"
+  }
 }
