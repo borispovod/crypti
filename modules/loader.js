@@ -51,7 +51,7 @@ Loader.prototype.run = function (scope) {
 			}, function (cb) {
 				library.logger.info('current ' + offset);
 				process.nextTick(function () {
-					modules.blocks.loadBlocksPart(limit, offset, null, function (err, res) {
+					modules.blocks.loadBlocksPart(limit, offset, null, true, function (err, res) {
 						offset = offset + limit;
 						cb(err, res)
 					});
@@ -111,7 +111,6 @@ Loader.prototype.loadBlocks = function (cb) {
 					})
 				} else {
 					var commonBlock = genesisBlock.blockId;
-					
 				}
 			} else {
 				return cb();
