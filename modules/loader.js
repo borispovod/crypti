@@ -111,6 +111,9 @@ Loader.prototype.loadBlocks = function (cb) {
 					})
 				} else {
 					var commonBlock = genesisBlock.blockId;
+					modules.blocks.loadBlocksFromPeer(data.peer, commonBlock, function (err) {
+						return cb(err);
+					})
 				}
 			} else {
 				return cb();
