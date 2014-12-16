@@ -35,6 +35,7 @@ function _request(peer, api, method, data, cb) {
 		method: method,
 		json: true
 	};
+
 	if (Object.prototype.toString.call(data) == "[object Object]" || util.isArray(data)) {
 		req.json = data;
 	} else {
@@ -73,8 +74,8 @@ Transport.prototype.broadcast = function (peersCount, method, data, cb) {
 		if (!err) {
 			async.eachLimit(peers, 3, function (peer, cb) {
 				// not need to check peer is offline or online, just send.
-				_request(peer, method, "POST", data);
-				setImmediate(cb);
+				_request(peer, method, "POST", data, cb);
+				//setImmediate(cb);
 			}, function () {
 				cb && cb(null, {body: null, peer: peers});
 			})
@@ -113,7 +114,7 @@ Transport.prototype.onBlockchainReady = function () {
 		})
 	});
 
-	router.get('/transaction', function (req, res) {
+	router.post('/transaction', function (req, res) {
 		res.set(headers);
 
 		var transaction = req.body.transaction;
