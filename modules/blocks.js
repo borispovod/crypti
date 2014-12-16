@@ -81,7 +81,7 @@ function Blocks(cb, scope) {
 
 	library.app.use('/api/blocks', router);
 
-	library.db.get("SELECT id FROM blocks WHERE id=$id", { $id : genesisblock.blockId }, function (err, blockId) {
+	library.db.get("SELECT id FROM blocks WHERE id=$id", {$id: genesisblock.blockId}, function (err, blockId) {
 		if (err) {
 			cb(err, self)
 		} else if (!blockId) {
@@ -90,15 +90,15 @@ function Blocks(cb, scope) {
 			for (var i = 0; i < genesisblock.transactions.length; i++) {
 				var genesisTransaction = genesisblock.transactions[i];
 				var transaction = {
-					type : 0,
-					subtype : 0,
-					amount : genesisTransaction.amount * constants.fixedPoint,
-					fee : genesisTransaction.fee,
-					timestamp : timeHelper.epochTime(),
-					recipientId : genesisTransaction.recipientId,
-					signature : new Buffer(genesisTransaction.signature, 'hex'),
-					senderId : genesisblock.creatorId,
-					senderPublicKey : new Buffer(genesisblock.generatorPublicKey, 'hex')
+					type: 0,
+					subtype: 0,
+					amount: genesisTransaction.amount * constants.fixedPoint,
+					fee: genesisTransaction.fee,
+					timestamp: timeHelper.epochTime(),
+					recipientId: genesisTransaction.recipientId,
+					signature: new Buffer(genesisTransaction.signature, 'hex'),
+					senderId: genesisblock.creatorId,
+					senderPublicKey: new Buffer(genesisblock.generatorPublicKey, 'hex')
 				};
 
 				transaction.id = transactionHelper.getId(transaction);
@@ -109,7 +109,7 @@ function Blocks(cb, scope) {
 			generationSignature.fill(0);
 
 			var block = {
-				id : genesisblock.blockId,
+				id: genesisblock.blockId,
 				version: 0,
 				totalAmount: 100000000 * constants.fixedPoint,
 				totalFee: 0,
@@ -127,8 +127,8 @@ function Blocks(cb, scope) {
 				requests: [],
 				companyconfirmations: [],
 				transactions: blockTransactions,
-				blockSignature : new Buffer(genesisblock.blockSignature, 'hex'),
-				height : 1
+				blockSignature: new Buffer(genesisblock.blockSignature, 'hex'),
+				height: 1
 			};
 
 			self.saveBlock(block, function (err) {
@@ -217,11 +217,13 @@ Blocks.prototype.loadBlocksPart = function (limit, offset, lastId, verify, cb) {
 	library.db.all(
 		"SELECT " +
 		"b.id b_id, b.version b_version, b.timestamp b_timestamp, b.height b_height, b.previousBlock b_previousBlock, b.nextBlock b_nextBlock, b.numberOfRequests b_numberOfRequests, b.numberOfTransactions b_numberOfTransactions, b.numberOfConfirmations b_numberOfConfirmations, b.totalAmount b_totalAmount, b.totalFee b_totalFee, b.payloadLength b_payloadLength, b.requestsLength b_requestsLength, b.confirmationsLength b_confirmationsLength, b.payloadHash b_payloadHash, b.generatorPublicKey b_generatorPublicKey, b.generationSignature b_generationSignature, b.blockSignature b_blockSignature, " +
+		"r.id r_id, r.blockId r_blockId, r.address r_address, " +
 		"t.id t_id, t.blockId t_blockId, t.type t_type, t.subtype t_subtype, t.timestamp t_timestamp, t.senderPublicKey t_senderPublicKey, t.senderId t_senderId, t.recipientId t_recipientId, t.amount t_amount, t.fee t_fee, t.signature t_signature, t.signSignature t_signSignature, c_t.generatorPublicKey t_companyGeneratorPublicKey, " +
 		"s.id s_id, s.transactionId s_transactionId, s.timestamp s_timestamp, s.publicKey s_publicKey, s.generatorPublicKey s_generatorPublicKey, s.signature s_signature, s.generationSignature s_generationSignature, " +
 		"c.id c_id, c.transactionId c_transactionId, c.name c_name, c.description c_description, c.domain c_domain, c.email c_email, c.timestamp c_timestamp, c.generatorPublicKey c_generatorPublicKey, c.signature c_signature, " +
 		"cc.id cc_id, cc.blockId cc_blockId, cc.companyId cc_companyId, cc.verified cc_verified, cc.timestamp cc_timestamp, cc.signature cc_signature " +
 		"FROM (select * from blocks limit $limit offset $offset) as b " +
+		"left outer join requests as r on r.blockId=b.id " +
 		"left outer join trs as t on t.blockId=b.id " +
 		"left outer join signatures as s on s.transactionId=t.id " +
 		"left outer join companies as c on c.transactionId=t.id " +
@@ -285,6 +287,16 @@ Blocks.prototype.loadBlocksPart = function (limit, offset, lastId, verify, cb) {
 							}
 						}
 
+						var request = blockHelper.getRequest(rows[i]);
+						if (request) {
+							!currentBlock.requests && (currentBlock.requests = []);
+							if (prevRequestId != request.id) {
+
+								currentBlock.requests.push(request);
+								prevRequestId = request.id;
+							}
+						}
+
 						var transaction = blockHelper.getTransaction(rows[i]);
 						if (transaction) {
 							!currentBlock.transactions && (currentBlock.transactions = []);
@@ -305,7 +317,10 @@ Blocks.prototype.loadBlocksPart = function (limit, offset, lastId, verify, cb) {
 									}
 
 									if (!self.applyForger(block.generatorPublicKey, transaction)) {
-										err = {message: "Can't apply transaction to forger: " + transaction.id, block: block};
+										err = {
+											message: "Can't apply transaction to forger: " + transaction.id,
+											block: block
+										};
 										break;
 									}
 								}
@@ -943,7 +958,7 @@ Blocks.prototype.parseBlock = function (block, cb) {
 	block.blockSignature = new Buffer(block.blockSignature);
 	block.generationSignature = new Buffer(block.generationSignature);
 
-	async.eachLimit(block.transactions, 10, function (transaction , cb) {
+	async.eachLimit(block.transactions, 10, function (transaction, cb) {
 		transaction.signature = new Buffer(transaction.signature);
 		transaction.senderPublicKey = new Buffer(transaction.senderPublicKey);
 		setImmediate(cb);

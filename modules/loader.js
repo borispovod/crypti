@@ -51,12 +51,12 @@ Loader.prototype.run = function (scope) {
 			}, function (cb) {
 				library.logger.info('current ' + offset);
 				process.nextTick(function () {
-					modules.blocks.loadBlocksPart(limit, offset, null, true, function (err, res) {
+					modules.blocks.loadBlocksPart(limit, offset, null, true, function (err) {
 						offset = offset + limit;
-						cb(err, res)
+						cb(err)
 					});
 				})
-			}, function (err, res) {
+			}, function (err) {
 				if (err) {
 					library.logger.error(err);
 					if (err.block) {
