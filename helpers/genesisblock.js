@@ -1,4 +1,6 @@
 module.exports = {
+	payloadLength : 118,
+	payloadHash : "9543c2c4d8ec04bf6560576c75b2e92c45ff5f34bdb621db14015c0df1f52e01",
     creatorId : "6945368540453891295C",
     publicKey : "02da206852581687ecf336f74d57a025483304ae5b6340caa0a724e9aec32470",
     generatorPublicKey: "9e51284be9f60a367d57b8d9dc40fb7a1e95cdf9c4ba249f4e96809fa05d5982",
@@ -12,7 +14,7 @@ module.exports = {
         {
             amount: 100000000,
             fee : 0,
-            recipient : "2334212999465599568C",
+            recipientId : "2334212999465599568C",
             signature : "c6773814cdc0e528efb5b3e2892a6a7d92e619c7d6f4a635298c8364b52eabfe5a94d874bfeee2a49df365e231ecb4dd189edae004874820ddd1db9689d36202"
         }
     ]
