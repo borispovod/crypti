@@ -275,7 +275,7 @@ Transport.prototype.onBlockchainReady = function () {
 
 		modules.peer.count(function (err, count) {
 			if (count) {
-				library.bus.message('peer ready');
+				library.bus.message('peerReady');
 				library.logger.info('peer ready, stored ' + count);
 			} else {
 				library.logger.warn('peer list is empty');
