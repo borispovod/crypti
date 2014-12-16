@@ -230,7 +230,7 @@ Transport.prototype.onBlockchainReady = function () {
 	router.get("/blocks", function (req, res) {
 		res.set(headers);
 		// get 1400+ blocks with all data (joins) from provided block id
-		modules.blocks.loadBlocksPart(1440, 0, req.query.lastBlockId, function (err, blocks) {
+		modules.blocks.loadBlocksPart(1440, 0, req.query.lastBlockId, false, function (err, blocks) {
 			return res.status(200).json({blocks: !err ? blocks : []});
 		});
 	});
