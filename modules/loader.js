@@ -59,12 +59,18 @@ Loader.prototype.run = function (scope) {
 			}, function (err, res) {
 				if (err) {
 					library.logger.error(err);
+					if (err.block) {
+						library.logger.error('blockchain failed at ', err.block.height)
+						modules.blocks.deleteById(err.block.id, function (err, res) {
+							loaded = true;
+							library.logger.error('blockchain clipped');
+							library.bus.message('blockchain ready');
+						})
+					}
+				} else {
+					loaded = true;
+					library.logger.info('blockchain ready');
 				}
-
-				loaded = true;
-				library.logger.info('blockchain ready');
-
-				library.bus.message('blockchain ready');
 			}
 		)
 	})
@@ -73,7 +79,7 @@ Loader.prototype.run = function (scope) {
 Loader.prototype.updatePeerList = function (cb) {
 	modules.transport.getFromRandomPeer('/list', function (err, data) {
 		if (!err) {
-			async.eachLimit(data.body.peers, 2, function(peer, cb){
+			async.eachLimit(data.body.peers, 2, function (peer, cb) {
 				modules.peer.update(peer, cb);
 			}, cb)
 		} else {
@@ -137,6 +143,29 @@ Loader.prototype.onPeerReady = function () {
 			});
 		})
 	});
+}
+
+Loader.prototype.onBlockchainReady = function () {
+	//modules.blocks.count(function (err, count) {
+	//	console.log('before', count);
+	//	library.db.all('select b.id, t.id from blocks b ' +
+	//	'left outer join trs t on t.blockId = b.id ' +
+	//	"where b.height >= (SELECT height FROM blocks where id = '4256538783591516150')", function (err, res) {
+	//		console.log('rows before', err, res ? res.length : 0)
+	//
+	//		modules.blocks.deleteById('4256538783591516150', function (err, res) {
+	//			console.log('ok', err, res);
+	//			modules.blocks.count(function (err, count) {
+	//				console.log('after', count);
+	//				library.db.all('select b.id, t.id from blocks b ' +
+	//				'left outer join trs t on t.blockId = b.id ' +
+	//				"where b.height >= (SELECT height FROM blocks where id = '4256538783591516150')", function (err, res) {
+	//					console.log('rows after', err, res ? res.length : 0)
+	//				})
+	//			});
+	//		})
+	//	})
+	//})
 }
 
 //export
