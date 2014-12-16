@@ -240,6 +240,10 @@ Blocks.prototype.loadBlocksPart = function (limit, offset, lastId, verify, cb) {
 				var prevBlockId = null, prevTransactionId = null, t_index, prevRequestId = null, prevCompanyComfirmationId = null;
 				for (var i = 0, length = rows.length; i < length; i++) {
 					var block = blockHelper.getBlock(rows[i]);
+					block.transactions = [];
+					block.requests = [];
+					block.companyconfirmations = [];
+
 					if (block) {
 						if (prevBlockId != block.id) {
 							if (currentBlock && block.previousBlock == currentBlock.id) {
@@ -263,7 +267,7 @@ Blocks.prototype.loadBlocksPart = function (limit, offset, lastId, verify, cb) {
 
 						var companyComfirmation = blockHelper.getCompanyComfirmation(rows[i]);
 						if (companyComfirmation) {
-							!currentBlock.companyComfirmations && (currentBlock.companyComfirmations = []);
+							!currentBlock.companyconfirmations && (currentBlock.companyconfirmations = []);
 							if (prevCompanyComfirmationId != companyComfirmation.id) {
 								// verify
 								if (verify && !confirmationsHelper.verifySignature(companyComfirmation, block.generatorPublicKey)) {
@@ -276,7 +280,7 @@ Blocks.prototype.loadBlocksPart = function (limit, offset, lastId, verify, cb) {
 									self.applyConfirmation(companyComfirmation, block.generatorPublicKey);
 								}
 
-								currentBlock.companyComfirmations.push(companyComfirmation);
+								currentBlock.companyconfirmations.push(companyComfirmation);
 								prevCompanyComfirmationId = companyComfirmation.id;
 							}
 						}
@@ -897,6 +901,55 @@ Blocks.prototype.saveBlock = function (block, cb) {
 
 Blocks.prototype.deleteById = function (blockId, cb) {
 	library.db.get("DELETE FROM blocks WHERE height >= (SELECT height FROM blocks where id = $id)", {$id: blockId}, cb);
+}
+
+Blocks.prototype.loadBlocksFromPeer = function (peer, lastBlock, cb) {
+	var loaded = false,
+		self = this;
+
+	async.whilst(
+		function () {
+			return !loaded;
+		},
+		function (next) {
+			modules.transport.getFromPeer(peer, '/blocks?lastBlockId=' + lastBlock, function (err, data) {
+				if (err) {
+					return next(err);
+				} else {
+					if (data.body.blocks.length == 0) {
+						loaded = true;
+						return next();
+					} else {
+						async.eachSeries(data.body.blocks, function (block, cb) {
+							self.parseBlock(block, function () {
+								self.processBlock(block, cb);
+							});
+						}, function (err) {
+							return next(err);
+						});
+					}
+				}
+			});
+		},
+		function (err) {
+			setImmediate(cb, err);
+		}
+	)
+}
+
+Blocks.prototype.parseBlock = function (block, cb) {
+	block.generatorPublicKey = new Buffer(block.generatorPublicKey);
+	block.payloadHash = new Buffer(block.payloadHash);
+	block.blockSignature = new Buffer(block.blockSignature);
+	block.generationSignature = new Buffer(block.generationSignature);
+
+	async.eachLimit(block.transactions, 10, function (transaction , cb) {
+		transaction.signature = new Buffer(transaction.signature);
+		transaction.senderPublicKey = new Buffer(transaction.senderPublicKey);
+		setImmediate(cb);
+	}, function () {
+		setImmediate(cb);
+	})
 }
 
 // generate block
