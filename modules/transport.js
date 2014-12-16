@@ -249,17 +249,30 @@ Transport.prototype.onBlockchainReady = function () {
 	library.app.use('/peer', router);
 
 	async.forEach(library.config.peers.list, function (peer, cb) {
-		var st = library.db.prepare("INSERT INTO peers(ip, port, state, sharePort) VALUES($ip, $port, $state, $sharePort)");
-		st.bind({
-			$ip: ip.toLong(peer.ip),
-			$port: peer.port,
-			$state: 1,
-			$sharePort: Number(true)
+		library.db.get("SELECT ip FROM peers WHERE ip = $ip", { $ip : ip.toLong(peer.ip) }, function (err, exists) {
+			if (err) {
+				return cb(err);
+			} else if (!exists) {
+				var st = library.db.prepare("INSERT INTO peers(ip, port, state, sharePort) VALUES($ip, $port, $state, $sharePort)");
+				st.bind({
+					$ip: ip.toLong(peer.ip),
+					$port: peer.port,
+					$state: 1,
+					$sharePort: Number(true)
+				});
+				st.run(function (err) {
+					cb(err);
+				});
+			} else {
+				return cb();
+			}
 		});
-		st.run(function () {
-			cb();
-		});
-	}, function () {
+
+	}, function (err) {
+		if (err) {
+			library.logger.error(err.toString());
+		}
+
 		modules.peer.count(function (err, count) {
 			if (count) {
 				library.bus.message('peer ready');
