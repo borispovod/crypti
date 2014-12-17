@@ -267,6 +267,10 @@ Blocks.prototype.loadBlocksPart = function (limit, offset, lastId, verify, cb) {
 									break;
 								}
 							}
+
+							if (!verify) {
+								blocks.push(currentBlock);
+							}
 						}
 
 						var __companyComfirmation = blockHelper.getCompanyComfirmation(rows[i]);
@@ -352,12 +356,6 @@ Blocks.prototype.loadBlocksPart = function (limit, offset, lastId, verify, cb) {
 						if (verify && currentBlock.id != genesisblock.blockId) {
 							self.applyFee(currentBlock);
 							self.applyWeight(currentBlock);
-						}
-
-						if (verify) {
-							lastBlock = currentBlock;
-						} else {
-							blocks.push(currentBlock);
 						}
 					}
 				}
