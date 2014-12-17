@@ -106,7 +106,8 @@ d.run(function () {
 
 			app.listen(scope.config.port, scope.config.address, function (err) {
 				scope.logger.log("Crypti started: " + scope.config.address + ":" + scope.config.port);
-				cb(err, app)
+
+				cb(err, app);
 			});
 		}],
 
