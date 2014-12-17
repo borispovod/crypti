@@ -243,102 +243,108 @@ Blocks.prototype.loadBlocksPart = function (limit, offset, lastId, verify, cb) {
 
 				var prevBlockId = null, prevTransactionId = null, t_index, prevRequestId = null, prevCompanyComfirmationId = null;
 				for (var i = 0, length = rows.length; i < length; i++) {
-					var block = blockHelper.getBlock(rows[i]);
-					block.transactions = [];
-					block.requests = [];
-					block.companyconfirmations = [];
+					var __block = blockHelper.getBlock(rows[i]);
+					__block.transactions = [];
+					__block.requests = [];
+					__block.companyconfirmations = [];
 
-					if (block) {
-						if (prevBlockId != block.id) {
-							if (currentBlock && block.previousBlock == currentBlock.id) {
+					if (__block) {
+						if (prevBlockId != __block.id) {
+							if (currentBlock && __block.previousBlock == currentBlock.id) {
 								previousBlock = currentBlock;
 							}
 
-							if (verify && block.id != genesisblock.blockId) {
-								if (!self.verifySignature(block)) { //|| !self.verifyGenerationSignature(block, previousBlock)) {
-									// need to break cicle and delete this block and blocks after this block
-									err = {message: "Can't verify signature", block: block};
-									break;
-								}
-							}
-
-							currentBlock = block;
+							currentBlock = __block;
 
 							lastBlock = currentBlock;
 
-							prevBlockId = block.id;
+							prevBlockId = __block.id;
+
+							if (verify && currentBlock.id != genesisblock.blockId) {
+								if (!self.verifySignature(currentBlock)) { //|| !self.verifyGenerationSignature(block, previousBlock)) {
+									// need to break cicle and delete this block and blocks after this block
+									err = {message: "Can't verify signature", block: currentBlock};
+									break;
+								}
+							}
 						}
 
-						var companyComfirmation = blockHelper.getCompanyComfirmation(rows[i]);
-						if (companyComfirmation) {
+						var __companyComfirmation = blockHelper.getCompanyComfirmation(rows[i]);
+						if (__companyComfirmation) {
 							!currentBlock.companyconfirmations && (currentBlock.companyconfirmations = []);
-							if (prevCompanyComfirmationId != companyComfirmation.id) {
+							if (prevCompanyComfirmationId != __companyComfirmation.id) {
 								// verify
-								if (verify && !confirmationsHelper.verifySignature(companyComfirmation, block.generatorPublicKey)) {
-									err = {message: "Can't verify company confirmation signature", block: block};
+								if (verify && !confirmationsHelper.verifySignature(__companyComfirmation, __block.generatorPublicKey)) {
+									err = {message: "Can't verify company confirmation signature", block: __block};
 									break;
 								}
 
 								// apply
 								if (verify) {
-									self.applyConfirmation(companyComfirmation, block.generatorPublicKey);
+									self.applyConfirmation(__companyComfirmation, __block.generatorPublicKey);
 								}
 
-								currentBlock.companyconfirmations.push(companyComfirmation);
-								prevCompanyComfirmationId = companyComfirmation.id;
+								currentBlock.companyconfirmations.push(__companyComfirmation);
+								prevCompanyComfirmationId = __companyComfirmation.id;
 							}
 						}
+						var __request = blockHelper.getRequest(rows[i]);
 
-						var request = blockHelper.getRequest(rows[i]);
-						if (request) {
+						if (__request) {
 							!currentBlock.requests && (currentBlock.requests = []);
-							if (prevRequestId != request.id) {
-								currentBlock.requests.push(request);
-								prevRequestId = request.id;
+							if (prevRequestId != __request.id) {
+								currentBlock.requests.push(__request);
+								prevRequestId = __request.id;
 							}
 						}
 
-							var transaction = blockHelper.getTransaction(rows[i]);
-						if (transaction) {
+						var __transaction = blockHelper.getTransaction(rows[i]);
+						if (__transaction) {
 							!currentBlock.transactions && (currentBlock.transactions = []);
-							if (prevTransactionId != transaction.id) {
-								currentBlock.transactions.push(transaction);
-
-								if (verify && block.id != genesisblock.blockId) {
-									if (!modules.transactions.verifySignature(transaction)) {
-										err = {message: "Can't verify transaction: " + transaction.id, block: block};
+							if (prevTransactionId != __transaction.id) {
+								if (verify && currentBlock.id != genesisblock.blockId) {
+									if (!modules.transactions.verifySignature(__transaction)) {
+										err = {
+											message: "Can't verify transaction: " + __transaction.id,
+											block: currentBlock
+										};
 										break;
 									}
 								}
 
 								if (verify) {
-									if (!modules.transactions.applyUnconfirmed(transaction) || !modules.transactions.apply(transaction)) {
-										err = {message: "Can't apply transaction: " + transaction.id, block: block};
+									if (!modules.transactions.applyUnconfirmed(__transaction) || !modules.transactions.apply(__transaction)) {
+										err = {
+											message: "Can't apply transaction: " + __transaction.id,
+											block: currentBlock
+										};
 										break;
 									}
 
-									if (!self.applyForger(block.generatorPublicKey, transaction)) {
+									if (!self.applyForger(currentBlock.generatorPublicKey, __transaction)) {
 										err = {
-											message: "Can't apply transaction to forger: " + transaction.id,
-											block: block
+											message: "Can't apply transaction to forger: " + __transaction.id,
+											block: currentBlock
 										};
 										break;
 									}
 								}
 
 								t_index = currentBlock.transactions.length - 1;
-								prevTransactionId = transaction.id;
+								currentBlock.transactions.push(__transaction);
+								prevTransactionId = __transaction.id;
 							}
-							var signature = blockHelper.getSignature(rows[i]);
-							if (signature) {
-								!currentBlock.transactions[t_index].signatures && (currentBlock.transactions[t_index].signatures = []);
-								currentBlock.transactions[t_index].signatures.push(signature);
-							}
-							var company = blockHelper.getCompany(rows[i]);
 
-							if (company) {
+							var __signature = blockHelper.getSignature(rows[i]);
+							if (__signature) {
+								!currentBlock.transactions[t_index].signatures && (currentBlock.transactions[t_index].signatures = []);
+								currentBlock.transactions[t_index].signatures.push(__signature);
+							}
+
+							var __company = blockHelper.getCompany(rows[i]);
+							if (__company) {
 								!currentBlock.transactions[t_index].companies && (currentBlock.transactions[t_index].companies = []);
-								currentBlock.transactions[t_index].companies.push(company);
+								currentBlock.transactions[t_index].companies.push(__company);
 							}
 						}
 
