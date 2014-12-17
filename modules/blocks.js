@@ -114,7 +114,7 @@ function Blocks(cb, scope) {
 				totalAmount: 100000000 * constants.fixedPoint,
 				totalFee: 0,
 				payloadHash: new Buffer(genesisblock.payloadHash, 'hex'),
-				timestamp: timeHelper.epochTime(),
+				timestamp: 0,
 				numberOfTransactions: blockTransactions.length,
 				payloadLength: genesisblock.payloadLength,
 				generationSignature: generationSignature,
@@ -130,6 +130,8 @@ function Blocks(cb, scope) {
 				blockSignature: new Buffer(genesisblock.blockSignature, 'hex'),
 				height: 1
 			};
+
+			console.log(timeHelper.epochTime());
 
 			self.saveBlock(block, function (err) {
 				if (err) {
