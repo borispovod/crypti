@@ -292,7 +292,6 @@ Blocks.prototype.loadBlocksPart = function (limit, offset, lastId, verify, cb) {
 								prevCompanyComfirmationId = __companyComfirmation.id;
 							}
 						}
-
 						var __request = blockHelper.getRequest(rows[i]);
 
 						if (__request) {
