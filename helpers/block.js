@@ -25,7 +25,6 @@ function getBlock(raw) {
 			timestamp: raw.b_timestamp,
 			height: raw.b_height,
 			previousBlock: raw.b_previousBlock,
-			nextBlock: raw.b_nextBlock,
 			numberOfRequests: raw.b_numberOfRequests,
 			numberOfTransactions: raw.b_numberOfTransactions,
 			numberOfConfirmations: raw.b_numberOfConfirmations,

@@ -40,7 +40,7 @@ function Blocks(cb, scope) {
 			if (!block || err) {
 				return res.json({success: false, error: "Block not found"});
 			}
-			return res.json({success: true, block: block});
+			res.json({success: true, block: block});
 		});
 	});
 
@@ -54,12 +54,12 @@ function Blocks(cb, scope) {
 				return res.json({success: false, error: "Blocks not found"});
 			}
 
-			return res.json({success: true, blocks: blocks});
+			res.json({success: true, blocks: blocks});
 		});
 	});
 
 	router.get('/getFee', function (req, res) {
-		return res.json({success: true, fee: fee});
+		res.json({success: true, fee: fee});
 	});
 
 	router.get('/getForgedByAccount', function (req, res) {
@@ -76,7 +76,7 @@ function Blocks(cb, scope) {
 	});
 
 	router.get('/getHeight', function (req, res) {
-		return res.json({success: true, height: lastBlock.height});
+		res.json({success: true, height: lastBlock.height});
 	});
 
 	library.app.use('/api/blocks', router);
@@ -152,7 +152,7 @@ Blocks.prototype.run = function (scope) {
 }
 
 Blocks.prototype.get = function (id, cb) {
-	var stmt = library.db.prepare("select b.id b_id, b.version b_version, b.timestamp b_timestamp, b.height b_height, b.previousBlock b_previousBlock, b.nextBlock b_nextBlock, b.numberOfRequests b_numberOfRequests, b.numberOfTransactions b_numberOfTransactions, b.numberOfConfirmations b_numberOfConfirmations, b.totalAmount b_totalAmount, b.totalFee b_totalFee, b.payloadLength b_payloadLength, b.requestsLength b_requestsLength, b.confirmationsLength b_confirmationsLength, b.payloadHash b_payloadHash, b.generatorPublicKey b_generatorPublicKey, b.generationSignature b_generationSignature, b.blockSignature b_blockSignature " +
+	var stmt = library.db.prepare("select b.id b_id, b.version b_version, b.timestamp b_timestamp, b.height b_height, b.previousBlock b_previousBlock, b.numberOfRequests b_numberOfRequests, b.numberOfTransactions b_numberOfTransactions, b.numberOfConfirmations b_numberOfConfirmations, b.totalAmount b_totalAmount, b.totalFee b_totalFee, b.payloadLength b_payloadLength, b.requestsLength b_requestsLength, b.confirmationsLength b_confirmationsLength, b.payloadHash b_payloadHash, b.generatorPublicKey b_generatorPublicKey, b.generationSignature b_generationSignature, b.blockSignature b_blockSignature " +
 	"from blocks b " +
 	"where b.id = ?");
 
@@ -186,7 +186,7 @@ Blocks.prototype.list = function (filter, cb) {
 		return cb('Maximum of limit is 1000');
 	}
 
-	var stmt = library.db.prepare("select b.id b_id, b.version b_version, b.timestamp b_timestamp, b.height b_height, b.previousBlock b_previousBlock, b.nextBlock b_nextBlock, b.numberOfRequests b_numberOfRequests, b.numberOfTransactions b_numberOfTransactions, b.numberOfConfirmations b_numberOfConfirmations, b.totalAmount b_totalAmount, b.totalFee b_totalFee, b.payloadLength b_payloadLength, b.requestsLength b_requestsLength, b.confirmationsLength b_confirmationsLength, b.payloadHash b_payloadHash, b.generatorPublicKey b_generatorPublicKey, b.generationSignature b_generationSignature, b.blockSignature b_blockSignature " +
+	var stmt = library.db.prepare("select b.id b_id, b.version b_version, b.timestamp b_timestamp, b.height b_height, b.previousBlock b_previousBlock, b.numberOfRequests b_numberOfRequests, b.numberOfTransactions b_numberOfTransactions, b.numberOfConfirmations b_numberOfConfirmations, b.totalAmount b_totalAmount, b.totalFee b_totalFee, b.payloadLength b_payloadLength, b.requestsLength b_requestsLength, b.confirmationsLength b_confirmationsLength, b.payloadHash b_payloadHash, b.generatorPublicKey b_generatorPublicKey, b.generationSignature b_generationSignature, b.blockSignature b_blockSignature " +
 	"from blocks b " +
 	(fields.length ? "where " + fields.join(' and ') : '') + " " +
 	(filter.orderBy ? 'order by ' + sortBy + ' ' + sortMethod : '') + " " +
@@ -218,7 +218,7 @@ Blocks.prototype.loadBlocksPart = function (limit, offset, lastId, verify, cb) {
 	lastId && (params['$lastId'] = lastId);
 	library.db.all(
 		"SELECT " +
-		"b.id b_id, b.version b_version, b.timestamp b_timestamp, b.height b_height, b.previousBlock b_previousBlock, b.nextBlock b_nextBlock, b.numberOfRequests b_numberOfRequests, b.numberOfTransactions b_numberOfTransactions, b.numberOfConfirmations b_numberOfConfirmations, b.totalAmount b_totalAmount, b.totalFee b_totalFee, b.payloadLength b_payloadLength, b.requestsLength b_requestsLength, b.confirmationsLength b_confirmationsLength, b.payloadHash b_payloadHash, b.generatorPublicKey b_generatorPublicKey, b.generationSignature b_generationSignature, b.blockSignature b_blockSignature, " +
+		"b.id b_id, b.version b_version, b.timestamp b_timestamp, b.height b_height, b.previousBlock b_previousBlock, b.numberOfRequests b_numberOfRequests, b.numberOfTransactions b_numberOfTransactions, b.numberOfConfirmations b_numberOfConfirmations, b.totalAmount b_totalAmount, b.totalFee b_totalFee, b.payloadLength b_payloadLength, b.requestsLength b_requestsLength, b.confirmationsLength b_confirmationsLength, b.payloadHash b_payloadHash, b.generatorPublicKey b_generatorPublicKey, b.generationSignature b_generationSignature, b.blockSignature b_blockSignature, " +
 		"r.id r_id, r.blockId r_blockId, r.address r_address, " +
 		"t.id t_id, t.blockId t_blockId, t.type t_type, t.subtype t_subtype, t.timestamp t_timestamp, t.senderPublicKey t_senderPublicKey, t.senderId t_senderId, t.recipientId t_recipientId, t.amount t_amount, t.fee t_fee, t.signature t_signature, t.signSignature t_signSignature, c_t.generatorPublicKey t_companyGeneratorPublicKey, " +
 		"s.id s_id, s.transactionId s_transactionId, s.timestamp s_timestamp, s.publicKey s_publicKey, s.generatorPublicKey s_generatorPublicKey, s.signature s_signature, s.generationSignature s_generationSignature, " +
@@ -427,32 +427,32 @@ Blocks.prototype.getCommonBlock = function (milestoneBlock, peer, cb) {
 		function (next) {
 			modules.transport.getFromPeer(peer, "/blocks/ids?id=" + tempBlock, function (err, resp) {
 				if (err || resp.error) {
-					return next(err || resp.error);
+					next(err || resp.error);
 				} else if (resp.ids.length == 0) {
 					async.eachSeries(resp.ids, function (id, cb) {
 						library.db.get("SELECT id FROM blocks WHERE id=$id", {$id: id}, function (err, block) {
 							if (err) {
-								return cb(err);
+								cb(err);
 							} else if (block) {
 								tempBlock = block.id;
-								return cb();
+								cb();
 							} else {
 								commonBlock = tempBlock;
-								return cb(true);
+								cb(true);
 							}
 						})
 					}, function (errOrFinish) {
 						if (errOrFinish === true) {
-							return next();
+							next();
 						} else {
-							return next(errOrFinish)
+							next(errOrFinish)
 						}
 					});
 				}
 			});
 		},
 		function (err) {
-			return cb(err, commonBlock);
+			cb(err, commonBlock);
 		}
 	)
 }
@@ -475,36 +475,34 @@ Blocks.prototype.getMilestoneBlock = function (peer, cb) {
 
 			modules.transport.getFromPeer(peer, "/blocks/milestone?lastBlockId=" + lastBlock + "&" + "lastMilestoneBlockId=" + lastMilestoneBlockId, function (err, resp) {
 				if (err) {
-					return next(err);
+					next(err);
 				} else if (resp.error) {
-					return next(resp.error);
+					next(resp.error);
 				} else if (resp.milestoneBlockIds.length == 0) {
 					milestoneBlock = genesisBlock.blockId;
-					return next();
+					next();
 				} else {
 					async.eachSeries(resp.milestoneBlockIds, function (blockId, cb) {
 						library.db.get("SELECT id FROM blocks WHERE id = $id", {$id: blockId}, function (err, block) {
 							if (err) {
-								return cb(err);
+								cb(err);
 							} else if (block) {
 								lastMilestoneBlockId = blockId;
-								return cb();
+								cb();
 							} else {
 								milestoneBlock = blockId;
-								return cb(true);
+								cb(true);
 							}
 						});
-					}, function (errOrFinish) {
-						return next(errOrFinish);
-					});
+					}, next);
 				}
 			});
 		},
 		function (err) {
 			if (err === true) {
-				return cb(null, milestoneBlock);
+				cb(null, milestoneBlock);
 			} else {
-				return cb(err, milestoneBlock);
+				cb(err, milestoneBlock);
 			}
 		}
 	);
@@ -605,9 +603,9 @@ Blocks.prototype.processBlock = function (block, cb) {
 
 	library.db.get("SELECT id FROM blocks WHERE id=$id", {$id: block.id}, function (err, bId) {
 		if (err) {
-			return setImmediate(cb, err);
+			setImmediate(cb, err);
 		} else if (bId) {
-			return setImmediate(cb, "Block already exists: " + b.id);
+			setImmediate(cb, "Block already exists: " + b.id);
 		} else {
 			if (!self.verifySignature(block)) {
 				return setImmediate(cb, "Can't verify signature: " + block.id);
@@ -665,9 +663,9 @@ Blocks.prototype.processBlock = function (block, cb) {
 
 						library.db.get("SELECT id FROM trs WHERE id=$id", {$id: transaction.id}, function (err, tId) {
 							if (err) {
-								return cb(err);
+								cb(err);
 							} else if (tId) {
-								return cb("Transaction already exists: " + transaction.id);
+								cb("Transaction already exists: " + transaction.id);
 							} else {
 								if (appliedTransactions[transaction.id]) {
 									return cb("Dublicated transaction in block: " + transaction.id);
@@ -704,12 +702,10 @@ Blocks.prototype.processBlock = function (block, cb) {
 								totalAmount += transaction.amount;
 								totalFee += transaction.fee;
 
-								return cb();
+								cb();
 							}
 						});
-					}, function (err) {
-						return done(err);
-					});
+					}, done);
 				},
 				function (done) {
 					async.forEach(block.requests, function (request, cb) {
@@ -721,9 +717,9 @@ Blocks.prototype.processBlock = function (block, cb) {
 
 						library.db.get("SELECT id FROM requests WHERE id=$id", {$id: request.id}, function (err, rId) {
 							if (err) {
-								return cb(err);
+								cb(err);
 							} else if (rId) {
-								return cb("Request already exists: " + request.id);
+								cb("Request already exists: " + request.id);
 							} else {
 								var account = modules.accounts.getAccount(request.address);
 
@@ -732,12 +728,10 @@ Blocks.prototype.processBlock = function (block, cb) {
 								}
 
 								acceptedRequests[request.id] = request;
-								return cb();
+								cb();
 							}
 						});
-					}, function (err) {
-						return done(err);
-					});
+					}, done);
 				},
 				function (done) {
 					/*
@@ -759,7 +753,7 @@ Blocks.prototype.processBlock = function (block, cb) {
 					 }, function (err) {
 					 return done(err);
 					 });*/
-					return done();
+					done();
 				}
 			], function (errors) {
 				errors = errors || [];
@@ -787,7 +781,7 @@ Blocks.prototype.processBlock = function (block, cb) {
 						}
 					}
 
-					return setImmediate(cb, errors.pop());
+					setImmediate(cb, errors.pop());
 				} else {
 					for (var i = 0; i < block.transactions.length; i++) {
 						var transaction = block.transactions[i];
@@ -805,7 +799,7 @@ Blocks.prototype.processBlock = function (block, cb) {
 						}
 
 						lastBlock = block;
-						return cb();
+						cb();
 					});
 				}
 			});
@@ -816,7 +810,7 @@ Blocks.prototype.processBlock = function (block, cb) {
 Blocks.prototype.saveBlock = function (block, cb) {
 	library.db.beginTransaction(function (err, transactionDb) {
 		if (err) {
-			return cb(err);
+			cb(err);
 		} else {
 			var st = transactionDb.prepare("INSERT INTO blocks(id, version, timestamp, height, previousBlock, numberOfRequests, numberOfTransactions, numberOfConfirmations, totalAmount, totalFee, payloadLength, requestsLength, confirmationsLength, payloadHash, generatorPublicKey, generationSignature, blockSignature) VALUES($id, $version, $timestamp, $height, $previousBlock, $numberOfRequests, $numberOfTransactions, $numberOfConfirmations, $totalAmount, $totalFee, $payloadLength, $requestsLength, $confirmationsLength, $payloadHash, $generatorPublicKey, $generationSignature, $blockSignature)");
 			st.bind({
@@ -841,7 +835,7 @@ Blocks.prototype.saveBlock = function (block, cb) {
 			st.run(function (err) {
 				if (err) {
 					transactionDb.rollback(function (rollbackErr) {
-						return cb(rollbackErr || err);
+						cb(rollbackErr || err);
 					});
 				} else {
 					async.parallel([
@@ -862,12 +856,8 @@ Blocks.prototype.saveBlock = function (block, cb) {
 									$signature: transaction.signature,
 									$signSignature: transaction.signSignature
 								});
-								st.run(function (err) {
-									return cb(err);
-								});
-							}, function (err) {
-								return done(err);
-							})
+								st.run(cb);
+							}, done)
 						},
 						function (done) {
 							async.eachSeries(block.requests, function (request, cb) {
@@ -877,37 +867,20 @@ Blocks.prototype.saveBlock = function (block, cb) {
 									$blockId: block.id,
 									$address: request.address
 								});
-								st.run(function (err) {
-									return cb(err);
-								});
-							}, function (err) {
-								return done(err);
-							});
+								st.run(cb);
+							}, done);
 						},
 						function (done) {
 							// confirmations
-							return done();
+							done();
 						}
 					], function (err) {
 						if (err) {
 							transactionDb.rollback(function (rollbackErr) {
-								return cb(rollbackErr || err);
+								cb(rollbackErr || err);
 							});
 						} else {
-							st = transactionDb.prepare("UPDATE blocks SET nextBlock=$nextBlock WHERE id=$id");
-							st.bind({
-								$id: block.previousBlock,
-								$nextBlock: block.id
-							});
-							st.run(function (err) {
-								if (err) {
-									return cb(err);
-								} else {
-									transactionDb.commit(function (err) {
-										return cb(err);
-									})
-								}
-							})
+							transactionDb.commit(cb)
 						}
 					});
 				}
@@ -931,19 +904,17 @@ Blocks.prototype.loadBlocksFromPeer = function (peer, lastBlock, cb) {
 		function (next) {
 			modules.transport.getFromPeer(peer, '/blocks?lastBlockId=' + lastBlock, function (err, data) {
 				if (err) {
-					return next(err);
+					next(err);
 				} else {
 					if (data.body.blocks.length == 0) {
 						loaded = true;
-						return next();
+						next();
 					} else {
 						async.eachSeries(data.body.blocks, function (block, cb) {
 							self.parseBlock(block, function () {
 								self.processBlock(block, cb);
 							});
-						}, function (err) {
-							return next(err);
-						});
+						}, next);
 					}
 				}
 			});
