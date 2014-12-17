@@ -131,8 +131,6 @@ function Blocks(cb, scope) {
 				height: 1
 			};
 
-			console.log(timeHelper.epochTime());
-
 			self.saveBlock(block, function (err) {
 				if (err) {
 					library.logger.error(err.toString());
@@ -469,7 +467,8 @@ Blocks.prototype.getCommonBlock = function (milestoneBlock, peer, cb) {
 Blocks.prototype.getMilestoneBlock = function (peer, cb) {
 	var lastBlock = null,
 		lastMilestoneBlockId = null,
-		milestoneBlock = null;
+		milestoneBlock = null,
+		self = this;
 
 	async.whilst(
 		function () {
@@ -477,7 +476,7 @@ Blocks.prototype.getMilestoneBlock = function (peer, cb) {
 		},
 		function (next) {
 			if (lastMilestoneBlockId == null) {
-				lastBlock = lastBlock.id;
+				lastBlock = self.getLastBlock().id;
 			} else {
 				lastMilestoneBlockId = lastMilestoneBlockId;
 			}
@@ -608,13 +607,14 @@ Blocks.prototype.processBlock = function (block, cb) {
 	var self = this;
 
 	block.id = blockHelper.getId(block);
+	console.log(block.id);
 	block.height = lastBlock.height + 1;
 
 	library.db.get("SELECT id FROM blocks WHERE id=$id", {$id: block.id}, function (err, bId) {
 		if (err) {
 			setImmediate(cb, err);
 		} else if (bId) {
-			setImmediate(cb, "Block already exists: " + b.id);
+			setImmediate(cb, "Block already exists: " + block.id);
 		} else {
 			if (!self.verifySignature(block)) {
 				return setImmediate(cb, "Can't verify signature: " + block.id);
@@ -657,9 +657,9 @@ Blocks.prototype.processBlock = function (block, cb) {
 
 			var totalAmount = 0, totalFee = 0, payloadHash = crypto.createHash('sha256'), appliedTransactions = {}, acceptedRequests = {}, acceptedConfirmations = {};
 
-			async.parallel([
+			async.series([
 				function (done) {
-					async.forEach(block.transactions, function (transaction, cb) {
+					async.each(block.transactions, function (transaction, cb) {
 						transaction.id = transactionHelper.getId(transaction);
 
 						if (modules.transactions.getUnconfirmedTransaction(transaction.id)) {
@@ -717,8 +717,10 @@ Blocks.prototype.processBlock = function (block, cb) {
 					}, done);
 				},
 				function (done) {
-					async.forEach(block.requests, function (request, cb) {
+					async.each(block.requests, function (request, cb) {
 						request.id = requestHelper.getId(request);
+
+						console.log(block.requests);
 
 						if (acceptedRequests[request.id]) {
 							return cb("Dublicated request: " + request.id);
@@ -737,6 +739,7 @@ Blocks.prototype.processBlock = function (block, cb) {
 								}
 
 								acceptedRequests[request.id] = request;
+								payloadHash.update(requestHelper.getBytes(request));
 								cb();
 							}
 						});
@@ -764,8 +767,12 @@ Blocks.prototype.processBlock = function (block, cb) {
 					 });*/
 					done();
 				}
-			], function (errors) {
-				errors = errors || [];
+			], function (err) {
+				var errors = [];
+
+				if (err) {
+					errors.push(err);
+				}
 
 				payloadHash = payloadHash.digest();
 
