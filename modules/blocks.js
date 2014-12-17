@@ -293,13 +293,12 @@ Blocks.prototype.loadBlocksPart = function (limit, offset, lastId, verify, cb) {
 						if (request) {
 							!currentBlock.requests && (currentBlock.requests = []);
 							if (prevRequestId != request.id) {
-
 								currentBlock.requests.push(request);
 								prevRequestId = request.id;
 							}
 						}
 
-						var transaction = blockHelper.getTransaction(rows[i]);
+							var transaction = blockHelper.getTransaction(rows[i]);
 						if (transaction) {
 							!currentBlock.transactions && (currentBlock.transactions = []);
 							if (prevTransactionId != transaction.id) {
@@ -343,15 +342,15 @@ Blocks.prototype.loadBlocksPart = function (limit, offset, lastId, verify, cb) {
 							}
 						}
 
-						if (verify && block.id != genesisblock.blockId) {
-							self.applyFee(block);
-							self.applyWeight(block);
+						if (verify && currentBlock.id != genesisblock.blockId) {
+							self.applyFee(currentBlock);
+							self.applyWeight(currentBlock);
 						}
 
 						if (verify) {
-							lastBlock = block;
+							lastBlock = currentBlock;
 						} else {
-							blocks.push(block);
+							blocks.push(currentBlock);
 						}
 					}
 				}

@@ -3,9 +3,9 @@ var appConfig = require("./config.json");
 var logger = new Logger({echo: true, errorLevel: appConfig.logLevel});
 var async = require('async');
 
-process.on('uncaughtException', function(err) {
-    // handle the error safely
-    logger.fatal('system error', {message: err.message, stack: err.stack});
+process.on('uncaughtException', function (err) {
+	// handle the error safely
+	logger.fatal('system error', {message: err.message, stack: err.stack});
 });
 
 var config = {
@@ -138,7 +138,7 @@ d.run(function () {
 					d.on('error', function (err) {
 						scope.logger.log('domain ' + name, {message: err.message, stack: err.stack});
 					});
-					d.run(function() {
+					d.run(function () {
 						var Klass = new require(config.modules[name]);
 						var obj = new Klass(cb, scope)
 						modules.push(obj);
