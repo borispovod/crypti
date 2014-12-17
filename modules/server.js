@@ -19,7 +19,6 @@ function Server(cb, scope) {
 Server.prototype.run = function (scope) {
 	modules = scope;
 
-
 	router.get('/', function (req, res) {
 		var ip = req.connection.remoteAddress;
 
@@ -36,7 +35,7 @@ Server.prototype.run = function (scope) {
 		res.render('forging.html');
 	});
 
-	library.app.use('/', router);
+	library.app.use("/", router);
 
 	library.app.get("*", function (req, res) {
 		return res.redirect('/');
