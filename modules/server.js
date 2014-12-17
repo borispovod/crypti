@@ -6,6 +6,7 @@ var Router = require('../helpers/router.js');
 
 //private
 var modules, library;
+var router = new Router();
 
 //constructor
 function Server(cb, scope) {
@@ -18,7 +19,6 @@ function Server(cb, scope) {
 Server.prototype.run = function (scope) {
 	modules = scope;
 
-	var router = new Router();
 
 	router.get('/', function (req, res) {
 		var ip = req.connection.remoteAddress;
@@ -37,16 +37,28 @@ Server.prototype.run = function (scope) {
 	});
 
 	library.app.use('/', router);
-}
 
-Server.prototype.onPeerReady = function () {
-	var router = new Router();
-
-	router.get("*", function (req, res) {
+	library.app.get("*", function (req, res) {
 		return res.redirect('/');
 	});
+}
 
-	library.app.use('/', router);
+Server.prototype.onBlockchainReady = function () {
+	for (var i = 0; i < library.app._router.stack.length; i++) {
+		var route = library.app._router.stack[i];
+
+		if (route.route && route.route.path == '*') {
+			library.app._router.stack.splice(i, 1);
+			break;
+		}
+	}
+}
+
+
+Server.prototype.onPeerReady = function () {
+	library.app.get("*", function (req, res) {
+		return res.redirect('/');
+	});
 
 	library.app.use(function errorHandler(err, req, res, next) {
 		library.logger.error('Bad Request', {method: req.method, url: req.url, message: err});
