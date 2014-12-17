@@ -58,7 +58,7 @@ function getCompanyComfirmation(raw){
 }
 
 function getRequest(raw) {
-	if (!raw.t_id) {
+	if (!raw.r_id) {
 		return null
 	} else {
 		return {
