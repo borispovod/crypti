@@ -37,7 +37,7 @@ module.exports = function (config) {
 			data && (log["data"] = data);
 
 			log_file.write(JSON.stringify(log) + '\n');
-			config.echo && console.log(log.level.bgYellow.black, log.timestamp.grey, log.message.green, log.data ? log.data : '');
+			config.echo && console.log(log.level.bgYellow.black, log.timestamp.grey, log.message, log.data ? log.data : '');
 		}
 
 		exports[name] = log;

@@ -69,38 +69,38 @@ d.run(function () {
 					if (parts[1] == 'api') {
 						if (scope.config.api.access.whiteList.length > 0) {
 							if (scope.config.api.access.whiteList.indexOf(ip) < 0) {
-								return res.sendStatus(403);
+								res.sendStatus(403);
 							} else {
-								return next();
+								next();
 							}
 						} else {
-							return next();
+							next();
 						}
 					} else if (parts[1] == 'peer') {
 						if (scope.config.peers.blackList.length > 0) {
 							if (scope.config.peers.blackList.indexOf(ip) >= 0) {
-								return res.sendStatus(403);
+								res.sendStatus(403);
 							} else {
-								return next();
+								next();
 							}
 						} else {
-							return next();
+							next();
 						}
 					} else if (parts[1] == 'forging' || parts[1] == 'panel') {
 						if (scope.config.adminPanel.whiteList.length > 0) {
 							if (scope.config.adminPanel.whiteList.indexOf(ip) < 0) {
-								return res.sendStatus(403);
+								res.sendStatus(403);
 							} else {
-								return next();
+								next();
 							}
 						} else {
-							return next();
+							next();
 						}
 					} else {
-						return next();
+						next();
 					}
 				} else {
-					return next();
+					next();
 				}
 			});
 
