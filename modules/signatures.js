@@ -35,6 +35,11 @@ function Signatures(cb, scope) {
 	});
 
 	library.app.use('/api/signatures', router);
+	library.app.use(function (err, req, res, next) {
+		library.logger.error('/api/signatures', err)
+		if (!err) return next();
+		res.status(500).send({success: false, error: err});
+	});
 
 	setImmediate(cb, null, self);
 }

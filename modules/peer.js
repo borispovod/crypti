@@ -50,6 +50,11 @@ function Peer(cb, scope) {
 	});
 
 	library.app.use('/api/peers', router);
+	library.app.use(function (err, req, res, next) {
+		library.logger.error('/api/peers', err)
+		if (!err) return next();
+		res.status(500).send({success: false, error: err});
+	});
 
 	cb(null, this);
 }
