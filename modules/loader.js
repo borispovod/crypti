@@ -4,27 +4,35 @@ var util = require('util');
 var genesisBlock = require("../helpers/genesisblock.js")
 
 //private
-var modules, library, self, loaded;
+var modules, library, self, loaded, sync;
 var total = 0;
 
 //constructor
 function Loader(cb, scope) {
 	library = scope;
 	loaded = false;
+	sync = false;
 	self = this;
 
 	var router = new Router();
 
 	router.get('/status', function (req, res) {
-		if (modules.blocks.getLastBlock()) {
-			return res.json({
-				success: true,
-				loaded: self.loaded(),
-				now: modules.blocks.getLastBlock().height,
-				blocksCount: total
-			});
+		if (!loaded) {
+			if (modules.blocks.getLastBlock()) {
+				return res.json({
+					success: true,
+					loaded: self.loaded(),
+					now: modules.blocks.getLastBlock().height,
+					blocksCount: total
+				});
+			} else {
+				return res.json({success: false});
+			}
 		} else {
-			return res.json({success: false});
+			return res.json({
+				success : true,
+				sync : sync
+			})
 		}
 	})
 
@@ -102,23 +110,31 @@ Loader.prototype.loadBlocks = function (cb) {
 			if (modules.blocks.getWeight().lt(data.body.weight)) {
 				if (modules.blocks.getLastBlock().id != genesisBlock.blockId) {
 					modules.blocks.getMilestoneBlock(data.peer, function (err, milestoneBlock) {
+						console.log(err, milestoneBlock);
 						if (err) {
 							return cb(err);
 						} else {
 							modules.blocks.getCommonBlock(data.peer, milestoneBlock, function (err, commonBlock) {
+								console.log(err, commonBlock);
 								if (err) {
 									return cb(err);
 								} else {
+									console.log(modules.blocks.getLastBlock().id);
 									if (modules.blocks.getLastBlock().id != commonBlock) {
+										console.log("fork");
+										return cb();
 										// resolve fork
 										library.db.get("SELECT height FROM blocks WHERE id=$id", {$id : commonBlock}, function (err, block) {
 											if (err || !block) {
 												cb(err);
 											} else {
 												if (modules.blocks.getLastBlock().height - block.height > 1440) {
-													// bad very long fork, ban node
+													peer.state(ip, port, 0, 60);
+													setImmediate(cb);
 												} else {
-													// process fork
+													// process fork:
+													// 1. remove bad blocks.
+													// 2. load new blocks.
 												}
 											}
 										});
