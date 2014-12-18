@@ -149,6 +149,29 @@ function Blocks(cb, scope) {
 	});
 }
 
+function normalizeBlock(block) {
+	block.requests = Object.keys(block.requests).map(function (v) {
+		return block.requests[v];
+	});
+
+	block.transactions = Object.keys(block.transactions).map(function (v) {
+		block.transactions[v].signatures = Object.keys(block.transactions[v].signatures).map(function (v2) {
+			return block.transactions[v].signatures[v2];
+		});
+
+		block.transactions[v].companies = Object.keys(block.transactions[v].companies).map(function (v2) {
+			return block.transactions[v].companies[v2];
+		});
+		return block.transactions[v];
+	});
+
+	block.companyconfirmations = Object.keys(block.companyconfirmations).map(function (v) {
+		return block.companyconfirmations[v];
+	});
+
+	return block;
+}
+
 //public
 Blocks.prototype.run = function (scope) {
 	modules = scope;
@@ -254,33 +277,13 @@ Blocks.prototype.loadBlocksPart = function (limit, offset, lastId, verify, cb) {
 							}
 
 							if (currentBlock) {
-								currentBlock.requests = Object.keys(currentBlock.requests).map(function (v) {
-									return currentBlock.requests[v];
-								});
-
-								currentBlock.transactions = Object.keys(currentBlock.transactions).map(function (v) {
-									currentBlock.transactions[v].signatures = Object.keys(currentBlock.transactions[v].signatures).map(function (v2) {
-										return currentBlock.transactions[v].signatures[v2];
-									});
-
-									currentBlock.transactions[v].companies = Object.keys(currentBlock.transactions[v].companies).map(function (v2) {
-										return currentBlock.transactions[v].companies[v2];
-									});
-									return currentBlock.transactions[v];
-								});
-
-								currentBlock.companyconfirmations = Object.keys(currentBlock.companyconfirmations).map(function (v) {
-									return currentBlock.companyconfirmations[v];
-								});
-
-								lastBlock = currentBlock;
+								lastBlock = currentBlock = normalizeBlock(currentBlock);
+								if (!verify) {
+									blocks.push(currentBlock);
+								}
 							}
 
 							currentBlock = __block;
-							if (!lastBlock) {
-								lastBlock = currentBlock;
-							}
-
 
 							prevBlockId = __block.id;
 
@@ -292,10 +295,6 @@ Blocks.prototype.loadBlocksPart = function (limit, offset, lastId, verify, cb) {
 								}
 								self.applyFee(currentBlock);
 								self.applyWeight(currentBlock);
-							}
-
-							if (!verify) {
-								blocks.push(currentBlock);
 							}
 						}
 
@@ -374,6 +373,13 @@ Blocks.prototype.loadBlocksPart = function (limit, offset, lastId, verify, cb) {
 								if (!currentBlock.transactions[__transaction.id].companies[__company.id]) {
 									currentBlock.transactions[__transaction.id].companies = __company;
 								}
+							}
+						}
+
+						if (!lastBlock) {
+							lastBlock = currentBlock = normalizeBlock(currentBlock);
+							if (!verify) {
+								blocks.push(currentBlock);
 							}
 						}
 					}
