@@ -98,44 +98,40 @@ Loader.prototype.loadBlocks = function (cb) {
 	modules.transport.getFromRandomPeer('/weight', function (err, data) {
 		if (err) {
 			return cb(err);
-		} else {
-			if (modules.blocks.getWeight().lt(data.body.weight)) {
-				if (modules.blocks.getLastBlock().id != genesisBlock.blockId) {
-					modules.blocks.getMilestoneBlock(data.peer, function (err, milestoneBlock) {
+		}
+		if (modules.blocks.getWeight().lt(data.body.weight)) {
+			if (modules.blocks.getLastBlock().id != genesisBlock.blockId) {
+				modules.blocks.getMilestoneBlock(data.peer, function (err, milestoneBlock) {
+					if (err) {
+						return cb(err);
+					}
+					modules.blocks.getCommonBlock(data.peer, milestoneBlock, function (err, commonBlock) {
 						if (err) {
 							return cb(err);
-						} else {
-							modules.blocks.getCommonBlock(data.peer, milestoneBlock, function (err, commonBlock) {
-								if (err) {
+						}
+						if (modules.blocks.getLastBlock().id != commonBlock) {
+							// resolve fork
+							library.db.get("SELECT height FROM blocks WHERE id=$id", {$id: commonBlock}, function (err, block) {
+								if (err || !block) {
 									return cb(err);
-								} else {
-									if (modules.blocks.getLastBlock().id != commonBlock) {
-										// resolve fork
-										library.db.get("SELECT height FROM blocks WHERE id=$id", {$id : commonBlock}, function (err, block) {
-											if (err || !block) {
-												cb(err);
-											} else {
-												if (modules.blocks.getLastBlock().height - block.height > 1440) {
-													// bad very long fork, ban node
-												} else {
-													// process fork
-												}
-											}
-										});
-									} else {
-										modules.blocks.loadBlocksFromPeer(data.peer, commonBlock, cb);
-									}
 								}
-							})
+								if (modules.blocks.getLastBlock().height - block.height > 1440) {
+									// bad very long fork, ban node
+								} else {
+									// process fork
+								}
+							});
+						} else {
+							modules.blocks.loadBlocksFromPeer(data.peer, commonBlock, cb);
 						}
 					})
-				} else {
-					var commonBlock = genesisBlock.blockId;
-					modules.blocks.loadBlocksFromPeer(data.peer, commonBlock, cb);
-				}
+				})
 			} else {
-				return cb();
+				var commonBlock = genesisBlock.blockId;
+				modules.blocks.loadBlocksFromPeer(data.peer, commonBlock, cb);
 			}
+		} else {
+			cb();
 		}
 	});
 }
