@@ -521,16 +521,16 @@ Blocks.prototype.getMilestoneBlock = function (peer, cb) {
 					milestoneBlock = genesisblock.blockId;
 					next();
 				} else {
-					async.eachSeries(data.body.milestoneBlockIds, function (blockId, cb) {
+					async.each(data.body.milestoneBlockIds, function (blockId, cb) {
 						library.db.get("SELECT id FROM blocks WHERE id = $id", {$id: blockId}, function (err, block) {
 							if (err) {
 								cb(err);
 							} else if (block) {
-								lastMilestoneBlockId = blockId;
-								cb();
-							} else {
 								milestoneBlock = blockId;
 								cb(true);
+							} else {
+								lastMilestoneBlockId = blockId;
+								cb();
 							}
 						});
 					}, next);
