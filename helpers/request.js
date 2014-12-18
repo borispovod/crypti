@@ -5,8 +5,6 @@ var crypto = require('crypto'),
 function getBytes(request) {
 	var bb = new ByteBuffer(8, true);
 
-	console.log(request.address);
-
 	var address = request.address.slice(0, -1);
 	var addressBuffer = bignum(address).toBuffer({ 'size' : '8' });
 

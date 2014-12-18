@@ -475,16 +475,16 @@ Blocks.prototype.getMilestoneBlock = function (peer, cb) {
 				lastMilestoneBlockId = lastMilestoneBlockId;
 			}
 
-			modules.transport.getFromPeer(peer, "/blocks/milestone?lastBlockId=" + lastBlock + "&" + "lastMilestoneBlockId=" + lastMilestoneBlockId, function (err, resp) {
+			modules.transport.getFromPeer(peer, "/blocks/milestone?lastBlockId=" + lastBlock + "&" + "lastMilestoneBlockId=" + lastMilestoneBlockId, function (err, data) {
 				if (err) {
 					next(err);
-				} else if (resp.error) {
-					next(resp.error);
-				} else if (resp.milestoneBlockIds.length == 0) {
+				} else if (data.body.error) {
+					next(data.body.error);
+				} else if (data.body.milestoneBlockIds.length == 0) {
 					milestoneBlock = genesisBlock.blockId;
 					next();
 				} else {
-					async.eachSeries(resp.milestoneBlockIds, function (blockId, cb) {
+					async.eachSeries(data.body.milestoneBlockIds, function (blockId, cb) {
 						library.db.get("SELECT id FROM blocks WHERE id = $id", {$id: blockId}, function (err, block) {
 							if (err) {
 								cb(err);
@@ -601,7 +601,6 @@ Blocks.prototype.processBlock = function (block, cb) {
 	var self = this;
 
 	block.id = blockHelper.getId(block);
-	console.log(block.id);
 	block.height = lastBlock.height + 1;
 
 	library.db.get("SELECT id FROM blocks WHERE id=$id", {$id: block.id}, function (err, bId) {
@@ -714,8 +713,6 @@ Blocks.prototype.processBlock = function (block, cb) {
 					async.each(block.requests, function (request, cb) {
 						request.id = requestHelper.getId(request);
 
-						console.log(block.requests);
-
 						if (acceptedRequests[request.id]) {
 							return cb("Dublicated request: " + request.id);
 						}
@@ -809,7 +806,7 @@ Blocks.prototype.processBlock = function (block, cb) {
 						}
 
 						lastBlock = block;
-						cb();
+						setImmediate(cb);
 					});
 				}
 			});
@@ -903,7 +900,7 @@ Blocks.prototype.deleteById = function (blockId, cb) {
 	library.db.get("DELETE FROM blocks WHERE height >= (SELECT height FROM blocks where id = $id)", {$id: blockId}, cb);
 }
 
-Blocks.prototype.loadBlocksFromPeer = function (peer, lastBlock, cb) {
+Blocks.prototype.loadBlocksFromPeer = function (peer, lastBlockId, cb) {
 	var loaded = false,
 		self = this;
 
@@ -912,7 +909,7 @@ Blocks.prototype.loadBlocksFromPeer = function (peer, lastBlock, cb) {
 			return !loaded;
 		},
 		function (next) {
-			modules.transport.getFromPeer(peer, '/blocks?lastBlockId=' + lastBlock, function (err, data) {
+			modules.transport.getFromPeer(peer, '/blocks?lastBlockId=' + lastBlockId, function (err, data) {
 				if (err) {
 					next(err);
 				} else {
@@ -922,7 +919,12 @@ Blocks.prototype.loadBlocksFromPeer = function (peer, lastBlock, cb) {
 					} else {
 						async.eachSeries(data.body.blocks, function (block, cb) {
 							self.parseBlock(block, function () {
-								self.processBlock(block, cb);
+								self.processBlock(block, function (err) {
+									if (!err) {
+										lastBlockId = block.id;
+									}
+									setImmediate(cb, err);
+								});
 							});
 						}, next);
 					}
@@ -930,6 +932,10 @@ Blocks.prototype.loadBlocksFromPeer = function (peer, lastBlock, cb) {
 			});
 		},
 		function (err) {
+			if (err) {
+				library.logger.error(err);
+			}
+
 			setImmediate(cb, err);
 		}
 	)
