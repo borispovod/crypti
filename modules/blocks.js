@@ -273,10 +273,6 @@ Blocks.prototype.loadBlocksPart = function (limit, offset, lastId, verify, cb) {
 									return currentBlock.companyconfirmations[v];
 								});
 
-								if (currentBlock.id == "3208346167119760980") {
-									//console.log(currentBlock)
-								}
-
 								lastBlock = currentBlock;
 							}
 
@@ -453,7 +449,6 @@ Blocks.prototype.getCommonBlock = function (peer, milestoneBlock, cb) {
 		},
 		function (next) {
 			modules.transport.getFromPeer(peer, "/blocks/ids?id=" + tempBlock, function (err, data) {
-				console.log(data.body.error, data.body.ids[0]);
 				if (err || data.body.error) {
 					next(err || data.body.error);
 				} else if (data.body.ids.length == 0) {
@@ -983,7 +978,6 @@ Blocks.prototype.parseBlock = function (block, cb) {
 	block.blockSignature = new Buffer(block.blockSignature);
 	block.generationSignature = new Buffer(block.generationSignature);
 
-	console.log(block.transactions);
 	async.eachLimit(block.transactions, 10, function (transaction, cb) {
 		transaction.signature = new Buffer(transaction.signature);
 		transaction.senderPublicKey = new Buffer(transaction.senderPublicKey);
