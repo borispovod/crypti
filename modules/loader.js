@@ -100,20 +100,33 @@ Loader.prototype.loadBlocks = function (cb) {
 						if (err) {
 							return cb(err);
 						} else {
-							modules.blocks.getCommonBlock(milestoneBlock, data.peer, function (err, commonBlock) {
+							modules.blocks.getCommonBlock(data.peer, milestoneBlock, function (err, commonBlock) {
 								if (err) {
 									return cb(err);
 								} else {
-									// load blocks from common
+									if (modules.blocks.getLastBlock().id != commonBlock) {
+										// resolve fork
+										library.db.get("SELECT height FROM blocks WHERE id=$id", {$id : commonBlock}, function (err, block) {
+											if (err || !block) {
+												cb(err);
+											} else {
+												if (modules.blocks.getLastBlock().height - block.height > 1440) {
+													// bad very long fork, ban node
+												} else {
+													// process fork
+												}
+											}
+										});
+									} else {
+										modules.blocks.loadBlocksFromPeer(data.peer, commonBlock, cb);
+									}
 								}
 							})
 						}
 					})
 				} else {
 					var commonBlock = genesisBlock.blockId;
-					modules.blocks.loadBlocksFromPeer(data.peer, commonBlock, function (err) {
-						return cb(err);
-					})
+					modules.blocks.loadBlocksFromPeer(data.peer, commonBlock, cb);
 				}
 			} else {
 				return cb();
