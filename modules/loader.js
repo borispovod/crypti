@@ -29,6 +29,11 @@ function Loader(cb, scope) {
 	})
 
 	library.app.use('/api/loader', router);
+	library.app.use(function (err, req, res, next) {
+		library.logger.error('/api/loader', err)
+		if (!err) return next();
+		res.status(500).send({success: false, error: err});
+	});
 
 	cb(null, this);
 }

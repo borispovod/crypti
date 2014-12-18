@@ -260,6 +260,12 @@ Transport.prototype.onBlockchainReady = function () {
 
 	library.app.use('/peer', router);
 
+	library.app.use(function (err, req, res, next) {
+		library.logger.error('/peer', err)
+		if (!err) return next();
+		res.status(500).send({success: false, error: err});
+	});
+
 	async.forEach(library.config.peers.list, function (peer, cb) {
 		library.db.get("SELECT ip FROM peers WHERE ip = $ip", { $ip : ip.toLong(peer.ip) }, function (err, exists) {
 			if (err) {

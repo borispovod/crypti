@@ -80,6 +80,11 @@ function Blocks(cb, scope) {
 	});
 
 	library.app.use('/api/blocks', router);
+	library.app.use(function (err, req, res, next) {
+		library.logger.error('/api/blocks', err)
+		if (!err) return next();
+		res.status(500).send({success: false, error: err});
+	});
 
 	library.db.get("SELECT id FROM blocks WHERE id=$id", {$id: genesisblock.blockId}, function (err, blockId) {
 		if (err) {

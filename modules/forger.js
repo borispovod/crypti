@@ -86,6 +86,11 @@ function Forger(cb, scope) {
 	});
 
 	library.app.use('/api/forging', router);
+	library.app.use(function (err, req, res, next) {
+		library.logger.error('/api/forging', err)
+		if (!err) return next();
+		res.status(500).send({success: false, error: err});
+	});
 
 	setImmediate(cb, null, self);
 }
