@@ -985,6 +985,7 @@ Blocks.prototype.parseBlock = function (block, cb) {
 	block.blockSignature = new Buffer(block.blockSignature);
 	block.generationSignature = new Buffer(block.generationSignature);
 
+	console.log(block.transactions);
 	async.eachLimit(block.transactions, 10, function (transaction, cb) {
 		transaction.signature = new Buffer(transaction.signature);
 		transaction.senderPublicKey = new Buffer(transaction.senderPublicKey);
