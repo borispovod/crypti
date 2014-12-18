@@ -254,24 +254,24 @@ Blocks.prototype.loadBlocksPart = function (limit, offset, lastId, verify, cb) {
 							}
 
 							if (currentBlock) {
-								currentBlock.requests && (currentBlock.requests = Object.keys(currentBlock.requests).map(function (v) {
+								currentBlock.requests = Object.keys(currentBlock.requests).map(function (v) {
 									return currentBlock.requests[v];
-								}));
+								});
 
-								currentBlock.transactions && (currentBlock.transactions = Object.keys(currentBlock.transactions).map(function (v) {
-									currentBlock.transactions[v].signatures && (currentBlock.transactions[v].signatures = Object.keys(currentBlock.transactions[v].signatures).map(function (v2) {
+								currentBlock.transactions = Object.keys(currentBlock.transactions).map(function (v) {
+									currentBlock.transactions[v].signatures = Object.keys(currentBlock.transactions[v].signatures).map(function (v2) {
 										return currentBlock.transactions[v].signatures[v2];
-									}));
+									});
 
-									currentBlock.transactions[v].companies && (currentBlock.transactions[v].companies = Object.keys(currentBlock.transactions[v].companies).map(function (v2) {
+									currentBlock.transactions[v].companies = Object.keys(currentBlock.transactions[v].companies).map(function (v2) {
 										return currentBlock.transactions[v].companies[v2];
-									}));
+									});
 									return currentBlock.transactions[v];
-								}));
+								});
 
-								currentBlock.companyconfirmations && (currentBlock.companyconfirmations = Object.keys(currentBlock.companyconfirmations).map(function (v) {
+								currentBlock.companyconfirmations = Object.keys(currentBlock.companyconfirmations).map(function (v) {
 									return currentBlock.companyconfirmations[v];
-								}));
+								});
 
 								if (currentBlock.id == "3208346167119760980") {
 									//console.log(currentBlock)
@@ -301,8 +301,8 @@ Blocks.prototype.loadBlocksPart = function (limit, offset, lastId, verify, cb) {
 						}
 
 						var __companyComfirmation = blockHelper.getCompanyComfirmation(rows[i]);
+						currentBlock.companyconfirmations = currentBlock.companyconfirmations || {};
 						if (__companyComfirmation) {
-							!currentBlock.companyconfirmations && (currentBlock.companyconfirmations = {});
 							if (!currentBlock.companyconfirmations[__companyComfirmation.id]) {
 								// verify
 								if (verify && !confirmationsHelper.verifySignature(__companyComfirmation, currentBlock.generatorPublicKey)) {
@@ -320,16 +320,16 @@ Blocks.prototype.loadBlocksPart = function (limit, offset, lastId, verify, cb) {
 						}
 
 						var __request = blockHelper.getRequest(rows[i]);
+						currentBlock.requests = currentBlock.requests || {};
 						if (__request) {
-							!currentBlock.requests && (currentBlock.requests = {});
 							if (!currentBlock.requests[__request.id]) {
 								currentBlock.requests[__request.id] = __request;
 							}
 						}
 
 						var __transaction = blockHelper.getTransaction(rows[i]);
+						currentBlock.transactions = currentBlock.transactions || {};
 						if (__transaction) {
-							!currentBlock.transactions && (currentBlock.transactions = {});
 							if (!currentBlock.transactions[__transaction.id]) {
 								if (verify && currentBlock.id != genesisblock.blockId) {
 									if (!modules.transactions.verifySignature(__transaction)) {
@@ -361,21 +361,20 @@ Blocks.prototype.loadBlocksPart = function (limit, offset, lastId, verify, cb) {
 
 								currentBlock.transactions[__transaction.id] = __transaction;
 							}
-						}
-
-						var __signature = blockHelper.getSignature(rows[i]);
-						if (__signature) {
-							!currentBlock.transactions[__signature.transactionId].signatures && (currentBlock.transactions[__signature.transactionId].signatures = {});
-							if (!currentBlock.transactions[__signature.transactionId].signatures[__signature.id]) {
-								currentBlock.transactions[__signature.transactionId].signatures = __signature;
+							var __signature = blockHelper.getSignature(rows[i]);
+							currentBlock.transactions[__transaction.id].signatures = currentBlock.transactions[__transaction.id].signatures || {};
+							if (__signature) {
+								if (!currentBlock.transactions[__transaction.id].signatures[__signature.id]) {
+									currentBlock.transactions[__transaction.id].signatures = __signature;
+								}
 							}
-						}
 
-						var __company = blockHelper.getCompany(rows[i]);
-						if (__company) {
-							!currentBlock.transactions[__company.transactionId].companies && (currentBlock.transactions[__company.transactionId].companies = {});
-							if (!currentBlock.transactions[__company.transactionId].companies[__company.id]) {
-								currentBlock.transactions[__company.transactionId].companies = __company;
+							var __company = blockHelper.getCompany(rows[i]);
+							currentBlock.transactions[__transaction.id].companies = currentBlock.transactions[__transaction.id].companies || {};
+							if (__company) {
+								if (!currentBlock.transactions[__transaction.id].companies[__company.id]) {
+									currentBlock.transactions[__transaction.id].companies = __company;
+								}
 							}
 						}
 					}
