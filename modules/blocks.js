@@ -281,6 +281,9 @@ Blocks.prototype.loadBlocksPart = function (limit, offset, lastId, verify, cb) {
 							}
 
 							currentBlock = __block;
+							if (!lastBlock) {
+								lastBlock = currentBlock;
+							}
 
 
 							prevBlockId = __block.id;
