@@ -43,7 +43,7 @@ function getBlock(raw) {
 }
 
 function getCompanyComfirmation(raw){
-	if (!raw.t_id) {
+	if (!raw.cc_id) {
 		return null
 	} else {
 		return {
