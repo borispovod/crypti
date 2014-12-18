@@ -42,9 +42,9 @@ function _request(peer, api, method, data, cb) {
 		req.body = data;
 	}
 
-
 	if (cb) {
 		request(req, function (err, response, body) {
+			library.logger.trace(req.url, body);
 			if (!err && response.statusCode == 200) {
 				modules.peer.update({
 					ip: peer.ip,
