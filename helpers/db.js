@@ -20,6 +20,7 @@ module.exports.connect = function (connectString, cb) {
 		"CREATE INDEX IF NOT EXISTS trs_block_id ON trs (blockId)",
 		"CREATE INDEX IF NOT EXISTS trs_sender_id ON trs(senderId)",
 		"CREATE INDEX IF NOT EXISTS trs_recipient_id ON trs(recipientId)",
+		"CREATE INDEX IF NOT EXISTS requests_block_id ON requests (blockId);",
 		"CREATE INDEX IF NOT EXISTS signatures_trs_id ON signatures(transactionId)",
 		"CREATE INDEX IF NOT EXISTS signatures_generator_public_key ON signatures(generatorPublicKey)",
 		"CREATE INDEX IF NOT EXISTS companies_trs_id ON companies(transactionId)",
