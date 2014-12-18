@@ -276,11 +276,12 @@ Blocks.prototype.loadBlocksPart = function (limit, offset, lastId, verify, cb) {
 								if (currentBlock.id == "3208346167119760980") {
 									//console.log(currentBlock)
 								}
+
+								lastBlock = currentBlock;
 							}
 
 							currentBlock = __block;
 
-							lastBlock = currentBlock;
 
 							prevBlockId = __block.id;
 
