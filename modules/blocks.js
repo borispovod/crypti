@@ -235,9 +235,9 @@ Blocks.prototype.loadBlocksPart = function (limit, offset, lastId, verify, cb) {
 			// Some notes:
 			// If loading catch error, for example, invalid signature on block & transaction, need to stop loading and remove all blocks after last good block.
 			// We need to process all transactions of block
+			var blocks = [];
 			if (!err) {
 				var currentBlock = null, previousBlock = null;
-				var blocks = [];
 
 				var prevBlockId = null;
 				for (var i = 0, length = rows.length; i < length; i++) {
@@ -269,7 +269,7 @@ Blocks.prototype.loadBlocksPart = function (limit, offset, lastId, verify, cb) {
 								}));
 
 								if (currentBlock.id == "3208346167119760980") {
-									console.log(currentBlock)
+									//console.log(currentBlock)
 								}
 							}
 
