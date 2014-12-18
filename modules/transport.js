@@ -163,20 +163,18 @@ Transport.prototype.onBlockchainReady = function () {
 			function (cb) {
 				if (lastMilestoneBlockId != null) {
 					library.db.get("SELECT height FROM blocks WHERE id=$id", {$id: lastMilestoneBlockId}, function (err, block) {
-						st.run(function (err, block) {
-							if (err) {
-								console.log(err);
-								return cb("Internal sql error");
-							} else if (!block) {
-								return cb("Can't find block: " + lastMilestoneBlockId);
-							} else {
-								height = block.height;
-								jump = Math.min(1440, modules.blocks.getLastBlock().height - height);
-								height = Math.max(height - jump, 0);
-								limit = 10;
-								return cb();
-							}
-						})
+						if (err) {
+							console.log(err);
+							return cb("Internal sql error");
+						} else if (!block) {
+							return cb("Can't find block: " + lastMilestoneBlockId);
+						} else {
+							height = block.height;
+							jump = Math.min(1440, modules.blocks.getLastBlock().height - height);
+							height = Math.max(height - jump, 0);
+							limit = 10;
+							return cb();
+						}
 					});
 				} else if (lastBlockId != null) {
 					height = modules.blocks.getLastBlock().height;
@@ -187,9 +185,9 @@ Transport.prototype.onBlockchainReady = function () {
 					return cb("Error, provide lastBlockId or lastMilestoneBlockId");
 				}
 			}
-		], function (errors) {
-			if (errors) {
-				return res.status(200).json({error: errors.pop()});
+		], function (error) {
+			if (error) {
+				return res.status(200).json({error: error});
 			} else {
 				library.db.get("SELECT id FROM blocks WHERE height = $height", {$height: height}, function (err, block) {
 					if (err) {
