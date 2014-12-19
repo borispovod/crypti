@@ -132,27 +132,54 @@ function Transport(cb, scope) {
 	});
 
 	router.get("/blocks", function (req, res) {
-			res.set(headers);
-			// get 1400+ blocks with all data (joins) from provided block id
-			modules.blocks.loadBlocksPart({limit: 1440, lastId: req.query.lastBlockId}, function (err, blocks) {
-				return res.status(200).json({blocks: !err ? blocks : []});
-			});
-		})
+		res.set(headers);
+		// get 1400+ blocks with all data (joins) from provided block id
+		modules.blocks.loadBlocksPart({limit: 1440, lastId: req.query.lastBlockId}, function (err, blocks) {
+			return res.status(200).json({blocks: !err ? blocks : []});
+		});
+	})
 		.post(function (req, res) {
 			res.set(headers);
 
 			var block = req.body.block;
 			modules.blocks.parseBlock(block, function (err, block) {
 				if (block.previousBlock == modules.blocks.getLastBlock().id) {
-					modules.blocks.processBlock(block, function () {
+					modules.blocks.processBlock(block, true, function () {
 						res.sendStatus(200);
 					});
-				} else {
-					// if block
-					// calculate weight of block
-					// if block weight great then last block weight - make backup of this block and remove it
-					// if new block processed with errors - return last block from backup
+				} else if (block.previousBlock == modules.blocks.getLastBlock().previousBlock) {
+					library.db.get("SELECT * FROM blocks WHERE id=$id", { $id: block.previousBlock }, function (err, previousBlock) {
+						if (err || !previousBlock) {
+							library.logger.error(err ? err.toString() : "Block " + block.previousBlock + " not found");
+							return res.sendStatus(200);
+						}
 
+						var lastBlock = modules.blocks.getLastBlock();
+
+						var hitA = modules.blocks.calculateHit(lastBlock, previousBlock),
+							hitB = modules.blocks.calculateHit(block, previousBlock);
+
+						if (hitA.ge(hitB)) {
+							return res.sendStatus(200);
+						}
+
+						modules.blocks.popLastBlock(function (err) {
+							if (err) {
+								library.logger.error(err.toString());
+								return res.sendStatus(200);
+							}
+
+							modules.blocks.processBlock(block, true, function (err) {
+								if (err) {
+									modules.blocks.processBlock(lastBlock);
+								}
+
+								return res.sendStatus(200);
+							})
+						});
+					});
+				} else {
+					return res.sendStatus(200);
 				}
 			});
 
@@ -168,7 +195,7 @@ function Transport(cb, scope) {
 			res.set(headers);
 
 			var transaction = modules.transactions.parseTransaction(req.body.transaction);
-			modules.transactions.processUnconfirmedTransaction(transaction);
+			modules.transactions.processUnconfirmedTransaction(transaction, true);
 
 			return res.sendStatus(200);
 		});
@@ -322,6 +349,10 @@ Transport.prototype.onBlockchainReady = function () {
 
 Transport.prototype.onUnconfirmedTransaction = function (transaction) {
 	self.broadcast(100, '/transaction', {transaction: transaction});
+}
+
+Transport.prototype.onNewBlock = function (block) {
+	self.broadcast(100, '/blocks', {block: block})
 }
 
 //export
