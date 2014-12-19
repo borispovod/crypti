@@ -127,7 +127,7 @@ Transport.prototype.onBlockchainReady = function () {
 	router.get("/blocks/ids", function (req, res) {
 		res.set(headers);
 
-		library.db.all("SELECT id FROM blocks WHERE height > (SELECT height FROM blocks where id=$id) LIMIT 1440", { $id : req.query.id }, function (err, blocks) {
+		library.db.all("SELECT id FROM blocks WHERE height > (SELECT height FROM blocks where id=$id) LIMIT 1440", {$id: req.query.id}, function (err, blocks) {
 			if (err) {
 				console.log(err);
 				return res.status(200).json({error: "Internal sql error"});
@@ -230,18 +230,9 @@ Transport.prototype.onBlockchainReady = function () {
 	router.get("/blocks", function (req, res) {
 		res.set(headers);
 		// get 1400+ blocks with all data (joins) from provided block id
-		library.db.get("SELECT height FROM blocks WHERE id=$id", { $id : req.query.lastBlockId }, function (err, block) {
-			if (err) {
-				return res.status(200).json({ error : "Internal sql error", blocks : [] });
-			} else if (block) {
-				modules.blocks.loadBlocksPart(1440, block.height, req.query.lastBlockId, false, function (err, blocks) {
-					return res.status(200).json({blocks: !err ? blocks : []});
-				});
-			} else {
-				return res.status(200).json({ error : "Invalid block id", blocks : [] });
-			}
+		modules.blocks.loadBlocksPart(1440, req.query.lastBlockId, function (err, blocks) {
+			return res.status(200).json({blocks: !err ? blocks : []});
 		});
-
 	});
 
 	router.get("/transactions", function (req, res) {
@@ -264,7 +255,7 @@ Transport.prototype.onBlockchainReady = function () {
 	});
 
 	async.forEach(library.config.peers.list, function (peer, cb) {
-		library.db.get("SELECT ip FROM peers WHERE ip = $ip", { $ip : ip.toLong(peer.ip) }, function (err, exists) {
+		library.db.get("SELECT ip FROM peers WHERE ip = $ip", {$ip: ip.toLong(peer.ip)}, function (err, exists) {
 			if (err) {
 				return cb(err);
 			} else if (!exists) {
@@ -300,7 +291,7 @@ Transport.prototype.onBlockchainReady = function () {
 }
 
 Transport.prototype.onUnconfirmedTransaction = function (transaction) {
-	self.broadcast(100, '/transaction', { transaction: transaction });
+	self.broadcast(100, '/transaction', {transaction: transaction});
 }
 
 //export
