@@ -1041,12 +1041,9 @@ Blocks.prototype.loadBlocksFromPeer = function (peer, lastBlockId, cb) {
 					next(err);
 				} else {
 					if (data.body.blocks.length == 0) {
-						console.log("Loaded: " + lastBlockId);
 						loaded = true;
 						next();
 					} else {
-						console.log("Blocks: ");
-						console.log(data.body.blocks[0].id, lastBlockId, data.body.blocks.length);
 						async.eachSeries(data.body.blocks, function (block, cb) {
 							self.parseBlock(block, function () {
 								self.processBlock(block, function (err) {
@@ -1067,7 +1064,6 @@ Blocks.prototype.loadBlocksFromPeer = function (peer, lastBlockId, cb) {
 				library.logger.error(err);
 			}
 
-			console.log("Processed: " + lastBlockId);
 			setImmediate(cb, err);
 		}
 	)
