@@ -165,24 +165,30 @@ Loader.prototype.getUnconfirmedTransactions = function (cb) {
 }
 
 Loader.prototype.onPeerReady = function () {
+	function timersStart() {
+		process.nextTick(function nextLoadBlock() {
+			console.log('self.loadBlocks');
+			self.loadBlocks(function (err) {
+				console.log('self.loadBlocks ok');
+				err && console.log(err);
+				sync = false;
+				// 10 seconds for testing
+				setTimeout(nextLoadBlock, 10 * 1000)
+			})
+		});
+
+		process.nextTick(function nextGetUnconfirmedTransactions() {
+			self.getUnconfirmedTransactions(function () {
+				setTimeout(nextGetUnconfirmedTransactions, 15 * 1000)
+			})
+		});
+	}
+
 	process.nextTick(function nextUpdatePeerList() {
 		self.updatePeerList(function () {
+			!timersStart.started && timersStart();
+			timersStart.started = true;
 			setTimeout(nextUpdatePeerList, 60 * 1000);
-
-			process.nextTick(function nextLoadBlock() {
-				self.loadBlocks(function (err) {
-					err && console.log(err);
-					sync = false;
-					// 10 seconds for testing
-					setTimeout(nextLoadBlock, 10 * 1000)
-				})
-			});
-
-			process.nextTick(function nextGetUnconfirmedTransactions() {
-				self.getUnconfirmedTransactions(function () {
-					setTimeout(nextGetUnconfirmedTransactions, 15 * 1000)
-				})
-			});
 		})
 	});
 }
