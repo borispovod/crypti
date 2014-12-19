@@ -174,7 +174,7 @@ Loader.prototype.onPeerReady = function () {
 
 			process.nextTick(function nextLoadBlock() {
 				self.loadBlocks(function (err) {
-					console.log(err);
+					err && console.log(err);
 					sync = false;
 					// 10 seconds for testing
 					setTimeout(nextLoadBlock, 10 * 1000)
