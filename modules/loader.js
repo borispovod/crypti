@@ -56,7 +56,7 @@ Loader.prototype.run = function (scope) {
 			}, function (cb) {
 				library.logger.info('current ' + offset);
 				process.nextTick(function () {
-					modules.blocks.loadBlocksPart(limit, offset, null, true, function (err) {
+					modules.blocks.loadBlocksOffset(limit, offset, function (err) {
 						offset = offset + limit;
 						cb(err)
 					});
