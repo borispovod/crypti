@@ -28,8 +28,8 @@ function Loader(cb, scope) {
 	router.get('/status/sync', function (req, res) {
 		res.json({
 			success: true,
-			sync: sync,
-			height: lastBlock.height
+			sync: self.syncing(),
+			height: modules.blocks.getLastBlock().height
 		});
 	});
 
@@ -47,8 +47,8 @@ Loader.prototype.loaded = function () {
 	return loaded;
 }
 
-Loader.prototype.sync = function (sync) {
-
+Loader.prototype.syncing = function () {
+	return sync;
 }
 
 //public
@@ -122,7 +122,6 @@ Loader.prototype.loadBlocks = function (cb) {
 						}
 
 						if (modules.blocks.getLastBlock().id != commonBlock) {
-							console.log("fork");
 							// resolve fork
 							library.db.get("SELECT height FROM blocks WHERE id=$id", {$id: commonBlock}, function (err, block) {
 								if (err || !block) {
@@ -144,13 +143,11 @@ Loader.prototype.loadBlocks = function (cb) {
 								});
 							});
 						} else {
-							console.log("from common");
 							modules.blocks.loadBlocksFromPeer(data.peer, commonBlock, cb);
 						}
 					})
 				})
 			} else {
-				console.log("from zero");
 				var commonBlock = genesisBlock.blockId;
 				modules.blocks.loadBlocksFromPeer(data.peer, commonBlock, cb);
 			}
@@ -167,27 +164,28 @@ Loader.prototype.getUnconfirmedTransactions = function (cb) {
 }
 
 Loader.prototype.onPeerReady = function () {
+	function timersStart() {
+		process.nextTick(function nextLoadBlock() {
+			self.loadBlocks(function (err) {
+				err && console.log(err);
+				sync = false;
+				// 10 seconds for testing
+				setTimeout(nextLoadBlock, 10 * 1000)
+			})
+		});
+
+		process.nextTick(function nextGetUnconfirmedTransactions() {
+			self.getUnconfirmedTransactions(function () {
+				setTimeout(nextGetUnconfirmedTransactions, 15 * 1000)
+			})
+		});
+	}
+
 	process.nextTick(function nextUpdatePeerList() {
 		self.updatePeerList(function () {
+			!timersStart.started && timersStart();
+			timersStart.started = true;
 			setTimeout(nextUpdatePeerList, 60 * 1000);
-
-
-			process.nextTick(function nextLoadBlock() {
-				console.log("load blocks");
-				self.loadBlocks(function (err) {
-					console.log("finished");
-					err && library.logger.error(err);
-					sync = false;
-					// 10 seconds for testing
-					setTimeout(nextLoadBlock, 10 * 1000)
-				})
-			});
-
-			process.nextTick(function nextGetUnconfirmedTransactions() {
-				self.getUnconfirmedTransactions(function () {
-					setTimeout(nextGetUnconfirmedTransactions, 15 * 1000)
-				})
-			});
 		})
 	});
 }
