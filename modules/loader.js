@@ -123,6 +123,8 @@ Loader.prototype.loadBlocks = function (cb) {
 						if (err) {
 							return cb(err);
 						}
+
+						console.log(commonBlock, modules.blocks.getLastBlock().id);
 						if (modules.blocks.getLastBlock().id != commonBlock) {
 							// resolve fork
 							library.db.get("SELECT height FROM blocks WHERE id=$id", {$id: commonBlock}, function (err, block) {

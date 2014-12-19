@@ -115,15 +115,6 @@ Transport.prototype.onBlockchainReady = function () {
 		})
 	});
 
-	router.post('/transaction', function (req, res) {
-		res.set(headers);
-
-		var transaction = modules.transactions.parseTransaction(req.body.transaction);
-		modules.transactions.processUnconfirmedTransaction(transaction);
-
-		return res.sendStatus(200);
-	});
-
 	router.get("/blocks/ids", function (req, res) {
 		res.set(headers);
 
@@ -227,19 +218,48 @@ Transport.prototype.onBlockchainReady = function () {
 		});
 	});
 
-	router.get("/blocks", function (req, res) {
-		res.set(headers);
-		// get 1400+ blocks with all data (joins) from provided block id
-		modules.blocks.loadBlocksPart(1440, req.query.lastBlockId, function (err, blocks) {
-			return res.status(200).json({blocks: !err ? blocks : []});
-		});
-	});
+	router
+		.get("/blocks", function (req, res) {
+			res.set(headers);
+			// get 1400+ blocks with all data (joins) from provided block id
+			modules.blocks.loadBlocksPart(1440, req.query.lastBlockId, function (err, blocks) {
+				return res.status(200).json({blocks: !err ? blocks : []});
+			});
+		})
+		.post(function (req, res) {
+			res.set(headers);
 
-	router.get("/transactions", function (req, res) {
-		res.set(headers);
-		// need to process headers from peer
-		return res.status(200).json({transactions: modules.transactions.getUnconfirmedTransactions()});
-	});
+			var block = req.body.block;
+			modules.blocks.parseBlock(block, function (err, block) {
+				if (block.previousBlock == modules.blocks.getLastBlock().id) {
+					modules.blocks.processBlock(block, function () {
+						res.sendStatus(200);
+					});
+				} else {
+					// if block
+					// calculate weight of block
+					// if block weight great then last block weight - make backup of this block and remove it
+					// if new block processed with errors - return last block from backup
+
+				}
+			});
+
+		});
+
+	router
+		.get("/transactions", function (req, res) {
+			res.set(headers);
+			// need to process headers from peer
+			return res.status(200).json({transactions: modules.transactions.getUnconfirmedTransactions()});
+		})
+		.post(function (req, res) {
+			res.set(headers);
+
+			var transaction = modules.transactions.parseTransaction(req.body.transaction);
+			modules.transactions.processUnconfirmedTransaction(transaction);
+
+			return res.sendStatus(200);
+		});
 
 	router.get('/weight', function (req, res) {
 		res.set(headers);
