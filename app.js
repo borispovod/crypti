@@ -1,6 +1,6 @@
 var Logger = require('./logger.js');
 var appConfig = require("./config.json");
-var logger = new Logger({echo: true, errorLevel: appConfig.logLevel});
+var logger = new Logger({echo: appConfig.consoleLogLevel, errorLevel: appConfig.fileLogLevel});
 var async = require('async');
 
 process.on('uncaughtException', function (err) {

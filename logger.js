@@ -36,8 +36,12 @@ module.exports = function (config) {
 
 			data && (log["data"] = data);
 
-			log_file.write(JSON.stringify(log) + '\n');
-			config.echo && console.log(log.level.bgYellow.black, log.timestamp.grey, log.message, log.data ? log.data : '');
+			if (config.levels[config.errorLevel] <= config.levels[log.level]) {
+				log_file.write(JSON.stringify(log) + '\n');
+			}
+			if (config.echo && config.levels[config.echo] <= config.levels[log.level]) {
+				console.log(log.level.bgYellow.black, log.timestamp.grey, log.message, log.data ? log.data : '');
+			}
 		}
 
 		exports[name] = log;
