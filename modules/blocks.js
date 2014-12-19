@@ -675,27 +675,26 @@ Blocks.prototype.getForgedByAccount = function (generatorPublicKey, cb) {
 }
 
 Blocks.prototype.applyWeight = function (block) {
-	var hash = crypto.createHash('sha256').update(lastBlock.generationSignature).update(block.generatorPublicKey).digest();
-	var elapsedTime = block.timestamp - lastBlock.timestamp;
-
-	var hit = bignum.fromBuffer(new Buffer([hash[7], hash[6], hash[5], hash[4], hash[3], hash[2], hash[1], hash[0]]));
-	hit = hit.div(parseInt(elapsedTime / 60));
-
+	var hit = this.calculateHit(block, lastBlock);
 	weight = weight.add(hit);
 
 	return weight;
 }
 
 Blocks.prototype.undoWeight = function (block, previousBlock) {
+	var hit = this.calculateHit(block, previousBlock);
+	weight = weight.sub(hit);
+
+	return weight;
+}
+
+Blocks.prototype.calculateHit = function (block, previousBlock) {
 	var hash = crypto.createHash('sha256').update(previousBlock.generationSignature).update(block.generatorPublicKey).digest();
 	var elapsedTime = block.timestamp - previousBlock.timestamp;
 
 	var hit = bignum.fromBuffer(new Buffer([hash[7], hash[6], hash[5], hash[4], hash[3], hash[2], hash[1], hash[0]]));
 	hit = hit.div(parseInt(elapsedTime / 60));
-
-	weight = weight.sub(hit);
-
-	return weight;
+	return hit;
 }
 
 Blocks.prototype.getWeight = function () {
@@ -1042,15 +1041,19 @@ Blocks.prototype.loadBlocksFromPeer = function (peer, lastBlockId, cb) {
 					next(err);
 				} else {
 					if (data.body.blocks.length == 0) {
+						console.log("Loaded: " + lastBlockId);
 						loaded = true;
 						next();
 					} else {
+						console.log("Blocks: ");
+						console.log(data.body.blocks[0].id, lastBlockId, data.body.blocks.length);
 						async.eachSeries(data.body.blocks, function (block, cb) {
 							self.parseBlock(block, function () {
 								self.processBlock(block, function (err) {
 									if (!err) {
 										lastBlockId = block.id;
 									}
+
 									setImmediate(cb, err);
 								});
 							});
@@ -1064,6 +1067,7 @@ Blocks.prototype.loadBlocksFromPeer = function (peer, lastBlockId, cb) {
 				library.logger.error(err);
 			}
 
+			console.log("Processed: " + lastBlockId);
 			setImmediate(cb, err);
 		}
 	)
