@@ -238,11 +238,12 @@ Blocks.prototype.count = function (cb) {
 	});
 }
 
-Blocks.prototype.loadBlocksPart = function (limit, lastId, cb) {
+Blocks.prototype.loadBlocksPart = function (filter, cb) {
 	//console.time('loading');
 
-	var params = {$limit: limit};
-	lastId && (params['$lastId'] = lastId);
+	var params = {$limit: filter.limit || 1};
+	filter.lastId && (params['$lastId'] = filter.lastId);
+	filter.id && !filter.lastId && (params['$id'] = filter.id);
 	library.db.all(
 		"SELECT " +
 		"b.id b_id, b.version b_version, b.timestamp b_timestamp, b.height b_height, b.previousBlock b_previousBlock, b.numberOfRequests b_numberOfRequests, b.numberOfTransactions b_numberOfTransactions, b.numberOfConfirmations b_numberOfConfirmations, b.totalAmount b_totalAmount, b.totalFee b_totalFee, b.payloadLength b_payloadLength, b.requestsLength b_requestsLength, b.confirmationsLength b_confirmationsLength, b.payloadHash b_payloadHash, b.generatorPublicKey b_generatorPublicKey, b.generationSignature b_generationSignature, b.blockSignature b_blockSignature, " +
@@ -251,7 +252,7 @@ Blocks.prototype.loadBlocksPart = function (limit, lastId, cb) {
 		"s.id s_id, s.transactionId s_transactionId, s.timestamp s_timestamp, s.publicKey s_publicKey, s.generatorPublicKey s_generatorPublicKey, s.signature s_signature, s.generationSignature s_generationSignature, " +
 		"c.id c_id, c.transactionId c_transactionId, c.name c_name, c.description c_description, c.domain c_domain, c.email c_email, c.timestamp c_timestamp, c.generatorPublicKey c_generatorPublicKey, c.signature c_signature, " +
 		"cc.id cc_id, cc.blockId cc_blockId, cc.companyId cc_companyId, cc.verified cc_verified, cc.timestamp cc_timestamp, cc.signature cc_signature " +
-		"FROM (select * from blocks " + (lastId ? " where height > (SELECT height FROM blocks where id = $lastId) " : "") + " limit $limit) as b " +
+		"FROM (select * from blocks " + (filter.id ? " where id = $id " : "") + (filter.lastId ? " where height > (SELECT height FROM blocks where id = $lastId) " : "") + " limit $limit) as b " +
 		"left outer join requests as r on r.blockId=b.id " +
 		"left outer join trs as t on t.blockId=b.id " +
 		"left outer join signatures as s on s.transactionId=t.id " +
@@ -1100,7 +1101,9 @@ Blocks.prototype.popLastBlock = function (cb) {
 
 // must return block with all information include transactions, requests, companiesconfirmations
 Blocks.prototype.getBlock = function (blockId, cb) {
-	setImmediate(cb);
+	modules.blocks.loadBlocksPart({id: blockId}, function (err, blocks) {
+		cb(err, !err ? blocks[0] : undefined);
+	});
 }
 
 Blocks.prototype.undoBlock = function (block, previousBlock, cb) {
