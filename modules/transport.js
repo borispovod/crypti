@@ -118,10 +118,7 @@ Transport.prototype.onBlockchainReady = function () {
 	router.post('/transaction', function (req, res) {
 		res.set(headers);
 
-		var transaction = req.body.transaction;
-		transaction.senderPublicKey = new Buffer(transaction.senderPublicKey);
-		transaction.signature = new Buffer(transaction.signature);
-
+		var transaction = modules.transactions.parseTransaction(req.body.transaction);
 		modules.transactions.processUnconfirmedTransaction(transaction);
 
 		return res.sendStatus(200);
