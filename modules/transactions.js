@@ -124,7 +124,7 @@ function Transactions(cb, scope) {
 			self.secondSign(secret, transaction);
 		}
 
-		self.processUnconfirmedTransaction(transaction, function (err) {
+		self.processUnconfirmedTransaction(transaction, true, function (err) {
 			if (err) {
 				return res.json({success: false, error: err});
 			} else {
@@ -261,7 +261,7 @@ Transactions.prototype.removeUnconfirmedTransaction = function (id) {
 	}
 }
 
-Transactions.prototype.processUnconfirmedTransaction = function (transaction, cb) {
+Transactions.prototype.processUnconfirmedTransaction = function (transaction, broadcast, cb) {
 	var self = this;
 	var txId = transactionHelper.getId(transaction);
 
@@ -423,7 +423,9 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, cb
 					if (self.applyUnconfirmed(transaction)) {
 						unconfirmedTransactions[transaction.id] = transaction;
 
-						library.bus.message('unconfirmedTransaction', transaction)
+						if (broadcast) {
+							library.bus.message('unconfirmedTransaction', transaction)
+						}
 					} else {
 						doubleSpendingTransactions[transaction.id] = transaction;
 					}

@@ -171,7 +171,7 @@ Loader.prototype.onPeerReady = function () {
 				sync = false;
 				// 10 seconds for testing
 				setTimeout(nextLoadBlock, 10 * 1000)
-			})
+			});
 		});
 
 		process.nextTick(function nextGetUnconfirmedTransactions() {
