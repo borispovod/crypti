@@ -985,8 +985,7 @@ Blocks.prototype.parseBlock = function (block, cb) {
 	block.generationSignature = new Buffer(block.generationSignature);
 
 	async.eachLimit(block.transactions, 10, function (transaction, cb) {
-		transaction.signature = new Buffer(transaction.signature);
-		transaction.senderPublicKey = new Buffer(transaction.senderPublicKey);
+		transaction = modules.transactions.parseTransaction(transaction);
 		setImmediate(cb);
 	}, cb);
 }
