@@ -17,20 +17,20 @@ function Loader(cb, scope) {
 	var router = new Router();
 
 	router.get('/status', function (req, res) {
-		if (!loaded) {
-			res.json({
-				success: true,
-				loaded: self.loaded(),
-				now: lastBlock.height,
-				blocksCount: total
-			});
-		} else {
-			res.json({
-				success: true,
-				sync: sync,
-				height: lastBlock.height
-			})
-		}
+		res.json({
+			success: true,
+			loaded: self.loaded(),
+			now: lastBlock.height,
+			blocksCount: total
+		});
+	});
+
+	router.get('/status/sync', function (req, res) {
+		res.json({
+			success: true,
+			sync: sync,
+			height: lastBlock.height
+		});
 	});
 
 	library.app.use('/api/loader', router);
