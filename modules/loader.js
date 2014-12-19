@@ -121,8 +121,8 @@ Loader.prototype.loadBlocks = function (cb) {
 							return cb(err);
 						}
 
-						console.log(commonBlock, modules.blocks.getLastBlock().id);
 						if (modules.blocks.getLastBlock().id != commonBlock) {
+							console.log("fork");
 							// resolve fork
 							library.db.get("SELECT height FROM blocks WHERE id=$id", {$id: commonBlock}, function (err, block) {
 								if (err || !block) {
@@ -144,11 +144,13 @@ Loader.prototype.loadBlocks = function (cb) {
 								});
 							});
 						} else {
+							console.log("from common");
 							modules.blocks.loadBlocksFromPeer(data.peer, commonBlock, cb);
 						}
 					})
 				})
 			} else {
+				console.log("from zero");
 				var commonBlock = genesisBlock.blockId;
 				modules.blocks.loadBlocksFromPeer(data.peer, commonBlock, cb);
 			}
@@ -169,9 +171,12 @@ Loader.prototype.onPeerReady = function () {
 		self.updatePeerList(function () {
 			setTimeout(nextUpdatePeerList, 60 * 1000);
 
+
 			process.nextTick(function nextLoadBlock() {
+				console.log("load blocks");
 				self.loadBlocks(function (err) {
-					err && console.log(err);
+					console.log("finished");
+					err && library.logger.error(err);
 					sync = false;
 					// 10 seconds for testing
 					setTimeout(nextLoadBlock, 10 * 1000)
