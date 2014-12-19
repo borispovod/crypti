@@ -222,7 +222,7 @@ Transport.prototype.onBlockchainReady = function () {
 		.get("/blocks", function (req, res) {
 			res.set(headers);
 			// get 1400+ blocks with all data (joins) from provided block id
-			modules.blocks.loadBlocksPart(1440, req.query.lastBlockId, function (err, blocks) {
+			modules.blocks.loadBlocksPart({limit: 1440, lastId: req.query.lastBlockId}, function (err, blocks) {
 				return res.status(200).json({blocks: !err ? blocks : []});
 			});
 		})
