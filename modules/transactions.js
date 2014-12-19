@@ -538,6 +538,12 @@ Transactions.prototype.undo = function (transaction, cb) {
 	}
 }
 
+Transactions.prototype.parseTransaction = function (transaction, cb) {
+	transaction.senderPublicKey = new Buffer(transaction.senderPublicKey);
+	transaction.signature = new Buffer(transaction.signature);
+	return transaction;
+}
+
 Transactions.prototype.undoUnconfirmed = function (transaction) {
 	var sender = modules.accounts.getAccountByPublicKey(transaction.senderPublicKey);
 	var amount = transaction.amount + transaction.fee;
