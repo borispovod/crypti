@@ -31,7 +31,8 @@ function Loader(cb, scope) {
 		} else {
 			return res.json({
 				success : true,
-				sync : sync
+				sync : sync,
+				height : modules.blocks.getLastBlock().height
 			})
 		}
 	})
@@ -48,6 +49,10 @@ function Loader(cb, scope) {
 
 Loader.prototype.loaded = function () {
 	return loaded;
+}
+
+Loader.prototype.sync = function (sync) {
+
 }
 
 //public
@@ -106,52 +111,50 @@ Loader.prototype.loadBlocks = function (cb) {
 	modules.transport.getFromRandomPeer('/weight', function (err, data) {
 		if (err) {
 			return cb(err);
-		} else {
-			if (modules.blocks.getWeight().lt(data.body.weight)) {
-				if (modules.blocks.getLastBlock().id != genesisBlock.blockId) {
-					modules.blocks.getMilestoneBlock(data.peer, function (err, milestoneBlock) {
-						console.log(err, milestoneBlock);
+		}
+		if (modules.blocks.getWeight().lt(data.body.weight)) {
+			sync = true;
+			if (modules.blocks.getLastBlock().id != genesisBlock.blockId) {
+				modules.blocks.getMilestoneBlock(data.peer, function (err, milestoneBlock) {
+					if (err) {
+						return cb(err);
+					}
+					modules.blocks.getCommonBlock(data.peer, milestoneBlock, function (err, commonBlock) {
 						if (err) {
 							return cb(err);
-						} else {
-							modules.blocks.getCommonBlock(data.peer, milestoneBlock, function (err, commonBlock) {
-								console.log(err, commonBlock);
-								if (err) {
+						}
+						if (modules.blocks.getLastBlock().id != commonBlock) {
+							// resolve fork
+							library.db.get("SELECT height FROM blocks WHERE id=$id", {$id: commonBlock}, function (err, block) {
+								if (err || !block) {
 									return cb(err);
-								} else {
-									console.log(modules.blocks.getLastBlock().id);
-									if (modules.blocks.getLastBlock().id != commonBlock) {
-										console.log("fork");
-										return cb();
-										// resolve fork
-										library.db.get("SELECT height FROM blocks WHERE id=$id", {$id : commonBlock}, function (err, block) {
-											if (err || !block) {
-												cb(err);
-											} else {
-												if (modules.blocks.getLastBlock().height - block.height > 1440) {
-													peer.state(ip, port, 0, 60);
-													setImmediate(cb);
-												} else {
-													// process fork:
-													// 1. remove bad blocks.
-													// 2. load new blocks.
-												}
-											}
-										});
-									} else {
-										modules.blocks.loadBlocksFromPeer(data.peer, commonBlock, cb);
-									}
 								}
-							})
+								library.db.get("SELECT height FROM blocks WHERE id=$id", {$id : commonBlock}, function (err, block) {
+									if (err || !block) {
+										cb(err);
+									} else {
+										if (modules.blocks.getLastBlock().height - block.height > 1440) {
+											peer.state(ip, port, 0, 60);
+											setImmediate(cb);
+										} else {
+											// process fork:
+											// 1. remove bad blocks.
+											// 2. load new blocks.
+										}
+									}
+								});
+							});
+						} else {
+							modules.blocks.loadBlocksFromPeer(data.peer, commonBlock, cb);
 						}
 					})
-				} else {
-					var commonBlock = genesisBlock.blockId;
-					modules.blocks.loadBlocksFromPeer(data.peer, commonBlock, cb);
-				}
+				})
 			} else {
-				return cb();
+				var commonBlock = genesisBlock.blockId;
+				modules.blocks.loadBlocksFromPeer(data.peer, commonBlock, cb);
 			}
+		} else {
+			cb();
 		}
 	});
 }
@@ -169,6 +172,7 @@ Loader.prototype.onPeerReady = function () {
 
 			process.nextTick(function nextLoadBlock() {
 				self.loadBlocks(function () {
+					sync = false;
 					// 10 seconds for testing
 					setTimeout(nextLoadBlock, 10 * 1000)
 				})
