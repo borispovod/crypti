@@ -32,6 +32,11 @@ function Blocks(cb, scope) {
 
 	var router = new Router();
 
+	router.use(function (req, res, next) {
+		if (modules) return next();
+		res.status(500).send({success: false, error: 'loading'});
+	});
+
 	router.get('/get', function (req, res) {
 		if (!req.query.id) {
 			return res.json({success: false, error: "Provide id in url"});
@@ -77,6 +82,10 @@ function Blocks(cb, scope) {
 
 	router.get('/getHeight', function (req, res) {
 		res.json({success: true, height: lastBlock.height});
+	});
+
+	router.use(function (req, res, next) {
+		res.status(500).send({success: false, error: 'api not found'});
 	});
 
 	library.app.use('/api/blocks', router);
@@ -452,7 +461,7 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 
 			//console.timeEnd('loading');
 
-			cb();
+			cb(null, lastBlock);
 		});
 }
 

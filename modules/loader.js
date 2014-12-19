@@ -4,7 +4,7 @@ var util = require('util');
 var genesisBlock = require("../helpers/genesisblock.js")
 
 //private
-var modules, library, self, loaded, sync;
+var modules, library, self, loaded, sync, lastBlock = genesisBlock;
 var total = 0;
 
 //constructor
@@ -18,24 +18,20 @@ function Loader(cb, scope) {
 
 	router.get('/status', function (req, res) {
 		if (!loaded) {
-			if (modules.blocks.getLastBlock()) {
-				return res.json({
-					success: true,
-					loaded: self.loaded(),
-					now: modules.blocks.getLastBlock().height,
-					blocksCount: total
-				});
-			} else {
-				return res.json({success: false});
-			}
+			res.json({
+				success: true,
+				loaded: self.loaded(),
+				now: lastBlock.height,
+				blocksCount: total
+			});
 		} else {
-			return res.json({
-				success : true,
-				sync : sync,
-				height : modules.blocks.getLastBlock().height
+			res.json({
+				success: true,
+				sync: sync,
+				height: lastBlock.height
 			})
 		}
-	})
+	});
 
 	library.app.use('/api/loader', router);
 	library.app.use(function (err, req, res, next) {
@@ -44,7 +40,7 @@ function Loader(cb, scope) {
 		res.status(500).send({success: false, error: err});
 	});
 
-	cb(null, this);
+	setImmediate(cb, null, self);
 }
 
 Loader.prototype.loaded = function () {
@@ -69,8 +65,9 @@ Loader.prototype.run = function (scope) {
 			}, function (cb) {
 				library.logger.info('current ' + offset);
 				process.nextTick(function () {
-					modules.blocks.loadBlocksOffset(limit, offset, function (err) {
+					modules.blocks.loadBlocksOffset(limit, offset, function (err, lastBlockOffset) {
 						offset = offset + limit;
+						lastBlock = lastBlockOffset;
 						cb(err)
 					});
 				})
@@ -131,7 +128,7 @@ Loader.prototype.loadBlocks = function (cb) {
 								if (err || !block) {
 									return cb(err);
 								}
-								library.db.get("SELECT height FROM blocks WHERE id=$id", {$id : commonBlock}, function (err, block) {
+								library.db.get("SELECT height FROM blocks WHERE id=$id", {$id: commonBlock}, function (err, block) {
 									if (err || !block) {
 										cb(err);
 									} else {
