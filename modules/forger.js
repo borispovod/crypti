@@ -37,6 +37,11 @@ function Forger(cb, scope) {
 
 	var router = new Router();
 
+	router.use(function (req, res, next) {
+		if (modules) return next();
+		res.status(500).send({success: false, error: 'loading'});
+	});
+
 	if (library.config.adminPanel && library.config.adminPanel.auth && library.config.adminPanel.auth.user && library.config.adminPanel.auth.password) {
 		router.get('/', auth, function (req, res) {
 			return res.status(200).json({success: true, enabled: forgingStarted || false});
@@ -83,6 +88,10 @@ function Forger(cb, scope) {
 		self.stopForging();
 
 		return res.json({success: true, address: address});
+	});
+
+	router.use(function (req, res, next) {
+		res.status(500).send({success: false, error: 'api not found'});
 	});
 
 	library.app.use('/api/forging', router);

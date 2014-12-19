@@ -5,19 +5,19 @@ var path = require('path');
 var Router = require('../helpers/router.js');
 
 //private
-var modules, library;
-var router = new Router();
+var modules, library, self;
 
 //constructor
 function Server(cb, scope) {
 	library = scope;
+	self = this;
 
-	cb(null, this);
-}
+	var router = new Router();
 
-//public
-Server.prototype.run = function (scope) {
-	modules = scope;
+	router.use(function (req, res, next) {
+		if (modules) return next();
+		res.status(500).send({success: false, error: 'loading'});
+	});
 
 	router.get('/', function (req, res) {
 		var ip = req.connection.remoteAddress;
@@ -35,29 +35,44 @@ Server.prototype.run = function (scope) {
 		res.render('forging.html');
 	});
 
-	library.app.use("/", router);
-
-	library.app.get("*", function (req, res) {
-		return res.redirect('/');
+	router.use(function (req, res, next) {
+		if (req.url.indexOf('/api/') == -1 && req.url.indexOf('/peer/') == -1) {
+			return res.redirect('/');
+		}
+		next();
+		//res.status(500).send({success: false, error: 'api not found'});
 	});
+
+	library.app.use('/', router);
+
+	setImmediate(cb, null, self);
+}
+
+//public
+Server.prototype.run = function (scope) {
+	modules = scope;
+
+	//library.app.get("*", function (req, res) {
+	//	return res.redirect('/');
+	//});
 }
 
 Server.prototype.onBlockchainReady = function () {
-	for (var i = 0; i < library.app._router.stack.length; i++) {
-		var route = library.app._router.stack[i];
-
-		if (route.route && route.route.path == '*') {
-			library.app._router.stack.splice(i, 1);
-			break;
-		}
-	}
+	//for (var i = 0; i < library.app._router.stack.length; i++) {
+	//	var route = library.app._router.stack[i];
+	//
+	//	if (route.route && route.route.path == '*') {
+	//		library.app._router.stack.splice(i, 1);
+	//		break;
+	//	}
+	//}
 }
 
 
 Server.prototype.onPeerReady = function () {
-	library.app.get("*", function (req, res) {
-		return res.redirect('/');
-	});
+	//library.app.get("*", function (req, res) {
+	//	return res.redirect('/');
+	//});
 }
 
 //export
