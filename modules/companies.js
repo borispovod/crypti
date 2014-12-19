@@ -17,6 +17,11 @@ function Companies(cb, scope) {
 
 	var router = new Router();
 
+	router.use(function (req, res, next) {
+		if (modules) return next();
+		res.status(500).send({success: false, error: 'loading'});
+	});
+
 	router.get('/get', function (req, res) {
 		if (!req.query.id && !req.query.address) {
 			return res.json({success: false, error: "Provide id or address in url"});
@@ -27,6 +32,10 @@ function Companies(cb, scope) {
 			}
 			return res.json({success: true, company: company});
 		});
+	});
+
+	router.use(function (req, res, next) {
+		res.status(500).send({success: false, error: 'api not found'});
 	});
 
 	library.app.use('/api/companies', router);

@@ -23,6 +23,11 @@ function Transactions(cb, scope) {
 
 	var router = new Router();
 
+	router.use(function (req, res, next) {
+		if (modules) return next();
+		res.status(500).send({success: false, error: 'loading'});
+	});
+
 	router.get('/', function (req, res) {
 		self.list({
 			blockId: req.query.blockId,
@@ -126,6 +131,10 @@ function Transactions(cb, scope) {
 				return res.json({success: true, transaction: transaction});
 			}
 		});
+	});
+
+	router.use(function (req, res, next) {
+		res.status(500).send({success: false, error: 'api not found'});
 	});
 
 	library.app.use('/api/transactions', router);

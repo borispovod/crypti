@@ -18,6 +18,11 @@ function Signatures(cb, scope) {
 
 	var router = new Router();
 
+	router.use(function (req, res, next) {
+		if (modules) return next();
+		res.status(500).send({success: false, error: 'loading'});
+	});
+
 	router.get('/get', function (req, res) {
 		if (!req.query.id) {
 			return res.json({success: false, error: "Provide id in url"});
@@ -32,6 +37,10 @@ function Signatures(cb, scope) {
 
 	router.put('/', function (req, res) {
 		return res.json({});
+	});
+
+	router.use(function (req, res, next) {
+		res.status(500).send({success: false, error: 'api not found'});
 	});
 
 	library.app.use('/api/signatures', router);

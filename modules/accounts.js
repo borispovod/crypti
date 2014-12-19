@@ -39,6 +39,11 @@ function Accounts(cb, scope) {
 
 	var router = new Router();
 
+	router.use(function (req, res, next) {
+		if (modules) return next();
+		res.status(500).send({success: false, error: 'loading'});
+	});
+
 	router.post('/open', function (req, res) {
 		if (!req.body.secret || req.body.secret.length == 0) {
 			return res.json({success: false, error: "Provide secret key of account"});
@@ -46,12 +51,14 @@ function Accounts(cb, scope) {
 
 		var account = self.openAccount(req.body.secret);
 
-		return res.json({success: true, account : {
-			address : account.address,
-			unconfirmedBalance : account.unconfirmedBalance,
-			balance : account.balance,
-			publicKey : account.publicKey.toString('hex')
-		}});
+		return res.json({
+			success: true, account: {
+				address: account.address,
+				unconfirmedBalance: account.unconfirmedBalance,
+				balance: account.balance,
+				publicKey: account.publicKey.toString('hex')
+			}
+		});
 	});
 
 	router.get('/getBalance', function (req, res) {
@@ -74,19 +81,23 @@ function Accounts(cb, scope) {
 		var account = self.getAccount(req.query.address);
 
 		if (!account || !account.publicKey) {
-			return res.json({ success : false, error : "Account public key can't be found "});
+			return res.json({success: false, error: "Account public key can't be found "});
 		}
 
-		return res.json({ success: true, publicKey: account.publicKey });
+		return res.json({success: true, publicKey: account.publicKey});
 	});
 
 	router.post("/generatePublicKey", function (req, res) {
 		if (!req.body.secret) {
-			return res.json({ success : false, error : "Provide secret key to generate public key" });
+			return res.json({success: false, error: "Provide secret key to generate public key"});
 		}
 
 		var account = self.openAccount(req.body.secret);
-		return res.json({ success : true, publicKey : account.publicKey });
+		return res.json({success: true, publicKey: account.publicKey});
+	});
+
+	router.use(function (req, res, next) {
+		res.status(500).send({success: false, error: 'api not found'});
 	});
 
 	library.app.use('/api/accounts', router);

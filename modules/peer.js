@@ -13,6 +13,11 @@ function Peer(cb, scope) {
 
 	var router = new Router();
 
+	router.use(function (req, res, next) {
+		if (modules) return next();
+		res.status(500).send({success: false, error: 'loading'});
+	});
+
 	router.get('/', function (req, res) {
 		self.filter({}, function (err, peers) {
 			if (err) {
@@ -47,6 +52,10 @@ function Peer(cb, scope) {
 			}
 			return res.json({success: true, peers: peers});
 		});
+	});
+
+	router.use(function (req, res, next) {
+		res.status(500).send({success: false, error: 'api not found'});
 	});
 
 	library.app.use('/api/peers', router);

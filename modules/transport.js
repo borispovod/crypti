@@ -14,99 +14,12 @@ function Transport(cb, scope) {
 	library = scope;
 	self = this;
 
-	cb(null, this);
-}
-
-//public
-Transport.prototype.run = function (scope) {
-	modules = scope;
-
-	headers = {
-		os: modules.system.getOS(),
-		version: modules.system.getVersion(),
-		port: modules.system.getPort(),
-		'share-port': modules.system.getSharePort()
-	}
-}
-
-function _request(peer, api, method, data, cb) {
-	var req = {
-		url: 'http://' + ip.fromLong(peer.ip) + ':' + peer.port + '/peer' + api,
-		method: method,
-		json: true
-	};
-
-	if (Object.prototype.toString.call(data) == "[object Object]" || util.isArray(data)) {
-		req.json = data;
-	} else {
-		req.body = data;
-	}
-
-	if (cb) {
-		request(req, function (err, response, body) {
-			library.logger.trace(req.url, body);
-			if (!err && response.statusCode == 200) {
-				modules.peer.update({
-					ip: peer.ip,
-					port: Number(response.headers['port']),
-					state: 1,
-					os: response.headers['os'],
-					sharePort: Number(!!response.headers['share-port']),
-					version: response.headers['version']
-				});
-				cb(null, body);
-			} else {
-				modules.peer.state(peer.ip, peer.port, 2, 10);
-				cb(err || response);
-			}
-		});
-	} else {
-		request(req);
-	}
-}
-
-Transport.prototype.broadcast = function (peersCount, method, data, cb) {
-	peersCount = peersCount || 1;
-	if (!cb && (typeof(data) == 'function')) {
-		cb = data;
-		data = undefined;
-	}
-	modules.peer.list(peersCount, function (err, peers) {
-		if (!err) {
-			async.eachLimit(peers, 3, function (peer, cb) {
-				// not need to check peer is offline or online, just send.
-				_request(peer, method, "POST", data);
-				setImmediate(cb);
-			}, function () {
-				cb && cb(null, {body: null, peer: peers});
-			})
-		} else {
-			cb && setImmediate(cb, err);
-		}
-	});
-}
-
-Transport.prototype.getFromRandomPeer = function (method, cb) {
-	modules.peer.list(1, function (err, peers) {
-		if (!err && peers.length) {
-			var peer = peers[0];
-			_request(peer, method, "GET", undefined, function (err, body) {
-				cb(err, {body: body, peer: peer});
-			});
-		} else {
-			return cb(err || "Nothing peers in db");
-		}
-	});
-}
-
-Transport.prototype.getFromPeer = function (peer, method, cb) {
-	_request(peer, method, "GET", undefined, function (err, body) {
-		cb(err, {body: body, peer: peer});
-	});
-}
-
-Transport.prototype.onBlockchainReady = function () {
 	var router = new Router();
+
+	router.use(function (req, res, next) {
+		if (modules) return next();
+		res.status(500).send({success: false, error: 'loading'});
+	});
 
 	router.get('/list', function (req, res) {
 		res.set(headers);
@@ -218,8 +131,7 @@ Transport.prototype.onBlockchainReady = function () {
 		});
 	});
 
-	router
-		.get("/blocks", function (req, res) {
+	router.get("/blocks", function (req, res) {
 			res.set(headers);
 			// get 1400+ blocks with all data (joins) from provided block id
 			modules.blocks.loadBlocksPart({limit: 1440, lastId: req.query.lastBlockId}, function (err, blocks) {
@@ -266,6 +178,10 @@ Transport.prototype.onBlockchainReady = function () {
 		return res.status(200).json({weight: modules.blocks.getWeight().toString()});
 	});
 
+	router.use(function (req, res, next) {
+		res.status(500).send({success: false, error: 'api not found'});
+	});
+
 	library.app.use('/peer', router);
 
 	library.app.use(function (err, req, res, next) {
@@ -273,6 +189,100 @@ Transport.prototype.onBlockchainReady = function () {
 		if (!err) return next();
 		res.status(500).send({success: false, error: err});
 	});
+
+	cb(null, this);
+}
+
+//public
+Transport.prototype.run = function (scope) {
+	modules = scope;
+
+	headers = {
+		os: modules.system.getOS(),
+		version: modules.system.getVersion(),
+		port: modules.system.getPort(),
+		'share-port': modules.system.getSharePort()
+	}
+}
+
+function _request(peer, api, method, data, cb) {
+	var req = {
+		url: 'http://' + ip.fromLong(peer.ip) + ':' + peer.port + '/peer' + api,
+		method: method,
+		json: true
+	};
+
+	if (Object.prototype.toString.call(data) == "[object Object]" || util.isArray(data)) {
+		req.json = data;
+	} else {
+		req.body = data;
+	}
+
+	if (cb) {
+		request(req, function (err, response, body) {
+			library.logger.trace(req.url, body);
+			if (!err && response.statusCode == 200) {
+				modules.peer.update({
+					ip: peer.ip,
+					port: Number(response.headers['port']),
+					state: 1,
+					os: response.headers['os'],
+					sharePort: Number(!!response.headers['share-port']),
+					version: response.headers['version']
+				});
+				cb(null, body);
+			} else {
+				modules.peer.state(peer.ip, peer.port, 2, 10);
+				cb(err || response);
+			}
+		});
+	} else {
+		request(req);
+	}
+}
+
+Transport.prototype.broadcast = function (peersCount, method, data, cb) {
+	peersCount = peersCount || 1;
+	if (!cb && (typeof(data) == 'function')) {
+		cb = data;
+		data = undefined;
+	}
+	modules.peer.list(peersCount, function (err, peers) {
+		if (!err) {
+			async.eachLimit(peers, 3, function (peer, cb) {
+				// not need to check peer is offline or online, just send.
+				_request(peer, method, "POST", data);
+				setImmediate(cb);
+			}, function () {
+				cb && cb(null, {body: null, peer: peers});
+			})
+		} else {
+			cb && setImmediate(cb, err);
+		}
+	});
+}
+
+Transport.prototype.getFromRandomPeer = function (method, cb) {
+	modules.peer.list(1, function (err, peers) {
+		if (!err && peers.length) {
+			var peer = peers[0];
+			_request(peer, method, "GET", undefined, function (err, body) {
+				cb(err, {body: body, peer: peer});
+			});
+		} else {
+			return cb(err || "Nothing peers in db");
+		}
+	});
+}
+
+Transport.prototype.getFromPeer = function (peer, method, cb) {
+	_request(peer, method, "GET", undefined, function (err, body) {
+		cb(err, {body: body, peer: peer});
+	});
+}
+
+Transport.prototype.onBlockchainReady = function () {
+
 
 	async.forEach(library.config.peers.list, function (peer, cb) {
 		library.db.get("SELECT ip FROM peers WHERE ip = $ip", {$ip: ip.toLong(peer.ip)}, function (err, exists) {
