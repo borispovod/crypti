@@ -106,7 +106,7 @@ function Transactions(cb, scope) {
 		}
 
 		if (!account.publicKey) {
-			return res.json({success: false, error: "Open account to send funds"});
+			return res.json({success: false, error: "Open account to make transaction"});
 		}
 
 		var transaction = {
@@ -294,6 +294,12 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 				return cb && cb("Can't verify signature")
 			}
 
+			if (sender.secondSignature) {
+				if (!self.verifySecondSignature(transaction, sender.secondPublicKey)) {
+					return cb && cb("Can't verify second signature");
+				}
+			}
+
 			// check if transaction is not float and great then 0
 			if (transaction.amount < 0 || transaction.amount.toString().indexOf('.') >= 0) {
 				return cb && cb("Invalid transaction amount");
@@ -309,129 +315,135 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 				fee = 1;
 			}
 
-			switch (transaction.type) {
-				case 0:
-					switch (transaction.subtype) {
+			async.series([
+				function (done) {
+					switch (transaction.type) {
 						case 0:
-							if (transactionHelper.getLastChar(transaction) != "C") {
-								return cb && cb("Invalid transaction recipient id");
-							}
+							switch (transaction.subtype) {
+								case 0:
+									if (transactionHelper.getLastChar(transaction) != "C") {
+										return done("Invalid transaction recipient id");
+									}
 
-							transaction.fee = fee;
+									transaction.fee = fee;
+									break;
+
+								default:
+									return done("Unknown transaction type");
+							}
+							break;
+
+						case 1:
+							switch (transaction.subtype) {
+								case 0:
+									if (transactionHelper.getLastChar(transaction) != "D") {
+										return done("Invalid transaction recipient id");
+									}
+
+									transaction.fee = fee;
+									break;
+
+								default:
+									return done("Unknown transaction type");
+							}
+							break;
+
+						case 2:
+							switch (transaction.subtype) {
+								case 0:
+									if (transaction.fee != 100 * constants.fixedPoint) {
+										return cb && cb("Invalid transaction fee");
+									}
+
+									if (!transaction.asset) {
+										return done("Empty transaction asset for company transaction")
+									}
+									break;
+
+								default:
+									return done("Unknown transaction type");
+							}
+							break;
+
+						case 3:
+							switch (transaction.subtype) {
+								case 0:
+									return done("Companies doesn't supports now");
+									/*if (transaction.fee != 1000 * constants.fixedPoint) {
+										return done("Invalid transaction fee");
+									}
+
+									if (!transaction.asset) {
+										return done("Empty transaction asset for company transaction")
+									}*/
+
+									// process company of transaction
+									break;
+
+								default:
+									return done("Unknown transaction type");
+							}
 							break;
 
 						default:
-							return cb && cb("Unknown transaction type");
+							return done("Unknown transaction type");
 					}
-					break;
+				}
+			], function (err) {
+				if (err) {
+					return cb && cb(err);
+				}
 
-				case 1:
-					switch (transaction.subtype) {
-						case 0:
-							if (transactionHelper.getLastChar(transaction) != "D") {
-								return cb && cb("Invalid transaction recipient id");
-							}
-
-							transaction.fee = fee;
-							break;
-
-						default:
-							return cb && cb("Unknown transaction type");
-					}
-					break;
-
-				case 2:
-					switch (transaction.subtype) {
-						case 0:
-							if (transaction.fee != 100 * constants.fixedPoint) {
-								return cb && cb("Invalid transaction fee");
-							}
-
-							if (!transaction.asset) {
-								return cb && cb("Empty transaction asset for company transaction")
-							}
-
-							// process signature of transaction
-							break;
-
-						default:
-							return cb && cb("Unknown transaction type");
-					}
-					break;
-
-				case 3:
-					switch (transaction.subtype) {
-						case 0:
-							if (transaction.fee != 1000 * constants.fixedPoint) {
-								return cb && cb("Invalid transaction fee");
-							}
-
-							if (!transaction.asset) {
-								return cb && cb("Empty transaction asset for company transaction")
-							}
-
-							// process company of transaction
-							break;
-
-						default:
-							return cb && cb("Unknown transaction type");
-					}
-					break;
-
-				default:
-					return cb && cb("Unknown transaction type");
-			}
-
-
-			async.parallel([
-				function (cb) {
-					library.db.get("SELECT publicKey FROM signatures WHERE generatorPublicKey = $generatorPublicKey", {$generatorPublicKey: transaction.senderPublicKey}, function (err, signature) {
-						if (err) {
-							return cb("Internal sql error");
-						} else {
-							if (signature) {
-								if (!self.verifySecondSignature(transaction, signature.publicKey)) {
-									return cb("Can't verify second signature");
-								}
+				async.parallel([
+					function (cb) {
+						library.db.get("SELECT publicKey FROM signatures WHERE generatorPublicKey = $generatorPublicKey", {$generatorPublicKey: transaction.senderPublicKey}, function (err, signature) {
+							if (err) {
+								return cb("Internal sql error");
 							} else {
-								return cb();
-							}
-						}
-					});
-				},
-				function (cb) {
-					if (transaction.type == 1 && transaction.subtype == 0) {
-						library.db.serialize(function () {
-							library.db.get("SELECT id FROM companies WHERE address = $address", {$address: transaction.recipientId}, function (err, company) {
-								if (err) {
-									return cb("Internal sql error");
-								} else if (company) {
-									return cb();
+								if (signature) {
+									if (!self.verifySecondSignature(transaction, signature.publicKey)) {
+										return cb("Can't verify second signature");
+									}
 								} else {
-									return cb("Company with this address as recipient not found");
+									return cb();
 								}
-							});
+							}
 						});
-					} else {
-						return cb();
-					}
-				}
-			], function (errors) {
-				if (errors) {
-					return cb && cb(errors.pop());
-				} else {
-					if (self.applyUnconfirmed(transaction)) {
-						unconfirmedTransactions[transaction.id] = transaction;
-
-						if (broadcast) {
-							library.bus.message('unconfirmedTransaction', transaction)
+					},
+					function (cb) {
+						if (transaction.type == 1 && transaction.subtype == 0) {
+							library.db.serialize(function () {
+								library.db.get("SELECT id FROM companies WHERE address = $address", {$address: transaction.recipientId}, function (err, company) {
+									if (err) {
+										return cb("Internal sql error");
+									} else if (company) {
+										return cb();
+									} else {
+										return cb("Company with this address as recipient not found");
+									}
+								});
+							});
+						} else {
+							return cb();
 						}
-					} else {
-						doubleSpendingTransactions[transaction.id] = transaction;
 					}
+				], function (errors) {
+					if (errors) {
+						return cb && cb(errors.pop());
+					} else {
+						if (self.applyUnconfirmed(transaction)) {
+							unconfirmedTransactions[transaction.id] = transaction;
 
-					return cb && cb(null, transaction.id);
-				}
+							if (broadcast) {
+								library.bus.message('unconfirmedTransaction', transaction)
+							}
+						} else {
+							doubleSpendingTransactions[transaction.id] = transaction;
+						}
+
+						return cb && cb(null, transaction.id);
+					}
+				});
 			});
 		}
 	});
@@ -475,18 +487,35 @@ Transactions.prototype.apply = function (transaction) {
 
 			return true;
 		}
+	} else if (transaction.type == 2) {
+		if (transaction.subtype == 0) {
+			sender.unconfirmedSignature = false;
+			sender.secondSignature = true;
+			sender.secondPublicKey = transaction.asset.publicKey;
+			return true;
+		}
 	} else {
 		return true;
 	}
 }
 
-Transactions.prototype.applyUnconfirmed = function (transaction, cb) {
+Transactions.prototype.applyUnconfirmed = function (transaction) {
 	var sender = modules.accounts.getAccountByPublicKey(transaction.senderPublicKey);
 
 	if (!sender && transaction.blockId != genesisblock.blockId) {
 		return false;
 	} else {
 		sender = modules.accounts.getAccountOrCreate(transaction.senderPublicKey);
+	}
+
+	if (transaction.type == 2) {
+		if (transaction.subtype == 0) {
+			if (sender.unconfirmedSignature || sender.secondSignature) {
+				return false;
+			}
+
+			sender.unconfirmedSignature = true;
+		}
 	}
 
 	var amount = transaction.amount + transaction.fee;
@@ -552,6 +581,11 @@ Transactions.prototype.undo = function (transaction, cb) {
 Transactions.prototype.parseTransaction = function (transaction, cb) {
 	transaction.senderPublicKey = new Buffer(transaction.senderPublicKey);
 	transaction.signature = new Buffer(transaction.signature);
+
+	if (transaction.type == 2 && transaction.subtype == 0) {
+		transaction.asset = modules.signatures.parseSignature(transaction.asset);
+	}
+
 	return transaction;
 }
 

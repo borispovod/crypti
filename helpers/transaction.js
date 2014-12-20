@@ -2,7 +2,8 @@ var crypto = require('crypto'),
     ed = require('ed25519'),
     bignum = require('bignum'),
     ByteBuffer = require("bytebuffer"),
-    constants = require("./constants.js");
+    constants = require("./constants.js"),
+	signatureHelper = require("./signature.js");
 
 // get valid transaction fee, if we need to get fee for block generator, use isGenerator = true
 function getTransactionFee(transaction, isGenerator) {
@@ -72,13 +73,15 @@ function getLastChar(transaction) {
 }
 
 function getBytes(transaction) {
-    var assetSize = 0;
+    var assetSize = 0,
+		assetBytes = null;
 
     switch (this.type) {
         case 2:
             switch (transaction.subtype) {
                 case 0:
                     assetSize = 196;
+					assetBytes = signatureHelper.getBytes(transaction.asset);
                     break;
             }
             break;
@@ -111,9 +114,6 @@ function getBytes(transaction) {
     bb.writeLong(transaction.amount);
 
     if (assetSize > 0) {
-        // check asset type and get it
-        var assetBytes = transaction.asset.getBytes();
-
         for (var i = 0; i < assetSize; i++) {
             bb.writeByte(assetBytes[i]);
         }

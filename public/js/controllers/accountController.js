@@ -2,8 +2,8 @@ webApp.controller('accountController', ['$scope', '$rootScope', '$http', "userSe
     $scope.address = userService.address;
     $scope.balance = userService.balance;
     $scope.unconfirmedBalance = userService.unconfirmedBalance;
-    $scope.secondPassphrase = userService.secondPassphrase || false;
-    $scope.unconfirmedPassphrase = userService.unconfirmedPassphrase || false;
+    $scope.secondPassphrase = userService.secondSignature || false;
+    $scope.unconfirmedPassphrase = userService.unconfirmedSignature || false;
 	$scope.transactionsLoading = true;
 
     $scope.getTransactions = function () {

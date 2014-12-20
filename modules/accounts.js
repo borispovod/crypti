@@ -14,6 +14,17 @@ function Account(address, publicKey, balance, unconfirmedBalance) {
 	this.publicKey = publicKey;
 	this.balance = balance || 0;
 	this.unconfirmedBalance = unconfirmedBalance || 0;
+	this.unconfirmedSignature = false;
+	this.secondSignature = false;
+	this.secondPublicKey = false;
+}
+
+Account.prototype.setUnconfirmedSignature = function (unconfirmedSignature) {
+	this.unconfirmedSignature = unconfirmedSignature;
+}
+
+Account.prototype.setSecondSignature = function (secondSignature) {
+	this.secondSignature = secondSignature;
 }
 
 Account.prototype.addToBalance = function (amount) {
@@ -56,7 +67,10 @@ function Accounts(cb, scope) {
 				address: account.address,
 				unconfirmedBalance: account.unconfirmedBalance,
 				balance: account.balance,
-				publicKey: account.publicKey.toString('hex')
+				publicKey: account.publicKey.toString('hex'),
+				unconfirmedSignature : account.unconfirmedSignature,
+				secondSignature : account.secondSignature,
+				secondPublicKey : account.secondPublicKey? account.secondPublicKey.toString('hex') : null
 			}
 		});
 	});

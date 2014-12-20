@@ -142,7 +142,10 @@ function Blocks(cb, scope) {
 				companyconfirmations: [],
 				transactions: blockTransactions,
 				blockSignature: new Buffer(genesisblock.blockSignature, 'hex'),
-				height: 1
+				height: 1,
+				previousFee : constants.feeStart,
+				nextFeeVolume : nextFeeVolume,
+				feeVolume : 0
 			};
 
 			self.saveBlock(block, function (err) {
@@ -702,6 +705,10 @@ Blocks.prototype.getWeight = function () {
 }
 
 Blocks.prototype.applyFee = function (block) {
+	block.nextFeeVolume = nextFeeVolume;
+	block.feeVolume = feeVolume;
+	block.previousFee = fee;
+
 	feeVolume += block.totalFee + block.totalAmount;
 
 	if (nextFeeVolume <= feeVolume) {
@@ -712,9 +719,10 @@ Blocks.prototype.applyFee = function (block) {
 }
 
 Blocks.prototype.undoFee = function (block) {
-
+	fee = block.previousFee;
+	nextFeeVolume = block.nextFeeVolume;
+	feeVolume = block.feeVolume;
 }
-
 
 Blocks.prototype.getFee = function () {
 	return fee;
@@ -800,12 +808,20 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 									return cb("Dublicated transaction in block: " + transaction.id);
 								}
 
-								if (transaction.senderId != modules.accounts.getAddressByPublicKey(transaction.senderPublicKey)) {
+								var sender = modules.accounts.getAccountByPublicKey(transaction.senderPublicKey);
+
+								if (transaction.senderId != sender.address) {
 									return cb("Invalid sender id: " + transaction.id);
 								}
 
 								if (!modules.transactions.verifySignature(transaction)) {
 									return cb("Can't verify transaction signature: " + transaction.id);
+								}
+
+								if (sender.secondSignature) {
+									if (!modules.transactions.verifySecondSignature(transaction, sender.secondPublicKey)) {
+										return cb("Can't verify second signature: " + transaction.id);
+									}
 								}
 
 								if (transaction.timestamp > now + 15 || transaction.timestamp > block.timestamp + 15) {
@@ -820,6 +836,12 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 
 								if (transaction.amount < 0) {
 									return cb("Invalid transaction amount: " + transaction.id);
+								}
+
+								if (transaction.type == 2 && transaction.subtype == 0) {
+									if (!transaction.asset) {
+										return cb("Transaction must have signature");
+									}
 								}
 
 								if (!modules.transactions.applyUnconfirmed(transaction)) {
@@ -920,6 +942,8 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 					for (var i = 0; i < block.transactions.length; i++) {
 						var transaction = block.transactions[i];
 
+						// if type is 1 - need companyGeneratorPublicKey
+
 						modules.transactions.apply(transaction);
 						modules.transactions.removeUnconfirmedTransaction(transaction.id);
 					}
@@ -950,7 +974,7 @@ Blocks.prototype.saveBlock = function (block, cb) {
 		if (err) {
 			cb(err);
 		} else {
-			var st = transactionDb.prepare("INSERT INTO blocks(id, version, timestamp, height, previousBlock, numberOfRequests, numberOfTransactions, numberOfConfirmations, totalAmount, totalFee, payloadLength, requestsLength, confirmationsLength, payloadHash, generatorPublicKey, generationSignature, blockSignature) VALUES($id, $version, $timestamp, $height, $previousBlock, $numberOfRequests, $numberOfTransactions, $numberOfConfirmations, $totalAmount, $totalFee, $payloadLength, $requestsLength, $confirmationsLength, $payloadHash, $generatorPublicKey, $generationSignature, $blockSignature)");
+			var st = transactionDb.prepare("INSERT INTO blocks(id, version, timestamp, height, previousBlock, numberOfRequests, numberOfTransactions, numberOfConfirmations, totalAmount, totalFee, previousFee, nextFeeVolume, feeVolume, payloadLength, requestsLength, confirmationsLength, payloadHash, generatorPublicKey, generationSignature, blockSignature) VALUES($id, $version, $timestamp, $height, $previousBlock, $numberOfRequests, $numberOfTransactions, $numberOfConfirmations, $totalAmount, $totalFee, $previousFee, $nextFeeVolume, $feeVolume, $payloadLength, $requestsLength, $confirmationsLength, $payloadHash, $generatorPublicKey, $generationSignature, $blockSignature)");
 			st.bind({
 				$id: block.id,
 				$version: block.version,
@@ -968,8 +992,12 @@ Blocks.prototype.saveBlock = function (block, cb) {
 				$payloadHash: block.payloadHash,
 				$generatorPublicKey: block.generatorPublicKey,
 				$generationSignature: block.generationSignature,
-				$blockSignature: block.blockSignature
+				$blockSignature: block.blockSignature,
+				$previousFee : block.previousFee,
+				$nextFeeVolume : block.nextFeeVolume,
+				$feeVolume : block.feeVolume
 			});
+
 			st.run(function (err) {
 				if (err) {
 					transactionDb.rollback(function (rollbackErr) {
@@ -994,7 +1022,24 @@ Blocks.prototype.saveBlock = function (block, cb) {
 									$signature: transaction.signature,
 									$signSignature: transaction.signSignature
 								});
-								st.run(cb);
+								st.run(function () {
+									if (transaction.type == 2 && transaction.subtype == 0) {
+										//id, transactionId, timestamp , publicKey, generatorPublicKey, signature , generationSignature
+										st = transactionDb.prepare("INSERT INTO signatures(transactionId, timestamp , publicKey, generatorPublicKey, signature, generationSignature) VALUES($transactionId, $timestamp , $publicKey, $generatorPublicKey, $signature , $generationSignature)");
+										st.bind({
+											$id : transaction.asset.id,
+											$transactionId : transaction.id,
+											$timestamp : transaction.asset.timestamp,
+											$publicKey : transaction.asset.publicKey,
+											$generatorPublicKey : transaction.asset.generatorPublicKey,
+											$signature : transaction.asset.signature,
+											$generationSignature : transaction.asset.generationSignature
+										});
+										st.run(cb);
+									} else {
+										cb();
+									}
+								});
 							}, done)
 						},
 						function (done) {
@@ -1146,7 +1191,7 @@ Blocks.prototype.undoBlock = function (block, previousBlock, cb) {
 		}
 
 		self.undoWeight(block, previousBlock);
-		self.undoFee(block);
+		self.undoFee(block, previousBlock);
 		setImmediate(cb);
 	});
 }
