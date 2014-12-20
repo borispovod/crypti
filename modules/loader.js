@@ -135,9 +135,13 @@ Loader.prototype.loadBlocks = function (cb) {
 											peer.state(ip, port, 0, 60);
 											setImmediate(cb);
 										} else {
-											// process fork:
-											// 1. remove bad blocks.
-											// 2. load new blocks.
+											modules.blocks.deleteBlocksBefore(commonBlock, function (err) {
+												if (err) {
+													return cb(err);
+												}
+
+												modules.blocks.loadBlocksFromPeer(data.peer, commonBlock, cb);
+											})
 										}
 									}
 								});
@@ -167,7 +171,7 @@ Loader.prototype.onPeerReady = function () {
 	function timersStart() {
 		process.nextTick(function nextLoadBlock() {
 			self.loadBlocks(function (err) {
-				err && console.log(err);
+				err && library.logger.debug(err);
 				sync = false;
 				// 10 seconds for testing
 				setTimeout(nextLoadBlock, 10 * 1000)
