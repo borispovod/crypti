@@ -12,8 +12,8 @@ webApp.controller('passphraseController', ['$scope', '$rootScope', '$http', "$st
                         if (resp.data.success) {
                             userService.setData(resp.data.account.address, resp.data.account.publicKey, resp.data.account.balance, resp.data.account.unconfirmedBalance, resp.data.account.effectiveBalance);
                             userService.setForging(resp.data.account.forging);
-                            userService.setSecondPassphrase(resp.data.account.secondPassphrase);
-                            userService.unconfirmedPassphrase = resp.data.account.unconfirmedPassphrase;
+                            userService.setSecondPassphrase(resp.data.account.secondSignature);
+                            userService.unconfirmedPassphrase = resp.data.account.unconfirmedSignature;
 
                             angular.element(document.getElementById("forgingButton")).hide();
                             $state.go('main.account');
