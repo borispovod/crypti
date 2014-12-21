@@ -170,15 +170,7 @@ function Blocks(cb, scope) {
 
 function normalizeBlock(block) {
 	block.requests = hash2array(block.requests);
-
-	block.transactions = Object.keys(block.transactions).map(function (v) {
-		block.transactions[v].signatures = hash2array(block.transactions[v].signatures);
-
-		block.transactions[v].companies = hash2array(block.transactions[v].companies);
-
-		return block.transactions[v];
-	});
-
+	block.transactions = hash2array(block.transactions);
 	block.companyconfirmations = hash2array(block.companyconfirmations);
 
 	return block;
@@ -319,20 +311,18 @@ Blocks.prototype.loadBlocksPart = function (filter, cb) {
 						if (!blocks[__block.id].transactions[__transaction.id]) {
 							blocks[__block.id].transactions[__transaction.id] = __transaction;
 						}
+
 						var __signature = blockHelper.getSignature(rows[i]);
-						blocks[__block.id].transactions[__transaction.id].signatures = blocks[__block.id].transactions[__transaction.id].signatures || {};
 						if (__signature) {
-							console.log(__signature);
-							if (!blocks[__block.id].transactions[__transaction.id].signatures[__signature.id]) {
-								blocks[__block.id].transactions[__transaction.id].signatures = __signature;
+							if (!blocks[__block.id].transactions[__transaction.id].signature) {
+								blocks[__block.id].transactions[__transaction.id].signature = __signature;
 							}
 						}
 
 						var __company = blockHelper.getCompany(rows[i]);
-						blocks[__block.id].transactions[__transaction.id].companies = blocks[__block.id].transactions[__transaction.id].companies || {};
 						if (__company) {
-							if (!blocks[__block.id].transactions[__transaction.id].companies[__company.id]) {
-								blocks[__block.id].transactions[__transaction.id].companies = __company;
+							if (!blocks[__block.id].transactions[__transaction.id].company) {
+								blocks[__block.id].transactions[__transaction.id].company = __company;
 							}
 						}
 					}
@@ -452,23 +442,24 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 							blocks[__block.id].transactions[__transaction.id] = __transaction;
 						}
 						var __signature = blockHelper.getSignature(rows[i]);
-						blocks[__block.id].transactions[__transaction.id].signatures = blocks[__block.id].transactions[__transaction.id].signatures || {};
 						if (__signature) {
-							if (!blocks[__block.id].transactions[__transaction.id].signatures[__signature.id]) {
-								blocks[__block.id].transactions[__transaction.id].signatures = __signature;
+							console.log(__signature)
+							if (!blocks[__block.id].transactions[__transaction.id].signature) {
+								blocks[__block.id].transactions[__transaction.id].signature = __signature;
 							}
 						}
 
 						var __company = blockHelper.getCompany(rows[i]);
-						blocks[__block.id].transactions[__transaction.id].companies = blocks[__block.id].transactions[__transaction.id].companies || {};
 						if (__company) {
-							if (!blocks[__block.id].transactions[__transaction.id].companies[__company.id]) {
-								blocks[__block.id].transactions[__transaction.id].companies = __company;
+							if (!blocks[__block.id].transactions[__transaction.id].company) {
+								blocks[__block.id].transactions[__transaction.id].company = __company;
 							}
 						}
 					}
 				}
 			}
+
+			//console.log(blocks["2174460730147964609"])
 
 			//console.timeEnd('loading');
 
