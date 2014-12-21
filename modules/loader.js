@@ -160,14 +160,7 @@ Loader.prototype.getUnconfirmedTransactions = function (cb) {
 	modules.transport.getFromRandomPeer('/transactions', function (err, data) {
 		async.forEach(data.body.transactions, function (transaction, cb) {
 			modules.transactions.processUnconfirmedTransaction(modules.transactions.parseTransaction(transaction), cb);
-		}, function (err) {
-			if (err) {
-				console.log(err);
-			}
-
-			console.log("processed");
-		});
-
+		}, cb);
 	});
 }
 
