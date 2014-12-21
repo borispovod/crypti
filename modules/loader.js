@@ -158,7 +158,16 @@ Loader.prototype.loadBlocks = function (cb) {
 
 Loader.prototype.getUnconfirmedTransactions = function (cb) {
 	modules.transport.getFromRandomPeer('/transactions', function (err, data) {
-		cb(err, data.body)
+		async.forEach(data.body.transactions, function (transaction, cb) {
+			modules.transactions.processUnconfirmedTransaction(modules.transactions.parseTransaction(transaction), cb);
+		}, function (err) {
+			if (err) {
+				console.log(err);
+			}
+
+			console.log("processed");
+		});
+
 	});
 }
 

@@ -93,6 +93,8 @@ function Transactions(cb, scope) {
 			toSend = transactions;
 		}
 
+
+
 		return res.json({success: true, transactions: toSend});
 	});
 
@@ -258,9 +260,9 @@ Transactions.prototype.getUnconfirmedTransactions = function (sort) {
 
 	if (sort) {
 		a.sort(function compare(a, b) {
-			if (a.timestamp < b.timestamp)
-				return -1;
 			if (a.timestamp > b.timestamp)
+				return -1;
+			if (a.timestamp < b.timestamp)
 				return 1;
 			return 0;
 		});
@@ -563,7 +565,7 @@ Transactions.prototype.undo = function (transaction) {
 	}
 }
 
-Transactions.prototype.parseTransaction = function (transaction, cb) {
+Transactions.prototype.parseTransaction = function (transaction) {
 	transaction.senderPublicKey = new Buffer(transaction.senderPublicKey);
 	transaction.signature = new Buffer(transaction.signature);
 
