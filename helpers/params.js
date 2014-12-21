@@ -18,7 +18,7 @@ module.exports = {
 		return new Buffer(val || '', mode);
 	},
 	object: function (val) {
-		val = Object.prototype.toString.call(object) == "[object Object]" ? val : {};
+		val = Object.prototype.toString.call(val) == "[object Object]" ? val : {};
 		return val;
 	},
 
