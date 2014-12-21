@@ -322,6 +322,7 @@ Blocks.prototype.loadBlocksPart = function (filter, cb) {
 						var __signature = blockHelper.getSignature(rows[i]);
 						blocks[__block.id].transactions[__transaction.id].signatures = blocks[__block.id].transactions[__transaction.id].signatures || {};
 						if (__signature) {
+							console.log(__signature);
 							if (!blocks[__block.id].transactions[__transaction.id].signatures[__signature.id]) {
 								blocks[__block.id].transactions[__transaction.id].signatures = __signature;
 							}

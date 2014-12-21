@@ -483,6 +483,7 @@ Transactions.prototype.apply = function (transaction) {
 		}
 	} else if (transaction.type == 2) {
 		if (transaction.subtype == 0) {
+			console.log(transaction);
 			sender.unconfirmedSignature = false;
 			sender.secondSignature = true;
 			sender.secondPublicKey = transaction.asset.publicKey;
