@@ -78,7 +78,7 @@ function Signatures(cb, scope) {
 		}
 
 		var signature = self.newSignature(secret, secondSecret);
-		transaction.asset = signature;
+		transaction.signature = signature;
 
 		modules.transactions.sign(secret, transaction);
 
