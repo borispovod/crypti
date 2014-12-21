@@ -358,7 +358,6 @@ Transport.prototype.onBlockchainReady = function () {
 }
 
 Transport.prototype.onUnconfirmedTransaction = function (transaction) {
-	library.logger.info(JSON.stringify(transaction));
 	self.broadcast(100, '/transaction', {transaction: transaction});
 }
 
