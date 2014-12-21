@@ -18,10 +18,10 @@ webApp.controller('secondPassphraseModalController', ["$scope", "secondPassphras
     }
 
     $scope.addNewPassphrase = function () {
-        $http.post("/api/addPassPhrase", {
+        $http.put("/api/signatures", {
             secret: $scope.secretPhrase,
-            secondSecret: $scope.newSecretPhrase,
-            accountAddress: userService.address
+			secondSecret: $scope.newSecretPhrase,
+            publicKey: userService.publicKey
         }).then(function (resp) {
             if (resp.data.error) {
                 $scope.fromServer = resp.data.error;

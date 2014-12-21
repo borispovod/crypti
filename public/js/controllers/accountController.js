@@ -2,8 +2,8 @@ webApp.controller('accountController', ['$scope', '$rootScope', '$http', "userSe
     $scope.address = userService.address;
     $scope.balance = userService.balance;
     $scope.unconfirmedBalance = userService.unconfirmedBalance;
-    $scope.secondPassphrase = userService.secondSignature || false;
-    $scope.unconfirmedPassphrase = userService.unconfirmedSignature || false;
+    $scope.secondPassphrase = userService.secondPassphrase;
+    $scope.unconfirmedPassphrase = userService.unconfirmedPassphrase;
 	$scope.transactionsLoading = true;
 
     $scope.getTransactions = function () {
@@ -19,22 +19,24 @@ webApp.controller('accountController', ['$scope', '$rootScope', '$http', "userSe
             });
     }
 
-    $scope.getBalance = function () {
-        $http.get("/api/accounts/getBalance", { params : { address : userService.address }})
-            .then(function (resp) {
-                userService.balance = resp.data.balance / 100000000;
-                userService.unconfirmedBalance = resp.data.unconfirmedBalance / 100000000;
-                userService.secondPassphrase = resp.data.secondPassphrase || false;
-                userService.unconfirmedPassphrase = resp.data.unconfirmedPassphrase || false;
-                $scope.balance = userService.balance;
-                $scope.unconfirmedBalance = userService.unconfirmedBalance;
-                $scope.secondPassphrase = userService.secondPassphrase || false;
-                $scope.unconfirmedPassphrase = userService.unconfirmedPassphrase || false;
-            });
-    }
+	$scope.getAccount = function () {
+		$http.get("/api/accounts", { params : { address : userService.address }})
+			.then(function (resp) {
+				var account = resp.data.account;
+				userService.balance = account.balance / 100000000;
+				userService.unconfirmedBalance = account.unconfirmedBalance / 100000000;
+				userService.secondPassphrase = account.secondSignature;
+				userService.unconfirmedPassphrase = account.unconfirmedSignature;
+				$scope.balance = userService.balance;
+				$scope.unconfirmedBalance = userService.unconfirmedBalance;
+				$scope.secondPassphrase = userService.secondPassphrase;
+				$scope.unconfirmedPassphrase = userService.unconfirmedPassphrase;
+			});
+	}
+
 
     $scope.balanceInterval = $interval(function () {
-        $scope.getBalance();
+        $scope.getAccount();
     }, 1000 * 10);
 
     $scope.transactionsInterval = $interval(function () {
@@ -53,7 +55,7 @@ webApp.controller('accountController', ['$scope', '$rootScope', '$http', "userSe
         $scope.sendCryptiModal = sendCryptiModal.activate({
             totalBalance : $scope.unconfirmedBalance,
             destroy: function () {
-                $scope.getBalance();
+                $scope.getAccount();
                 $scope.getTransactions();
             }
         });
@@ -63,7 +65,7 @@ webApp.controller('accountController', ['$scope', '$rootScope', '$http', "userSe
         $scope.secondPassphraseModal = secondPassphraseModal.activate({
             totalBalance : $scope.unconfirmedBalance,
             destroy: function (r) {
-                $scope.getBalance();
+                $scope.getAccount();
                 $scope.getTransactions();
 
                 if (r) {
@@ -73,6 +75,6 @@ webApp.controller('accountController', ['$scope', '$rootScope', '$http', "userSe
         });
     }
 
-    $scope.getBalance();
+    $scope.getAccount();
     $scope.getTransactions();
 }]);
