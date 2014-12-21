@@ -435,7 +435,6 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 
 							var __company = blockHelper.getCompany(rows[i]);
 							if (__company) {
-								console.log(__company.id)
 								__transaction.asset = __transaction.asset || {};
 								if (!__transaction.asset.company) {
 									__transaction.asset.company = __company;
