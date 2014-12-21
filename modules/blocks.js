@@ -314,15 +314,17 @@ Blocks.prototype.loadBlocksPart = function (filter, cb) {
 
 						var __signature = blockHelper.getSignature(rows[i]);
 						if (__signature) {
-							if (!blocks[__block.id].transactions[__transaction.id].signature) {
-								blocks[__block.id].transactions[__transaction.id].signature = __signature;
+							blocks[__block.id].transactions[__transaction.id].asset = blocks[__block.id].transactions[__transaction.id].asset || {};
+							if (!blocks[__block.id].transactions[__transaction.id].asset.signature) {
+								blocks[__block.id].transactions[__transaction.id].asset.signature = __signature;
 							}
 						}
 
 						var __company = blockHelper.getCompany(rows[i]);
 						if (__company) {
-							if (!blocks[__block.id].transactions[__transaction.id].company) {
-								blocks[__block.id].transactions[__transaction.id].company = __company;
+							blocks[__block.id].transactions[__transaction.id].asset = blocks[__block.id].transactions[__transaction.id].asset || {};
+							if (!blocks[__block.id].transactions[__transaction.id].asset.company) {
+								blocks[__block.id].transactions[__transaction.id].asset.company = __company;
 							}
 						}
 					}
@@ -443,15 +445,17 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 						}
 						var __signature = blockHelper.getSignature(rows[i]);
 						if (__signature) {
-							if (!blocks[__block.id].transactions[__transaction.id].signature) {
-								blocks[__block.id].transactions[__transaction.id].signature = __signature;
+							blocks[__block.id].transactions[__transaction.id].asset = blocks[__block.id].transactions[__transaction.id].asset || {};
+							if (!blocks[__block.id].transactions[__transaction.id].asset.signature) {
+								blocks[__block.id].transactions[__transaction.id].asset.signature = __signature;
 							}
 						}
 
 						var __company = blockHelper.getCompany(rows[i]);
 						if (__company) {
-							if (!blocks[__block.id].transactions[__transaction.id].company) {
-								blocks[__block.id].transactions[__transaction.id].company = __company;
+							blocks[__block.id].transactions[__transaction.id].asset = blocks[__block.id].transactions[__transaction.id].asset || {};
+							if (!blocks[__block.id].transactions[__transaction.id].asset.company) {
+								blocks[__block.id].transactions[__transaction.id].asset.company = __company;
 							}
 						}
 					}
