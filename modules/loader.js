@@ -127,24 +127,19 @@ Loader.prototype.loadBlocks = function (cb) {
 								if (err || !block) {
 									return cb(err);
 								}
-								library.db.get("SELECT height FROM blocks WHERE id=$id", {$id: commonBlock}, function (err, block) {
-									if (err || !block) {
-										cb(err);
-									} else {
-										if (modules.blocks.getLastBlock().height - block.height > 1440) {
-											peer.state(ip, port, 0, 60);
-											setImmediate(cb);
-										} else {
-											modules.blocks.deleteBlocksBefore(commonBlock, function (err) {
-												if (err) {
-													return cb(err);
-												}
 
-												modules.blocks.loadBlocksFromPeer(data.peer, commonBlock, cb);
-											})
+								if (modules.blocks.getLastBlock().height - block.height > 1440) {
+									peer.state(ip, port, 0, 60);
+									setImmediate(cb);
+								} else {
+									modules.blocks.deleteBlocksBefore(commonBlock, function (err) {
+										if (err) {
+											return cb(err);
 										}
-									}
-								});
+
+										modules.blocks.loadBlocksFromPeer(data.peer, commonBlock, cb);
+									})
+								}
 							});
 						} else {
 							modules.blocks.loadBlocksFromPeer(data.peer, commonBlock, cb);

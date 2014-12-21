@@ -169,8 +169,10 @@ Transactions.prototype.sign = function (secret, transaction) {
 
 Transactions.prototype.secondSign = function (secret, transaction) {
 	var hash = transactionHelper.getHash(transaction);
+	console.log(hash.toString('hex'));
 	var passHash = crypto.createHash('sha256').update(secret, 'utf8').digest();
 	var keypair = ed.MakeKeypair(passHash);
+	console.log(keypair.publicKey.toString('hex'))
 	transaction.signSignature = ed.Sign(hash, keypair);
 }
 
@@ -386,21 +388,6 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 
 			async.parallel([
 				function (cb) {
-					library.db.get("SELECT publicKey FROM signatures WHERE generatorPublicKey = $generatorPublicKey", {$generatorPublicKey: transaction.senderPublicKey}, function (err, signature) {
-						if (err) {
-							return cb("Internal sql error");
-						} else {
-							if (signature) {
-								if (!self.verifySecondSignature(transaction, signature.publicKey)) {
-									return cb("Can't verify second signature");
-								}
-							} else {
-								return cb();
-							}
-						}
-					});
-				},
-				function (cb) {
 					if (transaction.type == 1 && transaction.subtype == 0) {
 						library.db.serialize(function () {
 							library.db.get("SELECT id FROM companies WHERE address = $address", {$address: transaction.recipientId}, function (err, company) {
@@ -479,7 +466,6 @@ Transactions.prototype.apply = function (transaction) {
 		}
 	} else if (transaction.type == 2) {
 		if (transaction.subtype == 0) {
-			console.log(transaction);
 			sender.unconfirmedSignature = false;
 			sender.secondSignature = true;
 			sender.secondPublicKey = transaction.asset.signature.publicKey;

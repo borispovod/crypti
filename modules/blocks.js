@@ -423,6 +423,17 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 									};
 									break;
 								}
+
+								if (__transaction.signSignature) {
+									var sender = modules.accounts.getAccountByPublicKey(__transaction.senderPublicKey);
+									if (!modules.transactions.verifySecondSignature(__transaction, sender.secondPublicKey)) {
+										err = {
+											message: "Can't verify second transaction: " + __transaction.id,
+											block: blocks[__block.id]
+										};
+										break;
+									}
+								}
 							}
 
 							var __signature = blockHelper.getSignature(rows[i]);
@@ -590,8 +601,10 @@ Blocks.prototype.getMilestoneBlock = function (peer, cb) {
 				url += "&lastMilestoneBlockId=" + lastMilestoneBlockId;
 			}
 
+			console.log(url);
 			modules.transport.getFromPeer(peer, url, function (err, data) {
 				if (err) {
+					console.log(err, url);
 					next(err);
 				} else if (data.body.error) {
 					next(data.body.error);
