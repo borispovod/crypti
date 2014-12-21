@@ -840,18 +840,17 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 									}
 								}
 
-								modules.transactions.applyUnconfirmed(transaction, function (err) {
-									if (err) {
-										return cb("Can't apply transaction: " + transaction.id);
-									}
+								if (!modules.transactions.applyUnconfirmed(transaction)) {
+									return cb("Can't apply transaction: " + transaction.id);
+								}
 
-									appliedTransactions[transaction.id] = transaction;
-									payloadHash.update(transactionHelper.getBytes(transaction));
-									totalAmount += transaction.amount;
-									totalFee += transaction.fee;
 
-									cb();
-								});
+								appliedTransactions[transaction.id] = transaction;
+								payloadHash.update(transactionHelper.getBytes(transaction));
+								totalAmount += transaction.amount;
+								totalFee += transaction.fee;
+
+								cb();
 							}
 						});
 					}, done);
