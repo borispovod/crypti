@@ -458,11 +458,9 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 				}
 			}
 
-			//console.log(blocks["2174460730147964609"])
-
 			//console.timeEnd('loading');
 
-			cb(null, lastBlock);
+			cb(null, normalizeBlock(lastBlock));
 		});
 }
 
