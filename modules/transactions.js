@@ -80,11 +80,12 @@ function Transactions(cb, scope) {
 		var transactions = self.getUnconfirmedTransactions(true),
 			toSend = [];
 
-		var senderPublicKey = params.string(req.query.senderPublicKey);
+		var senderPublicKey = params.string(req.query.senderPublicKey),
+			address = params.string(req.query.address);
 
-		if (senderPublicKey) {
+		if (senderPublicKey || address) {
 			for (var i = 0; i < transactions.length; i++) {
-				if (transactions[i].senderPublicKey.toString('hex') == senderPublicKey) {
+				if (transactions[i].senderPublicKey.toString('hex') == senderPublicKey || transactions[i].recipientId == address) {
 					toSend.push(transactions[i]);
 				}
 			}
@@ -507,7 +508,7 @@ Transactions.prototype.applyUnconfirmed = function (transaction) {
 }
 
 
-Transactions.prototype.undo = function (transaction, cb) {
+Transactions.prototype.undo = function (transaction) {
 	var sender = modules.accounts.getAccountByPublicKey(transaction.senderPublicKey);
 	var amount = transaction.amount + transaction.fee;
 
@@ -520,12 +521,12 @@ Transactions.prototype.undo = function (transaction, cb) {
 			recipient.addToUnconfirmedBalance(-transaction.amount);
 			recipient.addToBalance(-transaction.amount);
 
-			return setImmediate(cb);
+			return true;
 		}
 	} else if (transaction.type == 1) {
 		if (transaction.subtype == 0) {
 			// merchant transaction, first need to find merchant
-			var recipient = transaction.recipientId;
+			/*var recipient = transaction.recipientId;
 
 			library.db.serialize(function () {
 				library.db.get("SELECT generatorPublicKey FROM companies WHERE address = $address", {$address: recipient}, function (err, company) {
@@ -548,15 +549,19 @@ Transactions.prototype.undo = function (transaction, cb) {
 						return cb();
 					}
 				});
-			});
+			});*/
+			return true;
 		}
 	} else if (transaction.type == 2) {
 		if (transaction.subtype == 0) {
 			sender.secondSignature = false;
 			sender.unconfirmedSignature = true;
+			sender.secondPublicKey = null;
+
+			return true;
 		}
 	} else {
-		return setImmediate(cb);
+		return true;
 	}
 }
 

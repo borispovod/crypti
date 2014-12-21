@@ -11,7 +11,7 @@ webApp.controller('accountController', ['$scope', '$rootScope', '$http', "userSe
             .then(function (resp) {
 				var transactions = resp.data.transactions;
 
-				$http.get('/api/transactions/unconfirmed', { params : { senderPublicKey : userService.publicKey }})
+				$http.get('/api/transactions/unconfirmed', { params : { senderPublicKey : userService.publicKey, address : userService.address }})
 					.then(function (resp) {
 						var unconfirmedTransactions = resp.data.transactions;
 						$scope.transactions = unconfirmedTransactions.concat(transactions);
