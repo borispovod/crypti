@@ -7,7 +7,8 @@ var ed = require('ed25519'),
 	blockHelper = require("../helpers/block.js"),
 	timeHelper = require("../helpers/time.js"),
 	signatureHelper = require("../helpers/signature.js"),
-	transactionHelper = require("../helpers/transaction.js");
+	transactionHelper = require("../helpers/transaction.js"),
+	params = require('../helpers/params.js')
 
 var Router = require('../helpers/router.js');
 var async = require('async');
@@ -27,10 +28,11 @@ function Signatures(cb, scope) {
 	});
 
 	router.get('/get', function (req, res) {
-		if (!req.query.id) {
+		var id = params.string(req.query.id);
+		if (!id) {
 			return res.json({success: false, error: "Provide id in url"});
 		}
-		self.get(req.query.id, function (err, signature) {
+		self.get(id, function (err, signature) {
 			if (!signature || err) {
 				return res.json({success: false, error: "Signature not found"});
 			}
