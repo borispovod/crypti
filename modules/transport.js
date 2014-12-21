@@ -197,17 +197,18 @@ function Transport(cb, scope) {
 			res.set(headers);
 			// need to process headers from peer
 			return res.status(200).json({transactions: modules.transactions.getUnconfirmedTransactions()});
-		})
-		.post(function (req, res) {
-			res.set(headers);
-
-			var transaction = params.object(req.body.transaction);
-
-			transaction = modules.transactions.parseTransaction(transaction);
-			modules.transactions.processUnconfirmedTransaction(transaction, true);
-
-			return res.sendStatus(200);
 		});
+
+	router.post("/transactions", function (req, res) {
+		res.set(headers);
+
+		var transaction = params.object(req.body.transaction);
+
+		transaction = modules.transactions.parseTransaction(transaction);
+		modules.transactions.processUnconfirmedTransaction(transaction, true);
+
+		return res.sendStatus(200);
+	});
 
 	router.get('/weight', function (req, res) {
 		res.set(headers);
@@ -357,6 +358,7 @@ Transport.prototype.onBlockchainReady = function () {
 }
 
 Transport.prototype.onUnconfirmedTransaction = function (transaction) {
+	library.logger.info(JSON.stringify(transaction));
 	self.broadcast(100, '/transaction', {transaction: transaction});
 }
 
