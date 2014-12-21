@@ -40,7 +40,7 @@ function Signatures(cb, scope) {
 
 	router.put('/', function (req, res) {
 		var secret = req.body.secret,
-			secondSecret = req.body.secondSecret || req.body.secondSecret || null,
+			secondSecret = req.body.secondSecret,
 			publicKey = new Buffer(req.body.publicKey, 'hex');
 
 		var hash = crypto.createHash('sha256').update(secret, 'utf8').digest();
@@ -78,11 +78,11 @@ function Signatures(cb, scope) {
 		var signature = self.newSignature(secret, secondSecret);
 		transaction.asset = signature;
 
-		modules.transaction.sign(secret, transaction);
+		modules.transactions.sign(secret, transaction);
 
 		transaction.id = transactionHelper.getId(transaction);
 
-		self.processUnconfirmedTransaction(transaction, true, function (err) {
+		modules.transactions.processUnconfirmedTransaction(transaction, true, function (err) {
 			if (err) {
 				return res.json({success: false, error: err});
 			} else {
@@ -106,7 +106,7 @@ function Signatures(cb, scope) {
 }
 
 Signatures.prototype.newSignature = function (secert, secondSecret) {
-	var hash1 = crypto.createHash('sha256').update(secret, 'utf8').digest();
+	var hash1 = crypto.createHash('sha256').update(secert, 'utf8').digest();
 	var keypair1 = ed.MakeKeypair(hash1);
 
 	var hash2 = crypto.createHash('sha256').update(secondSecret, 'utf8').digest();
@@ -118,11 +118,11 @@ Signatures.prototype.newSignature = function (secert, secondSecret) {
 		generatorPublicKey : keypair1.publicKey
 	}
 
-	signature.signature = s.sign(signature, secondSecretPhrase);
-	signature.generationSignature = s.signGeneration(signature, secretPhrase);
+	signature.signature = this.sign(signature, secondSecret);
+	signature.generationSignature = this.secondSignature(signature, secert);
 	signature.id = signatureHelper.getId(signature);
 
-	return s;
+	return signature;
 }
 
 Signatures.prototype.sign = function (signature, secondSecret) {
