@@ -372,7 +372,11 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 					if (!blocks[__block.id]) {
 						blocks[__block.id] = __block;
 						lastBlock = blocks[__block.id];
-						self.applyFee(lastBlock);
+
+						if (lastBlock.id != genesisblock.blockId) {
+							self.applyFee(lastBlock);
+						}
+
 						self.applyWeight(lastBlock);
 					}
 					if (blocks[__block.id].id != genesisblock.blockId) {
@@ -494,6 +498,20 @@ Blocks.prototype.applyForger = function (generatorPublicKey, transaction) {
 	return true;
 }
 
+Blocks.prototype.undoForger = function (generatorPublicKey, transaction) {
+	var forger = modules.accounts.getAccountByPublicKey(generatorPublicKey);
+
+	if (!forger) {
+		return false;
+	}
+
+	var fee = transactionHelper.getTransactionFee(transaction, true);
+	forger.addToUnconfirmedBalance(-fee);
+	forger.addToBalance(-fee);
+
+	return true;
+}
+
 Blocks.prototype.verifySignature = function (block) {
 	var data = blockHelper.getBytes(block);
 	var data2 = new Buffer(data.length - 64);
@@ -601,7 +619,6 @@ Blocks.prototype.getMilestoneBlock = function (peer, cb) {
 				url += "&lastMilestoneBlockId=" + lastMilestoneBlockId;
 			}
 
-			console.log(url);
 			modules.transport.getFromPeer(peer, url, function (err, data) {
 				if (err) {
 					console.log(err, url);
@@ -961,6 +978,7 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 
 						modules.transactions.apply(transaction);
 						modules.transactions.removeUnconfirmedTransaction(transaction.id);
+						self.applyForger(block.generatorPublicKey, transaction);
 					}
 
 					self.applyFee(block);
@@ -1138,12 +1156,14 @@ Blocks.prototype.loadBlocksFromPeer = function (peer, lastBlockId, cb) {
 
 
 Blocks.prototype.deleteBlocksBefore = function (blockId, cb) {
+	var self = this;
+
 	async.whilst(
 		function () {
-			return !(blockId != lastBlock.id)
+			return blockId != lastBlock.id
 		},
 		function (next) {
-			popLastBlock(next);
+			self.popLastBlock(next);
 		},
 		cb
 	)
@@ -1188,16 +1208,11 @@ Blocks.prototype.undoBlock = function (block, previousBlock, cb) {
 	async.parallel([
 		function (done) {
 			async.each(block.transactions, function (transaction, cb) {
-				modules.transactions.undo(transaction, function (err) {
-					if (err) {
-						return cb(err);
-					}
-
-					modules.transactions.undoUnconfirmed(transaction);
-					cb();
-				}, done);
-
-			});
+				modules.transactions.undo(transaction);
+				modules.transactions.undoUnconfirmed(transaction);
+				self.undoForger(block.generatorPublicKey, transaction);
+				cb();
+			}, done);
 		},
 		function (done) {
 			// companiesconfirmations
