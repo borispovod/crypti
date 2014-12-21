@@ -3,7 +3,8 @@ var timeHelper = require("../helpers/time.js"),
 	ed = require('ed25519'),
 	constants = require('../helpers/constants.js'),
 	crypto = require('crypto'),
-	configHelper = require('../helpers/config.js');
+	configHelper = require('../helpers/config.js'),
+	params = require('../helpers/params.js');
 var basicAuth = require('basic-auth');
 
 var Router = require('../helpers/router.js');

@@ -4,6 +4,7 @@ var async = require('async');
 var request = require('request');
 var ip = require('ip');
 var util = require('util');
+var params = require('../helpers/params.js');
 
 //private
 var modules, library, self;
@@ -30,11 +31,15 @@ function Transport(cb, scope) {
 
 	router.get("/blocks/ids", function (req, res) {
 		res.set(headers);
+		var id = params.string(req.query.id);
+		if (!id) {
+			return res.json({success: false, error: "Provide id in url"});
+		}
 
-		library.db.all("SELECT id FROM blocks WHERE height > (SELECT height FROM blocks where id=$id) LIMIT 1440", {$id: req.query.id}, function (err, blocks) {
+		library.db.all("SELECT id FROM blocks WHERE height > (SELECT height FROM blocks where id=$id) LIMIT 1440", {$id: id}, function (err, blocks) {
 			if (err) {
 				console.log(err);
-				return res.status(200).json({error: "Internal sql error"});
+				return res.status(200).json({success: false, error: "Internal sql error"});
 			} else {
 				var ids = [];
 
@@ -50,9 +55,11 @@ function Transport(cb, scope) {
 	router.get("/blocks/milestone", function (req, res) {
 		res.set(headers);
 
-		// get milestone block
-		var lastBlockId = req.query.lastBlockId,
-			lastMilestoneBlockId = req.query.lastMilestoneBlockId;
+		var lastBlockId = params.string(req.query.lastBlockId);
+		var lastMilestoneBlockId = params.string(req.query.lastMilestoneBlockId);
+		if (!lastBlockId && !lastMilestoneBlockId) {
+			return res.json({success: false, error: "Error, provide lastBlockId or lastMilestoneBlockId"});
+		}
 
 		if (lastBlockId == modules.blocks.getLastBlock().id) {
 			return res.status(200).json({last: true, milestoneBlockIds: [lastBlockId]});
@@ -62,40 +69,38 @@ function Transport(cb, scope) {
 		var milestoneBlockIds = [];
 		async.series([
 			function (cb) {
-				if (lastMilestoneBlockId != null) {
+				if (lastMilestoneBlockId) {
 					library.db.get("SELECT height FROM blocks WHERE id=$id", {$id: lastMilestoneBlockId}, function (err, block) {
 						if (err) {
 							console.log(err);
-							return cb("Internal sql error");
+							cb("Internal sql error");
 						} else if (!block) {
-							return cb("Can't find block: " + lastMilestoneBlockId);
+							cb("Can't find block: " + lastMilestoneBlockId);
 						} else {
 							height = block.height;
 							jump = Math.min(1440, modules.blocks.getLastBlock().height - height);
 							height = Math.max(height - jump, 0);
 							limit = 10;
-							return cb();
+							cb();
 						}
 					});
-				} else if (lastBlockId != null) {
+				} else if (lastBlockId) {
 					height = modules.blocks.getLastBlock().height;
 					jump = 10;
 					limit = 10;
-					return cb();
-				} else {
-					return cb("Error, provide lastBlockId or lastMilestoneBlockId");
+					setImmediate(cb);
 				}
 			}
 		], function (error) {
 			if (error) {
-				return res.status(200).json({error: error});
+				return res.status(200).json({success: false, error: error});
 			} else {
 				library.db.get("SELECT id FROM blocks WHERE height = $height", {$height: height}, function (err, block) {
 					if (err) {
 						console.log(err);
-						return res.status(200).json({error: "Internal sql error"});
+						res.status(200).json({success: false, error: "Internal sql error"});
 					} else if (!block) {
-						return res.status(200).json({error: "Internal error"});
+						res.status(200).json({success: false, error: "Internal error"});
 					} else {
 						blockId = block.id;
 
@@ -107,21 +112,21 @@ function Transport(cb, scope) {
 								milestoneBlockIds.push(blockId);
 								library.db.get("SELECT id FROM blocks WHERE height = $height", {$height: height}, function (err, block) {
 									if (err) {
-										return next(err);
+										next(err);
 									} else if (!block) {
-										return next("Internal error");
+										next("Internal error");
 									} else {
 										blockId = block.id;
 										height = height - jump;
-										return next();
+										next();
 									}
 								});
 							},
 							function (err) {
 								if (err) {
-									return res.status(200).json({error: err});
+									res.status(200).json({success: false, error: err});
 								} else {
-									return res.status(200).json({milestoneBlockIds: milestoneBlockIds});
+									res.status(200).json({milestoneBlockIds: milestoneBlockIds});
 								}
 							}
 						)
@@ -133,22 +138,25 @@ function Transport(cb, scope) {
 
 	router.get("/blocks", function (req, res) {
 		res.set(headers);
+
+		var lastBlockId = params.string(req.query.lastBlockId);
+
 		// get 1400+ blocks with all data (joins) from provided block id
-		modules.blocks.loadBlocksPart({limit: 1440, lastId: req.query.lastBlockId}, function (err, blocks) {
+		modules.blocks.loadBlocksPart({limit: 1440, lastId: lastBlockId}, function (err, blocks) {
 			return res.status(200).json({blocks: !err ? blocks : []});
 		});
 	})
 		.post(function (req, res) {
 			res.set(headers);
 
-			var block = req.body.block;
+			var block = params.object(req.body.block);
 			modules.blocks.parseBlock(block, function (err, block) {
 				if (block.previousBlock == modules.blocks.getLastBlock().id) {
 					modules.blocks.processBlock(block, true, function () {
 						res.sendStatus(200);
 					});
 				} else if (block.previousBlock == modules.blocks.getLastBlock().previousBlock) {
-					library.db.get("SELECT * FROM blocks WHERE id=$id", { $id: block.previousBlock }, function (err, previousBlock) {
+					library.db.get("SELECT * FROM blocks WHERE id=$id", {$id: block.previousBlock}, function (err, previousBlock) {
 						if (err || !previousBlock) {
 							library.logger.error(err ? err.toString() : "Block " + block.previousBlock + " not found");
 							return res.sendStatus(200);
@@ -185,8 +193,7 @@ function Transport(cb, scope) {
 
 		});
 
-	router
-		.get("/transactions", function (req, res) {
+	router.get("/transactions", function (req, res) {
 			res.set(headers);
 			// need to process headers from peer
 			return res.status(200).json({transactions: modules.transactions.getUnconfirmedTransactions()});
@@ -194,7 +201,9 @@ function Transport(cb, scope) {
 		.post(function (req, res) {
 			res.set(headers);
 
-			var transaction = modules.transactions.parseTransaction(req.body.transaction);
+			var transaction = params.object(req.body.transaction);
+
+			transaction = modules.transactions.parseTransaction(transaction);
 			modules.transactions.processUnconfirmedTransaction(transaction, true);
 
 			return res.sendStatus(200);
