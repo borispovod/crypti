@@ -183,8 +183,7 @@ webApp.controller('sendCryptiController', ["$scope", "sendCryptiModal", "$http",
             secret: $scope.secretPhrase,
             amount: $scope.convertXCR($scope.amount),
             recipientId: $scope.to,
-            accountAddress: userService.address,
-            amountIsInteger : true
+            publicKey: userService.publicKey
         };
 
         if ($scope.secondPassphrase) {
