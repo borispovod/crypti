@@ -835,7 +835,7 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 								}
 
 								if (transaction.type == 2 && transaction.subtype == 0) {
-									if (!transaction.signature) {
+									if (!transaction.asset.signature) {
 										return cb("Transaction must have signature");
 									}
 								}
@@ -1027,13 +1027,13 @@ Blocks.prototype.saveBlock = function (block, cb) {
 									if (transaction.type == 2 && transaction.subtype == 0) {
 										st = transactionDb.prepare("INSERT INTO signatures(id, transactionId, timestamp , publicKey, generatorPublicKey, signature, generationSignature) VALUES($id, $transactionId, $timestamp , $publicKey, $generatorPublicKey, $signature , $generationSignature)");
 										st.bind({
-											$id : transaction.signature.id,
+											$id : transaction.asset.signature.id,
 											$transactionId : transaction.id,
-											$timestamp : transaction.signature.timestamp,
-											$publicKey : transaction.signature.publicKey,
-											$generatorPublicKey : transaction.signature.generatorPublicKey,
-											$signature : transaction.signature.signature,
-											$generationSignature : transaction.signature.generationSignature
+											$timestamp : transaction.asset.signature.timestamp,
+											$publicKey : transaction.asset.signature.publicKey,
+											$generatorPublicKey : transaction.asset.signature.generatorPublicKey,
+											$signature : transaction.asset.signature.signature,
+											$generationSignature : transaction.asset.signature.generationSignature
 										});
 										st.run(cb);
 									} else {
