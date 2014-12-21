@@ -81,7 +81,7 @@ function getBytes(transaction) {
             switch (transaction.subtype) {
                 case 0:
                     assetSize = 196;
-					assetBytes = signatureHelper.getBytes(transaction.signature);
+					assetBytes = signatureHelper.getBytes(transaction.asset.signature);
                     break;
             }
             break;
