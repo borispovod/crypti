@@ -497,7 +497,7 @@ Transactions.prototype.applyUnconfirmed = function (transaction, cb) {
 	var sender = modules.accounts.getAccountByPublicKey(transaction.senderPublicKey);
 
 	if (!sender && transaction.blockId != genesisblock.blockId) {
-		return setImmediate(cb, "Sender not found", true);
+		return cb && setImmediate(cb, "Sender not found", true);
 	} else {
 		sender = modules.accounts.getAccountOrCreate(transaction.senderPublicKey);
 	}
@@ -505,7 +505,7 @@ Transactions.prototype.applyUnconfirmed = function (transaction, cb) {
 	if (transaction.type == 2) {
 		if (transaction.subtype == 0) {
 			if (sender.unconfirmedSignature || sender.secondSignature) {
-				return setImmediate(cb, "Unconfirmed signature already processed for this account");
+				return cb && setImmediate(cb, "Unconfirmed signature already processed for this account");
 			}
 
 			sender.unconfirmedSignature = true;
@@ -515,12 +515,12 @@ Transactions.prototype.applyUnconfirmed = function (transaction, cb) {
 	var amount = transaction.amount + transaction.fee;
 
 	if (sender.unconfirmedBalance < amount && transaction.blockId != genesisblock.blockId) {
-		return setImmediate(cb, "Sender account doesn't have enough balance", true);
+		return cb && setImmediate(cb, "Sender account doesn't have enough balance", true);
 	}
 
 	sender.addToUnconfirmedBalance(-amount);
 
-	return setImmediate(cb);
+	return cb && setImmediate(cb);
 }
 
 
