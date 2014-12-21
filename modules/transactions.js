@@ -99,14 +99,14 @@ function Transactions(cb, scope) {
 		var secret = req.body.secret,
 			amount = req.body.amount,
 			recipientId = req.body.recipientId,
-			publicKey = req.body.publicKey,
+			publicKey = new Buffer(req.body.publicKey, 'hex'),
 			secondSecret = req.body.secondSecret;
 
 		var hash = crypto.createHash('sha256').update(secret, 'utf8').digest();
 		var keypair = ed.MakeKeypair(hash);
 
 		if (publicKey) {
-			if (keypair.publicKey.toString('hex') != new Buffer(publicKey).toString('hex')) {
+			if (keypair.publicKey.toString('hex') != publicKey.toString('hex')) {
 				return res.json({success: false, error: "Please, provide valid secret key of your account"});
 			}
 		}
@@ -121,6 +121,7 @@ function Transactions(cb, scope) {
 			return res.json({success: false, error: "Open account to make transaction"});
 		}
 
+
 		var transaction = {
 			type: 0,
 			subtype: 0,
@@ -133,7 +134,7 @@ function Transactions(cb, scope) {
 		self.sign(secret, transaction);
 
 		if (secondSecret) {
-			self.secondSign(secret, transaction);
+			self.secondSign(secondSecret, transaction);
 		}
 
 		self.processUnconfirmedTransaction(transaction, true, function (err) {
@@ -359,7 +360,7 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 				case 2:
 					switch (transaction.subtype) {
 						case 0:
-							if (!transaction.signature) {
+							if (!transaction.asset.signature) {
 								return cb &&  cb("Empty transaction asset for company transaction")
 							}
 							break;
@@ -480,7 +481,7 @@ Transactions.prototype.apply = function (transaction) {
 		if (transaction.subtype == 0) {
 			sender.unconfirmedSignature = false;
 			sender.secondSignature = true;
-			sender.secondPublicKey = transaction.signature.publicKey;
+			sender.secondPublicKey = transaction.asset.signature.publicKey;
 			return true;
 		}
 	} else {
@@ -577,7 +578,7 @@ Transactions.prototype.parseTransaction = function (transaction, cb) {
 	transaction.signature = new Buffer(transaction.signature);
 
 	if (transaction.type == 2 && transaction.subtype == 0) {
-		transaction.signature = modules.signatures.parseSignature(transaction.signature);
+		transaction.asset.signature = modules.signatures.parseSignature(transaction.asset.signature);
 	}
 
 	return transaction;

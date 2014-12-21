@@ -68,17 +68,18 @@ function Signatures(cb, scope) {
 			return res.json({success: false, error: "Second signature already enabled"});
 		}
 
+		var signature = self.newSignature(secret, secondSecret);
 		var transaction = {
 			type : 2,
 			subtype : 0,
 			amount : 0,
 			recipientId : null,
 			senderPublicKey : account.publicKey,
-			timestamp: timeHelper.getNow()
-		}
-
-		var signature = self.newSignature(secret, secondSecret);
-		transaction.signature = signature;
+			timestamp: timeHelper.getNow(),
+			asset : {
+				signature : signature
+			}
+		};
 
 		modules.transactions.sign(secret, transaction);
 
