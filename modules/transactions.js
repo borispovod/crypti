@@ -170,10 +170,8 @@ Transactions.prototype.sign = function (secret, transaction) {
 
 Transactions.prototype.secondSign = function (secret, transaction) {
 	var hash = transactionHelper.getHash(transaction);
-	console.log(hash.toString('hex'));
 	var passHash = crypto.createHash('sha256').update(secret, 'utf8').digest();
 	var keypair = ed.MakeKeypair(passHash);
-	console.log(keypair.publicKey.toString('hex'))
 	transaction.signSignature = ed.Sign(hash, keypair);
 }
 
@@ -571,6 +569,10 @@ Transactions.prototype.parseTransaction = function (transaction, cb) {
 
 	if (transaction.type == 2 && transaction.subtype == 0) {
 		transaction.asset.signature = modules.signatures.parseSignature(transaction.asset.signature);
+	}
+
+	if (transaction.signSignature) {
+		transaction.signSignature = new Buffer(transaction.signSignature);
 	}
 
 	return transaction;
