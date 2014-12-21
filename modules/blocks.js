@@ -844,16 +844,18 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 									}
 								}
 
-								if (!modules.transactions.applyUnconfirmed(transaction)) {
-									return cb("Can't apply transaction: " + transaction);
-								}
+								modules.transactions.applyUnconfirmed(transaction, function (err) {
+									if (err) {
+										return cb("Can't apply transaction: " + transaction.id);
+									}
 
-								appliedTransactions[transaction.id] = transaction;
-								payloadHash.update(transactionHelper.getBytes(transaction));
-								totalAmount += transaction.amount;
-								totalFee += transaction.fee;
+									appliedTransactions[transaction.id] = transaction;
+									payloadHash.update(transactionHelper.getBytes(transaction));
+									totalAmount += transaction.amount;
+									totalFee += transaction.fee;
 
-								cb();
+									cb();
+								});
 							}
 						});
 					}, done);
@@ -1022,10 +1024,13 @@ Blocks.prototype.saveBlock = function (block, cb) {
 									$signature: transaction.signature,
 									$signSignature: transaction.signSignature
 								});
-								st.run(function () {
+								st.run(function (err) {
+									if (err) {
+										return cb(err);
+									}
+
 									if (transaction.type == 2 && transaction.subtype == 0) {
-										//id, transactionId, timestamp , publicKey, generatorPublicKey, signature , generationSignature
-										st = transactionDb.prepare("INSERT INTO signatures(transactionId, timestamp , publicKey, generatorPublicKey, signature, generationSignature) VALUES($transactionId, $timestamp , $publicKey, $generatorPublicKey, $signature , $generationSignature)");
+										st = transactionDb.prepare("INSERT INTO signatures(id, transactionId, timestamp , publicKey, generatorPublicKey, signature, generationSignature) VALUES($id, $transactionId, $timestamp , $publicKey, $generatorPublicKey, $signature , $generationSignature)");
 										st.bind({
 											$id : transaction.asset.id,
 											$transactionId : transaction.id,
