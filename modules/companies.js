@@ -4,7 +4,8 @@ var transactionHelper = require('../helpers/transaction.js'),
 	ByteBuffer = require("bytebuffer"),
 	crypto = require('crypto'),
 	genesisblock = require('../helpers/genesisblock.js'),
-	blockHelper = require("../helpers/block.js");
+	blockHelper = require("../helpers/block.js"),
+	params = require('../helpers/params.js');
 var Router = require('../helpers/router.js');
 var async = require('async');
 
@@ -23,10 +24,12 @@ function Companies(cb, scope) {
 	});
 
 	router.get('/get', function (req, res) {
-		if (!req.query.id && !req.query.address) {
+		var id = params.string(req.query.id);
+		var address = params.string(req.query.address);
+		if (!id && !address) {
 			return res.json({success: false, error: "Provide id or address in url"});
 		}
-		self.find({id: req.query.id, address: req.query.address}, function (err, company) {
+		self.find({id: id, address: address}, function (err, company) {
 			if (!company || err) {
 				return res.json({success: false, error: "Company not found"});
 			}

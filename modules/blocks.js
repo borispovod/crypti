@@ -10,7 +10,8 @@ var crypto = require('crypto'),
 	constants = require('../helpers/constants.js'),
 	confirmationsHelper = require('../helpers/confirmations.js'),
 	timeHelper = require('../helpers/time.js'),
-	requestHelper = require('../helpers/request.js');
+	requestHelper = require('../helpers/request.js'),
+	params = require('../helpers/params.js');
 
 var Router = require('../helpers/router.js');
 var util = require('util');
@@ -38,10 +39,11 @@ function Blocks(cb, scope) {
 	});
 
 	router.get('/get', function (req, res) {
-		if (!req.query.id) {
+		var id = params.string(req.query.id);
+		if (!id) {
 			return res.json({success: false, error: "Provide id in url"});
 		}
-		self.get(req.query.id, function (err, block) {
+		self.get(id, function (err, block) {
 			if (!block || err) {
 				return res.json({success: false, error: "Block not found"});
 			}
@@ -50,10 +52,13 @@ function Blocks(cb, scope) {
 	});
 
 	router.get('/', function (req, res) {
+		var limit = params.string(req.query.limit);
+		var orderBy = params.string(req.query.orderBy);
+		var generatorPublicKey = params.buffer(req.query.generatorPublicKey, 'hex');
 		self.list({
-			generatorPublicKey: req.query.generatorPublicKey ? new Buffer(req.query.generatorPublicKey, 'hex') : null,
-			limit: req.query.limit || 20,
-			orderBy: req.query.orderBy
+			generatorPublicKey: generatorPublicKey.length ? generatorPublicKey : null,
+			limit: limit || 20,
+			orderBy: orderBy
 		}, function (err, blocks) {
 			if (err) {
 				return res.json({success: false, error: "Blocks not found"});
@@ -68,11 +73,13 @@ function Blocks(cb, scope) {
 	});
 
 	router.get('/getForgedByAccount', function (req, res) {
-		if (!req.query.generatorPublicKey) {
+		var generatorPublicKey = params.buffer(req.query.generatorPublicKey, 'hex');
+
+		if (!generatorPublicKey.length) {
 			return res.json({success: false, error: "Provide generatorPublicKey in url"});
 		}
 
-		self.getForgedByAccount(new Buffer(req.query.generatorPublicKey, 'hex'), function (err, sum) {
+		self.getForgedByAccount(generatorPublicKey, function (err, sum) {
 			if (err) {
 				return res.json({success: false, error: "Account not found"});
 			}

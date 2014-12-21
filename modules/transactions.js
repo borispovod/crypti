@@ -6,7 +6,8 @@ var transactionHelper = require('../helpers/transaction.js'),
 	genesisblock = require('../helpers/genesisblock.js'),
 	constants = require("../helpers/constants.js"),
 	blockHelper = require("../helpers/block.js"),
-	timeHelper = require("../helpers/time.js");
+	timeHelper = require("../helpers/time.js"),
+	params = require('../helpers/params.js');
 
 var Router = require('../helpers/router.js');
 var async = require('async');
@@ -29,12 +30,18 @@ function Transactions(cb, scope) {
 	});
 
 	router.get('/', function (req, res) {
+		var blockId = params.string(req.query.blockId);
+		var limit = params.int(req.query.limit);
+		var orderBy = params.string(req.query.orderBy)
+		var senderPublicKey = params.buffer(req.query.senderPublicKey, 'hex');
+		var recipientId = params.string(req.query.recipientId)
+
 		self.list({
-			blockId: req.query.blockId,
-			senderPublicKey: req.query.senderPublicKey ? new Buffer(req.query.senderPublicKey, 'hex') : null,
-			recipientId: req.query.recipientId,
-			limit: req.query.limit || 20,
-			orderBy: req.query.orderBy
+			blockId: blockId,
+			senderPublicKey: senderPublicKey.length ? senderPublicKey : null,
+			recipientId: recipientId,
+			limit: limit || 20,
+			orderBy: orderBy
 		}, function (err, transactions) {
 			if (err) {
 				return res.json({success: false, error: "Transactions not found"});
@@ -44,10 +51,12 @@ function Transactions(cb, scope) {
 	});
 
 	router.get('/get', function (req, res) {
-		if (!req.query.id) {
+		var id = params.string(req.query.id);
+		if (!id) {
 			return res.json({success: false, error: "Provide id in url"});
 		}
-		self.get(req.query.id, function (err, transaction) {
+
+		self.get(id, function (err, transaction) {
 			if (!transaction || err) {
 				return res.json({success: false, error: "Transaction not found"});
 			}
@@ -56,10 +65,11 @@ function Transactions(cb, scope) {
 	});
 
 	router.get('/unconfirmed/get', function (req, res) {
-		if (!req.query.id) {
+		var id = params.string(req.query.id);
+		if (!id) {
 			return res.json({success: false, error: "Provide id in url"});
 		}
-		var transaction = self.getUnconfirmedTransaction(req.query.id);
+		var transaction = self.getUnconfirmedTransaction(id);
 		if (!transaction) {
 			return res.json({success: false, error: "Transaction not found"});
 		}
@@ -70,9 +80,11 @@ function Transactions(cb, scope) {
 		var transactions = self.getUnconfirmedTransactions(true),
 			toSend = [];
 
-		if (req.query.senderPublicKey) {
+		var senderPublicKey = params.string(req.query.senderPublicKey);
+
+		if (senderPublicKey) {
 			for (var i = 0; i < transactions.length; i++) {
-				if (transactions[i].senderPublicKey.toString('hex') == req.query.senderPublicKey) {
+				if (transactions[i].senderPublicKey.toString('hex') == senderPublicKey) {
 					toSend.push(transactions[i]);
 				}
 			}
