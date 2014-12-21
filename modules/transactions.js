@@ -420,23 +420,18 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 				if (errors) {
 					return cb && cb(errors.pop());
 				} else {
-					self.applyUnconfirmed(transaction, function (err, isDoubleSpending) {
-						if (err) {
-							if (isDoubleSpending) {
-								doubleSpendingTransactions[transaction.id] = transaction;
-							}
+					if (!self.applyUnconfirmed(transaction)) {
+						doubleSpendingTransactions[transaction.id] = transaction;
+						return cb("Can't apply transaction: " + transaction.id);
+					}
 
-							return cb && cb(err);
-						}
+					unconfirmedTransactions[transaction.id] = transaction;
 
-						unconfirmedTransactions[transaction.id] = transaction;
+					if (broadcast) {
+						library.bus.message('unconfirmedTransaction', transaction)
+					}
 
-						if (broadcast) {
-							library.bus.message('unconfirmedTransaction', transaction)
-						}
-
-						return cb && cb(null, transaction.id);
-					});
+					return cb && cb(null, transaction.id);
 				}
 			});
 		}
@@ -493,11 +488,11 @@ Transactions.prototype.apply = function (transaction) {
 	}
 }
 
-Transactions.prototype.applyUnconfirmed = function (transaction, cb) {
+Transactions.prototype.applyUnconfirmed = function (transaction) {
 	var sender = modules.accounts.getAccountByPublicKey(transaction.senderPublicKey);
 
 	if (!sender && transaction.blockId != genesisblock.blockId) {
-		return cb && setImmediate(cb, "Sender not found", true);
+		return false;
 	} else {
 		sender = modules.accounts.getAccountOrCreate(transaction.senderPublicKey);
 	}
@@ -505,7 +500,7 @@ Transactions.prototype.applyUnconfirmed = function (transaction, cb) {
 	if (transaction.type == 2) {
 		if (transaction.subtype == 0) {
 			if (sender.unconfirmedSignature || sender.secondSignature) {
-				return cb && setImmediate(cb, "Unconfirmed signature already processed for this account");
+				return false;
 			}
 
 			sender.unconfirmedSignature = true;
@@ -515,12 +510,12 @@ Transactions.prototype.applyUnconfirmed = function (transaction, cb) {
 	var amount = transaction.amount + transaction.fee;
 
 	if (sender.unconfirmedBalance < amount && transaction.blockId != genesisblock.blockId) {
-		return cb && setImmediate(cb, "Sender account doesn't have enough balance", true);
+		return false;
 	}
 
 	sender.addToUnconfirmedBalance(-amount);
 
-	return cb && setImmediate(cb);
+	return true;
 }
 
 
