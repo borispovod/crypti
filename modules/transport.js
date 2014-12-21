@@ -358,7 +358,7 @@ Transport.prototype.onBlockchainReady = function () {
 }
 
 Transport.prototype.onUnconfirmedTransaction = function (transaction) {
-	self.broadcast(100, '/transaction', {transaction: transaction});
+	self.broadcast(100, '/transactions', {transaction: transaction});
 }
 
 Transport.prototype.onNewBlock = function (block) {
