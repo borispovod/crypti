@@ -108,8 +108,8 @@ function Signatures(cb, scope) {
 	setImmediate(cb, null, self);
 }
 
-Signatures.prototype.newSignature = function (secert, secondSecret) {
-	var hash1 = crypto.createHash('sha256').update(secert, 'utf8').digest();
+Signatures.prototype.newSignature = function (secret, secondSecret) {
+	var hash1 = crypto.createHash('sha256').update(secret, 'utf8').digest();
 	var keypair1 = ed.MakeKeypair(hash1);
 
 	var hash2 = crypto.createHash('sha256').update(secondSecret, 'utf8').digest();
@@ -122,7 +122,7 @@ Signatures.prototype.newSignature = function (secert, secondSecret) {
 	}
 
 	signature.signature = this.sign(signature, secondSecret);
-	signature.generationSignature = this.secondSignature(signature, secert);
+	signature.generationSignature = this.secondSignature(signature, secret);
 	signature.id = signatureHelper.getId(signature);
 
 	return signature;

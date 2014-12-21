@@ -100,7 +100,7 @@ function Transport(cb, scope) {
 						console.log(err);
 						res.status(200).json({success: false, error: "Internal sql error"});
 					} else if (!block) {
-						res.status(200).json({success: false, error: "Internal error"});
+						res.status(200).json({milestoneBlockIds: milestoneBlockIds});
 					} else {
 						blockId = block.id;
 
