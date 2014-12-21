@@ -359,7 +359,7 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 				case 2:
 					switch (transaction.subtype) {
 						case 0:
-							if (!transaction.asset) {
+							if (!transaction.signature) {
 								return cb &&  cb("Empty transaction asset for company transaction")
 							}
 							break;
@@ -483,10 +483,9 @@ Transactions.prototype.apply = function (transaction) {
 		}
 	} else if (transaction.type == 2) {
 		if (transaction.subtype == 0) {
-			console.log(transaction);
 			sender.unconfirmedSignature = false;
 			sender.secondSignature = true;
-			sender.secondPublicKey = transaction.asset.publicKey;
+			sender.secondPublicKey = transaction.signature.publicKey;
 			return true;
 		}
 	} else {
@@ -583,7 +582,7 @@ Transactions.prototype.parseTransaction = function (transaction, cb) {
 	transaction.signature = new Buffer(transaction.signature);
 
 	if (transaction.type == 2 && transaction.subtype == 0) {
-		transaction.asset = modules.signatures.parseSignature(transaction.asset);
+		transaction.signature = modules.signatures.parseSignature(transaction.signature);
 	}
 
 	return transaction;
