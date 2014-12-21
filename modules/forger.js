@@ -46,6 +46,10 @@ function Forger(cb, scope) {
 		router.get('/', auth, function (req, res) {
 			return res.status(200).json({success: true, enabled: forgingStarted || false});
 		})
+	} else {
+		router.get('/', function (req, res) {
+			return res.status(200).json({success: true, enabled: forgingStarted || false});
+		})
 	}
 
 	router.post('/enable', function (req, res) {

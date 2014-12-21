@@ -110,6 +110,32 @@ function Accounts(cb, scope) {
 		return res.json({success: true, publicKey: account.publicKey});
 	});
 
+	router.get("/", function (req, res) {
+		var address = req.query.address;
+
+		if (!address) {
+			return res.json({success: false, error: "Provide address in url"});
+		}
+
+		var account = self.getAccount(req.query.address);
+
+		if (!account) {
+			return res.json({ success : false, error : "Account not found" });
+		}
+
+		return res.json({
+			success: true, account: {
+				address: account.address,
+				unconfirmedBalance: account.unconfirmedBalance,
+				balance: account.balance,
+				publicKey: account.publicKey? account.publicKey.toString('hex') : null,
+				unconfirmedSignature : account.unconfirmedSignature,
+				secondSignature : account.secondSignature,
+				secondPublicKey : account.secondPublicKey? account.secondPublicKey.toString('hex') : null
+			}
+		});
+	})
+
 	router.use(function (req, res, next) {
 		res.status(500).send({success: false, error: 'api not found'});
 	});

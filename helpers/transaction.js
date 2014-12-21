@@ -104,12 +104,18 @@ function getBytes(transaction) {
         bb.writeByte(transaction.senderPublicKey[i]);
     }
 
-    var recipient = transaction.recipientId.slice(0, -1);
-    recipient = bignum(recipient).toBuffer({ size : 8 });
+	if (transaction.recipientId) {
+		var recipient = transaction.recipientId.slice(0, -1);
+		recipient = bignum(recipient).toBuffer({ size: 8 });
 
-    for (var i = 0; i < 8; i++) {
-        bb.writeByte(recipient[i] || 0);
-    }
+		for (var i = 0; i < 8; i++) {
+			bb.writeByte(recipient[i] || 0);
+		}
+	} else {
+		for (var i = 0; i < 8; i++) {
+			bb.writeByte(0);
+		}
+	}
 
     bb.writeLong(transaction.amount);
 
@@ -153,7 +159,34 @@ function getHash(transaction) {
 }
 
 function getFee(transaction, percent) {
-	return parseInt(transaction.amount / 100 * percent);
+	/*
+	 return
+	 parseInt(transaction.amount / 100 * percent);
+	 */
+
+	switch (transaction.type) {
+		case 0:
+		case 1:
+			switch (transaction.subtype) {
+				case 0:
+					return parseInt(transaction.amount / 100 * percent);
+			}
+			break;
+
+		case 2:
+			switch (transaction.subtype) {
+				case 0:
+					return 100 * constants.fixedPoint;
+			}
+		break;
+
+		case 3:
+			switch (transaction.subtype) {
+				case 0:
+					return 1000 * constants.fixedPoint;
+			}
+		break;
+	}
 }
 
 module.exports = {

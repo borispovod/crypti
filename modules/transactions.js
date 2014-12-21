@@ -315,135 +315,117 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 				fee = 1;
 			}
 
-			async.series([
-				function (done) {
-					switch (transaction.type) {
+			transaction.fee = fee;
+
+			switch (transaction.type) {
+				case 0:
+					switch (transaction.subtype) {
 						case 0:
-							switch (transaction.subtype) {
-								case 0:
-									if (transactionHelper.getLastChar(transaction) != "C") {
-										return done("Invalid transaction recipient id");
-									}
-
-									transaction.fee = fee;
-									break;
-
-								default:
-									return done("Unknown transaction type");
-							}
-							break;
-
-						case 1:
-							switch (transaction.subtype) {
-								case 0:
-									if (transactionHelper.getLastChar(transaction) != "D") {
-										return done("Invalid transaction recipient id");
-									}
-
-									transaction.fee = fee;
-									break;
-
-								default:
-									return done("Unknown transaction type");
-							}
-							break;
-
-						case 2:
-							switch (transaction.subtype) {
-								case 0:
-									if (transaction.fee != 100 * constants.fixedPoint) {
-										return cb && cb("Invalid transaction fee");
-									}
-
-									if (!transaction.asset) {
-										return done("Empty transaction asset for company transaction")
-									}
-									break;
-
-								default:
-									return done("Unknown transaction type");
-							}
-							break;
-
-						case 3:
-							switch (transaction.subtype) {
-								case 0:
-									return done("Companies doesn't supports now");
-									/*if (transaction.fee != 1000 * constants.fixedPoint) {
-										return done("Invalid transaction fee");
-									}
-
-									if (!transaction.asset) {
-										return done("Empty transaction asset for company transaction")
-									}*/
-
-									// process company of transaction
-									break;
-
-								default:
-									return done("Unknown transaction type");
+							if (transactionHelper.getLastChar(transaction) != "C") {
+								return cb && cb("Invalid transaction recipient id");
 							}
 							break;
 
 						default:
-							return done("Unknown transaction type");
+							return cb && cb("Unknown transaction type");
 					}
-				}
-			], function (err) {
-				if (err) {
-					return cb && cb(err);
-				}
+					break;
 
-				async.parallel([
-					function (cb) {
-						library.db.get("SELECT publicKey FROM signatures WHERE generatorPublicKey = $generatorPublicKey", {$generatorPublicKey: transaction.senderPublicKey}, function (err, signature) {
-							if (err) {
-								return cb("Internal sql error");
-							} else {
-								if (signature) {
-									if (!self.verifySecondSignature(transaction, signature.publicKey)) {
-										return cb("Can't verify second signature");
-									}
-								} else {
-									return cb();
+				case 1:
+					switch (transaction.subtype) {
+						case 0:
+							if (transactionHelper.getLastChar(transaction) != "D") {
+								return cb && cb("Invalid transaction recipient id");
+							}
+							break;
+
+						default:
+							return cb && cb("Unknown transaction type");
+					}
+					break;
+
+				case 2:
+					switch (transaction.subtype) {
+						case 0:
+							if (!transaction.asset) {
+								return cb &&  cb("Empty transaction asset for company transaction")
+							}
+							break;
+
+						default:
+							return cb && cb("Unknown transaction type");
+					}
+					break;
+
+				case 3:
+					switch (transaction.subtype) {
+						case 0:
+							return cb && cb("Companies doesn't supports now");
+
+						default:
+							return cb && cb("Unknown transaction type");
+					}
+					break;
+
+				default:
+					return cb && cb("Unknown transaction type");
+			}
+
+			async.parallel([
+				function (cb) {
+					library.db.get("SELECT publicKey FROM signatures WHERE generatorPublicKey = $generatorPublicKey", {$generatorPublicKey: transaction.senderPublicKey}, function (err, signature) {
+						if (err) {
+							return cb("Internal sql error");
+						} else {
+							if (signature) {
+								if (!self.verifySecondSignature(transaction, signature.publicKey)) {
+									return cb("Can't verify second signature");
 								}
+							} else {
+								return cb();
 							}
-						});
-					},
-					function (cb) {
-						if (transaction.type == 1 && transaction.subtype == 0) {
-							library.db.serialize(function () {
-								library.db.get("SELECT id FROM companies WHERE address = $address", {$address: transaction.recipientId}, function (err, company) {
-									if (err) {
-										return cb("Internal sql error");
-									} else if (company) {
-										return cb();
-									} else {
-										return cb("Company with this address as recipient not found");
-									}
-								});
-							});
-						} else {
-							return cb();
 						}
-					}
-				], function (errors) {
-					if (errors) {
-						return cb && cb(errors.pop());
+					});
+				},
+				function (cb) {
+					if (transaction.type == 1 && transaction.subtype == 0) {
+						library.db.serialize(function () {
+							library.db.get("SELECT id FROM companies WHERE address = $address", {$address: transaction.recipientId}, function (err, company) {
+								if (err) {
+									return cb("Internal sql error");
+								} else if (company) {
+									return cb();
+								} else {
+									return cb("Company with this address as recipient not found");
+								}
+							});
+						});
 					} else {
-						if (self.applyUnconfirmed(transaction)) {
-							unconfirmedTransactions[transaction.id] = transaction;
-
-							if (broadcast) {
-								library.bus.message('unconfirmedTransaction', transaction)
+						return cb();
+					}
+				}
+			], function (errors) {
+				if (errors) {
+					return cb && cb(errors.pop());
+				} else {
+					self.applyUnconfirmed(transaction, function (err, isDoubleSpending) {
+						if (err) {
+							if (isDoubleSpending) {
+								doubleSpendingTransactions[transaction.id] = transaction;
 							}
-						} else {
-							doubleSpendingTransactions[transaction.id] = transaction;
+
+							return cb && cb(err);
+						}
+
+						unconfirmedTransactions[transaction.id] = transaction;
+
+						if (broadcast) {
+							library.bus.message('unconfirmedTransaction', transaction)
 						}
 
 						return cb && cb(null, transaction.id);
-					}
-				});
+					});
+				}
 			});
 		}
 	});
@@ -499,11 +481,11 @@ Transactions.prototype.apply = function (transaction) {
 	}
 }
 
-Transactions.prototype.applyUnconfirmed = function (transaction) {
+Transactions.prototype.applyUnconfirmed = function (transaction, cb) {
 	var sender = modules.accounts.getAccountByPublicKey(transaction.senderPublicKey);
 
 	if (!sender && transaction.blockId != genesisblock.blockId) {
-		return false;
+		return setImmediate(cb, "Sender not found", true);
 	} else {
 		sender = modules.accounts.getAccountOrCreate(transaction.senderPublicKey);
 	}
@@ -511,7 +493,7 @@ Transactions.prototype.applyUnconfirmed = function (transaction) {
 	if (transaction.type == 2) {
 		if (transaction.subtype == 0) {
 			if (sender.unconfirmedSignature || sender.secondSignature) {
-				return false;
+				return setImmediate(cb, "Unconfirmed signature already processed for this account");
 			}
 
 			sender.unconfirmedSignature = true;
@@ -521,12 +503,12 @@ Transactions.prototype.applyUnconfirmed = function (transaction) {
 	var amount = transaction.amount + transaction.fee;
 
 	if (sender.unconfirmedBalance < amount && transaction.blockId != genesisblock.blockId) {
-		return false;
+		return setImmediate(cb, "Sender account doesn't have enough balance", true);
 	}
 
 	sender.addToUnconfirmedBalance(-amount);
 
-	return true;
+	return setImmediate(cb);
 }
 
 
@@ -537,7 +519,7 @@ Transactions.prototype.undo = function (transaction, cb) {
 	sender.addToBalance(amount);
 
 	// process only two types of transactions
-	if (transaction.type == 1) {
+	if (transaction.type == 0) {
 		if (transaction.subtype == 0) {
 			var recipient = modules.accounts.getAccountOrCreate(transaction.recipientId);
 			recipient.addToUnconfirmedBalance(-transaction.amount);
@@ -545,7 +527,7 @@ Transactions.prototype.undo = function (transaction, cb) {
 
 			return setImmediate(cb);
 		}
-	} else if (transaction.type == 2) {
+	} else if (transaction.type == 1) {
 		if (transaction.subtype == 0) {
 			// merchant transaction, first need to find merchant
 			var recipient = transaction.recipientId;
@@ -573,6 +555,11 @@ Transactions.prototype.undo = function (transaction, cb) {
 				});
 			});
 		}
+	} else if (transaction.type == 2) {
+		if (transaction.subtype == 0) {
+			sender.secondSignature = false;
+			sender.unconfirmedSignature = true;
+		}
 	} else {
 		return setImmediate(cb);
 	}
@@ -594,6 +581,11 @@ Transactions.prototype.undoUnconfirmed = function (transaction) {
 	var amount = transaction.amount + transaction.fee;
 
 	sender.addToUnconfirmedBalance(amount);
+
+	if (transaction.type == 2 && transaction.subtype == 0) {
+		sender.unconfirmedSignature = false;
+	}
+
 	return true;
 }
 

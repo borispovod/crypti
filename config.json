@@ -9,6 +9,7 @@
     "sharePort": true,
     "adminPanel": {
         "whiteList": [
+			"127.0.0.1"
         ]
     },
     "api": {
@@ -19,14 +20,10 @@
     },
     "peers": {
         "list": [
-            {
-                "ip": "104.155.15.135",
-                "port": 7040
-            }
         ],
         "blackList": []
     },
     "forging": {
-        "secret": ""
+        "secret": "ms02kf"
     }
 }
