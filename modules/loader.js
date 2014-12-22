@@ -102,7 +102,7 @@ Loader.prototype.updatePeerList = function (cb) {
 				}
 
 				modules.peer.update(peer, cb);
-			}, cb)
+			}, cb);
 		} else {
 			cb(err);
 		}
