@@ -127,13 +127,13 @@ Forger.prototype.startForging = function (keypair) {
 		},
 		function (callback) {
 			if (!modules.loader.loaded() || modules.loader.syncing()) {
-				return setTimeout(callback, 1000);
+				return setTimeout(callback, 100);
 			}
 
 			var account = modules.accounts.getAccount(address);
 
 			if (!account || account.balance < 1000 * constants.fixedPoint) {
-				return setTimeout(callback, 1000);
+				return setTimeout(callback, 100);
 			}
 
 			var now = timeHelper.getNow();
@@ -141,7 +141,7 @@ Forger.prototype.startForging = function (keypair) {
 			if (now - modules.blocks.getLastBlock().timestamp >= 60) {
 				modules.blocks.generateBlock(keypair, callback);
 			} else {
-				setTimeout(callback, 1000);
+				setTimeout(callback, 500);
 			}
 		},
 		function (err) {
