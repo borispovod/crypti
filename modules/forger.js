@@ -141,7 +141,7 @@ Forger.prototype.startForging = function (keypair) {
 			if (now - modules.blocks.getLastBlock().timestamp >= 60) {
 				modules.blocks.generateBlock(keypair, callback);
 			} else {
-				setTimeout(callback, 500);
+				setTimeout(callback, 100);
 			}
 		},
 		function (err) {
