@@ -57,11 +57,13 @@ function Accounts(cb, scope) {
 	});
 
 	router.post('/open', function (req, res) {
-		if (!req.body.secret || req.body.secret.length == 0) {
+		var secret = params.string(req.body.secret);
+
+		if (!secret || secret == 0) {
 			return res.json({success: false, error: "Provide secret key of account"});
 		}
 
-		var account = self.openAccount(req.body.secret);
+		var account = self.openAccount(secret);
 
 		return res.json({
 			success: true, account: {
@@ -77,11 +79,13 @@ function Accounts(cb, scope) {
 	});
 
 	router.get('/getBalance', function (req, res) {
-		if (!req.query.address) {
+		var address = params.string(req.query.address);
+
+		if (!address) {
 			return res.json({success: false, error: "Provide address in url"});
 		}
 
-		var account = self.getAccount(req.query.address);
+		var account = self.getAccount(address);
 		var balance = account ? account.balance : 0;
 		var unconfirmedBalance = account ? account.unconfirmedBalance : 0;
 
@@ -89,11 +93,13 @@ function Accounts(cb, scope) {
 	});
 
 	router.get('/getPublicKey', function (req, res) {
-		if (!req.query.address) {
+		var address = params.string(req.query.address);
+
+		if (!address) {
 			return res.json({success: false, error: "Provide address in url"});
 		}
 
-		var account = self.getAccount(req.query.address);
+		var account = self.getAccount(address);
 
 		if (!account || !account.publicKey) {
 			return res.json({success: false, error: "Account public key can't be found "});
@@ -103,22 +109,24 @@ function Accounts(cb, scope) {
 	});
 
 	router.post("/generatePublicKey", function (req, res) {
-		if (!req.body.secret) {
+		var secret = params.string(req.body.secret);
+
+		if (!secret) {
 			return res.json({success: false, error: "Provide secret key to generate public key"});
 		}
 
-		var account = self.openAccount(req.body.secret);
+		var account = self.openAccount(secret);
 		return res.json({success: true, publicKey: account.publicKey});
 	});
 
 	router.get("/", function (req, res) {
-		var address = req.query.address;
+		var address = params.string(req.query.address);
 
 		if (!address) {
 			return res.json({success: false, error: "Provide address in url"});
 		}
 
-		var account = self.getAccount(req.query.address);
+		var account = self.getAccount(address);
 
 		if (!account) {
 			return res.json({ success : false, error : "Account not found" });
