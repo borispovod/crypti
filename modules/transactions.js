@@ -94,16 +94,15 @@ function Transactions(cb, scope) {
 		}
 
 
-
 		return res.json({success: true, transactions: toSend});
 	});
 
 	router.put('/', function (req, res) {
-		var secret = req.body.secret,
-			amount = req.body.amount,
-			recipientId = req.body.recipientId,
-			publicKey = new Buffer(req.body.publicKey, 'hex'),
-			secondSecret = req.body.secondSecret;
+		var secret = params.string(req.body.secret),
+			amount = params.int(req.body.amount),
+			recipientId = params.string(req.body.recipientId),
+			publicKey = params.buffer(req.body.publicKey, 'hex'),
+			secondSecret = params.string(req.body.secondSecret);
 
 		var hash = crypto.createHash('sha256').update(secret, 'utf8').digest();
 		var keypair = ed.MakeKeypair(hash);
@@ -136,7 +135,11 @@ function Transactions(cb, scope) {
 
 		self.sign(secret, transaction);
 
-		if (secondSecret) {
+		if (account.secondSignature) {
+			if (!secondSecret || secondSecret.length == 0) {
+				return res.json({success: false, error: "Provide second secret key"});
+			}
+
 			self.secondSign(secondSecret, transaction);
 		}
 
@@ -364,7 +367,7 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 					switch (transaction.subtype) {
 						case 0:
 							if (!transaction.asset.signature) {
-								return cb &&  cb("Empty transaction asset for company transaction")
+								return cb && cb("Empty transaction asset for company transaction")
 							}
 							break;
 
@@ -528,28 +531,28 @@ Transactions.prototype.undo = function (transaction) {
 			// merchant transaction, first need to find merchant
 			/*var recipient = transaction.recipientId;
 
-			library.db.serialize(function () {
-				library.db.get("SELECT generatorPublicKey FROM companies WHERE address = $address", {$address: recipient}, function (err, company) {
-					if (err) {
-						return cb(err);
-					} else if (!company) {
-						return cb();
-					} else {
-						var companyCreator = modules.accounts.getAccountByPublicKey(company.generatorPublicKey);
+			 library.db.serialize(function () {
+			 library.db.get("SELECT generatorPublicKey FROM companies WHERE address = $address", {$address: recipient}, function (err, company) {
+			 if (err) {
+			 return cb(err);
+			 } else if (!company) {
+			 return cb();
+			 } else {
+			 var companyCreator = modules.accounts.getAccountByPublicKey(company.generatorPublicKey);
 
-						if (!companyCreator) {
-							return cb("Can't find company creator for address: " + recipient);
-						}
+			 if (!companyCreator) {
+			 return cb("Can't find company creator for address: " + recipient);
+			 }
 
-						// need to calculate fee
-						amount = transaction.amount + getTransactionFee(transaction, false);
-						companyCreator.addToUnconfirmedBalance(-amount);
-						companyCreator.addToBalance(-amount);
+			 // need to calculate fee
+			 amount = transaction.amount + getTransactionFee(transaction, false);
+			 companyCreator.addToUnconfirmedBalance(-amount);
+			 companyCreator.addToBalance(-amount);
 
-						return cb();
-					}
-				});
-			});*/
+			 return cb();
+			 }
+			 });
+			 });*/
 			return true;
 		}
 	} else if (transaction.type == 2) {
@@ -566,15 +569,24 @@ Transactions.prototype.undo = function (transaction) {
 }
 
 Transactions.prototype.parseTransaction = function (transaction) {
-	transaction.senderPublicKey = new Buffer(transaction.senderPublicKey);
-	transaction.signature = new Buffer(transaction.signature);
-
-	if (transaction.type == 2 && transaction.subtype == 0) {
-		transaction.asset.signature = modules.signatures.parseSignature(transaction.asset.signature);
-	}
+	transaction.id = params.string(transaction.id);
+	transaction.blockId = params.string(transaction.blockId);
+	transaction.type = params.int(transaction.type);
+	transaction.subtype = params.int(transaction.subtype);
+	transaction.timestamp = params.int(transaction.timestamp);
+	transaction.senderPublicKey = params.buffer(transaction.senderPublicKey);
+	transaction.senderId = params.string(transaction.senderId);
+	transaction.recipientId = params.string(transaction.recipientId);
+	transaction.amount = params.int(transaction.amount);
+	transaction.fee = params.int(transaction.fee);
+	transaction.signature = params.buffer(transaction.signature);
 
 	if (transaction.signSignature) {
-		transaction.signSignature = new Buffer(transaction.signSignature);
+		transaction.signSignature = params.buffer(transaction.signSignature);
+	}
+
+	if (transaction.type == 2 && transaction.subtype == 0) {
+		transaction.asset.signature = modules.signatures.parseSignature(params.object(transaction.asset.signature));
 	}
 
 	return transaction;
