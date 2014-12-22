@@ -363,7 +363,6 @@ Transport.prototype.onUnconfirmedTransaction = function (transaction) {
 }
 
 Transport.prototype.onNewBlock = function (block) {
-	library.logger.info(JSON.stringify(block));
 	self.broadcast(100, '/blocks', {block: block})
 }
 
