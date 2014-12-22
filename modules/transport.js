@@ -24,7 +24,14 @@ function Transport(cb, scope) {
 
 	router.use(function (req, res, next) {
 		// write peer...
-		console.log(req.headers);
+		modules.peer.update({
+			ip: peer.ip,
+			port: Number(req.headers['port']),
+			state: 1,
+			os: req.headers['os'],
+			sharePort: Number(!!req.headers['share-port']),
+			version: req.headers['version']
+		});
 		next();
 	});
 
@@ -253,7 +260,8 @@ function _request(peer, api, method, data, cb) {
 	var req = {
 		url: 'http://' + ip.fromLong(peer.ip) + ':' + peer.port + '/peer' + api,
 		method: method,
-		json: true
+		json: true,
+		headers : headers
 	};
 
 	if (Object.prototype.toString.call(data) == "[object Object]" || util.isArray(data)) {
