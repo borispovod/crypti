@@ -126,7 +126,7 @@ Forger.prototype.startForging = function (keypair) {
 			return !forgingStarted
 		},
 		function (callback) {
-			if (!modules.loader.loaded()) {
+			if (!modules.loader.loaded() || modules.loader.syncing()) {
 				return setTimeout(callback, 1000);
 			}
 
