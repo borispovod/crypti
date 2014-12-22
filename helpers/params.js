@@ -1,3 +1,5 @@
+var util = require('util');
+
 module.exports = {
 	int: function (val) {
 		val = parseInt(val, 10);
@@ -20,6 +22,10 @@ module.exports = {
 	object: function (val) {
 		val = Object.prototype.toString.call(val) == "[object Object]" ? val : {};
 		return val;
+	},
+
+	array: function (val) {
+		return util.isArray(val) ? val : [];
 	},
 
 	variant: function (val) {
