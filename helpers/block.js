@@ -37,7 +37,10 @@ function getBlock(raw) {
 			generatorPublicKey: new Buffer(raw.b_generatorPublicKey),
 			generatorId : getAddressByPublicKey(new Buffer(raw.b_generatorPublicKey)),
 			generationSignature: new Buffer(raw.b_generationSignature),
-			blockSignature: new Buffer(raw.b_blockSignature)
+			blockSignature: new Buffer(raw.b_blockSignature),
+			previousFee : raw.b_previousFee,
+			nextFeeVolume : raw.b_nextFeeVolume,
+			feeVolume : raw.b_feeVolume
 		}
 	}
 }
