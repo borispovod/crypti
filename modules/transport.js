@@ -25,13 +25,14 @@ function Transport(cb, scope) {
 	router.use(function (req, res, next) {
 		// write peer...
 		modules.peer.update({
-			ip: peer.ip,
+			ip: req.headers['x-forwarded-for'] || req.connection.remoteAddress,
 			port: Number(req.headers['port']),
 			state: 1,
 			os: req.headers['os'],
 			sharePort: Number(!!req.headers['share-port']),
 			version: req.headers['version']
 		});
+
 		next();
 	});
 
