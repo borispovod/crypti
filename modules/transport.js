@@ -23,14 +23,14 @@ function Transport(cb, scope) {
 	});
 
 	router.use(function (req, res, next) {
-		var ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+		var peerIp = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
 
-		if (ip == "127.0.0.1") {
+		if (peerIp == "127.0.0.1") {
 			return next();
 		}
 
 		modules.peer.update({
-			ip: ip.toLong(ip),
+			ip: ip.toLong(peerIp),
 			port: Number(req.headers['port']),
 			state: 1,
 			os: req.headers['os'],
