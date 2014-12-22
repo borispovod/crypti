@@ -20,17 +20,12 @@ webApp.controller('forgingController', ['$scope', '$rootScope', '$http', "userSe
 			})
 	}
 
-	/*
-    $scope.getInfo = function () {
-        $http.get("/api/getMiningInfo", { params : { publicKey : userService.publicKey, descOrder : true }})
-            .then(function (resp) {
-                $scope.blocks = resp.data.blocks;
-                $scope.companies = resp.data.companies;
-                $scope.totalForged = resp.data.totalForged;
-                $scope.forging = resp.data.forging;
-            });
-    }
-    */
+	$scope.getForging = function () {
+		$http.get("/api/", { })
+			.then(function (resp) {
+				
+			});
+	}
 
     $scope.infoInterval = $interval(function () {
         $scope.getBlocks();

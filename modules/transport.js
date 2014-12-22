@@ -170,6 +170,7 @@ function Transport(cb, scope) {
 		res.set(headers);
 
 		var block = params.object(req.body.block);
+
 		modules.blocks.parseBlock(block, function (err, block) {
 			if (block.previousBlock == modules.blocks.getLastBlock().id) {
 				modules.blocks.processBlock(block, true, function (err) {
@@ -222,9 +223,7 @@ function Transport(cb, scope) {
 	router.post("/transactions", function (req, res) {
 		res.set(headers);
 
-		var transaction = params.object(req.body.transaction);
-
-		transaction = modules.transactions.parseTransaction(transaction);
+		var transaction = modules.transactions.parseTransaction(req.body.transaction);
 		modules.transactions.processUnconfirmedTransaction(transaction, true);
 
 		return res.sendStatus(200);
