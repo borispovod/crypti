@@ -22,6 +22,12 @@ function Transport(cb, scope) {
 		res.status(500).send({success: false, error: 'loading'});
 	});
 
+	router.use(function (req, res, next) {
+		// write peer...
+		console.log(req.headers);
+		next();
+	});
+
 	router.get('/list', function (req, res) {
 		res.set(headers);
 		modules.peer.list(100, function (err, peers) {
