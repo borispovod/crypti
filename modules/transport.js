@@ -24,6 +24,7 @@ function Transport(cb, scope) {
 
 	router.use(function (req, res, next) {
 		var ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+
 		if (ip == "127.0.0.1") {
 			return next();
 		}
