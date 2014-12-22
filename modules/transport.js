@@ -145,53 +145,54 @@ function Transport(cb, scope) {
 		modules.blocks.loadBlocksPart({limit: 1440, lastId: lastBlockId}, function (err, blocks) {
 			return res.status(200).json({blocks: !err ? blocks : []});
 		});
-	})
-		.post(function (req, res) {
-			res.set(headers);
+	});
 
-			var block = params.object(req.body.block);
-			modules.blocks.parseBlock(block, function (err, block) {
-				if (block.previousBlock == modules.blocks.getLastBlock().id) {
-					modules.blocks.processBlock(block, true, function () {
-						res.sendStatus(200);
-					});
-				} else if (block.previousBlock == modules.blocks.getLastBlock().previousBlock) {
-					library.db.get("SELECT * FROM blocks WHERE id=$id", {$id: block.previousBlock}, function (err, previousBlock) {
-						if (err || !previousBlock) {
-							library.logger.error(err ? err.toString() : "Block " + block.previousBlock + " not found");
+	router.post("/blocks", function (req, res) {
+		res.set(headers);
+
+		var block = params.object(req.body.block);
+		modules.blocks.parseBlock(block, function (err, block) {
+			if (block.previousBlock == modules.blocks.getLastBlock().id) {
+				modules.blocks.processBlock(block, true, function (err) {
+					res.sendStatus(200);
+				});
+			} else if (block.previousBlock == modules.blocks.getLastBlock().previousBlock) {
+				library.db.get("SELECT * FROM blocks WHERE id=$id", {$id: block.previousBlock}, function (err, previousBlock) {
+					if (err || !previousBlock) {
+						library.logger.error(err ? err.toString() : "Block " + block.previousBlock + " not found");
+						return res.sendStatus(200);
+					}
+
+					var lastBlock = modules.blocks.getLastBlock();
+
+					var hitA = modules.blocks.calculateHit(lastBlock, previousBlock),
+						hitB = modules.blocks.calculateHit(block, previousBlock);
+
+					if (hitA.ge(hitB)) {
+						return res.sendStatus(200);
+					}
+
+					modules.blocks.popLastBlock(function (err) {
+						if (err) {
+							library.logger.error(err.toString());
 							return res.sendStatus(200);
 						}
 
-						var lastBlock = modules.blocks.getLastBlock();
-
-						var hitA = modules.blocks.calculateHit(lastBlock, previousBlock),
-							hitB = modules.blocks.calculateHit(block, previousBlock);
-
-						if (hitA.ge(hitB)) {
-							return res.sendStatus(200);
-						}
-
-						modules.blocks.popLastBlock(function (err) {
+						modules.blocks.processBlock(block, true, function (err) {
 							if (err) {
-								library.logger.error(err.toString());
-								return res.sendStatus(200);
+								modules.blocks.processBlock(lastBlock);
 							}
 
-							modules.blocks.processBlock(block, true, function (err) {
-								if (err) {
-									modules.blocks.processBlock(lastBlock);
-								}
-
-								return res.sendStatus(200);
-							})
-						});
+							return res.sendStatus(200);
+						})
 					});
-				} else {
-					return res.sendStatus(200);
-				}
-			});
-
+				});
+			} else {
+				return res.sendStatus(200);
+			}
 		});
+
+	});
 
 	router.get("/transactions", function (req, res) {
 			res.set(headers);
@@ -362,6 +363,7 @@ Transport.prototype.onUnconfirmedTransaction = function (transaction) {
 }
 
 Transport.prototype.onNewBlock = function (block) {
+	library.logger.info(JSON.stringify(block));
 	self.broadcast(100, '/blocks', {block: block})
 }
 

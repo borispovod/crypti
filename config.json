@@ -4,8 +4,8 @@
     "serveHttpAPI": true,
     "serveHttpWallet": true,
     "version": "0.1.8",
-    "fileLogLevel": "debug",
-	"consoleLogLevel" : "trace",
+    "fileLogLevel": "info",
+	"consoleLogLevel" : "info",
     "sharePort": true,
     "adminPanel": {
         "whiteList": [
