@@ -1,7 +1,8 @@
 var async = require('async');
 var Router = require('../helpers/router.js');
 var util = require('util');
-var genesisBlock = require("../helpers/genesisblock.js")
+var genesisBlock = require("../helpers/genesisblock.js");
+var ip = require("ip");
 
 //private
 var modules, library, self, loaded, sync, lastBlock = genesisBlock;
@@ -96,6 +97,10 @@ Loader.prototype.updatePeerList = function (cb) {
 	modules.transport.getFromRandomPeer('/list', function (err, data) {
 		if (!err) {
 			async.eachLimit(data.body.peers, 2, function (peer, cb) {
+				if (typeof peer.ip != "string" || ip.toLong("127.0.0.1") == peer.ip) {
+					return cb();
+				}
+
 				modules.peer.update(peer, cb);
 			}, cb)
 		} else {
