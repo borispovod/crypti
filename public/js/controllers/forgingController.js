@@ -20,25 +20,30 @@ webApp.controller('forgingController', ['$scope', '$rootScope', '$http', "userSe
 			})
 	}
 
-	/*
-    $scope.getInfo = function () {
-        $http.get("/api/getMiningInfo", { params : { publicKey : userService.publicKey, descOrder : true }})
-            .then(function (resp) {
-                $scope.blocks = resp.data.blocks;
-                $scope.companies = resp.data.companies;
-                $scope.totalForged = resp.data.totalForged;
-                $scope.forging = resp.data.forging;
-            });
-    }
-    */
+	$scope.getForging = function () {
+		$http.get("/api/forging")
+			.then(function (resp) {
+				if (resp.data.enabled) {
+					if (resp.data.address == userService.address) {
+						$scope.forging = true;
+					} else {
+						$scope.forging = false;
+					}
+				} else {
+					$scope.forging = false;
+				}
+			});
+	}
 
     $scope.infoInterval = $interval(function () {
         $scope.getBlocks();
 		$scope.getForgedAmount();
+		$scope.getForging();
     }, 1000 * 30);
 
     $scope.getBlocks();
 	$scope.getForgedAmount();
+	$scope.getForging();
 
     $scope.newCompany = function () {
         $scope.companyModal = companyModal.activate({

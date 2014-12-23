@@ -570,8 +570,10 @@ Blocks.prototype.getCommonBlock = function (peer, milestoneBlock, cb) {
 		function (next) {
 			modules.transport.getFromPeer(peer, "/blocks/ids?id=" + tempBlock, function (err, data) {
 				if (err || data.body.error) {
-					return next(err || data.body.error);
+					return next(err || params.string(data.body.error));
 				}
+
+				data.body.ids = params.array(data.body.ids);
 
 				if (data.body.ids.length == 0) {
 					commonBlock = tempBlock;
@@ -631,8 +633,10 @@ Blocks.prototype.getMilestoneBlock = function (peer, cb) {
 
 			modules.transport.getFromPeer(peer, url, function (err, data) {
 				if (err || data.body.error) {
-					return next(err || data.body.error);
+					return next(err || params.string(data.body.error));
 				}
+
+				data.body.milestoneBlockIds = params.array(data.body.milestoneBlockIds);
 
 				if (data.body.milestoneBlockIds.length == 0) {
 					milestoneBlock = genesisblock.blockId;
@@ -718,7 +722,7 @@ Blocks.prototype.getForgedByAccount = function (generatorPublicKey, cb) {
 			return cb(err);
 		}
 
-		cb(null, row.sum);
+		cb(null, row? row.sum : 0);
 	});
 }
 
@@ -1011,7 +1015,9 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 						}
 
 						if (broadcast) {
-							library.bus.message('newBlock', block)
+							setTimeout(function () {
+								library.bus.message('newBlock', block)
+							}, 1000);
 						}
 
 						lastBlock = block;
@@ -1146,8 +1152,10 @@ Blocks.prototype.loadBlocksFromPeer = function (peer, lastBlockId, cb) {
 		function (next) {
 			modules.transport.getFromPeer(peer, '/blocks?lastBlockId=' + lastBlockId, function (err, data) {
 				if (err || data.body.error) {
-					return next(err || data.body.error);
+					return next(err || params.string(data.body.error));
 				}
+
+				data.body.blocks = params.array(data.body.blocks);
 
 				if (data.body.blocks.length == 0) {
 					loaded = true;
@@ -1259,17 +1267,46 @@ Blocks.prototype.deleteBlock = function (blockId, cb) {
 }
 
 Blocks.prototype.parseBlock = function (block, cb) {
-	block.generatorPublicKey = new Buffer(block.generatorPublicKey);
-	block.payloadHash = new Buffer(block.payloadHash);
-	block.blockSignature = new Buffer(block.blockSignature);
-	block.generationSignature = new Buffer(block.generationSignature);
+	block.id = params.string(block.id);
+	block.version = params.int(block.version);
+	block.timestamp = params.int(block.timestamp);
+	block.height = params.int(block.height);
+	block.previousBlock = params.string(block.previousBlock);
+	block.numberOfRequests = params.int(block.numberOfRequests);
+	block.numberOfTransactions = params.int(block.numberOfTransactions);
+	block.numberOfConfirmations = params.int(block.numberOfConfirmations);
+	block.totalAmount = params.int(block.totalAmount);
+	block.totalFee = params.int(block.totalFee);
+	block.payloadLength = params.int(block.payloadLength);
+	block.requestsLength = params.int(block.requestsLength);
+	block.confirmationsLength = params.int(block.confirmationsLength);
+	block.payloadHash = params.buffer(block.payloadHash);
+	block.generatorPublicKey = params.buffer(block.generatorPublicKey);
+	block.generationSignature = params.buffer(block.generationSignature);
+	block.blockSignature = params.buffer(block.blockSignature);
+	block.transactions = params.array(block.transactions);
+	block.requests = params.array(block.requests);
 
-	async.eachLimit(block.transactions, 10, function (transaction, cb) {
-		transaction = modules.transactions.parseTransaction(transaction);
-		setImmediate(cb);
-	}, function () {
-		cb(null, block);
+	async.parallel([
+		function (done) {
+			async.eachLimit(block.transactions, 10, function (transaction, cb) {
+				transaction = modules.transactions.parseTransaction(params.object(transaction));
+				cb();
+			}, done);
+		},
+		function (done) {
+			async.eachLimit(block.requests, 10, function (request, cb) {
+				request = params.object(request);
+				request.id = params.string(request.id);
+				request.blockId = params.string(request.blockId);
+				request.address = params.string(request.address);
+				cb();
+			}, done);
+		}
+	], function (err) {
+		cb(err, block);
 	});
+
 }
 
 // generate block
