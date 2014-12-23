@@ -70,14 +70,14 @@ function Signatures(cb, scope) {
 
 		var signature = self.newSignature(secret, secondSecret);
 		var transaction = {
-			type : 2,
-			subtype : 0,
-			amount : 0,
-			recipientId : null,
-			senderPublicKey : account.publicKey,
+			type: 2,
+			subtype: 0,
+			amount: 0,
+			recipientId: null,
+			senderPublicKey: account.publicKey,
 			timestamp: timeHelper.getNow(),
-			asset : {
-				signature : signature
+			asset: {
+				signature: signature
 			}
 		};
 
@@ -88,9 +88,8 @@ function Signatures(cb, scope) {
 		modules.transactions.processUnconfirmedTransaction(transaction, true, function (err) {
 			if (err) {
 				return res.json({success: false, error: err});
-			} else {
-				return res.json({success: true, transaction: transaction});
 			}
+			res.json({success: true, transaction: transaction});
 		});
 	});
 
@@ -100,7 +99,7 @@ function Signatures(cb, scope) {
 
 	library.app.use('/api/signatures', router);
 	library.app.use(function (err, req, res, next) {
-		library.logger.error('/api/signatures', err)
+		err && library.logger.error('/api/signatures', err)
 		if (!err) return next();
 		res.status(500).send({success: false, error: err});
 	});
@@ -116,9 +115,9 @@ Signatures.prototype.newSignature = function (secret, secondSecret) {
 	var keypair2 = ed.MakeKeypair(hash2);
 
 	var signature = {
-		timestamp : timeHelper.getNow(),
-		publicKey : keypair2.publicKey,
-		generatorPublicKey : keypair1.publicKey
+		timestamp: timeHelper.getNow(),
+		publicKey: keypair2.publicKey,
+		generatorPublicKey: keypair1.publicKey
 	}
 
 	signature.signature = this.sign(signature, secondSecret);
@@ -159,8 +158,12 @@ Signatures.prototype.get = function (id, cb) {
 	stmt.bind(id);
 
 	stmt.get(function (err, row) {
-		var signature = row && blockHelper.getSignature(row);
-		cb(err, signature);
+		if (err){
+			return cb(err);
+		}
+
+		var signature = blockHelper.getSignature(row);
+		cb(null, signature);
 	});
 }
 
