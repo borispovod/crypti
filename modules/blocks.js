@@ -570,8 +570,10 @@ Blocks.prototype.getCommonBlock = function (peer, milestoneBlock, cb) {
 		function (next) {
 			modules.transport.getFromPeer(peer, "/blocks/ids?id=" + tempBlock, function (err, data) {
 				if (err || data.body.error) {
-					return next(err || data.body.error);
+					return next(err || params.string(data.body.error));
 				}
+
+				data.body.ids = params.array(data.body.ids);
 
 				if (data.body.ids.length == 0) {
 					commonBlock = tempBlock;
@@ -631,8 +633,10 @@ Blocks.prototype.getMilestoneBlock = function (peer, cb) {
 
 			modules.transport.getFromPeer(peer, url, function (err, data) {
 				if (err || data.body.error) {
-					return next(err || data.body.error);
+					return next(err || params.string(data.body.error));
 				}
+
+				data.body.milestoneBlockIds = params.array(data.body.milestoneBlockIds);
 
 				if (data.body.milestoneBlockIds.length == 0) {
 					milestoneBlock = genesisblock.blockId;
@@ -718,7 +722,7 @@ Blocks.prototype.getForgedByAccount = function (generatorPublicKey, cb) {
 			return cb(err);
 		}
 
-		cb(null, row.sum);
+		cb(null, row? row.sum : 0);
 	});
 }
 
@@ -1011,7 +1015,9 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 						}
 
 						if (broadcast) {
-							library.bus.message('newBlock', block)
+							setTimeout(function () {
+								library.bus.message('newBlock', block)
+							}, 1000);
 						}
 
 						lastBlock = block;
@@ -1146,8 +1152,10 @@ Blocks.prototype.loadBlocksFromPeer = function (peer, lastBlockId, cb) {
 		function (next) {
 			modules.transport.getFromPeer(peer, '/blocks?lastBlockId=' + lastBlockId, function (err, data) {
 				if (err || data.body.error) {
-					return next(err || data.body.error);
+					return next(err || params.string(data.body.error));
 				}
+
+				data.body.blocks = params.array(data.body.blocks);
 
 				if (data.body.blocks.length == 0) {
 					loaded = true;

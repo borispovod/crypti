@@ -49,7 +49,12 @@ function Forger(cb, scope) {
 		})
 	} else {
 		router.get('/', function (req, res) {
-			return res.status(200).json({success: true, enabled: forgingStarted || false});
+
+			if (!forgingStarted) {
+				return res.status(200).json({success: true, enabled: false});
+			} else {
+				return res.json({success: true, enabled: true, address: modules.accounts.getAddressByPublicKey(keypair.publicKey), publicKey: keypair.publicKey.toString('hex')});
+			}
 		})
 	}
 
@@ -100,6 +105,7 @@ function Forger(cb, scope) {
 
 		return res.json({success: true, address: address});
 	});
+
 
 	router.use(function (req, res, next) {
 		res.status(500).send({success: false, error: 'api not found'});
