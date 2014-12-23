@@ -23,7 +23,7 @@ function Peer(cb, scope) {
 			if (err) {
 				return res.json({success: false, error: "Peers not found"});
 			}
-			return res.json({success: true, peers: peers});
+			res.json({success: true, peers: peers});
 		});
 	});
 
@@ -32,7 +32,7 @@ function Peer(cb, scope) {
 			if (err) {
 				return res.json({success: false, error: "Peers not found"});
 			}
-			return res.json({success: true, peers: peers});
+			res.json({success: true, peers: peers});
 		});
 	});
 
@@ -41,7 +41,7 @@ function Peer(cb, scope) {
 			if (err) {
 				return res.json({success: false, error: "Peers not found"});
 			}
-			return res.json({success: true, peers: peers});
+			res.json({success: true, peers: peers});
 		});
 	});
 
@@ -50,7 +50,7 @@ function Peer(cb, scope) {
 			if (err) {
 				return res.json({success: false, error: "Peers not found"});
 			}
-			return res.json({success: true, peers: peers});
+			res.json({success: true, peers: peers});
 		});
 	});
 
@@ -60,8 +60,8 @@ function Peer(cb, scope) {
 
 	library.app.use('/api/peers', router);
 	library.app.use(function (err, req, res, next) {
-		library.logger.error('/api/peers', err)
 		if (!err) return next();
+		library.logger.error('/api/peers', err)
 		res.status(500).send({success: false, error: err});
 	});
 
@@ -105,7 +105,7 @@ Peer.prototype.state = function (ip, port, state, clock, cb) {
 	var st = library.db.prepare("UPDATE peers SET state = $state, clock = $clock WHERE ip = $ip and port = $port;");
 	st.bind({$state: state, $clock: clock, $ip: ip, $port: port});
 	st.run(function (err) {
-		err && console.log(err);
+		err && library.logger.error('Peer#state', err);
 		cb && cb()
 	});
 }
@@ -131,7 +131,7 @@ Peer.prototype.update = function (peer, cb) {
 		st.run();
 
 		st.finalize(function (err) {
-			err && console.log(err);
+			err && library.logger.error('Peer#update', err);
 			cb && cb()
 		});
 	});
@@ -141,7 +141,11 @@ Peer.prototype.count = function (cb) {
 	var params = {};
 
 	library.db.get("select count(rowid) as count from peers", params, function (err, res) {
-		cb(err, res.count)
+		if (err){
+			library.logger.error('Peer#count', err);
+			return cb(err);
+		}
+		cb(null, res.count)
 	})
 }
 

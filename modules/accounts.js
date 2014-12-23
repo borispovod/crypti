@@ -143,8 +143,8 @@ function Accounts(cb, scope) {
 
 	library.app.use('/api/accounts', router);
 	library.app.use(function (err, req, res, next) {
-		library.logger.error('/api/accounts', err)
 		if (!err) return next();
+		library.logger.error('/api/accounts', err)
 		res.status(500).send({success: false, error: err});
 	});
 
