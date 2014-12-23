@@ -9,6 +9,7 @@ var params = require('../helpers/params.js');
 //private
 var modules, library, self;
 var headers = {};
+var apiReady = false;
 
 //constructor
 function Transport(cb, scope) {
@@ -18,7 +19,7 @@ function Transport(cb, scope) {
 	var router = new Router();
 
 	router.use(function (req, res, next) {
-		if (modules) return next();
+		if (modules && apiReady) return next();
 		res.status(500).send({success: false, error: 'loading'});
 	});
 
@@ -337,7 +338,7 @@ Transport.prototype.getFromPeer = function (peer, method, cb) {
 }
 
 Transport.prototype.onBlockchainReady = function () {
-
+	apiReady = true;
 
 	async.forEach(library.config.peers.list, function (peer, cb) {
 		library.db.get("SELECT ip FROM peers WHERE ip = $ip", {$ip: ip.toLong(peer.ip)}, function (err, exists) {
