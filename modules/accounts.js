@@ -17,7 +17,7 @@ function Account(address, publicKey, balance, unconfirmedBalance) {
 	this.unconfirmedBalance = unconfirmedBalance || 0;
 	this.unconfirmedSignature = false;
 	this.secondSignature = false;
-	this.secondPublicKey = false;
+	this.secondPublicKey = null;
 }
 
 Account.prototype.setUnconfirmedSignature = function (unconfirmedSignature) {
