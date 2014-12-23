@@ -109,7 +109,9 @@ Loader.prototype.updatePeerList = function (cb) {
 
 		var peers = params.array(data.body.peers);
 		async.eachLimit(peers, 2, function (peer, cb) {
-			if (typeof peer.ip == "string" || ip.toLong("127.0.0.1") == peer.ip) {
+			peer = modules.peer.parsePeer(peer);
+
+			if (ip.toLong("127.0.0.1") == peer.ip) {
 				return setImmediate(cb);
 			}
 
@@ -123,7 +125,7 @@ Loader.prototype.loadBlocks = function (cb) {
 		if (err) {
 			return cb();
 		}
-		if (modules.blocks.getWeight().lt(data.body.weight)) {
+		if (modules.blocks.getWeight().lt(params.string(data.body.weight))) {
 			sync = true;
 			if (modules.blocks.getLastBlock().id != genesisBlock.blockId) {
 				modules.blocks.getMilestoneBlock(data.peer, function (err, milestoneBlock) {
@@ -136,7 +138,6 @@ Loader.prototype.loadBlocks = function (cb) {
 						}
 
 						if (modules.blocks.getLastBlock().id != commonBlock) {
-							// resolve fork
 							library.db.get("SELECT height FROM blocks WHERE id=$id", {$id: commonBlock}, function (err, block) {
 								if (err || !block) {
 									return cb(err || 'block is null');
@@ -146,6 +147,7 @@ Loader.prototype.loadBlocks = function (cb) {
 									modules.peer.state(data.peer.ip, data.peer.port, 0, 60);
 									cb();
 								} else {
+									library.logger.info("Resolve fork before: " + commonBlock);
 									modules.blocks.deleteBlocksBefore(commonBlock, function (err) {
 										if (err) {
 											return cb(err);

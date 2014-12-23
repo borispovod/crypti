@@ -49,12 +49,18 @@ function Forger(cb, scope) {
 		})
 	} else {
 		router.get('/', function (req, res) {
-			return res.status(200).json({success: true, enabled: forgingStarted || false});
+
+			if (!forgingStarted) {
+				return res.status(200).json({success: true, enabled: false});
+			} else {
+				return res.json({success: true, enabled: true, address: modules.accounts.getAddressByPublicKey(keypair.publicKey), publicKey: keypair.publicKey.toString('hex')});
+			}
 		})
 	}
 
 	router.post('/enable', function (req, res) {
-		if (!req.body.secret || req.body.secret.length == 0) {
+		var secret = params.string(req.body.secret);
+		if (!secret || secret.length == 0) {
 			return res.json({success: false, error: "Provide secret key"});
 		}
 
@@ -62,13 +68,16 @@ function Forger(cb, scope) {
 			return res.json({success: false, error: "Forging already started"});
 		}
 
-		keypair = ed.MakeKeypair(crypto.createHash('sha256').update(req.body.secret, 'utf').digest());
+		keypair = ed.MakeKeypair(crypto.createHash('sha256').update(secret, 'utf').digest());
 		self.startForging(keypair);
 
 		var address = modules.accounts.getAddressByPublicKey(keypair.publicKey);
 
-		if (req.body.saveToConfig) {
-			configHelper.saveSecret(req.body.secret, function (err) {
+
+		var saveToConfig = params.bool(req.body.saveToConfig);
+
+		if (saveToConfig) {
+			configHelper.saveSecret(secret, function (err) {
 				return res.json({success: true, address: address});
 			})
 		} else {
@@ -77,7 +86,9 @@ function Forger(cb, scope) {
 	});
 
 	router.post('/disable', function (req, res) {
-		if (!req.body.secret || req.body.secret.length == 0) {
+		var secret = params.string(req.body.secret);
+
+		if (!secret || secret.length == 0) {
 			return res.json({success: false, error: "Provide secret key"});
 		}
 
@@ -85,7 +96,7 @@ function Forger(cb, scope) {
 			return res.json({success: false, error: "Forging already disabled"});
 		}
 
-		if (keypair.privateKey.toString('hex') != ed.MakeKeypair(crypto.createHash('sha256').update(req.body.secret, 'utf').digest()).privateKey.toString('hex')) {
+		if (keypair.privateKey.toString('hex') != ed.MakeKeypair(crypto.createHash('sha256').update(secret, 'utf').digest()).privateKey.toString('hex')) {
 			return res.json({success: false, error: "Provide valid secret key to stop forging"});
 		}
 
@@ -94,6 +105,7 @@ function Forger(cb, scope) {
 
 		return res.json({success: true, address: address});
 	});
+
 
 	router.use(function (req, res, next) {
 		res.status(500).send({success: false, error: 'api not found'});

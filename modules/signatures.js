@@ -41,9 +41,9 @@ function Signatures(cb, scope) {
 	});
 
 	router.put('/', function (req, res) {
-		var secret = req.body.secret,
-			secondSecret = req.body.secondSecret,
-			publicKey = new Buffer(req.body.publicKey, 'hex');
+		var secret = params.string(req.body.secret),
+			secondSecret = params.string(req.body.secondSecret),
+			publicKey = params.buffer(req.body.publicKey, 'hex');
 
 		var hash = crypto.createHash('sha256').update(secret, 'utf8').digest();
 		var keypair = ed.MakeKeypair(hash);
@@ -64,7 +64,7 @@ function Signatures(cb, scope) {
 			return res.json({success: false, error: "Open account to make transaction"});
 		}
 
-		if (account.secondSignature) {
+		if (account.secondSignature || account.unconfirmedSignature) {
 			return res.json({success: false, error: "Second signature already enabled"});
 		}
 
@@ -142,10 +142,13 @@ Signatures.prototype.secondSignature = function (signature, secret) {
 }
 
 Signatures.prototype.parseSignature = function (signature) {
-	signature.publicKey = new Buffer(signature.publicKey);
-	signature.generatorPublicKey = new Buffer(signature.generatorPublicKey);
-	signature.signature = new Buffer(signature.signature);
-	signature.generationSignature = new Buffer(signature.generationSignature);
+	signature.id = params.string(signature.id);
+	signature.transactionId = params.string(signature.transactionId);
+	signature.timestamp = params.int(signature.timestamp);
+	signature.publicKey = params.buffer(signature.publicKey);
+	signature.generatorPublicKey = params.buffer(signature.generatorPublicKey);
+	signature.signature = params.buffer(signature.signature);
+	signature.generationSignature = params.buffer(signature.generationSignature);
 
 	return signature;
 }
