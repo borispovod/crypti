@@ -435,8 +435,9 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 									break;
 								}
 
-								if (__transaction.signSignature) {
-									var sender = modules.accounts.getAccountByPublicKey(__transaction.senderPublicKey);
+								var sender = modules.accounts.getAccountByPublicKey(__transaction.senderPublicKey);
+
+								if (sender.secondSignature) {
 									if (!modules.transactions.verifySecondSignature(__transaction, sender.secondPublicKey)) {
 										err = {
 											message: "Can't verify second transaction: " + __transaction.id,
@@ -1186,6 +1187,7 @@ Blocks.prototype.loadBlocksFromPeer = function (peer, lastBlockId, cb) {
 
 Blocks.prototype.deleteBlocksBefore = function (blockId, cb) {
 	var self = this;
+	library.logger.info("Last block: " + lastBlock.id);
 
 	async.whilst(
 		function () {

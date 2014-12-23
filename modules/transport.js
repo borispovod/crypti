@@ -170,12 +170,13 @@ function Transport(cb, scope) {
 
 		var block = params.object(req.body.block);
 
+
 		modules.blocks.parseBlock(block, function (err, block) {
 			if (block.previousBlock == modules.blocks.getLastBlock().id) {
 				modules.blocks.processBlock(block, true, function (err) {
 					res.sendStatus(200);
 				});
-			} else if (block.previousBlock == modules.blocks.getLastBlock().previousBlock) {
+			} else if (block.previousBlock == modules.blocks.getLastBlock().previousBlock && block.id != modules.blocks.getLastBlock().id) {
 				library.db.get("SELECT * FROM blocks WHERE id=$id", {$id: block.previousBlock}, function (err, previousBlock) {
 					if (err || !previousBlock) {
 						library.logger.error(err ? err.toString() : "Block " + block.previousBlock + " not found");
