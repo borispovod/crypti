@@ -59,7 +59,7 @@ function Accounts(cb, scope) {
 	router.post('/open', function (req, res) {
 		var secret = params.string(req.body.secret);
 
-		if (!secret || secret == 0) {
+		if (!secret) {
 			return res.json({success: false, error: "Provide secret key of account"});
 		}
 
