@@ -21,19 +21,29 @@ webApp.controller('forgingController', ['$scope', '$rootScope', '$http', "userSe
 	}
 
 	$scope.getForging = function () {
-		$http.get("/api/", { })
+		$http.get("/api/forging")
 			.then(function (resp) {
-				
+				if (resp.data.enabled) {
+					if (resp.data.address == userService.address) {
+						$scope.forging = true;
+					} else {
+						$scope.forging = false;
+					}
+				} else {
+					$scope.forging = false;
+				}
 			});
 	}
 
     $scope.infoInterval = $interval(function () {
         $scope.getBlocks();
 		$scope.getForgedAmount();
+		$scope.getForging();
     }, 1000 * 30);
 
     $scope.getBlocks();
 	$scope.getForgedAmount();
+	$scope.getForging();
 
     $scope.newCompany = function () {
         $scope.companyModal = companyModal.activate({
