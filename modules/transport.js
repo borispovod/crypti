@@ -57,17 +57,14 @@ function Transport(cb, scope) {
 
 		library.db.all("SELECT id FROM blocks WHERE height > (SELECT height FROM blocks where id=$id) LIMIT 1440", {$id: id}, function (err, blocks) {
 			if (err) {
-				console.log(err);
 				return res.status(200).json({success: false, error: "Internal sql error"});
-			} else {
-				var ids = [];
-
-				for (var i = 0; i < blocks.length; i++) {
-					ids.push(blocks[i].id);
-				}
-
-				return res.status(200).json({ids: ids});
 			}
+
+			var ids = [];
+			for (var i = 0; i < blocks.length; i++) {
+				ids.push(blocks[i].id);
+			}
+			res.status(200).json({ids: ids});
 		});
 	});
 
@@ -91,9 +88,10 @@ function Transport(cb, scope) {
 				if (lastMilestoneBlockId) {
 					library.db.get("SELECT height FROM blocks WHERE id=$id", {$id: lastMilestoneBlockId}, function (err, block) {
 						if (err) {
-							console.log(err);
-							cb("Internal sql error");
-						} else if (!block) {
+							return cb("Internal sql error");
+						}
+
+						if (!block) {
 							cb("Can't find block: " + lastMilestoneBlockId);
 						} else {
 							height = block.height;
@@ -116,9 +114,10 @@ function Transport(cb, scope) {
 			} else {
 				library.db.get("SELECT id FROM blocks WHERE height = $height", {$height: height}, function (err, block) {
 					if (err) {
-						console.log(err);
-						res.status(200).json({success: false, error: "Internal sql error"});
-					} else if (!block) {
+						return res.status(200).json({success: false, error: "Internal sql error"});
+					}
+
+					if (!block) {
 						res.status(200).json({milestoneBlockIds: milestoneBlockIds});
 					} else {
 						blockId = block.id;
@@ -143,10 +142,10 @@ function Transport(cb, scope) {
 							},
 							function (err) {
 								if (err) {
-									res.status(200).json({success: false, error: err});
-								} else {
-									res.status(200).json({milestoneBlockIds: milestoneBlockIds});
+									return res.status(200).json({success: false, error: err});
 								}
+
+								res.status(200).json({milestoneBlockIds: milestoneBlockIds});
 							}
 						)
 					}
@@ -194,7 +193,7 @@ function Transport(cb, scope) {
 
 					modules.blocks.popLastBlock(function (err) {
 						if (err) {
-							library.logger.error(err.toString());
+							library.logger.error('popLastBlock', err);
 							return res.sendStatus(200);
 						}
 
@@ -203,22 +202,22 @@ function Transport(cb, scope) {
 								modules.blocks.processBlock(lastBlock);
 							}
 
-							return res.sendStatus(200);
+							res.sendStatus(200);
 						})
 					});
 				});
 			} else {
-				return res.sendStatus(200);
+				res.sendStatus(200);
 			}
 		});
 
 	});
 
 	router.get("/transactions", function (req, res) {
-			res.set(headers);
-			// need to process headers from peer
-			return res.status(200).json({transactions: modules.transactions.getUnconfirmedTransactions()});
-		});
+		res.set(headers);
+		// need to process headers from peer
+		res.status(200).json({transactions: modules.transactions.getUnconfirmedTransactions()});
+	});
 
 	router.post("/transactions", function (req, res) {
 		res.set(headers);
@@ -226,12 +225,12 @@ function Transport(cb, scope) {
 		var transaction = modules.transactions.parseTransaction(req.body.transaction);
 		modules.transactions.processUnconfirmedTransaction(transaction, true);
 
-		return res.sendStatus(200);
+		res.sendStatus(200);
 	});
 
 	router.get('/weight', function (req, res) {
 		res.set(headers);
-		return res.status(200).json({weight: modules.blocks.getWeight().toString()});
+		res.status(200).json({weight: modules.blocks.getWeight().toString()});
 	});
 
 	router.use(function (req, res, next) {
@@ -246,7 +245,7 @@ function Transport(cb, scope) {
 		res.status(500).send({success: false, error: err});
 	});
 
-	cb(null, this);
+	cb(null, self);
 }
 
 //public
@@ -266,8 +265,10 @@ function _request(peer, api, method, data, cb) {
 		url: 'http://' + ip.fromLong(peer.ip) + ':' + peer.port + '/peer' + api,
 		method: method,
 		json: true,
-		headers : headers
+		headers: headers
 	};
+
+	library.logger.trace('request', req.url)
 
 	if (Object.prototype.toString.call(data) == "[object Object]" || util.isArray(data)) {
 		req.json = data;
@@ -275,27 +276,23 @@ function _request(peer, api, method, data, cb) {
 		req.body = data;
 	}
 
-	if (cb) {
-		request(req, function (err, response, body) {
-			library.logger.trace(req.url, body);
-			if (!err && response.statusCode == 200) {
-				modules.peer.update({
-					ip: peer.ip,
-					port: Number(response.headers['port']),
-					state: 1,
-					os: response.headers['os'],
-					sharePort: Number(!!response.headers['share-port']),
-					version: response.headers['version']
-				});
-				cb(null, body);
-			} else {
-				modules.peer.state(peer.ip, peer.port, 2, 10);
-				cb(err || response);
-			}
+	request(req, function (err, response, body) {
+		if (err || response.statusCode != 200) {
+			library.logger.debug('request', {url: req.url, statusCode: response ? response.statusCode : 'unknown', err: err});
+			modules.peer.state(peer.ip, peer.port, 2, 10);
+			cb && cb(err || ('request status code' + response.statusCode));
+			return;
+		}
+		modules.peer.update({
+			ip: peer.ip,
+			port: Number(response.headers['port']),
+			state: 1,
+			os: response.headers['os'],
+			sharePort: Number(!!response.headers['share-port']),
+			version: response.headers['version']
 		});
-	} else {
-		request(req);
-	}
+		cb && cb(null, body);
+	});
 }
 
 Transport.prototype.broadcast = function (peersCount, method, data, cb) {
@@ -345,7 +342,9 @@ Transport.prototype.onBlockchainReady = function () {
 		library.db.get("SELECT ip FROM peers WHERE ip = $ip", {$ip: ip.toLong(peer.ip)}, function (err, exists) {
 			if (err) {
 				return cb(err);
-			} else if (!exists) {
+			}
+
+			if (!exists) {
 				var st = library.db.prepare("INSERT INTO peers(ip, port, state, sharePort) VALUES($ip, $port, $state, $sharePort)");
 				st.bind({
 					$ip: ip.toLong(peer.ip),
@@ -357,13 +356,13 @@ Transport.prototype.onBlockchainReady = function () {
 					cb(err);
 				});
 			} else {
-				return cb();
+				cb();
 			}
 		});
 
 	}, function (err) {
 		if (err) {
-			library.logger.error(err.toString());
+			library.logger.error('onBlockchainReady', err);
 		}
 
 		modules.peer.count(function (err, count) {

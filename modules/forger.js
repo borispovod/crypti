@@ -152,8 +152,7 @@ Forger.prototype.startForging = function (keypair) {
 		},
 		function (err) {
 			if (err) {
-				console.log(err);
-				library.logger.error("Problem in block generation: " + err);
+				library.logger.error("Problem in block generation", err);
 				self.stopForging();
 			}
 		}
