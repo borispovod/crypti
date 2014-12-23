@@ -846,7 +846,7 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 							totalFee += transaction.fee;
 							appliedTransactions[transaction.id] = transaction;
 							payloadHash.update(transactionHelper.getBytes(transaction));
-							return cb();
+							return setImmediate(cb);
 						}
 
 						library.db.get("SELECT id FROM trs WHERE id=$id", {$id: transaction.id}, function (err, tId) {
@@ -907,7 +907,7 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 								totalAmount += transaction.amount;
 								totalFee += transaction.fee;
 
-								cb();
+								setImmediate(cb);
 							}
 						});
 					}, done);
@@ -1244,7 +1244,7 @@ Blocks.prototype.undoBlock = function (block, previousBlock, cb) {
 				modules.transactions.undo(transaction);
 				modules.transactions.undoUnconfirmed(transaction);
 				self.undoForger(block.generatorPublicKey, transaction);
-				cb();
+				setImmediate(cb);
 			}, done);
 		},
 		function (done) {
@@ -1291,7 +1291,7 @@ Blocks.prototype.parseBlock = function (block, cb) {
 		function (done) {
 			async.eachLimit(block.transactions, 10, function (transaction, cb) {
 				transaction = modules.transactions.parseTransaction(params.object(transaction));
-				cb();
+				setImmediate(cb);
 			}, done);
 		},
 		function (done) {
@@ -1300,7 +1300,7 @@ Blocks.prototype.parseBlock = function (block, cb) {
 				request.id = params.string(request.id);
 				request.blockId = params.string(request.blockId);
 				request.address = params.string(request.address);
-				cb();
+				setImmediate(cb);
 			}, done);
 		}
 	], function (err) {
