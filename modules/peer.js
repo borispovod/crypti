@@ -2,6 +2,7 @@ var async = require('async');
 var util = require('util');
 var ip = require('ip');
 var Router = require('../helpers/router.js');
+var params = require('../helpers/params.js');
 
 //private
 var modules, library, self;
@@ -108,6 +109,16 @@ Peer.prototype.state = function (ip, port, state, clock, cb) {
 		err && library.logger.error('Peer#state', err);
 		cb && cb()
 	});
+}
+
+Peer.prototype.parsePeer = function (peer) {
+	peer.ip = params.int(peer.ip);
+	peer.port = params.int(peer.port);
+	peer.state = params.int(peer.state);
+	peer.os = params.string(peer.os);
+	peer.sharePort = params.bool(peer.sharePort);
+	peer.version = params.string(peer.version);
+	return peer;
 }
 
 Peer.prototype.update = function (peer, cb) {
