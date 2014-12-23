@@ -570,8 +570,10 @@ Blocks.prototype.getCommonBlock = function (peer, milestoneBlock, cb) {
 		function (next) {
 			modules.transport.getFromPeer(peer, "/blocks/ids?id=" + tempBlock, function (err, data) {
 				if (err || data.body.error) {
-					next(err || data.body.error);
-				} else if (data.body.ids.length == 0) {
+					return next(err || data.body.error);
+				}
+
+				if (data.body.ids.length == 0) {
 					commonBlock = tempBlock;
 					next();
 				} else {
@@ -1143,8 +1145,8 @@ Blocks.prototype.loadBlocksFromPeer = function (peer, lastBlockId, cb) {
 		},
 		function (next) {
 			modules.transport.getFromPeer(peer, '/blocks?lastBlockId=' + lastBlockId, function (err, data) {
-				if (err) {
-					return next(err);
+				if (err || data.body.error) {
+					return next(err || data.body.error);
 				}
 
 				if (data.body.blocks.length == 0) {

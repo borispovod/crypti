@@ -104,7 +104,7 @@ Loader.prototype.run = function (scope) {
 Loader.prototype.updatePeerList = function (cb) {
 	modules.transport.getFromRandomPeer('/list', function (err, data) {
 		if (err) {
-			return cb(err);
+			return cb();
 		}
 
 		var peers = params.array(data.body.peers);
@@ -121,7 +121,7 @@ Loader.prototype.updatePeerList = function (cb) {
 Loader.prototype.loadBlocks = function (cb) {
 	modules.transport.getFromRandomPeer('/weight', function (err, data) {
 		if (err) {
-			return cb(err);
+			return cb();
 		}
 		if (modules.blocks.getWeight().lt(data.body.weight)) {
 			sync = true;
