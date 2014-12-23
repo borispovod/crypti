@@ -410,6 +410,17 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 					}
 					break;
 
+				case 4:
+					switch (transaction.subtype) {
+						case 0:
+							break;
+
+						default:
+							cb && cb("Unknown transaction type");
+							return;
+					}
+					break;
+
 				default:
 					cb && cb("Unknown transaction type");
 					return;

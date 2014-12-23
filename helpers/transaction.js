@@ -59,6 +59,14 @@ function getTransactionFee(transaction, isGenerator) {
                     break;
             }
             break;
+
+        case 4:
+            switch (transaction.subtype) {
+                case 0:
+                    fee = 10;
+                    break;
+            }
+            break;
     }
 
     if (fee == -1) {
