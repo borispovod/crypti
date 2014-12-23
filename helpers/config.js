@@ -2,7 +2,7 @@ var fs = require('fs'),
 	path = require('path');
 
 function saveSecret(secret, cb) {
-	var configFile = path.join(__dirname, '..', 'config.json');
+	var configFile = path.join(process.cwd(), 'config.json');
 	fs.readFile(configFile, 'utf8', function (err, text) {
 		if (err) {
 			return cb(err);
