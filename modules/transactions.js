@@ -46,7 +46,7 @@ function Transactions(cb, scope) {
 			if (err) {
 				return res.json({success: false, error: "Transactions not found"});
 			}
-			return res.json({success: true, transactions: transactions});
+			res.json({success: true, transactions: transactions});
 		});
 	});
 
@@ -60,20 +60,24 @@ function Transactions(cb, scope) {
 			if (!transaction || err) {
 				return res.json({success: false, error: "Transaction not found"});
 			}
-			return res.json({success: true, transaction: transaction});
+			res.json({success: true, transaction: transaction});
 		});
 	});
 
 	router.get('/unconfirmed/get', function (req, res) {
 		var id = params.string(req.query.id);
+
 		if (!id) {
 			return res.json({success: false, error: "Provide id in url"});
 		}
+
 		var transaction = self.getUnconfirmedTransaction(id);
+
 		if (!transaction) {
 			return res.json({success: false, error: "Transaction not found"});
 		}
-		return res.json({success: true, transaction: transaction});
+
+		res.json({success: true, transaction: transaction});
 	});
 
 	router.get('/unconfirmed/', function (req, res) {
@@ -93,8 +97,7 @@ function Transactions(cb, scope) {
 			toSend = transactions;
 		}
 
-
-		return res.json({success: true, transactions: toSend});
+		res.json({success: true, transactions: toSend});
 	});
 
 	router.put('/', function (req, res) {
@@ -123,7 +126,6 @@ function Transactions(cb, scope) {
 			return res.json({success: false, error: "Open account to make transaction"});
 		}
 
-
 		var transaction = {
 			type: 0,
 			subtype: 0,
@@ -146,9 +148,9 @@ function Transactions(cb, scope) {
 		self.processUnconfirmedTransaction(transaction, true, function (err) {
 			if (err) {
 				return res.json({success: false, error: err});
-			} else {
-				return res.json({success: true, transaction: transaction});
 			}
+
+			res.json({success: true, transaction: transaction});
 		});
 	});
 
@@ -158,7 +160,7 @@ function Transactions(cb, scope) {
 
 	library.app.use('/api/transactions', router);
 	library.app.use(function (err, req, res, next) {
-		library.logger.error('/api/transactions', err)
+		err && library.logger.error('/api/transactions', err)
 		if (!err) return next();
 		res.status(500).send({success: false, error: err});
 	});
@@ -213,12 +215,12 @@ Transactions.prototype.list = function (filter, cb) {
 	// need to fix 'or' or 'and' in query
 	params.$topHeight = modules.blocks.getLastBlock().height + 1;
 	var stmt = library.db.prepare("select t.id t_id, t.blockId t_blockId, t.type t_type, t.subtype t_subtype, t.timestamp t_timestamp, t.senderPublicKey t_senderPublicKey, t.senderId t_senderId, t.recipientId t_recipientId, t.amount t_amount, t.fee t_fee, t.signature t_signature, t.signSignature t_signSignature, c_t.generatorPublicKey t_companyGeneratorPublicKey, $topHeight - b.height as confirmations " +
-		"from trs t " +
-		"inner join blocks b on t.blockId = b.id " +
-		"left outer join companies as c_t on c_t.address=t.recipientId " +
-		(fields.length ? "where " + fields.join(' or ') : '') + " " +
-		(filter.orderBy ? 'order by ' + sortBy + ' ' + sortMethod : '') + " " +
-		(filter.limit ? 'limit $limit' : ''));
+	"from trs t " +
+	"inner join blocks b on t.blockId = b.id " +
+	"left outer join companies as c_t on c_t.address=t.recipientId " +
+	(fields.length ? "where " + fields.join(' or ') : '') + " " +
+	(filter.orderBy ? 'order by ' + sortBy + ' ' + sortMethod : '') + " " +
+	(filter.limit ? 'limit $limit' : ''));
 
 	stmt.bind(params);
 
@@ -234,10 +236,10 @@ Transactions.prototype.list = function (filter, cb) {
 
 Transactions.prototype.get = function (id, cb) {
 	var stmt = library.db.prepare("select t.id t_id, t.blockId t_blockId, t.type t_type, t.subtype t_subtype, t.timestamp t_timestamp, t.senderPublicKey t_senderPublicKey, t.senderId t_senderId, t.recipientId t_recipientId, t.amount t_amount, t.fee t_fee, t.signature t_signature, t.signSignature t_signSignature, c_t.generatorPublicKey t_companyGeneratorPublicKey, $topHeight - b.height as confirmations " +
-		"from trs t " +
-		"inner join blocks b on t.blockId = b.id " +
-		"left outer join companies as c_t on c_t.address=t.recipientId " +
-		"where t.id = $id");
+	"from trs t " +
+	"inner join blocks b on t.blockId = b.id " +
+	"left outer join companies as c_t on c_t.address=t.recipientId " +
+	"where t.id = $id");
 
 	stmt.bind({
 		$id: id,
@@ -245,8 +247,12 @@ Transactions.prototype.get = function (id, cb) {
 	});
 
 	stmt.get(function (err, row) {
-		var transacton = row && blockHelper.getTransaction(row);
-		cb(err, transacton);
+		if (err) {
+			return cb(err);
+		}
+
+		var transacton = blockHelper.getTransaction(row);
+		cb(null, transacton);
 	});
 }
 
@@ -285,47 +291,58 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 	var txId = transactionHelper.getId(transaction);
 
 	if (transaction.id && transaction.id != txId) {
-		return cb && cb("Invalid transaction id");
+		cb && cb("Invalid transaction id");
+		return;
 	} else {
 		transaction.id = txId;
 	}
 
 	library.db.get("SELECT id FROM trs WHERE id=$id", {$id: transaction.id}, function (err, confirmed) {
 		if (err) {
-			return cb && cb("Internal sql error");
-		} else if (confirmed) {
-			return cb && cb("Can't process transaction, transaction already confirmed");
+			cb && cb("Internal sql error");
+			return;
+		}
+
+		if (confirmed) {
+			cb && cb("Can't process transaction, transaction already confirmed");
+			return;
 		} else {
 			// check in confirmed transactions
 			if (unconfirmedTransactions[transaction.id] || doubleSpendingTransactions[transaction.id]) {
-				return cb && cb("This transaction already exists");
+				cb && cb("This transaction already exists");
+				return;
 			}
 
 			var sender = modules.accounts.getAccountByPublicKey(transaction.senderPublicKey);
 
 			if (!sender) {
-				return cb && cb("Can't process transaction, sender not found");
+				cb && cb("Can't process transaction, sender not found");
+				return;
 			}
 
 			transaction.senderId = sender.address;
 
 			if (!self.verifySignature(transaction)) {
-				return cb && cb("Can't verify signature")
+				cb && cb("Can't verify signature");
+				return;
 			}
 
 			if (sender.secondSignature) {
 				if (!self.verifySecondSignature(transaction, sender.secondPublicKey)) {
-					return cb && cb("Can't verify second signature");
+					cb && cb("Can't verify second signature");
+					return;
 				}
 			}
 
 			// check if transaction is not float and great then 0
 			if (transaction.amount < 0 || transaction.amount.toString().indexOf('.') >= 0) {
-				return cb && cb("Invalid transaction amount");
+				cb && cb("Invalid transaction amount");
+				return;
 			}
 
 			if (transaction.timestamp > timeHelper.getNow() + 15) {
-				return cb && cb("Invalid transaction timestamp");
+				cb && cb("Invalid transaction timestamp");
+				return;
 			}
 
 			var fee = transactionHelper.getFee(transaction, modules.blocks.getFee());
@@ -341,12 +358,14 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 					switch (transaction.subtype) {
 						case 0:
 							if (transactionHelper.getLastChar(transaction) != "C") {
-								return cb && cb("Invalid transaction recipient id");
+								cb && cb("Invalid transaction recipient id");
+								return;
 							}
 							break;
 
 						default:
-							return cb && cb("Unknown transaction type");
+							cb && cb("Unknown transaction type");
+							return;
 					}
 					break;
 
@@ -354,12 +373,14 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 					switch (transaction.subtype) {
 						case 0:
 							if (transactionHelper.getLastChar(transaction) != "D") {
-								return cb && cb("Invalid transaction recipient id");
+								cb && cb("Invalid transaction recipient id");
+								return;
 							}
 							break;
 
 						default:
-							return cb && cb("Unknown transaction type");
+							cb && cb("Unknown transaction type");
+							return;
 					}
 					break;
 
@@ -367,27 +388,31 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 					switch (transaction.subtype) {
 						case 0:
 							if (!transaction.asset.signature) {
-								return cb && cb("Empty transaction asset for company transaction")
+								cb && cb("Empty transaction asset for company transaction")
+								return;
 							}
 							break;
 
 						default:
-							return cb && cb("Unknown transaction type");
+							cb && cb("Unknown transaction type");
+							return;
 					}
 					break;
 
 				case 3:
 					switch (transaction.subtype) {
 						case 0:
-							return cb && cb("Companies doesn't supports now");
-
+							cb && cb("Companies doesn't supports now");
+							return;
 						default:
-							return cb && cb("Unknown transaction type");
+							cb && cb("Unknown transaction type");
+							return;
 					}
 					break;
 
 				default:
-					return cb && cb("Unknown transaction type");
+					cb && cb("Unknown transaction type");
+					return;
 			}
 
 			async.parallel([
@@ -397,34 +422,37 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 							library.db.get("SELECT id FROM companies WHERE address = $address", {$address: transaction.recipientId}, function (err, company) {
 								if (err) {
 									return cb("Internal sql error");
-								} else if (company) {
-									return cb();
+								}
+
+								if (company) {
+									cb();
 								} else {
-									return cb("Company with this address as recipient not found");
+									cb("Company with this address as recipient not found");
 								}
 							});
 						});
 					} else {
-						return cb();
+						setImmediate(cb);
 					}
 				}
 			], function (errors) {
 				if (errors) {
 					return cb && cb(errors.pop());
-				} else {
-					if (!self.applyUnconfirmed(transaction)) {
-						doubleSpendingTransactions[transaction.id] = transaction;
-						return cb("Can't apply transaction: " + transaction.id);
-					}
-
-					unconfirmedTransactions[transaction.id] = transaction;
-
-					if (broadcast) {
-						library.bus.message('unconfirmedTransaction', transaction)
-					}
-
-					return cb && cb(null, transaction.id);
 				}
+
+				if (!self.applyUnconfirmed(transaction)) {
+					doubleSpendingTransactions[transaction.id] = transaction;
+					return cb("Can't apply transaction: " + transaction.id);
+				}
+
+				unconfirmedTransactions[transaction.id] = transaction;
+
+				if (broadcast) {
+					library.bus.message('unconfirmedTransaction', transaction)
+				}
+
+				cb && cb(null, transaction.id);
+
 			});
 		}
 	});
@@ -621,7 +649,13 @@ Transactions.prototype.verifySignature = function (transaction) {
 
 	var hash = crypto.createHash('sha256').update(data2).digest();
 
-	return ed.Verify(hash, transaction.signature || ' ', transaction.senderPublicKey || ' ');
+	try {
+		var res = ed.Verify(hash, transaction.signature || ' ', transaction.senderPublicKey || ' ');
+	}catch (e){
+		library.logger.error(e, {err: e, transaction: transaction})
+	}
+
+	return res;
 }
 
 Transactions.prototype.verifySecondSignature = function (transaction, publicKey) {
@@ -633,7 +667,14 @@ Transactions.prototype.verifySecondSignature = function (transaction, publicKey)
 	}
 
 	var hash = crypto.createHash('sha256').update(data2).digest();
-	return ed.Verify(hash, transaction.signSignature || ' ', publicKey || ' ');
+
+	try {
+		var res = ed.Verify(hash, transaction.signature || ' ', transaction.senderPublicKey || ' ');
+	}catch (e){
+		library.logger.error(e, {err: e, transaction: transaction})
+	}
+
+	return res;
 }
 
 Transactions.prototype.run = function (scope) {

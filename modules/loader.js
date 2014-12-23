@@ -3,6 +3,7 @@ var Router = require('../helpers/router.js');
 var util = require('util');
 var genesisBlock = require("../helpers/genesisblock.js");
 var ip = require("ip");
+var params = require('../helpers/params.js');
 
 //private
 var modules, library, self, loaded, sync, lastBlock = genesisBlock;
@@ -36,8 +37,8 @@ function Loader(cb, scope) {
 
 	library.app.use('/api/loader', router);
 	library.app.use(function (err, req, res, next) {
-		library.logger.error('/api/loader', err)
 		if (!err) return next();
+		library.logger.error('/api/loader', err)
 		res.status(500).send({success: false, error: err});
 	});
 
@@ -58,6 +59,10 @@ Loader.prototype.run = function (scope) {
 
 	var offset = 0, limit = 1000;
 	modules.blocks.count(function (err, count) {
+		if (err) {
+			return library.logger.error('blocks.count', err)
+		}
+
 		total = count;
 		library.logger.info('blocks ' + count)
 		async.until(
@@ -67,14 +72,17 @@ Loader.prototype.run = function (scope) {
 				library.logger.info('current ' + offset);
 				process.nextTick(function () {
 					modules.blocks.loadBlocksOffset(limit, offset, function (err, lastBlockOffset) {
+						if (err) {
+							return cb(err);
+						}
 						offset = offset + limit;
 						lastBlock = lastBlockOffset;
-						cb(err)
+						cb()
 					});
 				})
 			}, function (err) {
 				if (err) {
-					library.logger.error(err);
+					library.logger.error('loadBlocksOffset', err);
 					if (err.block) {
 						library.logger.error('blockchain failed at ', err.block.height)
 						modules.blocks.deleteById(err.block.id, function (err, res) {
@@ -95,24 +103,25 @@ Loader.prototype.run = function (scope) {
 
 Loader.prototype.updatePeerList = function (cb) {
 	modules.transport.getFromRandomPeer('/list', function (err, data) {
-		if (!err) {
-			async.eachLimit(data.body.peers, 2, function (peer, cb) {
-				if (typeof peer.ip == "string" || ip.toLong("127.0.0.1") == peer.ip) {
-					return cb();
-				}
-
-				modules.peer.update(peer, cb);
-			}, cb);
-		} else {
-			cb(err);
+		if (err) {
+			return cb();
 		}
+
+		var peers = params.array(data.body.peers);
+		async.eachLimit(peers, 2, function (peer, cb) {
+			if (typeof peer.ip == "string" || ip.toLong("127.0.0.1") == peer.ip) {
+				return setImmediate(cb);
+			}
+
+			modules.peer.update(peer, cb);
+		}, cb);
 	});
 }
 
 Loader.prototype.loadBlocks = function (cb) {
 	modules.transport.getFromRandomPeer('/weight', function (err, data) {
 		if (err) {
-			return cb(err);
+			return cb();
 		}
 		if (modules.blocks.getWeight().lt(data.body.weight)) {
 			sync = true;
@@ -130,12 +139,12 @@ Loader.prototype.loadBlocks = function (cb) {
 							// resolve fork
 							library.db.get("SELECT height FROM blocks WHERE id=$id", {$id: commonBlock}, function (err, block) {
 								if (err || !block) {
-									return cb(err);
+									return cb(err || 'block is null');
 								}
 
 								if (modules.blocks.getLastBlock().height - block.height > 1440) {
-									peer.state(ip, port, 0, 60);
-									setImmediate(cb);
+									modules.peer.state(data.peer.ip, data.peer.port, 0, 60);
+									cb();
 								} else {
 									modules.blocks.deleteBlocksBefore(commonBlock, function (err) {
 										if (err) {
@@ -163,6 +172,10 @@ Loader.prototype.loadBlocks = function (cb) {
 
 Loader.prototype.getUnconfirmedTransactions = function (cb) {
 	modules.transport.getFromRandomPeer('/transactions', function (err, data) {
+		if (err){
+			return cb()
+		}
+
 		async.forEach(data.body.transactions, function (transaction, cb) {
 			modules.transactions.processUnconfirmedTransaction(modules.transactions.parseTransaction(transaction), cb);
 		}, cb);
@@ -173,7 +186,7 @@ Loader.prototype.onPeerReady = function () {
 	function timersStart() {
 		process.nextTick(function nextLoadBlock() {
 			self.loadBlocks(function (err) {
-				err && library.logger.debug(err);
+				err && library.logger.error('loadBlocks timer', err);
 				sync = false;
 				// 10 seconds for testing
 				setTimeout(nextLoadBlock, 10 * 1000)
@@ -181,14 +194,16 @@ Loader.prototype.onPeerReady = function () {
 		});
 
 		process.nextTick(function nextGetUnconfirmedTransactions() {
-			self.getUnconfirmedTransactions(function () {
+			self.getUnconfirmedTransactions(function (err) {
+				err && library.logger.error('getUnconfirmedTransactions timer', err);
 				setTimeout(nextGetUnconfirmedTransactions, 15 * 1000)
 			})
 		});
 	}
 
 	process.nextTick(function nextUpdatePeerList() {
-		self.updatePeerList(function () {
+		self.updatePeerList(function (err) {
+			err && library.logger.error('updatePeerList timer', err);
 			!timersStart.started && timersStart();
 			timersStart.started = true;
 			setTimeout(nextUpdatePeerList, 60 * 1000);
