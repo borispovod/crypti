@@ -487,7 +487,7 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 
 			//console.timeEnd('loading');
 
-			cb(null, normalizeBlock(lastBlock));
+			cb(err, normalizeBlock(lastBlock));
 		});
 }
 
