@@ -663,6 +663,7 @@ Transactions.prototype.verifySignature = function (transaction) {
 	try {
 		var res = ed.Verify(hash, transaction.signature || ' ', transaction.senderPublicKey || ' ');
 	}catch (e){
+		library.logger.info("first signature");
 		library.logger.error(e, {err: e, transaction: transaction})
 	}
 
@@ -680,7 +681,7 @@ Transactions.prototype.verifySecondSignature = function (transaction, publicKey)
 	var hash = crypto.createHash('sha256').update(data2).digest();
 
 	try {
-		var res = ed.Verify(hash, transaction.signature || ' ', transaction.senderPublicKey || ' ');
+		var res = ed.Verify(hash, transaction.signSignature || ' ', publicKey || ' ');
 	}catch (e){
 		library.logger.error(e, {err: e, transaction: transaction})
 	}
