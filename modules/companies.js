@@ -69,8 +69,12 @@ Companies.prototype.find = function (filter, cb) {
 	stmt.bind(params);
 
 	stmt.get(function (err, row) {
-		var company = row && blockHelper.getCompany(row);
-		cb(err, company);
+		if (err){
+			return cb(err);
+		}
+
+		var company = blockHelper.getCompany(row);
+		cb(null, company);
 	});
 }
 

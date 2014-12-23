@@ -1,7 +1,7 @@
 function getBytes(confirmation) {
 	var bb = new ByteBuffer(8 + 1 + 4 + 64, true);
 
-	var companyIdBuffer = bignum(confirmation.companyId).toBuffer({ 'size' : '8' });
+	var companyIdBuffer = bignum(confirmation.companyId).toBuffer({'size': '8'});
 
 	for (var i = 0; i < companyIdBuffer.length; i++) {
 		bb.writeByte(companyIdBuffer[i]);
@@ -38,6 +38,6 @@ function verifySignature(confirmation, publicKey) {
 }
 
 module.exports = {
-	getBytes : getBytes,
+	getBytes: getBytes,
 	verifySignature: verifySignature
 }
