@@ -1103,6 +1103,13 @@ Blocks.prototype.saveBlock = function (block, cb) {
 									$generationSignature: transaction.asset.signature.generationSignature
 								});
 								st.run(cb);
+							} else if (transaction.type == 4 && transaction.subtype == 0) {
+								st = transactionDb.prepare("INSERT INTO delegates(name, transactionId) VALUES($name, $transactionId)");
+								st.bind({
+									$id: transaction.asset.username,
+									$transactionId: transaction.id
+								});
+								st.run(cb);
 							} else {
 								cb();
 							}
