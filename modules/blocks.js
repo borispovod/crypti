@@ -1104,9 +1104,9 @@ Blocks.prototype.saveBlock = function (block, cb) {
 								});
 								st.run(cb);
 							} else if (transaction.type == 4 && transaction.subtype == 0) {
-								st = transactionDb.prepare("INSERT INTO delegates(name, transactionId) VALUES($name, $transactionId)");
+								st = transactionDb.prepare("INSERT INTO delegates(name, transactionId) VALUES($username, $transactionId)");
 								st.bind({
-									$id: transaction.asset.username,
+									$username: transaction.asset.username,
 									$transactionId: transaction.id
 								});
 								st.run(cb);
