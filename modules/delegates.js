@@ -86,7 +86,7 @@ function Delegates() {
 
 Delegates.prototype.search = function(transaction){
 	if (transaction.type == 4 && transaction.subtype == 0){
-		delegates[''] = {}
+		delegates[transaction.senderPublicKey] = modules.account.getAddressByPublicKey(transaction.senderPublicKey);
 	}
 }
 
