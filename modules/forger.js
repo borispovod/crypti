@@ -78,6 +78,10 @@ function Forger(cb, scope) {
 
 		if (saveToConfig) {
 			configHelper.saveSecret(secret, function (err) {
+				if (err) {
+					library.logger.error(err);
+				}
+
 				return res.json({success: true, address: address});
 			})
 		} else {

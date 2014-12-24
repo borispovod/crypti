@@ -179,7 +179,7 @@ Loader.prototype.getUnconfirmedTransactions = function (cb) {
 		}
 
 		async.forEach(data.body.transactions, function (transaction, cb) {
-			modules.transactions.processUnconfirmedTransaction(modules.transactions.parseTransaction(transaction), cb);
+			modules.transactions.processUnconfirmedTransaction(modules.transactions.parseTransaction(transaction), true, cb);
 		}, cb);
 	});
 }
