@@ -63,7 +63,7 @@ function getTransactionFee(transaction, isGenerator) {
         case 4:
             switch (transaction.subtype) {
                 case 0:
-                    fee = 10;
+                    fee = 10 * constants.fixedPoint;
                     break;
             }
             break;
@@ -101,6 +101,14 @@ function getBytes(transaction) {
                     break;
             }
             break;
+
+		case 4:
+			switch (transaction.subtype) {
+				case 0:
+					assetBytes = new Buffer(transaction.asset.username, 'utf8');
+					assetSize = assetBytes.length;
+					break;
+			}
     }
 
     var bb = new ByteBuffer(1 + 1 + 4 + 32 + 8 + 8 + 64 + 64 + assetSize, true);
@@ -144,7 +152,6 @@ function getBytes(transaction) {
             bb.writeByte(transaction.signSignature[i]);
         }
     }
-
 
 
     bb.flip();

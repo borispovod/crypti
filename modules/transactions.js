@@ -215,12 +215,12 @@ Transactions.prototype.list = function (filter, cb) {
 	// need to fix 'or' or 'and' in query
 	params.$topHeight = modules.blocks.getLastBlock().height + 1;
 	var stmt = library.db.prepare("select t.id t_id, t.blockId t_blockId, t.type t_type, t.subtype t_subtype, t.timestamp t_timestamp, t.senderPublicKey t_senderPublicKey, t.senderId t_senderId, t.recipientId t_recipientId, t.amount t_amount, t.fee t_fee, t.signature t_signature, t.signSignature t_signSignature, c_t.generatorPublicKey t_companyGeneratorPublicKey, $topHeight - b.height as confirmations " +
-	"from trs t " +
-	"inner join blocks b on t.blockId = b.id " +
-	"left outer join companies as c_t on c_t.address=t.recipientId " +
-	(fields.length ? "where " + fields.join(' or ') : '') + " " +
-	(filter.orderBy ? 'order by ' + sortBy + ' ' + sortMethod : '') + " " +
-	(filter.limit ? 'limit $limit' : ''));
+		"from trs t " +
+		"inner join blocks b on t.blockId = b.id " +
+		"left outer join companies as c_t on c_t.address=t.recipientId " +
+		(fields.length ? "where " + fields.join(' or ') : '') + " " +
+		(filter.orderBy ? 'order by ' + sortBy + ' ' + sortMethod : '') + " " +
+		(filter.limit ? 'limit $limit' : ''));
 
 	stmt.bind(params);
 
@@ -236,10 +236,10 @@ Transactions.prototype.list = function (filter, cb) {
 
 Transactions.prototype.get = function (id, cb) {
 	var stmt = library.db.prepare("select t.id t_id, t.blockId t_blockId, t.type t_type, t.subtype t_subtype, t.timestamp t_timestamp, t.senderPublicKey t_senderPublicKey, t.senderId t_senderId, t.recipientId t_recipientId, t.amount t_amount, t.fee t_fee, t.signature t_signature, t.signSignature t_signSignature, c_t.generatorPublicKey t_companyGeneratorPublicKey, $topHeight - b.height as confirmations " +
-	"from trs t " +
-	"inner join blocks b on t.blockId = b.id " +
-	"left outer join companies as c_t on c_t.address=t.recipientId " +
-	"where t.id = $id");
+		"from trs t " +
+		"inner join blocks b on t.blockId = b.id " +
+		"left outer join companies as c_t on c_t.address=t.recipientId " +
+		"where t.id = $id");
 
 	stmt.bind({
 		$id: id,
@@ -413,6 +413,14 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 				case 4:
 					switch (transaction.subtype) {
 						case 0:
+							if (!transaction.asset.username) {
+								cb && cb("Empty transaction asset for delegate transaction");
+								return;
+							}
+
+							if (transaction.asset.username.length == 0 || transaction.asset.username.length > 30) {
+								cb && cb("Incorrect delegate username length");
+							}
 							break;
 
 						default:
@@ -429,21 +437,40 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 			async.parallel([
 				function (cb) {
 					if (transaction.type == 1 && transaction.subtype == 0) {
-						library.db.serialize(function () {
-							library.db.get("SELECT id FROM companies WHERE address = $address", {$address: transaction.recipientId}, function (err, company) {
-								if (err) {
-									return cb("Internal sql error");
-								}
+						library.db.get("SELECT id FROM companies WHERE address = $address", {$address: transaction.recipientId}, function (err, company) {
+							if (err) {
+								return cb("Internal sql error");
+							}
 
-								if (company) {
-									cb();
-								} else {
-									cb("Company with this address as recipient not found");
-								}
-							});
+							if (company) {
+								cb();
+							} else {
+								cb("Company with this address as recipient not found");
+							}
 						});
 					} else {
 						setImmediate(cb);
+					}
+				},
+				function (cb) {
+					if (transaction.type == 4 && transaction.subtype == 0) {
+						if (modules.delegates.getUnconfirmedDelegate(transaction.asset.username)) {
+							cb("Delegate with this name already exists");
+							return;
+						}
+
+						library.db.get("SELECT username FROM delegates WHERE username=$username", {$username: transaction.asset.username}, function (err, delegate) {
+							if (err) {
+								library.logger.error(err.toString());
+								cb("Internal sql error");
+								return;
+							} else if (delegate) {
+								cb("Delegate with this username already exists");
+								return;
+							}
+
+							cb();
+						});
 					}
 				}
 			], function (errors) {
@@ -662,7 +689,7 @@ Transactions.prototype.verifySignature = function (transaction) {
 
 	try {
 		var res = ed.Verify(hash, transaction.signature || ' ', transaction.senderPublicKey || ' ');
-	}catch (e){
+	} catch (e) {
 		library.logger.error(e, {err: e, transaction: transaction})
 	}
 
@@ -681,7 +708,7 @@ Transactions.prototype.verifySecondSignature = function (transaction, publicKey)
 
 	try {
 		var res = ed.Verify(hash, transaction.signature || ' ', transaction.senderPublicKey || ' ');
-	}catch (e){
+	} catch (e) {
 		library.logger.error(e, {err: e, transaction: transaction})
 	}
 
