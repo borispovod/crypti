@@ -1,19 +1,21 @@
 var crypto = require('crypto'),
 	bignum = require('bignum'),
 	ed = require('ed25519'),
-	params = require('../helpers/params.js');
+	params = require('../helpers/params.js'),
+	timeHelper = require('../helpers/time.js');
 
 var Router = require('../helpers/router.js');
 
 //private
 var modules, library, self;
-var delegates;
+var delegates, unconfirmedDelegates;
 
 //public
 function Delegates() {
 	self = this;
 	library = scope;
 	delegates = {};
+	unconfirmedDelegates = {};
 
 	var router = new Router();
 
@@ -25,7 +27,8 @@ function Delegates() {
 	router.put('/', function (req, res) {
 		var secret = params.string(req.body.secret),
 			publicKey = params.buffer(req.body.publicKey, 'hex'),
-			secondSecret = params.string(req.body.secondSecret);
+			secondSecret = params.string(req.body.secondSecret),
+			username = params.string(req.body.username);
 
 		var hash = crypto.createHash('sha256').update(secret, 'utf8').digest();
 		var keypair = ed.MakeKeypair(hash);
@@ -52,7 +55,10 @@ function Delegates() {
 			amount: 0,
 			recipientId: null,
 			senderPublicKey: account.publicKey,
-			timestamp: timeHelper.getNow()
+			timestamp: timeHelper.getNow(),
+			asset: {
+				username: username
+			}
 		};
 
 		modules.transactions.sign(secret, transaction);
@@ -72,7 +78,7 @@ function Delegates() {
 
 			res.json({success: true, transaction: transaction});
 		});
-	})
+	});
 
 	library.app.use('/api/delegates', router);
 	library.app.use(function (err, req, res, next) {
@@ -82,6 +88,19 @@ function Delegates() {
 	});
 
 	setImmediate(cb, null, self);
+}
+
+Delegates.prototype.getUnconfirmedDelegate = function (username) {
+	return unconfirmedDelegates[username];
+}
+
+Delegates.prototype.addUnconfirmedDelegate = function (username, account) {
+	if (unconfirmedDelegates[username]) {
+		return false;
+	}
+
+	unconfirmedDelegates[username] = account;
+	return true;
 }
 
 Delegates.prototype.run = function (scope) {
