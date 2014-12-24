@@ -103,6 +103,12 @@ Delegates.prototype.addUnconfirmedDelegate = function (username, account) {
 	return true;
 }
 
+Delegates.prototype.search = function (transaction) {
+	if (transaction.type == 4 && transaction.subtype == 0) {
+		delegates[transaction.senderPublicKey] = modules.account.getAddressByPublicKey(transaction.senderPublicKey);
+	}
+}
+
 Delegates.prototype.run = function (scope) {
 	modules = scope;
 }
