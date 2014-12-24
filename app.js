@@ -21,7 +21,8 @@ var config = {
 		"loader": "./modules/loader.js",
 		"forger": "./modules/forger.js",
 		"system": "./modules/system.js",
-		"peer": "./modules/peer.js"
+		"peer": "./modules/peer.js",
+		"delegates": "./modules/delegates.js"
 	}
 }
 

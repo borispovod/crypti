@@ -84,6 +84,12 @@ function Delegates() {
 	setImmediate(cb, null, self);
 }
 
+Delegates.prototype.search = function(transaction){
+	if (transaction.type == 4 && transaction.subtype == 0){
+		delegates[''] = {}
+	}
+}
+
 Delegates.prototype.run = function (scope) {
 	modules = scope;
 }
