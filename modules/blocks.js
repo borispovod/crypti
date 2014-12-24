@@ -1002,13 +1002,13 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 						// if type is 1 - need companyGeneratorPublicKey
 
 						modules.transactions.apply(transaction);
+						modules.delegates.search(transaction);
 						modules.transactions.removeUnconfirmedTransaction(transaction.id);
 						self.applyForger(block.generatorPublicKey, transaction);
 					}
 
 					self.applyFee(block);
 					self.applyWeight(block);
-
 
 					self.saveBlock(block, function (err) {
 						if (err) {
