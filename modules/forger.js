@@ -53,7 +53,12 @@ function Forger(cb, scope) {
 			if (!forgingStarted) {
 				return res.status(200).json({success: true, enabled: false});
 			} else {
-				return res.json({success: true, enabled: true, address: modules.accounts.getAddressByPublicKey(keypair.publicKey), publicKey: keypair.publicKey.toString('hex')});
+				return res.json({
+					success: true,
+					enabled: true,
+					address: modules.accounts.getAddressByPublicKey(keypair.publicKey),
+					publicKey: keypair.publicKey.toString('hex')
+				});
 			}
 		})
 	}
@@ -133,10 +138,13 @@ Forger.prototype.stopForging = function () {
 Forger.prototype.startForging = function (keypair) {
 	var self = this;
 	keypair = keypair;
-	forgingStarted = true;
 
 	var address = modules.accounts.getAddressByPublicKey(keypair.publicKey);
 
+	var delegate = modules.delegates.getDelegate(keypair.publicKey);
+	if (!delegate) return;
+
+	forgingStarted = true;
 	async.until(
 		function () {
 			return !forgingStarted

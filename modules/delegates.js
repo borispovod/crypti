@@ -90,6 +90,10 @@ function Delegates() {
 	setImmediate(cb, null, self);
 }
 
+Delegates.prototype.getDelegate = function (publicKey) {
+	return delegates[publicKey];
+}
+
 Delegates.prototype.getUnconfirmedDelegate = function (username) {
 	return unconfirmedDelegates[username];
 }
