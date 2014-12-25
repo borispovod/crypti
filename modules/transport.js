@@ -56,7 +56,7 @@ function Transport(cb, scope) {
 			return res.json({success: false, error: "Provide id in url"});
 		}
 
-		library.db.all("SELECT id FROM blocks WHERE height > (SELECT height FROM blocks where id=$id) LIMIT 1440", {$id: id}, function (err, blocks) {
+		library.db.all("SELECT id FROM blocks WHERE height > (SELECT height FROM blocks where id=$id) ORDER BY height LIMIT 1440", {$id: id}, function (err, blocks) {
 			if (err) {
 				return res.status(200).json({success: false, error: "Internal sql error"});
 			}
@@ -106,7 +106,7 @@ function Transport(cb, scope) {
 					height = modules.blocks.getLastBlock().height;
 					jump = 10;
 					limit = 10;
-					setImmediate(cb);
+					cb();
 				}
 			}
 		], function (error) {
@@ -170,7 +170,6 @@ function Transport(cb, scope) {
 		res.set(headers);
 
 		var block = params.object(req.body.block);
-
 
 		modules.blocks.parseBlock(block, function (err, block) {
 			if (block.previousBlock == modules.blocks.getLastBlock().id) {
@@ -306,7 +305,6 @@ Transport.prototype.broadcast = function (peersCount, method, data, cb) {
 	modules.peer.list(peersCount, function (err, peers) {
 		if (!err) {
 			async.eachLimit(peers, 3, function (peer, cb) {
-				// not need to check peer is offline or online, just send.
 				_request(peer, method, "POST", data);
 				setImmediate(cb);
 			}, function () {

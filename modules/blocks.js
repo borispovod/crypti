@@ -800,12 +800,12 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 				return cb("Can't verify signature: " + block.id);
 			}
 
-			if (!self.verifyGenerationSignature(block, lastBlock)) {
-				return cb("Can't verify generator signature: " + block.id);
-			}
-
 			if (block.previousBlock != lastBlock.id) {
 				return cb("Can't verify previous block: " + block.id);
+			}
+
+			if (!self.verifyGenerationSignature(block, lastBlock)) {
+				return cb("Can't verify generator signature: " + block.id);
 			}
 
 			if (block.version > 2 || block.version <= 0) {
@@ -1187,17 +1187,23 @@ Blocks.prototype.loadBlocksFromPeer = function (peer, lastBlockId, cb) {
 
 Blocks.prototype.deleteBlocksBefore = function (blockId, cb) {
 	var self = this;
-	library.logger.info("Last block: " + lastBlock.id);
 
-	async.whilst(
-		function () {
-			return blockId != lastBlock.id
-		},
-		function (next) {
-			self.popLastBlock(next);
-		},
-		cb
-	)
+	library.db.get("SELECT height FROM blocks WHERE id=$id", {$id:blockId}, function (err, needBlock) {
+		if (err || !needBlock) {
+			cb(err? err.toString() : "Can't find block: " + blockId);
+			return;
+		}
+
+		async.whilst(
+			function () {
+				return !(needBlock.height >= lastBlock.height)
+			},
+			function (next) {
+				self.popLastBlock(next);
+			},
+			cb
+		)
+	});
 }
 
 Blocks.prototype.popLastBlock = function (cb) {
