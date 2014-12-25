@@ -38,7 +38,7 @@ function Peer(cb, scope) {
 	});
 
 	router.get('/connected', function (req, res) {
-		self.filter({status: 1}, function (err, peers) {
+		self.filter({status: 2}, function (err, peers) {
 			if (err) {
 				return res.json({success: false, error: "Peers not found"});
 			}
@@ -77,7 +77,7 @@ Peer.prototype.list = function (limit, cb) {
 	limit = limit || 100;
 	var params = {$limit: limit};
 
-	library.db.all("select ip, port, state, os, sharePort, version from peers where state != 0 and sharePort = 1 ORDER BY RANDOM() LIMIT $limit", params, cb);
+	library.db.all("select ip, port, state, os, sharePort, version from peers where state = 2 and sharePort = 1 ORDER BY RANDOM() LIMIT $limit", params, cb);
 }
 
 Peer.prototype.filter = function (filter, cb) {
