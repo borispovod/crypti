@@ -17,7 +17,7 @@ function Account(address, publicKey, balance, unconfirmedBalance) {
 	this.unconfirmedBalance = unconfirmedBalance || 0;
 	this.unconfirmedSignature = false;
 	this.secondSignature = false;
-	this.secondPublicKey = false;
+	this.secondPublicKey = null;
 }
 
 Account.prototype.setUnconfirmedSignature = function (unconfirmedSignature) {
@@ -59,7 +59,7 @@ function Accounts(cb, scope) {
 	router.post('/open', function (req, res) {
 		var secret = params.string(req.body.secret);
 
-		if (!secret || secret == 0) {
+		if (!secret) {
 			return res.json({success: false, error: "Provide secret key of account"});
 		}
 

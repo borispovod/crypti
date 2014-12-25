@@ -9,6 +9,7 @@ var params = require('../helpers/params.js');
 //private
 var modules, library, self;
 var headers = {};
+var apiReady = false;
 
 //constructor
 function Transport(cb, scope) {
@@ -18,7 +19,7 @@ function Transport(cb, scope) {
 	var router = new Router();
 
 	router.use(function (req, res, next) {
-		if (modules) return next();
+		if (modules && apiReady) return next();
 		res.status(500).send({success: false, error: 'loading'});
 	});
 
@@ -55,7 +56,7 @@ function Transport(cb, scope) {
 			return res.json({success: false, error: "Provide id in url"});
 		}
 
-		library.db.all("SELECT id FROM blocks WHERE height > (SELECT height FROM blocks where id=$id) LIMIT 1440", {$id: id}, function (err, blocks) {
+		library.db.all("SELECT id FROM blocks WHERE height > (SELECT height FROM blocks where id=$id) ORDER BY height LIMIT 1440", {$id: id}, function (err, blocks) {
 			if (err) {
 				return res.status(200).json({success: false, error: "Internal sql error"});
 			}
@@ -105,7 +106,7 @@ function Transport(cb, scope) {
 					height = modules.blocks.getLastBlock().height;
 					jump = 10;
 					limit = 10;
-					setImmediate(cb);
+					cb();
 				}
 			}
 		], function (error) {
@@ -175,7 +176,7 @@ function Transport(cb, scope) {
 				modules.blocks.processBlock(block, true, function (err) {
 					res.sendStatus(200);
 				});
-			} else if (block.previousBlock == modules.blocks.getLastBlock().previousBlock) {
+			} else if (block.previousBlock == modules.blocks.getLastBlock().previousBlock && block.id != modules.blocks.getLastBlock().id) {
 				library.db.get("SELECT * FROM blocks WHERE id=$id", {$id: block.previousBlock}, function (err, previousBlock) {
 					if (err || !previousBlock) {
 						library.logger.error(err ? err.toString() : "Block " + block.previousBlock + " not found");
@@ -304,7 +305,6 @@ Transport.prototype.broadcast = function (peersCount, method, data, cb) {
 	modules.peer.list(peersCount, function (err, peers) {
 		if (!err) {
 			async.eachLimit(peers, 3, function (peer, cb) {
-				// not need to check peer is offline or online, just send.
 				_request(peer, method, "POST", data);
 				setImmediate(cb);
 			}, function () {
@@ -336,7 +336,7 @@ Transport.prototype.getFromPeer = function (peer, method, cb) {
 }
 
 Transport.prototype.onBlockchainReady = function () {
-
+	apiReady = true;
 
 	async.forEach(library.config.peers.list, function (peer, cb) {
 		library.db.get("SELECT ip FROM peers WHERE ip = $ip", {$ip: ip.toLong(peer.ip)}, function (err, exists) {
