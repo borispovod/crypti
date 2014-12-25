@@ -643,7 +643,7 @@ Blocks.prototype.getMilestoneBlock = function (peer, cb) {
 					milestoneBlock = genesisblock.blockId;
 					next();
 				} else {
-					async.each(data.body.milestoneBlockIds, function (blockId, cb) {
+					async.eachSeries(data.body.milestoneBlockIds, function (blockId, cb) {
 						library.db.get("SELECT id FROM blocks WHERE id = $id", {$id: blockId}, function (err, block) {
 							if (err) {
 								return cb(err);
@@ -839,7 +839,7 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 
 			async.series([
 				function (done) {
-					async.each(block.transactions, function (transaction, cb) {
+					async.eachSeries(block.transactions, function (transaction, cb) {
 						transaction.id = transactionHelper.getId(transaction);
 
 						if (modules.transactions.getUnconfirmedTransaction(transaction.id)) {
@@ -914,7 +914,7 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 					}, done);
 				},
 				function (done) {
-					async.each(block.requests, function (request, cb) {
+					async.eachSeries(block.requests, function (request, cb) {
 						request.id = requestHelper.getId(request);
 
 						if (acceptedRequests[request.id]) {
@@ -1223,8 +1223,12 @@ Blocks.prototype.popLastBlock = function (cb) {
 					return cb(err);
 				}
 
-				lastBlock = previousBlock;
-				cb(null, lastBlock);
+				async.eachSeries(lastBlock.transactions, function (transaction, cb) {
+					modules.transactions.processUnconfirmedTransaction(transaction, false, cb);
+				}, function () {
+					lastBlock = previousBlock;
+					cb(null, lastBlock);
+				});
 			});
 		});
 	});
@@ -1247,11 +1251,11 @@ Blocks.prototype.undoBlock = function (block, previousBlock, cb) {
 
 	async.parallel([
 		function (done) {
-			async.each(block.transactions, function (transaction, cb) {
+			async.eachSeries(block.transactions, function (transaction, cb) {
 				modules.transactions.undo(transaction);
 				modules.transactions.undoUnconfirmed(transaction);
 				self.undoForger(block.generatorPublicKey, transaction);
-				modules.transactions.processUnconfirmedTransaction(transaction, false, cb);
+				setImmediate(cb);
 			}, done);
 		},
 		function (done) {
