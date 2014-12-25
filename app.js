@@ -137,9 +137,10 @@ d.run(function () {
 				tasks[name] = function (cb) {
 					var d = require('domain').create();
 					d.on('error', function (err) {
-						scope.logger.log('domain ' + name, {message: err.message, stack: err.stack});
+						scope.logger.fatal('domain ' + name, {message: err.message, stack: err.stack});
 					});
 					d.run(function () {
+						logger.debug('loading module', name)
 						var Klass = new require(config.modules[name]);
 						var obj = new Klass(cb, scope)
 						modules.push(obj);

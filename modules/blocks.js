@@ -265,14 +265,16 @@ Blocks.prototype.loadBlocksPart = function (filter, cb) {
 	library.db.all(
 		"SELECT " +
 		"b.id b_id, b.version b_version, b.timestamp b_timestamp, b.height b_height, b.previousBlock b_previousBlock, b.numberOfRequests b_numberOfRequests, b.numberOfTransactions b_numberOfTransactions, b.numberOfConfirmations b_numberOfConfirmations, b.totalAmount b_totalAmount, b.totalFee b_totalFee, b.previousFee b_previousFee, b.nextFeeVolume b_nextFeeVolume, b.feeVolume b_feeVolume, b.payloadLength b_payloadLength, b.requestsLength b_requestsLength, b.confirmationsLength b_confirmationsLength, b.payloadHash b_payloadHash, b.generatorPublicKey b_generatorPublicKey, b.generationSignature b_generationSignature, b.blockSignature b_blockSignature, " +
-		"r.id r_id, r.blockId r_blockId, r.address r_address, " +
-		"t.id t_id, t.blockId t_blockId, t.type t_type, t.subtype t_subtype, t.timestamp t_timestamp, t.senderPublicKey t_senderPublicKey, t.senderId t_senderId, t.recipientId t_recipientId, t.amount t_amount, t.fee t_fee, t.signature t_signature, t.signSignature t_signSignature, c_t.generatorPublicKey t_companyGeneratorPublicKey, " +
-		"s.id s_id, s.transactionId s_transactionId, s.timestamp s_timestamp, s.publicKey s_publicKey, s.generatorPublicKey s_generatorPublicKey, s.signature s_signature, s.generationSignature s_generationSignature, " +
-		"c.id c_id, c.transactionId c_transactionId, c.name c_name, c.description c_description, c.domain c_domain, c.email c_email, c.timestamp c_timestamp, c.generatorPublicKey c_generatorPublicKey, c.signature c_signature, " +
-		"cc.id cc_id, cc.blockId cc_blockId, cc.companyId cc_companyId, cc.verified cc_verified, cc.timestamp cc_timestamp, cc.signature cc_signature " +
+		"r.id r_id, r.address r_address, " +
+		"t.id t_id, t.type t_type, t.subtype t_subtype, t.timestamp t_timestamp, t.senderPublicKey t_senderPublicKey, t.senderId t_senderId, t.recipientId t_recipientId, t.amount t_amount, t.fee t_fee, t.signature t_signature, t.signSignature t_signSignature, c_t.generatorPublicKey t_companyGeneratorPublicKey, " +
+		"s.id s_id, s.timestamp s_timestamp, s.publicKey s_publicKey, s.generatorPublicKey s_generatorPublicKey, s.signature s_signature, s.generationSignature s_generationSignature, " +
+		"c.id c_id, c.name c_name, c.description c_description, c.domain c_domain, c.email c_email, c.timestamp c_timestamp, c.generatorPublicKey c_generatorPublicKey, c.signature c_signature, " +
+		"cc.id cc_id, cc.companyId cc_companyId, cc.verified cc_verified, cc.timestamp cc_timestamp, cc.signature cc_signature, " +
+		"d.username d_username " +
 		"FROM (select * from blocks " + (filter.id ? " where id = $id " : "") + (filter.lastId ? " where height > (SELECT height FROM blocks where id = $lastId) " : "") + " limit $limit) as b " +
 		"left outer join requests as r on r.blockId=b.id " +
 		"left outer join trs as t on t.blockId=b.id " +
+		"left outer join delegates as d on d.transactionId=t.id " +
 		"left outer join signatures as s on s.transactionId=t.id " +
 		"left outer join companies as c on c.transactionId=t.id " +
 		"left outer join companies as c_t on c_t.address=t.recipientId " +
@@ -332,6 +334,16 @@ Blocks.prototype.loadBlocksPart = function (filter, cb) {
 								}
 							}
 
+							var __delegate = blockHelper.getDelegate(rows[i]);
+							if (__delegate) {
+								__transaction.asset = __transaction.asset || {};
+								if (!__transaction.asset.delegate) {
+									__transaction.asset.delegate = __delegate;
+									modules.delegate.save2Memory(__delegate);
+
+								}
+							}
+
 							blocks[__block.id].transactions[__transaction.id] = __transaction;
 						}
 					}
@@ -350,14 +362,16 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 	library.db.all(
 		"SELECT " +
 		"b.id b_id, b.version b_version, b.timestamp b_timestamp, b.height b_height, b.previousBlock b_previousBlock, b.numberOfRequests b_numberOfRequests, b.numberOfTransactions b_numberOfTransactions, b.numberOfConfirmations b_numberOfConfirmations, b.totalAmount b_totalAmount, b.totalFee b_totalFee, b.payloadLength b_payloadLength, b.requestsLength b_requestsLength, b.confirmationsLength b_confirmationsLength, b.payloadHash b_payloadHash, b.generatorPublicKey b_generatorPublicKey, b.generationSignature b_generationSignature, b.blockSignature b_blockSignature, " +
-		"r.id r_id, r.blockId r_blockId, r.address r_address, " +
-		"t.id t_id, t.blockId t_blockId, t.type t_type, t.subtype t_subtype, t.timestamp t_timestamp, t.senderPublicKey t_senderPublicKey, t.senderId t_senderId, t.recipientId t_recipientId, t.amount t_amount, t.fee t_fee, t.signature t_signature, t.signSignature t_signSignature, c_t.generatorPublicKey t_companyGeneratorPublicKey, " +
-		"s.id s_id, s.transactionId s_transactionId, s.timestamp s_timestamp, s.publicKey s_publicKey, s.generatorPublicKey s_generatorPublicKey, s.signature s_signature, s.generationSignature s_generationSignature, " +
-		"c.id c_id, c.transactionId c_transactionId, c.name c_name, c.description c_description, c.domain c_domain, c.email c_email, c.timestamp c_timestamp, c.generatorPublicKey c_generatorPublicKey, c.signature c_signature, " +
-		"cc.id cc_id, cc.blockId cc_blockId, cc.companyId cc_companyId, cc.verified cc_verified, cc.timestamp cc_timestamp, cc.signature cc_signature " +
+		"r.id r_id, r.address r_address, " +
+		"t.id t_id, t.type t_type, t.subtype t_subtype, t.timestamp t_timestamp, t.senderPublicKey t_senderPublicKey, t.senderId t_senderId, t.recipientId t_recipientId, t.amount t_amount, t.fee t_fee, t.signature t_signature, t.signSignature t_signSignature, c_t.generatorPublicKey t_companyGeneratorPublicKey, " +
+		"s.id s_id, s.timestamp s_timestamp, s.publicKey s_publicKey, s.generatorPublicKey s_generatorPublicKey, s.signature s_signature, s.generationSignature s_generationSignature, " +
+		"c.id c_id, c.name c_name, c.description c_description, c.domain c_domain, c.email c_email, c.timestamp c_timestamp, c.generatorPublicKey c_generatorPublicKey, c.signature c_signature, " +
+		"cc.id cc_id, cc.companyId cc_companyId, cc.verified cc_verified, cc.timestamp cc_timestamp, cc.signature cc_signature, " +
+		"d.username d_username " +
 		"FROM (select * from blocks limit $limit offset $offset) as b " +
 		"left outer join requests as r on r.blockId=b.id " +
 		"left outer join trs as t on t.blockId=b.id " +
+		"left outer join delegates as d on d.transactionId=t.id " +
 		"left outer join signatures as s on s.transactionId=t.id " +
 		"left outer join companies as c on c.transactionId=t.id " +
 		"left outer join companies as c_t on c_t.address=t.recipientId " +
@@ -445,6 +459,16 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 										};
 										break;
 									}
+								}
+							}
+
+							var __delegate = blockHelper.getDelegate(rows[i]);
+							if (__delegate) {
+								__transaction.asset = __transaction.asset || {};
+								if (!__transaction.asset.delegate) {
+									__transaction.asset.delegate = __delegate;
+									modules.delegate.save2Memory(__delegate);
+
 								}
 							}
 
@@ -723,7 +747,7 @@ Blocks.prototype.getForgedByAccount = function (generatorPublicKey, cb) {
 			return cb(err);
 		}
 
-		cb(null, row? row.sum : 0);
+		cb(null, row ? row.sum : 0);
 	});
 }
 
@@ -1002,7 +1026,11 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 						// if type is 1 - need companyGeneratorPublicKey
 
 						modules.transactions.apply(transaction);
-						modules.delegates.search(transaction);
+						modules.delegates.save2Memory({
+							publicKey: transaction.senderPublicKey,
+							username: transaction.asset.delegate.username,
+							transactionId: transaction.id
+						});
 						modules.transactions.removeUnconfirmedTransaction(transaction.id);
 						self.applyForger(block.generatorPublicKey, transaction);
 					}
@@ -1236,7 +1264,7 @@ Blocks.prototype.popLastBlock = function (cb) {
 // must return block with all information include transactions, requests, companiesconfirmations
 Blocks.prototype.getBlock = function (blockId, cb) {
 	modules.blocks.loadBlocksPart({id: blockId}, function (err, blocks) {
-		if (err){
+		if (err) {
 			return cb(err)
 		}
 

@@ -51,7 +51,7 @@ function getCompanyComfirmation(raw){
 	} else {
 		return {
 			id: raw.cc_id,
-			blockId: raw.cc_blockId,
+			blockId: raw.b_id,
 			companyId: raw.cc_companyId,
 			verified: raw.cc_verified,
 			timestamp: raw.cc_timestamp,
@@ -66,8 +66,20 @@ function getRequest(raw) {
 	} else {
 		return {
 			id: raw.r_id,
-			blockId: raw.r_blockId,
+			blockId: raw.b_id,
 			address: raw.r_address
+		}
+	}
+}
+
+function getDelegate(raw) {
+	if (!raw.d_username) {
+		return null
+	} else {
+		return {
+			username: raw.d_username,
+			publicKey: new Buffer(raw.t_senderPublicKey),
+			transactionId: raw.t_id
 		}
 	}
 }
@@ -78,7 +90,7 @@ function getTransaction(raw) {
 	} else {
 		return {
 			id: raw.t_id,
-			blockId: raw.t_blockId,
+			blockId: raw.b_id,
 			type: raw.t_type,
 			subtype: raw.t_subtype,
 			timestamp: raw.t_timestamp,
@@ -101,7 +113,7 @@ function getSignature(raw) {
 	} else {
 		return {
 			id: raw.s_id,
-			transactionId: raw.s_transactionId,
+			transactionId: raw.t_id,
 			timestamp: raw.s_timestamp,
 			publicKey: new Buffer(raw.s_publicKey),
 			generatorPublicKey: new Buffer(raw.s_generatorPublicKey),
@@ -117,7 +129,7 @@ function getCompany(raw) {
 	} else {
 		return {
 			id: raw.c_id,
-			transactionId: raw.c_transactionId,
+			transactionId: raw.t_id,
 			name: raw.c_name,
 			description: raw.c_description,
 			domain: raw.c_domain,
@@ -215,6 +227,7 @@ module.exports = {
 	getTransaction: getTransaction,
 	getSignature: getSignature,
 	getCompany: getCompany,
+	getDelegate: getDelegate,
 	getBytes: getBytes,
 	sign : sign,
 	getId : getId

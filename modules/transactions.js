@@ -282,6 +282,7 @@ Transactions.prototype.getUnconfirmedTransactions = function (sort) {
 
 Transactions.prototype.removeUnconfirmedTransaction = function (id) {
 	if (unconfirmedTransactions[id]) {
+		modules.delegate.removeUnconfirmedDelegate(unconfirmedTransactions.senderPublicKey)
 		delete unconfirmedTransactions[id];
 	}
 }
@@ -454,23 +455,16 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 				},
 				function (cb) {
 					if (transaction.type == 4 && transaction.subtype == 0) {
-						if (modules.delegates.getUnconfirmedDelegate(transaction.asset.username)) {
-							cb("Delegate with this name already exists");
-							return;
+						if (modules.delegate.getUnconfirmedDelegate(transaction.senderPublicKey)) {
+							return cb("Delegate with this name is already exists");
+						}
+						if (modules.delegate.getDelegate(transaction.senderPublicKey)) {
+							return cb("Delegate with this name is already exists");
 						}
 
-						library.db.get("SELECT username FROM delegates WHERE username=$username", {$username: transaction.asset.username}, function (err, delegate) {
-							if (err) {
-								library.logger.error(err.toString());
-								cb("Internal sql error");
-								return;
-							} else if (delegate) {
-								cb("Delegate with this username already exists");
-								return;
-							}
-
-							cb();
-						});
+						setImmediate(cb);
+					}else{
+						setImmediate(cb);
 					}
 				}
 			], function (errors) {
@@ -653,6 +647,10 @@ Transactions.prototype.parseTransaction = function (transaction) {
 
 	if (transaction.type == 2 && transaction.subtype == 0) {
 		transaction.asset.signature = modules.signatures.parseSignature(params.object(transaction.asset.signature));
+	}
+
+	if (transaction.type == 4 && transaction.subtype == 0) {
+		transaction.asset.signature = modules.delegate.parseDelegate(params.object(transaction.asset.delegate));
 	}
 
 	return transaction;
