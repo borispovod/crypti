@@ -378,13 +378,13 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 				if (__block) {
 					if (!blocks[__block.id]) {
 						blocks[__block.id] = __block;
-						lastBlock = blocks[__block.id];
 
-						if (lastBlock.id != genesisblock.blockId) {
-							self.applyFee(lastBlock);
+						if (__block.id != genesisblock.blockId) {
+							self.applyFee(__block);
+							self.applyWeight(__block);
 						}
 
-						self.applyWeight(lastBlock);
+						lastBlock = blocks[__block.id];
 					}
 					if (blocks[__block.id].id != genesisblock.blockId) {
 						if (!self.verifySignature(blocks[__block.id])) { //|| !self.verifyGenerationSignature(block, previousBlock)) {
@@ -1008,7 +1008,6 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 
 					self.applyFee(block);
 					self.applyWeight(block);
-
 
 					self.saveBlock(block, function (err) {
 						if (err) {

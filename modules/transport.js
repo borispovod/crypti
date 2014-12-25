@@ -191,6 +191,7 @@ function Transport(cb, scope) {
 					if (hitA.ge(hitB)) {
 						return res.sendStatus(200);
 					} else {
+						console.log(lastBlock.timestamp, block.timestamp);
 						console.log("Better block then own");
 					}
 
