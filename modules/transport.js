@@ -290,7 +290,7 @@ function _request(peer, api, method, data, cb) {
 			return;
 		}
 
-		var peer = {
+		peer = {
 			ip: peer.ip,
 			port: params.int(response.headers['port']),
 			state: 2,
