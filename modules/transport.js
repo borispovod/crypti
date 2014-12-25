@@ -190,8 +190,6 @@ function Transport(cb, scope) {
 
 					if (hitA.ge(hitB)) {
 						return res.sendStatus(200);
-					} else {
-						console.log("Better block then own");
 					}
 
 					modules.blocks.popLastBlock(function (err) {
@@ -270,8 +268,6 @@ function _request(peer, api, method, data, cb) {
 		json: true,
 		headers: headers
 	};
-
-	console.log(ip.fromLong(peer.ip));
 
 	library.logger.trace('request', req.url)
 
