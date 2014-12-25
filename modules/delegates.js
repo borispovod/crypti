@@ -9,9 +9,10 @@ var Router = require('../helpers/router.js');
 //private
 var modules, library, self;
 var delegates, unconfirmedDelegates;
+var apiReady = false;
 
 //public
-function Delegates() {
+function Delegates(cb, scope) {
 	self = this;
 	library = scope;
 	delegates = {};
@@ -20,7 +21,7 @@ function Delegates() {
 	var router = new Router();
 
 	router.use(function (req, res, next) {
-		if (modules) return next();
+		if (modules && apiReady) return next();
 		res.status(500).send({success: false, error: 'loading'});
 	});
 
@@ -57,7 +58,9 @@ function Delegates() {
 			senderPublicKey: account.publicKey,
 			timestamp: timeHelper.getNow(),
 			asset: {
-				username: username
+				delegate: {
+					username: username
+				}
 			}
 		};
 
@@ -94,27 +97,52 @@ Delegates.prototype.getDelegate = function (publicKey) {
 	return delegates[publicKey];
 }
 
-Delegates.prototype.getUnconfirmedDelegate = function (username) {
-	return unconfirmedDelegates[username];
+Delegates.prototype.getUnconfirmedDelegate = function (publicKey) {
+	return unconfirmedDelegates[publicKey];
 }
 
-Delegates.prototype.addUnconfirmedDelegate = function (username, account) {
-	if (unconfirmedDelegates[username]) {
-		return false;
+Delegates.prototype.addUnconfirmedDelegate = function (delegate) {
+	if (self.getUnconfirmedDelegate(delegate.publicKey)) {
+		return false
 	}
 
-	unconfirmedDelegates[username] = account;
+	unconfirmedDelegates[transaction.senderPublicKey] = delegate;
 	return true;
 }
 
-Delegates.prototype.search = function (transaction) {
-	if (transaction.type == 4 && transaction.subtype == 0) {
-		delegates[transaction.senderPublicKey] = modules.account.getAddressByPublicKey(transaction.senderPublicKey);
+Delegates.prototype.removeUnconfirmedDelegate = function (publicKey) {
+	if (unconfirmedDelegates[publicKey]) {
+		delete unconfirmedDelegates[publicKey];
 	}
+}
+
+Delegates.prototype.parseDelegate = function (delegate) {
+	delegate.publicKey = params.buffer(delegate.publicKey, 'hex');
+	delegate.transactionId = params.string(delegate.transactionId);
+	delegate.username = params.string(delegate.username);
+
+	return delegate;
+}
+
+Delegates.prototype.save2Memory = function (delegate) {
+	delegates[delegate.publicKey] = delegate;
 }
 
 Delegates.prototype.run = function (scope) {
 	modules = scope;
+}
+
+Delegates.prototype.onBlockchainReady = function () {
+	apiReady = true;
+}
+
+Delegates.prototype.onUnconfirmedTransaction = function (transaction) {
+	var delegate = {
+		publicKey: transaction.senderPublicKey,
+		username: transaction.asset.delegate.username,
+		transactionId: transaction.id
+	};
+	self.addUnconfirmedDelegate(delegate);
 }
 
 module.exports = Delegates;

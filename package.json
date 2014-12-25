@@ -29,7 +29,8 @@
     "sqlite3-transactions": "*",
     "stack-trace": "0.0.9",
     "strftime": "*",
-    "underscore": "https://github.com/crypti/underscore/tarball/master"
+    "underscore": "https://github.com/crypti/underscore/tarball/master",
+    "knuth-shuffle": "*"
   },
   "devDependencies": {
     "grunt-jscrambler": "^0.2.7",
