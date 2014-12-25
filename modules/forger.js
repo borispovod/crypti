@@ -155,14 +155,19 @@ Forger.prototype.startForging = function (keypair) {
 			var now = timeHelper.getNow();
 
 			if (now - modules.blocks.getLastBlock().timestamp >= 60) {
-				modules.blocks.generateBlock(keypair, callback);
+				modules.blocks.generateBlock(keypair, function (err) {
+					if (err) {
+						library.logger.error("Problem in block generation", err);
+					}
+
+					setImmediate(callback);
+				});
 			} else {
 				setTimeout(callback, 100);
 			}
 		},
 		function (err) {
 			if (err) {
-				library.logger.error("Problem in block generation", err);
 				self.stopForging();
 			}
 		}
