@@ -290,18 +290,18 @@ function _request(peer, api, method, data, cb) {
 			return;
 		}
 
-		peer = {
-			ip: peer.ip,
-			port: params.int(response.headers['port']),
-			state: 2,
-			os: params.string(response.headers['os']),
-			sharePort: Number(!!params.int(response.headers['share-port'])),
-			version: params.string(response.headers['version'])
-		};
-
-		if (peer.port > 0 && peer.port <= 65535) {
-			modules.peer.update(peer);
+		var port = params.int(response.headers['port']);
+		if (port > 0 && port <= 65535) {
+			modules.peer.update({
+				ip: peer.ip,
+				port: port,
+				state: 2,
+				os: params.string(response.headers['os']),
+				sharePort: Number(!!params.int(response.headers['share-port'])),
+				version: params.string(response.headers['version'])
+			});
 		}
+
 
 		cb && cb(null, body);
 	});
