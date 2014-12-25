@@ -133,6 +133,7 @@ function Forger(cb, scope) {
 Forger.prototype.stopForging = function () {
 	forgingStarted = false;
 	keypair = null;
+	library.logger.info("Forging disabled...");
 }
 
 Forger.prototype.startForging = function (keypair) {
@@ -144,6 +145,8 @@ Forger.prototype.startForging = function (keypair) {
 	var delegate = modules.delegates.getDelegate(keypair.publicKey);
 	if (!delegate) return;
 
+	library.logger.info("Forging enabled on account: " + address);
+	
 	forgingStarted = true;
 	async.until(
 		function () {
@@ -163,16 +166,19 @@ Forger.prototype.startForging = function (keypair) {
 			var now = timeHelper.getNow();
 
 			if (now - modules.blocks.getLastBlock().timestamp >= 60) {
-				modules.blocks.generateBlock(keypair, callback);
+				modules.blocks.generateBlock(keypair, function (err) {
+					if (err) {
+						library.logger.error("Problem in block generation", err);
+					}
+
+					setImmediate(callback);
+				});
 			} else {
 				setTimeout(callback, 100);
 			}
 		},
-		function (err) {
-			if (err) {
-				library.logger.error("Problem in block generation", err);
-				self.stopForging();
-			}
+		function () {
+			self.stopForging();
 		}
 	);
 }

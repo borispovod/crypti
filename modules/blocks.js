@@ -392,13 +392,13 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 				if (__block) {
 					if (!blocks[__block.id]) {
 						blocks[__block.id] = __block;
-						lastBlock = blocks[__block.id];
 
-						if (lastBlock.id != genesisblock.blockId) {
-							self.applyFee(lastBlock);
+						if (__block.id != genesisblock.blockId) {
+							self.applyFee(__block);
+							self.applyWeight(__block);
 						}
 
-						self.applyWeight(lastBlock);
+						lastBlock = blocks[__block.id];
 					}
 					if (blocks[__block.id].id != genesisblock.blockId) {
 						if (!self.verifySignature(blocks[__block.id])) { //|| !self.verifyGenerationSignature(block, previousBlock)) {
@@ -667,7 +667,7 @@ Blocks.prototype.getMilestoneBlock = function (peer, cb) {
 					milestoneBlock = genesisblock.blockId;
 					next();
 				} else {
-					async.each(data.body.milestoneBlockIds, function (blockId, cb) {
+					async.eachSeries(data.body.milestoneBlockIds, function (blockId, cb) {
 						library.db.get("SELECT id FROM blocks WHERE id = $id", {$id: blockId}, function (err, block) {
 							if (err) {
 								return cb(err);
@@ -824,12 +824,12 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 				return cb("Can't verify signature: " + block.id);
 			}
 
-			if (!self.verifyGenerationSignature(block, lastBlock)) {
-				return cb("Can't verify generator signature: " + block.id);
-			}
-
 			if (block.previousBlock != lastBlock.id) {
 				return cb("Can't verify previous block: " + block.id);
+			}
+
+			if (!self.verifyGenerationSignature(block, lastBlock)) {
+				return cb("Can't verify generator signature: " + block.id);
 			}
 
 			if (block.version > 2 || block.version <= 0) {
@@ -863,7 +863,7 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 
 			async.series([
 				function (done) {
-					async.each(block.transactions, function (transaction, cb) {
+					async.eachSeries(block.transactions, function (transaction, cb) {
 						transaction.id = transactionHelper.getId(transaction);
 
 						if (modules.transactions.getUnconfirmedTransaction(transaction.id)) {
@@ -938,7 +938,7 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 					}, done);
 				},
 				function (done) {
-					async.each(block.requests, function (request, cb) {
+					async.eachSeries(block.requests, function (request, cb) {
 						request.id = requestHelper.getId(request);
 
 						if (acceptedRequests[request.id]) {
@@ -1222,17 +1222,23 @@ Blocks.prototype.loadBlocksFromPeer = function (peer, lastBlockId, cb) {
 
 Blocks.prototype.deleteBlocksBefore = function (blockId, cb) {
 	var self = this;
-	library.logger.info("Last block: " + lastBlock.id);
 
-	async.whilst(
-		function () {
-			return blockId != lastBlock.id
-		},
-		function (next) {
-			self.popLastBlock(next);
-		},
-		cb
-	)
+	library.db.get("SELECT height FROM blocks WHERE id=$id", {$id:blockId}, function (err, needBlock) {
+		if (err || !needBlock) {
+			cb(err? err.toString() : "Can't find block: " + blockId);
+			return;
+		}
+
+		async.whilst(
+			function () {
+				return !(needBlock.height >= lastBlock.height)
+			},
+			function (next) {
+				self.popLastBlock(next);
+			},
+			cb
+		)
+	});
 }
 
 Blocks.prototype.popLastBlock = function (cb) {
@@ -1253,8 +1259,12 @@ Blocks.prototype.popLastBlock = function (cb) {
 					return cb(err);
 				}
 
-				lastBlock = previousBlock;
-				cb(null, lastBlock);
+				async.eachSeries(lastBlock.transactions, function (transaction, cb) {
+					modules.transactions.processUnconfirmedTransaction(transaction, false, cb);
+				}, function () {
+					lastBlock = previousBlock;
+					cb(null, lastBlock);
+				});
 			});
 		});
 	});
@@ -1277,7 +1287,7 @@ Blocks.prototype.undoBlock = function (block, previousBlock, cb) {
 
 	async.parallel([
 		function (done) {
-			async.each(block.transactions, function (transaction, cb) {
+			async.eachSeries(block.transactions, function (transaction, cb) {
 				modules.transactions.undo(transaction);
 				modules.transactions.undoUnconfirmed(transaction);
 				self.undoForger(block.generatorPublicKey, transaction);

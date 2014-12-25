@@ -646,7 +646,7 @@ Transactions.prototype.parseTransaction = function (transaction) {
 	}
 
 	if (transaction.type == 2 && transaction.subtype == 0) {
-		transaction.asset.signature = modules.signatures.parseSignature(params.object(transaction.asset.signature));
+		transaction.asset.signature = modules.signatures.parseSignature(params.object(params.object(transaction.asset).signature));
 	}
 
 	if (transaction.type == 4 && transaction.subtype == 0) {
