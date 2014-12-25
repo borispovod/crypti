@@ -190,6 +190,8 @@ function Transport(cb, scope) {
 
 					if (hitA.ge(hitB)) {
 						return res.sendStatus(200);
+					} else {
+						console.log("Better block then own");
 					}
 
 					modules.blocks.popLastBlock(function (err) {
@@ -269,6 +271,8 @@ function _request(peer, api, method, data, cb) {
 		headers: headers
 	};
 
+	console.log(ip.fromLong(peer.ip));
+
 	library.logger.trace('request', req.url)
 
 	if (Object.prototype.toString.call(data) == "[object Object]" || util.isArray(data)) {
@@ -280,6 +284,7 @@ function _request(peer, api, method, data, cb) {
 	request(req, function (err, response, body) {
 		if (err || response.statusCode != 200) {
 			library.logger.debug('request', {url: req.url, statusCode: response ? response.statusCode : 'unknown', err: err});
+
 			modules.peer.state(peer.ip, peer.port, 1, 10);
 			cb && cb(err || ('request status code' + response.statusCode));
 			return;
