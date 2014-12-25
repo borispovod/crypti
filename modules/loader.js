@@ -111,7 +111,7 @@ Loader.prototype.updatePeerList = function (cb) {
 		async.eachLimit(peers, 2, function (peer, cb) {
 			peer = modules.peer.parsePeer(peer);
 
-			if (ip.toLong("127.0.0.1") == peer.ip) {
+			if (ip.toLong("127.0.0.1") == peer.ip || peer.port == 0 || peer.port > 65535) {
 				setImmediate(cb);
 				return;
 			}
@@ -126,17 +126,28 @@ Loader.prototype.loadBlocks = function (cb) {
 		if (err) {
 			return cb();
 		}
+
+		var peerStr = data.peer.ip + ":" + data.peer.port;
+		library.logger.info("Load blocks from " + peerStr);
+
 		if (modules.blocks.getWeight().lt(params.string(data.body.weight))) {
 			sync = true;
+
 			if (modules.blocks.getLastBlock().id != genesisBlock.blockId) {
+
+				library.logger.info("Find milestone block from " + peerStr);
 				modules.blocks.getMilestoneBlock(data.peer, function (err, milestoneBlock) {
 					if (err) {
 						return cb(err);
 					}
+
+					library.logger.info("Find common block from " + peerStr);
+
 					modules.blocks.getCommonBlock(data.peer, milestoneBlock, function (err, commonBlock) {
 						if (err) {
 							return cb(err);
 						}
+
 
 						if (modules.blocks.getLastBlock().id != commonBlock) {
 							library.db.get("SELECT height FROM blocks WHERE id=$id", {$id: commonBlock}, function (err, block) {
@@ -145,26 +156,30 @@ Loader.prototype.loadBlocks = function (cb) {
 								}
 
 								if (modules.blocks.getLastBlock().height - block.height > 1440) {
+									library.logger.info("Ban peer " + peerStr);
 									modules.peer.state(data.peer.ip, data.peer.port, 0, 60);
 									cb();
 								} else {
-									library.logger.info("Resolve fork before: " + commonBlock);
+									library.logger.info("Resolve fork before " + commonBlock + " from " + peerStr);
 									modules.blocks.deleteBlocksBefore(commonBlock, function (err) {
 										if (err) {
 											return cb(err);
 										}
 
-
+										library.logger.info("Load blocks from peer " + peerStr);
 										modules.blocks.loadBlocksFromPeer(data.peer, commonBlock, cb);
 									})
 								}
 							});
 						} else {
+							library.logger.info("Load blocks from peer " + peerStr);
+
 							modules.blocks.loadBlocksFromPeer(data.peer, commonBlock, cb);
 						}
 					})
 				})
 			} else {
+				library.logger.info("Load blocks from genesis from " + peerStr);
 				var commonBlock = genesisBlock.blockId;
 				modules.blocks.loadBlocksFromPeer(data.peer, commonBlock, cb);
 			}

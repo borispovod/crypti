@@ -30,14 +30,18 @@ function Transport(cb, scope) {
 			return next();
 		}
 
-		modules.peer.update({
+		var peer = {
 			ip: ip.toLong(peerIp),
 			port: params.int(req.headers['port']),
 			state: 2,
 			os: params.string(req.headers['os']),
 			sharePort: Number(!!params.int(req.headers['share-port'])),
 			version: params.string(req.headers['version'])
-		});
+		};
+
+		if (peer.port > 0 && peer.port <= 65535) {
+			modules.peer.update(peer);
+		}
 
 		next();
 	});
@@ -286,14 +290,18 @@ function _request(peer, api, method, data, cb) {
 			return;
 		}
 
-		modules.peer.update({
+		var peer = {
 			ip: peer.ip,
 			port: params.int(response.headers['port']),
 			state: 2,
 			os: params.string(response.headers['os']),
 			sharePort: Number(!!params.int(response.headers['share-port'])),
 			version: params.string(response.headers['version'])
-		});
+		};
+
+		if (peer.port > 0 && peer.port <= 65535) {
+			modules.peer.update(peer);
+		}
 
 		cb && cb(null, body);
 	});

@@ -1225,14 +1225,17 @@ Blocks.prototype.popLastBlock = function (cb) {
 
 				async.eachSeries(lastBlock.transactions, function (transaction, cb) {
 					modules.transactions.processUnconfirmedTransaction(transaction, false, cb);
-				}, function () {
+				}, function (err) {
+					if (err) {
+						return cb(err);
+					}
+
 					lastBlock = previousBlock;
 					cb(null, lastBlock);
 				});
 			});
 		});
 	});
-
 }
 
 // must return block with all information include transactions, requests, companiesconfirmations
