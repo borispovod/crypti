@@ -112,7 +112,8 @@ Loader.prototype.updatePeerList = function (cb) {
 			peer = modules.peer.parsePeer(peer);
 
 			if (ip.toLong("127.0.0.1") == peer.ip) {
-				return setImmediate(cb);
+				setImmediate(cb);
+				return;
 			}
 
 			modules.peer.update(peer, cb);
@@ -153,6 +154,7 @@ Loader.prototype.loadBlocks = function (cb) {
 											return cb(err);
 										}
 
+
 										modules.blocks.loadBlocksFromPeer(data.peer, commonBlock, cb);
 									})
 								}
@@ -178,7 +180,10 @@ Loader.prototype.getUnconfirmedTransactions = function (cb) {
 			return cb()
 		}
 
-		async.forEach(data.body.transactions, function (transaction, cb) {
+
+		var transactions = params.array(data.body.transactions);
+
+		async.forEach(transactions, function (transaction, cb) {
 			modules.transactions.processUnconfirmedTransaction(modules.transactions.parseTransaction(transaction), true, cb);
 		}, cb);
 	});

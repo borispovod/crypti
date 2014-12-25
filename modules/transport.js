@@ -32,11 +32,11 @@ function Transport(cb, scope) {
 
 		modules.peer.update({
 			ip: ip.toLong(peerIp),
-			port: Number(req.headers['port']),
-			state: 1,
-			os: req.headers['os'],
-			sharePort: Number(!!req.headers['share-port']),
-			version: req.headers['version']
+			port: params.int(req.headers['port']),
+			state: 2,
+			os: params.string(req.headers['os']),
+			sharePort: Number(!!params.int(req.headers['share-port'])),
+			version: params.string(req.headers['version'])
 		});
 
 		next();
@@ -56,7 +56,7 @@ function Transport(cb, scope) {
 			return res.json({success: false, error: "Provide id in url"});
 		}
 
-		library.db.all("SELECT id FROM blocks WHERE height > (SELECT height FROM blocks where id=$id) LIMIT 1440", {$id: id}, function (err, blocks) {
+		library.db.all("SELECT id FROM blocks WHERE height > (SELECT height FROM blocks where id=$id) ORDER BY height LIMIT 1440", {$id: id}, function (err, blocks) {
 			if (err) {
 				return res.status(200).json({success: false, error: "Internal sql error"});
 			}
@@ -106,7 +106,7 @@ function Transport(cb, scope) {
 					height = modules.blocks.getLastBlock().height;
 					jump = 10;
 					limit = 10;
-					setImmediate(cb);
+					cb();
 				}
 			}
 		], function (error) {
@@ -170,7 +170,6 @@ function Transport(cb, scope) {
 		res.set(headers);
 
 		var block = params.object(req.body.block);
-
 
 		modules.blocks.parseBlock(block, function (err, block) {
 			if (block.previousBlock == modules.blocks.getLastBlock().id) {
@@ -281,18 +280,21 @@ function _request(peer, api, method, data, cb) {
 	request(req, function (err, response, body) {
 		if (err || response.statusCode != 200) {
 			library.logger.debug('request', {url: req.url, statusCode: response ? response.statusCode : 'unknown', err: err});
-			modules.peer.state(peer.ip, peer.port, 2, 10);
+
+			modules.peer.state(peer.ip, peer.port, 1, 10);
 			cb && cb(err || ('request status code' + response.statusCode));
 			return;
 		}
+
 		modules.peer.update({
 			ip: peer.ip,
-			port: Number(response.headers['port']),
-			state: 1,
-			os: response.headers['os'],
-			sharePort: Number(!!response.headers['share-port']),
-			version: response.headers['version']
+			port: params.int(response.headers['port']),
+			state: 2,
+			os: params.string(response.headers['os']),
+			sharePort: Number(!!params.int(response.headers['share-port'])),
+			version: params.string(response.headers['version'])
 		});
+
 		cb && cb(null, body);
 	});
 }
@@ -306,7 +308,6 @@ Transport.prototype.broadcast = function (peersCount, method, data, cb) {
 	modules.peer.list(peersCount, function (err, peers) {
 		if (!err) {
 			async.eachLimit(peers, 3, function (peer, cb) {
-				// not need to check peer is offline or online, just send.
 				_request(peer, method, "POST", data);
 				setImmediate(cb);
 			}, function () {
@@ -341,27 +342,14 @@ Transport.prototype.onBlockchainReady = function () {
 	apiReady = true;
 
 	async.forEach(library.config.peers.list, function (peer, cb) {
-		library.db.get("SELECT ip FROM peers WHERE ip = $ip", {$ip: ip.toLong(peer.ip)}, function (err, exists) {
-			if (err) {
-				return cb(err);
-			}
-
-			if (!exists) {
-				var st = library.db.prepare("INSERT INTO peers(ip, port, state, sharePort) VALUES($ip, $port, $state, $sharePort)");
-				st.bind({
-					$ip: ip.toLong(peer.ip),
-					$port: peer.port,
-					$state: 1,
-					$sharePort: Number(true)
-				});
-				st.run(function (err) {
-					cb(err);
-				});
-			} else {
-				cb();
-			}
+		var st = library.db.prepare("INSERT OR IGNORE INTO peers(ip, port, state, sharePort) VALUES($ip, $port, $state, $sharePort)");
+		st.bind({
+			$ip: ip.toLong(peer.ip),
+			$port: peer.port,
+			$state: 2,
+			$sharePort: Number(true)
 		});
-
+		st.run(cb);
 	}, function (err) {
 		if (err) {
 			library.logger.error('onBlockchainReady', err);
