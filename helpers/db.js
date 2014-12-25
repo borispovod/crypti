@@ -26,7 +26,6 @@ module.exports.connect = function (connectString, cb) {
 		"CREATE INDEX IF NOT EXISTS companies_trs_id ON companies(transactionId)",
 		"CREATE INDEX IF NOT EXISTS companyconfirmations_block_id ON companyconfirmations(blockId)",
 		"CREATE INDEX IF NOT EXISTS companyconfirmations_company_id ON companyconfirmations(companyId)",
-		"UPDATE peers SET state = 1, clock = null where (state != 0) or (state = 0 and clock - " + Date.now() + " < 0)",
 		"PRAGMA foreign_keys = ON"
 	];
 
