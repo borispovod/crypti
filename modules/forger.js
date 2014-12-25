@@ -128,6 +128,7 @@ function Forger(cb, scope) {
 Forger.prototype.stopForging = function () {
 	forgingStarted = false;
 	keypair = null;
+	library.logger.info("Forging disabled...");
 }
 
 Forger.prototype.startForging = function (keypair) {
@@ -136,6 +137,8 @@ Forger.prototype.startForging = function (keypair) {
 	forgingStarted = true;
 
 	var address = modules.accounts.getAddressByPublicKey(keypair.publicKey);
+
+	library.logger.info("Forging enabled on account: " + address);
 
 	async.until(
 		function () {
@@ -166,10 +169,8 @@ Forger.prototype.startForging = function (keypair) {
 				setTimeout(callback, 100);
 			}
 		},
-		function (err) {
-			if (err) {
-				self.stopForging();
-			}
+		function () {
+			self.stopForging();
 		}
 	);
 }
