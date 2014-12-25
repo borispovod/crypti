@@ -435,8 +435,9 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 									break;
 								}
 
-								if (__transaction.signSignature) {
-									var sender = modules.accounts.getAccountByPublicKey(__transaction.senderPublicKey);
+								var sender = modules.accounts.getAccountByPublicKey(__transaction.senderPublicKey);
+
+								if (sender.secondSignature) {
 									if (!modules.transactions.verifySecondSignature(__transaction, sender.secondPublicKey)) {
 										err = {
 											message: "Can't verify second transaction: " + __transaction.id,
@@ -487,7 +488,7 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 
 			//console.timeEnd('loading');
 
-			cb(null, normalizeBlock(lastBlock));
+			cb(err, normalizeBlock(lastBlock));
 		});
 }
 
@@ -799,12 +800,12 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 				return cb("Can't verify signature: " + block.id);
 			}
 
-			if (!self.verifyGenerationSignature(block, lastBlock)) {
-				return cb("Can't verify generator signature: " + block.id);
-			}
-
 			if (block.previousBlock != lastBlock.id) {
 				return cb("Can't verify previous block: " + block.id);
+			}
+
+			if (!self.verifyGenerationSignature(block, lastBlock)) {
+				return cb("Can't verify generator signature: " + block.id);
 			}
 
 			if (block.version > 2 || block.version <= 0) {
@@ -846,7 +847,7 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 							totalFee += transaction.fee;
 							appliedTransactions[transaction.id] = transaction;
 							payloadHash.update(transactionHelper.getBytes(transaction));
-							return cb();
+							return setImmediate(cb);
 						}
 
 						library.db.get("SELECT id FROM trs WHERE id=$id", {$id: transaction.id}, function (err, tId) {
@@ -907,7 +908,7 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 								totalAmount += transaction.amount;
 								totalFee += transaction.fee;
 
-								cb();
+								setImmediate(cb);
 							}
 						});
 					}, done);
@@ -1187,15 +1188,22 @@ Blocks.prototype.loadBlocksFromPeer = function (peer, lastBlockId, cb) {
 Blocks.prototype.deleteBlocksBefore = function (blockId, cb) {
 	var self = this;
 
-	async.whilst(
-		function () {
-			return blockId != lastBlock.id
-		},
-		function (next) {
-			self.popLastBlock(next);
-		},
-		cb
-	)
+	library.db.get("SELECT height FROM blocks WHERE id=$id", {$id:blockId}, function (err, needBlock) {
+		if (err || !needBlock) {
+			cb(err? err.toString() : "Can't find block: " + blockId);
+			return;
+		}
+
+		async.whilst(
+			function () {
+				return !(needBlock.height >= lastBlock.height)
+			},
+			function (next) {
+				self.popLastBlock(next);
+			},
+			cb
+		)
+	});
 }
 
 Blocks.prototype.popLastBlock = function (cb) {
@@ -1244,7 +1252,7 @@ Blocks.prototype.undoBlock = function (block, previousBlock, cb) {
 				modules.transactions.undo(transaction);
 				modules.transactions.undoUnconfirmed(transaction);
 				self.undoForger(block.generatorPublicKey, transaction);
-				cb();
+				setImmediate(cb);
 			}, done);
 		},
 		function (done) {
@@ -1291,7 +1299,7 @@ Blocks.prototype.parseBlock = function (block, cb) {
 		function (done) {
 			async.eachLimit(block.transactions, 10, function (transaction, cb) {
 				transaction = modules.transactions.parseTransaction(params.object(transaction));
-				cb();
+				setImmediate(cb);
 			}, done);
 		},
 		function (done) {
@@ -1300,7 +1308,7 @@ Blocks.prototype.parseBlock = function (block, cb) {
 				request.id = params.string(request.id);
 				request.blockId = params.string(request.blockId);
 				request.address = params.string(request.address);
-				cb();
+				setImmediate(cb);
 			}, done);
 		}
 	], function (err) {

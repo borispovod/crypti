@@ -5,25 +5,24 @@
     "serveHttpWallet": true,
     "version": "0.1.8",
     "fileLogLevel": "info",
-	"consoleLogLevel" : "info",
+    "consoleLogLevel": "info",
     "sharePort": true,
     "adminPanel": {
         "whiteList": [
-			"127.0.0.1"
+            "127.0.0.1"
         ]
     },
     "api": {
         "access": {
-            "whiteList": [
-			]
+            "whiteList": []
         }
     },
     "peers": {
         "list": [
-			{
-				"ip": "104.155.15.135",
-				"port": 7040
-			}
+            {
+                "ip": "104.155.15.135",
+                "port": 7040
+            }
         ],
         "blackList": []
     },
