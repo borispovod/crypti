@@ -1251,7 +1251,7 @@ Blocks.prototype.undoBlock = function (block, previousBlock, cb) {
 				modules.transactions.undo(transaction);
 				modules.transactions.undoUnconfirmed(transaction);
 				self.undoForger(block.generatorPublicKey, transaction);
-				setImmediate(cb);
+				modules.transactions.processUnconfirmedTransaction(transaction, false, cb);
 			}, done);
 		},
 		function (done) {
