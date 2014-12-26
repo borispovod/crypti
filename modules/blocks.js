@@ -380,6 +380,14 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 						blocks[__block.id] = __block;
 
 						if (__block.id != genesisblock.blockId) {
+							if (__block.previousBlock != lastBlock.id) {
+								err = {
+									message : "Can't verify previous block",
+									block : __block
+								}
+								break;
+							}
+
 							self.applyFee(__block);
 							self.applyWeight(__block);
 						}
