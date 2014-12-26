@@ -256,6 +256,71 @@ Blocks.prototype.count = function (cb) {
 	});
 }
 
+function relational2object(rows) {
+	var blocks = {};
+	var order = [];
+	for (var i = 0, length = rows.length; i < length; i++) {
+		var __block = blockHelper.getBlock(rows[i]);
+		if (__block) {
+			if (!blocks[__block.id]) {
+				order.push(__block.id);
+				blocks[__block.id] = __block;
+			}
+
+			var __companyComfirmation = blockHelper.getCompanyComfirmation(rows[i]);
+			blocks[__block.id].companyconfirmations = blocks[__block.id].companyconfirmations || {};
+			if (__companyComfirmation) {
+				if (!blocks[__block.id].companyconfirmations[__companyComfirmation.id]) {
+					blocks[__block.id].companyconfirmations[__companyComfirmation.id] = __companyComfirmation;
+				}
+			}
+
+			var __request = blockHelper.getRequest(rows[i]);
+			blocks[__block.id].requests = blocks[__block.id].requests || {};
+			if (__request) {
+				if (!blocks[__block.id].requests[__request.id]) {
+					blocks[__block.id].requests[__request.id] = __request;
+				}
+			}
+
+			var __transaction = blockHelper.getTransaction(rows[i]);
+			blocks[__block.id].transactions = blocks[__block.id].transactions || {};
+			if (__transaction) {
+				__transaction.asset = __transaction.asset || {};
+				if (!blocks[__block.id].transactions[__transaction.id]) {
+					var __signature = blockHelper.getSignature(rows[i]);
+					if (__signature) {
+						if (!__transaction.asset.signature) {
+							__transaction.asset.signature = __signature;
+						}
+					}
+
+					var __company = blockHelper.getCompany(rows[i]);
+					if (__company) {
+						if (!__transaction.asset.company) {
+							__transaction.asset.company = __company;
+						}
+					}
+
+					var __delegate = blockHelper.getDelegate(rows[i]);
+					if (__delegate) {
+						if (!__transaction.asset.delegate) {
+							__transaction.asset.delegate = __delegate;
+						}
+					}
+
+					blocks[__block.id].transactions[__transaction.id] = __transaction;
+				}
+			}
+		}
+	}
+	blocks = order.map(function (v) {
+		return normalizeBlock(blocks[v]);
+	});
+
+	return blocks;
+}
+
 Blocks.prototype.loadBlocksPart = function (filter, cb) {
 	//console.time('loading');
 
@@ -288,70 +353,7 @@ Blocks.prototype.loadBlocksPart = function (filter, cb) {
 				return cb(err, []);
 			}
 
-			var blocks = {};
-			var order = [];
-			for (var i = 0, length = rows.length; i < length; i++) {
-				var __block = blockHelper.getBlock(rows[i]);
-				if (__block) {
-					if (!blocks[__block.id]) {
-						order.push(__block.id);
-						blocks[__block.id] = __block;
-					}
-
-					var __companyComfirmation = blockHelper.getCompanyComfirmation(rows[i]);
-					blocks[__block.id].companyconfirmations = blocks[__block.id].companyconfirmations || {};
-					if (__companyComfirmation) {
-						if (!blocks[__block.id].companyconfirmations[__companyComfirmation.id]) {
-							blocks[__block.id].companyconfirmations[__companyComfirmation.id] = __companyComfirmation;
-						}
-					}
-
-					var __request = blockHelper.getRequest(rows[i]);
-					blocks[__block.id].requests = blocks[__block.id].requests || {};
-					if (__request) {
-						if (!blocks[__block.id].requests[__request.id]) {
-							blocks[__block.id].requests[__request.id] = __request;
-						}
-					}
-
-					var __transaction = blockHelper.getTransaction(rows[i]);
-					blocks[__block.id].transactions = blocks[__block.id].transactions || {};
-					if (__transaction) {
-						if (!blocks[__block.id].transactions[__transaction.id]) {
-							var __signature = blockHelper.getSignature(rows[i]);
-							if (__signature) {
-								__transaction.asset = __transaction.asset || {};
-								if (!__transaction.asset.signature) {
-									__transaction.asset.signature = __signature;
-								}
-							}
-
-							var __company = blockHelper.getCompany(rows[i]);
-							if (__company) {
-								__transaction.asset = __transaction.asset || {};
-								if (!__transaction.asset.company) {
-									__transaction.asset.company = __company;
-								}
-							}
-
-							var __delegate = blockHelper.getDelegate(rows[i]);
-							if (__delegate) {
-								__transaction.asset = __transaction.asset || {};
-								if (!__transaction.asset.delegate) {
-									__transaction.asset.delegate = __delegate;
-									modules.delegate.save2Memory(__delegate);
-
-								}
-							}
-
-							blocks[__block.id].transactions[__transaction.id] = __transaction;
-						}
-					}
-				}
-			}
-			blocks = order.map(function (v) {
-				return normalizeBlock(blocks[v]);
-			});
+			var blocks = relational2object(rows);
 
 			cb(err, blocks);
 		});
@@ -385,142 +387,98 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 				return cb(err);
 			}
 
-			//console.time('loading');
-			var blocks = {};
-			for (var i = 0, length = rows.length; i < length; i++) {
-				var __block = blockHelper.getBlock(rows[i]);
-				if (__block) {
-					if (!blocks[__block.id]) {
-						blocks[__block.id] = __block;
+			var blocks = relational2object(rows);
 
-						if (__block.id != genesisblock.blockId) {
-							if (__block.previousBlock != lastBlock.id) {
-								err = {
-									message : "Can't verify previous block",
-									block : __block
-								}
-								break;
-							}
-
-							self.applyFee(__block);
-							self.applyWeight(__block);
+			for (var i = 0, i_length = blocks.length; i < i_length; i++) {
+				if (blocks[i].id != genesisblock.blockId) {
+					if (blocks[i].previousBlock != lastBlock.id) {
+						err = {
+							message: "Can't verify previous block",
+							block: blocks[i]
 						}
-
-						lastBlock = blocks[__block.id];
-					}
-					if (blocks[__block.id].id != genesisblock.blockId) {
-						if (!self.verifySignature(blocks[__block.id])) { //|| !self.verifyGenerationSignature(block, previousBlock)) {
-							// need to break cicle and delete this block and blocks after this block
-							err = {message: "Can't verify signature", block: blocks[__block.id]};
-							break;
-						}
+						break;
 					}
 
-					var __companyComfirmation = blockHelper.getCompanyComfirmation(rows[i]);
-					blocks[__block.id].companyconfirmations = blocks[__block.id].companyconfirmations || {};
-					if (__companyComfirmation) {
-						if (!blocks[__block.id].companyconfirmations[__companyComfirmation.id]) {
-							// verify
-							if (!confirmationsHelper.verifySignature(__companyComfirmation, blocks[__block.id].generatorPublicKey)) {
-								err = {
-									message: "Can't verify company confirmation signature",
-									block: blocks[__block.id]
-								};
-								break;
-							}
-
-							// apply
-							self.applyConfirmation(__companyComfirmation, blocks[__block.id].generatorPublicKey);
-
-							blocks[__block.id].companyconfirmations[__companyComfirmation.id] = __companyComfirmation;
-						}
-					}
-
-					var __request = blockHelper.getRequest(rows[i]);
-					blocks[__block.id].requests = blocks[__block.id].requests || {};
-					if (__request) {
-						if (!blocks[__block.id].requests[__request.id]) {
-							blocks[__block.id].requests[__request.id] = __request;
-						}
-					}
-
-					var __transaction = blockHelper.getTransaction(rows[i]);
-					blocks[__block.id].transactions = blocks[__block.id].transactions || {};
-					if (__transaction) {
-						if (!blocks[__block.id].transactions[__transaction.id]) {
-							if (blocks[__block.id].id != genesisblock.blockId) {
-								if (!modules.transactions.verifySignature(__transaction)) {
-									err = {
-										message: "Can't verify transaction: " + __transaction.id,
-										block: blocks[__block.id]
-									};
-									break;
-								}
-
-								var sender = modules.accounts.getAccountByPublicKey(__transaction.senderPublicKey);
-
-								if (sender.secondSignature) {
-									if (!modules.transactions.verifySecondSignature(__transaction, sender.secondPublicKey)) {
-										err = {
-											message: "Can't verify second transaction: " + __transaction.id,
-											block: blocks[__block.id]
-										};
-										break;
-									}
-								}
-							}
-
-							var __delegate = blockHelper.getDelegate(rows[i]);
-							if (__delegate) {
-								__transaction.asset = __transaction.asset || {};
-								if (!__transaction.asset.delegate) {
-									__transaction.asset.delegate = __delegate;
-									modules.delegate.save2Memory(__delegate);
-
-								}
-							}
-
-							var __signature = blockHelper.getSignature(rows[i]);
-							if (__signature) {
-								__transaction.asset = __transaction.asset || {};
-								if (!__transaction.asset.signature) {
-									__transaction.asset.signature = __signature;
-								}
-							}
-
-							var __company = blockHelper.getCompany(rows[i]);
-							if (__company) {
-								__transaction.asset = __transaction.asset || {};
-								if (!__transaction.asset.company) {
-									__transaction.asset.company = __company;
-								}
-							}
-
-							if (!modules.transactions.applyUnconfirmed(__transaction) || !modules.transactions.apply(__transaction)) {
-								err = {
-									message: "Can't apply transaction: " + __transaction.id,
-									block: blocks[__block.id]
-								};
-								break;
-							}
-
-							if (!self.applyForger(blocks[__block.id].generatorPublicKey, __transaction)) {
-								err = {
-									message: "Can't apply transaction to forger: " + __transaction.id,
-									block: blocks[__block.id]
-								};
-								break;
-							}
-
-							blocks[__block.id].transactions[__transaction.id] = __transaction;
-						}
+					if (!self.verifySignature(blocks[i])) { //|| !self.verifyGenerationSignature(block, previousBlock)) {
+						// need to break cicle and delete this block and blocks after this block
+						err = {
+							message: "Can't verify signature",
+							block: blocks[i]
+						};
+						break;
 					}
 				}
+
+				//verify block's companyconfirmations
+				for (var n = 0, n_length = blocks[i].companyconfirmations.length; n < n_length; n++) {
+					if (!confirmationsHelper.verifySignature(blocks[i].companyconfirmations[n], blocks[i].generatorPublicKey)) {
+						err = {
+							message: "Can't verify company confirmation signature",
+							companyconfirmation: blocks[i].companyconfirmations[n],
+							block: blocks[i]
+						};
+						break;
+					}
+					self.applyConfirmation(blocks[i].companyconfirmations[n], blocks[i].generatorPublicKey);
+				}
+				if (err) break;
+
+				//verify block's transactions
+				for (var n = 0, n_length = blocks[i].transactions.length; n < n_length; n++) {
+					if (blocks[i].id != genesisblock.blockId) {
+						if (!modules.transactions.verifySignature(blocks[i].transactions[n])) {
+							err = {
+								message: "Can't verify transaction: " + blocks[i].transactions[n].id,
+								transaction: blocks[i].transactions[n],
+								block: blocks[i]
+							};
+							break;
+						}
+
+						var sender = modules.accounts.getAccountByPublicKey(blocks[i].transactions[n].senderPublicKey);
+
+						if (sender.secondSignature) {
+							if (!modules.transactions.verifySecondSignature(blocks[i].transactions[n], sender.secondPublicKey)) {
+								err = {
+									message: "Can't verify second transaction: " + blocks[i].transactions[n].id,
+									transaction: blocks[i].transactions[n],
+									block: blocks[i]
+								};
+								break;
+							}
+						}
+					}
+
+					if (!modules.transactions.applyUnconfirmed(blocks[i].transactions[n]) || !modules.transactions.apply(blocks[i].transactions[n])) {
+						err = {
+							message: "Can't apply transaction: " + blocks[i].transactions[n].id,
+							transaction: blocks[i].transactions[n],
+							block: blocks[i]
+						};
+						break;
+					}
+
+					if (!self.applyForger(blocks[i].generatorPublicKey, blocks[i].transactions[n])) {
+						err = {
+							message: "Can't apply transaction to forger: " + blocks[i].transactions[n].id,
+							transaction: blocks[i].transactions[n],
+							block: blocks[i]
+						};
+						break;
+					}
+					blocks[i].transactions[n].asset.delegate && modules.delegate.save2Memory(blocks[i].transactions[n].asset.delegate)
+				}
+				if (err) break;
+
+				if (blocks[i].id != genesisblock.blockId) {
+					self.applyFee(blocks[i]);
+					self.applyWeight(blocks[i]);
+				}
+
+				lastBlock = blocks[i]
 			}
 
-			//console.timeEnd('loading');
-
-			cb(err, normalizeBlock(lastBlock));
+			cb(err, lastBlock);
 		});
 }
 
@@ -1034,11 +992,13 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 						// if type is 1 - need companyGeneratorPublicKey
 
 						modules.transactions.apply(transaction);
-						modules.delegates.save2Memory({
-							publicKey: transaction.senderPublicKey,
-							username: transaction.asset.delegate.username,
-							transactionId: transaction.id
-						});
+						if (transaction.asset.delegate) {
+							modules.delegates.save2Memory({
+								publicKey: transaction.senderPublicKey,
+								username: transaction.asset.delegate.username,
+								transactionId: transaction.id
+							});
+						}
 						modules.transactions.removeUnconfirmedTransaction(transaction.id);
 						self.applyForger(block.generatorPublicKey, transaction);
 					}
@@ -1051,11 +1011,9 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 							return cb(err);
 						}
 
-						if (broadcast) {
-							setTimeout(function () {
-								library.bus.message('newBlock', block)
-							}, 1000);
-						}
+						setTimeout(function () {
+							library.bus.message('newBlock', block, broadcast)
+						}, 1000);
 
 						lastBlock = block;
 						setImmediate(cb);
@@ -1231,9 +1189,9 @@ Blocks.prototype.loadBlocksFromPeer = function (peer, lastBlockId, cb) {
 Blocks.prototype.deleteBlocksBefore = function (blockId, cb) {
 	var self = this;
 
-	library.db.get("SELECT height FROM blocks WHERE id=$id", {$id:blockId}, function (err, needBlock) {
+	library.db.get("SELECT height FROM blocks WHERE id=$id", {$id: blockId}, function (err, needBlock) {
 		if (err || !needBlock) {
-			cb(err? err.toString() : "Can't find block: " + blockId);
+			cb(err ? err.toString() : "Can't find block: " + blockId);
 			return;
 		}
 

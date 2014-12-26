@@ -456,14 +456,14 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 				function (cb) {
 					if (transaction.type == 4 && transaction.subtype == 0) {
 						if (modules.delegate.getUnconfirmedDelegate(transaction.senderPublicKey)) {
-							return cb("Delegate with this name is already exists");
+							return setImmediate(cb, "Delegate with this name is already exists");
 						}
 						if (modules.delegate.getDelegate(transaction.senderPublicKey)) {
-							return cb("Delegate with this name is already exists");
+							return setImmediate(cb, "Delegate with this name is already exists");
 						}
 
 						setImmediate(cb);
-					}else{
+					} else {
 						setImmediate(cb);
 					}
 				}
@@ -477,11 +477,13 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 					return cb("Can't apply transaction: " + transaction.id);
 				}
 
+				transaction.asset = transaction.asset || {};
+				modules.delegates.voting(transaction.asset.votes);
+				transaction.asset.votes = modules.delegates.getShufflePublicKeys();
+
 				unconfirmedTransactions[transaction.id] = transaction;
 
-				if (broadcast) {
-					library.bus.message('unconfirmedTransaction', transaction)
-				}
+				library.bus.message('unconfirmedTransaction', transaction, broadcast)
 
 				cb && cb(null, transaction.id);
 
@@ -651,6 +653,10 @@ Transactions.prototype.parseTransaction = function (transaction) {
 
 	if (transaction.type == 4 && transaction.subtype == 0) {
 		transaction.asset.signature = modules.delegate.parseDelegate(params.object(transaction.asset.delegate));
+	}
+
+	if (transaction.asset && transaction.asset.votes){
+		transaction.asset.votes = params.array(transaction.asset.votes);
 	}
 
 	return transaction;

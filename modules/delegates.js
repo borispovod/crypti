@@ -2,7 +2,8 @@ var crypto = require('crypto'),
 	bignum = require('bignum'),
 	ed = require('ed25519'),
 	params = require('../helpers/params.js'),
-	timeHelper = require('../helpers/time.js');
+	timeHelper = require('../helpers/time.js'),
+	shuffle = require('knuth-shuffle').knuthShuffle;
 
 var Router = require('../helpers/router.js');
 
@@ -93,6 +94,12 @@ function Delegates(cb, scope) {
 	setImmediate(cb, null, self);
 }
 
+Delegates.prototype.voting = function (publicKeys) {
+	publicKeys.forEach(function(name){
+
+	})
+}
+
 Delegates.prototype.getDelegate = function (publicKey) {
 	return delegates[publicKey];
 }
@@ -124,6 +131,10 @@ Delegates.prototype.parseDelegate = function (delegate) {
 	return delegate;
 }
 
+Delegates.prototype.getShufflePublicKeys = function(){
+	return shuffle(Object.keys(delegates).slice(0, 33));
+}
+
 Delegates.prototype.save2Memory = function (delegate) {
 	delegates[delegate.publicKey] = delegate;
 }
@@ -137,12 +148,14 @@ Delegates.prototype.onBlockchainReady = function () {
 }
 
 Delegates.prototype.onUnconfirmedTransaction = function (transaction) {
-	var delegate = {
-		publicKey: transaction.senderPublicKey,
-		username: transaction.asset.delegate.username,
-		transactionId: transaction.id
-	};
-	self.addUnconfirmedDelegate(delegate);
+	if (transaction.asset.delegate) {
+		var delegate = {
+			publicKey: transaction.senderPublicKey,
+			username: transaction.asset.delegate.username,
+			transactionId: transaction.id
+		};
+		self.addUnconfirmedDelegate(delegate);
+	}
 }
 
 module.exports = Delegates;
