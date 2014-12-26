@@ -102,6 +102,7 @@ Loader.prototype.run = function (scope) {
 }
 
 Loader.prototype.updatePeerList = function (cb) {
+	return cb();
 	modules.transport.getFromRandomPeer('/list', function (err, data) {
 		if (err) {
 			return cb();
