@@ -374,12 +374,12 @@ Transport.prototype.onBlockchainReady = function () {
 	});
 }
 
-Transport.prototype.onUnconfirmedTransaction = function (transaction) {
-	self.broadcast(100, '/transactions', {transaction: transaction});
+Transport.prototype.onUnconfirmedTransaction = function (transaction, broadcast) {
+	broadcast && self.broadcast(100, '/transactions', {transaction: transaction});
 }
 
-Transport.prototype.onNewBlock = function (block) {
-	self.broadcast(100, '/blocks', {block: block})
+Transport.prototype.onNewBlock = function (block, broadcast) {
+	broadcast && self.broadcast(100, '/blocks', {block: block})
 }
 
 //export

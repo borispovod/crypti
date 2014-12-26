@@ -115,10 +115,14 @@ d.run(function () {
 		bus: function (cb) {
 			var changeCase = require('change-case');
 			var bus = function () {
-				this.message = function (topic, body) {
+				this.message = function () {
+					var args = [];
+					Array.prototype.push.apply(args, arguments);
+					var topic = args.shift();
 					modules.forEach(function (module) {
-						if (typeof(module['on' + changeCase.pascalCase(topic)]) == 'function') {
-							module['on' + changeCase.pascalCase(topic)](body);
+						var eventName = 'on' + changeCase.pascalCase(topic);
+						if (typeof(module[eventName]) == 'function') {
+							module[eventName].apply(module[eventName], args);
 						}
 					})
 				}
