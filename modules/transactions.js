@@ -479,7 +479,7 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 
 				transaction.asset = transaction.asset || {};
 				modules.delegates.voting(transaction.asset.votes);
-				transaction.asset.votes = modules.delegates.getShufflePublicKeys();
+				transaction.asset.votes = modules.delegates.getShuffleVotes();
 
 				unconfirmedTransactions[transaction.id] = transaction;
 
