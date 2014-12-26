@@ -430,6 +430,8 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 							err = {
 								message: "Can't verify transaction: " + blocks[i].transactions[n].id,
 								transaction: blocks[i].transactions[n],
+								rollbackTransactionsUntil: n > 0 ? (n - 1) : null,
+								rollbackUnconfirmedTransactionsUntil: n > 0 ? (n - 1) : null,
 								block: blocks[i]
 							};
 							break;
@@ -442,6 +444,8 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 								err = {
 									message: "Can't verify second transaction: " + blocks[i].transactions[n].id,
 									transaction: blocks[i].transactions[n],
+									rollbackTransactionsUntil: n > 0 ? (n - 1) : null,
+									rollbackUnconfirmedTransactionsUntil: n > 0 ? (n - 1) : null,
 									block: blocks[i]
 								};
 								break;
@@ -449,10 +453,23 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 						}
 					}
 
-					if (!modules.transactions.applyUnconfirmed(blocks[i].transactions[n]) || !modules.transactions.apply(blocks[i].transactions[n])) {
+					if (!modules.transactions.applyUnconfirmed(blocks[i].transactions[n])) {
 						err = {
 							message: "Can't apply transaction: " + blocks[i].transactions[n].id,
 							transaction: blocks[i].transactions[n],
+							rollbackTransactionsUntil: n > 0 ? (n - 1) : null,
+							rollbackUnconfirmedTransactionsUntil: n,
+							block: blocks[i]
+						};
+						break;
+					}
+
+					if (!modules.transactions.apply(blocks[i].transactions[n])) {
+						err = {
+							message: "Can't apply transaction: " + blocks[i].transactions[n].id,
+							transaction: blocks[i].transactions[n],
+							rollbackTransactionsUntil: n,
+							rollbackUnconfirmedTransactionsUntil: n,
 							block: blocks[i]
 						};
 						break;
@@ -462,13 +479,23 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 						err = {
 							message: "Can't apply transaction to forger: " + blocks[i].transactions[n].id,
 							transaction: blocks[i].transactions[n],
+							rollbackTransactionsUntil: n,
+							rollbackUnconfirmedTransactionsUntil: n,
 							block: blocks[i]
 						};
 						break;
 					}
 					blocks[i].transactions[n].asset.delegate && modules.delegate.save2Memory(blocks[i].transactions[n].asset.delegate)
 				}
-				if (err) break;
+				if (err) {
+					for (var n = err.rollbackTransactionsUntil - 1; n > -1; n--) {
+						modules.transactions.undo(blocks[i].transactions[n])
+					}
+					for (var n = err.rollbackUnconfirmedTransactionsUntil - 1; n > -1; n--) {
+						modules.transactions.undoUnconfirmed(blocks[i].transactions[n])
+					}
+					break;
+				}
 
 				if (blocks[i].id != genesisblock.blockId) {
 					self.applyFee(blocks[i]);
