@@ -394,6 +394,14 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 						blocks[__block.id] = __block;
 
 						if (__block.id != genesisblock.blockId) {
+							if (__block.previousBlock != lastBlock.id) {
+								err = {
+									message : "Can't verify previous block",
+									block : __block
+								}
+								break;
+							}
+
 							self.applyFee(__block);
 							self.applyWeight(__block);
 						}
@@ -1261,14 +1269,17 @@ Blocks.prototype.popLastBlock = function (cb) {
 
 				async.eachSeries(lastBlock.transactions, function (transaction, cb) {
 					modules.transactions.processUnconfirmedTransaction(transaction, false, cb);
-				}, function () {
+				}, function (err) {
+					if (err) {
+						return cb(err);
+					}
+
 					lastBlock = previousBlock;
 					cb(null, lastBlock);
 				});
 			});
 		});
 	});
-
 }
 
 // must return block with all information include transactions, requests, companiesconfirmations
@@ -1310,7 +1321,9 @@ Blocks.prototype.undoBlock = function (block, previousBlock, cb) {
 }
 
 Blocks.prototype.deleteBlock = function (blockId, cb) {
-	library.db.run("DELETE FROM blocks WHERE id = $id", {$id: blockId}, cb);
+	library.db.serialize(function () {
+		library.db.run("DELETE FROM blocks WHERE id = $id", {$id: blockId}, cb);
+	});
 }
 
 Blocks.prototype.parseBlock = function (block, cb) {
