@@ -655,7 +655,7 @@ Transactions.prototype.parseTransaction = function (transaction) {
 		transaction.asset.signature = modules.delegate.parseDelegate(params.object(transaction.asset.delegate));
 	}
 
-	if (transaction.asset && transaction.asset.votes){
+	if (transaction.asset.votes){
 		transaction.asset.votes = params.array(transaction.asset.votes);
 	}
 

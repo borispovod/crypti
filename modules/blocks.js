@@ -11,7 +11,8 @@ var crypto = require('crypto'),
 	confirmationsHelper = require('../helpers/confirmations.js'),
 	timeHelper = require('../helpers/time.js'),
 	requestHelper = require('../helpers/request.js'),
-	params = require('../helpers/params.js');
+	params = require('../helpers/params.js'),
+	arrayHelper = require('../helpers/array.js');
 
 var Router = require('../helpers/router.js');
 var util = require('util');
@@ -169,19 +170,11 @@ function Blocks(cb, scope) {
 }
 
 function normalizeBlock(block) {
-	block.requests = hash2array(block.requests);
-	block.transactions = hash2array(block.transactions);
-	block.companyconfirmations = hash2array(block.companyconfirmations);
+	block.requests = arrayHelper.hash2array(block.requests);
+	block.transactions = arrayHelper.hash2array(block.transactions);
+	block.companyconfirmations = arrayHelper.hash2array(block.companyconfirmations);
 
 	return block;
-}
-
-function hash2array(hash) {
-	var array = Object.keys(hash).map(function (v) {
-		return hash[v];
-	});
-
-	return array || [];
 }
 
 //public
