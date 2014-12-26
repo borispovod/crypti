@@ -95,8 +95,10 @@ function Delegates(cb, scope) {
 }
 
 Delegates.prototype.voting = function (publicKeys) {
-	publicKeys.forEach(function(name){
-
+	publicKeys.forEach(function (publicKey) {
+		if (delegates[publicKey]) {
+			delegates[publicKey].vote = (delegates[publicKey].vote || 0) + 1;
+		}
 	})
 }
 
@@ -131,8 +133,15 @@ Delegates.prototype.parseDelegate = function (delegate) {
 	return delegate;
 }
 
-Delegates.prototype.getShufflePublicKeys = function(){
-	return shuffle(Object.keys(delegates).slice(0, 33));
+Delegates.prototype.getShufflePublicKeys = function () {
+	var delegatesArray = arrayHelper.hash2array(delegates);
+	delegatesArray = delegatesArray.sort(function compare(a, b) {
+		return (b.vote || 0) - (a.vote || 0);
+	})
+	var justKeys = delegatesArray.map(function (v) {
+		return v.publicKey;
+	});
+	return shuffle(justKeys.slice(0, 33));
 }
 
 Delegates.prototype.save2Memory = function (delegate) {
