@@ -133,7 +133,7 @@ Delegates.prototype.parseDelegate = function (delegate) {
 	return delegate;
 }
 
-Delegates.prototype.getShufflePublicKeys = function () {
+Delegates.prototype.getShuffleVotes = function () {
 	var delegatesArray = arrayHelper.hash2array(delegates);
 	delegatesArray = delegatesArray.sort(function compare(a, b) {
 		return (b.vote || 0) - (a.vote || 0);
@@ -141,7 +141,13 @@ Delegates.prototype.getShufflePublicKeys = function () {
 	var justKeys = delegatesArray.map(function (v) {
 		return v.publicKey;
 	});
-	return shuffle(justKeys.slice(0, 33));
+	var final = justKeys.slice(0, 33);
+	final.forEach(function (publicKey) {
+		if (delegates[publicKey]) {
+			delegates[publicKey].vote = 0;
+		}
+	})
+	return shuffle(final);
 }
 
 Delegates.prototype.save2Memory = function (delegate) {
