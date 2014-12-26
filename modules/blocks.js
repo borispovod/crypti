@@ -1285,7 +1285,9 @@ Blocks.prototype.undoBlock = function (block, previousBlock, cb) {
 }
 
 Blocks.prototype.deleteBlock = function (blockId, cb) {
-	library.db.run("DELETE FROM blocks WHERE id = $id", {$id: blockId}, cb);
+	library.db.serialize(function () {
+		library.db.run("DELETE FROM blocks WHERE id = $id", {$id: blockId}, cb);
+	});
 }
 
 Blocks.prototype.parseBlock = function (block, cb) {
