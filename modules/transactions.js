@@ -282,7 +282,7 @@ Transactions.prototype.getUnconfirmedTransactions = function (sort) {
 
 Transactions.prototype.removeUnconfirmedTransaction = function (id) {
 	if (unconfirmedTransactions[id]) {
-		modules.delegate.removeUnconfirmedDelegate(unconfirmedTransactions.senderPublicKey)
+		modules.delegates.removeUnconfirmedDelegate(unconfirmedTransactions.senderPublicKey)
 		delete unconfirmedTransactions[id];
 	}
 }
@@ -455,10 +455,10 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 				},
 				function (cb) {
 					if (transaction.type == 4 && transaction.subtype == 0) {
-						if (modules.delegate.getUnconfirmedDelegate(transaction.senderPublicKey)) {
+						if (modules.delegates.getUnconfirmedDelegate(transaction.senderPublicKey)) {
 							return setImmediate(cb, "Delegate with this name is already exists");
 						}
-						if (modules.delegate.getDelegate(transaction.senderPublicKey)) {
+						if (modules.delegates.getDelegate(transaction.senderPublicKey)) {
 							return setImmediate(cb, "Delegate with this name is already exists");
 						}
 
@@ -631,6 +631,8 @@ Transactions.prototype.undo = function (transaction) {
 }
 
 Transactions.prototype.parseTransaction = function (transaction) {
+	transaction.asset = transaction.asset || {}; //temp
+
 	transaction.id = params.string(transaction.id);
 	transaction.blockId = params.string(transaction.blockId);
 	transaction.type = params.int(transaction.type);
@@ -652,7 +654,7 @@ Transactions.prototype.parseTransaction = function (transaction) {
 	}
 
 	if (transaction.type == 4 && transaction.subtype == 0) {
-		transaction.asset.signature = modules.delegate.parseDelegate(params.object(transaction.asset.delegate));
+		transaction.asset.delegate = modules.delegates.parseDelegate(params.object(transaction.asset.delegate));
 	}
 
 	if (transaction.asset.votes){
