@@ -478,7 +478,7 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 						};
 						break;
 					}
-					blocks[i].transactions[n].asset.delegate && modules.delegate.save2Memory(blocks[i].transactions[n].asset.delegate)
+					blocks[i].transactions[n].asset.delegate && modules.delegates.save2Memory(blocks[i].transactions[n].asset.delegate)
 				}
 				if (err) {
 					for (var n = err.rollbackTransactionsUntil - 1; n > -1; n--) {
