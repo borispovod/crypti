@@ -127,7 +127,7 @@ Loader.prototype.loadBlocks = function (cb) {
 			return cb();
 		}
 
-		var peerStr = data.peer.ip + ":" + data.peer.port;
+		var peerStr = ip.fromLong(data.peer.ip) + ":" + data.peer.port;
 		library.logger.info("Load blocks from " + peerStr);
 
 		if (modules.blocks.getWeight().lt(params.string(data.body.weight))) {
