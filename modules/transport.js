@@ -204,10 +204,16 @@ function Transport(cb, scope) {
 
 						modules.blocks.processBlock(block, true, function (err) {
 							if (err) {
-								modules.blocks.processBlock(lastBlock);
-							}
+								modules.blocks.processBlock(lastBlock, false, function (err) {
+									if (err) {
+										library.logger.error("processBlock", err);
+									}
 
-							res.sendStatus(200);
+									res.sendStatus(200);
+								});
+							} else {
+								res.sendStatus(200);
+							}
 						})
 					});
 				});
