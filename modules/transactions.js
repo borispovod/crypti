@@ -466,11 +466,11 @@ Transactions.prototype.apply = function (transaction) {
 		return false;
 	}
 
-	sender.addToBalance(-amount);
-
 	// process only two types of transactions
 	if (transaction.type == 0) {
 		if (transaction.subtype == 0) {
+			sender.addToBalance(-amount);
+
 			var recipient = modules.accounts.getAccountOrCreate(transaction.recipientId);
 			recipient.addToUnconfirmedBalance(transaction.amount);
 			recipient.addToBalance(transaction.amount);
@@ -490,6 +490,8 @@ Transactions.prototype.apply = function (transaction) {
 			}
 
 
+			sender.addToBalance(-amount);
+
 			amount = transaction.amount + transactionHelper.getTransactionFee(transaction, false);
 			recipient.addToUnconfirmedBalance(amount);
 			recipient.addToBalance(amount);
@@ -498,6 +500,8 @@ Transactions.prototype.apply = function (transaction) {
 		}
 	} else if (transaction.type == 2) {
 		if (transaction.subtype == 0) {
+			sender.addToBalance(-amount);
+
 			sender.unconfirmedSignature = false;
 			sender.secondSignature = true;
 			sender.secondPublicKey = transaction.asset.signature.publicKey;
