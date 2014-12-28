@@ -43,7 +43,8 @@ function Signatures(cb, scope) {
 	router.put('/', function (req, res) {
 		var secret = params.string(req.body.secret),
 			secondSecret = params.string(req.body.secondSecret),
-			publicKey = params.buffer(req.body.publicKey, 'hex');
+			publicKey = params.buffer(req.body.publicKey, 'hex'),
+			votingType = params.int(req.body.votingType);
 
 		var hash = crypto.createHash('sha256').update(secret, 'utf8').digest();
 		var keypair = ed.MakeKeypair(hash);
@@ -68,6 +69,12 @@ function Signatures(cb, scope) {
 			return res.json({success: false, error: "Second signature already enabled"});
 		}
 
+		var votes = self.getVotesByType();
+
+		if (!votes) {
+			return res.json({success: false, error: "Invalid voting type"});
+		}
+
 		var signature = self.newSignature(secret, secondSecret);
 		var transaction = {
 			type: 2,
@@ -77,7 +84,8 @@ function Signatures(cb, scope) {
 			senderPublicKey: account.publicKey,
 			timestamp: timeHelper.getNow(),
 			asset: {
-				signature: signature
+				signature: signature,
+				votes : votes
 			}
 		};
 
