@@ -445,11 +445,10 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 					return cb("Can't apply transaction: " + transaction.id);
 				}
 
+				transaction.asset = transaction.asset || {};
 				unconfirmedTransactions[transaction.id] = transaction;
 
-				if (broadcast) {
-					library.bus.message('unconfirmedTransaction', transaction)
-				}
+				library.bus.message('unconfirmedTransaction', transaction, broadcast)
 
 				cb && cb(null, transaction.id);
 
@@ -601,6 +600,8 @@ Transactions.prototype.undo = function (transaction) {
 }
 
 Transactions.prototype.parseTransaction = function (transaction) {
+	transaction.asset = transaction.asset || {}; //temp
+
 	transaction.id = params.string(transaction.id);
 	transaction.blockId = params.string(transaction.blockId);
 	transaction.type = params.int(transaction.type);
