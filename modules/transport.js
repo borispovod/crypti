@@ -285,7 +285,7 @@ function _request(peer, api, method, data, cb) {
 		if (err || response.statusCode != 200) {
 			library.logger.debug('request', {url: req.url, statusCode: response ? response.statusCode : 'unknown', err: err});
 
-			modules.peer.state(peer.ip, peer.port, 1, 10);
+			modules.peer.state(peer.ip, peer.port, 0, 10);
 			cb && cb(err || ('request status code' + response.statusCode));
 			return;
 		}

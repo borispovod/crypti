@@ -124,6 +124,7 @@ Loader.prototype.updatePeerList = function (cb) {
 Loader.prototype.loadBlocks = function (cb) {
 	modules.transport.getFromRandomPeer('/weight', function (err, data) {
 		if (err) {
+			library.logger.info("Bad peer " + peerStr);
 			return cb();
 		}
 
