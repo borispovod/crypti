@@ -121,6 +121,12 @@ Peer.prototype.parsePeer = function (peer) {
 	return peer;
 }
 
+Peer.prototype.banManager = function (cb) {
+	var st = library.db.prepare("UPDATE peers SET state = 1, clock = null where (state = 0 and clock - $now < 0)");
+	st.bind({$now: Date.now()});
+	st.run(cb);
+}
+
 Peer.prototype.update = function (peer, cb) {
 	library.db.serialize(function () {
 
