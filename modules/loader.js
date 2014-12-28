@@ -123,11 +123,14 @@ Loader.prototype.updatePeerList = function (cb) {
 
 Loader.prototype.loadBlocks = function (cb) {
 	modules.transport.getFromRandomPeer('/weight', function (err, data) {
+		var peerStr = data.peer ? ip.fromLong(data.peer.ip) + ":" + data.peer.port : 'unknown';
+
 		if (err) {
+			library.logger.info("Bad peer " + peerStr);
+
 			return cb();
 		}
 
-		var peerStr = ip.fromLong(data.peer.ip) + ":" + data.peer.port;
 		library.logger.info("Load blocks from " + peerStr);
 
 		if (modules.blocks.getWeight().lt(params.string(data.body.weight))) {
@@ -191,7 +194,7 @@ Loader.prototype.loadBlocks = function (cb) {
 
 Loader.prototype.getUnconfirmedTransactions = function (cb) {
 	modules.transport.getFromRandomPeer('/transactions', function (err, data) {
-		if (err){
+		if (err) {
 			return cb()
 		}
 

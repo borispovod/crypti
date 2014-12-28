@@ -171,7 +171,7 @@ Forger.prototype.startForging = function (keypair) {
 						library.logger.error("Problem in block generation", err);
 					}
 
-					setImmediate(callback);
+					setTimeout(callback, 100);
 				});
 			} else {
 				setTimeout(callback, 100);

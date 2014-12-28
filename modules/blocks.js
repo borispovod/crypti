@@ -451,7 +451,7 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 							message: "Can't apply transaction: " + blocks[i].transactions[n].id,
 							transaction: blocks[i].transactions[n],
 							rollbackTransactionsUntil: n > 0 ? (n - 1) : null,
-							rollbackUnconfirmedTransactionsUntil: n,
+							rollbackUnconfirmedTransactionsUntil: n > 0 ? (n - 1) : null,
 							block: blocks[i]
 						};
 						break;
@@ -461,8 +461,8 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 						err = {
 							message: "Can't apply transaction: " + blocks[i].transactions[n].id,
 							transaction: blocks[i].transactions[n],
-							rollbackTransactionsUntil: n,
-							rollbackUnconfirmedTransactionsUntil: n,
+							rollbackTransactionsUntil: n > 0 ? (n - 1) : null,
+							rollbackUnconfirmedTransactionsUntil: n > 0 ? (n - 1) : null,
 							block: blocks[i]
 						};
 						break;
@@ -472,8 +472,8 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 						err = {
 							message: "Can't apply transaction to forger: " + blocks[i].transactions[n].id,
 							transaction: blocks[i].transactions[n],
-							rollbackTransactionsUntil: n,
-							rollbackUnconfirmedTransactionsUntil: n,
+							rollbackTransactionsUntil: n > 0 ? (n - 1) : null,
+							rollbackUnconfirmedTransactionsUntil: n > 0 ? (n - 1) : null,
 							block: blocks[i]
 						};
 						break;
