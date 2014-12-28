@@ -114,10 +114,14 @@ d.run(function () {
 		bus: function (cb) {
 			var changeCase = require('change-case');
 			var bus = function () {
-				this.message = function (topic, body) {
+				this.message = function () {
+					var args = [];
+					Array.prototype.push.apply(args, arguments);
+					var topic = args.shift();
 					modules.forEach(function (module) {
-						if (typeof(module['on' + changeCase.pascalCase(topic)]) == 'function') {
-							module['on' + changeCase.pascalCase(topic)](body);
+						var eventName = 'on' + changeCase.pascalCase(topic);
+						if (typeof(module[eventName]) == 'function') {
+							module[eventName].apply(module[eventName], args);
 						}
 					})
 				}
@@ -136,9 +140,10 @@ d.run(function () {
 				tasks[name] = function (cb) {
 					var d = require('domain').create();
 					d.on('error', function (err) {
-						scope.logger.log('domain ' + name, {message: err.message, stack: err.stack});
+						scope.logger.fatal('domain ' + name, {message: err.message, stack: err.stack});
 					});
 					d.run(function () {
+						logger.debug('loading module', name)
 						var Klass = new require(config.modules[name]);
 						var obj = new Klass(cb, scope)
 						modules.push(obj);
