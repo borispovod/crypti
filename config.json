@@ -3,7 +3,7 @@
     "address": "0.0.0.0",
     "serveHttpAPI": true,
     "serveHttpWallet": true,
-    "version": "0.2ю0",
+    "version": "0.2.0",
     "fileLogLevel": "info",
     "consoleLogLevel": "info",
     "sharePort": true,
@@ -19,6 +19,10 @@
     },
     "peers": {
         "list": [
+            {
+                "ip": "130.211.104.33",
+                "port": 7040
+            }
         ],
         "blackList": []
     },
