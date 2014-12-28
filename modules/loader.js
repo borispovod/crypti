@@ -215,6 +215,13 @@ Loader.prototype.onPeerReady = function () {
 			});
 		});
 
+		process.nextTick(function banManager() {
+			modules.peer.banManager(function (err) {
+				err && library.logger.error('banManager timer', err);
+				setTimeout(banManager, 60 * 1000)
+			});
+		});
+
 		process.nextTick(function nextGetUnconfirmedTransactions() {
 			self.getUnconfirmedTransactions(function (err) {
 				err && library.logger.error('getUnconfirmedTransactions timer', err);
