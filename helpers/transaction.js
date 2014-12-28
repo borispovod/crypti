@@ -138,7 +138,6 @@ function getBytes(transaction) {
     }
 
 
-
     bb.flip();
     return bb.toBuffer();
 }
