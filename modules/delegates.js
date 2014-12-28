@@ -118,7 +118,7 @@ Delegates.prototype.parseDelegate = function (delegate) {
 }
 
 Delegates.prototype.voting = function (publicKeys) {
-	if (publicKey.length == 0) {
+	if (publicKeys.length == 0) {
 		for (var publicKey in delegates) {
 			delegates[publicKey].vote = (delegates[publicKey].vote || 0) + 1;
 		}
