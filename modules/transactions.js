@@ -110,7 +110,7 @@ function Transactions(cb, scope) {
 		var hash = crypto.createHash('sha256').update(secret, 'utf8').digest();
 		var keypair = ed.MakeKeypair(hash);
 
-		if (publicKey) {
+		if (publicKey.length > 0) {
 			if (keypair.publicKey.toString('hex') != publicKey.toString('hex')) {
 				return res.json({success: false, error: "Please, provide valid secret key of your account"});
 			}
@@ -414,12 +414,12 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 				case 4:
 					switch (transaction.subtype) {
 						case 0:
-							if (!transaction.asset.username) {
+							if (!transaction.asset.delegate.username) {
 								cb && cb("Empty transaction asset for delegate transaction");
 								return;
 							}
 
-							if (transaction.asset.username.length == 0 || transaction.asset.username.length > 30) {
+							if (transaction.asset.delegate.username.length == 0 || transaction.asset.delegate.username.length > 30) {
 								cb && cb("Incorrect delegate username length");
 							}
 							break;
@@ -477,6 +477,7 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 					return cb("Can't apply transaction: " + transaction.id);
 				}
 
+				// most be checked in parseTransaction or in API
 				transaction.asset = transaction.asset || {};
 				modules.delegates.voting(transaction.asset.votes);
 				transaction.asset.votes = modules.delegates.getShuffleVotes();
