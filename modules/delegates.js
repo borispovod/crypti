@@ -95,12 +95,17 @@ function Delegates(cb, scope) {
 }
 
 Delegates.prototype.voting = function (publicKeys) {
+	// need to check that delegates is exists
 	publicKeys.forEach(function (publicKey) {
 		// convert to account id or by username?
 		if (delegates[publicKey]) {
 			delegates[publicKey].vote = (delegates[publicKey].vote || 0) + 1;
+		} else {
+			return false;
 		}
 	});
+
+	return true;
 }
 
 Delegates.prototype.getDelegate = function (publicKey) {
