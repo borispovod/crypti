@@ -204,7 +204,7 @@ function Transport(cb, scope) {
 
 						modules.blocks.processBlock(block, true, function (err) {
 							if (err) {
-								modules.blocks.processBlock(lastBlock, function (err) {
+								modules.blocks.processBlock(lastBlock, false, function (err) {
 									if (err) {
 										library.logger.error("processBlock", err);
 									}
