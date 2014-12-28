@@ -787,7 +787,7 @@ Blocks.prototype.getFee = function () {
 }
 
 Blocks.prototype.getLastBlock = function () {
-	this
+	return lastBlock;
 }
 
 Blocks.prototype.processBlock = function (block, broadcast, cb) {
