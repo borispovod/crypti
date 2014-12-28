@@ -286,6 +286,7 @@ function _request(peer, api, method, data, cb) {
 			library.logger.debug('request', {url: req.url, statusCode: response ? response.statusCode : 'unknown', err: err});
 
 			modules.peer.state(peer.ip, peer.port, 0, 10);
+			library.logger.info('ban 10 min', ip.fromLong(peer.ip) + ':' + peer.port)
 			cb && cb(err || ('request status code' + response.statusCode));
 			return;
 		}
@@ -374,12 +375,12 @@ Transport.prototype.onBlockchainReady = function () {
 	});
 }
 
-Transport.prototype.onUnconfirmedTransaction = function (transaction) {
-	self.broadcast(100, '/transactions', {transaction: transaction});
+Transport.prototype.onUnconfirmedTransaction = function (transaction, broadcast) {
+	broadcast && self.broadcast(100, '/transactions', {transaction: transaction});
 }
 
-Transport.prototype.onNewBlock = function (block) {
-	self.broadcast(100, '/blocks', {block: block})
+Transport.prototype.onNewBlock = function (block, broadcast) {
+	broadcast && self.broadcast(100, '/blocks', {block: block})
 }
 
 //export

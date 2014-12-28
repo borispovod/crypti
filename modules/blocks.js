@@ -11,7 +11,8 @@ var crypto = require('crypto'),
 	confirmationsHelper = require('../helpers/confirmations.js'),
 	timeHelper = require('../helpers/time.js'),
 	requestHelper = require('../helpers/request.js'),
-	params = require('../helpers/params.js');
+	params = require('../helpers/params.js'),
+	arrayHelper = require('../helpers/array.js');
 
 var Router = require('../helpers/router.js');
 var util = require('util');
@@ -169,19 +170,11 @@ function Blocks(cb, scope) {
 }
 
 function normalizeBlock(block) {
-	block.requests = hash2array(block.requests);
-	block.transactions = hash2array(block.transactions);
-	block.companyconfirmations = hash2array(block.companyconfirmations);
+	block.requests = arrayHelper.hash2array(block.requests);
+	block.transactions = arrayHelper.hash2array(block.transactions);
+	block.companyconfirmations = arrayHelper.hash2array(block.companyconfirmations);
 
 	return block;
-}
-
-function hash2array(hash) {
-	var array = Object.keys(hash).map(function (v) {
-		return hash[v];
-	});
-
-	return array || [];
 }
 
 //public
@@ -256,6 +249,64 @@ Blocks.prototype.count = function (cb) {
 	});
 }
 
+function relational2object(rows) {
+	var blocks = {};
+	var order = [];
+	for (var i = 0, length = rows.length; i < length; i++) {
+		var __block = blockHelper.getBlock(rows[i]);
+		if (__block) {
+			if (!blocks[__block.id]) {
+				order.push(__block.id);
+				blocks[__block.id] = __block;
+			}
+
+			var __companyComfirmation = blockHelper.getCompanyComfirmation(rows[i]);
+			blocks[__block.id].companyconfirmations = blocks[__block.id].companyconfirmations || {};
+			if (__companyComfirmation) {
+				if (!blocks[__block.id].companyconfirmations[__companyComfirmation.id]) {
+					blocks[__block.id].companyconfirmations[__companyComfirmation.id] = __companyComfirmation;
+				}
+			}
+
+			var __request = blockHelper.getRequest(rows[i]);
+			blocks[__block.id].requests = blocks[__block.id].requests || {};
+			if (__request) {
+				if (!blocks[__block.id].requests[__request.id]) {
+					blocks[__block.id].requests[__request.id] = __request;
+				}
+			}
+
+			var __transaction = blockHelper.getTransaction(rows[i]);
+			blocks[__block.id].transactions = blocks[__block.id].transactions || {};
+			if (__transaction) {
+				__transaction.asset = __transaction.asset || {};
+				if (!blocks[__block.id].transactions[__transaction.id]) {
+					var __signature = blockHelper.getSignature(rows[i]);
+					if (__signature) {
+						if (!__transaction.asset.signature) {
+							__transaction.asset.signature = __signature;
+						}
+					}
+
+					var __company = blockHelper.getCompany(rows[i]);
+					if (__company) {
+						if (!__transaction.asset.company) {
+							__transaction.asset.company = __company;
+						}
+					}
+
+					blocks[__block.id].transactions[__transaction.id] = __transaction;
+				}
+			}
+		}
+	}
+	blocks = order.map(function (v) {
+		return normalizeBlock(blocks[v]);
+	});
+
+	return blocks;
+}
+
 Blocks.prototype.loadBlocksPart = function (filter, cb) {
 	//console.time('loading');
 
@@ -263,22 +314,24 @@ Blocks.prototype.loadBlocksPart = function (filter, cb) {
 	filter.lastId && (params['$lastId'] = filter.lastId);
 	filter.id && !filter.lastId && (params['$id'] = filter.id);
 	library.db.all(
-			"SELECT " +
-			"b.id b_id, b.version b_version, b.timestamp b_timestamp, b.height b_height, b.previousBlock b_previousBlock, b.numberOfRequests b_numberOfRequests, b.numberOfTransactions b_numberOfTransactions, b.numberOfConfirmations b_numberOfConfirmations, b.totalAmount b_totalAmount, b.totalFee b_totalFee, b.previousFee b_previousFee, b.nextFeeVolume b_nextFeeVolume, b.feeVolume b_feeVolume, b.payloadLength b_payloadLength, b.requestsLength b_requestsLength, b.confirmationsLength b_confirmationsLength, b.payloadHash b_payloadHash, b.generatorPublicKey b_generatorPublicKey, b.generationSignature b_generationSignature, b.blockSignature b_blockSignature, " +
-			"r.id r_id, r.blockId r_blockId, r.address r_address, " +
-			"t.id t_id, t.blockId t_blockId, t.type t_type, t.subtype t_subtype, t.timestamp t_timestamp, t.senderPublicKey t_senderPublicKey, t.senderId t_senderId, t.recipientId t_recipientId, t.amount t_amount, t.fee t_fee, t.signature t_signature, t.signSignature t_signSignature, c_t.generatorPublicKey t_companyGeneratorPublicKey, " +
-			"s.id s_id, s.transactionId s_transactionId, s.timestamp s_timestamp, s.publicKey s_publicKey, s.generatorPublicKey s_generatorPublicKey, s.signature s_signature, s.generationSignature s_generationSignature, " +
-			"c.id c_id, c.transactionId c_transactionId, c.name c_name, c.description c_description, c.domain c_domain, c.email c_email, c.timestamp c_timestamp, c.generatorPublicKey c_generatorPublicKey, c.signature c_signature, " +
-			"cc.id cc_id, cc.blockId cc_blockId, cc.companyId cc_companyId, cc.verified cc_verified, cc.timestamp cc_timestamp, cc.signature cc_signature " +
-			"FROM (select * from blocks " + (filter.id ? " where id = $id " : "") + (filter.lastId ? " where height > (SELECT height FROM blocks where id = $lastId) " : "") + " limit $limit) as b " +
-			"left outer join requests as r on r.blockId=b.id " +
-			"left outer join trs as t on t.blockId=b.id " +
-			"left outer join signatures as s on s.transactionId=t.id " +
-			"left outer join companies as c on c.transactionId=t.id " +
-			"left outer join companies as c_t on c_t.address=t.recipientId " +
-			"left outer join companyconfirmations as cc on cc.blockId=b.id " +
-			"ORDER BY b.height, t.rowid, s.rowid, c.rowid, cc.rowid " +
-			"", params, function (err, rows) {
+		"SELECT " +
+		"b.id b_id, b.version b_version, b.timestamp b_timestamp, b.height b_height, b.previousBlock b_previousBlock, b.numberOfRequests b_numberOfRequests, b.numberOfTransactions b_numberOfTransactions, b.numberOfConfirmations b_numberOfConfirmations, b.totalAmount b_totalAmount, b.totalFee b_totalFee, b.previousFee b_previousFee, b.nextFeeVolume b_nextFeeVolume, b.feeVolume b_feeVolume, b.payloadLength b_payloadLength, b.requestsLength b_requestsLength, b.confirmationsLength b_confirmationsLength, b.payloadHash b_payloadHash, b.generatorPublicKey b_generatorPublicKey, b.generationSignature b_generationSignature, b.blockSignature b_blockSignature, " +
+		"r.id r_id, r.address r_address, " +
+		"t.id t_id, t.type t_type, t.subtype t_subtype, t.timestamp t_timestamp, t.senderPublicKey t_senderPublicKey, t.senderId t_senderId, t.recipientId t_recipientId, t.amount t_amount, t.fee t_fee, t.signature t_signature, t.signSignature t_signSignature, c_t.generatorPublicKey t_companyGeneratorPublicKey, " +
+		"s.id s_id, s.timestamp s_timestamp, s.publicKey s_publicKey, s.generatorPublicKey s_generatorPublicKey, s.signature s_signature, s.generationSignature s_generationSignature, " +
+		"c.id c_id, c.name c_name, c.description c_description, c.domain c_domain, c.email c_email, c.timestamp c_timestamp, c.generatorPublicKey c_generatorPublicKey, c.signature c_signature, " +
+		"cc.id cc_id, cc.companyId cc_companyId, cc.verified cc_verified, cc.timestamp cc_timestamp, cc.signature cc_signature, " +
+		"d.username d_username " +
+		"FROM (select * from blocks " + (filter.id ? " where id = $id " : "") + (filter.lastId ? " where height > (SELECT height FROM blocks where id = $lastId) " : "") + " limit $limit) as b " +
+		"left outer join requests as r on r.blockId=b.id " +
+		"left outer join trs as t on t.blockId=b.id " +
+		"left outer join delegates as d on d.transactionId=t.id " +
+		"left outer join signatures as s on s.transactionId=t.id " +
+		"left outer join companies as c on c.transactionId=t.id " +
+		"left outer join companies as c_t on c_t.address=t.recipientId " +
+		"left outer join companyconfirmations as cc on cc.blockId=b.id " +
+		"ORDER BY b.height, t.rowid, s.rowid, c.rowid, cc.rowid " +
+		"", params, function (err, rows) {
 			// Some notes:
 			// If loading catch error, for example, invalid signature on block & transaction, need to stop loading and remove all blocks after last good block.
 			// We need to process all transactions of block
@@ -286,60 +339,7 @@ Blocks.prototype.loadBlocksPart = function (filter, cb) {
 				return cb(err, []);
 			}
 
-			var blocks = {};
-			var order = [];
-			for (var i = 0, length = rows.length; i < length; i++) {
-				var __block = blockHelper.getBlock(rows[i]);
-				if (__block) {
-					if (!blocks[__block.id]) {
-						order.push(__block.id);
-						blocks[__block.id] = __block;
-					}
-
-					var __companyComfirmation = blockHelper.getCompanyComfirmation(rows[i]);
-					blocks[__block.id].companyconfirmations = blocks[__block.id].companyconfirmations || {};
-					if (__companyComfirmation) {
-						if (!blocks[__block.id].companyconfirmations[__companyComfirmation.id]) {
-							blocks[__block.id].companyconfirmations[__companyComfirmation.id] = __companyComfirmation;
-						}
-					}
-
-					var __request = blockHelper.getRequest(rows[i]);
-					blocks[__block.id].requests = blocks[__block.id].requests || {};
-					if (__request) {
-						if (!blocks[__block.id].requests[__request.id]) {
-							blocks[__block.id].requests[__request.id] = __request;
-						}
-					}
-
-					var __transaction = blockHelper.getTransaction(rows[i]);
-					blocks[__block.id].transactions = blocks[__block.id].transactions || {};
-					if (__transaction) {
-						if (!blocks[__block.id].transactions[__transaction.id]) {
-							var __signature = blockHelper.getSignature(rows[i]);
-							if (__signature) {
-								__transaction.asset = __transaction.asset || {};
-								if (!__transaction.asset.signature) {
-									__transaction.asset.signature = __signature;
-								}
-							}
-
-							var __company = blockHelper.getCompany(rows[i]);
-							if (__company) {
-								__transaction.asset = __transaction.asset || {};
-								if (!__transaction.asset.company) {
-									__transaction.asset.company = __company;
-								}
-							}
-
-							blocks[__block.id].transactions[__transaction.id] = __transaction;
-						}
-					}
-				}
-			}
-			blocks = order.map(function (v) {
-				return normalizeBlock(blocks[v]);
-			});
+			var blocks = relational2object(rows);
 
 			cb(err, blocks);
 		});
@@ -348,22 +348,24 @@ Blocks.prototype.loadBlocksPart = function (filter, cb) {
 Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 	var params = {$limit: limit, $offset: offset || 0};
 	library.db.all(
-			"SELECT " +
-			"b.id b_id, b.version b_version, b.timestamp b_timestamp, b.height b_height, b.previousBlock b_previousBlock, b.numberOfRequests b_numberOfRequests, b.numberOfTransactions b_numberOfTransactions, b.numberOfConfirmations b_numberOfConfirmations, b.totalAmount b_totalAmount, b.totalFee b_totalFee, b.payloadLength b_payloadLength, b.requestsLength b_requestsLength, b.confirmationsLength b_confirmationsLength, b.payloadHash b_payloadHash, b.generatorPublicKey b_generatorPublicKey, b.generationSignature b_generationSignature, b.blockSignature b_blockSignature, " +
-			"r.id r_id, r.blockId r_blockId, r.address r_address, " +
-			"t.id t_id, t.blockId t_blockId, t.type t_type, t.subtype t_subtype, t.timestamp t_timestamp, t.senderPublicKey t_senderPublicKey, t.senderId t_senderId, t.recipientId t_recipientId, t.amount t_amount, t.fee t_fee, t.signature t_signature, t.signSignature t_signSignature, c_t.generatorPublicKey t_companyGeneratorPublicKey, " +
-			"s.id s_id, s.transactionId s_transactionId, s.timestamp s_timestamp, s.publicKey s_publicKey, s.generatorPublicKey s_generatorPublicKey, s.signature s_signature, s.generationSignature s_generationSignature, " +
-			"c.id c_id, c.transactionId c_transactionId, c.name c_name, c.description c_description, c.domain c_domain, c.email c_email, c.timestamp c_timestamp, c.generatorPublicKey c_generatorPublicKey, c.signature c_signature, " +
-			"cc.id cc_id, cc.blockId cc_blockId, cc.companyId cc_companyId, cc.verified cc_verified, cc.timestamp cc_timestamp, cc.signature cc_signature " +
-			"FROM (select * from blocks limit $limit offset $offset) as b " +
-			"left outer join requests as r on r.blockId=b.id " +
-			"left outer join trs as t on t.blockId=b.id " +
-			"left outer join signatures as s on s.transactionId=t.id " +
-			"left outer join companies as c on c.transactionId=t.id " +
-			"left outer join companies as c_t on c_t.address=t.recipientId " +
-			"left outer join companyconfirmations as cc on cc.blockId=b.id " +
-			"ORDER BY b.height, t.rowid, s.rowid, c.rowid, cc.rowid " +
-			"", params, function (err, rows) {
+		"SELECT " +
+		"b.id b_id, b.version b_version, b.timestamp b_timestamp, b.height b_height, b.previousBlock b_previousBlock, b.numberOfRequests b_numberOfRequests, b.numberOfTransactions b_numberOfTransactions, b.numberOfConfirmations b_numberOfConfirmations, b.totalAmount b_totalAmount, b.totalFee b_totalFee, b.payloadLength b_payloadLength, b.requestsLength b_requestsLength, b.confirmationsLength b_confirmationsLength, b.payloadHash b_payloadHash, b.generatorPublicKey b_generatorPublicKey, b.generationSignature b_generationSignature, b.blockSignature b_blockSignature, " +
+		"r.id r_id, r.address r_address, " +
+		"t.id t_id, t.type t_type, t.subtype t_subtype, t.timestamp t_timestamp, t.senderPublicKey t_senderPublicKey, t.senderId t_senderId, t.recipientId t_recipientId, t.amount t_amount, t.fee t_fee, t.signature t_signature, t.signSignature t_signSignature, c_t.generatorPublicKey t_companyGeneratorPublicKey, " +
+		"s.id s_id, s.timestamp s_timestamp, s.publicKey s_publicKey, s.generatorPublicKey s_generatorPublicKey, s.signature s_signature, s.generationSignature s_generationSignature, " +
+		"c.id c_id, c.name c_name, c.description c_description, c.domain c_domain, c.email c_email, c.timestamp c_timestamp, c.generatorPublicKey c_generatorPublicKey, c.signature c_signature, " +
+		"cc.id cc_id, cc.companyId cc_companyId, cc.verified cc_verified, cc.timestamp cc_timestamp, cc.signature cc_signature, " +
+		"d.username d_username " +
+		"FROM (select * from blocks limit $limit offset $offset) as b " +
+		"left outer join requests as r on r.blockId=b.id " +
+		"left outer join trs as t on t.blockId=b.id " +
+		"left outer join delegates as d on d.transactionId=t.id " +
+		"left outer join signatures as s on s.transactionId=t.id " +
+		"left outer join companies as c on c.transactionId=t.id " +
+		"left outer join companies as c_t on c_t.address=t.recipientId " +
+		"left outer join companyconfirmations as cc on cc.blockId=b.id " +
+		"ORDER BY b.height, t.rowid, s.rowid, c.rowid, cc.rowid " +
+		"", params, function (err, rows) {
 			// Some notes:
 			// If loading catch error, for example, invalid signature on block & transaction, need to stop loading and remove all blocks after last good block.
 			// We need to process all transactions of block
@@ -371,132 +373,124 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 				return cb(err);
 			}
 
-			//console.time('loading');
-			var blocks = {};
-			for (var i = 0, length = rows.length; i < length; i++) {
-				var __block = blockHelper.getBlock(rows[i]);
-				if (__block) {
-					if (!blocks[__block.id]) {
-						blocks[__block.id] = __block;
+			var blocks = relational2object(rows);
 
-						if (__block.id != genesisblock.blockId) {
-							if (__block.previousBlock != lastBlock.id) {
-								err = {
-									message: "Can't verify previous block",
-									block: __block
-								}
-								break;
-							}
-
-							self.applyFee(__block);
-							self.applyWeight(__block);
+			for (var i = 0, i_length = blocks.length; i < i_length; i++) {
+				if (blocks[i].id != genesisblock.blockId) {
+					if (blocks[i].previousBlock != lastBlock.id) {
+						err = {
+							message: "Can't verify previous block",
+							block: blocks[i]
 						}
-
-						lastBlock = blocks[__block.id];
-					}
-					if (blocks[__block.id].id != genesisblock.blockId) {
-						if (!self.verifySignature(blocks[__block.id])) { //|| !self.verifyGenerationSignature(block, previousBlock)) {
-							// need to break cicle and delete this block and blocks after this block
-							err = {message: "Can't verify signature", block: blocks[__block.id]};
-							break;
-						}
+						break;
 					}
 
-					var __companyComfirmation = blockHelper.getCompanyComfirmation(rows[i]);
-					blocks[__block.id].companyconfirmations = blocks[__block.id].companyconfirmations || {};
-					if (__companyComfirmation) {
-						if (!blocks[__block.id].companyconfirmations[__companyComfirmation.id]) {
-							// verify
-							if (!confirmationsHelper.verifySignature(__companyComfirmation, blocks[__block.id].generatorPublicKey)) {
-								err = {
-									message: "Can't verify company confirmation signature",
-									block: blocks[__block.id]
-								};
-								break;
-							}
-
-							// apply
-							self.applyConfirmation(__companyComfirmation, blocks[__block.id].generatorPublicKey);
-
-							blocks[__block.id].companyconfirmations[__companyComfirmation.id] = __companyComfirmation;
-						}
-					}
-
-					var __request = blockHelper.getRequest(rows[i]);
-					blocks[__block.id].requests = blocks[__block.id].requests || {};
-					if (__request) {
-						if (!blocks[__block.id].requests[__request.id]) {
-							blocks[__block.id].requests[__request.id] = __request;
-						}
-					}
-
-					var __transaction = blockHelper.getTransaction(rows[i]);
-					blocks[__block.id].transactions = blocks[__block.id].transactions || {};
-					if (__transaction) {
-						if (!blocks[__block.id].transactions[__transaction.id]) {
-							if (blocks[__block.id].id != genesisblock.blockId) {
-								if (!modules.transactions.verifySignature(__transaction)) {
-									err = {
-										message: "Can't verify transaction: " + __transaction.id,
-										block: blocks[__block.id]
-									};
-									break;
-								}
-
-								var sender = modules.accounts.getAccountByPublicKey(__transaction.senderPublicKey);
-
-								if (sender.secondSignature) {
-									if (!modules.transactions.verifySecondSignature(__transaction, sender.secondPublicKey)) {
-										err = {
-											message: "Can't verify second transaction: " + __transaction.id,
-											block: blocks[__block.id]
-										};
-										break;
-									}
-								}
-							}
-
-							var __signature = blockHelper.getSignature(rows[i]);
-							if (__signature) {
-								__transaction.asset = __transaction.asset || {};
-								if (!__transaction.asset.signature) {
-									__transaction.asset.signature = __signature;
-								}
-							}
-
-							var __company = blockHelper.getCompany(rows[i]);
-							if (__company) {
-								__transaction.asset = __transaction.asset || {};
-								if (!__transaction.asset.company) {
-									__transaction.asset.company = __company;
-								}
-							}
-
-							if (!modules.transactions.applyUnconfirmed(__transaction) || !modules.transactions.apply(__transaction)) {
-								err = {
-									message: "Can't apply transaction: " + __transaction.id,
-									block: blocks[__block.id]
-								};
-								break;
-							}
-
-							if (!self.applyForger(blocks[__block.id].generatorPublicKey, __transaction)) {
-								err = {
-									message: "Can't apply transaction to forger: " + __transaction.id,
-									block: blocks[__block.id]
-								};
-								break;
-							}
-
-							blocks[__block.id].transactions[__transaction.id] = __transaction;
-						}
+					if (!self.verifySignature(blocks[i])) { //|| !self.verifyGenerationSignature(block, previousBlock)) {
+						// need to break cicle and delete this block and blocks after this block
+						err = {
+							message: "Can't verify signature",
+							block: blocks[i]
+						};
+						break;
 					}
 				}
+
+				//verify block's companyconfirmations
+				for (var n = 0, n_length = blocks[i].companyconfirmations.length; n < n_length; n++) {
+					if (!confirmationsHelper.verifySignature(blocks[i].companyconfirmations[n], blocks[i].generatorPublicKey)) {
+						err = {
+							message: "Can't verify company confirmation signature",
+							companyconfirmation: blocks[i].companyconfirmations[n],
+							block: blocks[i]
+						};
+						break;
+					}
+					self.applyConfirmation(blocks[i].companyconfirmations[n], blocks[i].generatorPublicKey);
+				}
+				if (err) break;
+
+				//verify block's transactions
+				for (var n = 0, n_length = blocks[i].transactions.length; n < n_length; n++) {
+					if (blocks[i].id != genesisblock.blockId) {
+						if (!modules.transactions.verifySignature(blocks[i].transactions[n])) {
+							err = {
+								message: "Can't verify transaction: " + blocks[i].transactions[n].id,
+								transaction: blocks[i].transactions[n],
+								rollbackTransactionsUntil: n > 0 ? (n - 1) : null,
+								rollbackUnconfirmedTransactionsUntil: n > 0 ? (n - 1) : null,
+								block: blocks[i]
+							};
+							break;
+						}
+
+						var sender = modules.accounts.getAccountByPublicKey(blocks[i].transactions[n].senderPublicKey);
+
+						if (sender.secondSignature) {
+							if (!modules.transactions.verifySecondSignature(blocks[i].transactions[n], sender.secondPublicKey)) {
+								err = {
+									message: "Can't verify second transaction: " + blocks[i].transactions[n].id,
+									transaction: blocks[i].transactions[n],
+									rollbackTransactionsUntil: n > 0 ? (n - 1) : null,
+									rollbackUnconfirmedTransactionsUntil: n > 0 ? (n - 1) : null,
+									block: blocks[i]
+								};
+								break;
+							}
+						}
+					}
+
+					if (!modules.transactions.applyUnconfirmed(blocks[i].transactions[n])) {
+						err = {
+							message: "Can't apply transaction: " + blocks[i].transactions[n].id,
+							transaction: blocks[i].transactions[n],
+							rollbackTransactionsUntil: n > 0 ? (n - 1) : null,
+							rollbackUnconfirmedTransactionsUntil: n > 0 ? (n - 1) : null,
+							block: blocks[i]
+						};
+						break;
+					}
+
+					if (!modules.transactions.apply(blocks[i].transactions[n])) {
+						err = {
+							message: "Can't apply transaction: " + blocks[i].transactions[n].id,
+							transaction: blocks[i].transactions[n],
+							rollbackTransactionsUntil: n > 0 ? (n - 1) : null,
+							rollbackUnconfirmedTransactionsUntil: n > 0 ? (n - 1) : null,
+							block: blocks[i]
+						};
+						break;
+					}
+
+					if (!self.applyForger(blocks[i].generatorPublicKey, blocks[i].transactions[n])) {
+						err = {
+							message: "Can't apply transaction to forger: " + blocks[i].transactions[n].id,
+							transaction: blocks[i].transactions[n],
+							rollbackTransactionsUntil: n > 0 ? (n - 1) : null,
+							rollbackUnconfirmedTransactionsUntil: n > 0 ? (n - 1) : null,
+							block: blocks[i]
+						};
+						break;
+					}
+				}
+				if (err) {
+					for (var n = err.rollbackTransactionsUntil - 1; n > -1; n--) {
+						modules.transactions.undo(blocks[i].transactions[n])
+					}
+					for (var n = err.rollbackUnconfirmedTransactionsUntil - 1; n > -1; n--) {
+						modules.transactions.undoUnconfirmed(blocks[i].transactions[n])
+					}
+					break;
+				}
+
+				if (blocks[i].id != genesisblock.blockId) {
+					self.applyFee(blocks[i]);
+					self.applyWeight(blocks[i]);
+				}
+
+				lastBlock = blocks[i]
 			}
 
-			//console.timeEnd('loading');
-
-			cb(err, normalizeBlock(lastBlock));
+			cb(err, lastBlock);
 		});
 }
 
@@ -787,7 +781,7 @@ Blocks.prototype.getFee = function () {
 }
 
 Blocks.prototype.getLastBlock = function () {
-	return lastBlock;
+	return lastBlock || {};
 }
 
 Blocks.prototype.processBlock = function (block, broadcast, cb) {
@@ -1022,11 +1016,9 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 							return cb(err);
 						}
 
-						if (broadcast) {
-							setTimeout(function () {
-								library.bus.message('newBlock', block)
-							}, 1000);
-						}
+						setTimeout(function () {
+							library.bus.message('newBlock', block, broadcast)
+						}, 1000);
 
 						lastBlock = block;
 						setImmediate(cb);
