@@ -124,11 +124,15 @@ Loader.prototype.updatePeerList = function (cb) {
 Loader.prototype.loadBlocks = function (cb) {
 	modules.transport.getFromRandomPeer('/weight', function (err, data) {
 		if (err) {
-			library.logger.info("Bad peer " + peerStr);
+			if (data.peer) {
+				library.logger.info("Bad peer " + data.peer.ip + ":" + data.peer.port);
+			}
+
 			return cb();
 		}
 
-		var peerStr = data.peer.ip + ":" + data.peer.port;
+
+		var peerStr = library.logger.info("Bad peer " + data.peer.ip + ":" + data.peer.port);
 		library.logger.info("Load blocks from " + peerStr);
 
 		if (modules.blocks.getWeight().lt(params.string(data.body.weight))) {
