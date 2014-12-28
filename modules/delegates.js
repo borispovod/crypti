@@ -35,7 +35,7 @@ function Delegates(cb, scope) {
 		var hash = crypto.createHash('sha256').update(secret, 'utf8').digest();
 		var keypair = ed.MakeKeypair(hash);
 
-		if (publicKey) {
+		if (publicKey.length > 0) {
 			if (keypair.publicKey.toString('hex') != publicKey.toString('hex')) {
 				return res.json({success: false, error: "Please, provide valid secret key of your account"});
 			}
@@ -96,10 +96,11 @@ function Delegates(cb, scope) {
 
 Delegates.prototype.voting = function (publicKeys) {
 	publicKeys.forEach(function (publicKey) {
+		// convert to account id or by username?
 		if (delegates[publicKey]) {
 			delegates[publicKey].vote = (delegates[publicKey].vote || 0) + 1;
 		}
-	})
+	});
 }
 
 Delegates.prototype.getDelegate = function (publicKey) {

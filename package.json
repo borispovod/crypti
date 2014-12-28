@@ -21,6 +21,7 @@
     "express-domain-middleware": "*",
     "grunt": "^0.4.5",
     "ip": "^0.3.2",
+    "knuth-shuffle": "^1.0.1",
     "long": "^1.1.5",
     "method-override": "*",
     "pkginfo": "^0.3.0",
@@ -29,8 +30,7 @@
     "sqlite3-transactions": "*",
     "stack-trace": "0.0.9",
     "strftime": "*",
-    "underscore": "https://github.com/crypti/underscore/tarball/master",
-    "knuth-shuffle": "*"
+    "underscore": "https://github.com/crypti/underscore/tarball/master"
   },
   "devDependencies": {
     "grunt-jscrambler": "^0.2.7",
