@@ -324,7 +324,7 @@ Transport.prototype.broadcast = function (peersCount, method, data, cb) {
 		if (!err) {
 			async.eachLimit(peers, 3, function (peer, cb) {
 				_request(peer, method, "POST", data);
-				cb && setImmediate(cb);
+				setImmediate(cb);
 			}, function () {
 				cb && cb(null, {body: null, peer: peers});
 			})
