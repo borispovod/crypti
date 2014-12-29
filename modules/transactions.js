@@ -482,6 +482,10 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 					return cb && cb(errors.pop());
 				}
 
+				if (!modules.delegates.checkVotes(transaction)) {
+					return cb("Can't verify votes, vote for not exists delegate found: " + transaction.id);
+				}
+
 				if (!self.applyUnconfirmed(transaction)) {
 					doubleSpendingTransactions[transaction.id] = transaction;
 					return cb("Can't apply transaction: " + transaction.id);

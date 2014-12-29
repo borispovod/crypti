@@ -117,24 +117,29 @@ Delegates.prototype.parseDelegate = function (delegate) {
 	return delegate;
 }
 
-Delegates.prototype.voting = function (publicKeys) {
+Delegates.prototype.checkVotes = function (publicKeys) {
 	if (publicKeys.length == 0) {
-		for (var publicKey in delegates) {
-			delegates[publicKey].vote = (delegates[publicKey].vote || 0) + 1;
-		}
-
 		return true;
 	} else {
 		publicKeys.forEach(function (publicKey) {
-			// convert to account id or by username?
-			if (delegates[publicKey]) {
-				delegates[publicKey].vote = (delegates[publicKey].vote || 0) + 1;
-			} else {
+			if (!delegates[publicKey]) {
 				return false;
 			}
 		});
 
 		return true;
+	}
+}
+
+Delegates.prototype.voting = function (publicKeys) {
+	if (publicKeys.length == 0) {
+		for (var publicKey in delegates) {
+			delegates[publicKey].vote = (delegates[publicKey].vote || 0) + 1;
+		}
+	} else {
+		publicKeys.forEach(function (publicKey) {
+			delegates[publicKey].vote = (delegates[publicKey].vote || 0) + 1;
+		});
 	}
 }
 
