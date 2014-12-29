@@ -212,6 +212,7 @@ Blocks.prototype.list = function (filter, cb) {
 	if (filter.orderBy) {
 		var sort = filter.orderBy.split(':');
 		sortBy = sort[0].replace(/[^\w\s]/gi, '');
+		sortBy = "b." + sortBy;
 		if (sort.length == 2) {
 			sortMethod = sort[1] == 'desc' ? 'desc' : 'asc'
 		}
@@ -1219,14 +1220,16 @@ Blocks.prototype.popLastBlock = function (cb) {
 					return cb(err);
 				}
 
-				async.eachSeries(lastBlock.transactions, function (transaction, cb) {
+				var transactions = lastBlock.transactions;
+				lastBlock = previousBlock;
+
+				async.eachSeries(transactions, function (transaction, cb) {
 					modules.transactions.processUnconfirmedTransaction(transaction, false, cb);
 				}, function (err) {
 					if (err) {
 						return cb(err);
 					}
 
-					lastBlock = previousBlock;
 					cb(null, lastBlock);
 				});
 			});
