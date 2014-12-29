@@ -110,6 +110,10 @@ function Transactions(cb, scope) {
 		var hash = crypto.createHash('sha256').update(secret, 'utf8').digest();
 		var keypair = ed.MakeKeypair(hash);
 
+		if (secret.length == 0) {
+			return res.json({success: false, error: "Provide secret key"});
+		}
+
 		if (publicKey.length > 0) {
 			if (keypair.publicKey.toString('hex') != publicKey.toString('hex')) {
 				return res.json({success: false, error: "Please, provide valid secret key of your account"});
@@ -216,12 +220,12 @@ Transactions.prototype.list = function (filter, cb) {
 	// need to fix 'or' or 'and' in query
 	params.$topHeight = modules.blocks.getLastBlock().height + 1;
 	var stmt = library.db.prepare("select t.id t_id, t.blockId t_blockId, t.type t_type, t.subtype t_subtype, t.timestamp t_timestamp, t.senderPublicKey t_senderPublicKey, t.senderId t_senderId, t.recipientId t_recipientId, t.amount t_amount, t.fee t_fee, t.signature t_signature, t.signSignature t_signSignature, c_t.generatorPublicKey t_companyGeneratorPublicKey, $topHeight - b.height as confirmations " +
-	"from trs t " +
-	"inner join blocks b on t.blockId = b.id " +
-	"left outer join companies as c_t on c_t.address=t.recipientId " +
-	(fields.length ? "where " + fields.join(' or ') : '') + " " +
-	(filter.orderBy ? 'order by ' + sortBy + ' ' + sortMethod : '') + " " +
-	(filter.limit ? 'limit $limit' : ''));
+		"from trs t " +
+		"inner join blocks b on t.blockId = b.id " +
+		"left outer join companies as c_t on c_t.address=t.recipientId " +
+		(fields.length ? "where " + fields.join(' or ') : '') + " " +
+		(filter.orderBy ? 'order by ' + sortBy + ' ' + sortMethod : '') + " " +
+		(filter.limit ? 'limit $limit' : ''));
 
 	stmt.bind(params);
 
@@ -237,10 +241,10 @@ Transactions.prototype.list = function (filter, cb) {
 
 Transactions.prototype.get = function (id, cb) {
 	var stmt = library.db.prepare("select t.id t_id, t.blockId t_blockId, t.type t_type, t.subtype t_subtype, t.timestamp t_timestamp, t.senderPublicKey t_senderPublicKey, t.senderId t_senderId, t.recipientId t_recipientId, t.amount t_amount, t.fee t_fee, t.signature t_signature, t.signSignature t_signSignature, c_t.generatorPublicKey t_companyGeneratorPublicKey, $topHeight - b.height as confirmations " +
-	"from trs t " +
-	"inner join blocks b on t.blockId = b.id " +
-	"left outer join companies as c_t on c_t.address=t.recipientId " +
-	"where t.id = $id");
+		"from trs t " +
+		"inner join blocks b on t.blockId = b.id " +
+		"left outer join companies as c_t on c_t.address=t.recipientId " +
+		"where t.id = $id");
 
 	stmt.bind({
 		$id: id,
@@ -657,7 +661,7 @@ Transactions.prototype.verifySignature = function (transaction) {
 
 	try {
 		var res = ed.Verify(hash, transaction.signature || ' ', transaction.senderPublicKey || ' ');
-	}catch (e){
+	} catch (e) {
 		library.logger.info("first signature");
 		library.logger.error(e, {err: e, transaction: transaction})
 	}
@@ -677,7 +681,7 @@ Transactions.prototype.verifySecondSignature = function (transaction, publicKey)
 
 	try {
 		var res = ed.Verify(hash, transaction.signSignature || ' ', publicKey || ' ');
-	}catch (e){
+	} catch (e) {
 		library.logger.error(e, {err: e, transaction: transaction})
 	}
 
