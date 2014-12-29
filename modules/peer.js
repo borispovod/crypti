@@ -96,18 +96,21 @@ Peer.prototype.filter = function (filter, cb) {
 	library.db.all("select ip, port, state, os, sharePort, version from peers" + (where.length ? (' where ' + where.join(' and ')) : '') + ' limit $limit', params, cb);
 }
 
-Peer.prototype.state = function (ip, port, state, clock, cb) {
+Peer.prototype.state = function (ip, port, state, timeoutSeconds, cb) {
 	if (state == 0) {
-		clock = clock || 10;
-		clock = Date.now() + (clock * 60 * 1000);
+		var clock = (timeoutSeconds || 1) * 1000;
+		clock = Date.now() + clock;
 	} else {
 		clock = null;
 	}
-	var st = library.db.prepare("UPDATE peers SET state = $state, clock = $clock WHERE ip = $ip and port = $port;");
-	st.bind({$state: state, $clock: clock, $ip: ip, $port: port});
-	st.run(function (err) {
-		err && library.logger.error('Peer#state', err);
-		cb && cb()
+	library.db.serialize(function () {
+		var st = library.db.prepare("UPDATE peers SET state = $state, clock = $clock WHERE ip = $ip and port = $port;");
+		st.bind({$state: state, $clock: clock, $ip: ip, $port: port});
+		st.run(function (err) {
+			err && library.logger.error('Peer#state', err);
+
+			cb && cb()
+		});
 	});
 }
 
@@ -122,18 +125,26 @@ Peer.prototype.parsePeer = function (peer) {
 }
 
 Peer.prototype.banManager = function (cb) {
-	var st = library.db.prepare("UPDATE peers SET state = 1, clock = null where (state = 0 and clock - $now < 0)");
-	st.bind({$now: Date.now()});
-	st.run(cb);
+	library.db.serialize(function () {
+		library.db.get("select count(*) as ban from peers where (state = 0 and clock - $now < 0)", {$now: Date.now()}, function (err, res) {
+			!err && library.logger.info('banned before running manager', res.ban)
+			var st = library.db.prepare("UPDATE peers SET state = 1, clock = null where (state = 0 and clock - $now < 0)");
+			st.bind({$now: Date.now()});
+			st.run(function () {
+				library.db.get("select count(*) as ban from peers where (state = 0 and clock - $now > 0)", {$now: Date.now()}, function (err, res) {
+					!err && library.logger.info('banned after running manager', res.ban)
+				})
+				cb()
+			});
+		});
+	});
 }
 
 Peer.prototype.update = function (peer, cb) {
 	library.db.serialize(function () {
-
 		var params = {
 			$ip: peer.ip,
 			$port: peer.port,
-			$state: peer.state,
 			$os: peer.os,
 			$sharePort: peer.sharePort,
 			$version: peer.version
@@ -143,7 +154,7 @@ Peer.prototype.update = function (peer, cb) {
 		st.bind(params);
 		st.run();
 
-		var st = library.db.prepare("UPDATE peers SET state = $state, os = $os, sharePort = $sharePort, version = $version WHERE ip = $ip and port = $port;");
+		var st = library.db.prepare("UPDATE peers SET os = $os, sharePort = $sharePort, version = $version WHERE ip = $ip and port = $port;");
 		st.bind(params);
 		st.run();
 
@@ -158,7 +169,7 @@ Peer.prototype.count = function (cb) {
 	var params = {};
 
 	library.db.get("select count(rowid) as count from peers", params, function (err, res) {
-		if (err){
+		if (err) {
 			library.logger.error('Peer#count', err);
 			return cb(err);
 		}
