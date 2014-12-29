@@ -48,8 +48,16 @@ function Signatures(cb, scope) {
 		var hash = crypto.createHash('sha256').update(secret, 'utf8').digest();
 		var keypair = ed.MakeKeypair(hash);
 
+		if (secret.length == 0) {
+			return res.json({success: false, error: "Provide secret key"});
+		}
+
+		if (secondSecret.length == 0) {
+			return res.json({success: false, error: "Provide second secret key"});
+		}
+
 		if (publicKey.length > 0) {
-			if (keypair.publicKey.toString('hex') != new Buffer(publicKey).toString('hex')) {
+			if (keypair.publicKey.toString('hex') != publicKey.toString('hex')) {
 				return res.json({success: false, error: "Please, provide valid secret key of your account"});
 			}
 		}
