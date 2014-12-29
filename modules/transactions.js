@@ -549,6 +549,7 @@ Transactions.prototype.apply = function (transaction) {
 	} else if (transaction.type == 4) {
 		if (transaction.subtype == 0) {
 			sender.addToBalance(-amount);
+
 			return true;
 		}
 	} else {
@@ -657,22 +658,21 @@ Transactions.prototype.parseTransaction = function (transaction) {
 	transaction.fee = params.int(transaction.fee);
 	transaction.signature = params.buffer(transaction.signature);
 
+	transaction.asset = params.object(transaction.asset);
+
 	if (transaction.signSignature) {
 		transaction.signSignature = params.buffer(transaction.signSignature);
 	}
 
 	if (transaction.type == 2 && transaction.subtype == 0) {
-		transaction.asset = params.object(transaction.asset);
 		transaction.asset.signature = modules.signatures.parseSignature(params.object(transaction.asset.signature));
 	}
 
 	if (transaction.type == 4 && transaction.subtype == 0) {
-		transaction.asset = params.object(transaction.asset);
 		transaction.asset.delegate = modules.delegates.parseDelegate(params.object(transaction.asset.delegate));
 	}
 
 	if (transaction.asset.votes) {
-		transaction.asset = params.object(transaction.asset);
 		transaction.asset.votes = params.array(transaction.asset.votes);
 	}
 
