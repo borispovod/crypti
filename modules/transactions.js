@@ -105,7 +105,8 @@ function Transactions(cb, scope) {
 			amount = params.int(req.body.amount),
 			recipientId = params.string(req.body.recipientId),
 			publicKey = params.buffer(req.body.publicKey, 'hex'),
-			secondSecret = params.string(req.body.secondSecret);
+			secondSecret = params.string(req.body.secondSecret),
+			votingType = params.int(req.body.votingType);
 
 		var hash = crypto.createHash('sha256').update(secret, 'utf8').digest();
 		var keypair = ed.MakeKeypair(hash);
@@ -126,13 +127,22 @@ function Transactions(cb, scope) {
 			return res.json({success: false, error: "Open account to make transaction"});
 		}
 
+		var votes = self.getVotesByType(votingType);
+
+		if (!votes) {
+			return res.json({success: false, error: "Invalid voting type"});
+		}
+
 		var transaction = {
 			type: 0,
 			subtype: 0,
 			amount: amount,
 			recipientId: recipientId,
 			senderPublicKey: account.publicKey,
-			timestamp: timeHelper.getNow()
+			timestamp: timeHelper.getNow(),
+			asset : {
+				votes : votes
+			}
 		};
 
 		self.sign(secret, transaction);
@@ -477,15 +487,9 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 					return cb("Can't apply transaction: " + transaction.id);
 				}
 
-				// most be checked in parseTransaction or in API
-				transaction.asset = transaction.asset || {};
-				modules.delegates.voting(transaction.asset.votes);
-				transaction.asset.votes = modules.delegates.getShuffleVotes();
-
 				unconfirmedTransactions[transaction.id] = transaction;
 
 				library.bus.message('unconfirmedTransaction', transaction, broadcast)
-
 				cb && cb(null, transaction.id);
 
 			});
@@ -641,8 +645,6 @@ Transactions.prototype.undo = function (transaction) {
 }
 
 Transactions.prototype.parseTransaction = function (transaction) {
-	transaction.asset = transaction.asset || {}; //temp
-
 	transaction.id = params.string(transaction.id);
 	transaction.blockId = params.string(transaction.blockId);
 	transaction.type = params.int(transaction.type);
@@ -660,14 +662,17 @@ Transactions.prototype.parseTransaction = function (transaction) {
 	}
 
 	if (transaction.type == 2 && transaction.subtype == 0) {
-		transaction.asset.signature = modules.signatures.parseSignature(params.object(params.object(transaction.asset).signature));
+		transaction.asset = params.object(transaction.asset);
+		transaction.asset.signature = modules.signatures.parseSignature(params.object(transaction.asset.signature));
 	}
 
 	if (transaction.type == 4 && transaction.subtype == 0) {
+		transaction.asset = params.object(transaction.asset);
 		transaction.asset.delegate = modules.delegates.parseDelegate(params.object(transaction.asset.delegate));
 	}
 
-	if (transaction.asset.votes){
+	if (transaction.asset.votes) {
+		transaction.asset = params.object(transaction.asset);
 		transaction.asset.votes = params.array(transaction.asset.votes);
 	}
 
