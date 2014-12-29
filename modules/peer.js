@@ -127,12 +127,12 @@ Peer.prototype.parsePeer = function (peer) {
 Peer.prototype.banManager = function (cb) {
 	library.db.serialize(function () {
 		library.db.get("select count(*) as ban from peers where (state = 0 and clock - $now < 0)", {$now: Date.now()}, function (err, res) {
-			!err && library.logger.info('banned before running manager', res.ban)
+			!err && library.logger.info('ban to remove', res.ban)
 			var st = library.db.prepare("UPDATE peers SET state = 1, clock = null where (state = 0 and clock - $now < 0)");
 			st.bind({$now: Date.now()});
 			st.run(function () {
 				library.db.get("select count(*) as ban from peers where (state = 0 and clock - $now > 0)", {$now: Date.now()}, function (err, res) {
-					!err && library.logger.info('banned after running manager', res.ban)
+					!err && library.logger.info('still banned', res.ban)
 				})
 				cb()
 			});
