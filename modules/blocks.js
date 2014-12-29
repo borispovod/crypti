@@ -1220,14 +1220,16 @@ Blocks.prototype.popLastBlock = function (cb) {
 					return cb(err);
 				}
 
-				async.eachSeries(lastBlock.transactions, function (transaction, cb) {
+				var transactions = lastBlock.transactions;
+				lastBlock = previousBlock;
+
+				async.eachSeries(transactions, function (transaction, cb) {
 					modules.transactions.processUnconfirmedTransaction(transaction, false, cb);
 				}, function (err) {
 					if (err) {
 						return cb(err);
 					}
 
-					lastBlock = previousBlock;
 					cb(null, lastBlock);
 				});
 			});
