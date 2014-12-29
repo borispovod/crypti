@@ -447,7 +447,7 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 
 				if (!self.applyUnconfirmed(transaction)) {
 					doubleSpendingTransactions[transaction.id] = transaction;
-					return cb("Can't apply transaction: " + transaction.id);
+					return cb && cb("Can't apply transaction: " + transaction.id);
 				}
 
 				transaction.asset = transaction.asset || {};
