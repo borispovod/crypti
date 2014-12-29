@@ -125,7 +125,6 @@ Delegates.prototype.voting = function (publicKeys) {
 
 		return true;
 	} else {
-		// need to check that delegates is exists
 		publicKeys.forEach(function (publicKey) {
 			// convert to account id or by username?
 			if (delegates[publicKey]) {
