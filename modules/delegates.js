@@ -30,7 +30,8 @@ function Delegates(cb, scope) {
 		var secret = params.string(req.body.secret),
 			publicKey = params.buffer(req.body.publicKey, 'hex'),
 			secondSecret = params.string(req.body.secondSecret),
-			username = params.string(req.body.username);
+			username = params.string(req.body.username),
+			votingType = params.int(req.body.votingType);
 
 		var hash = crypto.createHash('sha256').update(secret, 'utf8').digest();
 		var keypair = ed.MakeKeypair(hash);
@@ -51,6 +52,12 @@ function Delegates(cb, scope) {
 			return res.json({success: false, error: "Open account to make transaction"});
 		}
 
+		var votes = self.getVotesByType(votingType);
+
+		if (!votes) {
+			return res.json({success: false, error: "Invalid voting type"});
+		}
+
 		var transaction = {
 			type: 4,
 			subtype: 0,
@@ -61,7 +68,8 @@ function Delegates(cb, scope) {
 			asset: {
 				delegate: {
 					username: username
-				}
+				},
+				votes : votes
 			}
 		};
 
@@ -94,22 +102,49 @@ function Delegates(cb, scope) {
 	setImmediate(cb, null, self);
 }
 
-Delegates.prototype.voting = function (publicKeys) {
-	// need to check that delegates is exists
-	publicKeys.forEach(function (publicKey) {
-		// convert to account id or by username?
-		if (delegates[publicKey]) {
-			delegates[publicKey].vote = (delegates[publicKey].vote || 0) + 1;
-		} else {
-			return false;
-		}
-	});
+Delegates.prototype.getVotesByType = function (votingType) {
+	if (votingType == 1) {
+		return modules.delegates.forAllVote();
+	} else if (votingType == 2) {
+		return modules.delegates.getShuffleVotes();
+	} else {
+		return null;
+	}
+}
 
-	return true;
+Delegates.prototype.parseDelegate = function (delegate) {
+	delegate.username = params.string(delegate.username);
+	return delegate;
+}
+
+Delegates.prototype.voting = function (publicKeys) {
+	if (publicKeys.length == 0) {
+		for (var publicKey in delegates) {
+			delegates[publicKey].vote = (delegates[publicKey].vote || 0) + 1;
+		}
+
+		return true;
+	} else {
+		// need to check that delegates is exists
+		publicKeys.forEach(function (publicKey) {
+			// convert to account id or by username?
+			if (delegates[publicKey]) {
+				delegates[publicKey].vote = (delegates[publicKey].vote || 0) + 1;
+			} else {
+				return false;
+			}
+		});
+
+		return true;
+	}
 }
 
 Delegates.prototype.getDelegate = function (publicKey) {
 	return delegates[publicKey];
+}
+
+Delegates.prototype.forAllVote = function () {
+	return [];
 }
 
 Delegates.prototype.getUnconfirmedDelegate = function (publicKey) {
