@@ -291,8 +291,8 @@ function _request(peer, api, method, data, cb) {
 		if (err || response.statusCode != 200) {
 			library.logger.debug('request', {url: req.url, statusCode: response ? response.statusCode : 'unknown', err: err});
 
-			modules.peer.state(peer.ip, peer.port, 0, 10);
-			library.logger.info('ban 10 min', ip.fromLong(peer.ip) + ':' + peer.port)
+			modules.peer.state(peer.ip, peer.port, 0, 60);
+			library.logger.info('ban 60 sec ' + req.method + ' ' + req.url)
 			cb && cb(err || ('request status code' + response.statusCode));
 			return;
 		}
@@ -324,7 +324,7 @@ Transport.prototype.broadcast = function (peersCount, method, data, cb) {
 		if (!err) {
 			async.eachLimit(peers, 3, function (peer, cb) {
 				_request(peer, method, "POST", data);
-				setImmediate(cb);
+				cb && setImmediate(cb);
 			}, function () {
 				cb && cb(null, {body: null, peer: peers});
 			})

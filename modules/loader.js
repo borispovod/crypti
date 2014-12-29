@@ -126,8 +126,6 @@ Loader.prototype.loadBlocks = function (cb) {
 		var peerStr = data.peer ? ip.fromLong(data.peer.ip) + ":" + data.peer.port : 'unknown';
 
 		if (err) {
-			library.logger.info("Bad peer " + peerStr);
-
 			return cb();
 		}
 
@@ -159,8 +157,8 @@ Loader.prototype.loadBlocks = function (cb) {
 								}
 
 								if (modules.blocks.getLastBlock().height - block.height > 1440) {
-									library.logger.info("Ban peer " + peerStr);
-									modules.peer.state(data.peer.ip, data.peer.port, 0, 60);
+									library.logger.info('ban 60 min', peerStr)
+									modules.peer.state(data.peer.ip, data.peer.port, 0, 3600);
 									cb();
 								} else {
 									library.logger.info("Resolve fork before " + commonBlock + " from " + peerStr);
