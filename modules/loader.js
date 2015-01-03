@@ -123,7 +123,9 @@ Loader.prototype.updatePeerList = function (cb) {
 
 Loader.prototype.loadBlocks = function (cb) {
 	modules.transport.getFromRandomPeer('/weight', function (err, data) {
-		var peerStr = data.peer ? ip.fromLong(data.peer.ip) + ":" + data.peer.port : 'unknown';
+		if (data.peer) {
+			var peerStr = data.peer ? ip.fromLong(data.peer.ip) + ":" + data.peer.port : 'unknown';
+		}
 
 		if (err) {
 			return cb();
@@ -131,6 +133,7 @@ Loader.prototype.loadBlocks = function (cb) {
 
 		library.logger.info("Load blocks from " + peerStr);
 
+		console.log(modules.blocks.getWeight());
 		if (modules.blocks.getWeight().lt(params.string(data.body.weight))) {
 			sync = true;
 
