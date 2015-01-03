@@ -20,7 +20,25 @@ function Peer(cb, scope) {
 	});
 
 	router.get('/', function (req, res) {
-		self.filter({}, function (err, peers) {
+		var state = params.int(req.query.state),
+			os = params.string(req.query.os),
+			version = params.string(req.query.version),
+			limit = params.string(req.query.limit),
+			shared = params.bool(req.query.shared),
+			orderBy = params.string(req.query.orderBy);
+
+		if (limit < 0 || limit > 100) {
+			return res.json({success: false, error: "Max limit is 100"});
+		}
+
+		self.filter({
+			state: state,
+			os: os,
+			version: version,
+			limit: limit,
+			shared: shared,
+			orderBy: orderBy
+		}, function (err, peers) {
 			if (err) {
 				return res.json({success: false, error: "Peers not found"});
 			}
@@ -28,32 +46,10 @@ function Peer(cb, scope) {
 		});
 	});
 
-	router.get('/banned', function (req, res) {
-		self.filter({status: 0}, function (err, peers) {
-			if (err) {
-				return res.json({success: false, error: "Peers not found"});
-			}
-			res.json({success: true, peers: peers});
-		});
+	router.get("/get", function (req, res) {
+
 	});
 
-	router.get('/connected', function (req, res) {
-		self.filter({status: 2}, function (err, peers) {
-			if (err) {
-				return res.json({success: false, error: "Peers not found"});
-			}
-			res.json({success: true, peers: peers});
-		});
-	});
-
-	router.get('/shared', function (req, res) {
-		self.filter({sharePort: 1}, function (err, peers) {
-			if (err) {
-				return res.json({success: false, error: "Peers not found"});
-			}
-			res.json({success: true, peers: peers});
-		});
-	});
 
 	router.use(function (req, res, next) {
 		res.status(500).send({success: false, error: 'api not found'});
