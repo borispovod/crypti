@@ -72,11 +72,11 @@ function getRequest(raw) {
 	}
 }
 
-function getTransaction(raw) {
+function getTransaction(raw, convertHex) {
 	if (!raw.t_id) {
 		return null
 	} else {
-		return {
+		var tx =  {
 			id: raw.t_id,
 			blockId: raw.b_id,
 			type: raw.t_type,
@@ -92,6 +92,15 @@ function getTransaction(raw) {
 			companyGeneratorPublicKey: raw.t_companyGeneratorPublicKey && new Buffer(raw.t_companyGeneratorPublicKey),
 			confirmations: raw.confirmations
 		}
+
+		if (convertHex) {
+			tx.senderPublicKey = tx.senderPublicKey.toString('hex');
+			tx.signature = tx.signature.toString('hex');
+			tx.signSignature = tx.signSignature && tx.signSignature.toString('hex');
+			tx.companyGeneratorPublicKey = tx.companyGeneratorPublicKey && tx.companyGeneratorPublicKey.toString('hex');
+		}
+
+		return tx;
 	}
 }
 
