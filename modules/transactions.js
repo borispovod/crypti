@@ -7,7 +7,8 @@ var transactionHelper = require('../helpers/transaction.js'),
 	constants = require("../helpers/constants.js"),
 	blockHelper = require("../helpers/block.js"),
 	timeHelper = require("../helpers/time.js"),
-	params = require('../helpers/params.js');
+	params = require('../helpers/params.js'),
+	clone = require('node-v8-clone').clone;
 
 var Router = require('../helpers/router.js');
 var async = require('async');
@@ -41,11 +42,13 @@ function Transactions(cb, scope) {
 			senderPublicKey: senderPublicKey.length ? senderPublicKey : null,
 			recipientId: recipientId,
 			limit: limit || 20,
-			orderBy: orderBy
+			orderBy: orderBy,
+			hex : true
 		}, function (err, transactions) {
 			if (err) {
 				return res.json({success: false, error: "Transactions not found"});
 			}
+
 			res.json({success: true, transactions: transactions});
 		});
 	});
@@ -56,7 +59,7 @@ function Transactions(cb, scope) {
 			return res.json({success: false, error: "Provide id in url"});
 		}
 
-		self.get(id, function (err, transaction) {
+		self.get(id, true, function (err, transaction) {
 			if (!transaction || err) {
 				return res.json({success: false, error: "Transaction not found"});
 			}
@@ -71,11 +74,16 @@ function Transactions(cb, scope) {
 			return res.json({success: false, error: "Provide id in url"});
 		}
 
-		var transaction = self.getUnconfirmedTransaction(id);
+		var transaction = clone(self.getUnconfirmedTransaction(id), true);
 
 		if (!transaction) {
 			return res.json({success: false, error: "Transaction not found"});
 		}
+
+		delete transaction.asset;
+		transaction.senderPublicKey = transaction.senderPublicKey.toString('hex');
+		transaction.signature = transaction.signature.toString('hex');
+		transaction.signSignature = transaction.signSignature && transaction.signSignature.toString('hex');
 
 		res.json({success: true, transaction: transaction});
 	});
@@ -90,11 +98,27 @@ function Transactions(cb, scope) {
 		if (senderPublicKey || address) {
 			for (var i = 0; i < transactions.length; i++) {
 				if (transactions[i].senderPublicKey.toString('hex') == senderPublicKey || transactions[i].recipientId == address) {
-					toSend.push(transactions[i]);
+					var transaction = clone(transactions[i], true);
+
+					delete transaction.asset;
+					transaction.senderPublicKey = transaction.senderPublicKey.toString('hex');
+					transaction.signature = transaction.signature.toString('hex');
+					transaction.signSignature = transaction.signSignature && transaction.signSignature.toString('hex');
+
+					toSend.push(transaction);
 				}
 			}
 		} else {
-			toSend = transactions;
+			for (var i = 0; i < transactions.length; i++) {
+				var transaction = clone(transactions[i], true);
+
+				delete transaction.asset;
+				transaction.senderPublicKey = transaction.senderPublicKey.toString('hex');
+				transaction.signature = transaction.signature.toString('hex');
+				transaction.signSignature = transaction.signSignature && transaction.signSignature.toString('hex');
+
+				toSend.push(transaction);
+			}
 		}
 
 		res.json({success: true, transactions: toSend});
@@ -219,7 +243,7 @@ Transactions.prototype.list = function (filter, cb) {
 
 	// need to fix 'or' or 'and' in query
 	params.$topHeight = modules.blocks.getLastBlock().height + 1;
-	var stmt = library.db.prepare("select t.id t_id, t.blockId t_blockId, t.type t_type, t.subtype t_subtype, t.timestamp t_timestamp, t.senderPublicKey t_senderPublicKey, t.senderId t_senderId, t.recipientId t_recipientId, t.amount t_amount, t.fee t_fee, t.signature t_signature, t.signSignature t_signSignature, c_t.generatorPublicKey t_companyGeneratorPublicKey, $topHeight - b.height as confirmations " +
+	var stmt = library.db.prepare("select t.id t_id, t.blockId t_blockId, t.type t_type, t.subtype t_subtype, t.timestamp t_timestamp, t.senderPublicKey t_senderPublicKey,  t.senderId t_senderId, t.recipientId t_recipientId, t.amount t_amount, t.fee t_fee, t.signature t_signature, t.signSignature t_signSignature, c_t.generatorPublicKey t_companyGeneratorPublicKey, $topHeight - b.height as confirmations " +
 		"from trs t " +
 		"inner join blocks b on t.blockId = b.id " +
 		"left outer join companies as c_t on c_t.address=t.recipientId " +
@@ -234,12 +258,12 @@ Transactions.prototype.list = function (filter, cb) {
 			return cb(err)
 		}
 		async.mapSeries(rows, function (row, cb) {
-			setImmediate(cb, null, blockHelper.getTransaction(row));
+			setImmediate(cb, null, blockHelper.getTransaction(row, filter.hex));
 		}, cb)
 	})
 }
 
-Transactions.prototype.get = function (id, cb) {
+Transactions.prototype.get = function (id, hex, cb) {
 	var stmt = library.db.prepare("select t.id t_id, t.blockId t_blockId, t.type t_type, t.subtype t_subtype, t.timestamp t_timestamp, t.senderPublicKey t_senderPublicKey, t.senderId t_senderId, t.recipientId t_recipientId, t.amount t_amount, t.fee t_fee, t.signature t_signature, t.signSignature t_signSignature, c_t.generatorPublicKey t_companyGeneratorPublicKey, $topHeight - b.height as confirmations " +
 		"from trs t " +
 		"inner join blocks b on t.blockId = b.id " +
@@ -252,11 +276,11 @@ Transactions.prototype.get = function (id, cb) {
 	});
 
 	stmt.get(function (err, row) {
-		if (err) {
-			return cb(err);
+		if (err || !row) {
+			return cb(err || "Can't find transaction: " + id);
 		}
 
-		var transacton = blockHelper.getTransaction(row);
+		var transacton = blockHelper.getTransaction(row, hex);
 		cb(null, transacton);
 	});
 }
