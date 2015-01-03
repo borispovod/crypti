@@ -59,7 +59,8 @@ function Blocks(cb, scope) {
 		self.list({
 			generatorPublicKey: generatorPublicKey.length ? generatorPublicKey : null,
 			limit: limit || 20,
-			orderBy: orderBy
+			orderBy: orderBy,
+			hex : true
 		}, function (err, blocks) {
 			if (err) {
 				return res.json({success: false, error: "Blocks not found"});
@@ -190,11 +191,11 @@ Blocks.prototype.get = function (id, cb) {
 	stmt.bind(id);
 
 	stmt.get(function (err, row) {
-		if (err) {
-			library.logger.error('Blocks#get');
-			return cb(err);
+		if (err || !row) {
+			return cb(err || "Can't find block: " + id);
 		}
-		var block = blockHelper.getBlock(row);
+
+		var block = blockHelper.getBlock(row, true);
 		cb(null, block);
 	});
 }
@@ -235,7 +236,7 @@ Blocks.prototype.list = function (filter, cb) {
 			return cb(err)
 		}
 		async.mapSeries(rows, function (row, cb) {
-			setImmediate(cb, null, blockHelper.getBlock(row));
+			setImmediate(cb, null, blockHelper.getBlock(row, filter.hex));
 		}, cb)
 	})
 }

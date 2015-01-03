@@ -29,13 +29,16 @@ function Signatures(cb, scope) {
 
 	router.get('/get', function (req, res) {
 		var id = params.string(req.query.id);
-		if (!id) {
+
+		if (!id || id.length == 0) {
 			return res.json({success: false, error: "Provide id in url"});
 		}
+
 		self.get(id, function (err, signature) {
 			if (!signature || err) {
 				return res.json({success: false, error: "Signature not found"});
 			}
+
 			return res.json({success: true, signature: signature});
 		});
 	});
@@ -162,18 +165,22 @@ Signatures.prototype.parseSignature = function (signature) {
 }
 
 Signatures.prototype.get = function (id, cb) {
+	var id = params.id;
+
 	var stmt = library.db.prepare("select s.id s_id, s.transactionId s_transactionId, s.timestamp s_timestamp, s.publicKey s_publicKey, s.generatorPublicKey s_generatorPublicKey, s.signature s_signature, s.generationSignature s_generationSignature " +
 	"from signatures s " +
-	"where s.id = ?");
+	"where s.id = $id");
 
-	stmt.bind(id);
+	stmt.bind({
+		$id : id
+	});
 
 	stmt.get(function (err, row) {
-		if (err){
-			return cb(err);
+		if (err || !row) {
+			return cb(err || "Can't find signature: " + id);
 		}
 
-		var signature = blockHelper.getSignature(row);
+		var signature = blockHelper.getSignature(row, true);
 		cb(null, signature);
 	});
 }

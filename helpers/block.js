@@ -15,11 +15,11 @@ function getAddressByPublicKey(publicKey) {
 	return address;
 }
 
-function getBlock(raw) {
+function getBlock(raw, hex) {
 	if (!raw.b_id) {
 		return null
 	} else {
-		return {
+		var block =  {
 			id: raw.b_id,
 			version: raw.b_version,
 			timestamp: raw.b_timestamp,
@@ -42,6 +42,15 @@ function getBlock(raw) {
 			nextFeeVolume : raw.b_nextFeeVolume,
 			feeVolume : raw.b_feeVolume
 		}
+
+		if (hex) {
+			block.generatorPublicKey = block.generatorPublicKey.toString('hex');
+			block.payloadHash = block.payloadHash.toString('hex');
+			block.blockSignature = block.blockSignature.toString('hex');
+			block.generationSignature = block.generationSignature.toString('hex');
+		}
+
+		return block;
 	}
 }
 
@@ -104,11 +113,11 @@ function getTransaction(raw, convertHex) {
 	}
 }
 
-function getSignature(raw) {
+function getSignature(raw, hex) {
 	if (!raw.s_id) {
 		return null
 	} else {
-		return {
+		var signature =  {
 			id: raw.s_id,
 			transactionId: raw.t_id,
 			timestamp: raw.s_timestamp,
@@ -117,6 +126,14 @@ function getSignature(raw) {
 			signature: new Buffer(raw.s_signature),
 			generationSignature: new Buffer(raw.s_generationSignature)
 		}
+
+		if (hex) {
+			signature.publicKey = signature.publicKey.toString('hex');
+			signature.generatorPublicKey = signature.generatorPublicKey.toString('hex');
+			signature.generationSignature = signature.generationSignature.toString('hex');
+		}
+
+		return signature;
 	}
 }
 
