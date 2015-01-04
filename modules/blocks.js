@@ -1379,7 +1379,7 @@ Blocks.prototype.generateBlock = function (keypair, lastBlock, cb) {
 		numberOfTransactions: blockTransactions.length,
 		payloadLength: size,
 		generationSignature: generationSignature,
-		previousBlock: self.getLastBlock(),
+		previousBlock: lastBlock.id,
 		generatorPublicKey: keypair.publicKey,
 		requestsLength: 0,
 		numberOfRequests: 0,
