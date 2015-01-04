@@ -1169,6 +1169,8 @@ Blocks.prototype.loadBlocksFromPeer = function (peer, lastCommonBlockId, cb) {
 						self.parseBlock(block, function () {
 							self.processBlock(block, false, function (err) {
 								if (!err) {
+
+
 									lastCommonBlockId = block.id;
 								}
 
@@ -1188,6 +1190,8 @@ Blocks.prototype.loadBlocksFromPeer = function (peer, lastCommonBlockId, cb) {
 }
 
 Blocks.prototype.deleteBlocksBefore = function (blockId, cb) {
+	var blocks = {};
+
 	library.db.get("SELECT height FROM blocks WHERE id=$id", {$id: blockId}, function (err, needBlock) {
 		if (err || !needBlock) {
 			cb(err ? err.toString() : "Can't find block: " + blockId);
@@ -1201,9 +1205,12 @@ Blocks.prototype.deleteBlocksBefore = function (blockId, cb) {
 				return !(needBlock.height >= lastBlock.height)
 			},
 			function (next) {
+				blocks.push(lastBlock);
 				self.popLastBlock(lastBlock, next);
 			},
-			cb)
+			function (err) {
+				setImmediate(cb, err, blocks);
+			})
 	});
 }
 

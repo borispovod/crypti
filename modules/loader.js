@@ -32,7 +32,7 @@ function Loader(cb, scope) {
 		res.json({
 			success: true,
 			sync: self.syncing(),
-			blocks : blocksToSync,
+			blocks: blocksToSync,
 			height: modules.blocks.getLastBlock().height
 		});
 	});
@@ -158,18 +158,39 @@ Loader.prototype.loadBlocks = function (lastBlock, cb) {
 								}
 
 								if (lastBlock.height - block.height > 1440) {
-									library.logger.info('ban 60 min', peerStr)
+									library.logger.info('ban 60 min', peerStr);
 									modules.peer.state(data.peer.ip, data.peer.port, 0, 3600);
 									cb();
 								} else {
 									library.logger.info("Resolve fork before " + commonBlockId + " from " + peerStr);
-									modules.blocks.deleteBlocksBefore(commonBlockId, function (err) {
+									modules.blocks.deleteBlocksBefore(commonBlockId, function (err, backupBlocks) {
 										if (err) {
-											return cb(err);
+											setImmediate(cb, err);
+										} else {
+											library.logger.info("Load blocks from peer " + peerStr);
+											modules.blocks.loadBlocksFromPeer(data.peer, commonBlockId, function (err) {
+												if (err) {
+													library.logger.error(err);
+													library.logger.info('ban 60 min', peerStr);
+													modules.peer.state(data.peer.ip, data.peer.port, 0, 3600);
+
+													modules.blocks.deleteBlocksBefore(commonBlockId, function (err) {
+														if (err) {
+															library.logger.error(err);
+															setImmediate(cb);
+															return;
+														}
+
+														async.eachSeries(backupBlocks, function (block, cb) {
+															modules.blocks.processBlock(block, false, cb);
+														}, cb);
+													});
+												} else {
+													setImmediate(cb);
+												}
+											});
 										}
 
-										library.logger.info("Load blocks from peer " + peerStr);
-										modules.blocks.loadBlocksFromPeer(data.peer, commonBlockId, cb);
 									})
 								}
 							});
