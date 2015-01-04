@@ -180,7 +180,7 @@ Loader.prototype.loadBlocks = function (lastBlock, cb) {
 															return;
 														}
 
-														library.logger.info("First last block already: " + modules.blocks.getLastBlock().id + ", first block in backup: " + backupBlocks[0].previousBlock);
+														library.logger.info("First last block already: " + modules.blocks.getLastBlock().height + ", first block in backup: " + backupBlocks[0].height);
 														async.eachSeries(backupBlocks, function (block, cb) {
 															modules.blocks.processBlock(block, false, cb);
 														}, cb);
