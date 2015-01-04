@@ -66,7 +66,8 @@ function Accounts(cb, scope) {
 		var account = self.openAccount(secret);
 
 		return res.json({
-			success: true, account: {
+			success: true,
+			account: {
 				address: account.address,
 				unconfirmedBalance: account.unconfirmedBalance,
 				balance: account.balance,
@@ -133,7 +134,8 @@ function Accounts(cb, scope) {
 		}
 
 		return res.json({
-			success: true, account: {
+			success: true,
+			account: {
 				address: account.address,
 				unconfirmedBalance: account.unconfirmedBalance,
 				balance: account.balance,

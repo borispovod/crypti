@@ -33,7 +33,8 @@ function Transactions(cb, scope) {
 	router.get('/', function (req, res) {
 		var blockId = params.string(req.query.blockId);
 		var limit = params.int(req.query.limit);
-		var orderBy = params.string(req.query.orderBy)
+		var orderBy = params.string(req.query.orderBy);
+		var offset = params.int(req.query.offset);
 		var senderPublicKey = params.buffer(req.query.senderPublicKey, 'hex');
 		var recipientId = params.string(req.query.recipientId)
 
@@ -43,7 +44,8 @@ function Transactions(cb, scope) {
 			recipientId: recipientId,
 			limit: limit || 20,
 			orderBy: orderBy,
-			hex : true
+			offset: offset,
+			hex: true
 		}, function (err, transactions) {
 			if (err) {
 				return res.json({success: false, error: "Transactions not found"});
@@ -227,6 +229,9 @@ Transactions.prototype.list = function (filter, cb) {
 	if (filter.limit) {
 		params.$limit = filter.limit;
 	}
+	if (filter.offset) {
+		params.$offset = filter.offset;
+	}
 
 	if (filter.orderBy) {
 		var sort = filter.orderBy.split(':');
@@ -248,7 +253,9 @@ Transactions.prototype.list = function (filter, cb) {
 		"left outer join companies as c_t on c_t.address=t.recipientId " +
 		(fields.length ? "where " + fields.join(' or ') : '') + " " +
 		(filter.orderBy ? 'order by ' + sortBy + ' ' + sortMethod : '') + " " +
-		(filter.limit ? 'limit $limit' : ''));
+		(filter.limit ? 'limit $limit' : '') + " " +
+		(filter.offset ? 'offset $offset' : '')
+	);
 
 	stmt.bind(params);
 
@@ -264,10 +271,10 @@ Transactions.prototype.list = function (filter, cb) {
 
 Transactions.prototype.get = function (id, hex, cb) {
 	var stmt = library.db.prepare("select t.id t_id, t.blockId t_blockId, t.type t_type, t.subtype t_subtype, t.timestamp t_timestamp, t.senderPublicKey t_senderPublicKey, t.senderId t_senderId, t.recipientId t_recipientId, t.amount t_amount, t.fee t_fee, t.signature t_signature, t.signSignature t_signSignature, c_t.generatorPublicKey t_companyGeneratorPublicKey, (select max(height) + 1 from blocks) - b.height as confirmations " +
-		"from trs t " +
-		"inner join blocks b on t.blockId = b.id " +
-		"left outer join companies as c_t on c_t.address=t.recipientId " +
-		"where t.id = $id");
+	"from trs t " +
+	"inner join blocks b on t.blockId = b.id " +
+	"left outer join companies as c_t on c_t.address=t.recipientId " +
+	"where t.id = $id");
 
 	stmt.bind({
 		$id: id
