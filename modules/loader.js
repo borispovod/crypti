@@ -8,6 +8,7 @@ var params = require('../helpers/params.js');
 //private
 var modules, library, self, loaded, sync, loadingLastBlock = genesisBlock;
 var total = 0;
+var blocksToSync = 0;
 
 //constructor
 function Loader(cb, scope) {
@@ -31,6 +32,7 @@ function Loader(cb, scope) {
 		res.json({
 			success: true,
 			sync: self.syncing(),
+			blocks : blocksToSync,
 			height: modules.blocks.getLastBlock().height
 		});
 	});
@@ -123,18 +125,16 @@ Loader.prototype.updatePeerList = function (cb) {
 
 Loader.prototype.loadBlocks = function (lastBlock, cb) {
 	modules.transport.getFromRandomPeer('/weight', function (err, data) {
-		if (data.peer) {
-			var peerStr = data.peer ? ip.fromLong(data.peer.ip) + ":" + data.peer.port : 'unknown';
-		}
-
 		if (err) {
 			return cb();
 		}
 
+		var peerStr = data.peer ? ip.fromLong(data.peer.ip) + ":" + data.peer.port : 'unknown';
 		library.logger.info("Load blocks from " + peerStr);
 
 		if (modules.blocks.getWeight().lt(params.string(data.body.weight))) {
 			sync = true;
+			blocksToSync = data.body.height;
 
 			if (lastBlock.id != genesisBlock.blockId) { //have to found common block
 
@@ -213,6 +213,7 @@ Loader.prototype.onPeerReady = function () {
 				self.loadBlocks(lastBlock, function (err) {
 					err && library.logger.error('loadBlocks timer', err);
 					sync = false;
+					blocksToSync = 0;
 					cb()
 					setTimeout(nextLoadBlock, 10 * 1000)
 				});
