@@ -1203,7 +1203,7 @@ Blocks.prototype.deleteBlocksBefore = function (blockId, cb) {
 				return !(needBlock.height >= lastBlock.height)
 			},
 			function (next) {
-				blocks.push(clone(lastBlock, true));
+				blocks.push(lastBlock);
 				self.popLastBlock(lastBlock, next);
 			},
 			function (err) {
