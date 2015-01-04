@@ -780,7 +780,7 @@ Blocks.prototype.getFee = function () {
 }
 
 Blocks.prototype.getLastBlock = function (cloned) {
-	return cloned ? clone(lastBlock, true) : lastBlock;
+	return lastBlock;
 }
 
 Blocks.prototype.setLastBlock = function (newLastBlock) {
