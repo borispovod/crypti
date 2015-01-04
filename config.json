@@ -20,13 +20,13 @@
     "peers": {
         "list": [
 			{
-				"ip" : "100.100.1.1",
+				"ip" : "130.211.104.33",
 				"port" : "7040"
 			}
         ],
         "blackList": []
     },
     "forging": {
-        "secret": "F3DP835EBuZMAhiuYn2AzhJh1lz8glLolghCMD4X8lRh5v2GlcBWws7plIDUuPjf3GUTOnyYEfXQx7cH"
+        "secret": ""
     }
 }
