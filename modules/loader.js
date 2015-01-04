@@ -8,6 +8,7 @@ var params = require('../helpers/params.js');
 //private
 var modules, library, self, loaded, sync, lastBlock = genesisBlock;
 var total = 0;
+var blocksToSync = 0;
 
 //constructor
 function Loader(cb, scope) {
@@ -31,6 +32,7 @@ function Loader(cb, scope) {
 		res.json({
 			success: true,
 			sync: self.syncing(),
+			blocks : blocksToSync,
 			height: modules.blocks.getLastBlock().height
 		});
 	});
@@ -132,6 +134,7 @@ Loader.prototype.loadBlocks = function (cb) {
 
 		if (modules.blocks.getWeight().lt(params.string(data.body.weight))) {
 			sync = true;
+			blocksToSync = data.body.height;
 
 			if (modules.blocks.getLastBlock().id != genesisBlock.blockId) {
 
