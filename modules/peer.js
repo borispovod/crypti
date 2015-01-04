@@ -46,10 +46,6 @@ function Peer(cb, scope) {
 		});
 	});
 
-	router.get("/get", function (req, res) {
-
-	});
-
 
 	router.use(function (req, res, next) {
 		res.status(500).send({success: false, error: 'api not found'});
