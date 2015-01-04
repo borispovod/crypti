@@ -158,7 +158,6 @@ Loader.prototype.loadBlocks = function (lastBlock, cb) {
 								}
 
 								if (lastBlock.height - block.height > 1440) {
-									library.logger.info('ban 60 min', peerStr);
 									modules.peer.state(data.peer.ip, data.peer.port, 0, 3600);
 									cb();
 								} else {
