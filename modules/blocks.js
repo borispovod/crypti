@@ -1190,7 +1190,7 @@ Blocks.prototype.loadBlocksFromPeer = function (peer, lastCommonBlockId, cb) {
 }
 
 Blocks.prototype.deleteBlocksBefore = function (blockId, cb) {
-	var blocks = {};
+	var blocks = [];
 
 	library.db.get("SELECT height FROM blocks WHERE id=$id", {$id: blockId}, function (err, needBlock) {
 		if (err || !needBlock) {
