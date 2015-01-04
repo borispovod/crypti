@@ -2,6 +2,10 @@ var Logger = require('./logger.js');
 var appConfig = require("./config.json");
 var logger = new Logger({echo: appConfig.consoleLogLevel, errorLevel: appConfig.fileLogLevel});
 var async = require('async');
+var SegfaultHandler = require('segfault-handler');
+
+SegfaultHandler.registerHandler();
+
 
 process.on('uncaughtException', function (err) {
 	// handle the error safely
@@ -46,7 +50,27 @@ d.run(function () {
 			cb(null, express);
 		},
 
-		app: ['config', 'logger', 'express', function (cb, scope) {
+		sequence: function (cb) {
+
+			var sequence = [];
+			process.nextTick(function sequenceManager() {
+				var worker = sequence.shift();
+				if (worker && typeof(worker) == 'function') {
+					worker(function () {
+						setTimeout(sequenceManager, 1000);
+					})
+				} else {
+					setTimeout(sequenceManager, 1000);
+				}
+			});
+			cb(null, {
+				add: function (worker) {
+					sequence.push(worker);
+				}
+			});
+		},
+
+		app: ['config', 'logger', 'express', 'sequence', function (cb, scope) {
 			var app = scope.express();
 			var path = require('path');
 			var bodyParser = require('body-parser');

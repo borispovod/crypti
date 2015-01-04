@@ -6,7 +6,7 @@ var ip = require("ip");
 var params = require('../helpers/params.js');
 
 //private
-var modules, library, self, loaded, sync, lastBlock = genesisBlock;
+var modules, library, self, loaded, sync, loadingLastBlock = genesisBlock;
 var total = 0;
 
 //constructor
@@ -22,7 +22,7 @@ function Loader(cb, scope) {
 		res.json({
 			success: true,
 			loaded: self.loaded(),
-			now: lastBlock.height,
+			now: loadingLastBlock.height,
 			blocksCount: total
 		});
 	});
@@ -76,7 +76,7 @@ Loader.prototype.run = function (scope) {
 							return cb(err);
 						}
 						offset = offset + limit;
-						lastBlock = lastBlockOffset;
+						loadingLastBlock = lastBlockOffset;
 						cb()
 					});
 				})
@@ -121,7 +121,7 @@ Loader.prototype.updatePeerList = function (cb) {
 	});
 }
 
-Loader.prototype.loadBlocks = function (cb) {
+Loader.prototype.loadBlocks = function (lastBlock, cb) {
 	modules.transport.getFromRandomPeer('/weight', function (err, data) {
 		if (data.peer) {
 			var peerStr = data.peer ? ip.fromLong(data.peer.ip) + ":" + data.peer.port : 'unknown';
@@ -136,7 +136,7 @@ Loader.prototype.loadBlocks = function (cb) {
 		if (modules.blocks.getWeight().lt(params.string(data.body.weight))) {
 			sync = true;
 
-			if (modules.blocks.getLastBlock().id != genesisBlock.blockId) {
+			if (lastBlock.id != genesisBlock.blockId) { //have to found common block
 
 				library.logger.info("Find milestone block from " + peerStr);
 				modules.blocks.getMilestoneBlock(data.peer, function (err, milestoneBlock) {
@@ -146,45 +146,43 @@ Loader.prototype.loadBlocks = function (cb) {
 
 					library.logger.info("Find common block from " + peerStr);
 
-					modules.blocks.getCommonBlock(data.peer, milestoneBlock, function (err, commonBlock) {
+					modules.blocks.getCommonBlock(data.peer, milestoneBlock, function (err, commonBlockId) {
 						if (err) {
 							return cb(err);
 						}
 
-
-						if (modules.blocks.getLastBlock().id != commonBlock) {
-							library.db.get("SELECT height FROM blocks WHERE id=$id", {$id: commonBlock}, function (err, block) {
+						if (lastBlock.id != commonBlockId) {
+							library.db.get("SELECT height FROM blocks WHERE id=$id", {$id: commonBlockId}, function (err, block) {
 								if (err || !block) {
 									return cb(err || 'block is null');
 								}
 
-								if (modules.blocks.getLastBlock().height - block.height > 1440) {
+								if (lastBlock.height - block.height > 1440) {
 									library.logger.info('ban 60 min', peerStr)
 									modules.peer.state(data.peer.ip, data.peer.port, 0, 3600);
 									cb();
 								} else {
-									library.logger.info("Resolve fork before " + commonBlock + " from " + peerStr);
-									modules.blocks.deleteBlocksBefore(commonBlock, function (err) {
+									library.logger.info("Resolve fork before " + commonBlockId + " from " + peerStr);
+									modules.blocks.deleteBlocksBefore(commonBlockId, function (err) {
 										if (err) {
 											return cb(err);
 										}
 
 										library.logger.info("Load blocks from peer " + peerStr);
-										modules.blocks.loadBlocksFromPeer(data.peer, commonBlock, cb);
+										modules.blocks.loadBlocksFromPeer(data.peer, commonBlockId, cb);
 									})
 								}
 							});
-						} else {
+						} else { //found common block
 							library.logger.info("Load blocks from peer " + peerStr);
-
-							modules.blocks.loadBlocksFromPeer(data.peer, commonBlock, cb);
+							modules.blocks.loadBlocksFromPeer(data.peer, commonBlockId, cb);
 						}
 					})
 				})
-			} else {
+			} else { //have to load full db
+				var commonBlockId = genesisBlock.blockId;
 				library.logger.info("Load blocks from genesis from " + peerStr);
-				var commonBlock = genesisBlock.blockId;
-				modules.blocks.loadBlocksFromPeer(data.peer, commonBlock, cb);
+				modules.blocks.loadBlocksFromPeer(data.peer, commonBlockId, cb);
 			}
 		} else {
 			cb();
@@ -210,11 +208,14 @@ Loader.prototype.getUnconfirmedTransactions = function (cb) {
 Loader.prototype.onPeerReady = function () {
 	function timersStart() {
 		process.nextTick(function nextLoadBlock() {
-			self.loadBlocks(function (err) {
-				err && library.logger.error('loadBlocks timer', err);
-				sync = false;
-				// 10 seconds for testing
-				setTimeout(nextLoadBlock, 10 * 1000)
+			library.sequence.add(function (cb) {
+				var lastBlock = modules.blocks.getLastBlock();
+				self.loadBlocks(lastBlock, function (err) {
+					err && library.logger.error('loadBlocks timer', err);
+					sync = false;
+					cb()
+					setTimeout(nextLoadBlock, 10 * 1000)
+				});
 			});
 		});
 
