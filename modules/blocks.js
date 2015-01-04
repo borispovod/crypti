@@ -1198,10 +1198,8 @@ Blocks.prototype.deleteBlocksBefore = function (blockId, cb) {
 			return;
 		}
 
-		var lastBlock;
 		async.whilst(
 			function () {
-				lastBlock = self.getLastBlock();
 				return !(needBlock.height >= lastBlock.height)
 			},
 			function (next) {
