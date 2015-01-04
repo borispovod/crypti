@@ -999,7 +999,7 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 						}
 					}
 
-					setImmediate(cb, errors.pop());
+					setImmediate(cb, errors[0]);
 				} else {
 					for (var i = 0; i < block.transactions.length; i++) {
 						var transaction = block.transactions[i];
@@ -1379,7 +1379,7 @@ Blocks.prototype.generateBlock = function (keypair, lastBlock, cb) {
 		numberOfTransactions: blockTransactions.length,
 		payloadLength: size,
 		generationSignature: generationSignature,
-		previousBlock: lastBlock.id,
+		previousBlock: self.getLastBlock(),
 		generatorPublicKey: keypair.publicKey,
 		requestsLength: 0,
 		numberOfRequests: 0,
