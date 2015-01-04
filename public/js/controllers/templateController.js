@@ -4,6 +4,7 @@ webApp.controller('templateController', ['$scope', '$rootScope', '$http', 'userS
             if (resp.data.success) {
                 $rootScope.sync = resp.data.sync;
                 $rootScope.height = resp.data.height;
+				$rootScope.blocks = resp.data.blocks;
             }
         });
     }

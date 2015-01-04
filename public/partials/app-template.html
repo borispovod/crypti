@@ -12,5 +12,6 @@
     <div ui-view class="partials-rules"></div>
 </div>
 <div ng-show="sync == true" class="syncLabel" title="Synchronization running, can be mistakes in UI...">
-    Synchronization: {{ height }} blocks, wait please...
+    <p ng-show="blocks">Synchronization: {{ height }}/{{ blocks }}, wait please...</p>
+    <p ng-show="!blocks">Synchronization: {{ height }}, wait please...</p>
 </div>

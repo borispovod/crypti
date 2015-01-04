@@ -1158,6 +1158,7 @@ Blocks.prototype.loadBlocksFromPeer = function (peer, lastCommonBlockId, cb) {
 					return next(err || params.string(data.body.error));
 				}
 
+				// not working of data.body is empty....
 				data.body.blocks = params.array(data.body.blocks);
 
 				if (data.body.blocks.length == 0) {
