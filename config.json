@@ -20,7 +20,7 @@
     "peers": {
         "list": [
 			{
-				"ip" : "130.211.104.33",
+				"ip" : "104.155.15.135",
 				"port" : 7040
 			},
 			{
@@ -35,6 +35,6 @@
         "blackList": []
     },
     "forging": {
-        "secret": ""
+        "secret": "mapd9vrZcQqwcqZ3HQTsg7YY78RuwE4HBwP9zZ2Tn"
     }
 }
