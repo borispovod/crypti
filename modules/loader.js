@@ -213,6 +213,7 @@ Loader.prototype.onPeerReady = function () {
 			self.loadBlocks(function (err) {
 				err && library.logger.error('loadBlocks timer', err);
 				sync = false;
+				blocksToSync = 0;
 				// 10 seconds for testing
 				setTimeout(nextLoadBlock, 10 * 1000)
 			});
