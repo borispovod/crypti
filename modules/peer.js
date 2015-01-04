@@ -25,7 +25,8 @@ function Peer(cb, scope) {
 			version = params.string(req.query.version),
 			limit = params.string(req.query.limit),
 			shared = params.bool(req.query.shared),
-			orderBy = params.string(req.query.orderBy);
+			orderBy = params.string(req.query.orderBy),
+			offset = params.int(req.query.offset);
 
 		if (limit < 0 || limit > 100) {
 			return res.json({success: false, error: "Max limit is 100"});
@@ -37,7 +38,8 @@ function Peer(cb, scope) {
 			version: version,
 			limit: limit,
 			shared: shared,
-			orderBy: orderBy
+			orderBy: orderBy,
+			offset: offset
 		}, function (err, peers) {
 			if (err) {
 				return res.json({success: false, error: "Peers not found"});
@@ -46,6 +48,28 @@ function Peer(cb, scope) {
 		});
 	});
 
+	router.get('/get', function(req, res){
+		var ip = params.string(req.query.ip);
+		var port = params.int(req.query.port);
+
+		if (!ip) {
+			return res.json({success: false, error: "Provide ip in url"});
+		}
+
+		if (!port) {
+			return res.json({success: false, error: "Provide port in url"});
+		}
+
+		self.filter({
+			ip: ip,
+			port: port
+		}, function (err, peers) {
+			if (err) {
+				return res.json({success: false, error: "Peers not found"});
+			}
+			res.json({success: true, peer: peers.length ? peers[0] : {}});
+		});;
+	})
 
 	router.use(function (req, res, next) {
 		res.status(500).send({success: false, error: 'api not found'});
@@ -74,7 +98,9 @@ Peer.prototype.list = function (limit, cb) {
 
 Peer.prototype.filter = function (filter, cb) {
 	var limit = filter.limit || 100;
+	var offset = filter.offset;
 	delete filter.limit;
+	delete filter.offset;
 
 	var where = [];
 	var params = {};
@@ -84,8 +110,9 @@ Peer.prototype.filter = function (filter, cb) {
 	});
 
 	params['$limit'] = limit;
+	offset && (params['$offset'] = offset);
 
-	library.db.all("select ip, port, state, os, sharePort, version from peers" + (where.length ? (' where ' + where.join(' and ')) : '') + ' limit $limit', params, cb);
+	library.db.all("select ip, port, state, os, sharePort, version from peers" + (where.length ? (' where ' + where.join(' and ')) : '') + ' limit $limit' + (offset ? ' offset $offset ' : ''), params, cb);
 }
 
 Peer.prototype.state = function (ip, port, state, timeoutSeconds, cb) {
