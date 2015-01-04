@@ -779,6 +779,7 @@ Blocks.prototype.getFee = function () {
 }
 
 Blocks.prototype.getLastBlock = function () {
+	// need to return block from database.
 	return lastBlock || {};
 }
 
@@ -1153,6 +1154,8 @@ Blocks.prototype.loadBlocksFromPeer = function (peer, lastBlockId, cb) {
 					return next(err || params.string(data.body.error));
 				}
 
+				// not working....
+				//  stack: 'TypeError: Cannot read property \'length\' of undefined\n    at Blocks.loadBlocksFromPeer (/Users/borispovod/Documents/crypti/modules/blocks.js:1159:25)\n    at Transport.getFromPeer (/Users/borispovod/Documents/crypti/modules/transport.js:352:3)\n    at Request.Transport.broadcast.peersCount [as _callback] (/Users/borispovod/Documents/crypti/modules/transport.js:313:9)\n    at Request.init.self.callback (/Users/borispovod/Documents/crypti/node_modules/request/request.js:373:22)\n    at Request.emit (events.js:98:17)\n    at Request.onRequestResponse (/Users/borispovod/Documents/crypti/node_modules/request/request.js:1318:14)\n    at Request.emit (events.js:117:20)\n    at IncomingMessage.Request.onRequestResponse.strings (/Users/borispovod/Documents/crypti/node_modules/request/request.js:1266:12)\n    at IncomingMessage.emit (events.js:117:20)\n    at _stream_readable.js:943:16' }
 				data.body.blocks = params.array(data.body.blocks);
 
 				if (data.body.blocks.length == 0) {
