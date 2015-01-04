@@ -1207,7 +1207,7 @@ Blocks.prototype.deleteBlocksBefore = function (blockId, cb) {
 				self.popLastBlock(lastBlock, next);
 			},
 			function (err) {
-				setImmediate(cb, err, blocks);
+				setImmediate(cb, err, blocks.reverse());
 			})
 	});
 }
