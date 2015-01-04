@@ -12,7 +12,8 @@ var crypto = require('crypto'),
 	timeHelper = require('../helpers/time.js'),
 	requestHelper = require('../helpers/request.js'),
 	params = require('../helpers/params.js'),
-	arrayHelper = require('../helpers/array.js');
+	arrayHelper = require('../helpers/array.js'),
+	clone = require('node-v8-clone').clone;
 
 var Router = require('../helpers/router.js');
 var util = require('util');
@@ -20,7 +21,7 @@ var async = require('async');
 
 //private
 var modules, library;
-var lastBlock, self;
+var lastBlock = {}, self;
 var fee = constants.feeStart;
 var nextFeeVolume = constants.feeStartVolume;
 var feeVolume = 0;
@@ -60,7 +61,7 @@ function Blocks(cb, scope) {
 			generatorPublicKey: generatorPublicKey.length ? generatorPublicKey : null,
 			limit: limit || 20,
 			orderBy: orderBy,
-			hex : true
+			hex: true
 		}, function (err, blocks) {
 			if (err) {
 				return res.json({success: false, error: "Blocks not found"});
@@ -185,8 +186,8 @@ Blocks.prototype.run = function (scope) {
 
 Blocks.prototype.get = function (id, cb) {
 	var stmt = library.db.prepare("select b.id b_id, b.version b_version, b.timestamp b_timestamp, b.height b_height, b.previousBlock b_previousBlock, b.numberOfRequests b_numberOfRequests, b.numberOfTransactions b_numberOfTransactions, b.numberOfConfirmations b_numberOfConfirmations, b.totalAmount b_totalAmount, b.totalFee b_totalFee, b.payloadLength b_payloadLength, b.requestsLength b_requestsLength, b.confirmationsLength b_confirmationsLength, b.payloadHash b_payloadHash, b.generatorPublicKey b_generatorPublicKey, b.generationSignature b_generationSignature, b.blockSignature b_blockSignature " +
-		"from blocks b " +
-		"where b.id = ?");
+	"from blocks b " +
+	"where b.id = ?");
 
 	stmt.bind(id);
 
@@ -224,10 +225,10 @@ Blocks.prototype.list = function (filter, cb) {
 	}
 
 	var stmt = library.db.prepare("select b.id b_id, b.version b_version, b.timestamp b_timestamp, b.height b_height, b.previousBlock b_previousBlock, b.numberOfRequests b_numberOfRequests, b.numberOfTransactions b_numberOfTransactions, b.numberOfConfirmations b_numberOfConfirmations, b.totalAmount b_totalAmount, b.totalFee b_totalFee, b.payloadLength b_payloadLength, b.requestsLength b_requestsLength, b.confirmationsLength b_confirmationsLength, b.payloadHash b_payloadHash, b.generatorPublicKey b_generatorPublicKey, b.generationSignature b_generationSignature, b.blockSignature b_blockSignature " +
-		"from blocks b " +
-		(fields.length ? "where " + fields.join(' and ') : '') + " " +
-		(filter.orderBy ? 'order by ' + sortBy + ' ' + sortMethod : '') + " " +
-		(filter.limit ? 'limit $limit' : ''));
+	"from blocks b " +
+	(fields.length ? "where " + fields.join(' and ') : '') + " " +
+	(filter.orderBy ? 'order by ' + sortBy + ' ' + sortMethod : '') + " " +
+	(filter.limit ? 'limit $limit' : ''));
 
 	stmt.bind(params);
 
@@ -243,7 +244,7 @@ Blocks.prototype.list = function (filter, cb) {
 
 Blocks.prototype.count = function (cb) {
 	library.db.get("select count(rowid) count " +
-		"from blocks", function (err, res) {
+	"from blocks", function (err, res) {
 		if (err) {
 			return cb(err);
 		}
@@ -485,7 +486,7 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 					self.applyWeight(blocks[i]);
 				}
 
-				lastBlock = blocks[i]
+				lastBlock = blocks[i] //fast way
 			}
 
 			cb(err, lastBlock);
@@ -686,35 +687,35 @@ Blocks.prototype.applyConfirmation = function (generatorPublicKey, confirmation)
 
 Blocks.prototype.getForgedByAccount = function (generatorPublicKey, cb) {
 	var stmt = library.db.prepare("select b.generatorPublicKey, t.type, " +
-		"CASE WHEN t.type = 0 " +
-		"THEN sum(t.fee)  " +
-		"ELSE  " +
-		"CASE WHEN t.type = 1 " +
-		"THEN " +
-		"CASE WHEN t.fee >= 2 " +
-		"THEN " +
-		"CASE WHEN t.fee % 2 != 0 " +
-		"THEN sum(t.fee - round(t.fee / 2)) " +
-		"ELSE sum(t.fee / 2) " +
-		"END " +
-		"ELSE sum(t.fee) " +
-		"END " +
-		"ELSE " +
-		"CASE WHEN t.type = 2 " +
-		"THEN sum(100 * 100000000) " +
-		"ELSE " +
-		"CASE WHEN t.type = 3 " +
-		"THEN sum(100 * 100000000) " +
-		"ELSE " +
-		"sum(0) " +
-		"END " +
-		"END " +
-		"END " +
-		"END sum " +
-		"from blocks b " +
-		"inner join trs t on t.blockId = b.id " +
-		"where b.generatorPublicKey = ? " +
-		"group by t.type");
+	"CASE WHEN t.type = 0 " +
+	"THEN sum(t.fee)  " +
+	"ELSE  " +
+	"CASE WHEN t.type = 1 " +
+	"THEN " +
+	"CASE WHEN t.fee >= 2 " +
+	"THEN " +
+	"CASE WHEN t.fee % 2 != 0 " +
+	"THEN sum(t.fee - round(t.fee / 2)) " +
+	"ELSE sum(t.fee / 2) " +
+	"END " +
+	"ELSE sum(t.fee) " +
+	"END " +
+	"ELSE " +
+	"CASE WHEN t.type = 2 " +
+	"THEN sum(100 * 100000000) " +
+	"ELSE " +
+	"CASE WHEN t.type = 3 " +
+	"THEN sum(100 * 100000000) " +
+	"ELSE " +
+	"sum(0) " +
+	"END " +
+	"END " +
+	"END " +
+	"END sum " +
+	"from blocks b " +
+	"inner join trs t on t.blockId = b.id " +
+	"where b.generatorPublicKey = ? " +
+	"group by t.type");
 
 	stmt.bind(generatorPublicKey);
 
@@ -728,14 +729,14 @@ Blocks.prototype.getForgedByAccount = function (generatorPublicKey, cb) {
 }
 
 Blocks.prototype.applyWeight = function (block) {
-	var hit = this.calculateHit(block, lastBlock);
+	var hit = self.calculateHit(block, lastBlock);
 	weight = weight.add(hit);
 
 	return weight;
 }
 
 Blocks.prototype.undoWeight = function (block, previousBlock) {
-	var hit = this.calculateHit(block, previousBlock);
+	var hit = self.calculateHit(block, previousBlock);
 	weight = weight.sub(hit);
 
 	return weight;
@@ -778,12 +779,16 @@ Blocks.prototype.getFee = function () {
 	return fee;
 }
 
-Blocks.prototype.getLastBlock = function () {
-	return lastBlock || {};
+Blocks.prototype.getLastBlock = function (cloned) {
+	return cloned ? clone(lastBlock, true) : lastBlock;
+}
+
+Blocks.prototype.setLastBlock = function (newLastBlock) {
+	lastBlock = newLastBlock;
 }
 
 Blocks.prototype.processBlock = function (block, broadcast, cb) {
-	var self = this;
+	var lastBlock = self.getLastBlock();
 
 	block.id = blockHelper.getId(block);
 	block.height = lastBlock.height + 1;
@@ -1018,7 +1023,7 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 							library.bus.message('newBlock', block, broadcast)
 						}, 1000);
 
-						lastBlock = block;
+						self.setLastBlock(block);
 						setImmediate(cb);
 					});
 				}
@@ -1139,7 +1144,7 @@ Blocks.prototype.deleteById = function (blockId, cb) {
 	library.db.get("DELETE FROM blocks WHERE height >= (SELECT height FROM blocks where id = $id)", {$id: blockId}, cb);
 }
 
-Blocks.prototype.loadBlocksFromPeer = function (peer, lastBlockId, cb) {
+Blocks.prototype.loadBlocksFromPeer = function (peer, lastCommonBlockId, cb) {
 	var loaded = false,
 		self = this;
 
@@ -1148,7 +1153,7 @@ Blocks.prototype.loadBlocksFromPeer = function (peer, lastBlockId, cb) {
 			return !loaded;
 		},
 		function (next) {
-			modules.transport.getFromPeer(peer, '/blocks?lastBlockId=' + lastBlockId, function (err, data) {
+			modules.transport.getFromPeer(peer, '/blocks?lastBlockId=' + lastCommonBlockId, function (err, data) {
 				if (err || data.body.error) {
 					return next(err || params.string(data.body.error));
 				}
@@ -1163,7 +1168,7 @@ Blocks.prototype.loadBlocksFromPeer = function (peer, lastBlockId, cb) {
 						self.parseBlock(block, function () {
 							self.processBlock(block, false, function (err) {
 								if (!err) {
-									lastBlockId = block.id;
+									lastCommonBlockId = block.id;
 								}
 
 								setImmediate(cb, err);
@@ -1181,31 +1186,27 @@ Blocks.prototype.loadBlocksFromPeer = function (peer, lastBlockId, cb) {
 	)
 }
 
-
 Blocks.prototype.deleteBlocksBefore = function (blockId, cb) {
-	var self = this;
-
 	library.db.get("SELECT height FROM blocks WHERE id=$id", {$id: blockId}, function (err, needBlock) {
 		if (err || !needBlock) {
 			cb(err ? err.toString() : "Can't find block: " + blockId);
 			return;
 		}
 
+		var lastBlock;
 		async.whilst(
 			function () {
+				lastBlock = self.getLastBlock();
 				return !(needBlock.height >= lastBlock.height)
 			},
 			function (next) {
-				self.popLastBlock(next);
+				self.popLastBlock(lastBlock, next);
 			},
-			cb
-		)
+			cb)
 	});
 }
 
-Blocks.prototype.popLastBlock = function (cb) {
-	var self = this;
-
+Blocks.prototype.popLastBlock = function (lastBlock, cb) {
 	self.getBlock(lastBlock.previousBlock, function (err, previousBlock) {
 		if (err || !previousBlock) {
 			return cb(err || 'previousBlock is null');
@@ -1222,7 +1223,7 @@ Blocks.prototype.popLastBlock = function (cb) {
 				}
 
 				var transactions = lastBlock.transactions;
-				lastBlock = previousBlock;
+				self.setLastBlock(previousBlock)
 
 				async.eachSeries(transactions, function (transaction, cb) {
 					modules.transactions.processUnconfirmedTransaction(transaction, false, cb);
@@ -1231,7 +1232,7 @@ Blocks.prototype.popLastBlock = function (cb) {
 						return cb(err);
 					}
 
-					cb(null, lastBlock);
+					cb();
 				});
 			});
 		});
@@ -1250,8 +1251,6 @@ Blocks.prototype.getBlock = function (blockId, cb) {
 }
 
 Blocks.prototype.undoBlock = function (block, previousBlock, cb) {
-	var self = this;
-
 	async.parallel([
 		function (done) {
 			async.eachSeries(block.transactions, function (transaction, cb) {
@@ -1326,7 +1325,7 @@ Blocks.prototype.parseBlock = function (block, cb) {
 }
 
 // generate block
-Blocks.prototype.generateBlock = function (keypair, cb) {
+Blocks.prototype.generateBlock = function (keypair, lastBlock, cb) {
 	var transactions = modules.transactions.getUnconfirmedTransactions();
 	transactions.sort(function compare(a, b) {
 		if (a.fee < b.fee)
@@ -1385,7 +1384,7 @@ Blocks.prototype.generateBlock = function (keypair, cb) {
 
 	block.blockSignature = blockHelper.sign(keypair, block);
 
-	this.processBlock(block, true, cb);
+	self.processBlock(block, true, cb);
 }
 
 //export

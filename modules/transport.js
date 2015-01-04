@@ -82,7 +82,9 @@ function Transport(cb, scope) {
 			return res.json({success: false, error: "Error, provide lastBlockId or lastMilestoneBlockId"});
 		}
 
-		if (lastBlockId == modules.blocks.getLastBlock().id) {
+		var lastBlock = modules.blocks.getLastBlock();
+
+		if (lastBlockId == lastBlock.id) {
 			return res.status(200).json({last: true, milestoneBlockIds: [lastBlockId]});
 		}
 
@@ -100,14 +102,14 @@ function Transport(cb, scope) {
 							cb("Can't find block: " + lastMilestoneBlockId);
 						} else {
 							height = block.height;
-							jump = Math.min(1440, modules.blocks.getLastBlock().height - height);
+							jump = Math.min(1440, lastBlock.height - height);
 							height = Math.max(height - jump, 0);
 							limit = 10;
 							cb();
 						}
 					});
 				} else if (lastBlockId) {
-					height = modules.blocks.getLastBlock().height;
+					height = lastBlock.height;
 					jump = 10;
 					limit = 10;
 					cb();
@@ -175,53 +177,57 @@ function Transport(cb, scope) {
 
 		var block = params.object(req.body.block);
 
-		modules.blocks.parseBlock(block, function (err, block) {
-			if (block.previousBlock == modules.blocks.getLastBlock().id) {
-				modules.blocks.processBlock(block, true, function (err) {
-					res.sendStatus(200);
-				});
-			} else if (block.previousBlock == modules.blocks.getLastBlock().previousBlock && block.id != modules.blocks.getLastBlock().id) {
-				library.db.get("SELECT * FROM blocks WHERE id=$id", {$id: block.previousBlock}, function (err, previousBlock) {
-					if (err || !previousBlock) {
-						library.logger.error(err ? err.toString() : "Block " + block.previousBlock + " not found");
-						return res.sendStatus(200);
-					}
+		res.sendStatus(200);
 
-					var lastBlock = modules.blocks.getLastBlock();
+		library.sequence.add(function (cb) {
+			var lastBlock = modules.blocks.getLastBlock();
 
-					var hitA = modules.blocks.calculateHit(lastBlock, previousBlock),
-						hitB = modules.blocks.calculateHit(block, previousBlock);
-
-					if (hitA.ge(hitB)) {
-						return res.sendStatus(200);
-					}
-
-					modules.blocks.popLastBlock(function (err) {
-						if (err) {
-							library.logger.error('popLastBlock', err);
-							return res.sendStatus(200);
+			modules.blocks.parseBlock(block, function (err, block) {
+				if (block.previousBlock == lastBlock.id) {
+					modules.blocks.processBlock(block, true, function () {
+						cb();
+					});
+				} else if (block.previousBlock == lastBlock.previousBlock && block.id != lastBlock.id) {
+					library.db.get("SELECT * FROM blocks WHERE id=$id", {$id: block.previousBlock}, function (err, previousBlock) {
+						if (err || !previousBlock) {
+							library.logger.error(err ? err.toString() : "Block " + block.previousBlock + " not found");
+							return cb();
 						}
 
-						modules.blocks.processBlock(block, true, function (err) {
+						var hitA = modules.blocks.calculateHit(lastBlock, previousBlock),
+							hitB = modules.blocks.calculateHit(block, previousBlock);
+
+						if (hitA.ge(hitB)) {
+							return cb();
+						}
+
+						modules.blocks.popLastBlock(lastBlock, function (err) {
 							if (err) {
-								modules.blocks.processBlock(lastBlock, false, function (err) {
-									if (err) {
-										library.logger.error("processBlock", err);
-									}
-
-									res.sendStatus(200);
-								});
-							} else {
-								res.sendStatus(200);
+								library.logger.error('popLastBlock', err);
+								return cb();
 							}
-						})
-					});
-				});
-			} else {
-				res.sendStatus(200);
-			}
-		});
 
+							lastBlock = modules.blocks.getLastBlock();
+							modules.blocks.processBlock(block, true, function (err) {
+								if (err) {
+									lastBlock = modules.blocks.getLastBlock();
+									modules.blocks.processBlock(lastBlock, false, function (err) {
+										if (err) {
+											library.logger.error("processBlock", err);
+										}
+										cb()
+									});
+								} else {
+									cb()
+								}
+							})
+						});
+					});
+				} else {
+					cb()
+				}
+			});
+		});
 	});
 
 	router.get("/transactions", function (req, res) {
@@ -276,7 +282,8 @@ function _request(peer, api, method, data, cb) {
 		url: 'http://' + ip.fromLong(peer.ip) + ':' + peer.port + '/peer' + api,
 		method: method,
 		json: true,
-		headers: headers
+		headers: headers,
+		timeout: 5000
 	};
 
 	library.logger.trace('request', req.url)
@@ -289,7 +296,11 @@ function _request(peer, api, method, data, cb) {
 
 	request(req, function (err, response, body) {
 		if (err || response.statusCode != 200) {
-			library.logger.debug('request', {url: req.url, statusCode: response ? response.statusCode : 'unknown', err: err});
+			library.logger.debug('request', {
+				url: req.url,
+				statusCode: response ? response.statusCode : 'unknown',
+				err: err
+			});
 
 			modules.peer.state(peer.ip, peer.port, 0, 60);
 			library.logger.info('ban 60 sec ' + req.method + ' ' + req.url)

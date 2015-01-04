@@ -242,8 +242,7 @@ Transactions.prototype.list = function (filter, cb) {
 	}
 
 	// need to fix 'or' or 'and' in query
-	params.$topHeight = modules.blocks.getLastBlock().height + 1;
-	var stmt = library.db.prepare("select t.id t_id, t.blockId t_blockId, t.type t_type, t.subtype t_subtype, t.timestamp t_timestamp, t.senderPublicKey t_senderPublicKey,  t.senderId t_senderId, t.recipientId t_recipientId, t.amount t_amount, t.fee t_fee, t.signature t_signature, t.signSignature t_signSignature, c_t.generatorPublicKey t_companyGeneratorPublicKey, $topHeight - b.height as confirmations " +
+	var stmt = library.db.prepare("select t.id t_id, t.blockId t_blockId, t.type t_type, t.subtype t_subtype, t.timestamp t_timestamp, t.senderPublicKey t_senderPublicKey,  t.senderId t_senderId, t.recipientId t_recipientId, t.amount t_amount, t.fee t_fee, t.signature t_signature, t.signSignature t_signSignature, c_t.generatorPublicKey t_companyGeneratorPublicKey, (select max(height) + 1 from blocks) - b.height as confirmations " +
 		"from trs t " +
 		"inner join blocks b on t.blockId = b.id " +
 		"left outer join companies as c_t on c_t.address=t.recipientId " +
@@ -264,15 +263,14 @@ Transactions.prototype.list = function (filter, cb) {
 }
 
 Transactions.prototype.get = function (id, hex, cb) {
-	var stmt = library.db.prepare("select t.id t_id, t.blockId t_blockId, t.type t_type, t.subtype t_subtype, t.timestamp t_timestamp, t.senderPublicKey t_senderPublicKey, t.senderId t_senderId, t.recipientId t_recipientId, t.amount t_amount, t.fee t_fee, t.signature t_signature, t.signSignature t_signSignature, c_t.generatorPublicKey t_companyGeneratorPublicKey, $topHeight - b.height as confirmations " +
+	var stmt = library.db.prepare("select t.id t_id, t.blockId t_blockId, t.type t_type, t.subtype t_subtype, t.timestamp t_timestamp, t.senderPublicKey t_senderPublicKey, t.senderId t_senderId, t.recipientId t_recipientId, t.amount t_amount, t.fee t_fee, t.signature t_signature, t.signSignature t_signSignature, c_t.generatorPublicKey t_companyGeneratorPublicKey, (select max(height) + 1 from blocks) - b.height as confirmations " +
 		"from trs t " +
 		"inner join blocks b on t.blockId = b.id " +
 		"left outer join companies as c_t on c_t.address=t.recipientId " +
 		"where t.id = $id");
 
 	stmt.bind({
-		$id: id,
-		$topHeight: modules.blocks.getLastBlock().height + 1
+		$id: id
 	});
 
 	stmt.get(function (err, row) {
@@ -316,7 +314,6 @@ Transactions.prototype.removeUnconfirmedTransaction = function (id) {
 }
 
 Transactions.prototype.processUnconfirmedTransaction = function (transaction, broadcast, cb) {
-	var self = this;
 	var txId = transactionHelper.getId(transaction);
 
 	if (transaction.id && transaction.id != txId) {

@@ -9,12 +9,12 @@ var basicAuth = require('basic-auth');
 
 var Router = require('../helpers/router.js');
 
-var library, modules;
+var library, modules, self;
 var keypair, forgingStarted, timer;
 
 function Forger(cb, scope) {
 	library = scope;
-	var self = this;
+	self = this;
 
 	var auth = function (req, res, next) {
 		function unauthorized(res) {
@@ -132,8 +132,6 @@ Forger.prototype.stopForging = function () {
 }
 
 Forger.prototype.startForging = function (keypair) {
-	var self = this;
-	keypair = keypair;
 	forgingStarted = true;
 
 	var address = modules.accounts.getAddressByPublicKey(keypair.publicKey);
@@ -155,19 +153,23 @@ Forger.prototype.startForging = function (keypair) {
 				return setTimeout(callback, 100);
 			}
 
-			var now = timeHelper.getNow();
+			library.sequence.add(function (cb) {
+				var now = timeHelper.getNow();
+				var lastBlock = modules.blocks.getLastBlock();
+				if (now - lastBlock.timestamp >= 60) {
+					modules.blocks.generateBlock(keypair, lastBlock, function (err) {
+						if (err) {
+							library.logger.error("Problem in block generation", err);
+						}
 
-			if (now - modules.blocks.getLastBlock().timestamp >= 60) {
-				modules.blocks.generateBlock(keypair, function (err) {
-					if (err) {
-						library.logger.error("Problem in block generation", err);
-					}
-
+						cb();
+						setTimeout(callback, 100);
+					});
+				} else {
+					cb();
 					setTimeout(callback, 100);
-				});
-			} else {
-				setTimeout(callback, 100);
-			}
+				}
+			});
 		},
 		function () {
 			self.stopForging();

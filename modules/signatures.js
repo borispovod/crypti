@@ -165,8 +165,6 @@ Signatures.prototype.parseSignature = function (signature) {
 }
 
 Signatures.prototype.get = function (id, cb) {
-	var id = params.id;
-
 	var stmt = library.db.prepare("select s.id s_id, s.transactionId s_transactionId, s.timestamp s_timestamp, s.publicKey s_publicKey, s.generatorPublicKey s_generatorPublicKey, s.signature s_signature, s.generationSignature s_generationSignature " +
 	"from signatures s " +
 	"where s.id = $id");
