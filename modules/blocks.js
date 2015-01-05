@@ -623,8 +623,6 @@ Blocks.prototype.getMilestoneBlock = function (peer, cb) {
 		function (next) {
 			if (lastMilestoneBlockId == null) {
 				lastBlockId = self.getLastBlock().id;
-			} else {
-				lastMilestoneBlockId = lastMilestoneBlockId;
 			}
 
 			var url = "/blocks/milestone?lastBlockId=" + lastBlockId;
