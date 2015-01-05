@@ -777,6 +777,10 @@ Transactions.prototype.verifySecondSignature = function (transaction, publicKey)
 
 	return res;
 }
+Transactions.prototype.onReceiveTransaction = function(transaction){
+	self.processUnconfirmedTransaction(transaction, true);
+}
+
 
 Transactions.prototype.run = function (scope) {
 	modules = scope;

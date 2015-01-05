@@ -179,55 +179,7 @@ function Transport(cb, scope) {
 
 		res.sendStatus(200);
 
-		library.sequence.add(function (cb) {
-			var lastBlock = modules.blocks.getLastBlock();
-
-			modules.blocks.parseBlock(block, function (err, block) {
-				if (block.previousBlock == lastBlock.id) {
-					modules.blocks.processBlock(block, true, function () {
-						cb();
-					});
-				} else if (block.previousBlock == lastBlock.previousBlock && block.id != lastBlock.id) {
-					library.db.get("SELECT * FROM blocks WHERE id=$id", {$id: block.previousBlock}, function (err, previousBlock) {
-						if (err || !previousBlock) {
-							library.logger.error(err ? err.toString() : "Block " + block.previousBlock + " not found");
-							return cb();
-						}
-
-						var hitA = modules.blocks.calculateHit(lastBlock, previousBlock),
-							hitB = modules.blocks.calculateHit(block, previousBlock);
-
-						if (hitA.ge(hitB)) {
-							return cb();
-						}
-
-						modules.blocks.popLastBlock(lastBlock, function (err) {
-							if (err) {
-								library.logger.error('popLastBlock', err);
-								return cb();
-							}
-
-							lastBlock = modules.blocks.getLastBlock();
-							modules.blocks.processBlock(block, true, function (err) {
-								if (err) {
-									lastBlock = modules.blocks.getLastBlock();
-									modules.blocks.processBlock(lastBlock, false, function (err) {
-										if (err) {
-											library.logger.error("processBlock", err);
-										}
-										cb()
-									});
-								} else {
-									cb()
-								}
-							})
-						});
-					});
-				} else {
-					cb()
-				}
-			});
-		});
+		library.bus.message('receiveBlock', block);
 	});
 
 	router.get("/transactions", function (req, res) {
@@ -240,14 +192,17 @@ function Transport(cb, scope) {
 		res.set(headers);
 
 		var transaction = modules.transactions.parseTransaction(req.body.transaction);
-		modules.transactions.processUnconfirmedTransaction(transaction, true);
+		library.bus.message('receiveTransaction', transaction);
 
 		res.sendStatus(200);
 	});
 
 	router.get('/weight', function (req, res) {
 		res.set(headers);
-		res.status(200).json({weight: modules.blocks.getWeight().toString(), height: modules.blocks.getLastBlock().height});
+		res.status(200).json({
+			weight: modules.blocks.getWeight().toString(),
+			height: modules.blocks.getLastBlock().height
+		});
 	});
 
 	router.use(function (req, res, next) {
