@@ -179,6 +179,8 @@ Peer.prototype.update = function (peer, cb) {
 		st.bind(params);
 		st.run();
 
+		delete params.state;
+
 		var st = library.db.prepare("UPDATE peers SET os = $os, sharePort = $sharePort, version = $version WHERE ip = $ip and port = $port;");
 		st.bind(params);
 		st.run();
