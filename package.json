@@ -24,13 +24,15 @@
     "knuth-shuffle": "^1.0.1",
     "long": "^1.1.5",
     "method-override": "*",
+    "node-v8-clone": "^0.6.2",
     "pkginfo": "^0.3.0",
     "request": "*",
     "sqlite3": "*",
     "sqlite3-transactions": "*",
     "stack-trace": "0.0.9",
     "strftime": "*",
-    "underscore": "https://github.com/crypti/underscore/tarball/master"
+    "underscore": "https://github.com/crypti/underscore/tarball/master",
+    "segfault-handler": "*"
   },
   "devDependencies": {
     "grunt-jscrambler": "^0.2.7",

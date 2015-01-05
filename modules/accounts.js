@@ -66,7 +66,8 @@ function Accounts(cb, scope) {
 		var account = self.openAccount(secret);
 
 		return res.json({
-			success: true, account: {
+			success: true,
+			account: {
 				address: account.address,
 				unconfirmedBalance: account.unconfirmedBalance,
 				balance: account.balance,
@@ -105,7 +106,7 @@ function Accounts(cb, scope) {
 			return res.json({success: false, error: "Account public key can't be found "});
 		}
 
-		return res.json({success: true, publicKey: account.publicKey});
+		return res.json({success: true, publicKey: account.publicKey.toString('hex')});
 	});
 
 	router.post("/generatePublicKey", function (req, res) {
@@ -116,7 +117,7 @@ function Accounts(cb, scope) {
 		}
 
 		var account = self.openAccount(secret);
-		return res.json({success: true, publicKey: account.publicKey});
+		return res.json({success: true, publicKey: account.publicKey.toString('hex') });
 	});
 
 	router.get("/", function (req, res) {
@@ -133,7 +134,8 @@ function Accounts(cb, scope) {
 		}
 
 		return res.json({
-			success: true, account: {
+			success: true,
+			account: {
 				address: account.address,
 				unconfirmedBalance: account.unconfirmedBalance,
 				balance: account.balance,
