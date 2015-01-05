@@ -791,7 +791,6 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 	var lastBlock = self.getLastBlock();
 
 	block.id = blockHelper.getId(block);
-	console.log(block.id);
 	block.height = lastBlock.height + 1;
 
 	library.db.get("SELECT id FROM blocks WHERE id=$id", {$id: block.id}, function (err, bId) {
@@ -849,7 +848,6 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 						transaction.id = transactionHelper.getId(transaction);
 
 						if (modules.transactions.getUnconfirmedTransaction(transaction.id)) {
-							console.log("Unconfirmed: " + transaction.id);
 							totalAmount += transaction.amount;
 							totalFee += transaction.fee;
 							appliedTransactions[transaction.id] = transaction;
@@ -905,7 +903,6 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 									}
 								}
 
-								console.log(transaction.id);
 								if (!modules.transactions.applyUnconfirmed(transaction)) {
 									return cb("Can't apply transaction: " + transaction.id);
 								}
@@ -1006,9 +1003,6 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 				} else {
 					for (var i = 0; i < block.transactions.length; i++) {
 						var transaction = block.transactions[i];
-						console.log("Applied: " + transaction.id);
-
-						// if type is 1 - need companyGeneratorPublicKey
 
 						modules.transactions.apply(transaction);
 						modules.transactions.removeUnconfirmedTransaction(transaction.id);

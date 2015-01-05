@@ -574,6 +574,19 @@ Transactions.prototype.applyUnconfirmed = function (transaction) {
 	return true;
 }
 
+Transactions.prototype.undoUnconfirmed = function (transaction) {
+	var sender = modules.accounts.getAccountByPublicKey(transaction.senderPublicKey);
+	var amount = transaction.amount + transaction.fee;
+
+	sender.addToUnconfirmedBalance(amount);
+
+	if (transaction.type == 2 && transaction.subtype == 0) {
+		sender.unconfirmedSignature = false;
+	}
+
+	return true;
+}
+
 
 Transactions.prototype.undo = function (transaction) {
 	var sender = modules.accounts.getAccountByPublicKey(transaction.senderPublicKey);
@@ -656,19 +669,6 @@ Transactions.prototype.parseTransaction = function (transaction) {
 	}
 
 	return transaction;
-}
-
-Transactions.prototype.undoUnconfirmed = function (transaction) {
-	var sender = modules.accounts.getAccountByPublicKey(transaction.senderPublicKey);
-	var amount = transaction.amount + transaction.fee;
-
-	sender.addToUnconfirmedBalance(amount);
-
-	if (transaction.type == 2 && transaction.subtype == 0) {
-		sender.unconfirmedSignature = false;
-	}
-
-	return true;
 }
 
 Transactions.prototype.verifySignature = function (transaction) {
