@@ -183,6 +183,7 @@ Peer.prototype.update = function (peer, cb) {
 		st.run();
 
 		library.logger.info("Save peer: " + peer.ip);
+		console.log(params);
 
 		st.finalize(function (err) {
 			err && library.logger.error('Peer#update', err);
