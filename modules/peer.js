@@ -3,6 +3,7 @@ var util = require('util');
 var ip = require('ip');
 var Router = require('../helpers/router.js');
 var params = require('../helpers/params.js');
+var arrayHelper = require('../helpers/array.js');
 
 //private
 var modules, library, self;
@@ -48,7 +49,7 @@ function Peer(cb, scope) {
 		});
 	});
 
-	router.get('/get', function(req, res){
+	router.get('/get', function (req, res) {
 		var ip = params.string(req.query.ip);
 		var port = params.int(req.query.port);
 
@@ -68,7 +69,7 @@ function Peer(cb, scope) {
 				return res.json({success: false, error: "Peers not found"});
 			}
 			res.json({success: true, peer: peers.length ? peers[0] : {}});
-		});;
+		});
 	})
 
 	router.use(function (req, res, next) {
@@ -166,25 +167,22 @@ Peer.prototype.banManager = function (cb) {
 
 Peer.prototype.update = function (peer, cb) {
 	library.db.serialize(function () {
-		var st = library.db.prepare("INSERT OR IGNORE INTO peers (ip, port, state, os, sharePort, version) VALUES ($ip, $port, $state, $os, $sharePort, $version);");
-		st.bind({
+		var params = {
 			$ip: peer.ip,
 			$port: peer.port,
-			$state : peer.state,
 			$os: peer.os,
 			$sharePort: peer.sharePort,
 			$version: peer.version
-		});
+		}
+		var st = library.db.prepare("INSERT OR IGNORE INTO peers (ip, port, state, os, sharePort, version) VALUES ($ip, $port, $state, $os, $sharePort, $version);");
+		st.bind(arrayHelper.extend({}, params, {$state: 1}));
 		st.run();
 
-		st = library.db.prepare("UPDATE peers SET os = $os, sharePort = $sharePort, version = $version WHERE ip = $ip and port = $port;");
-		st.bind({
-			$ip: peer.ip,
-			$port: peer.port,
-			$os: peer.os,
-			$sharePort: peer.sharePort,
-			$version: peer.version
-		});
+		st = library.db.prepare("UPDATE peers SET os = $os, sharePort = $sharePort, version = $version" + (peer.state !== undefined ? ", state = $state " : "") + " WHERE ip = $ip and port = $port;");
+		if (peer.state !== undefined) {
+			params.$state = peer.state;
+		}
+		st.bind(params);
 		st.run();
 
 
