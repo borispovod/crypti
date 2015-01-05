@@ -69,7 +69,7 @@ function Delegates(cb, scope) {
 				delegate: {
 					username: username
 				},
-				votes : votes
+				votes: votes
 			}
 		};
 
@@ -117,11 +117,11 @@ Delegates.prototype.parseDelegate = function (delegate) {
 	return delegate;
 }
 
-Delegates.prototype.checkVotes = function (publicKeys) {
-	if (publicKeys.length == 0) {
+Delegates.prototype.checkVotes = function (votes) {
+	if (votes.length == 0) {
 		return true;
 	} else {
-		publicKeys.forEach(function (publicKey) {
+		votes.forEach(function (publicKey) {
 			if (!delegates[publicKey]) {
 				return false;
 			}
@@ -160,7 +160,7 @@ Delegates.prototype.addUnconfirmedDelegate = function (delegate) {
 		return false
 	}
 
-	unconfirmedDelegates[transaction.senderPublicKey] = delegate;
+	unconfirmedDelegates[delegate.publicKey] = delegate;
 	return true;
 }
 
@@ -168,14 +168,6 @@ Delegates.prototype.removeUnconfirmedDelegate = function (publicKey) {
 	if (unconfirmedDelegates[publicKey]) {
 		delete unconfirmedDelegates[publicKey];
 	}
-}
-
-Delegates.prototype.parseDelegate = function (delegate) {
-	delegate.publicKey = params.buffer(delegate.publicKey, 'hex');
-	delegate.transactionId = params.string(delegate.transactionId);
-	delegate.username = params.string(delegate.username);
-
-	return delegate;
 }
 
 Delegates.prototype.getShuffleVotes = function () {
@@ -215,6 +207,19 @@ Delegates.prototype.onUnconfirmedTransaction = function (transaction) {
 			transactionId: transaction.id
 		};
 		self.addUnconfirmedDelegate(delegate);
+	}
+}
+
+Delegates.prototype.onNewBlock = function (block) {
+	for (var i = 0; i < block.transactions.length; i++) {
+		var transaction = block.transactions[i];
+		if (transaction.asset.delegate) {
+			self.save2Memory({
+				publicKey: transaction.senderPublicKey,
+				username: transaction.asset.delegate.username,
+				transactionId: transaction.id
+			});
+		}
 	}
 }
 
