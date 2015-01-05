@@ -171,7 +171,7 @@ Loader.prototype.loadBlocks = function (lastBlock, cb) {
 												if (err) {
 													library.logger.error(err);
 													library.logger.info('ban 60 min', peerStr);
-													//modules.peer.state(data.peer.ip, data.peer.port, 0, 3600);
+													modules.peer.state(data.peer.ip, data.peer.port, 0, 3600);
 
 													modules.blocks.deleteBlocksBefore(commonBlockId, function (err) {
 														if (err) {
