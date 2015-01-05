@@ -117,7 +117,7 @@ function Blocks(cb, scope) {
 					type: 0,
 					subtype: 0,
 					amount: genesisTransaction.amount * constants.fixedPoint,
-					fee: genesisTransaction.fee,
+					fee : 0,
 					timestamp: timeHelper.epochTime(),
 					recipientId: genesisTransaction.recipientId,
 					signature: new Buffer(genesisTransaction.signature, 'hex'),
