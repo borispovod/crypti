@@ -791,6 +791,7 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 	var lastBlock = self.getLastBlock();
 
 	block.id = blockHelper.getId(block);
+	console.log(block.id);
 	block.height = lastBlock.height + 1;
 
 	library.db.get("SELECT id FROM blocks WHERE id=$id", {$id: block.id}, function (err, bId) {
@@ -848,6 +849,7 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 						transaction.id = transactionHelper.getId(transaction);
 
 						if (modules.transactions.getUnconfirmedTransaction(transaction.id)) {
+							console.log("Unconfirmed: " + transaction.id);
 							totalAmount += transaction.amount;
 							totalFee += transaction.fee;
 							appliedTransactions[transaction.id] = transaction;
@@ -903,6 +905,7 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 									}
 								}
 
+								console.log(transaction.id);
 								if (!modules.transactions.applyUnconfirmed(transaction)) {
 									return cb("Can't apply transaction: " + transaction.id);
 								}
@@ -1003,6 +1006,7 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 				} else {
 					for (var i = 0; i < block.transactions.length; i++) {
 						var transaction = block.transactions[i];
+						console.log("Applied: " + transaction.id);
 
 						// if type is 1 - need companyGeneratorPublicKey
 
@@ -1334,11 +1338,14 @@ Blocks.prototype.parseBlock = function (block, cb) {
 Blocks.prototype.generateBlock = function (keypair, lastBlock, cb) {
 	var transactions = modules.transactions.getUnconfirmedTransactions();
 	transactions.sort(function compare(a, b) {
-		if (a.fee < b.fee)
+		/*if (a.fee < b.fee)
 			return -1;
 		if (a.fee > b.fee)
 			return 1;
-		return 0;
+		return 0;*/
+
+		// it's shit like in previous version, because still use it, later need to move to sort by amount
+		return a.fee > b.fee;
 	});
 
 	var totalFee = 0, totalAmount = 0, size = 0;
