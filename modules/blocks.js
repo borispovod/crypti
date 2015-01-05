@@ -1181,16 +1181,13 @@ Blocks.prototype.loadBlocksFromPeer = function (peer, lastCommonBlockId, cb) {
 					next();
 				} else {
 					async.eachSeries(data.body.blocks, function (block, cb) {
-						self.parseBlock(block, function () {
-							self.processBlock(block, false, function (err) {
-								if (!err) {
+						block = self.parseBlock(block);
+						self.processBlock(block, false, function (err) {
+							if (!err) {
+								lastCommonBlockId = block.id;
+							}
 
-
-									lastCommonBlockId = block.id;
-								}
-
-								setImmediate(cb, err);
-							});
+							setImmediate(cb, err);
 						});
 					}, next);
 				}
@@ -1302,7 +1299,7 @@ Blocks.prototype.deleteBlock = function (blockId, cb) {
 	});
 }
 
-Blocks.prototype.parseBlock = function (block, cb) {
+Blocks.prototype.parseBlock = function (block) {
 	block.id = params.string(block.id);
 	block.version = params.int(block.version);
 	block.timestamp = params.int(block.timestamp);
@@ -1323,26 +1320,19 @@ Blocks.prototype.parseBlock = function (block, cb) {
 	block.transactions = params.array(block.transactions);
 	block.requests = params.array(block.requests);
 
-	async.parallel([
-		function (done) {
-			async.eachLimit(block.transactions, 10, function (transaction, cb) {
-				transaction = modules.transactions.parseTransaction(params.object(transaction));
-				setImmediate(cb);
-			}, done);
-		},
-		function (done) {
-			async.eachLimit(block.requests, 10, function (request, cb) {
-				request = params.object(request);
-				request.id = params.string(request.id);
-				request.blockId = params.string(request.blockId);
-				request.address = params.string(request.address);
-				setImmediate(cb);
-			}, done);
-		}
-	], function (err) {
-		cb(err, block);
-	});
+	for (var i = 0; i < block.transactions.length; i++) {
+		block.transactions[i] = params.object(block.transactions[i])
+		block.transactions[i] = modules.transactions.parseTransaction(block.transactions[i]);
+	}
 
+	for (var i = 0; i < block.requests.length; i++) {
+		block.requests[i] = params.object(block.requests[i]);
+		block.requests[i].id = params.string(block.requests[i].id);
+		block.requests[i].blockId = params.string(block.requests[i].blockId);
+		block.requests[i].address = params.string(block.requests[i].address);
+	}
+
+	return block;
 }
 
 // generate block
@@ -1350,10 +1340,10 @@ Blocks.prototype.generateBlock = function (keypair, lastBlock, cb) {
 	var transactions = modules.transactions.getUnconfirmedTransactions();
 	transactions.sort(function compare(a, b) {
 		/*if (a.fee < b.fee)
-			return -1;
-		if (a.fee > b.fee)
-			return 1;
-		return 0;*/
+		 return -1;
+		 if (a.fee > b.fee)
+		 return 1;
+		 return 0;*/
 
 		// it's shit like in previous version, because still use it, later need to move to sort by amount
 		return a.fee > b.fee;
@@ -1409,6 +1399,55 @@ Blocks.prototype.generateBlock = function (keypair, lastBlock, cb) {
 	block.blockSignature = blockHelper.sign(keypair, block);
 
 	self.processBlock(block, true, cb);
+}
+
+Blocks.prototype.onReceiveBlock = function (block) {
+	library.sequence.add(function (cb) {
+		block = modules.blocks.parseBlock(block)
+		if (block.previousBlock == lastBlock.id) {
+			modules.blocks.processBlock(block, true, function () {
+				cb();
+			});
+		} else if (block.previousBlock == lastBlock.previousBlock && block.id != lastBlock.id) {
+			library.db.get("SELECT * FROM blocks WHERE id=$id", {$id: block.previousBlock}, function (err, previousBlock) {
+				if (err || !previousBlock) {
+					library.logger.error(err ? err.toString() : "Block " + block.previousBlock + " not found");
+					return cb();
+				}
+
+				var hitA = modules.blocks.calculateHit(lastBlock, previousBlock),
+					hitB = modules.blocks.calculateHit(block, previousBlock);
+
+				if (hitA.ge(hitB)) {
+					return cb();
+				}
+
+				modules.blocks.popLastBlock(lastBlock, function (err) {
+					if (err) {
+						library.logger.error('popLastBlock', err);
+						return cb();
+					}
+
+					lastBlock = modules.blocks.getLastBlock();
+					modules.blocks.processBlock(block, true, function (err) {
+						if (err) {
+							lastBlock = modules.blocks.getLastBlock();
+							modules.blocks.processBlock(lastBlock, false, function (err) {
+								if (err) {
+									library.logger.error("processBlock", err);
+								}
+								cb()
+							});
+						} else {
+							cb()
+						}
+					})
+				});
+			});
+		} else {
+			cb()
+		}
+	});
 }
 
 //export
