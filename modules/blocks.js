@@ -1004,8 +1004,6 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 					for (var i = 0; i < block.transactions.length; i++) {
 						var transaction = block.transactions[i];
 
-						// if type is 1 - need companyGeneratorPublicKey
-
 						modules.transactions.apply(transaction);
 						modules.transactions.removeUnconfirmedTransaction(transaction.id);
 						self.applyForger(block.generatorPublicKey, transaction);
@@ -1334,11 +1332,14 @@ Blocks.prototype.parseBlock = function (block, cb) {
 Blocks.prototype.generateBlock = function (keypair, lastBlock, cb) {
 	var transactions = modules.transactions.getUnconfirmedTransactions();
 	transactions.sort(function compare(a, b) {
-		if (a.fee < b.fee)
+		/*if (a.fee < b.fee)
 			return -1;
 		if (a.fee > b.fee)
 			return 1;
-		return 0;
+		return 0;*/
+
+		// it's shit like in previous version, because still use it, later need to move to sort by amount
+		return a.fee > b.fee;
 	});
 
 	var totalFee = 0, totalAmount = 0, size = 0;
