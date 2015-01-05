@@ -66,7 +66,7 @@ Loader.prototype.run = function (scope) {
 		}
 
 		total = count;
-		library.logger.info('blocks ' + count)
+		library.logger.info('blocks ' + count);
 		async.until(
 			function () {
 				return count < offset
@@ -87,6 +87,7 @@ Loader.prototype.run = function (scope) {
 					library.logger.error('loadBlocksOffset', err);
 					if (err.block) {
 						library.logger.error('blockchain failed at ', err.block.height)
+						process.exit(0);
 						modules.blocks.deleteById(err.block.id, function (err, res) {
 							loaded = true;
 							library.logger.error('blockchain clipped');
@@ -145,7 +146,6 @@ Loader.prototype.loadBlocks = function (lastBlock, cb) {
 					}
 
 					library.logger.info("Find common block from " + peerStr);
-
 					modules.blocks.getCommonBlock(data.peer, milestoneBlock, function (err, commonBlockId) {
 						if (err) {
 							return cb(err);

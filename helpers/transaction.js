@@ -76,7 +76,7 @@ function getBytes(transaction) {
     var assetSize = 0,
 		assetBytes = null;
 
-    switch (this.type) {
+    switch (transaction.type) {
         case 2:
             switch (transaction.subtype) {
                 case 0:

@@ -26,6 +26,7 @@ function getBytes(signature) {
 		}
 	}
 
+	console.log(signature.id);
 	bb.flip();
 	return bb.toBuffer();
 }
