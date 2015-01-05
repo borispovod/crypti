@@ -170,7 +170,7 @@ d.run(function () {
 					d.run(function () {
 						logger.debug('loading module', name)
 						var Klass = new require(config.modules[name]);
-						var obj = new Klass(cb, scope)
+						var obj = new Klass(cb, scope);
 						modules.push(obj);
 					});
 				}

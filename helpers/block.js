@@ -81,15 +81,21 @@ function getRequest(raw) {
 	}
 }
 
-function getDelegate(raw) {
+function getDelegate(raw, convertHex) {
 	if (!raw.d_username) {
 		return null
 	} else {
-		return {
+		var d = {
 			username: raw.d_username,
 			publicKey: new Buffer(raw.t_senderPublicKey),
 			transactionId: raw.t_id
 		}
+
+		if(convertHex){
+			d.publicKey = d.publicKey.toString('hex');
+		}
+
+		return d;
 	}
 }
 

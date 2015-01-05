@@ -41,8 +41,8 @@ function getId(signature) {
 		temp[i] = hash[7 - i];
 	}
 
-	this.id = bignum.fromBuffer(temp).toString();
-	return this.id;
+	var id = bignum.fromBuffer(temp).toString();
+	return id;
 }
 
 module.exports = {

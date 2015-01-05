@@ -84,7 +84,7 @@ function getBytes(transaction) {
     var assetSize = 0,
 		assetBytes = null;
 
-    switch (this.type) {
+    switch (transaction.type) {
         case 2:
             switch (transaction.subtype) {
                 case 0:
@@ -105,7 +105,7 @@ function getBytes(transaction) {
 		case 4:
 			switch (transaction.subtype) {
 				case 0:
-					assetBytes = new Buffer(transaction.asset.username, 'utf8');
+					assetBytes = new Buffer(transaction.asset.delegate.username, 'utf8');
 					assetSize = assetBytes.length;
 					break;
 			}

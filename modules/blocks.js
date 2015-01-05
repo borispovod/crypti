@@ -1015,13 +1015,6 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 						// if type is 1 - need companyGeneratorPublicKey
 
 						modules.transactions.apply(transaction);
-						if (transaction.asset.delegate) {
-							modules.delegates.save2Memory({
-								publicKey: transaction.senderPublicKey,
-								username: transaction.asset.delegate.username,
-								transactionId: transaction.id
-							});
-						}
 						modules.transactions.removeUnconfirmedTransaction(transaction.id);
 						self.applyForger(block.generatorPublicKey, transaction);
 					}
@@ -1123,7 +1116,7 @@ Blocks.prototype.saveBlock = function (block, cb) {
 							} else if (transaction.type == 4 && transaction.subtype == 0) {
 								st = transactionDb.prepare("INSERT INTO delegates(name, transactionId) VALUES($username, $transactionId)");
 								st.bind({
-									$username: transaction.asset.username,
+									$username: transaction.asset.delegate.username,
 									$transactionId: transaction.id
 								});
 								st.run(cb);
