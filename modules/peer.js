@@ -166,23 +166,25 @@ Peer.prototype.banManager = function (cb) {
 
 Peer.prototype.update = function (peer, cb) {
 	library.db.serialize(function () {
-		var params = {
+		var st = library.db.prepare("INSERT OR IGNORE INTO peers (ip, port, state, os, sharePort, version) VALUES ($ip, $port, $state, $os, $sharePort, $version);");
+		st.bind({
+			$ip: peer.ip,
+			$port: peer.port,
+			$state : peer.state,
+			$os: peer.os,
+			$sharePort: peer.sharePort,
+			$version: peer.version
+		});
+		st.run();
+
+		st = library.db.prepare("UPDATE peers SET os = $os, sharePort = $sharePort, version = $version WHERE ip = $ip and port = $port;");
+		st.bind({
 			$ip: peer.ip,
 			$port: peer.port,
 			$os: peer.os,
 			$sharePort: peer.sharePort,
-			$version: peer.version,
-			$state : peer.state
-		}
-
-		var st = library.db.prepare("INSERT OR IGNORE INTO peers (ip, port, state, os, sharePort, version) VALUES ($ip, $port, $state, $os, $sharePort, $version);");
-		st.bind(params);
-		st.run();
-
-		delete params.state;
-
-		var st = library.db.prepare("UPDATE peers SET os = $os, sharePort = $sharePort, version = $version WHERE ip = $ip and port = $port;");
-		st.bind(params);
+			$version: peer.version
+		});
 		st.run();
 
 
