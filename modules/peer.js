@@ -171,7 +171,8 @@ Peer.prototype.update = function (peer, cb) {
 			$port: peer.port,
 			$os: peer.os,
 			$sharePort: peer.sharePort,
-			$version: peer.version
+			$version: peer.version,
+			$state : peer.state
 		}
 
 		var st = library.db.prepare("INSERT OR IGNORE INTO peers (ip, port, state, os, sharePort, version) VALUES ($ip, $port, $state, $os, $sharePort, $version);");
@@ -182,8 +183,6 @@ Peer.prototype.update = function (peer, cb) {
 		st.bind(params);
 		st.run();
 
-		library.logger.info("Save peer: " + peer.ip);
-		console.log(params);
 
 		st.finalize(function (err) {
 			err && library.logger.error('Peer#update', err);
