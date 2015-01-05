@@ -293,8 +293,6 @@ function relational2object(rows) {
 
 					var __company = blockHelper.getCompany(rows[i]);
 					if (__company) {
-						console.log(__company);
-
 						if (!__transaction.asset.company) {
 							__transaction.asset.company = __company;
 						}
@@ -414,7 +412,6 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 				for (var n = 0, n_length = blocks[i].transactions.length; n < n_length; n++) {
 					if (blocks[i].id != genesisblock.blockId) {
 						if (!modules.transactions.verifySignature(blocks[i].transactions[n])) {
-							console.log(blocks[i].transactions[n].asset)
 							err = {
 								message: "Can't verify transaction: " + blocks[i].transactions[n].id,
 								transaction: blocks[i].transactions[n],
@@ -626,8 +623,6 @@ Blocks.prototype.getMilestoneBlock = function (peer, cb) {
 		function (next) {
 			if (lastMilestoneBlockId == null) {
 				lastBlockId = self.getLastBlock().id;
-			} else {
-				lastMilestoneBlockId = lastMilestoneBlockId;
 			}
 
 			var url = "/blocks/milestone?lastBlockId=" + lastBlockId;
