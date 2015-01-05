@@ -404,7 +404,7 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 						};
 						break;
 					}
-					self.applyConfirmation(blocks[i].companyconfirmations[n], blocks[i].generatorPublicKey);
+					self.applyConfirmation(blocks[i].generatorPublicKey);
 				}
 				if (err) break;
 
@@ -670,7 +670,7 @@ Blocks.prototype.getMilestoneBlock = function (peer, cb) {
 	);
 }
 
-Blocks.prototype.applyConfirmation = function (generatorPublicKey, confirmation) {
+Blocks.prototype.applyConfirmation = function (generatorPublicKey) {
 	var generator = modules.accounts.getAccountByPublicKey(generatorPublicKey);
 
 	if (!generator) {
