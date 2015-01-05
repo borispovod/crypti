@@ -12,7 +12,8 @@ var crypto = require('crypto'),
 	timeHelper = require('../helpers/time.js'),
 	requestHelper = require('../helpers/request.js'),
 	params = require('../helpers/params.js'),
-	arrayHelper = require('../helpers/array.js');
+	arrayHelper = require('../helpers/array.js'),
+	clone = require('node-v8-clone').clone;
 
 var Router = require('../helpers/router.js');
 var util = require('util');
@@ -20,7 +21,7 @@ var async = require('async');
 
 //private
 var modules, library;
-var lastBlock, self;
+var lastBlock = {}, self;
 var fee = constants.feeStart;
 var nextFeeVolume = constants.feeStartVolume;
 var feeVolume = 0;
@@ -59,7 +60,8 @@ function Blocks(cb, scope) {
 		self.list({
 			generatorPublicKey: generatorPublicKey.length ? generatorPublicKey : null,
 			limit: limit || 20,
-			orderBy: orderBy
+			orderBy: orderBy,
+			hex: true
 		}, function (err, blocks) {
 			if (err) {
 				return res.json({success: false, error: "Blocks not found"});
@@ -190,11 +192,11 @@ Blocks.prototype.get = function (id, cb) {
 	stmt.bind(id);
 
 	stmt.get(function (err, row) {
-		if (err) {
-			library.logger.error('Blocks#get');
-			return cb(err);
+		if (err || !row) {
+			return cb(err || "Can't find block: " + id);
 		}
-		var block = blockHelper.getBlock(row);
+
+		var block = blockHelper.getBlock(row, true);
 		cb(null, block);
 	});
 }
@@ -212,6 +214,7 @@ Blocks.prototype.list = function (filter, cb) {
 	if (filter.orderBy) {
 		var sort = filter.orderBy.split(':');
 		sortBy = sort[0].replace(/[^\w\s]/gi, '');
+		sortBy = "b." + sortBy;
 		if (sort.length == 2) {
 			sortMethod = sort[1] == 'desc' ? 'desc' : 'asc'
 		}
@@ -234,7 +237,7 @@ Blocks.prototype.list = function (filter, cb) {
 			return cb(err)
 		}
 		async.mapSeries(rows, function (row, cb) {
-			setImmediate(cb, null, blockHelper.getBlock(row));
+			setImmediate(cb, null, blockHelper.getBlock(row, filter.hex));
 		}, cb)
 	})
 }
@@ -491,7 +494,7 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 					self.applyWeight(blocks[i]);
 				}
 
-				lastBlock = blocks[i]
+				lastBlock = blocks[i] //fast way
 			}
 
 			cb(err, lastBlock);
@@ -734,14 +737,14 @@ Blocks.prototype.getForgedByAccount = function (generatorPublicKey, cb) {
 }
 
 Blocks.prototype.applyWeight = function (block) {
-	var hit = this.calculateHit(block, lastBlock);
+	var hit = self.calculateHit(block, lastBlock);
 	weight = weight.add(hit);
 
 	return weight;
 }
 
 Blocks.prototype.undoWeight = function (block, previousBlock) {
-	var hit = this.calculateHit(block, previousBlock);
+	var hit = self.calculateHit(block, previousBlock);
 	weight = weight.sub(hit);
 
 	return weight;
@@ -785,11 +788,15 @@ Blocks.prototype.getFee = function () {
 }
 
 Blocks.prototype.getLastBlock = function () {
-	return lastBlock || {};
+	return lastBlock;
+}
+
+Blocks.prototype.setLastBlock = function (newLastBlock) {
+	lastBlock = newLastBlock;
 }
 
 Blocks.prototype.processBlock = function (block, broadcast, cb) {
-	var self = this;
+	var lastBlock = self.getLastBlock();
 
 	block.id = blockHelper.getId(block);
 	block.height = lastBlock.height + 1;
@@ -1000,7 +1007,7 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 						}
 					}
 
-					setImmediate(cb, errors.pop());
+					setImmediate(cb, errors[0]);
 				} else {
 					for (var i = 0; i < block.transactions.length; i++) {
 						var transaction = block.transactions[i];
@@ -1031,7 +1038,7 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 							library.bus.message('newBlock', block, broadcast)
 						}, 1000);
 
-						lastBlock = block;
+						self.setLastBlock(block);
 						setImmediate(cb);
 					});
 				}
@@ -1159,7 +1166,7 @@ Blocks.prototype.deleteById = function (blockId, cb) {
 	library.db.get("DELETE FROM blocks WHERE height >= (SELECT height FROM blocks where id = $id)", {$id: blockId}, cb);
 }
 
-Blocks.prototype.loadBlocksFromPeer = function (peer, lastBlockId, cb) {
+Blocks.prototype.loadBlocksFromPeer = function (peer, lastCommonBlockId, cb) {
 	var loaded = false,
 		self = this;
 
@@ -1168,11 +1175,12 @@ Blocks.prototype.loadBlocksFromPeer = function (peer, lastBlockId, cb) {
 			return !loaded;
 		},
 		function (next) {
-			modules.transport.getFromPeer(peer, '/blocks?lastBlockId=' + lastBlockId, function (err, data) {
+			modules.transport.getFromPeer(peer, '/blocks?lastBlockId=' + lastCommonBlockId, function (err, data) {
 				if (err || data.body.error) {
 					return next(err || params.string(data.body.error));
 				}
 
+				// not working of data.body is empty....
 				data.body.blocks = params.array(data.body.blocks);
 
 				if (data.body.blocks.length == 0) {
@@ -1183,7 +1191,9 @@ Blocks.prototype.loadBlocksFromPeer = function (peer, lastBlockId, cb) {
 						self.parseBlock(block, function () {
 							self.processBlock(block, false, function (err) {
 								if (!err) {
-									lastBlockId = block.id;
+
+
+									lastCommonBlockId = block.id;
 								}
 
 								setImmediate(cb, err);
@@ -1201,9 +1211,8 @@ Blocks.prototype.loadBlocksFromPeer = function (peer, lastBlockId, cb) {
 	)
 }
 
-
 Blocks.prototype.deleteBlocksBefore = function (blockId, cb) {
-	var self = this;
+	var blocks = [];
 
 	library.db.get("SELECT height FROM blocks WHERE id=$id", {$id: blockId}, function (err, needBlock) {
 		if (err || !needBlock) {
@@ -1216,16 +1225,16 @@ Blocks.prototype.deleteBlocksBefore = function (blockId, cb) {
 				return !(needBlock.height >= lastBlock.height)
 			},
 			function (next) {
-				self.popLastBlock(next);
+				blocks.push(lastBlock);
+				self.popLastBlock(lastBlock, next);
 			},
-			cb
-		)
+			function (err) {
+				setImmediate(cb, err, blocks.reverse());
+			})
 	});
 }
 
-Blocks.prototype.popLastBlock = function (cb) {
-	var self = this;
-
+Blocks.prototype.popLastBlock = function (lastBlock, cb) {
 	self.getBlock(lastBlock.previousBlock, function (err, previousBlock) {
 		if (err || !previousBlock) {
 			return cb(err || 'previousBlock is null');
@@ -1241,15 +1250,17 @@ Blocks.prototype.popLastBlock = function (cb) {
 					return cb(err);
 				}
 
-				async.eachSeries(lastBlock.transactions, function (transaction, cb) {
+				var transactions = lastBlock.transactions;
+				self.setLastBlock(previousBlock)
+
+				async.eachSeries(transactions, function (transaction, cb) {
 					modules.transactions.processUnconfirmedTransaction(transaction, false, cb);
 				}, function (err) {
 					if (err) {
 						return cb(err);
 					}
 
-					lastBlock = previousBlock;
-					cb(null, lastBlock);
+					cb();
 				});
 			});
 		});
@@ -1268,8 +1279,6 @@ Blocks.prototype.getBlock = function (blockId, cb) {
 }
 
 Blocks.prototype.undoBlock = function (block, previousBlock, cb) {
-	var self = this;
-
 	async.parallel([
 		function (done) {
 			async.eachSeries(block.transactions, function (transaction, cb) {
@@ -1344,14 +1353,17 @@ Blocks.prototype.parseBlock = function (block, cb) {
 }
 
 // generate block
-Blocks.prototype.generateBlock = function (keypair, cb) {
+Blocks.prototype.generateBlock = function (keypair, lastBlock, cb) {
 	var transactions = modules.transactions.getUnconfirmedTransactions();
 	transactions.sort(function compare(a, b) {
-		if (a.fee < b.fee)
+		/*if (a.fee < b.fee)
 			return -1;
 		if (a.fee > b.fee)
 			return 1;
-		return 0;
+		return 0;*/
+
+		// it's shit like in previous version, because still use it, later need to move to sort by amount
+		return a.fee > b.fee;
 	});
 
 	var totalFee = 0, totalAmount = 0, size = 0;
@@ -1403,7 +1415,7 @@ Blocks.prototype.generateBlock = function (keypair, cb) {
 
 	block.blockSignature = blockHelper.sign(keypair, block);
 
-	this.processBlock(block, true, cb);
+	self.processBlock(block, true, cb);
 }
 
 //export

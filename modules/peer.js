@@ -3,6 +3,7 @@ var util = require('util');
 var ip = require('ip');
 var Router = require('../helpers/router.js');
 var params = require('../helpers/params.js');
+var arrayHelper = require('../helpers/array.js');
 
 //private
 var modules, library, self;
@@ -20,7 +21,27 @@ function Peer(cb, scope) {
 	});
 
 	router.get('/', function (req, res) {
-		self.filter({}, function (err, peers) {
+		var state = params.int(req.query.state),
+			os = params.string(req.query.os),
+			version = params.string(req.query.version),
+			limit = params.string(req.query.limit),
+			shared = params.bool(req.query.shared),
+			orderBy = params.string(req.query.orderBy),
+			offset = params.int(req.query.offset);
+
+		if (limit < 0 || limit > 100) {
+			return res.json({success: false, error: "Max limit is 100"});
+		}
+
+		self.filter({
+			state: state,
+			os: os,
+			version: version,
+			limit: limit,
+			shared: shared,
+			orderBy: orderBy,
+			offset: offset
+		}, function (err, peers) {
 			if (err) {
 				return res.json({success: false, error: "Peers not found"});
 			}
@@ -28,32 +49,28 @@ function Peer(cb, scope) {
 		});
 	});
 
-	router.get('/banned', function (req, res) {
-		self.filter({status: 0}, function (err, peers) {
-			if (err) {
-				return res.json({success: false, error: "Peers not found"});
-			}
-			res.json({success: true, peers: peers});
-		});
-	});
+	router.get('/get', function (req, res) {
+		var ip = params.string(req.query.ip);
+		var port = params.int(req.query.port);
 
-	router.get('/connected', function (req, res) {
-		self.filter({status: 2}, function (err, peers) {
-			if (err) {
-				return res.json({success: false, error: "Peers not found"});
-			}
-			res.json({success: true, peers: peers});
-		});
-	});
+		if (!ip) {
+			return res.json({success: false, error: "Provide ip in url"});
+		}
 
-	router.get('/shared', function (req, res) {
-		self.filter({sharePort: 1}, function (err, peers) {
+		if (!port) {
+			return res.json({success: false, error: "Provide port in url"});
+		}
+
+		self.filter({
+			ip: ip,
+			port: port
+		}, function (err, peers) {
 			if (err) {
 				return res.json({success: false, error: "Peers not found"});
 			}
-			res.json({success: true, peers: peers});
+			res.json({success: true, peer: peers.length ? peers[0] : {}});
 		});
-	});
+	})
 
 	router.use(function (req, res, next) {
 		res.status(500).send({success: false, error: 'api not found'});
@@ -82,7 +99,9 @@ Peer.prototype.list = function (limit, cb) {
 
 Peer.prototype.filter = function (filter, cb) {
 	var limit = filter.limit || 100;
+	var offset = filter.offset;
 	delete filter.limit;
+	delete filter.offset;
 
 	var where = [];
 	var params = {};
@@ -92,22 +111,26 @@ Peer.prototype.filter = function (filter, cb) {
 	});
 
 	params['$limit'] = limit;
+	offset && (params['$offset'] = offset);
 
-	library.db.all("select ip, port, state, os, sharePort, version from peers" + (where.length ? (' where ' + where.join(' and ')) : '') + ' limit $limit', params, cb);
+	library.db.all("select ip, port, state, os, sharePort, version from peers" + (where.length ? (' where ' + where.join(' and ')) : '') + ' limit $limit' + (offset ? ' offset $offset ' : ''), params, cb);
 }
 
-Peer.prototype.state = function (ip, port, state, clock, cb) {
+Peer.prototype.state = function (ip, port, state, timeoutSeconds, cb) {
 	if (state == 0) {
-		clock = clock || 10;
-		clock = Date.now() + (clock * 60 * 1000);
+		var clock = (timeoutSeconds || 1) * 1000;
+		clock = Date.now() + clock;
 	} else {
 		clock = null;
 	}
-	var st = library.db.prepare("UPDATE peers SET state = $state, clock = $clock WHERE ip = $ip and port = $port;");
-	st.bind({$state: state, $clock: clock, $ip: ip, $port: port});
-	st.run(function (err) {
-		err && library.logger.error('Peer#state', err);
-		cb && cb()
+	library.db.serialize(function () {
+		var st = library.db.prepare("UPDATE peers SET state = $state, clock = $clock WHERE ip = $ip and port = $port;");
+		st.bind({$state: state, $clock: clock, $ip: ip, $port: port});
+		st.run(function (err) {
+			err && library.logger.error('Peer#state', err);
+
+			cb && cb()
+		});
 	});
 }
 
@@ -122,30 +145,46 @@ Peer.prototype.parsePeer = function (peer) {
 }
 
 Peer.prototype.banManager = function (cb) {
-	var st = library.db.prepare("UPDATE peers SET state = 1, clock = null where (state = 0 and clock - $now < 0)");
-	st.bind({$now: Date.now()});
-	st.run(cb);
+	library.db.serialize(function () {
+		library.db.get("select count(*) as ban from peers where (state = 0 and clock - $now < 0)", {$now: Date.now()}, function (err, res) {
+			if (err) {
+				library.logger.error(err);
+			}
+
+			var st = library.db.prepare("UPDATE peers SET state = 1, clock = null where (state = 0 and clock - $now < 0)");
+			st.bind({$now: Date.now()});
+			st.run(function () {
+				library.db.get("select count(*) as ban from peers where (state = 0 and clock - $now > 0)", {$now: Date.now()}, function (err, res) {
+					if (err) {
+						library.logger.error(err);
+					}
+				})
+				cb()
+			});
+		});
+	});
 }
 
 Peer.prototype.update = function (peer, cb) {
 	library.db.serialize(function () {
-
 		var params = {
 			$ip: peer.ip,
 			$port: peer.port,
-			$state: peer.state,
 			$os: peer.os,
 			$sharePort: peer.sharePort,
 			$version: peer.version
 		}
-
 		var st = library.db.prepare("INSERT OR IGNORE INTO peers (ip, port, state, os, sharePort, version) VALUES ($ip, $port, $state, $os, $sharePort, $version);");
+		st.bind(arrayHelper.extend({}, params, {$state: 1}));
+		st.run();
+
+		st = library.db.prepare("UPDATE peers SET os = $os, sharePort = $sharePort, version = $version" + (peer.state !== undefined ? ", state = $state " : "") + " WHERE ip = $ip and port = $port;");
+		if (peer.state !== undefined) {
+			params.$state = peer.state;
+		}
 		st.bind(params);
 		st.run();
 
-		var st = library.db.prepare("UPDATE peers SET state = $state, os = $os, sharePort = $sharePort, version = $version WHERE ip = $ip and port = $port;");
-		st.bind(params);
-		st.run();
 
 		st.finalize(function (err) {
 			err && library.logger.error('Peer#update', err);

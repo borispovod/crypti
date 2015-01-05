@@ -7,7 +7,7 @@ webApp.controller('accountController', ['$scope', '$rootScope', '$http', "userSe
 	$scope.transactionsLoading = true;
 
     $scope.getTransactions = function () {
-        $http.get("/api/transactions", { params : { senderPublicKey : userService.publicKey, recipientId : $scope.address, limit : 20, orderBy : 'confirmations:asc' }})
+        $http.get("/api/transactions", { params : { senderPublicKey : userService.publicKey, recipientId : $scope.address, limit : 20, orderBy : 'timestamp:desc' }})
             .then(function (resp) {
 				var transactions = resp.data.transactions;
 

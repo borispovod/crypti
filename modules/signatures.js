@@ -29,13 +29,16 @@ function Signatures(cb, scope) {
 
 	router.get('/get', function (req, res) {
 		var id = params.string(req.query.id);
-		if (!id) {
+
+		if (!id || id.length == 0) {
 			return res.json({success: false, error: "Provide id in url"});
 		}
+
 		self.get(id, function (err, signature) {
 			if (!signature || err) {
 				return res.json({success: false, error: "Signature not found"});
 			}
+
 			return res.json({success: true, signature: signature});
 		});
 	});
@@ -43,14 +46,22 @@ function Signatures(cb, scope) {
 	router.put('/', function (req, res) {
 		var secret = params.string(req.body.secret),
 			secondSecret = params.string(req.body.secondSecret),
-			publicKey = params.buffer(req.body.publicKey, 'hex'),
+			publicKey = params.buffer(req.body.publicKey, 'hex');
 			votingType = params.int(req.body.votingType);
 
 		var hash = crypto.createHash('sha256').update(secret, 'utf8').digest();
 		var keypair = ed.MakeKeypair(hash);
 
+		if (secret.length == 0) {
+			return res.json({success: false, error: "Provide secret key"});
+		}
+
+		if (secondSecret.length == 0) {
+			return res.json({success: false, error: "Provide second secret key"});
+		}
+
 		if (publicKey.length > 0) {
-			if (keypair.publicKey.toString('hex') != new Buffer(publicKey).toString('hex')) {
+			if (keypair.publicKey.toString('hex') != publicKey.toString('hex')) {
 				return res.json({success: false, error: "Please, provide valid secret key of your account"});
 			}
 		}
@@ -164,16 +175,18 @@ Signatures.prototype.parseSignature = function (signature) {
 Signatures.prototype.get = function (id, cb) {
 	var stmt = library.db.prepare("select s.id s_id, s.transactionId s_transactionId, s.timestamp s_timestamp, s.publicKey s_publicKey, s.generatorPublicKey s_generatorPublicKey, s.signature s_signature, s.generationSignature s_generationSignature " +
 	"from signatures s " +
-	"where s.id = ?");
+	"where s.id = $id");
 
-	stmt.bind(id);
+	stmt.bind({
+		$id : id
+	});
 
 	stmt.get(function (err, row) {
-		if (err){
-			return cb(err);
+		if (err || !row) {
+			return cb(err || "Can't find signature: " + id);
 		}
 
-		var signature = blockHelper.getSignature(row);
+		var signature = blockHelper.getSignature(row, true);
 		cb(null, signature);
 	});
 }

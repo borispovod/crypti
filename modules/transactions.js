@@ -7,7 +7,8 @@ var transactionHelper = require('../helpers/transaction.js'),
 	constants = require("../helpers/constants.js"),
 	blockHelper = require("../helpers/block.js"),
 	timeHelper = require("../helpers/time.js"),
-	params = require('../helpers/params.js');
+	params = require('../helpers/params.js'),
+	clone = require('node-v8-clone').clone;
 
 var Router = require('../helpers/router.js');
 var async = require('async');
@@ -32,7 +33,8 @@ function Transactions(cb, scope) {
 	router.get('/', function (req, res) {
 		var blockId = params.string(req.query.blockId);
 		var limit = params.int(req.query.limit);
-		var orderBy = params.string(req.query.orderBy)
+		var orderBy = params.string(req.query.orderBy);
+		var offset = params.int(req.query.offset);
 		var senderPublicKey = params.buffer(req.query.senderPublicKey, 'hex');
 		var recipientId = params.string(req.query.recipientId)
 
@@ -41,11 +43,14 @@ function Transactions(cb, scope) {
 			senderPublicKey: senderPublicKey.length ? senderPublicKey : null,
 			recipientId: recipientId,
 			limit: limit || 20,
-			orderBy: orderBy
+			orderBy: orderBy,
+			offset: offset,
+			hex: true
 		}, function (err, transactions) {
 			if (err) {
 				return res.json({success: false, error: "Transactions not found"});
 			}
+
 			res.json({success: true, transactions: transactions});
 		});
 	});
@@ -56,7 +61,7 @@ function Transactions(cb, scope) {
 			return res.json({success: false, error: "Provide id in url"});
 		}
 
-		self.get(id, function (err, transaction) {
+		self.get(id, true, function (err, transaction) {
 			if (!transaction || err) {
 				return res.json({success: false, error: "Transaction not found"});
 			}
@@ -71,11 +76,16 @@ function Transactions(cb, scope) {
 			return res.json({success: false, error: "Provide id in url"});
 		}
 
-		var transaction = self.getUnconfirmedTransaction(id);
+		var transaction = clone(self.getUnconfirmedTransaction(id), true);
 
 		if (!transaction) {
 			return res.json({success: false, error: "Transaction not found"});
 		}
+
+		delete transaction.asset;
+		transaction.senderPublicKey = transaction.senderPublicKey.toString('hex');
+		transaction.signature = transaction.signature.toString('hex');
+		transaction.signSignature = transaction.signSignature && transaction.signSignature.toString('hex');
 
 		res.json({success: true, transaction: transaction});
 	});
@@ -90,11 +100,27 @@ function Transactions(cb, scope) {
 		if (senderPublicKey || address) {
 			for (var i = 0; i < transactions.length; i++) {
 				if (transactions[i].senderPublicKey.toString('hex') == senderPublicKey || transactions[i].recipientId == address) {
-					toSend.push(transactions[i]);
+					var transaction = clone(transactions[i], true);
+
+					delete transaction.asset;
+					transaction.senderPublicKey = transaction.senderPublicKey.toString('hex');
+					transaction.signature = transaction.signature.toString('hex');
+					transaction.signSignature = transaction.signSignature && transaction.signSignature.toString('hex');
+
+					toSend.push(transaction);
 				}
 			}
 		} else {
-			toSend = transactions;
+			for (var i = 0; i < transactions.length; i++) {
+				var transaction = clone(transactions[i], true);
+
+				delete transaction.asset;
+				transaction.senderPublicKey = transaction.senderPublicKey.toString('hex');
+				transaction.signature = transaction.signature.toString('hex');
+				transaction.signSignature = transaction.signSignature && transaction.signSignature.toString('hex');
+
+				toSend.push(transaction);
+			}
 		}
 
 		res.json({success: true, transactions: toSend});
@@ -110,6 +136,10 @@ function Transactions(cb, scope) {
 
 		var hash = crypto.createHash('sha256').update(secret, 'utf8').digest();
 		var keypair = ed.MakeKeypair(hash);
+
+		if (secret.length == 0) {
+			return res.json({success: false, error: "Provide secret key"});
+		}
 
 		if (publicKey.length > 0) {
 			if (keypair.publicKey.toString('hex') != publicKey.toString('hex')) {
@@ -160,7 +190,7 @@ function Transactions(cb, scope) {
 				return res.json({success: false, error: err});
 			}
 
-			res.json({success: true, transaction: transaction});
+			res.json({success: true, transactionId: transaction.id});
 		});
 	});
 
@@ -209,10 +239,14 @@ Transactions.prototype.list = function (filter, cb) {
 	if (filter.limit) {
 		params.$limit = filter.limit;
 	}
+	if (filter.offset) {
+		params.$offset = filter.offset;
+	}
 
 	if (filter.orderBy) {
 		var sort = filter.orderBy.split(':');
 		sortBy = sort[0].replace(/[^\w\s]/gi, '');
+		sortBy = "t." + sortBy;
 		if (sort.length == 2) {
 			sortMethod = sort[1] == 'desc' ? 'desc' : 'asc'
 		}
@@ -223,14 +257,15 @@ Transactions.prototype.list = function (filter, cb) {
 	}
 
 	// need to fix 'or' or 'and' in query
-	params.$topHeight = modules.blocks.getLastBlock().height + 1;
-	var stmt = library.db.prepare("select t.id t_id, t.blockId t_blockId, t.type t_type, t.subtype t_subtype, t.timestamp t_timestamp, t.senderPublicKey t_senderPublicKey, t.senderId t_senderId, t.recipientId t_recipientId, t.amount t_amount, t.fee t_fee, t.signature t_signature, t.signSignature t_signSignature, c_t.generatorPublicKey t_companyGeneratorPublicKey, $topHeight - b.height as confirmations " +
-	"from trs t " +
-	"inner join blocks b on t.blockId = b.id " +
-	"left outer join companies as c_t on c_t.address=t.recipientId " +
-	(fields.length ? "where " + fields.join(' or ') : '') + " " +
-	(filter.orderBy ? 'order by ' + sortBy + ' ' + sortMethod : '') + " " +
-	(filter.limit ? 'limit $limit' : ''));
+	var stmt = library.db.prepare("select t.id t_id, t.blockId t_blockId, t.type t_type, t.subtype t_subtype, t.timestamp t_timestamp, t.senderPublicKey t_senderPublicKey,  t.senderId t_senderId, t.recipientId t_recipientId, t.amount t_amount, t.fee t_fee, t.signature t_signature, t.signSignature t_signSignature, c_t.generatorPublicKey t_companyGeneratorPublicKey, (select max(height) + 1 from blocks) - b.height as confirmations " +
+		"from trs t " +
+		"inner join blocks b on t.blockId = b.id " +
+		"left outer join companies as c_t on c_t.address=t.recipientId " +
+		(fields.length ? "where " + fields.join(' or ') : '') + " " +
+		(filter.orderBy ? 'order by ' + sortBy + ' ' + sortMethod : '') + " " +
+		(filter.limit ? 'limit $limit' : '') + " " +
+		(filter.offset ? 'offset $offset' : '')
+	);
 
 	stmt.bind(params);
 
@@ -239,29 +274,28 @@ Transactions.prototype.list = function (filter, cb) {
 			return cb(err)
 		}
 		async.mapSeries(rows, function (row, cb) {
-			setImmediate(cb, null, blockHelper.getTransaction(row));
+			setImmediate(cb, null, blockHelper.getTransaction(row, filter.hex));
 		}, cb)
 	})
 }
 
-Transactions.prototype.get = function (id, cb) {
-	var stmt = library.db.prepare("select t.id t_id, t.blockId t_blockId, t.type t_type, t.subtype t_subtype, t.timestamp t_timestamp, t.senderPublicKey t_senderPublicKey, t.senderId t_senderId, t.recipientId t_recipientId, t.amount t_amount, t.fee t_fee, t.signature t_signature, t.signSignature t_signSignature, c_t.generatorPublicKey t_companyGeneratorPublicKey, $topHeight - b.height as confirmations " +
+Transactions.prototype.get = function (id, hex, cb) {
+	var stmt = library.db.prepare("select t.id t_id, t.blockId t_blockId, t.type t_type, t.subtype t_subtype, t.timestamp t_timestamp, t.senderPublicKey t_senderPublicKey, t.senderId t_senderId, t.recipientId t_recipientId, t.amount t_amount, t.fee t_fee, t.signature t_signature, t.signSignature t_signSignature, c_t.generatorPublicKey t_companyGeneratorPublicKey, (select max(height) + 1 from blocks) - b.height as confirmations " +
 	"from trs t " +
 	"inner join blocks b on t.blockId = b.id " +
 	"left outer join companies as c_t on c_t.address=t.recipientId " +
 	"where t.id = $id");
 
 	stmt.bind({
-		$id: id,
-		$topHeight: modules.blocks.getLastBlock().height + 1
+		$id: id
 	});
 
 	stmt.get(function (err, row) {
-		if (err) {
-			return cb(err);
+		if (err || !row) {
+			return cb(err || "Can't find transaction: " + id);
 		}
 
-		var transacton = blockHelper.getTransaction(row);
+		var transacton = blockHelper.getTransaction(row, hex);
 		cb(null, transacton);
 	});
 }
@@ -298,7 +332,6 @@ Transactions.prototype.removeUnconfirmedTransaction = function (id) {
 }
 
 Transactions.prototype.processUnconfirmedTransaction = function (transaction, broadcast, cb) {
-	var self = this;
 	var txId = transactionHelper.getId(transaction);
 
 	if (transaction.id && transaction.id != txId) {
@@ -448,16 +481,18 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 			async.parallel([
 				function (cb) {
 					if (transaction.type == 1 && transaction.subtype == 0) {
-						library.db.get("SELECT id FROM companies WHERE address = $address", {$address: transaction.recipientId}, function (err, company) {
-							if (err) {
-								return cb("Internal sql error");
-							}
+						library.db.serialize(function () {
+							library.db.get("SELECT id FROM companies WHERE address = $address", {$address: transaction.recipientId}, function (err, company) {
+								if (err) {
+									return cb("Internal sql error");
+								}
 
-							if (company) {
-								cb();
-							} else {
-								cb("Company with this address as recipient not found");
-							}
+								if (company) {
+									cb();
+								} else {
+									cb("Company with this address as recipient not found");
+								}
+							});
 						});
 					} else {
 						setImmediate(cb);
@@ -483,17 +518,19 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 				}
 
 				if (!modules.delegates.checkVotes(transaction)) {
-					return cb("Can't verify votes, vote for not exists delegate found: " + transaction.id);
+					return cb && cb("Can't verify votes, vote for not exists delegate found: " + transaction.id);
 				}
 
 				if (!self.applyUnconfirmed(transaction)) {
 					doubleSpendingTransactions[transaction.id] = transaction;
-					return cb("Can't apply transaction: " + transaction.id);
+					return cb && cb("Can't apply transaction: " + transaction.id);
 				}
 
+				transaction.asset = transaction.asset || {};
 				unconfirmedTransactions[transaction.id] = transaction;
 
 				library.bus.message('unconfirmedTransaction', transaction, broadcast)
+
 				cb && cb(null, transaction.id);
 
 			});
@@ -591,6 +628,19 @@ Transactions.prototype.applyUnconfirmed = function (transaction) {
 	return true;
 }
 
+Transactions.prototype.undoUnconfirmed = function (transaction) {
+	var sender = modules.accounts.getAccountByPublicKey(transaction.senderPublicKey);
+	var amount = transaction.amount + transaction.fee;
+
+	sender.addToUnconfirmedBalance(amount);
+
+	if (transaction.type == 2 && transaction.subtype == 0) {
+		sender.unconfirmedSignature = false;
+	}
+
+	return true;
+}
+
 
 Transactions.prototype.undo = function (transaction) {
 	var sender = modules.accounts.getAccountByPublicKey(transaction.senderPublicKey);
@@ -650,6 +700,8 @@ Transactions.prototype.undo = function (transaction) {
 }
 
 Transactions.prototype.parseTransaction = function (transaction) {
+	transaction.asset = transaction.asset || {}; //temp
+
 	transaction.id = params.string(transaction.id);
 	transaction.blockId = params.string(transaction.blockId);
 	transaction.type = params.int(transaction.type);
@@ -662,14 +714,12 @@ Transactions.prototype.parseTransaction = function (transaction) {
 	transaction.fee = params.int(transaction.fee);
 	transaction.signature = params.buffer(transaction.signature);
 
-	transaction.asset = params.object(transaction.asset);
-
 	if (transaction.signSignature) {
 		transaction.signSignature = params.buffer(transaction.signSignature);
 	}
 
 	if (transaction.type == 2 && transaction.subtype == 0) {
-		transaction.asset.signature = modules.signatures.parseSignature(params.object(transaction.asset.signature));
+		transaction.asset.signature = modules.signatures.parseSignature(params.object(params.object(transaction.asset).signature));
 	}
 
 	if (transaction.type == 4 && transaction.subtype == 0) {
@@ -681,19 +731,6 @@ Transactions.prototype.parseTransaction = function (transaction) {
 	}
 
 	return transaction;
-}
-
-Transactions.prototype.undoUnconfirmed = function (transaction) {
-	var sender = modules.accounts.getAccountByPublicKey(transaction.senderPublicKey);
-	var amount = transaction.amount + transaction.fee;
-
-	sender.addToUnconfirmedBalance(amount);
-
-	if (transaction.type == 2 && transaction.subtype == 0) {
-		sender.unconfirmedSignature = false;
-	}
-
-	return true;
 }
 
 Transactions.prototype.verifySignature = function (transaction) {
@@ -715,6 +752,7 @@ Transactions.prototype.verifySignature = function (transaction) {
 	try {
 		var res = ed.Verify(hash, transaction.signature || ' ', transaction.senderPublicKey || ' ');
 	} catch (e) {
+		library.logger.info("first signature");
 		library.logger.error(e, {err: e, transaction: transaction})
 	}
 
