@@ -1,4 +1,3 @@
-var async = require('async');
 var sqlite3 = require('sqlite3');
 var db = new sqlite3.Database('./blockchain.db');
 
@@ -20,24 +19,15 @@ function loadBlocksOffset(limit, offset, cb) {
 		"left outer join companies as c_t on c_t.address=t.recipientId " +
 		"left outer join companyconfirmations as cc on cc.blockId=b.id " +
 		"ORDER BY b.height, t.rowid, s.rowid, c.rowid, cc.rowid " +
-		"", params, function (err, rows) {
-			cb(err)
-		})
+		"", params, cb)
 }
 
-var offset = 0, limit = 1000, count = 150000;
-async.until(
-	function () {
-		return count < offset
-	}, function (cb) {
-		console.log('current ' + offset);
-		process.nextTick(function () {
-			loadBlocksOffset(limit, offset, function (err) {
-				if (err) {
-					return cb(err);
-				}
-				offset = offset + limit;
-				cb()
-			});
-		})
-	})
+function repeater(offset) {
+	if (offset < 150000) {
+		console.log('current', offset);
+		loadBlocksOffset(1000, offset, function () {
+			repeater(offset + 1000);
+		});
+	}
+}
+repeater(0);
