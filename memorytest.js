@@ -107,11 +107,13 @@ function loadBlocksOffset(limit, offset, cb) {
 var limit = 1000, count = 150000
 
 function repeater(offset) {
+	!offset && console.time('total');
 	if (offset < count) {
 		console.log('current', offset);
 		console.time('loading');
 		loadBlocksOffset(limit, offset, function (err) {
 			console.timeEnd('loading');
+			console.log('memory', Math.round(process.memoryUsage().heapTotal / 1024 / 1024) + 'mb')
 			if (err) {
 				return console.log('error', err)
 			}
@@ -119,6 +121,7 @@ function repeater(offset) {
 		});
 	} else {
 		console.log('end', offset);
+		console.timeEnd('total');
 	}
 }
 repeater(0);
