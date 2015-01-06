@@ -59,7 +59,7 @@ Loader.prototype.syncing = function () {
 Loader.prototype.run = function (scope) {
 	modules = scope;
 
-	var offset = 0, limit = 100;
+	var offset = 0, limit = 1;
 	modules.blocks.count(function (err, count) {
 		if (err) {
 			return library.logger.error('blocks.count', err)

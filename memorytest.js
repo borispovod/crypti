@@ -6,7 +6,6 @@ var arrayHelper = require('./helpers/array.js');
 var blockHelper = require("./helpers/block.js")
 
 function normalizeBlock(block) {
-	block.requests = arrayHelper.hash2array(block.requests);
 	block.transactions = arrayHelper.hash2array(block.transactions);
 	block.companyconfirmations = arrayHelper.hash2array(block.companyconfirmations);
 
@@ -32,13 +31,13 @@ function relational2object(rows) {
 				}
 			}
 
-			var __request = blockHelper.getRequest(rows[i]);
+			/*var __request = blockHelper.getRequest(rows[i]);
 			blocks[__block.id].requests = blocks[__block.id].requests || {};
 			if (__request) {
 				if (!blocks[__block.id].requests[__request.id]) {
 					blocks[__block.id].requests[__request.id] = __request;
 				}
-			}
+			}*/
 
 			var __transaction = blockHelper.getTransaction(rows[i]);
 			blocks[__block.id].transactions = blocks[__block.id].transactions || {};
@@ -84,13 +83,13 @@ function loadBlocksOffset(limit, offset, cb) {
 	db.query(
 		"SELECT " +
 		"b.id, b.version, b.timestamp, b.height, b.previousBlock, b.numberOfRequests, b.numberOfTransactions, b.numberOfConfirmations, b.totalAmount, b.totalFee, b.payloadLength, b.requestsLength, b.confirmationsLength, b.payloadHash, b.generatorPublicKey, b.generationSignature, b.blockSignature, " +
-		"r.id, r.address, " +
+		//"r.id, r.address, " +
 		"t.id, t.type, t.subtype, t.timestamp, t.senderPublicKey, t.senderId, t.recipientId, t.amount, t.fee, t.signature, t.signSignature, c_t.generatorPublicKey, " +
 		"s.id, s.timestamp, s.publicKey, s.generatorPublicKey, s.signature, s.generationSignature, " +
 		"c.id, c.name, c.description, c.domain, c.email, c.timestamp, c.generatorPublicKey, c.signature, " +
 		"cc.id, cc.companyId, cc.verified, cc.timestamp, cc.signature " +
 		"FROM (select * from blocks limit $limit offset $offset) as b " +
-		"left outer join requests as r on r.blockId=b.id " +
+		//"left outer join requests as r on r.blockId=b.id " +
 		"left outer join trs as t on t.blockId=b.id " +
 		"left outer join signatures as s on s.transactionId=t.id " +
 		"left outer join companies as c on c.transactionId=t.id " +
@@ -104,7 +103,7 @@ function loadBlocksOffset(limit, offset, cb) {
 		})
 }
 
-var limit = 1000, count = 150000
+var limit = 10000, count = 150000
 
 function repeater(offset) {
 	!offset && console.time('total');
