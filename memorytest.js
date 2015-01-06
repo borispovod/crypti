@@ -1,9 +1,11 @@
-var sqlite3 = require('sqlite3');
-var db = new sqlite3.Database('./blockchain.db');
+//var sqlite3 = require('sqlite3');
+//var db = new sqlite3.Database('./blockchain.db');
+var dblite = require('dblite');
+var db = dblite('./blockchain.db');
 
 function loadBlocksOffset(limit, offset, cb) {
-	var params = {$limit: limit, $offset: offset || 0};
-	db.all(
+	var params = {limit: limit, offset: offset || 0};
+	db.query(
 		"SELECT " +
 		"b.id b_id, b.version b_version, b.timestamp b_timestamp, b.height b_height, b.previousBlock b_previousBlock, b.numberOfRequests b_numberOfRequests, b.numberOfTransactions b_numberOfTransactions, b.numberOfConfirmations b_numberOfConfirmations, b.totalAmount b_totalAmount, b.totalFee b_totalFee, b.payloadLength b_payloadLength, b.requestsLength b_requestsLength, b.confirmationsLength b_confirmationsLength, b.payloadHash b_payloadHash, b.generatorPublicKey b_generatorPublicKey, b.generationSignature b_generationSignature, b.blockSignature b_blockSignature, " +
 		"r.id r_id, r.address r_address, " +
@@ -19,14 +21,21 @@ function loadBlocksOffset(limit, offset, cb) {
 		"left outer join companies as c_t on c_t.address=t.recipientId " +
 		"left outer join companyconfirmations as cc on cc.blockId=b.id " +
 		"ORDER BY b.height, t.rowid, s.rowid, c.rowid, cc.rowid " +
-		"", params, cb)
+		"", params, function (err, rows) {
+			cb(err);
+		})
 }
 
 function repeater(offset) {
 	if (offset < 150000) {
 		console.log('current', offset);
-		loadBlocksOffset(1000, offset, function () {
-			repeater(offset + 1000);
+		console.time('loading');
+		loadBlocksOffset(10000, offset, function (err) {
+			console.timeEnd('loading');
+			if (err){
+				return console.log('error', err)
+			}
+			repeater(offset + 10000);
 		});
 	}
 }
