@@ -76,7 +76,7 @@ function Transactions(cb, scope) {
 			return res.json({success: false, error: "Provide id in url"});
 		}
 
-		var transaction = extend(self.getUnconfirmedTransaction(id), true);
+		var transaction = extend(true, {}, self.getUnconfirmedTransaction(id));
 
 		if (!transaction) {
 			return res.json({success: false, error: "Transaction not found"});
@@ -100,7 +100,7 @@ function Transactions(cb, scope) {
 		if (senderPublicKey || address) {
 			for (var i = 0; i < transactions.length; i++) {
 				if (transactions[i].senderPublicKey.toString('hex') == senderPublicKey || transactions[i].recipientId == address) {
-					var transaction = extend(transactions[i], true);
+					var transaction = extend(true, {}, transactions[i]);
 
 					delete transaction.asset;
 					transaction.senderPublicKey = transaction.senderPublicKey.toString('hex');
@@ -112,7 +112,7 @@ function Transactions(cb, scope) {
 			}
 		} else {
 			for (var i = 0; i < transactions.length; i++) {
-				var transaction = extend(transactions[i], true);
+				var transaction = extend(true, {}, transactions[i]);
 
 				delete transaction.asset;
 				transaction.senderPublicKey = transaction.senderPublicKey.toString('hex');

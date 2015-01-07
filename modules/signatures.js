@@ -100,7 +100,7 @@ function Signatures(cb, scope) {
 			if (err) {
 				return res.json({success: false, error: err});
 			}
-			res.json({success: true, transaction: transaction});
+			res.json({success: true, transactionId: transaction.id, publicKey: transaction.asset.signature.publicKey.toString('hex') });
 		});
 	});
 
