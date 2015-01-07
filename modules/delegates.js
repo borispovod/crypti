@@ -112,11 +112,6 @@ Delegates.prototype.getVotesByType = function (votingType) {
 	}
 }
 
-Delegates.prototype.parseDelegate = function (delegate) {
-	delegate.username = params.string(delegate.username);
-	return delegate;
-}
-
 Delegates.prototype.checkVotes = function (votes) {
 	if (votes.length == 0) {
 		return true;

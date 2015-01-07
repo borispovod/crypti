@@ -160,18 +160,6 @@ Signatures.prototype.secondSignature = function (signature, secret) {
 	return ed.Sign(hash, keypair);
 }
 
-Signatures.prototype.parseSignature = function (signature) {
-	signature.id = params.string(signature.id);
-	signature.transactionId = params.string(signature.transactionId);
-	signature.timestamp = params.int(signature.timestamp);
-	signature.publicKey = params.buffer(signature.publicKey);
-	signature.generatorPublicKey = params.buffer(signature.generatorPublicKey);
-	signature.signature = params.buffer(signature.signature);
-	signature.generationSignature = params.buffer(signature.generationSignature);
-
-	return signature;
-}
-
 Signatures.prototype.get = function (id, cb) {
 	var stmt = library.db.prepare("select s.id s_id, s.transactionId s_transactionId, s.timestamp s_timestamp, s.publicKey s_publicKey, s.generatorPublicKey s_generatorPublicKey, s.signature s_signature, s.generationSignature s_generationSignature " +
 	"from signatures s " +

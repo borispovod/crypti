@@ -4,6 +4,7 @@ var ip = require('ip');
 var Router = require('../helpers/router.js');
 var params = require('../helpers/params.js');
 var arrayHelper = require('../helpers/array.js');
+var normalize = require('../helpers/normalize.js');
 
 //private
 var modules, library, self;
@@ -134,16 +135,6 @@ Peer.prototype.state = function (ip, port, state, timeoutSeconds, cb) {
 	});
 }
 
-Peer.prototype.parsePeer = function (peer) {
-	peer.ip = params.int(peer.ip);
-	peer.port = params.int(peer.port);
-	peer.state = params.int(peer.state);
-	peer.os = params.string(peer.os);
-	peer.sharePort = params.bool(peer.sharePort);
-	peer.version = params.string(peer.version);
-	return peer;
-}
-
 Peer.prototype.banManager = function (cb) {
 	library.db.serialize(function () {
 		library.db.get("select count(*) as ban from peers where (state = 0 and clock - $now < 0)", {$now: Date.now()}, function (err, res) {
@@ -213,7 +204,7 @@ Peer.prototype.updatePeerList = function (cb) {
 
 		var peers = params.array(data.body.peers);
 		async.eachLimit(peers, 2, function (peer, cb) {
-			peer = self.parsePeer(peer);
+			peer = normalize.peer(peer);
 
 			if (ip.toLong("127.0.0.1") == peer.ip || peer.port == 0 || peer.port > 65535) {
 				setImmediate(cb);

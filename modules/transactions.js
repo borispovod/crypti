@@ -642,7 +642,6 @@ Transactions.prototype.undoUnconfirmed = function (transaction) {
 	return true;
 }
 
-
 Transactions.prototype.undo = function (transaction) {
 	var sender = modules.accounts.getAccountByPublicKey(transaction.senderPublicKey);
 	var amount = transaction.amount + transaction.fee;
@@ -700,40 +699,6 @@ Transactions.prototype.undo = function (transaction) {
 	}
 }
 
-Transactions.prototype.parseTransaction = function (transaction) {
-	transaction.asset = transaction.asset || {}; //temp
-
-	transaction.id = params.string(transaction.id);
-	transaction.blockId = params.string(transaction.blockId);
-	transaction.type = params.int(transaction.type);
-	transaction.subtype = params.int(transaction.subtype);
-	transaction.timestamp = params.int(transaction.timestamp);
-	transaction.senderPublicKey = params.buffer(transaction.senderPublicKey);
-	transaction.senderId = params.string(transaction.senderId);
-	transaction.recipientId = params.string(transaction.recipientId);
-	transaction.amount = params.int(transaction.amount);
-	transaction.fee = params.int(transaction.fee);
-	transaction.signature = params.buffer(transaction.signature);
-
-	if (transaction.signSignature) {
-		transaction.signSignature = params.buffer(transaction.signSignature);
-	}
-
-	if (transaction.type == 2 && transaction.subtype == 0) {
-		transaction.asset.signature = modules.signatures.parseSignature(params.object(params.object(transaction.asset).signature));
-	}
-
-	if (transaction.type == 4 && transaction.subtype == 0) {
-		transaction.asset.delegate = modules.delegates.parseDelegate(params.object(transaction.asset.delegate));
-	}
-
-	if (transaction.asset.votes) {
-		transaction.asset.votes = params.array(transaction.asset.votes);
-	}
-
-	return transaction;
-}
-
 Transactions.prototype.verifySignature = function (transaction) {
 	var remove = 64;
 
@@ -778,6 +743,7 @@ Transactions.prototype.verifySecondSignature = function (transaction, publicKey)
 
 	return res;
 }
+
 Transactions.prototype.onReceiveTransaction = function (transactions) {
 	if (!util.isArray(transactions)) {
 		transactions = [transactions];
@@ -785,9 +751,8 @@ Transactions.prototype.onReceiveTransaction = function (transactions) {
 
 	async.forEach(transactions, function (transaction, cb) {
 		self.processUnconfirmedTransaction(transaction, true, cb);
-	}, cb);
+	});
 }
-
 
 Transactions.prototype.run = function (scope) {
 	modules = scope;
