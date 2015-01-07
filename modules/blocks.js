@@ -1418,7 +1418,6 @@ Blocks.prototype.generateBlock = function (keypair, lastBlock, cb) {
 
 Blocks.prototype.onReceiveBlock = function (block) {
 	library.sequence.add(function (cb) {
-		block = modules.blocks.parseBlock(block)
 		if (block.previousBlock == lastBlock.id) {
 			modules.blocks.processBlock(block, true, function () {
 				cb();

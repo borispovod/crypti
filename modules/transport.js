@@ -176,6 +176,7 @@ function Transport(cb, scope) {
 		res.set(headers);
 
 		var block = params.object(req.body.block);
+		block = modules.blocks.parseBlock(block)
 
 		res.sendStatus(200);
 
@@ -191,7 +192,9 @@ function Transport(cb, scope) {
 	router.post("/transactions", function (req, res) {
 		res.set(headers);
 
-		var transaction = modules.transactions.parseTransaction(req.body.transaction);
+		var transaction = params.object(req.body.transaction);
+		transaction = modules.transactions.parseTransaction(transaction);
+
 		library.bus.message('receiveTransaction', transaction);
 
 		res.sendStatus(200);
