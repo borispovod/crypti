@@ -4,6 +4,7 @@ var util = require('util');
 var genesisBlock = require("../helpers/genesisblock.js");
 var ip = require("ip");
 var params = require('../helpers/params.js');
+var normalize = require('../helpers/normalize.js');
 
 //private
 var modules, library, self, loaded, sync, loadingLastBlock = genesisBlock;
@@ -204,9 +205,10 @@ Loader.prototype.loadUnconfirmedTransactions = function (cb) {
 		var transactions = params.array(data.body.transactions);
 
 		for (var i = 0; i < transactions.length; i++){
-			transactions[i] = modules.transactions.parseTransaction(transactions[i]);
+			transactions[i] = normalize.transaction(transactions[i]);
 		}
 		library.bus.message('receiveTransaction', transactions);
+		cb();
 	});
 }
 

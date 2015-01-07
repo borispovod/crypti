@@ -12,7 +12,8 @@ var crypto = require('crypto'),
 	timeHelper = require('../helpers/time.js'),
 	requestHelper = require('../helpers/request.js'),
 	params = require('../helpers/params.js'),
-	arrayHelper = require('../helpers/array.js');
+	arrayHelper = require('../helpers/array.js'),
+	normalize = require('../helpers/normalize.js');
 
 var Router = require('../helpers/router.js');
 var util = require('util');
@@ -1196,7 +1197,7 @@ Blocks.prototype.loadBlocksFromPeer = function (peer, lastCommonBlockId, cb) {
 					next();
 				} else {
 					async.eachSeries(data.body.blocks, function (block, cb) {
-						block = self.parseBlock(block);
+						block = normalize.block(block);
 						self.processBlock(block, false, function (err) {
 							if (!err) {
 								lastCommonBlockId = block.id;
@@ -1312,42 +1313,6 @@ Blocks.prototype.deleteBlock = function (blockId, cb) {
 	library.db.serialize(function () {
 		library.db.run("DELETE FROM blocks WHERE id = $id", {$id: blockId}, cb);
 	});
-}
-
-Blocks.prototype.parseBlock = function (block) {
-	block.id = params.string(block.id);
-	block.version = params.int(block.version);
-	block.timestamp = params.int(block.timestamp);
-	block.height = params.int(block.height);
-	block.previousBlock = params.string(block.previousBlock);
-	block.numberOfRequests = params.int(block.numberOfRequests);
-	block.numberOfTransactions = params.int(block.numberOfTransactions);
-	block.numberOfConfirmations = params.int(block.numberOfConfirmations);
-	block.totalAmount = params.int(block.totalAmount);
-	block.totalFee = params.int(block.totalFee);
-	block.payloadLength = params.int(block.payloadLength);
-	block.requestsLength = params.int(block.requestsLength);
-	block.confirmationsLength = params.int(block.confirmationsLength);
-	block.payloadHash = params.buffer(block.payloadHash);
-	block.generatorPublicKey = params.buffer(block.generatorPublicKey);
-	block.generationSignature = params.buffer(block.generationSignature);
-	block.blockSignature = params.buffer(block.blockSignature);
-	block.transactions = params.array(block.transactions);
-	block.requests = params.array(block.requests);
-
-	for (var i = 0; i < block.transactions.length; i++) {
-		block.transactions[i] = params.object(block.transactions[i])
-		block.transactions[i] = modules.transactions.parseTransaction(block.transactions[i]);
-	}
-
-	for (var i = 0; i < block.requests.length; i++) {
-		block.requests[i] = params.object(block.requests[i]);
-		block.requests[i].id = params.string(block.requests[i].id);
-		block.requests[i].blockId = params.string(block.requests[i].blockId);
-		block.requests[i].address = params.string(block.requests[i].address);
-	}
-
-	return block;
 }
 
 // generate block

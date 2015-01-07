@@ -5,6 +5,7 @@ var request = require('request');
 var ip = require('ip');
 var util = require('util');
 var params = require('../helpers/params.js');
+var normalize = require('../helpers/normalize.js');
 
 //private
 var modules, library, self;
@@ -175,12 +176,11 @@ function Transport(cb, scope) {
 	router.post("/blocks", function (req, res) {
 		res.set(headers);
 
-		var block = params.object(req.body.block);
-		block = modules.blocks.parseBlock(block)
-
-		res.sendStatus(200);
+		var block = normalize.block(req.body.block)
 
 		library.bus.message('receiveBlock', block);
+
+		res.sendStatus(200);
 	});
 
 	router.get("/transactions", function (req, res) {
@@ -192,8 +192,7 @@ function Transport(cb, scope) {
 	router.post("/transactions", function (req, res) {
 		res.set(headers);
 
-		var transaction = params.object(req.body.transaction);
-		transaction = modules.transactions.parseTransaction(transaction);
+		transaction = normalize.transaction(req.body.transaction);
 
 		library.bus.message('receiveTransaction', transaction);
 
@@ -202,7 +201,10 @@ function Transport(cb, scope) {
 
 	router.get('/weight', function (req, res) {
 		res.set(headers);
-		res.status(200).json({weight: modules.blocks.getWeight().toString(), height: modules.blocks.getLastBlock().height});
+		res.status(200).json({
+			weight: modules.blocks.getWeight().toString(),
+			height: modules.blocks.getLastBlock().height
+		});
 	});
 
 	router.use(function (req, res, next) {
