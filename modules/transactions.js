@@ -264,7 +264,7 @@ Transactions.prototype.list = function (filter, cb) {
 			return cb(err)
 		}
 		async.mapSeries(rows, function (row, cb) {
-			setImmediate(cb, null, blockHelper.getTransaction(row, filter.hex));
+			setImmediate(cb, null, blockHelper.getTransaction(row, false, filter.hex));
 		}, cb)
 	})
 }
@@ -285,7 +285,7 @@ Transactions.prototype.get = function (id, hex, cb) {
 			return cb(err || "Can't find transaction: " + id);
 		}
 
-		var transacton = blockHelper.getTransaction(row, hex);
+		var transacton = blockHelper.getTransaction(row, false, hex);
 		cb(null, transacton);
 	});
 }

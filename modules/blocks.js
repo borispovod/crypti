@@ -171,8 +171,11 @@ function Blocks(cb, scope) {
 	});
 }
 
-function normalizeBlock(block) {
-	block.requests = arrayHelper.hash2array(block.requests);
+function normalizeBlock(block, includeRequests) {
+	if (includeRequests) {
+		block.requests = arrayHelper.hash2array(block.requests);
+	}
+
 	block.transactions = arrayHelper.hash2array(block.transactions);
 	block.companyconfirmations = arrayHelper.hash2array(block.companyconfirmations);
 
@@ -196,7 +199,7 @@ Blocks.prototype.get = function (id, cb) {
 			return cb(err || "Can't find block: " + id);
 		}
 
-		var block = blockHelper.getBlock(row, true);
+		var block = blockHelper.getBlock(row, false, true);
 		cb(null, block);
 	});
 }
@@ -237,7 +240,7 @@ Blocks.prototype.list = function (filter, cb) {
 			return cb(err)
 		}
 		async.mapSeries(rows, function (row, cb) {
-			setImmediate(cb, null, blockHelper.getBlock(row, filter.hex));
+			setImmediate(cb, null, blockHelper.getBlock(row, false, filter.hex));
 		}, cb)
 	})
 }
@@ -252,18 +255,23 @@ Blocks.prototype.count = function (cb) {
 	});
 }
 
-function relational2object(rows) {
+function relational2object(rows, includeRequests) {
 	var blocks = {};
 	var order = [];
 	for (var i = 0, length = rows.length; i < length; i++) {
-		var __block = blockHelper.getBlock(rows[i]);
+		var __block = blockHelper.getBlock(rows[i], true);
 		if (__block) {
 			if (!blocks[__block.id]) {
+				if (__block.id == genesisblock.blockId) {
+					__block.generationSignature = new Buffer(64);
+					__block.generationSignature.fill(0);
+				}
+
 				order.push(__block.id);
 				blocks[__block.id] = __block;
 			}
 
-			var __companyComfirmation = blockHelper.getCompanyComfirmation(rows[i]);
+			var __companyComfirmation = blockHelper.getCompanyComfirmation(rows[i], true);
 			blocks[__block.id].companyconfirmations = blocks[__block.id].companyconfirmations || {};
 			if (__companyComfirmation) {
 				if (!blocks[__block.id].companyconfirmations[__companyComfirmation.id]) {
@@ -271,27 +279,29 @@ function relational2object(rows) {
 				}
 			}
 
-			var __request = blockHelper.getRequest(rows[i]);
-			blocks[__block.id].requests = blocks[__block.id].requests || {};
-			if (__request) {
-				if (!blocks[__block.id].requests[__request.id]) {
-					blocks[__block.id].requests[__request.id] = __request;
+			if (includeRequests) {
+				var __request = blockHelper.getRequest(rows[i]);
+				blocks[__block.id].requests = blocks[__block.id].requests || {};
+				if (__request) {
+					if (!blocks[__block.id].requests[__request.id]) {
+						blocks[__block.id].requests[__request.id] = __request;
+					}
 				}
 			}
 
-			var __transaction = blockHelper.getTransaction(rows[i]);
+			var __transaction = blockHelper.getTransaction(rows[i], true);
 			blocks[__block.id].transactions = blocks[__block.id].transactions || {};
 			if (__transaction) {
 				__transaction.asset = __transaction.asset || {};
 				if (!blocks[__block.id].transactions[__transaction.id]) {
-					var __signature = blockHelper.getSignature(rows[i]);
+					var __signature = blockHelper.getSignature(rows[i], true);
 					if (__signature) {
 						if (!__transaction.asset.signature) {
 							__transaction.asset.signature = __signature;
 						}
 					}
 
-					var __company = blockHelper.getCompany(rows[i]);
+					var __company = blockHelper.getCompany(rows[i], true);
 					if (__company) {
 						if (!__transaction.asset.company) {
 							__transaction.asset.company = __company;
@@ -303,8 +313,9 @@ function relational2object(rows) {
 			}
 		}
 	}
+
 	blocks = order.map(function (v) {
-		return normalizeBlock(blocks[v]);
+		return normalizeBlock(blocks[v], includeRequests);
 	});
 
 	return blocks;
@@ -312,7 +323,6 @@ function relational2object(rows) {
 
 Blocks.prototype.loadBlocksPart = function (filter, cb) {
 	//console.time('loading');
-
 	var params = {$limit: filter.limit || 1};
 	filter.lastId && (params['$lastId'] = filter.lastId);
 	filter.id && !filter.lastId && (params['$id'] = filter.id);
@@ -340,31 +350,36 @@ Blocks.prototype.loadBlocksPart = function (filter, cb) {
 				return cb(err, []);
 			}
 
-			var blocks = relational2object(rows);
+			var blocks = relational2object(rows, true);
 
 			cb(err, blocks);
 		});
 }
 
 Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
-	var params = {$limit: limit, $offset: offset || 0};
-	library.db.all(
-		"SELECT " +
-		"b.id b_id, b.version b_version, b.timestamp b_timestamp, b.height b_height, b.previousBlock b_previousBlock, b.numberOfRequests b_numberOfRequests, b.numberOfTransactions b_numberOfTransactions, b.numberOfConfirmations b_numberOfConfirmations, b.totalAmount b_totalAmount, b.totalFee b_totalFee, b.payloadLength b_payloadLength, b.requestsLength b_requestsLength, b.confirmationsLength b_confirmationsLength, b.payloadHash b_payloadHash, b.generatorPublicKey b_generatorPublicKey, b.generationSignature b_generationSignature, b.blockSignature b_blockSignature, " +
-		"r.id r_id, r.address r_address, " +
-		"t.id t_id, t.type t_type, t.subtype t_subtype, t.timestamp t_timestamp, t.senderPublicKey t_senderPublicKey, t.senderId t_senderId, t.recipientId t_recipientId, t.amount t_amount, t.fee t_fee, t.signature t_signature, t.signSignature t_signSignature, c_t.generatorPublicKey t_companyGeneratorPublicKey, " +
-		"s.id s_id, s.timestamp s_timestamp, s.publicKey s_publicKey, s.generatorPublicKey s_generatorPublicKey, s.signature s_signature, s.generationSignature s_generationSignature, " +
-		"c.id c_id, c.name c_name, c.description c_description, c.domain c_domain, c.email c_email, c.timestamp c_timestamp, c.generatorPublicKey c_generatorPublicKey, c.signature c_signature, " +
-		"cc.id cc_id, cc.companyId cc_companyId, cc.verified cc_verified, cc.timestamp cc_timestamp, cc.signature cc_signature " +
-		"FROM (select * from blocks limit $limit offset $offset) as b " +
-		"left outer join requests as r on r.blockId=b.id " +
-		"left outer join trs as t on t.blockId=b.id " +
-		"left outer join signatures as s on s.transactionId=t.id " +
-		"left outer join companies as c on c.transactionId=t.id " +
-		"left outer join companies as c_t on c_t.address=t.recipientId " +
-		"left outer join companyconfirmations as cc on cc.blockId=b.id " +
-		"ORDER BY b.height, t.rowid, s.rowid, c.rowid, cc.rowid " +
-		"", params, function (err, rows) {
+	var params = {limit: limit, offset: offset || 0};
+	var fields = [
+		'b_id', 'b_version', 'b_timestamp', 'b_height', 'b_previousBlock', 'b_numberOfRequests', 'b_numberOfTransactions', 'b_numberOfConfirmations', 'b_totalAmount', 'b_totalFee', 'b_payloadLength', 'b_requestsLength', 'b_confirmationsLength', 'b_payloadHash', 'b_generatorPublicKey', 'b_generationSignature', 'b_blockSignature',
+		't_id', 't_type', 't_subtype', 't_timestamp', 't_senderPublicKey', 't_senderId', 't_recipientId', 't_amount', 't_fee', 't_signature', 't_signSignature', 't_companyGeneratorPublicKey',
+		's_id', 's_timestamp', 's_publicKey', 's_generatorPublicKey', 's_signature', 's_generationSignature',
+		'c_id', 'c_name', 'c_description', 'c_domain', 'c_email', 'c_timestamp', 'c_generatorPublicKey', 'c_signature',
+		'cc_id', 'cc_companyId', 'cc_verified', 'cc_timestamp', 'cc_signature'
+	]
+	library.dbLite.query(
+			"SELECT " +
+			"b.id, b.version, b.timestamp, b.height, b.previousBlock, b.numberOfRequests, b.numberOfTransactions, b.numberOfConfirmations, b.totalAmount, b.totalFee, b.payloadLength, b.requestsLength, b.confirmationsLength, hex(b.payloadHash), hex(b.generatorPublicKey), hex(b.generationSignature), hex(b.blockSignature), " +
+			"t.id, t.type, t.subtype, t.timestamp, hex(t.senderPublicKey), t.senderId, t.recipientId, t.amount, t.fee, hex(t.signature), hex(t.signSignature), hex(c_t.generatorPublicKey), " +
+			"s.id, s.timestamp, hex(s.publicKey), hex(s.generatorPublicKey), hex(s.signature), hex(s.generationSignature), " +
+			"c.id, c.name, c.description, c.domain, c.email, c.timestamp, hex(c.generatorPublicKey), hex(c.signature), " +
+			"cc.id, cc.companyId, cc.verified, cc.timestamp, hex(cc.signature) " +
+			"FROM (select * from blocks limit $limit offset $offset) as b " +
+			"left outer join trs as t on t.blockId=b.id " +
+			"left outer join signatures as s on s.transactionId=t.id " +
+			"left outer join companies as c on c.transactionId=t.id " +
+			"left outer join companies as c_t on c_t.address=t.recipientId " +
+			"left outer join companyconfirmations as cc on cc.blockId=b.id " +
+			"ORDER BY b.height, t.rowid, s.rowid, c.rowid, cc.rowid " +
+			"", params, fields, function (err, rows) {
 			// Some notes:
 			// If loading catch error, for example, invalid signature on block & transaction, need to stop loading and remove all blocks after last good block.
 			// We need to process all transactions of block

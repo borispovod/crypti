@@ -59,7 +59,8 @@ Loader.prototype.syncing = function () {
 Loader.prototype.run = function (scope) {
 	modules = scope;
 
-	var offset = 0, limit = 1000;
+	var offset = 0, limit = library.config.loading.loadPerIteration;
+
 	modules.blocks.count(function (err, count) {
 		if (err) {
 			return library.logger.error('blocks.count', err)
@@ -77,8 +78,10 @@ Loader.prototype.run = function (scope) {
 						if (err) {
 							return cb(err);
 						}
+
 						offset = offset + limit;
 						loadingLastBlock = lastBlockOffset;
+
 						cb()
 					});
 				})
@@ -150,6 +153,7 @@ Loader.prototype.loadBlocks = function (lastBlock, cb) {
 						if (err) {
 							return cb(err);
 						}
+
 
 						if (lastBlock.id != commonBlockId) {
 							library.db.get("SELECT height FROM blocks WHERE id=$id", {$id: commonBlockId}, function (err, block) {
