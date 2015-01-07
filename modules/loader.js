@@ -59,14 +59,15 @@ Loader.prototype.syncing = function () {
 Loader.prototype.run = function (scope) {
 	modules = scope;
 
-	var offset = 0, limit = 1000;
+	var offset = 0, limit = library.config.loading.loadPerIteration;
+
 	modules.blocks.count(function (err, count) {
 		if (err) {
 			return library.logger.error('blocks.count', err)
 		}
 
 		total = count;
-		library.logger.info('blocks ' + count)
+		library.logger.info('blocks ' + count);
 		async.until(
 			function () {
 				return count < offset
@@ -77,8 +78,10 @@ Loader.prototype.run = function (scope) {
 						if (err) {
 							return cb(err);
 						}
+
 						offset = offset + limit;
 						loadingLastBlock = lastBlockOffset;
+
 						cb()
 					});
 				})
@@ -134,7 +137,7 @@ Loader.prototype.loadBlocks = function (lastBlock, cb) {
 
 		if (modules.blocks.getWeight().lt(params.string(data.body.weight))) {
 			sync = true;
-			blocksToSync = data.body.height;
+			blocksToSync = params.int(data.body.height);
 
 			if (lastBlock.id != genesisBlock.blockId) { //have to found common block
 
@@ -145,11 +148,11 @@ Loader.prototype.loadBlocks = function (lastBlock, cb) {
 					}
 
 					library.logger.info("Find common block from " + peerStr);
-
 					modules.blocks.getCommonBlock(data.peer, milestoneBlock, function (err, commonBlockId) {
 						if (err) {
 							return cb(err);
 						}
+
 
 						if (lastBlock.id != commonBlockId) {
 							library.db.get("SELECT height FROM blocks WHERE id=$id", {$id: commonBlockId}, function (err, block) {
@@ -216,7 +219,6 @@ Loader.prototype.getUnconfirmedTransactions = function (cb) {
 		if (err) {
 			return cb()
 		}
-
 
 		var transactions = params.array(data.body.transactions);
 

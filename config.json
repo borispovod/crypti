@@ -28,5 +28,8 @@
     },
     "forging": {
         "secret": ""
+    },
+	"loading" : {
+		"loadPerIteration" : 5000
     }
 }

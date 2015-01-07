@@ -3,7 +3,8 @@ var crypto = require('crypto'),
     bignum = require('bignum'),
     ByteBuffer = require("bytebuffer"),
     constants = require("./constants.js"),
-	signatureHelper = require("./signature.js");
+	signatureHelper = require("./signature.js"),
+	companyHelper = require("./company.js");
 
 // get valid transaction fee, if we need to get fee for block generator, use isGenerator = true
 function getTransactionFee(transaction, isGenerator) {
@@ -97,7 +98,8 @@ function getBytes(transaction) {
         case 3:
             switch (transaction.subtype) {
                 case 0:
-                    assetSize = this.asset.getBytes().length;
+					assetBytes = companyHelper.getBytes(transaction.asset.company);
+                    assetSize = assetBytes.length;
                     break;
             }
             break;
@@ -174,11 +176,6 @@ function getHash(transaction) {
 }
 
 function getFee(transaction, percent) {
-	/*
-	 return
-	 parseInt(transaction.amount / 100 * percent);
-	 */
-
 	switch (transaction.type) {
 		case 0:
 		case 1:

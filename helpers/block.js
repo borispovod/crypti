@@ -15,32 +15,37 @@ function getAddressByPublicKey(publicKey) {
 	return address;
 }
 
-function getBlock(raw, hex) {
+function getBlock(raw, fromString, hex) {
 	if (!raw.b_id) {
 		return null
 	} else {
+		var enconding = null;
+
+		if (fromString) {
+			enconding = "hex";
+		}
 		var block =  {
 			id: raw.b_id,
-			version: raw.b_version,
-			timestamp: raw.b_timestamp,
-			height: raw.b_height,
+			version: parseInt(raw.b_version),
+			timestamp: parseInt(raw.b_timestamp),
+			height: parseInt(raw.b_height),
 			previousBlock: raw.b_previousBlock,
-			numberOfRequests: raw.b_numberOfRequests,
-			numberOfTransactions: raw.b_numberOfTransactions,
-			numberOfConfirmations: raw.b_numberOfConfirmations,
-			totalAmount: raw.b_totalAmount,
-			totalFee: raw.b_totalFee,
-			payloadLength: raw.b_payloadLength,
-			requestsLength: raw.b_requestsLength,
-			confirmationsLength: raw.b_confirmationsLength,
-			payloadHash: new Buffer(raw.b_payloadHash),
-			generatorPublicKey: new Buffer(raw.b_generatorPublicKey),
-			generatorId : getAddressByPublicKey(new Buffer(raw.b_generatorPublicKey)),
-			generationSignature: new Buffer(raw.b_generationSignature),
-			blockSignature: new Buffer(raw.b_blockSignature),
-			previousFee : raw.b_previousFee,
-			nextFeeVolume : raw.b_nextFeeVolume,
-			feeVolume : raw.b_feeVolume
+			numberOfRequests: parseInt(raw.b_numberOfRequests),
+			numberOfTransactions: parseInt(raw.b_numberOfTransactions),
+			numberOfConfirmations: parseInt(raw.b_numberOfConfirmations),
+			totalAmount: parseInt(raw.b_totalAmount),
+			totalFee: parseInt(raw.b_totalFee),
+			payloadLength: parseInt(raw.b_payloadLength),
+			requestsLength: parseInt(raw.b_requestsLength),
+			confirmationsLength: parseInt(raw.b_confirmationsLength),
+			payloadHash: new Buffer(raw.b_payloadHash, enconding),
+			generatorPublicKey: new Buffer(raw.b_generatorPublicKey, enconding),
+			generatorId : getAddressByPublicKey(new Buffer(raw.b_generatorPublicKey, enconding)),
+			generationSignature: new Buffer(raw.b_generationSignature, enconding),
+			blockSignature: new Buffer(raw.b_blockSignature, enconding),
+			previousFee : parseFloat(raw.b_previousFee),
+			nextFeeVolume : parseInt(raw.b_nextFeeVolume),
+			feeVolume : parseInt(raw.b_feeVolume)
 		}
 
 		if (hex) {
@@ -54,17 +59,23 @@ function getBlock(raw, hex) {
 	}
 }
 
-function getCompanyComfirmation(raw){
+function getCompanyComfirmation(raw, fromString){
 	if (!raw.cc_id) {
 		return null
 	} else {
+		var enconding = null;
+
+		if (fromString) {
+			enconding = "hex";
+		}
+
 		return {
 			id: raw.cc_id,
 			blockId: raw.b_id,
 			companyId: raw.cc_companyId,
-			verified: raw.cc_verified,
-			timestamp: raw.cc_timestamp,
-			signature: raw.cc_signature
+			verified: parseInt(raw.cc_verified),
+			timestamp: parseInt(raw.cc_timestamp),
+			signature: new Buffer(raw.cc_signature, enconding)
 		}
 	}
 }
@@ -99,24 +110,30 @@ function getDelegate(raw, convertHex) {
 	}
 }
 
-function getTransaction(raw, convertHex) {
+function getTransaction(raw, fromString, convertHex) {
 	if (!raw.t_id) {
 		return null
 	} else {
+		var enconding = null;
+
+		if (fromString) {
+			enconding = "hex";
+		}
+
 		var tx =  {
 			id: raw.t_id,
 			blockId: raw.b_id,
-			type: raw.t_type,
-			subtype: raw.t_subtype,
-			timestamp: raw.t_timestamp,
-			senderPublicKey: new Buffer(raw.t_senderPublicKey),
+			type: parseInt(raw.t_type),
+			subtype: parseInt(raw.t_subtype),
+			timestamp: parseInt(raw.t_timestamp),
+			senderPublicKey: new Buffer(raw.t_senderPublicKey,enconding),
 			senderId: raw.t_senderId,
 			recipientId: raw.t_recipientId,
-			amount: raw.t_amount,
-			fee: raw.t_fee,
-			signature: new Buffer(raw.t_signature),
-			signSignature: raw.t_signSignature && new Buffer(raw.t_signSignature),
-			companyGeneratorPublicKey: raw.t_companyGeneratorPublicKey && new Buffer(raw.t_companyGeneratorPublicKey),
+			amount: parseInt(raw.t_amount),
+			fee: parseInt(raw.t_fee),
+			signature: new Buffer(raw.t_signature, enconding),
+			signSignature: raw.t_signSignature && new Buffer(raw.t_signSignature, enconding),
+			companyGeneratorPublicKey: raw.t_companyGeneratorPublicKey && new Buffer(raw.t_companyGeneratorPublicKey, enconding),
 			confirmations: raw.confirmations
 		}
 
@@ -131,18 +148,24 @@ function getTransaction(raw, convertHex) {
 	}
 }
 
-function getSignature(raw, hex) {
+function getSignature(raw, fromString, hex) {
 	if (!raw.s_id) {
 		return null
 	} else {
+		var enconding = null;
+
+		if (fromString) {
+			enconding = "hex";
+		}
+
 		var signature =  {
 			id: raw.s_id,
 			transactionId: raw.t_id,
-			timestamp: raw.s_timestamp,
-			publicKey: new Buffer(raw.s_publicKey),
-			generatorPublicKey: new Buffer(raw.s_generatorPublicKey),
-			signature: new Buffer(raw.s_signature),
-			generationSignature: new Buffer(raw.s_generationSignature)
+			timestamp: parseInt(raw.s_timestamp),
+			publicKey: new Buffer(raw.s_publicKey, enconding),
+			generatorPublicKey: new Buffer(raw.s_generatorPublicKey, enconding),
+			signature: new Buffer(raw.s_signature, enconding),
+			generationSignature: new Buffer(raw.s_generationSignature, enconding)
 		}
 
 		if (hex) {
@@ -155,10 +178,16 @@ function getSignature(raw, hex) {
 	}
 }
 
-function getCompany(raw) {
+function getCompany(raw, fromString) {
 	if (!raw.c_id) {
 		return null
 	} else {
+		var enconding = null;
+
+		if (fromString) {
+			enconding = "hex";
+		}
+
 		return {
 			id: raw.c_id,
 			transactionId: raw.t_id,
@@ -166,9 +195,9 @@ function getCompany(raw) {
 			description: raw.c_description,
 			domain: raw.c_domain,
 			email: raw.c_email,
-			timestamp: raw.c_timestamp,
-			generatorPublicKey: new Buffer(raw.c_generatorPublicKey),
-			signature: new Buffer(raw.c_signature)
+			timestamp: parseInt(raw.c_timestamp),
+			generatorPublicKey: new Buffer(raw.c_generatorPublicKey, enconding),
+			signature: new Buffer(raw.c_signature, enconding)
 		}
 	}
 }
@@ -233,8 +262,8 @@ function sign(secret, block) {
 	var keypair = secret;
 	var hash = getHash(block);
 
-	if (typeof(secret) == 'string') {;
-		var secretHash = crypto.createHash('sha256').update(secret, 'utf8').digest();
+	if (typeof(secret) == 'string') {
+		var secretHash = crypto.createHash('sha256').update(secret, 'hex').digest();
 		keypair = ed.MakeKeypair(secretHash);
 	}
 
