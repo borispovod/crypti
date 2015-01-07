@@ -137,7 +137,7 @@ Loader.prototype.loadBlocks = function (lastBlock, cb) {
 
 		if (modules.blocks.getWeight().lt(params.string(data.body.weight))) {
 			sync = true;
-			blocksToSync = data.body.height;
+			blocksToSync = params.int(data.body.height);
 
 			if (lastBlock.id != genesisBlock.blockId) { //have to found common block
 
