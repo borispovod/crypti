@@ -205,5 +205,32 @@ Peer.prototype.count = function (cb) {
 	})
 }
 
+Transport.prototype.onBlockchainReady = function () {
+	async.forEach(library.config.peers.list, function (peer, cb) {
+		var st = library.db.prepare("INSERT OR IGNORE INTO peers(ip, port, state, sharePort) VALUES($ip, $port, $state, $sharePort)");
+		st.bind({
+			$ip: ip.toLong(peer.ip),
+			$port: peer.port,
+			$state: 2,
+			$sharePort: Number(true)
+		});
+		st.run(cb);
+	}, function (err) {
+		if (err) {
+			library.logger.error('onBlockchainReady', err);
+		}
+
+		self.count(function (err, count) {
+			if (count) {
+				library.bus.message('peerReady');
+				library.logger.info('peer ready, stored ' + count);
+			} else {
+				library.logger.warn('peer list is empty');
+			}
+		});
+	});
+}
+
+
 //export
 module.exports = Peer;
