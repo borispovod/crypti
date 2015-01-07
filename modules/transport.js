@@ -199,10 +199,7 @@ function Transport(cb, scope) {
 
 	router.get('/weight', function (req, res) {
 		res.set(headers);
-		res.status(200).json({
-			weight: modules.blocks.getWeight().toString(),
-			height: modules.blocks.getLastBlock().height
-		});
+		res.status(200).json({weight: modules.blocks.getWeight().toString(), height: modules.blocks.getLastBlock().height});
 	});
 
 	router.use(function (req, res, next) {

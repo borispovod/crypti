@@ -186,7 +186,7 @@ Signatures.prototype.get = function (id, cb) {
 			return cb(err || "Can't find signature: " + id);
 		}
 
-		var signature = blockHelper.getSignature(row, true);
+		var signature = blockHelper.getSignature(row,false, true);
 		cb(null, signature);
 	});
 }

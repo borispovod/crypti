@@ -1,3 +1,8 @@
+var crypto = require('crypto'),
+	ed = require('ed25519'),
+	bignum = require('bignum'),
+	ByteBuffer = require("bytebuffer");
+
 function getBytes(confirmation) {
 	var bb = new ByteBuffer(8 + 1 + 4 + 64, true);
 
