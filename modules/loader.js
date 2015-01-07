@@ -86,6 +86,7 @@ Loader.prototype.run = function (scope) {
 					});
 				})
 			}, function (err) {
+				modules.dbLite.close();
 				if (err) {
 					library.logger.error('loadBlocksOffset', err);
 					if (err.block) {
