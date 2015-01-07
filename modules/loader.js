@@ -221,7 +221,6 @@ Loader.prototype.getUnconfirmedTransactions = function (cb) {
 			return cb()
 		}
 
-
 		var transactions = params.array(data.body.transactions);
 
 		async.forEach(transactions, function (transaction, cb) {
