@@ -71,7 +71,7 @@ d.run(function () {
 			});
 		},
 
-		app: ['config', 'logger', 'express', 'sequence', function (cb, scope) {
+		app: ['config', 'logger', 'express', function (cb, scope) {
 			var app = scope.express();
 			var path = require('path');
 			var bodyParser = require('body-parser');
@@ -165,7 +165,7 @@ d.run(function () {
 			dbLite.connect(config.db, cb);
 		}],
 
-		modules: ['dbLite', 'express', 'app', 'config', 'logger', 'bus', function (cb, scope) {
+		modules: ['express', 'app', 'config', 'logger', 'bus', 'sequence', 'dbLite', function (cb, scope) {
 			var tasks = {};
 			Object.keys(config.modules).forEach(function (name) {
 				tasks[name] = function (cb) {
