@@ -318,30 +318,6 @@ Transport.prototype.getFromPeer = function (peer, method, cb) {
 
 Transport.prototype.onBlockchainReady = function () {
 	apiReady = true;
-
-	async.forEach(library.config.peers.list, function (peer, cb) {
-		var st = library.db.prepare("INSERT OR IGNORE INTO peers(ip, port, state, sharePort) VALUES($ip, $port, $state, $sharePort)");
-		st.bind({
-			$ip: ip.toLong(peer.ip),
-			$port: peer.port,
-			$state: 2,
-			$sharePort: Number(true)
-		});
-		st.run(cb);
-	}, function (err) {
-		if (err) {
-			library.logger.error('onBlockchainReady', err);
-		}
-
-		modules.peer.count(function (err, count) {
-			if (count) {
-				library.bus.message('peerReady');
-				library.logger.info('peer ready, stored ' + count);
-			} else {
-				library.logger.warn('peer list is empty');
-			}
-		});
-	});
 }
 
 Transport.prototype.onUnconfirmedTransaction = function (transaction, broadcast) {
