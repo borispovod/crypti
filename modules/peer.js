@@ -205,7 +205,27 @@ Peer.prototype.count = function (cb) {
 	})
 }
 
-Transport.prototype.onBlockchainReady = function () {
+Peer.prototype.updatePeerList = function (cb) {
+	modules.transport.getFromRandomPeer('/list', function (err, data) {
+		if (err) {
+			return cb();
+		}
+
+		var peers = params.array(data.body.peers);
+		async.eachLimit(peers, 2, function (peer, cb) {
+			peer = self.parsePeer(peer);
+
+			if (ip.toLong("127.0.0.1") == peer.ip || peer.port == 0 || peer.port > 65535) {
+				setImmediate(cb);
+				return;
+			}
+
+			self.update(peer, cb);
+		}, cb);
+	});
+}
+
+Peer.prototype.onBlockchainReady = function () {
 	async.forEach(library.config.peers.list, function (peer, cb) {
 		var st = library.db.prepare("INSERT OR IGNORE INTO peers(ip, port, state, sharePort) VALUES($ip, $port, $state, $sharePort)");
 		st.bind({
@@ -222,7 +242,10 @@ Transport.prototype.onBlockchainReady = function () {
 
 		self.count(function (err, count) {
 			if (count) {
-				library.bus.message('peerReady');
+				self.updatePeerList(function (err) {
+					err && library.logger.error('updatePeerList', err);
+					library.bus.message('peerReady');
+				})
 				library.logger.info('peer ready, stored ' + count);
 			} else {
 				library.logger.warn('peer list is empty');
@@ -231,6 +254,21 @@ Transport.prototype.onBlockchainReady = function () {
 	});
 }
 
+Peer.prototype.onPeerReady = function () {
+	process.nextTick(function nextUpdatePeerList() {
+		self.updatePeerList(function (err) {
+			err && library.logger.error('updatePeerList timer', err);
+			setTimeout(nextUpdatePeerList, 60 * 1000);
+		})
+	});
+
+	process.nextTick(function banManager() {
+		self.banManager(function (err) {
+			err && library.logger.error('banManager timer', err);
+			setTimeout(banManager, 65 * 1000)
+		});
+	});
+}
 
 //export
 module.exports = Peer;
