@@ -12,8 +12,7 @@ var crypto = require('crypto'),
 	timeHelper = require('../helpers/time.js'),
 	requestHelper = require('../helpers/request.js'),
 	params = require('../helpers/params.js'),
-	arrayHelper = require('../helpers/array.js'),
-	clone = require('node-v8-clone').clone;
+	arrayHelper = require('../helpers/array.js');
 
 var Router = require('../helpers/router.js');
 var util = require('util');

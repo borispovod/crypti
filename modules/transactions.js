@@ -8,7 +8,7 @@ var transactionHelper = require('../helpers/transaction.js'),
 	blockHelper = require("../helpers/block.js"),
 	timeHelper = require("../helpers/time.js"),
 	params = require('../helpers/params.js'),
-	clone = require('node-v8-clone').clone;
+	extend = require('extend');
 
 var Router = require('../helpers/router.js');
 var async = require('async');
@@ -76,7 +76,7 @@ function Transactions(cb, scope) {
 			return res.json({success: false, error: "Provide id in url"});
 		}
 
-		var transaction = clone(self.getUnconfirmedTransaction(id), true);
+		var transaction = extend(self.getUnconfirmedTransaction(id), true);
 
 		if (!transaction) {
 			return res.json({success: false, error: "Transaction not found"});
@@ -100,7 +100,7 @@ function Transactions(cb, scope) {
 		if (senderPublicKey || address) {
 			for (var i = 0; i < transactions.length; i++) {
 				if (transactions[i].senderPublicKey.toString('hex') == senderPublicKey || transactions[i].recipientId == address) {
-					var transaction = clone(transactions[i], true);
+					var transaction = extend(transactions[i], true);
 
 					delete transaction.asset;
 					transaction.senderPublicKey = transaction.senderPublicKey.toString('hex');
@@ -112,7 +112,7 @@ function Transactions(cb, scope) {
 			}
 		} else {
 			for (var i = 0; i < transactions.length; i++) {
-				var transaction = clone(transactions[i], true);
+				var transaction = extend(transactions[i], true);
 
 				delete transaction.asset;
 				transaction.senderPublicKey = transaction.senderPublicKey.toString('hex');
