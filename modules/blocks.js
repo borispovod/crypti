@@ -371,7 +371,8 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 		't_id', 't_type', 't_subtype', 't_timestamp', 't_senderPublicKey', 't_senderId', 't_recipientId', 't_amount', 't_fee', 't_signature', 't_signSignature', 't_companyGeneratorPublicKey',
 		's_id', 's_timestamp', 's_publicKey', 's_generatorPublicKey', 's_signature', 's_generationSignature',
 		'c_id', 'c_name', 'c_description', 'c_domain', 'c_email', 'c_timestamp', 'c_generatorPublicKey', 'c_signature',
-		'cc_id', 'cc_companyId', 'cc_verified', 'cc_timestamp', 'cc_signature'
+		'cc_id', 'cc_companyId', 'cc_verified', 'cc_timestamp', 'cc_signature',
+		'd_username'
 	]
 	library.dbLite.query(
 		"SELECT " +
@@ -379,8 +380,8 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 		"t.id, t.type, t.subtype, t.timestamp, hex(t.senderPublicKey), t.senderId, t.recipientId, t.amount, t.fee, hex(t.signature), hex(t.signSignature), hex(c_t.generatorPublicKey), " +
 		"s.id, s.timestamp, hex(s.publicKey), hex(s.generatorPublicKey), hex(s.signature), hex(s.generationSignature), " +
 		"c.id, c.name, c.description, c.domain, c.email, c.timestamp, hex(c.generatorPublicKey), hex(c.signature), " +
-		"cc.id, cc.companyId, cc.verified, cc.timestamp, hex(cc.signature) " +
-		"d.username d_username " +
+		"cc.id, cc.companyId, cc.verified, cc.timestamp, hex(cc.signature), " +
+		"d.username " +
 		"FROM (select * from blocks limit $limit offset $offset) as b " +
 		"left outer join trs as t on t.blockId=b.id " +
 		"left outer join delegates as d on d.transactionId=t.id " +
