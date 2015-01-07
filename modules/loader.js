@@ -107,26 +107,6 @@ Loader.prototype.run = function (scope) {
 	})
 }
 
-Loader.prototype.updatePeerList = function (cb) {
-	modules.transport.getFromRandomPeer('/list', function (err, data) {
-		if (err) {
-			return cb();
-		}
-
-		var peers = params.array(data.body.peers);
-		async.eachLimit(peers, 2, function (peer, cb) {
-			peer = modules.peer.parsePeer(peer);
-
-			if (ip.toLong("127.0.0.1") == peer.ip || peer.port == 0 || peer.port > 65535) {
-				setImmediate(cb);
-				return;
-			}
-
-			modules.peer.update(peer, cb);
-		}, cb);
-	});
-}
-
 Loader.prototype.loadBlocks = function (lastBlock, cb) {
 	modules.transport.getFromRandomPeer('/weight', function (err, data) {
 		if (err) {
@@ -215,7 +195,7 @@ Loader.prototype.loadBlocks = function (lastBlock, cb) {
 	});
 }
 
-Loader.prototype.getUnconfirmedTransactions = function (cb) {
+Loader.prototype.loadUnconfirmedTransactions = function (cb) {
 	modules.transport.getFromRandomPeer('/transactions', function (err, data) {
 		if (err) {
 			return cb()
@@ -223,73 +203,34 @@ Loader.prototype.getUnconfirmedTransactions = function (cb) {
 
 		var transactions = params.array(data.body.transactions);
 
-		async.forEach(transactions, function (transaction, cb) {
-			modules.transactions.processUnconfirmedTransaction(modules.transactions.parseTransaction(transaction), true, cb);
-		}, cb);
+		for (var i = 0; i < transactions.length; i++){
+			transactions[i] = modules.transactions.parseTransaction(transactions[i]);
+		}
+		library.bus.message('receiveTransaction', transactions);
 	});
 }
 
 Loader.prototype.onPeerReady = function () {
-	function timersStart() {
-		process.nextTick(function nextLoadBlock() {
-			library.sequence.add(function (cb) {
-				var lastBlock = modules.blocks.getLastBlock();
-				self.loadBlocks(lastBlock, function (err) {
-					err && library.logger.error('loadBlocks timer', err);
-					sync = false;
-					blocksToSync = 0;
-					cb()
-					setTimeout(nextLoadBlock, 10 * 1000)
-				});
+	process.nextTick(function nextLoadBlock() {
+		library.sequence.add(function (cb) {
+			var lastBlock = modules.blocks.getLastBlock();
+			self.loadBlocks(lastBlock, function (err) {
+				err && library.logger.error('loadBlocks timer', err);
+				sync = false;
+				blocksToSync = 0;
+				cb()
+				setTimeout(nextLoadBlock, 10 * 1000)
 			});
 		});
+	});
 
-		process.nextTick(function banManager() {
-			modules.peer.banManager(function (err) {
-				err && library.logger.error('banManager timer', err);
-				setTimeout(banManager, 60 * 1000)
-			});
-		});
-
-		process.nextTick(function nextGetUnconfirmedTransactions() {
-			self.getUnconfirmedTransactions(function (err) {
-				err && library.logger.error('getUnconfirmedTransactions timer', err);
-				setTimeout(nextGetUnconfirmedTransactions, 15 * 1000)
-			})
-		});
-	}
-
-	process.nextTick(function nextUpdatePeerList() {
-		self.updatePeerList(function (err) {
-			err && library.logger.error('updatePeerList timer', err);
-			!timersStart.started && timersStart();
-			timersStart.started = true;
-			setTimeout(nextUpdatePeerList, 60 * 1000);
+	process.nextTick(function nextLoadUnconfirmedTransactions() {
+		self.loadUnconfirmedTransactions(function (err) {
+			err && library.logger.error('loadUnconfirmedTransactions timer', err);
+			setTimeout(nextLoadUnconfirmedTransactions, 15 * 1000)
 		})
 	});
-}
 
-Loader.prototype.onBlockchainReady = function () {
-	//modules.blocks.count(function (err, count) {
-	//	console.log('before', count);
-	//	library.db.all('select b.id, t.id from blocks b ' +
-	//	'left outer join trs t on t.blockId = b.id ' +
-	//	"where b.height >= (SELECT height FROM blocks where id = '4256538783591516150')", function (err, res) {
-	//		console.log('rows before', err, res ? res.length : 0)
-	//
-	//		modules.blocks.deleteById('4256538783591516150', function (err, res) {
-	//			console.log('ok', err, res);
-	//			modules.blocks.count(function (err, count) {
-	//				console.log('after', count);
-	//				library.db.all('select b.id, t.id from blocks b ' +
-	//				'left outer join trs t on t.blockId = b.id ' +
-	//				"where b.height >= (SELECT height FROM blocks where id = '4256538783591516150')", function (err, res) {
-	//					console.log('rows after', err, res ? res.length : 0)
-	//				})
-	//			});
-	//		})
-	//	})
-	//})
 }
 
 //export

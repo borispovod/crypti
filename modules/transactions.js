@@ -1,6 +1,7 @@
 var transactionHelper = require('../helpers/transaction.js'),
 	ed = require('ed25519'),
 	bignum = require('bignum'),
+	util = require('util'),
 	ByteBuffer = require("bytebuffer"),
 	crypto = require('crypto'),
 	genesisblock = require('../helpers/genesisblock.js'),
@@ -170,8 +171,8 @@ function Transactions(cb, scope) {
 			recipientId: recipientId,
 			senderPublicKey: account.publicKey,
 			timestamp: timeHelper.getNow(),
-			asset : {
-				votes : votes
+			asset: {
+				votes: votes
 			}
 		};
 
@@ -777,8 +778,14 @@ Transactions.prototype.verifySecondSignature = function (transaction, publicKey)
 
 	return res;
 }
-Transactions.prototype.onReceiveTransaction = function(transaction){
-	self.processUnconfirmedTransaction(transaction, true);
+Transactions.prototype.onReceiveTransaction = function (transactions) {
+	if (!util.isArray(transactions)) {
+		transactions = [transactions];
+	}
+
+	async.forEach(transactions, function (transaction, cb) {
+		self.processUnconfirmedTransaction(transaction, true, cb);
+	}, cb);
 }
 
 

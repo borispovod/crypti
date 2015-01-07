@@ -51,28 +51,6 @@ function Server(cb, scope) {
 //public
 Server.prototype.run = function (scope) {
 	modules = scope;
-
-	//library.app.get("*", function (req, res) {
-	//	return res.redirect('/');
-	//});
-}
-
-Server.prototype.onBlockchainReady = function () {
-	//for (var i = 0; i < library.app._router.stack.length; i++) {
-	//	var route = library.app._router.stack[i];
-	//
-	//	if (route.route && route.route.path == '*') {
-	//		library.app._router.stack.splice(i, 1);
-	//		break;
-	//	}
-	//}
-}
-
-
-Server.prototype.onPeerReady = function () {
-	//library.app.get("*", function (req, res) {
-	//	return res.redirect('/');
-	//});
 }
 
 //export
