@@ -153,12 +153,18 @@ d.run(function () {
 			cb(null, new bus)
 		},
 
+
 		db: function (cb) {
 			var sqlite3 = require('./helpers/db.js');
 			sqlite3.connect(config.db, cb);
 		},
 
-		modules: ['db', 'express', 'app', 'config', 'logger', 'bus', function (cb, scope) {
+		dbLite : ['db', function (cb) {
+			var dbLite = require('./helpers/dbLite.js');
+			dbLite.connect(config.db, cb);
+		}],
+
+		modules: ['dbLite', 'express', 'app', 'config', 'logger', 'bus', function (cb, scope) {
 			var tasks = {};
 			Object.keys(config.modules).forEach(function (name) {
 				tasks[name] = function (cb) {
@@ -168,7 +174,7 @@ d.run(function () {
 					});
 					d.run(function () {
 						logger.debug('loading module', name)
-						var Klass = new require(config.modules[name]);
+						var Klass = require(config.modules[name]);
 						var obj = new Klass(cb, scope)
 						modules.push(obj);
 					});

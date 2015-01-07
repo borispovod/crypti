@@ -73,7 +73,7 @@ Companies.prototype.find = function (filter, cb) {
 			return cb(err);
 		}
 
-		var company = blockHelper.getCompany(row);
+		var company = blockHelper.getCompany(row, false, true);
 		cb(null, company);
 	});
 }
