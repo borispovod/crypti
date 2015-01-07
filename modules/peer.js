@@ -38,11 +38,12 @@ function Peer(cb, scope) {
 			os: os,
 			version: version,
 			limit: limit,
-			shared: shared,
+			sharePort: shared,
 			orderBy: orderBy,
 			offset: offset
 		}, function (err, peers) {
 			if (err) {
+				library.logger.error(err.toString());
 				return res.json({success: false, error: "Peers not found"});
 			}
 			res.json({success: true, peers: peers});
@@ -100,8 +101,24 @@ Peer.prototype.list = function (limit, cb) {
 Peer.prototype.filter = function (filter, cb) {
 	var limit = filter.limit || 100;
 	var offset = filter.offset;
+	var orderBy = filter.orderBy;
+
 	delete filter.limit;
 	delete filter.offset;
+	delete filter.orderBy;
+
+	if (orderBy) {
+		var sort = orderBy.split(':');
+		sortBy = sort[0].replace(/[^\w\s]/gi, '');
+		sortBy = "t." + sortBy;
+		if (sort.length == 2) {
+			sortMethod = sort[1] == 'desc' ? 'desc' : 'asc'
+		}
+	}
+
+	if (filter.limit > 1000) {
+		return cb('Maximum of limit is 1000');
+	}
 
 	var where = [];
 	var params = {};
@@ -110,10 +127,11 @@ Peer.prototype.filter = function (filter, cb) {
 		params['$' + key] = filter[key];
 	});
 
+
 	params['$limit'] = limit;
 	offset && (params['$offset'] = offset);
 
-	library.db.all("select ip, port, state, os, sharePort, version from peers" + (where.length ? (' where ' + where.join(' and ')) : '') + ' limit $limit' + (offset ? ' offset $offset ' : ''), params, cb);
+	library.db.all("select ip, port, state, os, sharePort, version from peers" + (where.length ? (' where ' + where.join(' or ')) : '') +  (orderBy ? 'order by ' + sortBy + ' ' + sortMethod : '')  + ' limit $limit' + (offset ? ' offset $offset ' : ''), params, cb);
 }
 
 Peer.prototype.state = function (ip, port, state, timeoutSeconds, cb) {
