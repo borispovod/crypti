@@ -23,7 +23,7 @@
         "blackList": []
     },
     "forging": {
-        "secret": ""
+        "secret": "F3DP835EBuZMAhiuYn2AzhJh1lz8glLolghCMD4X8lRh5v2GlcBWws7plIDUuPjf3GUTOnyYEfXQx7cH"
     },
 	"loading" : {
 		"loadPerIteration" : 5000
