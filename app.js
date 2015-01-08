@@ -54,14 +54,14 @@ d.run(function () {
 		sequence: function (cb) {
 
 			var sequence = [];
-			process.nextTick(function sequenceManager() {
+			process.nextTick(function nextSequenceTick() {
 				var worker = sequence.shift();
 				if (worker && typeof(worker) == 'function') {
 					worker(function () {
-						setTimeout(sequenceManager, 1000);
+						setTimeout(nextSequenceTick, 1000);
 					})
 				} else {
-					setTimeout(sequenceManager, 1000);
+					setTimeout(nextSequenceTick, 1000);
 				}
 			});
 			cb(null, {
@@ -188,8 +188,8 @@ d.run(function () {
 		ready: ['modules', function (cb, scope) {
 			// need to load it as it written in config: server, accounts and etc.
 			Object.keys(scope.modules).forEach(function (name) {
-				if (typeof(scope.modules[name].run) == 'function') {
-					scope.modules[name].run(scope.modules);
+				if (typeof(scope.modules[name].onBind) == 'function') {
+					scope.modules[name].onBind(scope.modules);
 				}
 			});
 			cb();

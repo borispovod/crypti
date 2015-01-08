@@ -1,14 +1,14 @@
-//require
-var Router = require('../helpers/router.js');
-var async = require('async');
-var request = require('request');
-var ip = require('ip');
-var util = require('util');
-var params = require('../helpers/params.js');
-var normalize = require('../helpers/normalize.js');
+var Router = require('../helpers/router.js'),
+	async = require('async'),
+	request = require('request'),
+	ip = require('ip'),
+	util = require('util'),
+	params = require('../helpers/params.js'),
+	normalize = require('../helpers/normalize.js');
 
-//private
+//private fields
 var modules, library, self;
+
 var headers = {};
 var apiReady = false;
 
@@ -17,6 +17,13 @@ function Transport(cb, scope) {
 	library = scope;
 	self = this;
 
+	attachApi();
+
+	setImmediate(cb, null, self);
+}
+
+//private methods
+function attachApi() {
 	var router = new Router();
 
 	router.use(function (req, res, next) {
@@ -218,20 +225,6 @@ function Transport(cb, scope) {
 		if (!err) return next();
 		res.status(500).send({success: false, error: err});
 	});
-
-	cb(null, self);
-}
-
-//public
-Transport.prototype.run = function (scope) {
-	modules = scope;
-
-	headers = {
-		os: modules.system.getOS(),
-		version: modules.system.getVersion(),
-		port: modules.system.getPort(),
-		'share-port': modules.system.getSharePort()
-	}
 }
 
 function _request(peer, api, method, data, cb) {
@@ -282,6 +275,7 @@ function _request(peer, api, method, data, cb) {
 	});
 }
 
+//public methods
 Transport.prototype.broadcast = function (peersCount, method, data, cb) {
 	peersCount = peersCount || 1;
 	if (!cb && (typeof(data) == 'function')) {
@@ -319,6 +313,18 @@ Transport.prototype.getFromPeer = function (peer, method, cb) {
 	_request(peer, method, "GET", undefined, function (err, body) {
 		cb(err, {body: body, peer: peer});
 	});
+}
+
+//events
+Transport.prototype.onBind = function (scope) {
+	modules = scope;
+
+	headers = {
+		os: modules.system.getOS(),
+		version: modules.system.getVersion(),
+		port: modules.system.getPort(),
+		'share-port': modules.system.getSharePort()
+	}
 }
 
 Transport.prototype.onBlockchainReady = function () {

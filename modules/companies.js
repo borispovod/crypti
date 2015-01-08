@@ -5,17 +5,25 @@ var transactionHelper = require('../helpers/transaction.js'),
 	crypto = require('crypto'),
 	genesisblock = require('../helpers/genesisblock.js'),
 	blockHelper = require("../helpers/block.js"),
-	params = require('../helpers/params.js');
-var Router = require('../helpers/router.js');
-var async = require('async');
+	params = require('../helpers/params.js'),
+	Router = require('../helpers/router.js'),
+	async = require('async');
 
-// private
+// private fields
 var modules, library, self;
 
+//constructor
 function Companies(cb, scope) {
 	library = scope;
 	self = this;
 
+	attachApi();
+
+	setImmediate(cb, null, self);
+}
+
+//private methods
+function attachApi() {
 	var router = new Router();
 
 	router.use(function (req, res, next) {
@@ -47,10 +55,9 @@ function Companies(cb, scope) {
 		if (!err) return next();
 		res.status(500).send({success: false, error: err});
 	});
-
-	setImmediate(cb, null, self);
 }
 
+//public methods
 Companies.prototype.find = function (filter, cb) {
 	var params = {}, fields = [];
 	if (filter.id) {
@@ -69,7 +76,7 @@ Companies.prototype.find = function (filter, cb) {
 	stmt.bind(params);
 
 	stmt.get(function (err, row) {
-		if (err){
+		if (err) {
 			return cb(err);
 		}
 
@@ -78,8 +85,10 @@ Companies.prototype.find = function (filter, cb) {
 	});
 }
 
-Companies.prototype.run = function (scope) {
+//events
+Companies.prototype.onBind = function (scope) {
 	modules = scope;
 }
 
+//export
 module.exports = Companies;

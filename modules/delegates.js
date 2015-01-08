@@ -3,22 +3,28 @@ var crypto = require('crypto'),
 	ed = require('ed25519'),
 	params = require('../helpers/params.js'),
 	timeHelper = require('../helpers/time.js'),
-	shuffle = require('knuth-shuffle').knuthShuffle;
+	shuffle = require('knuth-shuffle').knuthShuffle,
+	Router = require('../helpers/router.js');
 
-var Router = require('../helpers/router.js');
-
-//private
+//private fields
 var modules, library, self;
-var delegates, unconfirmedDelegates;
+
+var delegates = {};
+var unconfirmedDelegates = {};
 var apiReady = false;
 
-//public
+//constructor
 function Delegates(cb, scope) {
-	self = this;
 	library = scope;
-	delegates = {};
-	unconfirmedDelegates = {};
+	self = this;
 
+	attachApi();
+
+	setImmediate(cb, null, self);
+}
+
+//private methods
+function attachApi() {
 	var router = new Router();
 
 	router.use(function (req, res, next) {
@@ -98,15 +104,44 @@ function Delegates(cb, scope) {
 		library.logger.error('/api/delegates', err)
 		res.status(500).send({success: false, error: err});
 	});
-
-	setImmediate(cb, null, self);
 }
 
+function getShuffleVotes () {
+	var delegatesArray = arrayHelper.hash2array(delegates);
+	delegatesArray = delegatesArray.sort(function compare(a, b) {
+		return (b.vote || 0) - (a.vote || 0);
+	})
+	var justKeys = delegatesArray.map(function (v) {
+		return v.publicKey;
+	});
+	var final = justKeys.slice(0, 33);
+	final.forEach(function (publicKey) {
+		if (delegates[publicKey]) {
+			delegates[publicKey].vote = 0;
+		}
+	})
+	return shuffle(final);
+}
+
+function forAllVote () {
+	return [];
+}
+
+function addUnconfirmedDelegate (delegate) {
+	if (self.getUnconfirmedDelegate(delegate.publicKey)) {
+		return false
+	}
+
+	unconfirmedDelegates[delegate.publicKey] = delegate;
+	return true;
+}
+
+//public methods
 Delegates.prototype.getVotesByType = function (votingType) {
 	if (votingType == 1) {
-		return modules.delegates.forAllVote();
+		return forAllVote();
 	} else if (votingType == 2) {
-		return modules.delegates.getShuffleVotes();
+		return getShuffleVotes();
 	} else {
 		return null;
 	}
@@ -142,21 +177,8 @@ Delegates.prototype.getDelegate = function (publicKey) {
 	return delegates[publicKey];
 }
 
-Delegates.prototype.forAllVote = function () {
-	return [];
-}
-
 Delegates.prototype.getUnconfirmedDelegate = function (publicKey) {
 	return unconfirmedDelegates[publicKey];
-}
-
-Delegates.prototype.addUnconfirmedDelegate = function (delegate) {
-	if (self.getUnconfirmedDelegate(delegate.publicKey)) {
-		return false
-	}
-
-	unconfirmedDelegates[delegate.publicKey] = delegate;
-	return true;
 }
 
 Delegates.prototype.removeUnconfirmedDelegate = function (publicKey) {
@@ -165,28 +187,12 @@ Delegates.prototype.removeUnconfirmedDelegate = function (publicKey) {
 	}
 }
 
-Delegates.prototype.getShuffleVotes = function () {
-	var delegatesArray = arrayHelper.hash2array(delegates);
-	delegatesArray = delegatesArray.sort(function compare(a, b) {
-		return (b.vote || 0) - (a.vote || 0);
-	})
-	var justKeys = delegatesArray.map(function (v) {
-		return v.publicKey;
-	});
-	var final = justKeys.slice(0, 33);
-	final.forEach(function (publicKey) {
-		if (delegates[publicKey]) {
-			delegates[publicKey].vote = 0;
-		}
-	})
-	return shuffle(final);
-}
-
-Delegates.prototype.save2Memory = function (delegate) {
+Delegates.prototype.cache = function (delegate) {
 	delegates[delegate.publicKey] = delegate;
 }
 
-Delegates.prototype.run = function (scope) {
+//events
+Delegates.prototype.onBind = function (scope) {
 	modules = scope;
 }
 
@@ -201,15 +207,15 @@ Delegates.prototype.onUnconfirmedTransaction = function (transaction) {
 			username: transaction.asset.delegate.username,
 			transactionId: transaction.id
 		};
-		self.addUnconfirmedDelegate(delegate);
+		addUnconfirmedDelegate(delegate);
 	}
 }
 
 Delegates.prototype.onNewBlock = function (block) {
 	for (var i = 0; i < block.transactions.length; i++) {
 		var transaction = block.transactions[i];
-		if (transaction.asset.delegate) {
-			self.save2Memory({
+		if (transaction.type == 4) {
+			self.cache({
 				publicKey: transaction.senderPublicKey,
 				username: transaction.asset.delegate.username,
 				transactionId: transaction.id
@@ -218,4 +224,5 @@ Delegates.prototype.onNewBlock = function (block) {
 	}
 }
 
+//export
 module.exports = Delegates;

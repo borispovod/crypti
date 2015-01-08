@@ -1,13 +1,9 @@
 var os = require("os");
 
-//private
+//private fields
 var modules, library, self;
 
-var version,
-    osName,
-    port,
-	sharePort;
-
+var version, osName, port, sharePort;
 
 //constructor
 function System(cb, scope) {
@@ -19,13 +15,10 @@ function System(cb, scope) {
 	sharePort = Number(!!library.config.sharePort);
     osName = os.platform() + os.release();
 
-	cb(null, this);
-}
-//public
-System.prototype.run = function (scope) {
-	modules = scope;
+	setImmediate(cb, null, self);
 }
 
+//public methods
 System.prototype.getOS = function () {
     return osName;
 }
@@ -40,6 +33,11 @@ System.prototype.getPort = function () {
 
 System.prototype.getSharePort = function(){
 	return sharePort;
+}
+
+//events
+System.prototype.onBind = function (scope) {
+	modules = scope;
 }
 
 //export
