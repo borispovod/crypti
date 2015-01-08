@@ -51,9 +51,9 @@ function Forger(cb, scope) {
 		router.get('/', function (req, res) {
 
 			if (!forgingStarted) {
-				return res.status(200).json({success: true, enabled: false});
+				return res.status(200).json({success: true, enabled: false });
 			} else {
-				return res.json({success: true, enabled: true});
+				return res.json({success: true, enabled: true, address : modules.accounts.getAddressByPublicKey(keypair.publicKey)});
 			}
 		})
 	}
