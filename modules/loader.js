@@ -1,23 +1,32 @@
-var async = require('async');
-var Router = require('../helpers/router.js');
-var util = require('util');
-var genesisBlock = require("../helpers/genesisblock.js");
-var ip = require("ip");
-var params = require('../helpers/params.js');
-var normalize = require('../helpers/normalize.js');
+var async = require('async'),
+	Router = require('../helpers/router.js'),
+	util = require('util'),
+	genesisBlock = require("../helpers/genesisblock.js"),
+	ip = require("ip"),
+	params = require('../helpers/params.js'),
+	normalize = require('../helpers/normalize.js');
 
-//private
-var modules, library, self, loaded, sync, loadingLastBlock = genesisBlock;
+//private fields
+var modules, library, self;
+
+var loaded = false
+var sync = false;
+var loadingLastBlock = genesisBlock;
 var total = 0;
 var blocksToSync = 0;
 
 //constructor
 function Loader(cb, scope) {
 	library = scope;
-	loaded = false;
-	sync = false;
 	self = this;
 
+	attachApi();
+
+	setImmediate(cb, null, self);
+}
+
+//private methods
+function attachApi() {
 	var router = new Router();
 
 	router.get('/status', function (req, res) {
@@ -44,71 +53,9 @@ function Loader(cb, scope) {
 		library.logger.error('/api/loader', err)
 		res.status(500).send({success: false, error: err});
 	});
-
-	setImmediate(cb, null, self);
 }
 
-Loader.prototype.loaded = function () {
-	return loaded;
-}
-
-Loader.prototype.syncing = function () {
-	return sync;
-}
-
-//public
-Loader.prototype.run = function (scope) {
-	modules = scope;
-
-	var offset = 0, limit = library.config.loading.loadPerIteration;
-
-	modules.blocks.count(function (err, count) {
-		if (err) {
-			return library.logger.error('blocks.count', err)
-		}
-
-		total = count;
-		library.logger.info('blocks ' + count);
-		async.until(
-			function () {
-				return count < offset
-			}, function (cb) {
-				library.logger.info('current ' + offset);
-				process.nextTick(function () {
-					modules.blocks.loadBlocksOffset(limit, offset, function (err, lastBlockOffset) {
-						if (err) {
-							return cb(err);
-						}
-
-						offset = offset + limit;
-						loadingLastBlock = lastBlockOffset;
-
-						cb()
-					});
-				})
-			}, function (err) {
-				library.dbLite.close();
-				if (err) {
-					library.logger.error('loadBlocksOffset', err);
-					if (err.block) {
-						library.logger.error('blockchain failed at ', err.block.height)
-						modules.blocks.deleteById(err.block.id, function (err, res) {
-							loaded = true;
-							library.logger.error('blockchain clipped');
-							library.bus.message('blockchainReady');
-						})
-					}
-				} else {
-					loaded = true;
-					library.logger.info('blockchain ready');
-					library.bus.message('blockchainReady');
-				}
-			}
-		)
-	})
-}
-
-Loader.prototype.loadBlocks = function (lastBlock, cb) {
+function loadBlocks(lastBlock, cb) {
 	modules.transport.getFromRandomPeer('/weight', function (err, data) {
 		if (err) {
 			return cb();
@@ -196,7 +143,7 @@ Loader.prototype.loadBlocks = function (lastBlock, cb) {
 	});
 }
 
-Loader.prototype.loadUnconfirmedTransactions = function (cb) {
+function loadUnconfirmedTransactions(cb) {
 	modules.transport.getFromRandomPeer('/transactions', function (err, data) {
 		if (err) {
 			return cb()
@@ -204,7 +151,7 @@ Loader.prototype.loadUnconfirmedTransactions = function (cb) {
 
 		var transactions = params.array(data.body.transactions);
 
-		for (var i = 0; i < transactions.length; i++){
+		for (var i = 0; i < transactions.length; i++) {
 			transactions[i] = normalize.transaction(transactions[i]);
 		}
 		library.bus.message('receiveTransaction', transactions);
@@ -212,11 +159,22 @@ Loader.prototype.loadUnconfirmedTransactions = function (cb) {
 	});
 }
 
+//public methods
+Loader.prototype.loaded = function () {
+	return loaded;
+}
+
+Loader.prototype.syncing = function () {
+	return sync;
+}
+
+//events
 Loader.prototype.onPeerReady = function () {
+	debugger;
 	process.nextTick(function nextLoadBlock() {
 		library.sequence.add(function (cb) {
 			var lastBlock = modules.blocks.getLastBlock();
-			self.loadBlocks(lastBlock, function (err) {
+			loadBlocks(lastBlock, function (err) {
 				err && library.logger.error('loadBlocks timer', err);
 				sync = false;
 				blocksToSync = 0;
@@ -227,12 +185,63 @@ Loader.prototype.onPeerReady = function () {
 	});
 
 	process.nextTick(function nextLoadUnconfirmedTransactions() {
-		self.loadUnconfirmedTransactions(function (err) {
+		loadUnconfirmedTransactions(function (err) {
 			err && library.logger.error('loadUnconfirmedTransactions timer', err);
 			setTimeout(nextLoadUnconfirmedTransactions, 15 * 1000)
 		})
 	});
 
+}
+
+Loader.prototype.onBind = function (scope) {
+	modules = scope;
+
+	var offset = 0, limit = library.config.loading.loadPerIteration;
+
+	modules.blocks.count(function (err, count) {
+		if (err) {
+			return library.logger.error('blocks.count', err)
+		}
+
+		total = count;
+		library.logger.info('blocks ' + count);
+		async.until(
+			function () {
+				return count < offset
+			}, function (cb) {
+				library.logger.info('current ' + offset);
+				process.nextTick(function () {
+					modules.blocks.loadBlocksOffset(limit, offset, function (err, lastBlockOffset) {
+						if (err) {
+							return cb(err);
+						}
+
+						offset = offset + limit;
+						loadingLastBlock = lastBlockOffset;
+
+						cb()
+					});
+				})
+			}, function (err) {
+				library.dbLite.close();
+				if (err) {
+					library.logger.error('loadBlocksOffset', err);
+					if (err.block) {
+						library.logger.error('blockchain failed at ', err.block.height)
+						modules.blocks.deleteById(err.block.id, function (err, res) {
+							loaded = true;
+							library.logger.error('blockchain clipped');
+							library.bus.message('blockchainReady');
+						})
+					}
+				} else {
+					loaded = true;
+					library.logger.info('blockchain ready');
+					library.bus.message('blockchainReady');
+				}
+			}
+		)
+	})
 }
 
 //export

@@ -9,21 +9,28 @@ var transactionHelper = require('../helpers/transaction.js'),
 	blockHelper = require("../helpers/block.js"),
 	timeHelper = require("../helpers/time.js"),
 	params = require('../helpers/params.js'),
-	extend = require('extend');
+	extend = require('extend'),
+	Router = require('../helpers/router.js'),
+	async = require('async');
 
-var Router = require('../helpers/router.js');
-var async = require('async');
-
-// private
+// private fields
 var modules, library, self;
-var unconfirmedTransactions, doubleSpendingTransactions;
 
+var unconfirmedTransactions = {};
+var doubleSpendingTransactions = {};
+
+//constructor
 function Transactions(cb, scope) {
 	library = scope;
-	unconfirmedTransactions = {};
-	doubleSpendingTransactions = {};
 	self = this;
 
+	attachApi();
+
+	setImmediate(cb, null, self);
+}
+
+//private methods
+function attachApi() {
 	var router = new Router();
 
 	router.use(function (req, res, next) {
@@ -39,7 +46,7 @@ function Transactions(cb, scope) {
 		var senderPublicKey = params.buffer(req.query.senderPublicKey, 'hex');
 		var recipientId = params.string(req.query.recipientId)
 
-		self.list({
+		list({
 			blockId: blockId,
 			senderPublicKey: senderPublicKey.length ? senderPublicKey : null,
 			recipientId: recipientId,
@@ -62,7 +69,7 @@ function Transactions(cb, scope) {
 			return res.json({success: false, error: "Provide id in url"});
 		}
 
-		self.get(id, true, function (err, transaction) {
+		getById(id, true, function (err, transaction) {
 			if (!transaction || err) {
 				return res.json({success: false, error: "Transaction not found"});
 			}
@@ -158,7 +165,7 @@ function Transactions(cb, scope) {
 			return res.json({success: false, error: "Open account to make transaction"});
 		}
 
-		var votes = self.getVotesByType(votingType);
+		var votes = modules.delegates.getVotesByType(votingType);
 
 		if (!votes) {
 			return res.json({success: false, error: "Invalid voting type"});
@@ -205,25 +212,9 @@ function Transactions(cb, scope) {
 		if (!err) return next();
 		res.status(500).send({success: false, error: err});
 	});
-
-	setImmediate(cb, null, self);
 }
 
-Transactions.prototype.sign = function (secret, transaction) {
-	var hash = transactionHelper.getHash(transaction);
-	var passHash = crypto.createHash('sha256').update(secret, 'utf8').digest();
-	var keypair = ed.MakeKeypair(passHash);
-	transaction.signature = ed.Sign(hash, keypair);
-}
-
-Transactions.prototype.secondSign = function (secret, transaction) {
-	var hash = transactionHelper.getHash(transaction);
-	var passHash = crypto.createHash('sha256').update(secret, 'utf8').digest();
-	var keypair = ed.MakeKeypair(passHash);
-	transaction.signSignature = ed.Sign(hash, keypair);
-}
-
-Transactions.prototype.list = function (filter, cb) {
+function list (filter, cb) {
 	var params = {}, fields = [];
 	if (filter.blockId) {
 		fields.push('blockId = $blockId')
@@ -280,7 +271,7 @@ Transactions.prototype.list = function (filter, cb) {
 	})
 }
 
-Transactions.prototype.get = function (id, hex, cb) {
+function getById (id, hex, cb) {
 	var stmt = library.db.prepare("select t.id t_id, t.blockId t_blockId, t.type t_type, t.subtype t_subtype, t.timestamp t_timestamp, t.senderPublicKey t_senderPublicKey, t.senderId t_senderId, t.recipientId t_recipientId, t.amount t_amount, t.fee t_fee, t.signature t_signature, t.signSignature t_signSignature, c_t.generatorPublicKey t_companyGeneratorPublicKey, (select max(height) + 1 from blocks) - b.height as confirmations " +
 	"from trs t " +
 	"inner join blocks b on t.blockId = b.id " +
@@ -299,6 +290,21 @@ Transactions.prototype.get = function (id, hex, cb) {
 		var transacton = blockHelper.getTransaction(row, false, hex);
 		cb(null, transacton);
 	});
+}
+
+//public methods
+Transactions.prototype.sign = function (secret, transaction) {
+	var hash = transactionHelper.getHash(transaction);
+	var passHash = crypto.createHash('sha256').update(secret, 'utf8').digest();
+	var keypair = ed.MakeKeypair(passHash);
+	transaction.signature = ed.Sign(hash, keypair);
+}
+
+Transactions.prototype.secondSign = function (secret, transaction) {
+	var hash = transactionHelper.getHash(transaction);
+	var passHash = crypto.createHash('sha256').update(secret, 'utf8').digest();
+	var keypair = ed.MakeKeypair(passHash);
+	transaction.signSignature = ed.Sign(hash, keypair);
 }
 
 Transactions.prototype.getUnconfirmedTransaction = function (id) {
@@ -744,6 +750,7 @@ Transactions.prototype.verifySecondSignature = function (transaction, publicKey)
 	return res;
 }
 
+//events
 Transactions.prototype.onReceiveTransaction = function (transactions) {
 	if (!util.isArray(transactions)) {
 		transactions = [transactions];
@@ -754,8 +761,9 @@ Transactions.prototype.onReceiveTransaction = function (transactions) {
 	});
 }
 
-Transactions.prototype.run = function (scope) {
+Transactions.prototype.onBind = function (scope) {
 	modules = scope;
 }
 
+//export
 module.exports = Transactions;

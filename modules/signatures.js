@@ -8,18 +8,25 @@ var ed = require('ed25519'),
 	timeHelper = require("../helpers/time.js"),
 	signatureHelper = require("../helpers/signature.js"),
 	transactionHelper = require("../helpers/transaction.js"),
-	params = require('../helpers/params.js')
+	params = require('../helpers/params.js'),
+	Router = require('../helpers/router.js'),
+	async = require('async');
 
-var Router = require('../helpers/router.js');
-var async = require('async');
-
-// private
+// private fields
 var modules, library, self;
 
+//constructor
 function Signatures(cb, scope) {
 	library = scope;
 	self = this;
 
+	attachApi();
+
+	setImmediate(cb, null, self);
+}
+
+//private methods
+function attachApi() {
 	var router = new Router();
 
 	router.use(function (req, res, next) {
@@ -47,7 +54,7 @@ function Signatures(cb, scope) {
 		var secret = params.string(req.body.secret),
 			secondSecret = params.string(req.body.secondSecret),
 			publicKey = params.buffer(req.body.publicKey, 'hex');
-			votingType = params.int(req.body.votingType);
+		votingType = params.int(req.body.votingType);
 
 		var hash = crypto.createHash('sha256').update(secret, 'utf8').digest();
 		var keypair = ed.MakeKeypair(hash);
@@ -80,7 +87,7 @@ function Signatures(cb, scope) {
 			return res.json({success: false, error: "Second signature already enabled"});
 		}
 
-		var votes = self.getVotesByType();
+		var votes = modules.delegates.getVotesByType();
 
 		if (!votes) {
 			return res.json({success: false, error: "Invalid voting type"});
@@ -96,7 +103,7 @@ function Signatures(cb, scope) {
 			timestamp: timeHelper.getNow(),
 			asset: {
 				signature: signature,
-				votes : votes
+				votes: votes
 			}
 		};
 
@@ -122,11 +129,9 @@ function Signatures(cb, scope) {
 		if (!err) return next();
 		res.status(500).send({success: false, error: err});
 	});
-
-	setImmediate(cb, null, self);
 }
 
-Signatures.prototype.newSignature = function (secret, secondSecret) {
+function newSignature(secret, secondSecret) {
 	var hash1 = crypto.createHash('sha256').update(secret, 'utf8').digest();
 	var keypair1 = ed.MakeKeypair(hash1);
 
@@ -139,34 +144,35 @@ Signatures.prototype.newSignature = function (secret, secondSecret) {
 		generatorPublicKey: keypair1.publicKey
 	}
 
-	signature.signature = this.sign(signature, secondSecret);
-	signature.generationSignature = this.secondSignature(signature, secret);
+	signature.signature = sign(signature, secondSecret);
+	signature.generationSignature = secondSignature(signature, secret);
 	signature.id = signatureHelper.getId(signature);
 
 	return signature;
 }
 
-Signatures.prototype.sign = function (signature, secondSecret) {
+function sign(signature, secondSecret) {
 	var hash = signatureHelper.getHash(signature);
 	var passHash = crypto.createHash('sha256').update(secondSecret, 'utf8').digest();
 	var keypair = ed.MakeKeypair(passHash);
 	return ed.Sign(hash, keypair);
 }
 
-Signatures.prototype.secondSignature = function (signature, secret) {
+function secondSignature(signature, secret) {
 	var hash = signatureHelper.getHash(signature);
 	var passHash = crypto.createHash('sha256').update(secret, 'utf8').digest();
 	var keypair = ed.MakeKeypair(passHash);
 	return ed.Sign(hash, keypair);
 }
 
+//public methods
 Signatures.prototype.get = function (id, cb) {
 	var stmt = library.db.prepare("select s.id s_id, s.transactionId s_transactionId, s.timestamp s_timestamp, s.publicKey s_publicKey, s.generatorPublicKey s_generatorPublicKey, s.signature s_signature, s.generationSignature s_generationSignature " +
 	"from signatures s " +
 	"where s.id = $id");
 
 	stmt.bind({
-		$id : id
+		$id: id
 	});
 
 	stmt.get(function (err, row) {
@@ -174,12 +180,13 @@ Signatures.prototype.get = function (id, cb) {
 			return cb(err || "Can't find signature: " + id);
 		}
 
-		var signature = blockHelper.getSignature(row,false, true);
+		var signature = blockHelper.getSignature(row, false, true);
 		cb(null, signature);
 	});
 }
 
-Signatures.prototype.run = function (scope) {
+//events
+Signatures.prototype.onBind = function (scope) {
 	modules = scope;
 }
 

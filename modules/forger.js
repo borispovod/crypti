@@ -4,18 +4,27 @@ var timeHelper = require("../helpers/time.js"),
 	constants = require('../helpers/constants.js'),
 	crypto = require('crypto'),
 	configHelper = require('../helpers/config.js'),
-	params = require('../helpers/params.js');
-var basicAuth = require('basic-auth');
+	params = require('../helpers/params.js'),
+	basicAuth = require('basic-auth'),
+	Router = require('../helpers/router.js');
 
-var Router = require('../helpers/router.js');
+//private fileds
+var modules, library, self;
 
-var library, modules, self;
 var keypair, forgingStarted, timer;
 
+//constructor
 function Forger(cb, scope) {
 	library = scope;
 	self = this;
 
+	attachApi();
+
+	setImmediate(cb, null, self);
+}
+
+//private methods
+function attachApi() {
 	var auth = function (req, res, next) {
 		function unauthorized(res) {
 			res.set('WWW-Authenticate', 'Basic realm=Authorization Required');
@@ -34,7 +43,6 @@ function Forger(cb, scope) {
 			return unauthorized(res);
 		}
 	};
-
 
 	var router = new Router();
 
@@ -121,10 +129,9 @@ function Forger(cb, scope) {
 		if (!err) return next();
 		res.status(500).send({success: false, error: err});
 	});
-
-	setImmediate(cb, null, self);
 }
 
+//public methods
 Forger.prototype.stopForging = function () {
 	forgingStarted = false;
 	keypair = null;
@@ -138,7 +145,7 @@ Forger.prototype.startForging = function (keypair) {
 	if (!delegate) return;
 
 	library.logger.info("Forging enabled on account: " + address);
-	
+
 	forgingStarted = true;
 	async.until(
 		function () {
@@ -179,14 +186,16 @@ Forger.prototype.startForging = function (keypair) {
 	);
 }
 
-Forger.prototype.run = function (scope) {
+//events
+Forger.prototype.onBind = function (scope) {
 	modules = scope;
 	var secret = library.config.forging.secret
 
 	if (secret) {
 		keypair = ed.MakeKeypair(crypto.createHash('sha256').update(secret, 'utf').digest());
-		this.startForging(keypair);
+		self.startForging(keypair);
 	}
 }
 
+//export
 module.exports = Forger;

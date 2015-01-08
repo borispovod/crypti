@@ -1,10 +1,9 @@
-//require
-var util = require('util');
-var async = require('async');
-var path = require('path');
-var Router = require('../helpers/router.js');
+var util = require('util'),
+	async = require('async'),
+	path = require('path'),
+	Router = require('../helpers/router.js');
 
-//private
+//private fields
 var modules, library, self;
 
 //constructor
@@ -12,6 +11,13 @@ function Server(cb, scope) {
 	library = scope;
 	self = this;
 
+	attachApi();
+
+	setImmediate(cb, null, self);
+}
+
+//private methods
+function attachApi() {
 	var router = new Router();
 
 	router.use(function (req, res, next) {
@@ -44,12 +50,12 @@ function Server(cb, scope) {
 	});
 
 	library.app.use('/', router);
-
-	setImmediate(cb, null, self);
 }
 
-//public
-Server.prototype.run = function (scope) {
+//public methods
+
+//events
+Server.prototype.onBind = function (scope) {
 	modules = scope;
 }
 
