@@ -199,7 +199,7 @@ function attachApi() {
 	router.post("/transactions", function (req, res) {
 		res.set(headers);
 
-		transaction = normalize.transaction(req.body.transaction);
+		var transaction = normalize.transaction(req.body.transaction);
 
 		library.bus.message('receiveTransaction', transaction);
 
@@ -253,7 +253,7 @@ function _request(peer, api, method, data, cb) {
 			});
 
 			modules.peer.state(peer.ip, peer.port, 0, 60);
-			library.logger.info('ban 60 sec ' + req.method + ' ' + req.url)
+			library.logger.log('ban 60 sec ' + req.method + ' ' + req.url)
 			cb && cb(err || ('request status code' + response.statusCode));
 			return;
 		}

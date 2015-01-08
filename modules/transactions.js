@@ -524,7 +524,7 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 					return cb && cb(errors.pop());
 				}
 
-				if (!modules.delegates.checkVotes(transaction)) {
+				if (!modules.delegates.checkVotes(transaction.asset.votes)) {
 					return cb && cb("Can't verify votes, vote for not exists delegate found: " + transaction.id);
 				}
 
@@ -533,7 +533,6 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 					return cb && cb("Can't apply transaction: " + transaction.id);
 				}
 
-				transaction.asset = transaction.asset || {};
 				unconfirmedTransactions[transaction.id] = transaction;
 
 				library.bus.message('unconfirmedTransaction', transaction, broadcast)

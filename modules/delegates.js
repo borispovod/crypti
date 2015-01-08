@@ -148,6 +148,7 @@ Delegates.prototype.getVotesByType = function (votingType) {
 }
 
 Delegates.prototype.checkVotes = function (votes) {
+	votes = votes || []; //temp
 	if (votes.length == 0) {
 		return true;
 	} else {
