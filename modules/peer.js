@@ -131,7 +131,7 @@ Peer.prototype.filter = function (filter, cb) {
 	params['$limit'] = limit;
 	offset && (params['$offset'] = offset);
 
-	library.db.all("select ip, port, state, os, sharePort, version from peers" + (where.length ? (' where ' + where.join(' or ')) : '') +  (orderBy ? 'order by ' + sortBy + ' ' + sortMethod : '')  + ' limit $limit' + (offset ? ' offset $offset ' : ''), params, cb);
+	library.db.all("select ip, port, state, os, sharePort, version from peers" + (where.length ? (' where ' + where.join(' or ')) : '') + (orderBy ? 'order by ' + sortBy + ' ' + sortMethod : '') + ' limit $limit' + (offset ? ' offset $offset ' : ''), params, cb);
 }
 
 Peer.prototype.state = function (ip, port, state, timeoutSeconds, cb) {
