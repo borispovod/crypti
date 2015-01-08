@@ -840,10 +840,6 @@ Blocks.prototype.getWeight = function () {
 	return weight;
 }
 
-Blocks.prototype.getFee = function () {
-	return fee;
-}
-
 Blocks.prototype.getLastBlock = function () {
 	return lastBlock;
 }
@@ -1204,7 +1200,7 @@ Blocks.prototype.saveBlock = function (block, cb) {
 	})
 }
 
-Blocks.prototype.deleteById = function (blockId, cb) {
+Blocks.prototype.simpleDeleteAfterBlock = function (blockId, cb) {
 	library.db.get("DELETE FROM blocks WHERE height >= (SELECT height FROM blocks where id = $id)", {$id: blockId}, cb);
 }
 

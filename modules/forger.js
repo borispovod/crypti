@@ -12,6 +12,7 @@ var timeHelper = require("../helpers/time.js"),
 var modules, library, self;
 
 var keypair, forgingStarted, timer;
+var loaded = false;
 
 //constructor
 function Forger(cb, scope) {
@@ -77,7 +78,7 @@ function attachApi() {
 		}
 
 		keypair = ed.MakeKeypair(crypto.createHash('sha256').update(secret, 'utf').digest());
-		self.startForging(keypair);
+		startForging(keypair);
 
 		var address = modules.accounts.getAddressByPublicKey(keypair.publicKey);
 
@@ -113,7 +114,7 @@ function attachApi() {
 		}
 
 		var address = modules.accounts.getAddressByPublicKey(keypair.publicKey);
-		self.stopForging();
+		stopForging();
 
 		return res.json({success: true, address: address});
 	});
@@ -131,14 +132,13 @@ function attachApi() {
 	});
 }
 
-//public methods
-Forger.prototype.stopForging = function () {
+function stopForging () {
 	forgingStarted = false;
 	keypair = null;
 	library.logger.info("Forging disabled...");
 }
 
-Forger.prototype.startForging = function (keypair) {
+function startForging (keypair) {
 	var address = modules.accounts.getAddressByPublicKey(keypair.publicKey);
 
 	var delegate = modules.delegates.getDelegate(keypair.publicKey);
@@ -152,7 +152,7 @@ Forger.prototype.startForging = function (keypair) {
 			return !forgingStarted
 		},
 		function (callback) {
-			if (!modules.loader.loaded() || modules.loader.syncing()) {
+			if (!loaded || modules.loader.syncing()) {
 				return setTimeout(callback, 100);
 			}
 
@@ -181,10 +181,12 @@ Forger.prototype.startForging = function (keypair) {
 			});
 		},
 		function () {
-			self.stopForging();
+			stopForging();
 		}
 	);
 }
+
+//public methods
 
 //events
 Forger.prototype.onBind = function (scope) {
@@ -193,8 +195,12 @@ Forger.prototype.onBind = function (scope) {
 
 	if (secret) {
 		keypair = ed.MakeKeypair(crypto.createHash('sha256').update(secret, 'utf').digest());
-		self.startForging(keypair);
+		startForging(keypair);
 	}
+}
+
+Forger.prototype.onBlockchainReady = function(){
+	loaded = true;
 }
 
 //export

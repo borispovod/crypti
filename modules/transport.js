@@ -10,7 +10,7 @@ var Router = require('../helpers/router.js'),
 var modules, library, self;
 
 var headers = {};
-var apiReady = false;
+var loaded = false;
 
 //constructor
 function Transport(cb, scope) {
@@ -27,7 +27,7 @@ function attachApi() {
 	var router = new Router();
 
 	router.use(function (req, res, next) {
-		if (modules && apiReady) return next();
+		if (modules && loaded) return next();
 		res.status(500).send({success: false, error: 'loading'});
 	});
 
@@ -328,7 +328,7 @@ Transport.prototype.onBind = function (scope) {
 }
 
 Transport.prototype.onBlockchainReady = function () {
-	apiReady = true;
+	loaded = true;
 }
 
 Transport.prototype.onUnconfirmedTransaction = function (transaction, broadcast) {

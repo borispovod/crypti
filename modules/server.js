@@ -6,6 +6,8 @@ var util = require('util'),
 //private fields
 var modules, library, self;
 
+var loaded = false
+
 //constructor
 function Server(cb, scope) {
 	library = scope;
@@ -30,7 +32,7 @@ function attachApi() {
 
 		var showLinkToAdminPanel = library.config.adminPanel.whiteList.length && library.config.adminPanel.whiteList.indexOf(ip) >= 0;
 
-		if (modules.loader.loaded()) {
+		if (loaded) {
 			res.render('wallet.html', {showAdmin: showLinkToAdminPanel, layout: false});
 		} else {
 			res.render('loading.html');
@@ -57,6 +59,10 @@ function attachApi() {
 //events
 Server.prototype.onBind = function (scope) {
 	modules = scope;
+}
+
+Server.prototype.onBlockchainReady = function(){
+	loaded = true;
 }
 
 //export
