@@ -56,10 +56,13 @@ function Blocks(cb, scope) {
 		var limit = params.string(req.query.limit);
 		var orderBy = params.string(req.query.orderBy);
 		var generatorPublicKey = params.buffer(req.query.generatorPublicKey, 'hex');
+		var offset = params.int(req.query.offset);
+
 		self.list({
 			generatorPublicKey: generatorPublicKey.length ? generatorPublicKey : null,
 			limit: limit || 20,
 			orderBy: orderBy,
+			offset: offset,
 			hex: true
 		}, function (err, blocks) {
 			if (err) {
@@ -188,8 +191,8 @@ Blocks.prototype.run = function (scope) {
 
 Blocks.prototype.get = function (id, cb) {
 	var stmt = library.db.prepare("select b.id b_id, b.version b_version, b.timestamp b_timestamp, b.height b_height, b.previousBlock b_previousBlock, b.numberOfRequests b_numberOfRequests, b.numberOfTransactions b_numberOfTransactions, b.numberOfConfirmations b_numberOfConfirmations, b.totalAmount b_totalAmount, b.totalFee b_totalFee, b.payloadLength b_payloadLength, b.requestsLength b_requestsLength, b.confirmationsLength b_confirmationsLength, b.payloadHash b_payloadHash, b.generatorPublicKey b_generatorPublicKey, b.generationSignature b_generationSignature, b.blockSignature b_blockSignature " +
-	"from blocks b " +
-	"where b.id = ?");
+		"from blocks b " +
+		"where b.id = ?");
 
 	stmt.bind(id);
 
@@ -213,6 +216,11 @@ Blocks.prototype.list = function (filter, cb) {
 	if (filter.limit) {
 		params.$limit = filter.limit;
 	}
+
+	if (filter.offset) {
+		params.$offset = filter.offset;
+	}
+
 	if (filter.orderBy) {
 		var sort = filter.orderBy.split(':');
 		sortBy = sort[0].replace(/[^\w\s]/gi, '');
@@ -227,10 +235,11 @@ Blocks.prototype.list = function (filter, cb) {
 	}
 
 	var stmt = library.db.prepare("select b.id b_id, b.version b_version, b.timestamp b_timestamp, b.height b_height, b.previousBlock b_previousBlock, b.numberOfRequests b_numberOfRequests, b.numberOfTransactions b_numberOfTransactions, b.numberOfConfirmations b_numberOfConfirmations, b.totalAmount b_totalAmount, b.totalFee b_totalFee, b.payloadLength b_payloadLength, b.requestsLength b_requestsLength, b.confirmationsLength b_confirmationsLength, b.payloadHash b_payloadHash, b.generatorPublicKey b_generatorPublicKey, b.generationSignature b_generationSignature, b.blockSignature b_blockSignature " +
-	"from blocks b " +
-	(fields.length ? "where " + fields.join(' and ') : '') + " " +
-	(filter.orderBy ? 'order by ' + sortBy + ' ' + sortMethod : '') + " " +
-	(filter.limit ? 'limit $limit' : ''));
+		"from blocks b " +
+		(fields.length ? "where " + fields.join(' and ') : '') + " " +
+		(filter.orderBy ? 'order by ' + sortBy + ' ' + sortMethod : '') + " " +
+		(filter.limit ? 'limit $limit' : '') + " " +
+		(filter.offset ? 'offset $offset' : ''));
 
 	stmt.bind(params);
 
@@ -246,7 +255,7 @@ Blocks.prototype.list = function (filter, cb) {
 
 Blocks.prototype.count = function (cb) {
 	library.db.get("select count(rowid) count " +
-	"from blocks", function (err, res) {
+		"from blocks", function (err, res) {
 		if (err) {
 			return cb(err);
 		}
@@ -326,22 +335,22 @@ Blocks.prototype.loadBlocksPart = function (filter, cb) {
 	filter.lastId && (params['$lastId'] = filter.lastId);
 	filter.id && !filter.lastId && (params['$id'] = filter.id);
 	library.db.all(
-		"SELECT " +
-		"b.id b_id, b.version b_version, b.timestamp b_timestamp, b.height b_height, b.previousBlock b_previousBlock, b.numberOfRequests b_numberOfRequests, b.numberOfTransactions b_numberOfTransactions, b.numberOfConfirmations b_numberOfConfirmations, b.totalAmount b_totalAmount, b.totalFee b_totalFee, b.previousFee b_previousFee, b.nextFeeVolume b_nextFeeVolume, b.feeVolume b_feeVolume, b.payloadLength b_payloadLength, b.requestsLength b_requestsLength, b.confirmationsLength b_confirmationsLength, b.payloadHash b_payloadHash, b.generatorPublicKey b_generatorPublicKey, b.generationSignature b_generationSignature, b.blockSignature b_blockSignature, " +
-		"r.id r_id, r.address r_address, " +
-		"t.id t_id, t.type t_type, t.subtype t_subtype, t.timestamp t_timestamp, t.senderPublicKey t_senderPublicKey, t.senderId t_senderId, t.recipientId t_recipientId, t.amount t_amount, t.fee t_fee, t.signature t_signature, t.signSignature t_signSignature, c_t.generatorPublicKey t_companyGeneratorPublicKey, " +
-		"s.id s_id, s.timestamp s_timestamp, s.publicKey s_publicKey, s.generatorPublicKey s_generatorPublicKey, s.signature s_signature, s.generationSignature s_generationSignature, " +
-		"c.id c_id, c.name c_name, c.description c_description, c.domain c_domain, c.email c_email, c.timestamp c_timestamp, c.generatorPublicKey c_generatorPublicKey, c.signature c_signature, " +
-		"cc.id cc_id, cc.companyId cc_companyId, cc.verified cc_verified, cc.timestamp cc_timestamp, cc.signature cc_signature " +
-		"FROM (select * from blocks " + (filter.id ? " where id = $id " : "") + (filter.lastId ? " where height > (SELECT height FROM blocks where id = $lastId) " : "") + " limit $limit) as b " +
-		"left outer join requests as r on r.blockId=b.id " +
-		"left outer join trs as t on t.blockId=b.id " +
-		"left outer join signatures as s on s.transactionId=t.id " +
-		"left outer join companies as c on c.transactionId=t.id " +
-		"left outer join companies as c_t on c_t.address=t.recipientId " +
-		"left outer join companyconfirmations as cc on cc.blockId=b.id " +
-		"ORDER BY b.height, t.rowid, s.rowid, c.rowid, cc.rowid " +
-		"", params, function (err, rows) {
+			"SELECT " +
+			"b.id b_id, b.version b_version, b.timestamp b_timestamp, b.height b_height, b.previousBlock b_previousBlock, b.numberOfRequests b_numberOfRequests, b.numberOfTransactions b_numberOfTransactions, b.numberOfConfirmations b_numberOfConfirmations, b.totalAmount b_totalAmount, b.totalFee b_totalFee, b.previousFee b_previousFee, b.nextFeeVolume b_nextFeeVolume, b.feeVolume b_feeVolume, b.payloadLength b_payloadLength, b.requestsLength b_requestsLength, b.confirmationsLength b_confirmationsLength, b.payloadHash b_payloadHash, b.generatorPublicKey b_generatorPublicKey, b.generationSignature b_generationSignature, b.blockSignature b_blockSignature, " +
+			"r.id r_id, r.address r_address, " +
+			"t.id t_id, t.type t_type, t.subtype t_subtype, t.timestamp t_timestamp, t.senderPublicKey t_senderPublicKey, t.senderId t_senderId, t.recipientId t_recipientId, t.amount t_amount, t.fee t_fee, t.signature t_signature, t.signSignature t_signSignature, c_t.generatorPublicKey t_companyGeneratorPublicKey, " +
+			"s.id s_id, s.timestamp s_timestamp, s.publicKey s_publicKey, s.generatorPublicKey s_generatorPublicKey, s.signature s_signature, s.generationSignature s_generationSignature, " +
+			"c.id c_id, c.name c_name, c.description c_description, c.domain c_domain, c.email c_email, c.timestamp c_timestamp, c.generatorPublicKey c_generatorPublicKey, c.signature c_signature, " +
+			"cc.id cc_id, cc.companyId cc_companyId, cc.verified cc_verified, cc.timestamp cc_timestamp, cc.signature cc_signature " +
+			"FROM (select * from blocks " + (filter.id ? " where id = $id " : "") + (filter.lastId ? " where height > (SELECT height FROM blocks where id = $lastId) " : "") + " limit $limit) as b " +
+			"left outer join requests as r on r.blockId=b.id " +
+			"left outer join trs as t on t.blockId=b.id " +
+			"left outer join signatures as s on s.transactionId=t.id " +
+			"left outer join companies as c on c.transactionId=t.id " +
+			"left outer join companies as c_t on c_t.address=t.recipientId " +
+			"left outer join companyconfirmations as cc on cc.blockId=b.id " +
+			"ORDER BY b.height, t.rowid, s.rowid, c.rowid, cc.rowid " +
+			"", params, function (err, rows) {
 			// Some notes:
 			// If loading catch error, for example, invalid signature on block & transaction, need to stop loading and remove all blocks after last good block.
 			// We need to process all transactions of block
@@ -699,35 +708,35 @@ Blocks.prototype.applyConfirmation = function (generatorPublicKey) {
 
 Blocks.prototype.getForgedByAccount = function (generatorPublicKey, cb) {
 	var stmt = library.db.prepare("select b.generatorPublicKey, t.type, " +
-	"CASE WHEN t.type = 0 " +
-	"THEN sum(t.fee)  " +
-	"ELSE  " +
-	"CASE WHEN t.type = 1 " +
-	"THEN " +
-	"CASE WHEN t.fee >= 2 " +
-	"THEN " +
-	"CASE WHEN t.fee % 2 != 0 " +
-	"THEN sum(t.fee - round(t.fee / 2)) " +
-	"ELSE sum(t.fee / 2) " +
-	"END " +
-	"ELSE sum(t.fee) " +
-	"END " +
-	"ELSE " +
-	"CASE WHEN t.type = 2 " +
-	"THEN sum(100 * 100000000) " +
-	"ELSE " +
-	"CASE WHEN t.type = 3 " +
-	"THEN sum(100 * 100000000) " +
-	"ELSE " +
-	"sum(0) " +
-	"END " +
-	"END " +
-	"END " +
-	"END sum " +
-	"from blocks b " +
-	"inner join trs t on t.blockId = b.id " +
-	"where b.generatorPublicKey = ? " +
-	"group by t.type");
+		"CASE WHEN t.type = 0 " +
+		"THEN sum(t.fee)  " +
+		"ELSE  " +
+		"CASE WHEN t.type = 1 " +
+		"THEN " +
+		"CASE WHEN t.fee >= 2 " +
+		"THEN " +
+		"CASE WHEN t.fee % 2 != 0 " +
+		"THEN sum(t.fee - round(t.fee / 2)) " +
+		"ELSE sum(t.fee / 2) " +
+		"END " +
+		"ELSE sum(t.fee) " +
+		"END " +
+		"ELSE " +
+		"CASE WHEN t.type = 2 " +
+		"THEN sum(100 * 100000000) " +
+		"ELSE " +
+		"CASE WHEN t.type = 3 " +
+		"THEN sum(100 * 100000000) " +
+		"ELSE " +
+		"sum(0) " +
+		"END " +
+		"END " +
+		"END " +
+		"END sum " +
+		"from blocks b " +
+		"inner join trs t on t.blockId = b.id " +
+		"where b.generatorPublicKey = ? " +
+		"group by t.type");
 
 	stmt.bind(generatorPublicKey);
 
@@ -1345,10 +1354,10 @@ Blocks.prototype.generateBlock = function (keypair, lastBlock, cb) {
 	var transactions = modules.transactions.getUnconfirmedTransactions();
 	transactions.sort(function compare(a, b) {
 		/*if (a.fee < b.fee)
-			return -1;
-		if (a.fee > b.fee)
-			return 1;
-		return 0;*/
+		 return -1;
+		 if (a.fee > b.fee)
+		 return 1;
+		 return 0;*/
 
 		// it's shit like in previous version, because still use it, later need to move to sort by amount
 		return a.fee > b.fee;
