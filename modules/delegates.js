@@ -11,7 +11,7 @@ var modules, library, self;
 
 var delegates = {};
 var unconfirmedDelegates = {};
-var apiReady = false;
+var loaded = false;
 
 //constructor
 function Delegates(cb, scope) {
@@ -28,7 +28,7 @@ function attachApi() {
 	var router = new Router();
 
 	router.use(function (req, res, next) {
-		if (modules && apiReady) return next();
+		if (modules && loaded) return next();
 		res.status(500).send({success: false, error: 'loading'});
 	});
 
@@ -197,7 +197,7 @@ Delegates.prototype.onBind = function (scope) {
 }
 
 Delegates.prototype.onBlockchainReady = function () {
-	apiReady = true;
+	loaded = true;
 }
 
 Delegates.prototype.onUnconfirmedTransaction = function (transaction) {

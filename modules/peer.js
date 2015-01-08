@@ -253,7 +253,6 @@ Peer.prototype.onBlockchainReady = function () {
 }
 
 Peer.prototype.onPeerReady = function () {
-	debugger;
 	process.nextTick(function nextUpdatePeerList() {
 		updatePeerList(function (err) {
 			err && library.logger.error('updatePeerList timer', err);

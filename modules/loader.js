@@ -9,7 +9,7 @@ var async = require('async'),
 //private fields
 var modules, library, self;
 
-var loaded = false
+var loaded = false;
 var sync = false;
 var loadingLastBlock = genesisBlock;
 var total = 0;
@@ -32,7 +32,7 @@ function attachApi() {
 	router.get('/status', function (req, res) {
 		res.json({
 			success: true,
-			loaded: self.loaded(),
+			loaded: loaded,
 			now: loadingLastBlock.height,
 			blocksCount: total
 		});
@@ -160,17 +160,12 @@ function loadUnconfirmedTransactions(cb) {
 }
 
 //public methods
-Loader.prototype.loaded = function () {
-	return loaded;
-}
-
 Loader.prototype.syncing = function () {
 	return sync;
 }
 
 //events
 Loader.prototype.onPeerReady = function () {
-	debugger;
 	process.nextTick(function nextLoadBlock() {
 		library.sequence.add(function (cb) {
 			var lastBlock = modules.blocks.getLastBlock();
@@ -228,20 +223,22 @@ Loader.prototype.onBind = function (scope) {
 					library.logger.error('loadBlocksOffset', err);
 					if (err.block) {
 						library.logger.error('blockchain failed at ', err.block.height)
-						modules.blocks.deleteById(err.block.id, function (err, res) {
-							loaded = true;
+						modules.blocks.simpleDeleteAfterBlock(err.block.id, function (err, res) {
 							library.logger.error('blockchain clipped');
 							library.bus.message('blockchainReady');
 						})
 					}
 				} else {
-					loaded = true;
 					library.logger.info('blockchain ready');
 					library.bus.message('blockchainReady');
 				}
 			}
 		)
 	})
+}
+
+Loader.prototype.onBlockchainReady = function(){
+	loaded = true;
 }
 
 //export
