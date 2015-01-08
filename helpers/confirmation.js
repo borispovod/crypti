@@ -42,7 +42,20 @@ function verifySignature(confirmation, publicKey) {
 	return ed.Verify(hash, confirmation.signature || ' ', publicKey || ' ');
 }
 
+function getId(confirmation) {
+	var hash = crypto.createHash('sha256').update(getBytes(company)).digest();
+	var temp = new Buffer(8);
+
+	for (var i = 0; i < 8; i++) {
+		temp[i] = hash[7 - i];
+	}
+
+	var id = bignum.fromBuffer(temp).toString();
+	return id;
+}
+
 module.exports = {
 	getBytes: getBytes,
-	verifySignature: verifySignature
+	verifySignature: verifySignature,
+	getId : getId
 }

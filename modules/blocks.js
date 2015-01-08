@@ -12,7 +12,8 @@ var crypto = require('crypto'),
 	timeHelper = require('../helpers/time.js'),
 	requestHelper = require('../helpers/request.js'),
 	params = require('../helpers/params.js'),
-	arrayHelper = require('../helpers/array.js');
+	arrayHelper = require('../helpers/array.js'),
+	confirmationHelper = require('../helpers/confirmation.js');
 
 var Router = require('../helpers/router.js');
 var util = require('util');
@@ -119,7 +120,7 @@ function Blocks(cb, scope) {
 					type: 0,
 					subtype: 0,
 					amount: genesisTransaction.amount * constants.fixedPoint,
-					fee : 0,
+					fee: 0,
 					timestamp: timeHelper.epochTime(),
 					recipientId: genesisTransaction.recipientId,
 					signature: new Buffer(genesisTransaction.signature, 'hex'),
@@ -706,6 +707,14 @@ Blocks.prototype.applyConfirmation = function (generatorPublicKey) {
 	return true;
 }
 
+Blocks.prototype.undoConfirmation = function (generatorPublicKey) {
+	var generator = modules.accounts.getAccountByPublicKey(generatorPublicKey);
+	generator.addToUnconfirmedBalance(-(100 * constants.fixedPoint));
+	generator.addToBalance(-(100 * constants.fixedPoint));
+
+	return true;
+}
+
 Blocks.prototype.getForgedByAccount = function (generatorPublicKey, cb) {
 	var stmt = library.db.prepare("select b.generatorPublicKey, t.type, " +
 		"CASE WHEN t.type = 0 " +
@@ -924,10 +933,18 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 									}
 								}
 
+								if (transaction.type == 3 && transaction.subtype == 0) {
+									if (!transaction.asset.company) {
+										return cb("Transaction must have company");
+									}
+								}
+
+								// verify company in transaction
+								// here
+
 								if (!modules.transactions.applyUnconfirmed(transaction)) {
 									return cb("Can't apply transaction: " + transaction.id);
 								}
-
 
 								appliedTransactions[transaction.id] = transaction;
 								payloadHash.update(transactionHelper.getBytes(transaction));
@@ -969,26 +986,44 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 					}, done);
 				},
 				function (done) {
-					/*
-					 //need to finish later
-					 async.forEach(block.companyconfirmations, function (confirmation, cb) {
-					 if (!confirmationsHelper.verifySignature(confirmation, block.generatorPublicKey)) {
-					 return cb("Can't verify company confirmation: " + confirmation.id);
-					 }
+					async.forEach(block.companyconfirmations, function (confirmation, cb) {
+						confirmation.id = confirmationHelper.getId(confirmation);
 
-					 if (confirmation.timestamp > now + 15 || confirmation.timestamp < block.timestamp) {
-					 return cb("Can't accept confirmation timestamp: " + confirmation.id);
-					 }
+						library.db.all("SELECT id FROM confirmations WHERE id=$id OR companyId=$companyId", {$id: confirmation.id,$companyId:confirmation.companyId}, function (err, cId) {
+							if (err || cId.length == 0) {
+								return cb(err || "Confirmation already exists: " + cId);
+							}
 
+							if (cId.length > 9) {
+								return cb("Company already got confirmations: " + confirmation.companyId);
+							}
 
-					 if (acceptedConfirmations[confirmation.id]) {
-					 return cb("Doublicated confirmation: " + confirmation.id);
-					 }
+							library.db.get("SELECT id FROM companies WHERE id=$id", {$id:confirmation.companyId}, function (err, cId) {
+								if (err || !cId) {
+									return cb(err || "Company for confirmation not found: " + confirmation.companyId);
+								}
 
-					 }, function (err) {
-					 return done(err);
-					 });*/
-					done();
+								if (!confirmationsHelper.verifySignature(confirmation, block.generatorPublicKey)) {
+									return cb("Can't verify company confirmation: " + confirmation.id);
+								}
+
+								if (confirmation.timestamp > now + 15 || confirmation.timestamp < block.timestamp) {
+									return cb("Can't accept confirmation timestamp: " + confirmation.id);
+								}
+
+								if (acceptedConfirmations[confirmation.id]) {
+									return cb("Doublicated confirmation: " + confirmation.id);
+								}
+
+								if (!self.applyConfirmation(block.generatorPublicKey)) {
+									return cb("Can't apply confirmation: " + confirmation.id);
+								}
+
+								acceptedConfirmations[confirmation.id] = confirmation;
+								cb();
+							});
+						});
+					}, done);
 				}
 			], function (err) {
 				var errors = [];
@@ -1017,6 +1052,14 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 
 						if (appliedTransactions[transaction.id]) {
 							modules.transactions.undoUnconfirmed(transaction);
+						}
+					}
+
+					for (var i = 0; i < block.companyconfirmations.length; i++) {
+						var confirmation = block.companyconfirmations[i];
+
+						if (acceptedConfirmations[confirmation.id]) {
+							self.undoConfirmation(block.generationPublicKey);
 						}
 					}
 
