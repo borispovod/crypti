@@ -840,6 +840,10 @@ Blocks.prototype.getWeight = function () {
 	return weight;
 }
 
+Blocks.prototype.getFee = function () {
+	return fee;
+}
+
 Blocks.prototype.getLastBlock = function () {
 	return lastBlock;
 }

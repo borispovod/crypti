@@ -102,7 +102,7 @@ function loadBlocks(lastBlock, cb) {
 											modules.blocks.loadBlocksFromPeer(data.peer, commonBlockId, function (err) {
 												if (err) {
 													library.logger.error(err);
-													library.logger.info('ban 60 min', peerStr);
+													library.logger.log('ban 60 min', peerStr);
 													modules.peer.state(data.peer.ip, data.peer.port, 0, 3600);
 
 													modules.blocks.deleteBlocksBefore(commonBlockId, function (err) {
@@ -159,38 +159,7 @@ function loadUnconfirmedTransactions(cb) {
 	});
 }
 
-//public methods
-Loader.prototype.syncing = function () {
-	return sync;
-}
-
-//events
-Loader.prototype.onPeerReady = function () {
-	process.nextTick(function nextLoadBlock() {
-		library.sequence.add(function (cb) {
-			var lastBlock = modules.blocks.getLastBlock();
-			loadBlocks(lastBlock, function (err) {
-				err && library.logger.error('loadBlocks timer', err);
-				sync = false;
-				blocksToSync = 0;
-				cb()
-				setTimeout(nextLoadBlock, 10 * 1000)
-			});
-		});
-	});
-
-	process.nextTick(function nextLoadUnconfirmedTransactions() {
-		loadUnconfirmedTransactions(function (err) {
-			err && library.logger.error('loadUnconfirmedTransactions timer', err);
-			setTimeout(nextLoadUnconfirmedTransactions, 15 * 1000)
-		})
-	});
-
-}
-
-Loader.prototype.onBind = function (scope) {
-	modules = scope;
-
+function loadBlockChain() {
 	var offset = 0, limit = library.config.loading.loadPerIteration;
 
 	modules.blocks.count(function (err, count) {
@@ -234,10 +203,44 @@ Loader.prototype.onBind = function (scope) {
 				}
 			}
 		)
-	})
+	});
 }
 
-Loader.prototype.onBlockchainReady = function(){
+//public methods
+Loader.prototype.syncing = function () {
+	return sync;
+}
+
+//events
+Loader.prototype.onPeerReady = function () {
+	process.nextTick(function nextLoadBlock() {
+		library.sequence.add(function (cb) {
+			var lastBlock = modules.blocks.getLastBlock();
+			loadBlocks(lastBlock, function (err) {
+				err && library.logger.error('loadBlocks timer', err);
+				sync = false;
+				blocksToSync = 0;
+				cb()
+				setTimeout(nextLoadBlock, 10 * 1000)
+			});
+		});
+	});
+
+	process.nextTick(function nextLoadUnconfirmedTransactions() {
+		loadUnconfirmedTransactions(function (err) {
+			err && library.logger.error('loadUnconfirmedTransactions timer', err);
+			setTimeout(nextLoadUnconfirmedTransactions, 15 * 1000)
+		})
+	});
+}
+
+Loader.prototype.onBind = function (scope) {
+	modules = scope;
+
+	loadBlockChain();
+}
+
+Loader.prototype.onBlockchainReady = function () {
 	loaded = true;
 }
 
