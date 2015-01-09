@@ -6,14 +6,14 @@
     "start": "node app.js"
   },
   "dependencies": {
-    "async": "https://github.com/crypti/async/tarball/master",
+    "async": "*",
     "basic-auth": "*",
     "basic-auth-connect": "^1.0.0",
-    "bignum": "https://github.com/crypti/node-bignum/tarball/master",
+    "bignum": "*",
     "body-parser": "*",
-    "bytebuffer": "https://github.com/crypti/ByteBuffer.js/tarball/master",
+    "bytebuffer": "*",
     "change-case": "*",
-    "colors": "^1.0.3",
+    "colors": "*",
     "cycle": "^1.0.3",
     "dblite": "^0.6.1",
     "ed25519": "https://github.com/crypti/Ed25519/tarball/master",
@@ -32,7 +32,8 @@
     "stack-trace": "0.0.9",
     "strftime": "*",
     "underscore": "https://github.com/crypti/underscore/tarball/master",
-    "segfault-handler": "*"
+    "segfault-handler": "*",
+    "node-schedule": "*"
   },
   "devDependencies": {
     "grunt-jscrambler": "^0.2.7",

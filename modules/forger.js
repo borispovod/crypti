@@ -6,7 +6,9 @@ var timeHelper = require("../helpers/time.js"),
 	configHelper = require('../helpers/config.js'),
 	params = require('../helpers/params.js'),
 	basicAuth = require('basic-auth'),
-	Router = require('../helpers/router.js');
+	Router = require('../helpers/router.js'),
+	slots = require('../helpers/slots.js'),
+	schedule = require('node-schedule');
 
 //private fileds
 var modules, library, self;
@@ -132,58 +134,84 @@ function attachApi() {
 	});
 }
 
-function stopForging () {
+function stopForging() {
 	forgingStarted = false;
 	keypair = null;
 	library.logger.info("Forging disabled...");
 }
 
-function startForging (keypair) {
-	var address = modules.accounts.getAddressByPublicKey(keypair.publicKey);
+function getNextBlockTime(delegate_ids) {
+	var activeDelegates = modules.delegates.getActiveDelegates();
 
+	var nextSlot = slots.getNextSlot();
+	var lastSlot = slots.getLastSlot(nextSlot);
+
+	for (; nextSlot < lastSlot; nextSlot += 1) {
+		var delegate_pos = nextSlot % slots.delegates;
+		var delegate_id = activeDelegates[delegate_pos];
+
+		if (delegate_ids.indexOf(delegate_id) != -1) {
+			return slots.getSlotTime(nextSlot);
+		}
+	}
+	return null;
+}
+
+function loop(account, cb) {
+	if (!loaded || modules.loader.syncing()) {
+		return setImmediate(cb);
+	}
+
+	if (account.balance < 1000 * constants.fixedPoint) {
+		return setImmediate(cb);
+	}
+
+	var enabledDelegates = modules.delegates.myDelegates(account.publicKey);
+	if (!enabledDelegates.length) {
+		return setImmediate(cb);
+	}
+
+	var nextBlockTime = getNextBlockTime(enabledDelegates);
+	if (nextBlockTime && nextBlockTime <= slots.getTime()) {
+		library.sequence.add(function (cb) {
+			if (slots.getSlotNumber(nextBlockTime) == slots.getSlotNumber()) {
+				modules.blocks.generateBlockv2(keypair, cb);
+			} else {
+				setImmediate(cb);
+			}
+		}, function (err) {
+			if (err) {
+				library.logger.error("Problem in block generation", err);
+			}
+			setImmediate(cb, err);
+		});
+	}
+}
+
+function startForging(keypair) {
 	var delegate = modules.delegates.getDelegate(keypair.publicKey);
-	if (!delegate) return;
+	var address = modules.accounts.getAddressByPublicKey(keypair.publicKey);
+	var account = modules.accounts.getAccount(address);
+
+	if (!delegate || !account) return;
 
 	library.logger.info("Forging enabled on account: " + address);
 
 	forgingStarted = true;
-	async.until(
-		function () {
-			return !forgingStarted
-		},
-		function (callback) {
-			if (!loaded || modules.loader.syncing()) {
-				return setTimeout(callback, 100);
+
+	process.nextTick(function nextLoop() {
+		loop(account, function (err) {
+			err && library.logger.error('delegate loop', err);
+			if (forgingStarted) {
+				var nextSlot = slots.getNextSlot();
+				var scheduledTime = slots.getSlotTime(nextSlot);
+				scheduledTime = scheduledTime <= slots.getTime() ? scheduledTime + 1 : scheduledTime;
+				schedule.scheduleJob(scheduledTime * 1000, nextLoop);
+			} else {
+				stopForging();
 			}
-
-			var account = modules.accounts.getAccount(address);
-
-			if (!account || account.balance < 1000 * constants.fixedPoint) {
-				return setTimeout(callback, 100);
-			}
-
-			library.sequence.add(function (cb) {
-				var now = timeHelper.getNow();
-				var lastBlock = modules.blocks.getLastBlock();
-				if (now - lastBlock.timestamp >= 60) {
-					modules.blocks.generateBlock(keypair, lastBlock, function (err) {
-						if (err) {
-							library.logger.error("Problem in block generation", err);
-						}
-
-						cb();
-						setTimeout(callback, 100);
-					});
-				} else {
-					cb();
-					setTimeout(callback, 100);
-				}
-			});
-		},
-		function () {
-			stopForging();
-		}
-	);
+		})
+	});
 }
 
 //public methods
@@ -199,7 +227,7 @@ Forger.prototype.onBind = function (scope) {
 	}
 }
 
-Forger.prototype.onBlockchainReady = function(){
+Forger.prototype.onBlockchainReady = function () {
 	loaded = true;
 }
 
