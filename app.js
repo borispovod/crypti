@@ -55,18 +55,27 @@ d.run(function () {
 
 			var sequence = [];
 			process.nextTick(function nextSequenceTick() {
-				var worker = sequence.shift();
-				if (worker && typeof(worker) == 'function') {
-					worker(function () {
-						setTimeout(nextSequenceTick, 1000);
-					})
-				} else {
-					setTimeout(nextSequenceTick, 1000);
+				var task = sequence.shift();
+				if (!task){
+					return setTimeout(nextSequenceTick, 100);
 				}
+				task(function () {
+					setTimeout(nextSequenceTick, 100);
+				});
 			});
 			cb(null, {
-				add: function (worker) {
-					sequence.push(worker);
+				add: function (worker, done) {
+					sequence.push(function (cb) {
+						if (worker && typeof(worker) == 'function') {
+							worker(function (err, res) {
+								setImmediate(cb);
+								done && setImmediate(done, err, res);
+							});
+						} else {
+							setImmediate(cb);
+							done && setImmediate(done);
+						}
+					});
 				}
 			});
 		},
@@ -154,13 +163,12 @@ d.run(function () {
 			cb(null, new bus)
 		},
 
-
 		db: function (cb) {
 			var sqlite3 = require('./helpers/db.js');
 			sqlite3.connect(config.db, cb);
 		},
 
-		dbLite : ['db', function (cb) {
+		dbLite: ['db', function (cb) {
 			var dbLite = require('./helpers/dbLite.js');
 			dbLite.connect(config.db, cb);
 		}],
@@ -185,6 +193,7 @@ d.run(function () {
 				cb(err, results);
 			});
 		}],
+
 		ready: ['modules', function (cb, scope) {
 			// need to load it as it written in config: server, accounts and etc.
 			Object.keys(scope.modules).forEach(function (name) {

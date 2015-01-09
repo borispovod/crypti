@@ -27,7 +27,7 @@
         "blackList": []
     },
     "forging": {
-        "secret": ""
+        "secret": "ms02kf"
     },
 	"loading" : {
 		"loadPerIteration" : 5000

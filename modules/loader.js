@@ -216,13 +216,13 @@ Loader.prototype.onPeerReady = function () {
 	process.nextTick(function nextLoadBlock() {
 		library.sequence.add(function (cb) {
 			var lastBlock = modules.blocks.getLastBlock();
-			loadBlocks(lastBlock, function (err) {
-				err && library.logger.error('loadBlocks timer', err);
-				sync = false;
-				blocksToSync = 0;
-				cb()
-				setTimeout(nextLoadBlock, 10 * 1000)
-			});
+			loadBlocks(lastBlock, cb);
+		}, function (err) {
+			err && library.logger.error('loadBlocks timer', err);
+			sync = false;
+			blocksToSync = 0;
+
+			setTimeout(nextLoadBlock, 10 * 1000)
 		});
 	});
 

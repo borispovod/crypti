@@ -4,7 +4,8 @@ var crypto = require('crypto'),
 	params = require('../helpers/params.js'),
 	timeHelper = require('../helpers/time.js'),
 	shuffle = require('knuth-shuffle').knuthShuffle,
-	Router = require('../helpers/router.js');
+	Router = require('../helpers/router.js'),
+	arrayHelper = require('../helpers/array.js');
 
 //private fields
 var modules, library, self;
@@ -176,6 +177,19 @@ Delegates.prototype.voting = function (publicKeys) {
 
 Delegates.prototype.getDelegate = function (publicKey) {
 	return delegates[publicKey];
+}
+
+Delegates.prototype.myDelegates = function (publicKey) {
+	var delegatesArray = arrayHelper.hash2array(delegates);
+	var justKeys = delegatesArray.map(function (v) {
+		return v.publicKey;
+	});
+
+	return justKeys;
+}
+
+Delegates.prototype.getActiveDelegates = function () {
+	return arrayHelper.hash2array(delegates);
 }
 
 Delegates.prototype.getUnconfirmedDelegate = function (publicKey) {
