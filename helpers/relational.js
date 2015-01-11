@@ -1,9 +1,63 @@
 var crypto = require('crypto'),
 	ed = require('ed25519'),
 	bignum = require('bignum'),
-	ByteBuffer = require("bytebuffer");
+	ByteBuffer = require("bytebuffer"),
+	arrayHelper = require('../helpers/array.js');
 
-// need to remove all helpers and move it to objects
+function normalizeBlock(block) {
+	block.transactions = arrayHelper.hash2array(block.transactions);
+
+	return block;
+}
+
+function relational2object(rows) {
+	var blocks = {};
+	var order = [];
+	for (var i = 0, length = rows.length; i < length; i++) {
+		var __block = getBlock(rows[i], true);
+		if (__block) {
+			if (!blocks[__block.id]) {
+				if (__block.id == genesisblock.blockId) {
+					__block.generationSignature = new Buffer(64);
+					__block.generationSignature.fill(0);
+				}
+
+				order.push(__block.id);
+				blocks[__block.id] = __block;
+			}
+
+			var __transaction = getTransaction(rows[i], true);
+			blocks[__block.id].transactions = blocks[__block.id].transactions || {};
+			if (__transaction) {
+				__transaction.asset = __transaction.asset || {};
+				if (!blocks[__block.id].transactions[__transaction.id]) {
+					var __signature = getSignature(rows[i], true);
+					if (__signature) {
+						if (!__transaction.asset.signature) {
+							__transaction.asset.signature = __signature;
+						}
+					}
+
+					var __delegate = getDelegate(rows[i]);
+					if (__delegate) {
+						if (!__transaction.asset.delegate) {
+							__transaction.asset.delegate = __delegate;
+						}
+					}
+
+					blocks[__block.id].transactions[__transaction.id] = __transaction;
+				}
+			}
+		}
+	}
+
+	blocks = order.map(function (v) {
+		return normalizeBlock(blocks[v]);
+	});
+
+	return blocks;
+}
+
 function getAddressByPublicKey(publicKey) {
 	var publicKeyHash = crypto.createHash('sha256').update(publicKey).digest();
 	var temp = new Buffer(8);
@@ -136,83 +190,10 @@ function getSignature(raw, fromString, hex) {
 	}
 }
 
-function getBytes(block) {
-	var size = 4 + 4 + 8 + 4 + 4 + 8 + 8 + 4 + 4 + 4 + 32 + 32 + 64;
-
-	var bb = new ByteBuffer(size, true);
-	bb.writeInt(block.version);
-	bb.writeInt(block.timestamp);
-
-	if (block.previousBlock) {
-		var pb = bignum(block.previousBlock).toBuffer({size: '8'});
-
-		for (var i = 0; i < 8; i++) {
-			bb.writeByte(pb[i]);
-		}
-	} else {
-		for (var i = 0; i < 8; i++) {
-			bb.writeByte(0);
-		}
-	}
-
-	bb.writeInt(block.numberOfTransactions);
-	bb.writeLong(block.totalAmount);
-	bb.writeLong(block.totalFee);
-
-	bb.writeInt(block.payloadLength);
-
-	for (var i = 0; i < block.payloadHash.length; i++) {
-		bb.writeByte(block.payloadHash[i]);
-	}
-
-	for (var i = 0; i < block.generatorPublicKey.length; i++) {
-		bb.writeByte(block.generatorPublicKey[i]);
-	}
-
-	if (block.blockSignature) {
-		for (var i = 0; i < block.blockSignature.length; i++) {
-			bb.writeByte(block.blockSignature[i]);
-		}
-	}
-
-	bb.flip();
-	var b = bb.toBuffer();
-	return b;
-}
-
-function getHash(block) {
-	return crypto.createHash('sha256').update(getBytes(block)).digest();
-}
-
-function sign(secret, block) {
-	var keypair = secret;
-	var hash = getHash(block);
-
-	if (typeof(secret) == 'string') {
-		var secretHash = crypto.createHash('sha256').update(secret, 'hex').digest();
-		keypair = ed.MakeKeypair(secretHash);
-	}
-
-	return ed.Sign(hash, keypair);
-}
-
-function getId(block) {
-	var hash = crypto.createHash('sha256').update(getBytes(block)).digest();
-	var temp = new Buffer(8);
-	for (var i = 0; i < 8; i++) {
-		temp[i] = hash[7 - i];
-	}
-
-	var id =  bignum.fromBuffer(temp).toString();
-	return id;
-}
-
 module.exports = {
+	blockChainRelational2ObjectModel: relational2object,
 	getBlock: getBlock,
 	getTransaction: getTransaction,
 	getSignature: getSignature,
-	getDelegate: getDelegate,
-	getBytes: getBytes,
-	sign : sign,
-	getId : getId
+	getDelegate: getDelegate
 }

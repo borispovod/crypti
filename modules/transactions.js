@@ -6,7 +6,7 @@ var transactionHelper = require('../helpers/transaction.js'),
 	crypto = require('crypto'),
 	genesisblock = require('../helpers/genesisblock.js'),
 	constants = require("../helpers/constants.js"),
-	blockHelper = require("../helpers/block.js"),
+	relational = require("../helpers/relational.js"),
 	timeHelper = require("../helpers/time.js"),
 	params = require('../helpers/params.js'),
 	extend = require('extend'),
@@ -265,7 +265,7 @@ function list (filter, cb) {
 			return cb(err)
 		}
 		async.mapSeries(rows, function (row, cb) {
-			setImmediate(cb, null, blockHelper.getTransaction(row, false, filter.hex));
+			setImmediate(cb, null, relational.getTransaction(row, false, filter.hex));
 		}, cb)
 	})
 }
@@ -285,7 +285,7 @@ function getById (id, hex, cb) {
 			return cb(err || "Can't find transaction: " + id);
 		}
 
-		var transacton = blockHelper.getTransaction(row, false, hex);
+		var transacton = relational.getTransaction(row, false, hex);
 		cb(null, transacton);
 	});
 }
