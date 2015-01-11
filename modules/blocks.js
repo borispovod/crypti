@@ -111,18 +111,27 @@ function attachApi() {
 	});
 }
 
+//
+var sign = function (secret, transaction) {
+	var hash = transactionHelper.getHash(transaction);
+	var passHash = crypto.createHash('sha256').update(secret, 'utf8').digest();
+	var keypair = ed.MakeKeypair(passHash);
+	transaction.signature = ed.Sign(hash, keypair);
+}
+
 function saveGenesisBlock(saveBlock, cb){
 	library.db.get("SELECT id FROM blocks WHERE id=$id", {$id: genesisblock.blockId}, function (err, blockId) {
 		if (err) {
 			cb(err)
 		} else if (!blockId) {
 			var blockTransactions = [];
+			var payloadLength = 0;
+			var payloadHash = crypto.createHash('sha256');
 
 			for (var i = 0; i < genesisblock.transactions.length; i++) {
 				var genesisTransaction = genesisblock.transactions[i];
 				var transaction = {
 					type: genesisTransaction.type,
-					subtype: genesisTransaction.subtype,
 					amount: genesisTransaction.amount * constants.fixedPoint,
 					fee: 0,
 					timestamp: 0,
@@ -143,7 +152,6 @@ function saveGenesisBlock(saveBlock, cb){
 				transaction.id = transactionHelper.getId(transaction);
 				blockTransactions.push(transaction);
 			}
-
 
 			var block = {
 				id: genesisblock.blockId,
@@ -506,7 +514,7 @@ Blocks.prototype.loadBlocksPart = function (filter, cb) {
 	library.db.all(
 		"SELECT " +
 		"b.id b_id, b.version b_version, b.timestamp b_timestamp, b.height b_height, b.previousBlock b_previousBlock, b.numberOfTransactions b_numberOfTransactions, b.totalAmount b_totalAmount, b.totalFee b_totalFee, b.previousFee b_previousFee, b.nextFeeVolume b_nextFeeVolume, b.feeVolume b_feeVolume, b.payloadLength b_payloadLength,   b.payloadHash b_payloadHash, b.generatorPublicKey b_generatorPublicKey, b.blockSignature b_blockSignature, " +
-		"t.id t_id, t.type t_type, t.subtype t_subtype, t.timestamp t_timestamp, t.senderPublicKey t_senderPublicKey, t.senderId t_senderId, t.recipientId t_recipientId, t.amount t_amount, t.fee t_fee, t.signature t_signature, t.signSignature t_signSignature" +
+		"t.id t_id, t.type t_type, t.timestamp t_timestamp, t.senderPublicKey t_senderPublicKey, t.senderId t_senderId, t.recipientId t_recipientId, t.amount t_amount, t.fee t_fee, t.signature t_signature, t.signSignature t_signSignature" +
 		"s.id s_id, s.timestamp s_timestamp, s.publicKey s_publicKey, s.generatorPublicKey s_generatorPublicKey, s.signature s_signature, s.generationSignature s_generationSignature, " +
 		"d.username d_username " +
 		"FROM (select * from blocks " + (filter.id ? " where id = $id " : "") + (filter.lastId ? " where height > (SELECT height FROM blocks where id = $lastId) " : "") + " limit $limit) as b " +
@@ -532,14 +540,14 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 	var params = {limit: limit, offset: offset || 0};
 	var fields = [
 		'b_id', 'b_version', 'b_timestamp', 'b_height', 'b_previousBlock', 'b_numberOfTransactions',  'b_totalAmount', 'b_totalFee', 'b_payloadLength', 'b_payloadHash', 'b_generatorPublicKey',  'b_blockSignature',
-		't_id', 't_type', 't_subtype', 't_timestamp', 't_senderPublicKey', 't_senderId', 't_recipientId', 't_amount', 't_fee', 't_signature', 't_signSignature',
+		't_id', 't_type', 't_timestamp', 't_senderPublicKey', 't_senderId', 't_recipientId', 't_amount', 't_fee', 't_signature', 't_signSignature',
 		's_id', 's_timestamp', 's_publicKey', 's_generatorPublicKey', 's_signature', 's_generationSignature',
 		'd_username'
 	]
 	library.dbLite.query(
 		"SELECT " +
 		"b.id, b.version, b.timestamp, b.height, b.previousBlock, b.numberOfTransactions, b.totalAmount, b.totalFee, b.payloadLength, hex(b.payloadHash), hex(b.generatorPublicKey), hex(b.blockSignature), " +
-		"t.id, t.type, t.subtype, t.timestamp, hex(t.senderPublicKey), t.senderId, t.recipientId, t.amount, t.fee, hex(t.signature), hex(t.signSignature), " +
+		"t.id, t.type, t.timestamp, hex(t.senderPublicKey), t.senderId, t.recipientId, t.amount, t.fee, hex(t.signature), hex(t.signSignature), " +
 		"s.id, s.timestamp, hex(s.publicKey), hex(s.generatorPublicKey), hex(s.signature), hex(s.generationSignature), " +
 		"d.username " +
 		"FROM (select * from blocks limit $limit offset $offset) as b " +
@@ -640,7 +648,7 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 						break;
 					}
 
-					if (blocks[i].transactions[n].type == 4) {
+					if (blocks[i].transactions[n].type == 2) {
 						modules.delegates.cache(blocks[i].transactions[n].asset.delegate)
 					}
 				}
@@ -888,7 +896,7 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 									return cb("Invalid transaction amount: " + transaction.id);
 								}
 
-								if (transaction.type == 2 && transaction.subtype == 0) {
+								if (transaction.type == 1) {
 									if (!transaction.asset.signature) {
 										return cb("Transaction must have signature");
 									}
@@ -1006,12 +1014,11 @@ Blocks.prototype.saveBlock = function (block, cb) {
 			async.parallel([
 				function (done) {
 					async.eachSeries(block.transactions, function (transaction, cb) {
-						st = transactionDb.prepare("INSERT INTO trs(id, blockId, type, subtype, timestamp, senderPublicKey, senderId, recipientId, amount, fee, signature, signSignature) VALUES($id, $blockId, $type, $subtype, $timestamp, $senderPublicKey, $senderId, $recipientId, $amount, $fee, $signature, $signSignature)");
+						st = transactionDb.prepare("INSERT INTO trs(id, blockId, type, timestamp, senderPublicKey, senderId, recipientId, amount, fee, signature, signSignature) VALUES($id, $blockId, $type, $timestamp, $senderPublicKey, $senderId, $recipientId, $amount, $fee, $signature, $signSignature)");
 						st.bind({
 							$id: transaction.id,
 							$blockId: block.id,
 							$type: transaction.type,
-							$subtype: transaction.subtype,
 							$timestamp: transaction.timestamp,
 							$senderPublicKey: transaction.senderPublicKey,
 							$senderId: transaction.senderId,
@@ -1026,7 +1033,7 @@ Blocks.prototype.saveBlock = function (block, cb) {
 								return cb(err);
 							}
 
-							if (transaction.type == 2 && transaction.subtype == 0) {
+							if (transaction.type == 1) {
 								st = transactionDb.prepare("INSERT INTO signatures(id, transactionId, timestamp , publicKey, generatorPublicKey, signature, generationSignature) VALUES($id, $transactionId, $timestamp , $publicKey, $generatorPublicKey, $signature , $generationSignature)");
 								st.bind({
 									$id: transaction.asset.signature.id,
@@ -1038,7 +1045,7 @@ Blocks.prototype.saveBlock = function (block, cb) {
 									$generationSignature: transaction.asset.signature.generationSignature
 								});
 								st.run(cb);
-							} else if (transaction.type == 4 && transaction.subtype == 0) {
+							} else if (transaction.type == 2) {
 								st = transactionDb.prepare("INSERT INTO delegates(username, transactionId) VALUES($username, $transactionId)");
 								st.bind({
 									$username: transaction.asset.delegate.username,
