@@ -158,11 +158,8 @@ function saveGenesisBlock(saveBlock, cb){
 				payloadLength: genesisblock.payloadLength,
 				previousBlock: null,
 				generatorPublicKey: new Buffer(genesisblock.generatorPublicKey, 'hex'),
-				requestsLength: 0,
-				numberOfRequests: 0,
 				confirmationsLength: 0,
 				numberOfConfirmations: 0,
-				requests: [],
 				companyconfirmations: [],
 				transactions: blockTransactions,
 				blockSignature: new Buffer(genesisblock.blockSignature, 'hex'),
@@ -185,18 +182,14 @@ function saveGenesisBlock(saveBlock, cb){
 	});
 }
 
-function normalizeBlock(block, includeRequests) {
-	if (includeRequests) {
-		block.requests = arrayHelper.hash2array(block.requests);
-	}
-
+function normalizeBlock(block) {
 	block.transactions = arrayHelper.hash2array(block.transactions);
 	block.companyconfirmations = arrayHelper.hash2array(block.companyconfirmations);
 
 	return block;
 }
 
-function relational2object(rows, includeRequests) {
+function relational2object(rows) {
 	var blocks = {};
 	var order = [];
 	for (var i = 0, length = rows.length; i < length; i++) {
@@ -263,7 +256,7 @@ function relational2object(rows, includeRequests) {
 	}
 
 	blocks = order.map(function (v) {
-		return normalizeBlock(blocks[v], includeRequests);
+		return normalizeBlock(blocks[v]);
 	});
 
 	return blocks;
@@ -490,7 +483,7 @@ function list (filter, cb) {
 		return cb('Maximum of limit is 1000');
 	}
 
-	var stmt = library.db.prepare("select b.id b_id, b.version b_version, b.timestamp b_timestamp, b.height b_height, b.previousBlock b_previousBlock, b.numberOfRequests b_numberOfRequests, b.numberOfTransactions b_numberOfTransactions, b.numberOfConfirmations b_numberOfConfirmations, b.totalAmount b_totalAmount, b.totalFee b_totalFee, b.payloadLength b_payloadLength, b.requestsLength b_requestsLength, b.confirmationsLength b_confirmationsLength, b.payloadHash b_payloadHash, b.generatorPublicKey b_generatorPublicKey, b.blockSignature b_blockSignature " +
+	var stmt = library.db.prepare("select b.id b_id, b.version b_version, b.timestamp b_timestamp, b.height b_height, b.previousBlock b_previousBlock,  b.numberOfTransactions b_numberOfTransactions, b.numberOfConfirmations b_numberOfConfirmations, b.totalAmount b_totalAmount, b.totalFee b_totalFee, b.payloadLength b_payloadLength, b.confirmationsLength b_confirmationsLength, b.payloadHash b_payloadHash, b.generatorPublicKey b_generatorPublicKey, b.blockSignature b_blockSignature " +
 	"from blocks b " +
 	(fields.length ? "where " + fields.join(' and ') : '') + " " +
 	(filter.orderBy ? 'order by ' + sortBy + ' ' + sortMethod : '') + " " +
@@ -509,7 +502,7 @@ function list (filter, cb) {
 }
 
 function getById (id, cb) {
-	var stmt = library.db.prepare("select b.id b_id, b.version b_version, b.timestamp b_timestamp, b.height b_height, b.previousBlock b_previousBlock, b.numberOfRequests b_numberOfRequests, b.numberOfTransactions b_numberOfTransactions, b.numberOfConfirmations b_numberOfConfirmations, b.totalAmount b_totalAmount, b.totalFee b_totalFee, b.payloadLength b_payloadLength, b.requestsLength b_requestsLength, b.confirmationsLength b_confirmationsLength, b.payloadHash b_payloadHash, b.generatorPublicKey b_generatorPublicKey, b.blockSignature b_blockSignature " +
+	var stmt = library.db.prepare("select b.id b_id, b.version b_version, b.timestamp b_timestamp, b.height b_height, b.previousBlock b_previousBlock, b.numberOfTransactions b_numberOfTransactions, b.numberOfConfirmations b_numberOfConfirmations, b.totalAmount b_totalAmount, b.totalFee b_totalFee, b.payloadLength b_payloadLength, b.confirmationsLength b_confirmationsLength, b.payloadHash b_payloadHash, b.generatorPublicKey b_generatorPublicKey, b.blockSignature b_blockSignature " +
 	"from blocks b " +
 	"where b.id = ?");
 
@@ -543,7 +536,7 @@ Blocks.prototype.loadBlocksPart = function (filter, cb) {
 	filter.id && !filter.lastId && (params['$id'] = filter.id);
 	library.db.all(
 		"SELECT " +
-		"b.id b_id, b.version b_version, b.timestamp b_timestamp, b.height b_height, b.previousBlock b_previousBlock, b.numberOfRequests b_numberOfRequests, b.numberOfTransactions b_numberOfTransactions, b.numberOfConfirmations b_numberOfConfirmations, b.totalAmount b_totalAmount, b.totalFee b_totalFee, b.previousFee b_previousFee, b.nextFeeVolume b_nextFeeVolume, b.feeVolume b_feeVolume, b.payloadLength b_payloadLength, b.requestsLength b_requestsLength, b.confirmationsLength b_confirmationsLength, b.payloadHash b_payloadHash, b.generatorPublicKey b_generatorPublicKey, b.blockSignature b_blockSignature, " +
+		"b.id b_id, b.version b_version, b.timestamp b_timestamp, b.height b_height, b.previousBlock b_previousBlock, b.numberOfTransactions b_numberOfTransactions, b.numberOfConfirmations b_numberOfConfirmations, b.totalAmount b_totalAmount, b.totalFee b_totalFee, b.previousFee b_previousFee, b.nextFeeVolume b_nextFeeVolume, b.feeVolume b_feeVolume, b.payloadLength b_payloadLength,  b.confirmationsLength b_confirmationsLength, b.payloadHash b_payloadHash, b.generatorPublicKey b_generatorPublicKey, b.blockSignature b_blockSignature, " +
 		"r.id r_id, r.address r_address, " +
 		"t.id t_id, t.type t_type, t.subtype t_subtype, t.timestamp t_timestamp, t.senderPublicKey t_senderPublicKey, t.senderId t_senderId, t.recipientId t_recipientId, t.amount t_amount, t.fee t_fee, t.signature t_signature, t.signSignature t_signSignature, c_t.generatorPublicKey t_companyGeneratorPublicKey, " +
 		"s.id s_id, s.timestamp s_timestamp, s.publicKey s_publicKey, s.generatorPublicKey s_generatorPublicKey, s.signature s_signature, s.generationSignature s_generationSignature, " +
@@ -567,7 +560,7 @@ Blocks.prototype.loadBlocksPart = function (filter, cb) {
 				return cb(err, []);
 			}
 
-			var blocks = relational2object(rows, true);
+			var blocks = relational2object(rows);
 
 			cb(err, blocks);
 		});
@@ -576,7 +569,7 @@ Blocks.prototype.loadBlocksPart = function (filter, cb) {
 Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 	var params = {limit: limit, offset: offset || 0};
 	var fields = [
-		'b_id', 'b_version', 'b_timestamp', 'b_height', 'b_previousBlock', 'b_numberOfRequests', 'b_numberOfTransactions', 'b_numberOfConfirmations', 'b_totalAmount', 'b_totalFee', 'b_payloadLength', 'b_requestsLength', 'b_confirmationsLength', 'b_payloadHash', 'b_generatorPublicKey',  'b_blockSignature',
+		'b_id', 'b_version', 'b_timestamp', 'b_height', 'b_previousBlock', 'b_numberOfTransactions', 'b_numberOfConfirmations', 'b_totalAmount', 'b_totalFee', 'b_payloadLength',  'b_confirmationsLength', 'b_payloadHash', 'b_generatorPublicKey',  'b_blockSignature',
 		't_id', 't_type', 't_subtype', 't_timestamp', 't_senderPublicKey', 't_senderId', 't_recipientId', 't_amount', 't_fee', 't_signature', 't_signSignature', 't_companyGeneratorPublicKey',
 		's_id', 's_timestamp', 's_publicKey', 's_generatorPublicKey', 's_signature', 's_generationSignature',
 		'c_id', 'c_name', 'c_description', 'c_domain', 'c_email', 'c_timestamp', 'c_generatorPublicKey', 'c_signature',
@@ -585,7 +578,7 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 	]
 	library.dbLite.query(
 		"SELECT " +
-		"b.id, b.version, b.timestamp, b.height, b.previousBlock, b.numberOfRequests, b.numberOfTransactions, b.numberOfConfirmations, b.totalAmount, b.totalFee, b.payloadLength, b.requestsLength, b.confirmationsLength, hex(b.payloadHash), hex(b.generatorPublicKey), hex(b.blockSignature), " +
+		"b.id, b.version, b.timestamp, b.height, b.previousBlock, b.numberOfTransactions, b.numberOfConfirmations, b.totalAmount, b.totalFee, b.payloadLength, b.confirmationsLength, hex(b.payloadHash), hex(b.generatorPublicKey), hex(b.blockSignature), " +
 		"t.id, t.type, t.subtype, t.timestamp, hex(t.senderPublicKey), t.senderId, t.recipientId, t.amount, t.fee, hex(t.signature), hex(t.signSignature), hex(c_t.generatorPublicKey), " +
 		"s.id, s.timestamp, hex(s.publicKey), hex(s.generatorPublicKey), hex(s.signature), hex(s.generationSignature), " +
 		"c.id, c.name, c.description, c.domain, c.email, c.timestamp, hex(c.generatorPublicKey), hex(c.signature), " +
@@ -888,16 +881,13 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 			}
 
 			if (block.payloadLength > constants.maxPayloadLength
-				|| block.requestsLength > constants.maxRequestsLength
 				|| block.confirmationsLength > constants.maxConfirmations) {
 				return cb("Can't verify payload length of block: " + block.id);
 			}
 
 			if (block.transactions.length != block.numberOfTransactions
-				|| block.requests.length != block.numberOfRequests
 				|| block.companyconfirmations.length != block.numberOfConfirmations
 				|| block.transactions.length > 100
-				|| block.requests.length > 1000
 				|| block.companyconfirmations.length > 1000) {
 				return cb("Invalid amount of block assets: " + block.id);
 			}
@@ -978,35 +968,6 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 								totalFee += transaction.fee;
 
 								setImmediate(cb);
-							}
-						});
-					}, done);
-				},
-				function (done) {
-					async.eachSeries(block.requests, function (request, cb) {
-						request.id = requestHelper.getId(request);
-
-						if (acceptedRequests[request.id]) {
-							return cb("Dublicated request: " + request.id);
-						}
-
-						library.db.get("SELECT id FROM requests WHERE id=$id", {$id: request.id}, function (err, rId) {
-							if (err) {
-								return cb(err);
-							}
-
-							if (rId) {
-								cb("Request already exists: " + request.id);
-							} else {
-								var account = modules.accounts.getAccount(request.address);
-
-								if (!account || account.balance < 1000 * constants.fixedPoint) {
-									return cb("Can't process request, invalid account");
-								}
-
-								acceptedRequests[request.id] = request;
-								payloadHash.update(requestHelper.getBytes(request));
-								cb();
 							}
 						});
 					}, done);
@@ -1100,20 +1061,18 @@ Blocks.prototype.saveBlock = function (block, cb) {
 			return cb(err);
 		}
 
-		var st = transactionDb.prepare("INSERT INTO blocks(id, version, timestamp, height, previousBlock, numberOfRequests, numberOfTransactions, numberOfConfirmations, totalAmount, totalFee, previousFee, nextFeeVolume, feeVolume, payloadLength, requestsLength, confirmationsLength, payloadHash, generatorPublicKey, blockSignature) VALUES($id, $version, $timestamp, $height, $previousBlock, $numberOfRequests, $numberOfTransactions, $numberOfConfirmations, $totalAmount, $totalFee, $previousFee, $nextFeeVolume, $feeVolume, $payloadLength, $requestsLength, $confirmationsLength, $payloadHash, $generatorPublicKey, $blockSignature)");
+		var st = transactionDb.prepare("INSERT INTO blocks(id, version, timestamp, height, previousBlock,  numberOfTransactions, numberOfConfirmations, totalAmount, totalFee, previousFee, nextFeeVolume, feeVolume, payloadLength, confirmationsLength, payloadHash, generatorPublicKey, blockSignature) VALUES($id, $version, $timestamp, $height, $previousBlock, $numberOfTransactions, $numberOfConfirmations, $totalAmount, $totalFee, $previousFee, $nextFeeVolume, $feeVolume, $payloadLength,  $confirmationsLength, $payloadHash, $generatorPublicKey, $blockSignature)");
 		st.bind({
 			$id: block.id,
 			$version: block.version,
 			$timestamp: block.timestamp,
 			$height: block.height,
 			$previousBlock: block.previousBlock,
-			$numberOfRequests: block.numberOfRequests,
 			$numberOfTransactions: block.numberOfTransactions,
 			$numberOfConfirmations: block.numberOfConfirmations,
 			$totalAmount: block.totalAmount,
 			$totalFee: block.totalFee,
 			$payloadLength: block.payloadLength,
-			$requestsLength: block.requestsLength,
 			$confirmationsLength: block.confirmationsLength,
 			$payloadHash: block.payloadHash,
 			$generatorPublicKey: block.generatorPublicKey,
@@ -1178,17 +1137,6 @@ Blocks.prototype.saveBlock = function (block, cb) {
 							}
 						});
 					}, done)
-				},
-				function (done) {
-					async.eachSeries(block.requests, function (request, cb) {
-						st = transactionDb.prepare("INSERT INTO requests(id, blockId, address) VALUES($id, $blockId, $address)");
-						st.bind({
-							$id: request.id,
-							$blockId: block.id,
-							$address: request.address
-						});
-						st.run(cb);
-					}, done);
 				},
 				function (done) {
 					// confirmations
@@ -1361,11 +1309,8 @@ Blocks.prototype.generateBlock = function (keypair, lastBlock, cb) {
 		generationSignature: generationSignature,
 		previousBlock: lastBlock.id,
 		generatorPublicKey: keypair.publicKey,
-		requestsLength: 0,
-		numberOfRequests: 0,
 		confirmationsLength: 0,
 		numberOfConfirmations: 0,
-		requests: [],
 		companyconfirmations: [],
 		transactions: blockTransactions
 	};
@@ -1420,11 +1365,8 @@ Blocks.prototype.generateBlockv2 = function (keypair, cb) {
 		payloadLength: size,
 		previousBlock: lastBlock.id,
 		generatorPublicKey: keypair.publicKey,
-		requestsLength: 0,
-		numberOfRequests: 0,
 		confirmationsLength: 0,
 		numberOfConfirmations: 0,
-		requests: [],
 		companyconfirmations: [],
 		transactions: blockTransactions
 	};
