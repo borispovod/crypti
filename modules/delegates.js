@@ -15,6 +15,7 @@ var modules, library, self;
 var keypair, myDelegate, address, account;
 var delegates = {};
 var unconfirmedDelegates = {};
+var activeDelegates = [];
 var loaded = false;
 
 //constructor
@@ -109,7 +110,7 @@ function attachApi() {
 	});
 }
 
-function getShuffleVotes() {
+function getKeysSortByVote() {
 	var delegatesArray = arrayHelper.hash2array(delegates);
 	delegatesArray = delegatesArray.sort(function compare(a, b) {
 		return (b.vote || 0) - (a.vote || 0);
@@ -117,12 +118,12 @@ function getShuffleVotes() {
 	var justKeys = delegatesArray.map(function (v) {
 		return v.publicKey;
 	});
-	var final = justKeys.slice(0, 33);
-	final.forEach(function (publicKey) {
-		if (delegates[publicKey]) {
-			delegates[publicKey].vote = 0;
-		}
-	})
+	return justKeys;
+}
+
+function getShuffleVotes() {
+	var delegatesIds = getKeysSortByVote();
+	var final = delegatesIds.slice(0, 33);
 	return shuffle(final);
 }
 
@@ -130,21 +131,24 @@ function forAllVote() {
 	return [];
 }
 
-function getNextBlockTime() {
-	var activeDelegates = modules.delegates.getActiveDelegates();
-
-	var nextSlot = slots.getNextSlot();
-	var lastSlot = slots.getLastSlot(nextSlot);
-
-	for (; nextSlot < lastSlot; nextSlot += 1) {
-		var delegate_pos = nextSlot % slots.delegates;
-		var delegate_id = activeDelegates[delegate_pos];
-
-		if (myDelegate.publicKey == delegate_id) {
-			return slots.getSlotTime(nextSlot);
+function getNextBlockTime(cb) {
+	modules.delegates.getActiveDelegates(function (err, activeDelegates) {
+		if (err) {
+			return cb(err)
 		}
-	}
-	return null;
+		var nextSlot = slots.getNextSlot();
+		var lastSlot = slots.getLastSlot(nextSlot);
+
+		for (; nextSlot < lastSlot; nextSlot += 1) {
+			var delegate_pos = nextSlot % slots.delegates;
+			var delegate_id = activeDelegates[delegate_pos];
+
+			if (delegate_id && myDelegate.publicKey == delegate_id) {
+				return cb(null, slots.getSlotTime(nextSlot));
+			}
+		}
+		cb();
+	});
 }
 
 function loop(cb) {
@@ -160,21 +164,24 @@ function loop(cb) {
 		return setImmediate(cb);
 	}
 
-	var nextBlockTime = getNextBlockTime();
-	if (nextBlockTime && nextBlockTime <= slots.getTime()) {
-		library.sequence.add(function (cb) {
-			if (slots.getSlotNumber(nextBlockTime) == slots.getSlotNumber()) {
-				modules.blocks.generateBlockv2(keypair, cb);
-			} else {
-				setImmediate(cb);
-			}
-		}, function (err) {
-			if (err) {
-				library.logger.error("Problem in block generation", err);
-			}
+	getNextBlockTime(function (err, nextBlockTime) {
+		if (!err && nextBlockTime && nextBlockTime <= slots.getTime()) {
+			library.sequence.add(function (cb) {
+				if (slots.getSlotNumber(nextBlockTime) == slots.getSlotNumber()) {
+					modules.blocks.generateBlockv2(keypair, cb);
+				} else {
+					setImmediate(cb);
+				}
+			}, function (err) {
+				if (err) {
+					library.logger.error("Problem in block generation", err);
+				}
+				setImmediate(cb, err);
+			});
+		} else {
 			setImmediate(cb, err);
-		});
-	}
+		}
+	})
 }
 
 function addUnconfirmedDelegate(delegate) {
@@ -195,6 +202,31 @@ function loadMyDelegates() {
 		address = modules.accounts.getAddressByPublicKey(keypair.publicKey);
 		account = modules.accounts.getAccount(address);
 	}
+}
+
+function updateActiveDelegates(cb) {
+	modules.blocks.count(function (err, count) {
+		if (err) {
+			return cb(err);
+		}
+		if (count % slots.delegates != 0) {
+			return cb(null, activeDelegates);
+		}
+		var seedSource = modules.blocks.getLastBlock().id;
+		var delegateIds = getKeysSortByVote();
+		var currentSeed = crypto.createHash('sha256').update(seedSource).digest();
+		for (var i = 0, delCount = delegateIds.length; i < delCount; i++) {
+			for (var x = 0; x < 4 && i < delCount; i++, x++) {
+				var newIndex = currentSeed[x % delCount];
+				var b = delegateIds[newIndex];
+				delegateIds[newIndex] = delegateIds[i];
+				delegateIds[i] = b;
+			}
+			currentSeed = crypto.createHash('sha256').update(currentSeed).digest();
+		}
+		activeDelegates = delegateIds;
+		cb(null, activeDelegates);
+	});
 }
 
 //public methods
@@ -239,8 +271,10 @@ Delegates.prototype.getDelegate = function (publicKey) {
 	return delegates[publicKey];
 }
 
-Delegates.prototype.getActiveDelegates = function () {
-	return arrayHelper.hash2array(delegates);
+Delegates.prototype.getActiveDelegates = function (cb) {
+	updateActiveDelegates(function (err, activeDelegates) {
+		cb(err, activeDelegates);
+	});
 }
 
 Delegates.prototype.getUnconfirmedDelegate = function (publicKey) {
