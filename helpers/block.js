@@ -41,7 +41,6 @@ function getBlock(raw, fromString, hex) {
 			payloadHash: new Buffer(raw.b_payloadHash, enconding),
 			generatorPublicKey: new Buffer(raw.b_generatorPublicKey, enconding),
 			generatorId : getAddressByPublicKey(new Buffer(raw.b_generatorPublicKey, enconding)),
-			generationSignature: new Buffer(raw.b_generationSignature, enconding),
 			blockSignature: new Buffer(raw.b_blockSignature, enconding),
 			previousFee : parseFloat(raw.b_previousFee),
 			nextFeeVolume : parseInt(raw.b_nextFeeVolume),
@@ -52,7 +51,6 @@ function getBlock(raw, fromString, hex) {
 			block.generatorPublicKey = block.generatorPublicKey.toString('hex');
 			block.payloadHash = block.payloadHash.toString('hex');
 			block.blockSignature = block.blockSignature.toString('hex');
-			block.generationSignature = block.generationSignature.toString('hex');
 		}
 
 		return block;
@@ -203,7 +201,7 @@ function getCompany(raw, fromString) {
 }
 
 function getBytes(block) {
-	var size = 4 + 4 + 8 + 4 + 4 + 4 + 8 + 8 + 4 + 4 + 4 + 32 + 32 + 64 + 64;
+	var size = 4 + 4 + 8 + 4 + 4 + 4 + 8 + 8 + 4 + 4 + 4 + 32 + 32 + 64;
 
 	var bb = new ByteBuffer(size, true);
 	bb.writeInt(block.version);
@@ -237,10 +235,6 @@ function getBytes(block) {
 
 	for (var i = 0; i < block.generatorPublicKey.length; i++) {
 		bb.writeByte(block.generatorPublicKey[i]);
-	}
-
-	for (var i = 0; i < block.generationSignature.length; i++) {
-		bb.writeByte(block.generationSignature[i]);
 	}
 
 	if (block.blockSignature) {
