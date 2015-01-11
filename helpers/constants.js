@@ -10,7 +10,6 @@ module.exports = {
     feeStart: 1,
     maxRequests: 10000 * 12,
     requestLength: 104,
-    maxRequestsLength: 104 * 10000,
     signatureLength: 196,
     maxSignaturesLength: 196 * 256,
     maxConfirmations : 77 * 100,

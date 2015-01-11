@@ -8,32 +8,22 @@ function normalizeBlock(block) {
 	block.timestamp = params.int(block.timestamp);
 	block.height = params.int(block.height);
 	block.previousBlock = params.string(block.previousBlock);
-	block.numberOfRequests = params.int(block.numberOfRequests);
 	block.numberOfTransactions = params.int(block.numberOfTransactions);
 	block.numberOfConfirmations = params.int(block.numberOfConfirmations);
 	block.totalAmount = params.int(block.totalAmount);
 	block.totalFee = params.int(block.totalFee);
 	block.payloadLength = params.int(block.payloadLength);
-	block.requestsLength = params.int(block.requestsLength);
 	block.confirmationsLength = params.int(block.confirmationsLength);
 	block.payloadHash = params.buffer(block.payloadHash);
 	block.generatorPublicKey = params.buffer(block.generatorPublicKey);
-	block.generationSignature = params.buffer(block.generationSignature);
 	block.blockSignature = params.buffer(block.blockSignature);
 	block.transactions = params.array(block.transactions);
-	block.requests = params.array(block.requests);
 
 	for (var i = 0; i < block.transactions.length; i++) {
 		block.transactions[i] = params.object(block.transactions[i])
 		block.transactions[i] = normalizeTransaction(block.transactions[i]);
 	}
 
-	for (var i = 0; i < block.requests.length; i++) {
-		block.requests[i] = params.object(block.requests[i]);
-		block.requests[i].id = params.string(block.requests[i].id);
-		block.requests[i].blockId = params.string(block.requests[i].blockId);
-		block.requests[i].address = params.string(block.requests[i].address);
-	}
 
 	return block;
 }

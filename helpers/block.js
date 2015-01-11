@@ -30,13 +30,11 @@ function getBlock(raw, fromString, hex) {
 			timestamp: parseInt(raw.b_timestamp),
 			height: parseInt(raw.b_height),
 			previousBlock: raw.b_previousBlock,
-			numberOfRequests: parseInt(raw.b_numberOfRequests),
 			numberOfTransactions: parseInt(raw.b_numberOfTransactions),
 			numberOfConfirmations: parseInt(raw.b_numberOfConfirmations),
 			totalAmount: parseInt(raw.b_totalAmount),
 			totalFee: parseInt(raw.b_totalFee),
 			payloadLength: parseInt(raw.b_payloadLength),
-			requestsLength: parseInt(raw.b_requestsLength),
 			confirmationsLength: parseInt(raw.b_confirmationsLength),
 			payloadHash: new Buffer(raw.b_payloadHash, enconding),
 			generatorPublicKey: new Buffer(raw.b_generatorPublicKey, enconding),
@@ -201,7 +199,7 @@ function getCompany(raw, fromString) {
 }
 
 function getBytes(block) {
-	var size = 4 + 4 + 8 + 4 + 4 + 4 + 8 + 8 + 4 + 4 + 4 + 32 + 32 + 64;
+	var size = 4 + 4 + 8 + 4 + 4 + 8 + 8 + 4 + 4 + 4 + 32 + 32 + 64;
 
 	var bb = new ByteBuffer(size, true);
 	bb.writeInt(block.version);
@@ -220,13 +218,11 @@ function getBytes(block) {
 	}
 
 	bb.writeInt(block.numberOfTransactions);
-	bb.writeInt(block.numberOfRequests);
 	bb.writeInt(block.numberOfConfirmations);
 	bb.writeLong(block.totalAmount);
 	bb.writeLong(block.totalFee);
 
 	bb.writeInt(block.payloadLength);
-	bb.writeInt(block.requestsLength);
 	bb.writeInt(block.confirmationsLength);
 
 	for (var i = 0; i < block.payloadHash.length; i++) {
