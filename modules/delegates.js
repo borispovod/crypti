@@ -131,24 +131,20 @@ function forAllVote() {
 	return [];
 }
 
-function getNextBlockTime(cb) {
-	modules.delegates.getActiveDelegates(function (err, activeDelegates) {
-		if (err) {
-			return cb(err)
-		}
-		var nextSlot = slots.getNextSlot();
-		var lastSlot = slots.getLastSlot(nextSlot);
+function getNextBlockTime() {
+	var activeDelegates = self.getActiveDelegates();
+	var nextSlot = slots.getNextSlot();
+	var lastSlot = slots.getLastSlot(nextSlot);
 
-		for (; nextSlot < lastSlot; nextSlot += 1) {
-			var delegate_pos = nextSlot % slots.delegates;
-			var delegate_id = activeDelegates[delegate_pos];
+	for (; nextSlot < lastSlot; nextSlot += 1) {
+		var delegate_pos = nextSlot % slots.delegates;
+		var delegate_id = activeDelegates[delegate_pos];
 
-			if (delegate_id && myDelegate.publicKey == delegate_id) {
-				return cb(null, slots.getSlotTime(nextSlot));
-			}
+		if (delegate_id && myDelegate.publicKey == delegate_id) {
+			return slots.getSlotTime(nextSlot);
 		}
-		cb();
-	});
+	}
+	return null;
 }
 
 function loop(cb) {
@@ -164,24 +160,23 @@ function loop(cb) {
 		return setImmediate(cb);
 	}
 
-	getNextBlockTime(function (err, nextBlockTime) {
-		if (!err && nextBlockTime && nextBlockTime <= slots.getTime()) {
-			library.sequence.add(function (cb) {
-				if (slots.getSlotNumber(nextBlockTime) == slots.getSlotNumber()) {
-					modules.blocks.generateBlockv2(keypair, cb);
-				} else {
-					setImmediate(cb);
-				}
-			}, function (err) {
-				if (err) {
-					library.logger.error("Problem in block generation", err);
-				}
-				setImmediate(cb, err);
-			});
-		} else {
+	var nextBlockTime = getNextBlockTime()
+	if (nextBlockTime && nextBlockTime <= slots.getTime()) {
+		library.sequence.add(function (cb) {
+			if (slots.getSlotNumber(nextBlockTime) == slots.getSlotNumber()) {
+				modules.blocks.generateBlockv2(keypair, cb);
+			} else {
+				setImmediate(cb);
+			}
+		}, function (err) {
+			if (err) {
+				library.logger.error("Problem in block generation", err);
+			}
 			setImmediate(cb, err);
-		}
-	})
+		});
+	} else {
+		setImmediate(cb);
+	}
 }
 
 function addUnconfirmedDelegate(delegate) {
@@ -204,29 +199,25 @@ function loadMyDelegates() {
 	}
 }
 
-function updateActiveDelegates(cb) {
-	modules.blocks.count(function (err, count) {
-		if (err) {
-			return cb(err);
+function updateActiveDelegates() {
+	var count = modules.blocks.getLastBlock().height;
+	if (count % slots.delegates != 0) {
+		return cb(null, activeDelegates);
+	}
+	var seedSource = modules.blocks.getLastBlock().id;
+	var delegateIds = getKeysSortByVote();
+	var currentSeed = crypto.createHash('sha256').update(seedSource).digest();
+	for (var i = 0, delCount = delegateIds.length; i < delCount; i++) {
+		for (var x = 0; x < 4 && i < delCount; i++, x++) {
+			var newIndex = currentSeed[x % delCount];
+			var b = delegateIds[newIndex];
+			delegateIds[newIndex] = delegateIds[i];
+			delegateIds[i] = b;
 		}
-		if (count % slots.delegates != 0) {
-			return cb(null, activeDelegates);
-		}
-		var seedSource = modules.blocks.getLastBlock().id;
-		var delegateIds = getKeysSortByVote();
-		var currentSeed = crypto.createHash('sha256').update(seedSource).digest();
-		for (var i = 0, delCount = delegateIds.length; i < delCount; i++) {
-			for (var x = 0; x < 4 && i < delCount; i++, x++) {
-				var newIndex = currentSeed[x % delCount];
-				var b = delegateIds[newIndex];
-				delegateIds[newIndex] = delegateIds[i];
-				delegateIds[i] = b;
-			}
-			currentSeed = crypto.createHash('sha256').update(currentSeed).digest();
-		}
-		activeDelegates = delegateIds;
-		cb(null, activeDelegates);
-	});
+		currentSeed = crypto.createHash('sha256').update(currentSeed).digest();
+	}
+	activeDelegates = delegateIds;
+	return activeDelegates;
 }
 
 //public methods
@@ -271,10 +262,9 @@ Delegates.prototype.getDelegate = function (publicKey) {
 	return delegates[publicKey];
 }
 
-Delegates.prototype.getActiveDelegates = function (cb) {
-	updateActiveDelegates(function (err, activeDelegates) {
-		cb(err, activeDelegates);
-	});
+Delegates.prototype.getActiveDelegates = function () {
+	var delegates = updateActiveDelegates();
+	return delegates;
 }
 
 Delegates.prototype.getUnconfirmedDelegate = function (publicKey) {
@@ -294,6 +284,10 @@ Delegates.prototype.cache = function (delegate) {
 //events
 Delegates.prototype.onBind = function (scope) {
 	modules = scope;
+}
+
+Delegates.prototype.onBlockchainReady = function () {
+	loaded = true;
 
 	loadMyDelegates(); //temp
 
@@ -308,10 +302,6 @@ Delegates.prototype.onBind = function (scope) {
 			schedule.scheduleJob(scheduledTime * 1000, nextLoop);
 		})
 	});
-}
-
-Delegates.prototype.onBlockchainReady = function () {
-	loaded = true;
 }
 
 Delegates.prototype.onUnconfirmedTransaction = function (transaction) {
