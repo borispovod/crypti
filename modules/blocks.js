@@ -1187,66 +1187,7 @@ Blocks.prototype.popLastBlock = function (lastBlock, cb) {
 	});
 }
 
-Blocks.prototype.generateBlock = function (keypair, lastBlock, cb) {
-	var transactions = modules.transactions.getUnconfirmedTransactions();
-	transactions.sort(function compare(a, b) {
-		/*if (a.fee < b.fee)
-		 return -1;
-		 if (a.fee > b.fee)
-		 return 1;
-		 return 0;*/
-
-		// it's shit like in previous version, because still use it, later need to move to sort by amount
-		return a.fee > b.fee;
-	});
-
-	var totalFee = 0, totalAmount = 0, size = 0;
-	var blockTransactions = [];
-	var payloadHash = crypto.createHash('sha256');
-
-	for (var i = 0; i < transactions.length; i++) {
-		var transaction = transactions[i];
-		var bytes = transactionHelper.getBytes(transaction);
-
-		if (size + bytes.length > constants.maxPayloadLength) {
-			break;
-		}
-
-		size += bytes.length;
-
-		totalFee += transaction.fee;
-		totalAmount += transaction.amount;
-
-		blockTransactions.push(transaction);
-		payloadHash.update(bytes);
-	}
-
-	payloadHash = payloadHash.digest();
-
-
-	var generationSignature = crypto.createHash('sha256').update(lastBlock.generationSignature).update(keypair.publicKey).digest();
-	generationSignature = ed.Sign(generationSignature, keypair);
-
-	var block = {
-		version: 2,
-		totalAmount: totalAmount,
-		totalFee: totalFee,
-		payloadHash: payloadHash,
-		timestamp: timeHelper.getNow(),
-		numberOfTransactions: blockTransactions.length,
-		payloadLength: size,
-		generationSignature: generationSignature,
-		previousBlock: lastBlock.id,
-		generatorPublicKey: keypair.publicKey,
-		transactions: blockTransactions
-	};
-
-	block.blockSignature = sign(keypair, block);
-
-	self.processBlock(block, true, cb);
-}
-
-Blocks.prototype.generateBlockv2 = function (keypair, cb) {
+Blocks.prototype.generateBlock = function (keypair, cb) {
 	var transactions = modules.transactions.getUnconfirmedTransactions();
 	transactions.sort(function compare(a, b) {
 		if (a.fee < b.fee)

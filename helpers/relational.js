@@ -4,12 +4,6 @@ var crypto = require('crypto'),
 	ByteBuffer = require("bytebuffer"),
 	arrayHelper = require('../helpers/array.js');
 
-function normalizeBlock(block) {
-	block.transactions = arrayHelper.hash2array(block.transactions);
-
-	return block;
-}
-
 function relational2object(rows) {
 	var blocks = {};
 	var order = [];
@@ -52,7 +46,8 @@ function relational2object(rows) {
 	}
 
 	blocks = order.map(function (v) {
-		return normalizeBlock(blocks[v]);
+		blocks[v].transactions = arrayHelper.hash2array(blocks[v].transactions);
+		return blocks[v];
 	});
 
 	return blocks;

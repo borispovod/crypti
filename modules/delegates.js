@@ -164,7 +164,7 @@ function loop(cb) {
 	if (nextBlockTime && nextBlockTime <= slots.getTime()) {
 		library.sequence.add(function (cb) {
 			if (slots.getSlotNumber(nextBlockTime) == slots.getSlotNumber()) {
-				modules.blocks.generateBlockv2(keypair, cb);
+				modules.blocks.generateBlock(keypair, cb);
 			} else {
 				setImmediate(cb);
 			}
