@@ -11,61 +11,16 @@ function getTransactionFee(transaction, isGenerator) {
 
     switch (transaction.type) {
         case 0:
-            switch (transaction.subtype) {
-                case 0:
-                    fee = transaction.fee;
-                    break;
-            }
-            break;
+			fee = transaction.fee;
+			break;
 
         case 1:
-            switch (transaction.subtype) {
-                case 0:
-                    if (transaction.fee >= 2) {
-                        if (transaction.fee % 2 != 0) {
-                            var tmp = parseInt(transaction.fee / 2);
-
-                            if (isGenerator) {
-                                fee = transaction.fee - tmp;
-                            } else {
-                                fee = tmp;
-                            }
-                        } else {
-                            fee = transaction.fee / 2;
-                        }
-                    } else {
-                        if (isGenerator) {
-                            fee = transaction.fee;
-                        } else {
-                            fee = 0;
-                        }
-                    }
-                    break;
-            }
-            break;
+			fee = 100 * constants.fixedPoint;
+			break;
 
         case 2:
-            switch (transaction.subtype) {
-                case 0:
-                    fee = 100 * constants.fixedPoint;
-                    break;
-            }
-            break;
-
-        case 3:
-            switch (transaction.subtype) {
-                case 0:
-                    fee = 100 * constants.fixedPoint;
-                    break;
-            }
-            break;
-
-        case 4:
-            switch (transaction.subtype) {
-                case 0:
-                    fee = 10 * constants.fixedPoint;
-                    break;
-            }
+			// delegate registration
+			fee = 50 * constants.fixedPoint;
             break;
     }
 
@@ -85,27 +40,19 @@ function getBytes(transaction) {
 		assetBytes = null;
 
     switch (transaction.type) {
-        case 2:
-            switch (transaction.subtype) {
-                case 0:
-                    assetSize = 196;
-					assetBytes = signatureHelper.getBytes(transaction.asset.signature);
-                    break;
-            }
+        case 1:
+			assetSize = 196;
+			assetBytes = signatureHelper.getBytes(transaction.asset.signature);
             break;
 
-		case 4:
-			switch (transaction.subtype) {
-				case 0:
-					assetBytes = new Buffer(transaction.asset.delegate.username, 'utf8');
-					assetSize = assetBytes.length;
-					break;
-			}
+		case 2:
+			assetBytes = new Buffer(transaction.asset.delegate.username, 'utf8');
+			assetSize = assetBytes.length;
+			break;
     }
 
-    var bb = new ByteBuffer(1 + 1 + 4 + 32 + 8 + 8 + 64 + 64 + (transaction.asset.votes.length * 32) + assetSize, true);
+    var bb = new ByteBuffer(1 + 4 + 32 + 8 + 8 + 64 + 64 + (transaction.asset.votes.length * 32) + assetSize, true);
     bb.writeByte(transaction.type);
-    bb.writeByte(transaction.subtype);
     bb.writeInt(transaction.timestamp);
 
     for (var i = 0; i < transaction.senderPublicKey.length; i++) {
@@ -176,25 +123,15 @@ function getHash(transaction) {
 function getFee(transaction, percent) {
 	switch (transaction.type) {
 		case 0:
-		case 1:
-			switch (transaction.subtype) {
-				case 0:
-					return parseInt(transaction.amount / 100 * percent);
-			}
-			break;
-
-		case 2:
-			switch (transaction.subtype) {
-				case 0:
-					return 100 * constants.fixedPoint;
-			}
+			return parseInt(transaction.amount / 100 * percent);
 		break;
 
-		case 3:
-			switch (transaction.subtype) {
-				case 0:
-					return 1000 * constants.fixedPoint;
-			}
+		case 1:
+			return 100 * constants.fixedPoint;
+		break;
+
+		case 2:
+			return 50 * constants.fixedPoint;
 		break;
 	}
 }

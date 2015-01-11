@@ -66,8 +66,7 @@ function attachApi() {
 		}
 
 		var transaction = {
-			type: 4,
-			subtype: 0,
+			type: 2,
 			amount: 0,
 			recipientId: null,
 			senderPublicKey: account.publicKey,

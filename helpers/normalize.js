@@ -65,7 +65,6 @@ function normalizeTransaction(transaction) {
 	transaction.id = params.string(transaction.id);
 	transaction.blockId = params.string(transaction.blockId);
 	transaction.type = params.int(transaction.type);
-	transaction.subtype = params.int(transaction.subtype);
 	transaction.timestamp = params.int(transaction.timestamp);
 	transaction.senderPublicKey = params.buffer(transaction.senderPublicKey);
 	transaction.senderId = params.string(transaction.senderId);
@@ -79,11 +78,11 @@ function normalizeTransaction(transaction) {
 		transaction.signSignature = params.buffer(transaction.signSignature);
 	}
 
-	if (transaction.type == 2 && transaction.subtype == 0) {
+	if (transaction.type == 2) {
 		transaction.asset.signature = normalizeSignature(transaction.asset.signature);
 	}
 
-	if (transaction.type == 4 && transaction.subtype == 0) {
+	if (transaction.type == 4) {
 		transaction.asset.delegate = normalizeDelegate(transaction.asset.delegate);
 	}
 

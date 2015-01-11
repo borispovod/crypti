@@ -95,8 +95,7 @@ function attachApi() {
 
 		var signature = self.newSignature(secret, secondSecret);
 		var transaction = {
-			type: 2,
-			subtype: 0,
+			type: 1,
 			amount: 0,
 			recipientId: null,
 			senderPublicKey: account.publicKey,

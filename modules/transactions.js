@@ -173,7 +173,6 @@ function attachApi() {
 
 		var transaction = {
 			type: 0,
-			subtype: 0,
 			amount: amount,
 			recipientId: recipientId,
 			senderPublicKey: account.publicKey,
@@ -249,7 +248,7 @@ function list (filter, cb) {
 	}
 
 	// need to fix 'or' or 'and' in query
-	var stmt = library.db.prepare("select t.id t_id, t.blockId t_blockId, t.type t_type, t.subtype t_subtype, t.timestamp t_timestamp, t.senderPublicKey t_senderPublicKey,  t.senderId t_senderId, t.recipientId t_recipientId, t.amount t_amount, t.fee t_fee, t.signature t_signature, t.signSignature t_signSignature, (select max(height) + 1 from blocks) - b.height as confirmations " +
+	var stmt = library.db.prepare("select t.id t_id, t.blockId t_blockId, t.type t_type, t.timestamp t_timestamp, t.senderPublicKey t_senderPublicKey,  t.senderId t_senderId, t.recipientId t_recipientId, t.amount t_amount, t.fee t_fee, t.signature t_signature, t.signSignature t_signSignature, (select max(height) + 1 from blocks) - b.height as confirmations " +
 		"from trs t " +
 		"inner join blocks b on t.blockId = b.id " +
 		"left outer join companies as c_t on c_t.address=t.recipientId " +
@@ -272,7 +271,7 @@ function list (filter, cb) {
 }
 
 function getById (id, hex, cb) {
-	var stmt = library.db.prepare("select t.id t_id, t.blockId t_blockId, t.type t_type, t.subtype t_subtype, t.timestamp t_timestamp, t.senderPublicKey t_senderPublicKey, t.senderId t_senderId, t.recipientId t_recipientId, t.amount t_amount, t.fee t_fee, t.signature t_signature, t.signSignature t_signSignature, (select max(height) + 1 from blocks) - b.height as confirmations " +
+	var stmt = library.db.prepare("select t.id t_id, t.blockId t_blockId, t.type t_type, t.timestamp t_timestamp, t.senderPublicKey t_senderPublicKey, t.senderId t_senderId, t.recipientId t_recipientId, t.amount t_amount, t.fee t_fee, t.signature t_signature, t.signSignature t_signSignature, (select max(height) + 1 from blocks) - b.height as confirmations " +
 	"from trs t " +
 	"inner join blocks b on t.blockId = b.id " +
 	"where t.id = $id");
@@ -405,79 +404,31 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 
 			switch (transaction.type) {
 				case 0:
-					switch (transaction.subtype) {
-						case 0:
-							if (transactionHelper.getLastChar(transaction) != "C") {
-								cb && cb("Invalid transaction recipient id");
-								return;
-							}
-							break;
-
-						default:
-							cb && cb("Unknown transaction type");
-							return;
+					if (transactionHelper.getLastChar(transaction) != "C") {
+						cb && cb("Invalid transaction recipient id");
+						return;
 					}
-					break;
+				break;
+
+
 
 				case 1:
-					switch (transaction.subtype) {
-						case 0:
-							if (transactionHelper.getLastChar(transaction) != "D") {
-								cb && cb("Invalid transaction recipient id");
-								return;
-							}
-							break;
-
-						default:
-							cb && cb("Unknown transaction type");
-							return;
+					if (!transaction.asset.signature) {
+						cb && cb("Empty transaction asset for signature transaction")
+						return;
 					}
-					break;
+				break;
 
 				case 2:
-					switch (transaction.subtype) {
-						case 0:
-							if (!transaction.asset.signature) {
-								cb && cb("Empty transaction asset for signature transaction")
-								return;
-							}
-							break;
-
-						default:
-							cb && cb("Unknown transaction type");
-							return;
+					if (!transaction.asset.delegate.username) {
+						cb && cb("Empty transaction asset for delegate transaction");
+						return;
 					}
-					break;
 
-				case 3:
-					switch (transaction.subtype) {
-						case 0:
-							cb && cb("Companies doesn't supports now");
-							return;
-						default:
-							cb && cb("Unknown transaction type");
-							return;
+					if (transaction.asset.delegate.username.length == 0 || transaction.asset.delegate.username.length > 30) {
+						cb && cb("Incorrect delegate username length");
 					}
-					break;
-
-				case 4:
-					switch (transaction.subtype) {
-						case 0:
-							if (!transaction.asset.delegate.username) {
-								cb && cb("Empty transaction asset for delegate transaction");
-								return;
-							}
-
-							if (transaction.asset.delegate.username.length == 0 || transaction.asset.delegate.username.length > 30) {
-								cb && cb("Incorrect delegate username length");
-							}
-							break;
-
-						default:
-							cb && cb("Unknown transaction type");
-							return;
-					}
-					break;
+				break;
 
 				default:
 					cb && cb("Unknown transaction type");
@@ -486,7 +437,7 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 
 			async.parallel([
 				function (cb) {
-					if (transaction.type == 4 && transaction.subtype == 0) {
+					if (transaction.type == 2) {
 						if (modules.delegates.getUnconfirmedDelegate(transaction.senderPublicKey)) {
 							return setImmediate(cb, "Delegate with this name is already exists");
 						}
@@ -534,34 +485,24 @@ Transactions.prototype.apply = function (transaction) {
 
 	// process only two types of transactions
 	if (transaction.type == 0) {
-		if (transaction.subtype == 0) {
-			sender.addToBalance(-amount);
+		sender.addToBalance(-amount);
 
-			var recipient = modules.accounts.getAccountOrCreate(transaction.recipientId);
-			recipient.addToUnconfirmedBalance(transaction.amount);
-			recipient.addToBalance(transaction.amount);
+		var recipient = modules.accounts.getAccountOrCreate(transaction.recipientId);
+		recipient.addToUnconfirmedBalance(transaction.amount);
+		recipient.addToBalance(transaction.amount);
 
-			return true;
-		}
+		return true;
 	} else if (transaction.type == 1) {
-		if (transaction.subtype == 0) {
-			return false;
-		}
+		sender.addToBalance(-amount);
+
+		sender.unconfirmedSignature = false;
+		sender.secondSignature = true;
+		sender.secondPublicKey = transaction.asset.signature.publicKey;
+		return true;
 	} else if (transaction.type == 2) {
-		if (transaction.subtype == 0) {
-			sender.addToBalance(-amount);
+		sender.addToBalance(-amount);
 
-			sender.unconfirmedSignature = false;
-			sender.secondSignature = true;
-			sender.secondPublicKey = transaction.asset.signature.publicKey;
-			return true;
-		}
-	} else if (transaction.type == 4) {
-		if (transaction.subtype == 0) {
-			sender.addToBalance(-amount);
-
-			return true;
-		}
+		return true;
 	} else {
 		return true;
 	}
@@ -576,14 +517,12 @@ Transactions.prototype.applyUnconfirmed = function (transaction) {
 		sender = modules.accounts.getAccountOrCreate(transaction.senderPublicKey);
 	}
 
-	if (transaction.type == 2) {
-		if (transaction.subtype == 0) {
-			if (sender.unconfirmedSignature || sender.secondSignature) {
-				return false;
-			}
-
-			sender.unconfirmedSignature = true;
+	if (transaction.type == 1) {
+		if (sender.unconfirmedSignature || sender.secondSignature) {
+			return false;
 		}
+
+		sender.unconfirmedSignature = true;
 	}
 
 	var amount = transaction.amount + transaction.fee;
@@ -603,7 +542,7 @@ Transactions.prototype.undoUnconfirmed = function (transaction) {
 
 	sender.addToUnconfirmedBalance(amount);
 
-	if (transaction.type == 2 && transaction.subtype == 0) {
+	if (transaction.type == 1) {
 		sender.unconfirmedSignature = false;
 	}
 
@@ -618,25 +557,17 @@ Transactions.prototype.undo = function (transaction) {
 
 	// process only two types of transactions
 	if (transaction.type == 0) {
-		if (transaction.subtype == 0) {
-			var recipient = modules.accounts.getAccountOrCreate(transaction.recipientId);
-			recipient.addToUnconfirmedBalance(-transaction.amount);
-			recipient.addToBalance(-transaction.amount);
+		var recipient = modules.accounts.getAccountOrCreate(transaction.recipientId);
+		recipient.addToUnconfirmedBalance(-transaction.amount);
+		recipient.addToBalance(-transaction.amount);
 
-			return true;
-		}
+		return true;
 	} else if (transaction.type == 1) {
-		if (transaction.subtype == 0) {
-			return false;
-		}
-	} else if (transaction.type == 2) {
-		if (transaction.subtype == 0) {
-			sender.secondSignature = false;
-			sender.unconfirmedSignature = true;
-			sender.secondPublicKey = null;
+		sender.secondSignature = false;
+		sender.unconfirmedSignature = true;
+		sender.secondPublicKey = null;
 
-			return true;
-		}
+		return true;
 	} else {
 		return true;
 	}

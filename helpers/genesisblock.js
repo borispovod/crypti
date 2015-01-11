@@ -1,17 +1,16 @@
 module.exports = {
-	payloadLength : 316,
-	payloadHash : "e089a707b719fe89f01915b1b32733702cf2b12a253d225f10da694059e838eb",
+	payloadLength : 314,
+	payloadHash : "2404d19b91899938c9bd3e9e191c71aed41d09c8c929b20a0295797353f001d6",
     generatorId : "5802249785291420991C",
 	generatorPublicKey : "22ebd6dca048c61ac83e2a677b8e39a399e2d1119381ba235d6bc71be674ca1c",
-    blockId : "9745685929308559267",
-    blockSignature: "093de01500a03dc5f1336660833587844e0e0a074fca9e60f9139eb8b4b421bb1d695784a95863647b04697b645fe3428853c74ad92d525f284a6df632cb9b08",
+    blockId : "849659529596053946",
+    blockSignature: "922ad5c600feb0127fafa12025b3853d1750661681f346ce2ba047ab625ed38755ad7d49f49ce0ec5c31167879edba93da6eff1d1f50ed8631af7c307306040c",
     transactions : [
         {
 			type : 0,
-			subtype : 0,
             amount: 100000000,
             recipientId : "2334212999465599568C",
-            signature : "616da95258ea75ac45812cf78af0b1dc87b4fcb3ede75403f9663dfe974d7458a7e6e0ff5a25565d27543db19806fd4ae2c5c188265e150f8aec788519a27b06",
+            signature : "4cef8bd7dd51e5c9173482597651c768444e2a04abecbc43e6dff12a0dbd08a2602f599ef5466b4ff1f862e5c015824253eead2c00eb5c8fb7d854a5a5db2507",
 			"asset" : {
 				"votes" : [
 					"631b91fa537f74e23addccd30555fbc7729ea267c7e0517cbf1bfcc46354abc3"
@@ -19,11 +18,10 @@ module.exports = {
 			}
         },
 		{
-			type : 4,
-			subtype : 0,
+			type : 2,
 			amount : 0,
 			recipientId : null,
-			signature : "df9871fba3c6a162ade0d148db9f3b28a12073d235849e6360e6ef29cd391515ffb607f4f6e6998d9b3045e9a93ecc3bd54c5778c33fea4fc44b24c6a5438d09",
+			signature : "039ce42974196e45b2191ca11046cde9176a3f05492f19fd62563b171c2b66eb3824f5cb3f7f7ec35ee90a51a043b90488fdb930fab89974226e61504c012a08",
 			"asset" : {
 				"votes" : [
 					"631b91fa537f74e23addccd30555fbc7729ea267c7e0517cbf1bfcc46354abc3"
