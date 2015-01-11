@@ -127,7 +127,7 @@ function saveGenesisBlock(saveBlock, cb){
 					subtype: genesisTransaction.subtype,
 					amount: genesisTransaction.amount * constants.fixedPoint,
 					fee: 0,
-					timestamp: timeHelper.epochTime(),
+					timestamp: 0,
 					recipientId: genesisTransaction.recipientId,
 					senderId: genesisblock.generatorId,
 					senderPublicKey: new Buffer(genesisblock.generatorPublicKey, 'hex'),
