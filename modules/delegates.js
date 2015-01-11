@@ -5,11 +5,14 @@ var crypto = require('crypto'),
 	timeHelper = require('../helpers/time.js'),
 	shuffle = require('knuth-shuffle').knuthShuffle,
 	Router = require('../helpers/router.js'),
-	arrayHelper = require('../helpers/array.js');
+	arrayHelper = require('../helpers/array.js'),
+	slots = require('../helpers/slots.js'),
+	schedule = require('node-schedule');
 
 //private fields
 var modules, library, self;
 
+var keypair, myDelegate, address, account;
 var delegates = {};
 var unconfirmedDelegates = {};
 var loaded = false;
@@ -106,7 +109,7 @@ function attachApi() {
 	});
 }
 
-function getShuffleVotes () {
+function getShuffleVotes() {
 	var delegatesArray = arrayHelper.hash2array(delegates);
 	delegatesArray = delegatesArray.sort(function compare(a, b) {
 		return (b.vote || 0) - (a.vote || 0);
@@ -123,17 +126,75 @@ function getShuffleVotes () {
 	return shuffle(final);
 }
 
-function forAllVote () {
+function forAllVote() {
 	return [];
 }
 
-function addUnconfirmedDelegate (delegate) {
+function getNextBlockTime() {
+	var activeDelegates = modules.delegates.getActiveDelegates();
+
+	var nextSlot = slots.getNextSlot();
+	var lastSlot = slots.getLastSlot(nextSlot);
+
+	for (; nextSlot < lastSlot; nextSlot += 1) {
+		var delegate_pos = nextSlot % slots.delegates;
+		var delegate_id = activeDelegates[delegate_pos];
+
+		if (myDelegate.publicKey == delegate_id) {
+			return slots.getSlotTime(nextSlot);
+		}
+	}
+	return null;
+}
+
+function loop(cb) {
+	if (!myDelegate || !account) {
+		return setImmediate(cb);
+	}
+
+	if (!loaded || modules.loader.syncing()) {
+		return setImmediate(cb);
+	}
+
+	if (account.balance < 1000 * constants.fixedPoint) {
+		return setImmediate(cb);
+	}
+
+	var nextBlockTime = getNextBlockTime();
+	if (nextBlockTime && nextBlockTime <= slots.getTime()) {
+		library.sequence.add(function (cb) {
+			if (slots.getSlotNumber(nextBlockTime) == slots.getSlotNumber()) {
+				modules.blocks.generateBlockv2(keypair, cb);
+			} else {
+				setImmediate(cb);
+			}
+		}, function (err) {
+			if (err) {
+				library.logger.error("Problem in block generation", err);
+			}
+			setImmediate(cb, err);
+		});
+	}
+}
+
+function addUnconfirmedDelegate(delegate) {
 	if (self.getUnconfirmedDelegate(delegate.publicKey)) {
 		return false
 	}
 
 	unconfirmedDelegates[delegate.publicKey] = delegate;
 	return true;
+}
+
+function loadMyDelegates() {
+	var secret = library.config.forging.secret
+
+	if (secret) {
+		keypair = ed.MakeKeypair(crypto.createHash('sha256').update(secret, 'utf').digest());
+		myDelegate = modules.delegates.getDelegate(keypair.publicKey);
+		address = modules.accounts.getAddressByPublicKey(keypair.publicKey);
+		account = modules.accounts.getAccount(address);
+	}
 }
 
 //public methods
@@ -178,15 +239,6 @@ Delegates.prototype.getDelegate = function (publicKey) {
 	return delegates[publicKey];
 }
 
-Delegates.prototype.myDelegates = function (publicKey) {
-	var delegatesArray = arrayHelper.hash2array(delegates);
-	var justKeys = delegatesArray.map(function (v) {
-		return v.publicKey;
-	});
-
-	return justKeys;
-}
-
 Delegates.prototype.getActiveDelegates = function () {
 	return arrayHelper.hash2array(delegates);
 }
@@ -208,6 +260,20 @@ Delegates.prototype.cache = function (delegate) {
 //events
 Delegates.prototype.onBind = function (scope) {
 	modules = scope;
+
+	loadMyDelegates(); //temp
+
+	library.logger.info("Forging enabled on account: " + address);
+
+	process.nextTick(function nextLoop() {
+		loop(function (err) {
+			err && library.logger.error('delegate loop', err);
+			var nextSlot = slots.getNextSlot();
+			var scheduledTime = slots.getSlotTime(nextSlot);
+			scheduledTime = scheduledTime <= slots.getTime() ? scheduledTime + 1 : scheduledTime;
+			schedule.scheduleJob(scheduledTime * 1000, nextLoop);
+		})
+	});
 }
 
 Delegates.prototype.onBlockchainReady = function () {

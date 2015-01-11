@@ -22,7 +22,6 @@ var config = {
 		"signatures": "./modules/signatures.js",
 		"transport": "./modules/transport.js",
 		"loader": "./modules/loader.js",
-		"forger": "./modules/forger.js",
 		"system": "./modules/system.js",
 		"peer": "./modules/peer.js",
 		"delegates": "./modules/delegates.js"
