@@ -9,11 +9,9 @@ function normalizeBlock(block) {
 	block.height = params.int(block.height);
 	block.previousBlock = params.string(block.previousBlock);
 	block.numberOfTransactions = params.int(block.numberOfTransactions);
-	block.numberOfConfirmations = params.int(block.numberOfConfirmations);
 	block.totalAmount = params.int(block.totalAmount);
 	block.totalFee = params.int(block.totalFee);
 	block.payloadLength = params.int(block.payloadLength);
-	block.confirmationsLength = params.int(block.confirmationsLength);
 	block.payloadHash = params.buffer(block.payloadHash);
 	block.generatorPublicKey = params.buffer(block.generatorPublicKey);
 	block.blockSignature = params.buffer(block.blockSignature);

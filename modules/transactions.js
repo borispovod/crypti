@@ -249,7 +249,7 @@ function list (filter, cb) {
 	}
 
 	// need to fix 'or' or 'and' in query
-	var stmt = library.db.prepare("select t.id t_id, t.blockId t_blockId, t.type t_type, t.subtype t_subtype, t.timestamp t_timestamp, t.senderPublicKey t_senderPublicKey,  t.senderId t_senderId, t.recipientId t_recipientId, t.amount t_amount, t.fee t_fee, t.signature t_signature, t.signSignature t_signSignature, c_t.generatorPublicKey t_companyGeneratorPublicKey, (select max(height) + 1 from blocks) - b.height as confirmations " +
+	var stmt = library.db.prepare("select t.id t_id, t.blockId t_blockId, t.type t_type, t.subtype t_subtype, t.timestamp t_timestamp, t.senderPublicKey t_senderPublicKey,  t.senderId t_senderId, t.recipientId t_recipientId, t.amount t_amount, t.fee t_fee, t.signature t_signature, t.signSignature t_signSignature, (select max(height) + 1 from blocks) - b.height as confirmations " +
 		"from trs t " +
 		"inner join blocks b on t.blockId = b.id " +
 		"left outer join companies as c_t on c_t.address=t.recipientId " +
@@ -272,10 +272,9 @@ function list (filter, cb) {
 }
 
 function getById (id, hex, cb) {
-	var stmt = library.db.prepare("select t.id t_id, t.blockId t_blockId, t.type t_type, t.subtype t_subtype, t.timestamp t_timestamp, t.senderPublicKey t_senderPublicKey, t.senderId t_senderId, t.recipientId t_recipientId, t.amount t_amount, t.fee t_fee, t.signature t_signature, t.signSignature t_signSignature, c_t.generatorPublicKey t_companyGeneratorPublicKey, (select max(height) + 1 from blocks) - b.height as confirmations " +
+	var stmt = library.db.prepare("select t.id t_id, t.blockId t_blockId, t.type t_type, t.subtype t_subtype, t.timestamp t_timestamp, t.senderPublicKey t_senderPublicKey, t.senderId t_senderId, t.recipientId t_recipientId, t.amount t_amount, t.fee t_fee, t.signature t_signature, t.signSignature t_signSignature, (select max(height) + 1 from blocks) - b.height as confirmations " +
 	"from trs t " +
 	"inner join blocks b on t.blockId = b.id " +
-	"left outer join companies as c_t on c_t.address=t.recipientId " +
 	"where t.id = $id");
 
 	stmt.bind({
@@ -439,7 +438,7 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 					switch (transaction.subtype) {
 						case 0:
 							if (!transaction.asset.signature) {
-								cb && cb("Empty transaction asset for company transaction")
+								cb && cb("Empty transaction asset for signature transaction")
 								return;
 							}
 							break;
@@ -486,25 +485,6 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 			}
 
 			async.parallel([
-				function (cb) {
-					if (transaction.type == 1 && transaction.subtype == 0) {
-						library.db.serialize(function () {
-							library.db.get("SELECT id FROM companies WHERE address = $address", {$address: transaction.recipientId}, function (err, company) {
-								if (err) {
-									return cb("Internal sql error");
-								}
-
-								if (company) {
-									cb();
-								} else {
-									cb("Company with this address as recipient not found");
-								}
-							});
-						});
-					} else {
-						setImmediate(cb);
-					}
-				},
 				function (cb) {
 					if (transaction.type == 4 && transaction.subtype == 0) {
 						if (modules.delegates.getUnconfirmedDelegate(transaction.senderPublicKey)) {
@@ -565,24 +545,7 @@ Transactions.prototype.apply = function (transaction) {
 		}
 	} else if (transaction.type == 1) {
 		if (transaction.subtype == 0) {
-			if (transation.companyGeneratorPublicKey == null) {
-				return false;
-			}
-
-			var recipient = transaction.getAccountByPublicKey(transaction.companyGeneratorPublicKey);
-
-			if (!recipient) {
-				return false;
-			}
-
-
-			sender.addToBalance(-amount);
-
-			amount = transaction.amount + transactionHelper.getTransactionFee(transaction, false);
-			recipient.addToUnconfirmedBalance(amount);
-			recipient.addToBalance(amount);
-
-			return true;
+			return false;
 		}
 	} else if (transaction.type == 2) {
 		if (transaction.subtype == 0) {
@@ -664,32 +627,7 @@ Transactions.prototype.undo = function (transaction) {
 		}
 	} else if (transaction.type == 1) {
 		if (transaction.subtype == 0) {
-			// merchant transaction, first need to find merchant
-			/*var recipient = transaction.recipientId;
-
-			 library.db.serialize(function () {
-			 library.db.get("SELECT generatorPublicKey FROM companies WHERE address = $address", {$address: recipient}, function (err, company) {
-			 if (err) {
-			 return cb(err);
-			 } else if (!company) {
-			 return cb();
-			 } else {
-			 var companyCreator = modules.accounts.getAccountByPublicKey(company.generatorPublicKey);
-
-			 if (!companyCreator) {
-			 return cb("Can't find company creator for address: " + recipient);
-			 }
-
-			 // need to calculate fee
-			 amount = transaction.amount + getTransactionFee(transaction, false);
-			 companyCreator.addToUnconfirmedBalance(-amount);
-			 companyCreator.addToBalance(-amount);
-
-			 return cb();
-			 }
-			 });
-			 });*/
-			return true;
+			return false;
 		}
 	} else if (transaction.type == 2) {
 		if (transaction.subtype == 0) {

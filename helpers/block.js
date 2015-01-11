@@ -31,11 +31,9 @@ function getBlock(raw, fromString, hex) {
 			height: parseInt(raw.b_height),
 			previousBlock: raw.b_previousBlock,
 			numberOfTransactions: parseInt(raw.b_numberOfTransactions),
-			numberOfConfirmations: parseInt(raw.b_numberOfConfirmations),
 			totalAmount: parseInt(raw.b_totalAmount),
 			totalFee: parseInt(raw.b_totalFee),
 			payloadLength: parseInt(raw.b_payloadLength),
-			confirmationsLength: parseInt(raw.b_confirmationsLength),
 			payloadHash: new Buffer(raw.b_payloadHash, enconding),
 			generatorPublicKey: new Buffer(raw.b_generatorPublicKey, enconding),
 			generatorId : getAddressByPublicKey(new Buffer(raw.b_generatorPublicKey, enconding)),
@@ -52,39 +50,6 @@ function getBlock(raw, fromString, hex) {
 		}
 
 		return block;
-	}
-}
-
-function getCompanyComfirmation(raw, fromString){
-	if (!raw.cc_id) {
-		return null
-	} else {
-		var enconding = null;
-
-		if (fromString) {
-			enconding = "hex";
-		}
-
-		return {
-			id: raw.cc_id,
-			blockId: raw.b_id,
-			companyId: raw.cc_companyId,
-			verified: parseInt(raw.cc_verified),
-			timestamp: parseInt(raw.cc_timestamp),
-			signature: new Buffer(raw.cc_signature, enconding)
-		}
-	}
-}
-
-function getRequest(raw) {
-	if (!raw.r_id) {
-		return null
-	} else {
-		return {
-			id: raw.r_id,
-			blockId: raw.b_id,
-			address: raw.r_address
-		}
 	}
 }
 
@@ -129,7 +94,6 @@ function getTransaction(raw, fromString, convertHex) {
 			fee: parseInt(raw.t_fee),
 			signature: new Buffer(raw.t_signature, enconding),
 			signSignature: raw.t_signSignature && new Buffer(raw.t_signSignature, enconding),
-			companyGeneratorPublicKey: raw.t_companyGeneratorPublicKey && new Buffer(raw.t_companyGeneratorPublicKey, enconding),
 			confirmations: raw.confirmations
 		}
 
@@ -137,7 +101,6 @@ function getTransaction(raw, fromString, convertHex) {
 			tx.senderPublicKey = tx.senderPublicKey.toString('hex');
 			tx.signature = tx.signature.toString('hex');
 			tx.signSignature = tx.signSignature && tx.signSignature.toString('hex');
-			tx.companyGeneratorPublicKey = tx.companyGeneratorPublicKey && tx.companyGeneratorPublicKey.toString('hex');
 		}
 
 		return tx;
@@ -174,30 +137,6 @@ function getSignature(raw, fromString, hex) {
 	}
 }
 
-function getCompany(raw, fromString) {
-	if (!raw.c_id) {
-		return null
-	} else {
-		var enconding = null;
-
-		if (fromString) {
-			enconding = "hex";
-		}
-
-		return {
-			id: raw.c_id,
-			transactionId: raw.t_id,
-			name: raw.c_name,
-			description: raw.c_description,
-			domain: raw.c_domain,
-			email: raw.c_email,
-			timestamp: parseInt(raw.c_timestamp),
-			generatorPublicKey: new Buffer(raw.c_generatorPublicKey, enconding),
-			signature: new Buffer(raw.c_signature, enconding)
-		}
-	}
-}
-
 function getBytes(block) {
 	var size = 4 + 4 + 8 + 4 + 4 + 8 + 8 + 4 + 4 + 4 + 32 + 32 + 64;
 
@@ -218,12 +157,10 @@ function getBytes(block) {
 	}
 
 	bb.writeInt(block.numberOfTransactions);
-	bb.writeInt(block.numberOfConfirmations);
 	bb.writeLong(block.totalAmount);
 	bb.writeLong(block.totalFee);
 
 	bb.writeInt(block.payloadLength);
-	bb.writeInt(block.confirmationsLength);
 
 	for (var i = 0; i < block.payloadHash.length; i++) {
 		bb.writeByte(block.payloadHash[i]);
@@ -273,11 +210,8 @@ function getId(block) {
 
 module.exports = {
 	getBlock: getBlock,
-	getCompanyComfirmation: getCompanyComfirmation,
-	getRequest: getRequest,
 	getTransaction: getTransaction,
 	getSignature: getSignature,
-	getCompany: getCompany,
 	getDelegate: getDelegate,
 	getBytes: getBytes,
 	sign : sign,
