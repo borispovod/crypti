@@ -3,7 +3,6 @@ var crypto = require('crypto'),
 	bignum = require('bignum'),
 	ByteBuffer = require("bytebuffer"),
 	constants = require("../helpers/constants.js"),
-	blockHelper = require("../helpers/block.js"),
 	genesisblock = require("../helpers/genesisblock.js"),
 	transactionHelper = require("../helpers/transaction.js"),
 	constants = require('../helpers/constants.js'),
@@ -12,6 +11,7 @@ var crypto = require('crypto'),
 	arrayHelper = require('../helpers/array.js'),
 	normalize = require('../helpers/normalize.js'),
 	Router = require('../helpers/router.js'),
+	relational = require("../helpers/relational.js"),
 	util = require('util'),
 	async = require('async');
 
@@ -111,12 +111,75 @@ function attachApi() {
 	});
 }
 
-//
-var sign = function (secret, transaction) {
-	var hash = transactionHelper.getHash(transaction);
-	var passHash = crypto.createHash('sha256').update(secret, 'utf8').digest();
-	var keypair = ed.MakeKeypair(passHash);
-	transaction.signature = ed.Sign(hash, keypair);
+function getBytes(block) {
+	var size = 4 + 4 + 8 + 4 + 4 + 8 + 8 + 4 + 4 + 4 + 32 + 32 + 64;
+
+	var bb = new ByteBuffer(size, true);
+	bb.writeInt(block.version);
+	bb.writeInt(block.timestamp);
+
+	if (block.previousBlock) {
+		var pb = bignum(block.previousBlock).toBuffer({size: '8'});
+
+		for (var i = 0; i < 8; i++) {
+			bb.writeByte(pb[i]);
+		}
+	} else {
+		for (var i = 0; i < 8; i++) {
+			bb.writeByte(0);
+		}
+	}
+
+	bb.writeInt(block.numberOfTransactions);
+	bb.writeLong(block.totalAmount);
+	bb.writeLong(block.totalFee);
+
+	bb.writeInt(block.payloadLength);
+
+	for (var i = 0; i < block.payloadHash.length; i++) {
+		bb.writeByte(block.payloadHash[i]);
+	}
+
+	for (var i = 0; i < block.generatorPublicKey.length; i++) {
+		bb.writeByte(block.generatorPublicKey[i]);
+	}
+
+	if (block.blockSignature) {
+		for (var i = 0; i < block.blockSignature.length; i++) {
+			bb.writeByte(block.blockSignature[i]);
+		}
+	}
+
+	bb.flip();
+	var b = bb.toBuffer();
+	return b;
+}
+
+function getHash(block) {
+	return crypto.createHash('sha256').update(getBytes(block)).digest();
+}
+
+function sign(secret, block) {
+	var keypair = secret;
+	var hash = getHash(block);
+
+	if (typeof(secret) == 'string') {
+		var secretHash = crypto.createHash('sha256').update(secret, 'hex').digest();
+		keypair = ed.MakeKeypair(secretHash);
+	}
+
+	return ed.Sign(hash, keypair);
+}
+
+function getId(block) {
+	var hash = crypto.createHash('sha256').update(getBytes(block)).digest();
+	var temp = new Buffer(8);
+	for (var i = 0; i < 8; i++) {
+		temp[i] = hash[7 - i];
+	}
+
+	var id =  bignum.fromBuffer(temp).toString();
+	return id;
 }
 
 function saveGenesisBlock(saveBlock, cb){
@@ -185,60 +248,6 @@ function saveGenesisBlock(saveBlock, cb){
 	});
 }
 
-function normalizeBlock(block) {
-	block.transactions = arrayHelper.hash2array(block.transactions);
-
-	return block;
-}
-
-function relational2object(rows) {
-	var blocks = {};
-	var order = [];
-	for (var i = 0, length = rows.length; i < length; i++) {
-		var __block = blockHelper.getBlock(rows[i], true);
-		if (__block) {
-			if (!blocks[__block.id]) {
-				if (__block.id == genesisblock.blockId) {
-					__block.generationSignature = new Buffer(64);
-					__block.generationSignature.fill(0);
-				}
-
-				order.push(__block.id);
-				blocks[__block.id] = __block;
-			}
-
-			var __transaction = blockHelper.getTransaction(rows[i], true);
-			blocks[__block.id].transactions = blocks[__block.id].transactions || {};
-			if (__transaction) {
-				__transaction.asset = __transaction.asset || {};
-				if (!blocks[__block.id].transactions[__transaction.id]) {
-					var __signature = blockHelper.getSignature(rows[i], true);
-					if (__signature) {
-						if (!__transaction.asset.signature) {
-							__transaction.asset.signature = __signature;
-						}
-					}
-
-					var __delegate = blockHelper.getDelegate(rows[i]);
-					if (__delegate) {
-						if (!__transaction.asset.delegate) {
-							__transaction.asset.delegate = __delegate;
-						}
-					}
-
-					blocks[__block.id].transactions[__transaction.id] = __transaction;
-				}
-			}
-		}
-	}
-
-	blocks = order.map(function (v) {
-		return normalizeBlock(blocks[v]);
-	});
-
-	return blocks;
-}
-
 function applyForger(generatorPublicKey, transaction) {
 	var forger = modules.accounts.getAccountByPublicKey(generatorPublicKey);
 
@@ -268,7 +277,7 @@ function undoForger(generatorPublicKey, transaction) {
 }
 
 function verifySignature(block) {
-	var data = blockHelper.getBytes(block);
+	var data = getBytes(block);
 	var data2 = new Buffer(data.length - 64);
 
 	for (var i = 0; i < data2.length; i++) {
@@ -473,7 +482,7 @@ function list (filter, cb) {
 			return cb(err)
 		}
 		async.mapSeries(rows, function (row, cb) {
-			setImmediate(cb, null, blockHelper.getBlock(row, false, filter.hex));
+			setImmediate(cb, null, relational.getBlock(row, false, filter.hex));
 		}, cb)
 	})
 }
@@ -490,7 +499,7 @@ function getById (id, cb) {
 			return cb(err || "Can't find block: " + id);
 		}
 
-		var block = blockHelper.getBlock(row, false, true);
+		var block = relational.getBlock(row, false, true);
 		cb(null, block);
 	});
 }
@@ -530,7 +539,7 @@ Blocks.prototype.loadBlocksPart = function (filter, cb) {
 				return cb(err, []);
 			}
 
-			var blocks = relational2object(rows);
+			var blocks = relational.blockChainRelational2ObjectModel(rows);
 
 			cb(err, blocks);
 		});
@@ -563,7 +572,7 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 				return cb(err);
 			}
 
-			var blocks = relational2object(rows);
+			var blocks = relational.blockChainRelational2ObjectModel(rows);
 
 			for (var i = 0, i_length = blocks.length; i < i_length; i++) {
 				if (blocks[i].id != genesisblock.blockId) {
@@ -796,7 +805,7 @@ Blocks.prototype.getLastBlock = function () {
 }
 
 Blocks.prototype.processBlock = function (block, broadcast, cb) {
-	block.id = blockHelper.getId(block);
+	block.id = getId(block);
 	block.height = lastBlock.height + 1;
 
 	library.db.get("SELECT id FROM blocks WHERE id=$id", {$id: block.id}, function (err, bId) {
@@ -1232,7 +1241,7 @@ Blocks.prototype.generateBlock = function (keypair, lastBlock, cb) {
 		transactions: blockTransactions
 	};
 
-	block.blockSignature = blockHelper.sign(keypair, block);
+	block.blockSignature = sign(keypair, block);
 
 	self.processBlock(block, true, cb);
 }
@@ -1285,7 +1294,7 @@ Blocks.prototype.generateBlockv2 = function (keypair, cb) {
 		transactions: blockTransactions
 	};
 
-	block.blockSignature = blockHelper.sign(keypair, block);
+	block.blockSignature = sign(keypair, block);
 
 	self.processBlock(block, true, cb);
 }

@@ -4,7 +4,7 @@ var ed = require('ed25519'),
 	crypto = require('crypto'),
 	genesisblock = require('../helpers/genesisblock.js'),
 	constants = require("../helpers/constants.js"),
-	blockHelper = require("../helpers/block.js"),
+	relational = require("../helpers/relational.js"),
 	timeHelper = require("../helpers/time.js"),
 	signatureHelper = require("../helpers/signature.js"),
 	transactionHelper = require("../helpers/transaction.js"),
@@ -179,7 +179,7 @@ Signatures.prototype.get = function (id, cb) {
 			return cb(err || "Can't find signature: " + id);
 		}
 
-		var signature = blockHelper.getSignature(row, false, true);
+		var signature = relational.getSignature(row, false, true);
 		cb(null, signature);
 	});
 }
