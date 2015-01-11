@@ -33,7 +33,7 @@ function Blocks(cb, scope) {
 
 	attachApi();
 
-	saveGenesisBlock(function(err){
+	saveGenesisBlock(this.saveBlock, function(err) {
 		setImmediate(cb, err, self);
 	});
 }
@@ -113,7 +113,7 @@ function attachApi() {
 	});
 }
 
-function saveGenesisBlock(cb){
+function saveGenesisBlock(saveBlock, cb){
 	library.db.get("SELECT id FROM blocks WHERE id=$id", {$id: genesisblock.blockId}, function (err, blockId) {
 		if (err) {
 			cb(err)
@@ -123,23 +123,29 @@ function saveGenesisBlock(cb){
 			for (var i = 0; i < genesisblock.transactions.length; i++) {
 				var genesisTransaction = genesisblock.transactions[i];
 				var transaction = {
-					type: 0,
-					subtype: 0,
+					type: genesisTransaction.type,
+					subtype: genesisTransaction.subtype,
 					amount: genesisTransaction.amount * constants.fixedPoint,
 					fee: 0,
 					timestamp: timeHelper.epochTime(),
 					recipientId: genesisTransaction.recipientId,
-					signature: new Buffer(genesisTransaction.signature, 'hex'),
-					senderId: genesisblock.creatorId,
-					senderPublicKey: new Buffer(genesisblock.generatorPublicKey, 'hex')
+					senderId: genesisblock.generatorId,
+					senderPublicKey: new Buffer(genesisblock.generatorPublicKey, 'hex'),
+					signature : new Buffer(genesisTransaction.signature, 'hex'),
+					asset : {
+						votes : [],
+						delegate : genesisTransaction.asset.delegate
+					}
 				};
+
+				for (var j = 0; j < genesisTransaction.asset.votes.length; j++) {
+					transaction.asset.votes.push(new Buffer(genesisTransaction.asset.votes[j], 'hex'));
+				}
 
 				transaction.id = transactionHelper.getId(transaction);
 				blockTransactions.push(transaction);
 			}
 
-			var generationSignature = new Buffer(64);
-			generationSignature.fill(0);
 
 			var block = {
 				id: genesisblock.blockId,
@@ -150,7 +156,6 @@ function saveGenesisBlock(cb){
 				timestamp: 0,
 				numberOfTransactions: blockTransactions.length,
 				payloadLength: genesisblock.payloadLength,
-				generationSignature: generationSignature,
 				previousBlock: null,
 				generatorPublicKey: new Buffer(genesisblock.generatorPublicKey, 'hex'),
 				requestsLength: 0,
@@ -167,7 +172,7 @@ function saveGenesisBlock(cb){
 				feeVolume: 0
 			};
 
-			self.saveBlock(block, function (err) {
+			saveBlock(block, function (err) {
 				if (err) {
 					library.logger.error('saveBlock', err);
 				}
@@ -1095,7 +1100,7 @@ Blocks.prototype.saveBlock = function (block, cb) {
 			return cb(err);
 		}
 
-		var st = transactionDb.prepare("INSERT INTO blocks(id, version, timestamp, height, previousBlock, numberOfRequests, numberOfTransactions, numberOfConfirmations, totalAmount, totalFee, previousFee, nextFeeVolume, feeVolume, payloadLength, requestsLength, confirmationsLength, payloadHash, generatorPublicKey, generationSignature, blockSignature) VALUES($id, $version, $timestamp, $height, $previousBlock, $numberOfRequests, $numberOfTransactions, $numberOfConfirmations, $totalAmount, $totalFee, $previousFee, $nextFeeVolume, $feeVolume, $payloadLength, $requestsLength, $confirmationsLength, $payloadHash, $generatorPublicKey, $generationSignature, $blockSignature)");
+		var st = transactionDb.prepare("INSERT INTO blocks(id, version, timestamp, height, previousBlock, numberOfRequests, numberOfTransactions, numberOfConfirmations, totalAmount, totalFee, previousFee, nextFeeVolume, feeVolume, payloadLength, requestsLength, confirmationsLength, payloadHash, generatorPublicKey, blockSignature) VALUES($id, $version, $timestamp, $height, $previousBlock, $numberOfRequests, $numberOfTransactions, $numberOfConfirmations, $totalAmount, $totalFee, $previousFee, $nextFeeVolume, $feeVolume, $payloadLength, $requestsLength, $confirmationsLength, $payloadHash, $generatorPublicKey, $blockSignature)");
 		st.bind({
 			$id: block.id,
 			$version: block.version,
@@ -1112,7 +1117,6 @@ Blocks.prototype.saveBlock = function (block, cb) {
 			$confirmationsLength: block.confirmationsLength,
 			$payloadHash: block.payloadHash,
 			$generatorPublicKey: block.generatorPublicKey,
-			$generationSignature: block.generationSignature,
 			$blockSignature: block.blockSignature,
 			$previousFee: block.previousFee,
 			$nextFeeVolume: block.nextFeeVolume,
@@ -1163,7 +1167,7 @@ Blocks.prototype.saveBlock = function (block, cb) {
 								});
 								st.run(cb);
 							} else if (transaction.type == 4 && transaction.subtype == 0) {
-								st = transactionDb.prepare("INSERT INTO delegates(name, transactionId) VALUES($username, $transactionId)");
+								st = transactionDb.prepare("INSERT INTO delegates(username, transactionId) VALUES($username, $transactionId)");
 								st.bind({
 									$username: transaction.asset.delegate.username,
 									$transactionId: transaction.id
@@ -1374,14 +1378,13 @@ Blocks.prototype.generateBlock = function (keypair, lastBlock, cb) {
 Blocks.prototype.generateBlockv2 = function (keypair, cb) {
 	var transactions = modules.transactions.getUnconfirmedTransactions();
 	transactions.sort(function compare(a, b) {
-		/*if (a.fee < b.fee)
-		 return -1;
-		 if (a.fee > b.fee)
-		 return 1;
-		 return 0;*/
+		if (a.fee < b.fee)
+			return -1;
 
-		// it's shit like in previous version, because still use it, later need to move to sort by amount
-		return a.fee > b.fee;
+		if (a.fee > b.fee)
+			return 1;
+
+		return 0;
 	});
 
 	var totalFee = 0, totalAmount = 0, size = 0;
@@ -1407,10 +1410,6 @@ Blocks.prototype.generateBlockv2 = function (keypair, cb) {
 
 	payloadHash = payloadHash.digest();
 
-
-	var generationSignature = crypto.createHash('sha256').update(lastBlock.generationSignature).update(keypair.publicKey).digest();
-	generationSignature = ed.Sign(generationSignature, keypair);
-
 	var block = {
 		version: 2,
 		totalAmount: totalAmount,
@@ -1419,7 +1418,6 @@ Blocks.prototype.generateBlockv2 = function (keypair, cb) {
 		timestamp: timeHelper.getNow(),
 		numberOfTransactions: blockTransactions.length,
 		payloadLength: size,
-		generationSignature: generationSignature,
 		previousBlock: lastBlock.id,
 		generatorPublicKey: keypair.publicKey,
 		requestsLength: 0,

@@ -113,7 +113,7 @@ function getBytes(transaction) {
 			}
     }
 
-    var bb = new ByteBuffer(1 + 1 + 4 + 32 + 8 + 8 + 64 + 64 + assetSize, true);
+    var bb = new ByteBuffer(1 + 1 + 4 + 32 + 8 + 8 + 64 + 64 + (transaction.asset.votes.length * 32) + assetSize, true);
     bb.writeByte(transaction.type);
     bb.writeByte(transaction.subtype);
     bb.writeInt(transaction.timestamp);
@@ -136,6 +136,14 @@ function getBytes(transaction) {
 	}
 
     bb.writeLong(transaction.amount);
+
+	for (var i = 0; i < transaction.asset.votes.length; i++) {
+		var publicKey = transaction.asset.votes[i];
+
+		for (var j = 0; j < publicKey.length; j++) {
+			bb.writeByte(publicKey[j]);
+		}
+	}
 
     if (assetSize > 0) {
         for (var i = 0; i < assetSize; i++) {
