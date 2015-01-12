@@ -2,7 +2,8 @@ var crypto = require('crypto'),
 	ed = require('ed25519'),
 	bignum = require('bignum'),
 	ByteBuffer = require("bytebuffer"),
-	arrayHelper = require('../helpers/array.js');
+	arrayHelper = require('./array.js'),
+	genesisblock = require("./genesisblock.js");
 
 function relational2object(rows) {
 	var blocks = {};
@@ -32,11 +33,15 @@ function relational2object(rows) {
 						}
 					}
 
-					var __delegate = getDelegate(rows[i]);
+					var __delegate = getDelegate(rows[i], true, true);
 					if (__delegate) {
 						if (!__transaction.asset.delegate) {
 							__transaction.asset.delegate = __delegate;
 						}
+					}
+
+					if (!__transaction.asset.votes) {
+						__transaction.asset.votes = getVotes(rows[i]);
 					}
 
 					blocks[__block.id].transactions[__transaction.id] = __transaction;
@@ -73,7 +78,7 @@ function getBlock(raw, fromString, hex) {
 		if (fromString) {
 			enconding = "hex";
 		}
-		var block =  {
+		var block = {
 			id: raw.b_id,
 			version: parseInt(raw.b_version),
 			timestamp: parseInt(raw.b_timestamp),
@@ -85,11 +90,11 @@ function getBlock(raw, fromString, hex) {
 			payloadLength: parseInt(raw.b_payloadLength),
 			payloadHash: new Buffer(raw.b_payloadHash, enconding),
 			generatorPublicKey: new Buffer(raw.b_generatorPublicKey, enconding),
-			generatorId : getAddressByPublicKey(new Buffer(raw.b_generatorPublicKey, enconding)),
+			generatorId: getAddressByPublicKey(new Buffer(raw.b_generatorPublicKey, enconding)),
 			blockSignature: new Buffer(raw.b_blockSignature, enconding),
-			previousFee : parseFloat(raw.b_previousFee),
-			nextFeeVolume : parseInt(raw.b_nextFeeVolume),
-			feeVolume : parseInt(raw.b_feeVolume)
+			previousFee: parseFloat(raw.b_previousFee),
+			nextFeeVolume: parseInt(raw.b_nextFeeVolume),
+			feeVolume: parseInt(raw.b_feeVolume)
 		}
 
 		if (hex) {
@@ -102,17 +107,23 @@ function getBlock(raw, fromString, hex) {
 	}
 }
 
-function getDelegate(raw, convertHex) {
+function getDelegate(raw, fromString, convertHex) {
 	if (!raw.d_username) {
 		return null
 	} else {
+		var enconding = null;
+
+		if (fromString) {
+			enconding = "hex";
+		}
+
 		var d = {
 			username: raw.d_username,
-			publicKey: new Buffer(raw.t_senderPublicKey),
+			publicKey: new Buffer(raw.t_senderPublicKey, enconding),
 			transactionId: raw.t_id
 		}
 
-		if(convertHex){
+		if (convertHex) {
 			d.publicKey = d.publicKey.toString('hex');
 		}
 
@@ -130,12 +141,12 @@ function getTransaction(raw, fromString, convertHex) {
 			enconding = "hex";
 		}
 
-		var tx =  {
+		var tx = {
 			id: raw.t_id,
 			blockId: raw.b_id,
 			type: parseInt(raw.t_type),
 			timestamp: parseInt(raw.t_timestamp),
-			senderPublicKey: new Buffer(raw.t_senderPublicKey,enconding),
+			senderPublicKey: new Buffer(raw.t_senderPublicKey, enconding),
 			senderId: raw.t_senderId,
 			recipientId: raw.t_recipientId,
 			amount: parseInt(raw.t_amount),
@@ -165,7 +176,7 @@ function getSignature(raw, fromString, hex) {
 			enconding = "hex";
 		}
 
-		var signature =  {
+		var signature = {
 			id: raw.s_id,
 			transactionId: raw.t_id,
 			timestamp: parseInt(raw.s_timestamp),
@@ -185,10 +196,23 @@ function getSignature(raw, fromString, hex) {
 	}
 }
 
+function getVotes(raw, fromString, convertHex) {
+	debugger;
+	var votes = [];
+	if (raw.v_votes) {
+		votes = raw.v_votes.split(',');
+		for (var i = 0; i < votes.length; i++) {
+			votes[i] = (new Buffer(votes[i])).toString('hex');
+		}
+	}
+	return votes;
+}
+
 module.exports = {
 	blockChainRelational2ObjectModel: relational2object,
 	getBlock: getBlock,
 	getTransaction: getTransaction,
 	getSignature: getSignature,
-	getDelegate: getDelegate
+	getDelegate: getDelegate,
+	getVotes: getVotes
 }
