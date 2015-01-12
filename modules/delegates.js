@@ -196,6 +196,8 @@ function loadMyDelegates() {
 		myDelegate = modules.delegates.getDelegate(keypair.publicKey);
 		address = modules.accounts.getAddressByPublicKey(keypair.publicKey);
 		account = modules.accounts.getAccount(address);
+
+		library.logger.info("Forging enabled on account: " + address);
 	}
 }
 
@@ -246,14 +248,18 @@ Delegates.prototype.checkVotes = function (votes) {
 	}
 }
 
-Delegates.prototype.voting = function (publicKeys) {
+Delegates.prototype.voting = function (publicKeys, amount) {
+	amount = amount || 0
+	if (publicKeys.length > 33) {
+		publicKeys = publicKeys.slice(0, 33);
+	}
 	if (publicKeys.length == 0) {
-		for (var publicKey in delegates) {
-			delegates[publicKey].vote = (delegates[publicKey].vote || 0) + 1;
-		}
+		Object.keys(delegates).forEach(function (publicKey) {
+			delegates[publicKey].vote = (delegates[publicKey].vote || 0) + amount;
+		});
 	} else {
 		publicKeys.forEach(function (publicKey) {
-			delegates[publicKey].vote = (delegates[publicKey].vote || 0) + 1;
+			delegates[publicKey].vote = (delegates[publicKey].vote || 0) + amount;
 		});
 	}
 }
@@ -281,6 +287,10 @@ Delegates.prototype.cache = function (delegate) {
 	delegates[delegate.publicKey] = delegate;
 }
 
+Delegates.prototype.uncache = function (delegate) {
+	delete delegates[delegate.publicKey];
+}
+
 //events
 Delegates.prototype.onBind = function (scope) {
 	modules = scope;
@@ -291,15 +301,13 @@ Delegates.prototype.onBlockchainReady = function () {
 
 	loadMyDelegates(); //temp
 
-	library.logger.info("Forging enabled on account: " + address);
-
 	process.nextTick(function nextLoop() {
 		loop(function (err) {
 			err && library.logger.error('delegate loop', err);
 			var nextSlot = slots.getNextSlot();
 			var scheduledTime = slots.getSlotTime(nextSlot);
 			scheduledTime = scheduledTime <= slots.getTime() ? scheduledTime + 1 : scheduledTime;
-			schedule.scheduleJob(scheduledTime * 1000, nextLoop);
+			schedule.scheduleJob(new Date(scheduledTime * 1000), nextLoop);
 		})
 	});
 }

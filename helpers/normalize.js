@@ -78,17 +78,15 @@ function normalizeTransaction(transaction) {
 		transaction.signSignature = params.buffer(transaction.signSignature);
 	}
 
-	if (transaction.type == 2) {
+	if (transaction.type == 1) {
 		transaction.asset.signature = normalizeSignature(transaction.asset.signature);
 	}
 
-	if (transaction.type == 4) {
+	if (transaction.type == 2) {
 		transaction.asset.delegate = normalizeDelegate(transaction.asset.delegate);
 	}
 
-	if (transaction.asset.votes) {
-		transaction.asset.votes = params.array(transaction.asset.votes);
-	}
+	transaction.asset.votes = params.array(transaction.asset.votes);
 
 	return transaction;
 }

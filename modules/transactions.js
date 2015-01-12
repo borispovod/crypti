@@ -11,6 +11,7 @@ var transactionHelper = require('../helpers/transaction.js'),
 	params = require('../helpers/params.js'),
 	extend = require('extend'),
 	Router = require('../helpers/router.js'),
+	arrayHelper = require('../helpers/array.js'),
 	async = require('async');
 
 // private fields
@@ -310,11 +311,7 @@ Transactions.prototype.getUnconfirmedTransaction = function (id) {
 }
 
 Transactions.prototype.getUnconfirmedTransactions = function (sort) {
-	var a = [];
-
-	for (var id in unconfirmedTransactions) {
-		a.push(unconfirmedTransactions[id]);
-	}
+	var a = arrayHelper.hash2array(unconfirmedTransactions);
 
 	if (sort) {
 		a.sort(function compare(a, b) {

@@ -53,8 +53,8 @@ function attachApi() {
 	router.put('/', function (req, res) {
 		var secret = params.string(req.body.secret),
 			secondSecret = params.string(req.body.secondSecret),
-			publicKey = params.buffer(req.body.publicKey, 'hex');
-		votingType = params.int(req.body.votingType);
+			publicKey = params.buffer(req.body.publicKey, 'hex'),
+			votingType = params.int(req.body.votingType);
 
 		var hash = crypto.createHash('sha256').update(secret, 'utf8').digest();
 		var keypair = ed.MakeKeypair(hash);
