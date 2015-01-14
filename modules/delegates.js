@@ -13,7 +13,6 @@ var modules, library, self;
 
 var keypair, myDelegate, address, account;
 var delegates = {};
-var unconfirmedDelegates = {};
 var activeDelegates = [];
 var loaded = false;
 
@@ -134,7 +133,6 @@ function getCurrentBlockTime() {
 		var delegate_id = activeDelegates[delegate_pos];
 
 		if (delegate_id && myDelegate.publicKey == delegate_id) {
-			library.logger.log('loop', 'current is my delegate')
 			return slots.getSlotTime(currentSlot);
 		}
 	}
@@ -159,18 +157,10 @@ function loop(cb) {
 
 	var currentBlockTime = getCurrentBlockTime();
 
-	console.log(modules.blocks.getLastBlock().height - 1)
-
 	if (currentBlockTime === null){
-		library.logger.log('loop', 'exit: not now (waiting for new stage or our slot)');
+		library.logger.log('loop', 'skip slot');
 		return setImmediate(cb);
 	}
-
-	if ((modules.blocks.getLastBlock().height - 1) % slots.delegates == 0){
-		library.logger.log('loop', 'new stage: ' + slots.getSlotNumber());
-	}
-
-	library.logger.log('loop', 'delegates: ' + activeDelegates.length);
 
 	library.sequence.add(function (cb) {
 		if (slots.getSlotNumber(currentBlockTime) == slots.getSlotNumber()) {
@@ -186,15 +176,6 @@ function loop(cb) {
 		}
 		setImmediate(cb, err);
 	});
-}
-
-function addUnconfirmedDelegate(delegate) {
-	if (self.getUnconfirmedDelegate(delegate.publicKey)) {
-		return false
-	}
-
-	unconfirmedDelegates[delegate.publicKey] = delegate;
-	return true;
 }
 
 function loadMyDelegates() {
@@ -284,16 +265,6 @@ Delegates.prototype.getActiveDelegates = function () {
 	return delegates;
 }
 
-Delegates.prototype.getUnconfirmedDelegate = function (publicKey) {
-	return unconfirmedDelegates[publicKey];
-}
-
-Delegates.prototype.removeUnconfirmedDelegate = function (publicKey) {
-	if (unconfirmedDelegates[publicKey]) {
-		delete unconfirmedDelegates[publicKey];
-	}
-}
-
 Delegates.prototype.cache = function (delegate) {
 	delegates[delegate.publicKey] = delegate;
 	slots.delegates = Math.min(101, Object.keys(delegates).length)
@@ -336,18 +307,18 @@ Delegates.prototype.onUnconfirmedTransaction = function (transaction) {
 	}
 }
 
-Delegates.prototype.onNewBlock = function (block) {
-	for (var i = 0; i < block.transactions.length; i++) {
-		var transaction = block.transactions[i];
-		if (transaction.type == 2) {
-			self.cache({
-				publicKey: transaction.senderPublicKey,
-				username: transaction.asset.delegate.username,
-				transactionId: transaction.id
-			});
-		}
-	}
-}
+//Delegates.prototype.onNewBlock = function (block) {
+//	for (var i = 0; i < block.transactions.length; i++) {
+//		var transaction = block.transactions[i];
+//		if (transaction.type == 2) {
+//			self.cache({
+//				publicKey: transaction.senderPublicKey,
+//				username: transaction.asset.delegate.username,
+//				transactionId: transaction.id
+//			});
+//		}
+//	}
+//}
 
 //export
 module.exports = Delegates;
