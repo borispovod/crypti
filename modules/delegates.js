@@ -62,12 +62,6 @@ function attachApi() {
 			return res.json({success: false, error: "Open account to make transaction"});
 		}
 
-		var votes = self.getVotesByType(votingType);
-
-		if (!votes) {
-			return res.json({success: false, error: "Invalid voting type"});
-		}
-
 		var transaction = {
 			type: 2,
 			amount: 0,
@@ -78,7 +72,7 @@ function attachApi() {
 				delegate: {
 					username: username
 				},
-				votes: votes
+				votes: []
 			}
 		};
 
