@@ -1103,7 +1103,10 @@ Blocks.prototype.deleteBlocksBefore = function (blockId, cb) {
 			},
 			function (next) {
 				blocks.push(lastBlock);
-				self.popLastBlock(lastBlock, next);
+				self.popLastBlock(lastBlock, function (err, newLastBlock) {
+					lastBlock = newLastBlock;
+					next(err);
+				});
 			},
 			function (err) {
 				setImmediate(cb, err, blocks.reverse());
@@ -1111,25 +1114,24 @@ Blocks.prototype.deleteBlocksBefore = function (blockId, cb) {
 	});
 }
 
-Blocks.prototype.popLastBlock = function (lastBlock, cb) {
-	self.loadBlocksPart({id: lastBlock.previousBlock}, function (err, previousBlock) {
+Blocks.prototype.popLastBlock = function (oldLastBlock, cb) {
+	self.loadBlocksPart({id: oldLastBlock.previousBlock}, function (err, previousBlock) {
 		if (err || !previousBlock.length) {
 			return cb(err || 'previousBlock is null');
 		}
 		previousBlock = previousBlock[0];
 
-		undoBlock(lastBlock, previousBlock, function (err) {
+		undoBlock(oldLastBlock, previousBlock, function (err) {
 			if (err) {
 				return cb(err);
 			}
 
-			deleteBlock(lastBlock.id, function (err) {
+			deleteBlock(oldLastBlock.id, function (err) {
 				if (err) {
 					return cb(err);
 				}
 
-				var transactions = lastBlock.transactions;
-				lastBlock = previousBlock;
+				var transactions = oldLastBlock.transactions;
 
 				async.eachSeries(transactions, function (transaction, cb) {
 					modules.transactions.processUnconfirmedTransaction(transaction, false, cb);
@@ -1138,7 +1140,7 @@ Blocks.prototype.popLastBlock = function (lastBlock, cb) {
 						return cb(err);
 					}
 
-					cb();
+					cb(null, previousBlock);
 				});
 			});
 		});
@@ -1210,11 +1212,13 @@ Blocks.prototype.onReceiveBlock = function (block) {
 					return cb();
 				}
 
-				self.popLastBlock(lastBlock, function (err) {
+				self.popLastBlock(lastBlock, function (err, newLastBlock) {
 					if (err) {
 						library.logger.error('popLastBlock', err);
 						return cb();
 					}
+
+					lastBlock = newLastBlock;
 
 					self.processBlock(block, false, function (err) {
 						if (err) {

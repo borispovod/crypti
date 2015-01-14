@@ -97,33 +97,30 @@ function loadBlocks(lastBlock, cb) {
 									library.logger.info("Resolve fork before " + commonBlockId + " from " + peerStr);
 									modules.blocks.deleteBlocksBefore(commonBlockId, function (err, backupBlocks) {
 										if (err) {
-											setImmediate(cb, err);
-										} else {
-											library.logger.info("Load blocks from peer " + peerStr);
-											modules.blocks.loadBlocksFromPeer(data.peer, commonBlockId, function (err) {
-												if (err) {
-													library.logger.error(err);
-													library.logger.log('ban 60 min', peerStr);
-													modules.peer.state(data.peer.ip, data.peer.port, 0, 3600);
-
-													modules.blocks.deleteBlocksBefore(commonBlockId, function (err) {
-														if (err) {
-															library.logger.error(err);
-															setImmediate(cb);
-															return;
-														}
-
-														library.logger.info("First last block already: " + modules.blocks.getLastBlock().height + ", first block in backup: " + backupBlocks[0].height);
-														async.eachSeries(backupBlocks, function (block, cb) {
-															modules.blocks.processBlock(block, false, cb);
-														}, cb);
-													});
-												} else {
-													setImmediate(cb);
-												}
-											});
+											return setImmediate(cb, err);
 										}
+										library.logger.info("Load blocks from peer " + peerStr);
+										modules.blocks.loadBlocksFromPeer(data.peer, commonBlockId, function (err) {
+											if (err) {
+												library.logger.error(err);
+												library.logger.log('ban 60 min', peerStr);
+												modules.peer.state(data.peer.ip, data.peer.port, 0, 3600);
 
+												modules.blocks.deleteBlocksBefore(commonBlockId, function (err) {
+													if (err) {
+														library.logger.error(err);
+														return setImmediate(cb);
+													}
+
+													library.logger.info("First last block already: " + modules.blocks.getLastBlock().height + ", first block in backup: " + backupBlocks[0].height);
+													async.eachSeries(backupBlocks, function (block, cb) {
+														modules.blocks.processBlock(block, false, cb);
+													}, cb);
+												});
+											} else {
+												setImmediate(cb);
+											}
+										});
 									})
 								}
 							});
