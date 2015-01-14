@@ -3,6 +3,7 @@ var async = require('async'),
 	util = require('util'),
 	genesisBlock = require("../helpers/genesisblock.js"),
 	ip = require("ip"),
+	bignum = require('bignum'),
 	params = require('../helpers/params.js'),
 	normalize = require('../helpers/normalize.js');
 
@@ -56,7 +57,7 @@ function attachApi() {
 }
 
 function loadBlocks(lastBlock, cb) {
-	modules.transport.getFromRandomPeer('/weight', function (err, data) {
+	modules.transport.getFromRandomPeer('/height', function (err, data) {
 		if (err) {
 			return cb();
 		}
@@ -64,7 +65,7 @@ function loadBlocks(lastBlock, cb) {
 		var peerStr = data.peer ? ip.fromLong(data.peer.ip) + ":" + data.peer.port : 'unknown';
 		library.logger.info("Load blocks from " + peerStr);
 
-		if (modules.blocks.getWeight().lt(params.string(data.body.weight))) {
+		if (bignum(modules.blocks.getLastBlock().height).lt(params.string(data.body.height))) {
 			sync = true;
 			blocksToSync = params.int(data.body.height);
 

@@ -22,7 +22,6 @@ var lastBlock = {};
 var fee = constants.feeStart;
 var nextFeeVolume = constants.feeStartVolume;
 var feeVolume = 0;
-var weight = bignum('0');
 
 //constructor
 function Blocks(cb, scope) {
@@ -857,10 +856,6 @@ Blocks.prototype.getMilestoneBlock = function (peer, cb) {
 			}
 		}
 	);
-}
-
-Blocks.prototype.getWeight = function () {
-	return weight;
 }
 
 Blocks.prototype.getFee = function () {
