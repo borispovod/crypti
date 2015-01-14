@@ -1,6 +1,7 @@
 var EventEmitter = require('events').EventEmitter;
 var util = require('util');
 var spawn = require('child_process').spawn;
+var usage = require('usage');
 
 module.exports = Sandbox;
 
@@ -18,6 +19,8 @@ function Sandbox(options) {
     this.cwd = options.cwd;
     this.memoryLimit = options.memoryLimit;
     this.timeLimit = options.timeLimit;
+    this.cpuLimit = options.cpuLimit;
+    this.maxActivityDelay = options.maxActivityDelay;
     this.stdio = options.stdio;
     this.timeout = options.timeout;
     this.sandboxScript = options.sandboxScript;
@@ -36,12 +39,22 @@ Sandbox.prototype.defaultOptions = {
      */
     memoryLimit : 20,
     /**
+     * CPU usage limit in percents
+     * @type {number}
+     */
+    cpuLimit : 20,
+    /**
      * Time limit
      * @type {number}
      */
     timeLimit : Infinity,
     /**
+     * Set maximum activity delay in milliseconds
+     */
+    maxActivityDelay : 100,
+    /**
      * Sandbox stdio redirect. See `stdio` param of child_process.spawn method's options argument.
+     * Explanation of stdio param http://nodejs.org/api/child_process.html#child_process_options_stdio
      * @type {string|null|string[]|null[]}
      */
     stdio : null,
@@ -69,8 +82,16 @@ Sandbox.prototype.run = function(code, callback) {
     var isReady = false;
     var hasCaughtError = false;
     var isFinished = false;
+    // Statistic metrics list
+    var stat = [];
+    var cpuStatPeriod = 10;
+    // Time marks
+    var startedAt, lastActivityAt;
+    // Timers
+    var activityTimer;
 
     var exit = function() {
+        clearInterval(activityTimer);
         proc.removeAllListeners();
         proc.kill('SIGINT');
     };
@@ -88,6 +109,7 @@ Sandbox.prototype.run = function(code, callback) {
         switch (message.type) {
             case 'handshake':
                 isReady = true;
+                startedAt = lastActivityAt = Date.now();
                 proc.send({
                     type : 'execute',
                     code : code
@@ -97,11 +119,46 @@ Sandbox.prototype.run = function(code, callback) {
                     setTimeout(function(){
                         if (! isFinished) {
                             exit();
-                            callback(new Error('Max execution timeout riched'));
+                            callback(new Error('Max execution timeout reached'));
                         }
                     }, self.timeLimit);
                 }
 
+                // Set activity timer
+                activityTimer = setInterval(function(){
+                    if (Date.now() - self.maxActivityDelay > lastActivityAt) {
+                        callback(new Error('Max activity timeout reached'));
+                        hasCaughtError = true;
+                        exit();
+                    }
+
+                    // Collect subprocess cpu and memory usage
+                    usage.lookup(proc.pid, function(err, result){
+                        if (err) {
+                            // TODO Decide what to do
+                        }
+
+                        result.time = Date.now();
+                        stat.push(result);
+
+                        if (stat.length < cpuStatPeriod) return;
+
+                        var avg = stat.slice(-cpuStatPeriod).map(function(stat){
+                            return stat.cpu;
+                        }).reduce(function(result, value){
+                            return result + value;
+                        }, 0)/cpuStatPeriod;
+
+                        if (avg > self.cpuLimit) {
+                            callback(new Error('Max cpu usage limit reached'));
+                            hasCaughtError = true;
+                            exit();
+                        }
+                    });
+                }, self.maxActivityDelay - 10);
+                break;
+            case 'ping':
+                lastActivityAt = Date.now();
                 break;
             case 'result':
                 callback(null, message.result);
