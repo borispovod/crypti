@@ -134,6 +134,7 @@ function getCurrentBlockTime() {
 		var delegate_id = activeDelegates[delegate_pos];
 
 		if (delegate_id && myDelegate.publicKey == delegate_id) {
+			library.logger('loop', 'current is my delegate')
 			return slots.getSlotTime(currentSlot);
 		}
 	}
@@ -158,7 +159,18 @@ function loop(cb) {
 
 	var currentBlockTime = getCurrentBlockTime();
 
-	library.logger.log('loop', 'delegates: ' + activeDelegates.join(','));
+	console.log(modules.blocks.getLastBlock().height - 1)
+
+	if (currentBlockTime === null){
+		library.logger.log('loop', 'exit: not now (waiting for new stage or our slot)');
+		return setImmediate(cb);
+	}
+
+	if ((modules.blocks.getLastBlock().height - 1) % slots.delegates == 0){
+		library.logger.log('loop', 'new stage: ' + slots.getSlotNumber());
+	}
+
+	library.logger.log('loop', 'delegates: ' + activeDelegates.length);
 
 	library.sequence.add(function (cb) {
 		if (slots.getSlotNumber(currentBlockTime) == slots.getSlotNumber()) {
