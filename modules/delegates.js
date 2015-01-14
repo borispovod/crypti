@@ -297,7 +297,6 @@ Delegates.prototype.onBlockchainReady = function () {
 	loadMyDelegates(); //temp
 
 	process.nextTick(function nextLoop() {
-		console.log('loop')
 		loop(function (err) {
 			err && library.logger.error('delegate loop', err);
 			var nextSlot = slots.getNextSlot();
