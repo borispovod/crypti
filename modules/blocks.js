@@ -586,8 +586,8 @@ Blocks.prototype.loadBlocksPart = function (filter, cb) {
 		"d.username d_username, " +
 		"v.votes v_votes " +
 		"FROM (select * from blocks " + (filter.id ? " where id = $id " : "") + (filter.lastId ? " where height > (SELECT height FROM blocks where id = $lastId) " : "") + " limit $limit) as b " +
-		"left outer join delegates as d on d.transactionId=t.id " +
 		"left outer join trs as t on t.blockId=b.id " +
+		"left outer join delegates as d on d.transactionId=t.id " +
 		"left outer join votes as v on v.transactionId=t.id " +
 		"left outer join signatures as s on s.transactionId=t.id " +
 		"ORDER BY b.height, t.rowid, s.rowid, d.rowid" +
@@ -1154,7 +1154,7 @@ Blocks.prototype.popLastBlock = function (oldLastBlock, cb) {
 	});
 }
 
-Blocks.prototype.generateBlock = function (keypair, cb) {
+Blocks.prototype.generateBlock = function (keypair, timestamp,  cb) {
 	var transactions = modules.transactions.getUnconfirmedTransactions();
 	transactions.sort(function compare(a, b) {
 		if (a.fee < b.fee)
@@ -1192,7 +1192,7 @@ Blocks.prototype.generateBlock = function (keypair, cb) {
 		totalAmount: totalAmount,
 		totalFee: totalFee,
 		payloadHash: payloadHash.digest().toString('hex'),
-		timestamp: slots.getTime(),
+		timestamp: timestamp,
 		numberOfTransactions: blockTransactions.length,
 		payloadLength: size,
 		previousBlock: lastBlock.id,
@@ -1248,7 +1248,6 @@ Blocks.prototype.onReceiveBlock = function (block) {
 }
 
 Blocks.prototype.onNewBlock = function (block) {
-
 }
 
 Blocks.prototype.onBind = function (scope) {

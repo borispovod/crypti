@@ -63,7 +63,7 @@ function loadBlocks(lastBlock, cb) {
 		}
 
 		var peerStr = data.peer ? ip.fromLong(data.peer.ip) + ":" + data.peer.port : 'unknown';
-		library.logger.info("Load blocks from " + peerStr);
+		library.logger.debug("Load blocks from " + peerStr);
 
 		if (bignum(modules.blocks.getLastBlock().height).lt(params.string(data.body.height))) {
 			sync = true;
@@ -99,7 +99,7 @@ function loadBlocks(lastBlock, cb) {
 										if (err) {
 											return setImmediate(cb, err);
 										}
-										library.logger.info("Load blocks from peer " + peerStr);
+										library.logger.debug("Load blocks from peer " + peerStr);
 										modules.blocks.loadBlocksFromPeer(data.peer, commonBlockId, function (err) {
 											if (err) {
 												library.logger.error(err);
@@ -125,14 +125,14 @@ function loadBlocks(lastBlock, cb) {
 								}
 							});
 						} else { //found common block
-							library.logger.info("Load blocks from peer " + peerStr);
+							library.logger.debug("Load blocks from peer " + peerStr);
 							modules.blocks.loadBlocksFromPeer(data.peer, commonBlockId, cb);
 						}
 					})
 				})
 			} else { //have to load full db
 				var commonBlockId = genesisBlock.blockId;
-				library.logger.info("Load blocks from genesis from " + peerStr);
+				library.logger.debug("Load blocks from genesis from " + peerStr);
 				modules.blocks.loadBlocksFromPeer(data.peer, commonBlockId, cb);
 			}
 		} else {

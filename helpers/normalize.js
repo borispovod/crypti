@@ -18,7 +18,6 @@ function normalizeBlock(block) {
 	block.transactions = params.array(block.transactions);
 
 	for (var i = 0; i < block.transactions.length; i++) {
-		block.transactions[i] = params.object(block.transactions[i])
 		block.transactions[i] = normalizeTransaction(block.transactions[i]);
 	}
 

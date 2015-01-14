@@ -53,8 +53,7 @@ function attachApi() {
 	router.put('/', function (req, res) {
 		var secret = params.string(req.body.secret),
 			secondSecret = params.string(req.body.secondSecret),
-			publicKey = params.string(req.body.publicKey),
-			votingType = params.int(req.body.votingType);
+			publicKey = params.string(req.body.publicKey);
 
 		var hash = crypto.createHash('sha256').update(secret, 'utf8').digest();
 		var keypair = ed.MakeKeypair(hash);
@@ -87,12 +86,6 @@ function attachApi() {
 			return res.json({success: false, error: "Second signature already enabled"});
 		}
 
-		var votes = modules.delegates.getVotesByType();
-
-		if (!votes) {
-			return res.json({success: false, error: "Invalid voting type"});
-		}
-
 		var signature = self.newSignature(secret, secondSecret);
 		var transaction = {
 			type: 1,
@@ -102,7 +95,7 @@ function attachApi() {
 			timestamp: slots.getTime(),
 			asset: {
 				signature: signature,
-				votes: votes
+				votes: modules.delegates.getVotesByType(2)
 			}
 		};
 
