@@ -134,7 +134,7 @@ function getCurrentBlockTime() {
 		var delegate_id = activeDelegates[delegate_pos];
 
 		if (delegate_id && myDelegate.publicKey == delegate_id) {
-			library.logger('loop', 'current is my delegate')
+			library.logger.log('loop', 'current is my delegate')
 			return slots.getSlotTime(currentSlot);
 		}
 	}
