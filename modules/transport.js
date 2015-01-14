@@ -17,7 +17,7 @@ function Transport(cb, scope) {
 	library = scope;
 	self = this;
 
-	attachApi();
+	//attachApi();
 
 	setImmediate(cb, null, self);
 }

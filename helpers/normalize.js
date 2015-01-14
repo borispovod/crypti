@@ -12,9 +12,9 @@ function normalizeBlock(block) {
 	block.totalAmount = params.int(block.totalAmount);
 	block.totalFee = params.int(block.totalFee);
 	block.payloadLength = params.int(block.payloadLength);
-	block.payloadHash = params.buffer(block.payloadHash);
-	block.generatorPublicKey = params.buffer(block.generatorPublicKey);
-	block.blockSignature = params.buffer(block.blockSignature);
+	block.payloadHash = params.string(block.payloadHash);
+	block.generatorPublicKey = params.string(block.generatorPublicKey);
+	block.blockSignature = params.string(block.blockSignature);
 	block.transactions = params.array(block.transactions);
 
 	for (var i = 0; i < block.transactions.length; i++) {
@@ -51,10 +51,10 @@ function normalizeSignature(signature) {
 	signature.id = params.string(signature.id);
 	signature.transactionId = params.string(signature.transactionId);
 	signature.timestamp = params.int(signature.timestamp);
-	signature.publicKey = params.buffer(signature.publicKey);
-	signature.generatorPublicKey = params.buffer(signature.generatorPublicKey);
-	signature.signature = params.buffer(signature.signature);
-	signature.generationSignature = params.buffer(signature.generationSignature);
+	signature.publicKey = params.string(signature.publicKey);
+	signature.generatorPublicKey = params.string(signature.generatorPublicKey);
+	signature.signature = params.string(signature.signature);
+	signature.generationSignature = params.string(signature.generationSignature);
 
 	return signature;
 }
@@ -66,16 +66,16 @@ function normalizeTransaction(transaction) {
 	transaction.blockId = params.string(transaction.blockId);
 	transaction.type = params.int(transaction.type);
 	transaction.timestamp = params.int(transaction.timestamp);
-	transaction.senderPublicKey = params.buffer(transaction.senderPublicKey);
+	transaction.senderPublicKey = params.string(transaction.senderPublicKey);
 	transaction.senderId = params.string(transaction.senderId);
 	transaction.recipientId = params.string(transaction.recipientId);
 	transaction.amount = params.int(transaction.amount);
 	transaction.fee = params.int(transaction.fee);
-	transaction.signature = params.buffer(transaction.signature);
+	transaction.signature = params.string(transaction.signature);
 	transaction.asset = params.object(transaction.asset);
 
 	if (transaction.signSignature) {
-		transaction.signSignature = params.buffer(transaction.signSignature);
+		transaction.signSignature = params.string(transaction.signSignature);
 	}
 
 	if (transaction.type == 1) {

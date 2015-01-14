@@ -5,7 +5,7 @@ var ed = require('ed25519'),
 	genesisblock = require('../helpers/genesisblock.js'),
 	constants = require("../helpers/constants.js"),
 	relational = require("../helpers/relational.js"),
-	timeHelper = require("../helpers/time.js"),
+	slots = require('../helpers/slots.js'),
 	signatureHelper = require("../helpers/signature.js"),
 	transactionHelper = require("../helpers/transaction.js"),
 	params = require('../helpers/params.js'),
@@ -53,7 +53,7 @@ function attachApi() {
 	router.put('/', function (req, res) {
 		var secret = params.string(req.body.secret),
 			secondSecret = params.string(req.body.secondSecret),
-			publicKey = params.buffer(req.body.publicKey, 'hex'),
+			publicKey = params.string(req.body.publicKey),
 			votingType = params.int(req.body.votingType);
 
 		var hash = crypto.createHash('sha256').update(secret, 'utf8').digest();
@@ -68,12 +68,12 @@ function attachApi() {
 		}
 
 		if (publicKey.length > 0) {
-			if (keypair.publicKey.toString('hex') != publicKey.toString('hex')) {
+			if (keypair.publicKey.toString('hex') != publicKey) {
 				return res.json({success: false, error: "Please, provide valid secret key of your account"});
 			}
 		}
 
-		var account = modules.accounts.getAccountByPublicKey(keypair.publicKey);
+		var account = modules.accounts.getAccountByPublicKey(keypair.publicKey.toString('hex'));
 
 		if (!account) {
 			return res.json({success: false, error: "Account doesn't has balance"});
@@ -99,7 +99,7 @@ function attachApi() {
 			amount: 0,
 			recipientId: null,
 			senderPublicKey: account.publicKey,
-			timestamp: timeHelper.getNow(),
+			timestamp: slots.getTime(),
 			asset: {
 				signature: signature,
 				votes: votes
@@ -138,9 +138,9 @@ function newSignature(secret, secondSecret) {
 	var keypair2 = ed.MakeKeypair(hash2);
 
 	var signature = {
-		timestamp: timeHelper.getNow(),
-		publicKey: keypair2.publicKey,
-		generatorPublicKey: keypair1.publicKey
+		timestamp: slots.getTime(),
+		publicKey: keypair2.publicKey.toString('hex'),
+		generatorPublicKey: keypair1.publicKey.toString('hex')
 	}
 
 	signature.signature = sign(signature, secondSecret);
@@ -154,14 +154,14 @@ function sign(signature, secondSecret) {
 	var hash = signatureHelper.getHash(signature);
 	var passHash = crypto.createHash('sha256').update(secondSecret, 'utf8').digest();
 	var keypair = ed.MakeKeypair(passHash);
-	return ed.Sign(hash, keypair);
+	return ed.Sign(hash, keypair).toString('hex');
 }
 
 function secondSignature(signature, secret) {
 	var hash = signatureHelper.getHash(signature);
 	var passHash = crypto.createHash('sha256').update(secret, 'utf8').digest();
 	var keypair = ed.MakeKeypair(passHash);
-	return ed.Sign(hash, keypair);
+	return ed.Sign(hash, keypair).toString('hex');
 }
 
 //public methods

@@ -77,10 +77,10 @@ function attachApi() {
 				address: account.address,
 				unconfirmedBalance: account.unconfirmedBalance,
 				balance: account.balance,
-				publicKey: account.publicKey.toString('hex'),
+				publicKey: account.publicKey,
 				unconfirmedSignature: account.unconfirmedSignature,
 				secondSignature: account.secondSignature,
-				secondPublicKey: account.secondPublicKey ? account.secondPublicKey.toString('hex') : null
+				secondPublicKey: account.secondPublicKey || null
 			}
 		});
 	});
@@ -112,7 +112,7 @@ function attachApi() {
 			return res.json({success: false, error: "Account public key can't be found "});
 		}
 
-		return res.json({success: true, publicKey: account.publicKey.toString('hex')});
+		return res.json({success: true, publicKey: account.publicKey});
 	});
 
 	router.post("/generatePublicKey", function (req, res) {
@@ -123,7 +123,7 @@ function attachApi() {
 		}
 
 		var account = openAccount(secret);
-		return res.json({success: true, publicKey: account.publicKey.toString('hex')});
+		return res.json({success: true, publicKey: account.publicKey});
 	});
 
 	router.get("/", function (req, res) {
@@ -145,10 +145,10 @@ function attachApi() {
 				address: account.address,
 				unconfirmedBalance: account.unconfirmedBalance,
 				balance: account.balance,
-				publicKey: account.publicKey ? account.publicKey.toString('hex') : null,
+				publicKey: account.publicKey || null,
 				unconfirmedSignature: account.unconfirmedSignature,
 				secondSignature: account.secondSignature,
-				secondPublicKey: account.secondPublicKey ? account.secondPublicKey.toString('hex') : null
+				secondPublicKey: account.secondPublicKey || null
 			}
 		});
 	})
@@ -175,7 +175,7 @@ function openAccount(secret) {
 	var hash = crypto.createHash('sha256').update(secret, 'utf8').digest();
 	var keypair = ed.MakeKeypair(hash);
 
-	return self.getAccountOrCreate(keypair.publicKey);
+	return self.getAccountOrCreateByPublicKey(keypair.publicKey.toString('hex'));
 }
 
 //public methods
@@ -189,7 +189,7 @@ Accounts.prototype.getAccountByPublicKey = function (publicKey) {
 }
 
 Accounts.prototype.getAddressByPublicKey = function (publicKey) {
-	var publicKeyHash = crypto.createHash('sha256').update(publicKey).digest();
+	var publicKeyHash = crypto.createHash('sha256').update(publicKey, 'hex').digest();
 	var temp = new Buffer(8);
 	for (var i = 0; i < 8; i++) {
 		temp[i] = publicKeyHash[7 - i];
@@ -199,29 +199,33 @@ Accounts.prototype.getAddressByPublicKey = function (publicKey) {
 	return address;
 }
 
-Accounts.prototype.getAccountOrCreate = function (addressOrPublicKey) {
-	var account, address, publicKey;
+Accounts.prototype.getAccountOrCreateByPublicKey = function (publicKey) {
+	var account, address;
 
-	if (typeof(addressOrPublicKey) == 'string') {
-		address = addressOrPublicKey;
-		account = self.getAccount(address);
-	} else {
-		publicKey = addressOrPublicKey;
-		address = self.getAddressByPublicKey(publicKey);
-		account = self.getAccount(address);
+	address = self.getAddressByPublicKey(publicKey);
+	account = self.getAccount(address);
 
-		if (account && !account.publicKey) {
-			account.publicKey = publicKey;
-		}
+	if (account && !account.publicKey) {
+		account.publicKey = publicKey;
 	}
 
 	if (!account) {
 		account = new Account(address, publicKey);
 		addAccount(account);
-		return account;
-	} else {
-		return account;
 	}
+	return account;
+}
+
+Accounts.prototype.getAccountOrCreateByAddress = function (address) {
+	var account;
+
+	account = self.getAccount(address);
+
+	if (!account) {
+		account = new Account(address);
+		addAccount(account);
+	}
+	return account;
 }
 
 Accounts.prototype.getAllAccounts = function () {

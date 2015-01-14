@@ -7,7 +7,7 @@ var transactionHelper = require('../helpers/transaction.js'),
 	genesisblock = require('../helpers/genesisblock.js'),
 	constants = require("../helpers/constants.js"),
 	relational = require("../helpers/relational.js"),
-	timeHelper = require("../helpers/time.js"),
+	slots = require('../helpers/slots.js'),
 	params = require('../helpers/params.js'),
 	extend = require('extend'),
 	Router = require('../helpers/router.js'),
@@ -44,17 +44,16 @@ function attachApi() {
 		var limit = params.int(req.query.limit);
 		var orderBy = params.string(req.query.orderBy);
 		var offset = params.int(req.query.offset);
-		var senderPublicKey = params.buffer(req.query.senderPublicKey, 'hex');
+		var senderPublicKey = params.string(req.query.senderPublicKey);
 		var recipientId = params.string(req.query.recipientId)
 
 		list({
 			blockId: blockId,
-			senderPublicKey: senderPublicKey.length ? senderPublicKey : null,
+			senderPublicKey: senderPublicKey || null,
 			recipientId: recipientId,
 			limit: limit || 20,
 			orderBy: orderBy,
-			offset: offset,
-			hex: true
+			offset: offset
 		}, function (err, transactions) {
 			if (err) {
 				return res.json({success: false, error: "Transactions not found"});
@@ -70,7 +69,7 @@ function attachApi() {
 			return res.json({success: false, error: "Provide id in url"});
 		}
 
-		getById(id, true, function (err, transaction) {
+		getById(id, function (err, transaction) {
 			if (!transaction || err) {
 				return res.json({success: false, error: "Transaction not found"});
 			}
@@ -85,16 +84,13 @@ function attachApi() {
 			return res.json({success: false, error: "Provide id in url"});
 		}
 
-		var transaction = extend(self.getUnconfirmedTransaction(id), true);
+		var transaction = extend(true, {}, self.getUnconfirmedTransaction(id));
 
 		if (!transaction) {
 			return res.json({success: false, error: "Transaction not found"});
 		}
 
 		delete transaction.asset;
-		transaction.senderPublicKey = transaction.senderPublicKey.toString('hex');
-		transaction.signature = transaction.signature.toString('hex');
-		transaction.signSignature = transaction.signSignature && transaction.signSignature.toString('hex');
 
 		res.json({success: true, transaction: transaction});
 	});
@@ -108,25 +104,19 @@ function attachApi() {
 
 		if (senderPublicKey || address) {
 			for (var i = 0; i < transactions.length; i++) {
-				if (transactions[i].senderPublicKey.toString('hex') == senderPublicKey || transactions[i].recipientId == address) {
-					var transaction = extend(transactions[i], true);
+				if (transactions[i].senderPublicKey == senderPublicKey || transactions[i].recipientId == address) {
+					var transaction = extend(true, {}, transactions[i]);
 
 					delete transaction.asset;
-					transaction.senderPublicKey = transaction.senderPublicKey.toString('hex');
-					transaction.signature = transaction.signature.toString('hex');
-					transaction.signSignature = transaction.signSignature && transaction.signSignature.toString('hex');
 
 					toSend.push(transaction);
 				}
 			}
 		} else {
 			for (var i = 0; i < transactions.length; i++) {
-				var transaction = extend(transactions[i], true);
+				var transaction = extend(true, {}, transactions[i]);
 
 				delete transaction.asset;
-				transaction.senderPublicKey = transaction.senderPublicKey.toString('hex');
-				transaction.signature = transaction.signature.toString('hex');
-				transaction.signSignature = transaction.signSignature && transaction.signSignature.toString('hex');
 
 				toSend.push(transaction);
 			}
@@ -139,7 +129,7 @@ function attachApi() {
 		var secret = params.string(req.body.secret),
 			amount = params.int(req.body.amount),
 			recipientId = params.string(req.body.recipientId),
-			publicKey = params.buffer(req.body.publicKey, 'hex'),
+			publicKey = params.string(req.body.publicKey),
 			secondSecret = params.string(req.body.secondSecret),
 			votingType = params.int(req.body.votingType);
 
@@ -150,13 +140,13 @@ function attachApi() {
 			return res.json({success: false, error: "Provide secret key"});
 		}
 
-		if (publicKey.length > 0) {
-			if (keypair.publicKey.toString('hex') != publicKey.toString('hex')) {
+		if (publicKey) {
+			if (keypair.publicKey.toString('hex') != publicKey) {
 				return res.json({success: false, error: "Please, provide valid secret key of your account"});
 			}
 		}
 
-		var account = modules.accounts.getAccountByPublicKey(keypair.publicKey);
+		var account = modules.accounts.getAccountByPublicKey(keypair.publicKey.toString('hex'));
 
 		if (!account) {
 			return res.json({success: false, error: "Account doesn't has balance"});
@@ -177,7 +167,7 @@ function attachApi() {
 			amount: amount,
 			recipientId: recipientId,
 			senderPublicKey: account.publicKey,
-			timestamp: timeHelper.getNow(),
+			timestamp: slots.getTime(),
 			asset: {
 				votes: votes
 			}
@@ -214,7 +204,7 @@ function attachApi() {
 	});
 }
 
-function list (filter, cb) {
+function list(filter, cb) {
 	var params = {}, fields = [];
 	if (filter.blockId) {
 		fields.push('blockId = $blockId')
@@ -266,12 +256,12 @@ function list (filter, cb) {
 			return cb(err)
 		}
 		async.mapSeries(rows, function (row, cb) {
-			setImmediate(cb, null, relational.getTransaction(row, false, filter.hex));
+			setImmediate(cb, null, relational.getTransaction(row));
 		}, cb)
 	})
 }
 
-function getById (id, hex, cb) {
+function getById(id, cb) {
 	var stmt = library.db.prepare("select t.id t_id, t.blockId t_blockId, t.type t_type, t.timestamp t_timestamp, t.senderPublicKey t_senderPublicKey, t.senderId t_senderId, t.recipientId t_recipientId, t.amount t_amount, t.fee t_fee, t.signature t_signature, t.signSignature t_signSignature, (select max(height) + 1 from blocks) - b.height as confirmations " +
 	"from trs t " +
 	"inner join blocks b on t.blockId = b.id " +
@@ -286,7 +276,7 @@ function getById (id, hex, cb) {
 			return cb(err || "Can't find transaction: " + id);
 		}
 
-		var transacton = relational.getTransaction(row, false, hex);
+		var transacton = relational.getTransaction(row);
 		cb(null, transacton);
 	});
 }
@@ -296,14 +286,14 @@ Transactions.prototype.sign = function (secret, transaction) {
 	var hash = transactionHelper.getHash(transaction);
 	var passHash = crypto.createHash('sha256').update(secret, 'utf8').digest();
 	var keypair = ed.MakeKeypair(passHash);
-	transaction.signature = ed.Sign(hash, keypair);
+	transaction.signature = ed.Sign(hash, keypair).toString('hex');
 }
 
 Transactions.prototype.secondSign = function (secret, transaction) {
 	var hash = transactionHelper.getHash(transaction);
 	var passHash = crypto.createHash('sha256').update(secret, 'utf8').digest();
 	var keypair = ed.MakeKeypair(passHash);
-	transaction.signSignature = ed.Sign(hash, keypair);
+	transaction.signSignature = ed.Sign(hash, keypair).toString('hex');
 }
 
 Transactions.prototype.getUnconfirmedTransaction = function (id) {
@@ -386,7 +376,7 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 				return;
 			}
 
-			if (transaction.timestamp > timeHelper.getNow() + 15) {
+			if (slots.getSlotNumber(transaction.timestamp) > slots.getSlotNumber()) {
 				cb && cb("Invalid transaction timestamp");
 				return;
 			}
@@ -405,8 +395,7 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 						cb && cb("Invalid transaction recipient id");
 						return;
 					}
-				break;
-
+					break;
 
 
 				case 1:
@@ -414,7 +403,7 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 						cb && cb("Empty transaction asset for signature transaction")
 						return;
 					}
-				break;
+					break;
 
 				case 2:
 					if (!transaction.asset.delegate.username) {
@@ -425,7 +414,7 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 					if (transaction.asset.delegate.username.length == 0 || transaction.asset.delegate.username.length > 30) {
 						cb && cb("Incorrect delegate username length");
 					}
-				break;
+					break;
 
 				default:
 					cb && cb("Unknown transaction type");
@@ -484,7 +473,7 @@ Transactions.prototype.apply = function (transaction) {
 	if (transaction.type == 0) {
 		sender.addToBalance(-amount);
 
-		var recipient = modules.accounts.getAccountOrCreate(transaction.recipientId);
+		var recipient = modules.accounts.getAccountOrCreateByAddress(transaction.recipientId);
 		recipient.addToUnconfirmedBalance(transaction.amount);
 		recipient.addToBalance(transaction.amount);
 
@@ -511,7 +500,7 @@ Transactions.prototype.applyUnconfirmed = function (transaction) {
 	if (!sender && transaction.blockId != genesisblock.blockId) {
 		return false;
 	} else {
-		sender = modules.accounts.getAccountOrCreate(transaction.senderPublicKey);
+		sender = modules.accounts.getAccountOrCreateByPublicKey(transaction.senderPublicKey);
 	}
 
 	if (transaction.type == 1) {
@@ -554,7 +543,7 @@ Transactions.prototype.undo = function (transaction) {
 
 	// process only two types of transactions
 	if (transaction.type == 0) {
-		var recipient = modules.accounts.getAccountOrCreate(transaction.recipientId);
+		var recipient = modules.accounts.getAccountOrCreateByAddress(transaction.recipientId);
 		recipient.addToUnconfirmedBalance(-transaction.amount);
 		recipient.addToBalance(-transaction.amount);
 
@@ -587,7 +576,9 @@ Transactions.prototype.verifySignature = function (transaction) {
 	var hash = crypto.createHash('sha256').update(data2).digest();
 
 	try {
-		var res = ed.Verify(hash, transaction.signature || ' ', transaction.senderPublicKey || ' ');
+		var signatureBuffer = new Buffer(transaction.signature, 'hex');
+		var senderPublicKeyBuffer = new Buffer(transaction.senderPublicKey, 'hex');
+		var res = ed.Verify(hash, signatureBuffer || ' ', senderPublicKeyBuffer || ' ');
 	} catch (e) {
 		library.logger.info("first signature");
 		library.logger.error(e, {err: e, transaction: transaction})
@@ -607,7 +598,9 @@ Transactions.prototype.verifySecondSignature = function (transaction, publicKey)
 	var hash = crypto.createHash('sha256').update(data2).digest();
 
 	try {
-		var res = ed.Verify(hash, transaction.signSignature || ' ', publicKey || ' ');
+		var signSignatureBuffer = new Buffer(transaction.signSignature, 'hex');
+		var publicKeyBuffer = new Buffer(publicKey, 'hex');
+		var res = ed.Verify(hash, signSignatureBuffer || ' ', publicKeyBuffer || ' ');
 	} catch (e) {
 		library.logger.error(e, {err: e, transaction: transaction})
 	}

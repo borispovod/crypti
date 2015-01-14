@@ -55,8 +55,9 @@ function getBytes(transaction) {
     bb.writeByte(transaction.type);
     bb.writeInt(transaction.timestamp);
 
-    for (var i = 0; i < transaction.senderPublicKey.length; i++) {
-        bb.writeByte(transaction.senderPublicKey[i]);
+	var senderPublicKeyBuffer = new Buffer(transaction.senderPublicKey, 'hex');
+    for (var i = 0; i < senderPublicKeyBuffer.length; i++) {
+        bb.writeByte(senderPublicKeyBuffer[i]);
     }
 
 	if (transaction.recipientId) {
@@ -75,7 +76,7 @@ function getBytes(transaction) {
     bb.writeLong(transaction.amount);
 
 	for (var i = 0; i < transaction.asset.votes.length; i++) {
-		var publicKey = transaction.asset.votes[i];
+		var publicKey = new Buffer(transaction.asset.votes[i], 'hex');
 
 		for (var j = 0; j < publicKey.length; j++) {
 			bb.writeByte(publicKey[j]);
@@ -89,14 +90,16 @@ function getBytes(transaction) {
     }
 
     if (transaction.signature) {
-        for (var i = 0; i < transaction.signature.length; i++) {
-            bb.writeByte(transaction.signature[i]);
+		var signatureBuffer = new Buffer(transaction.signature, 'hex');
+        for (var i = 0; i < signatureBuffer.length; i++) {
+            bb.writeByte(signatureBuffer[i]);
         }
     }
 
     if (transaction.signSignature) {
-        for (var i = 0; i < transaction.signSignature.length; i++) {
-            bb.writeByte(transaction.signSignature[i]);
+		var signSignatureBuffer = new Buffer(transaction.signSignature, 'hex');
+        for (var i = 0; i < signSignatureBuffer.length; i++) {
+            bb.writeByte(signSignatureBuffer[i]);
         }
     }
 

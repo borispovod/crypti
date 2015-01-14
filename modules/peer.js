@@ -4,7 +4,8 @@ var async = require('async'),
 	Router = require('../helpers/router.js'),
 	params = require('../helpers/params.js'),
 	arrayHelper = require('../helpers/array.js'),
-	normalize = require('../helpers/normalize.js');
+	normalize = require('../helpers/normalize.js'),
+	extend = require('extend');
 
 //private fields
 var modules, library, self;
@@ -200,7 +201,7 @@ Peer.prototype.update = function (peer, cb) {
 			$version: peer.version
 		}
 		var st = library.db.prepare("INSERT OR IGNORE INTO peers (ip, port, state, os, sharePort, version) VALUES ($ip, $port, $state, $os, $sharePort, $version);");
-		st.bind(arrayHelper.extend({}, params, {$state: 1}));
+		st.bind(extend({}, params, {$state: 1}));
 		st.run();
 
 		st = library.db.prepare("UPDATE peers SET os = $os, sharePort = $sharePort, version = $version" + (peer.state !== undefined ? ", state = $state " : "") + " WHERE ip = $ip and port = $port;");

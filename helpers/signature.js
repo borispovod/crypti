@@ -4,25 +4,29 @@ var crypto = require('crypto'),
 
 function getBytes(signature) {
 	var bb = new ByteBuffer(32 + 32 + 4 + 64 + 64, true);
-	for (var i = 0; i < signature.publicKey.length; i++) {
-		bb.writeByte(signature.publicKey[i]);
+	var publicKeyBuffer = new Buffer(signature.publicKey, 'hex');
+	for (var i = 0; i < publicKeyBuffer.length; i++) {
+		bb.writeByte(publicKeyBuffer[i]);
 	}
 
-	for (var i = 0; i < signature.generatorPublicKey.length; i++) {
-		bb.writeByte(signature.generatorPublicKey[i]);
+	var generatorPublicKeyBuffer = new Buffer(signature.generatorPublicKey, 'hex');
+	for (var i = 0; i < generatorPublicKeyBuffer.length; i++) {
+		bb.writeByte(generatorPublicKeyBuffer[i]);
 	}
 
 	bb.writeInt(signature.timestamp);
 
 	if (signature.signature) {
-		for (var i = 0; i < signature.signature.length; i++) {
-			bb.writeByte(signature.signature[i]);
+		var signatureBuffer = new Buffer(signature.signature, 'hex');
+		for (var i = 0; i < signatureBuffer.length; i++) {
+			bb.writeByte(signatureBuffer[i]);
 		}
 	}
 
 	if (signature.generationSignature) {
-		for (var i = 0; i < signature.generationSignature.length; i++) {
-			bb.writeByte(signature.generationSignature[i]);
+		var generationSignatureBuffer = new Buffer(signature.generationSignature, 'hex');
+		for (var i = 0; i < generationSignatureBuffer.length; i++) {
+			bb.writeByte(generationSignatureBuffer[i]);
 		}
 	}
 
