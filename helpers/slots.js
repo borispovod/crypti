@@ -1,33 +1,56 @@
+function getEpochTime(time) {
+	if (time === undefined) {
+		time = (new Date()).getTime();
+	}
+	var d = new Date(Date.UTC(2014, 4, 2, 0, 0, 0, 0));
+	var t = d.getTime();
+	return Math.floor((time - t) / 1000);
+}
+
+//function epochTime() {
+//	var d = new Date(Date.UTC(2014, 4, 2, 0, 0, 0, 0));
+//	var t = Math.floor(d.getTime() / 1000);
+//
+//	return t;
+//}
+
 module.exports = {
 
 	interval: 10,
 
 	delegates: 101,
 
-	getTime: function(time){
-		var d = time ? (new Date(time)) : (new Date());
-		return Math.floor(d.getTime() / 1000);
+	getTime: function (time) {
+		return getEpochTime(time);
 	},
 
-	getSlotNumber: function(time){
-		var t = time ? time : this.getTime();
-		return Math.floor(t / this.interval);
+	getRealTime: function (epochTime) {
+		if (epochTime === undefined) {
+			epochTime = this.getTime()
+		}
+		var d = new Date(Date.UTC(2014, 4, 2, 0, 0, 0, 0));
+		var t = d.getTime();
+		return t + epochTime * 1000;
 	},
 
-	getSlotTime: function(slot){
+	getSlotNumber: function (epochTime) {
+		if (epochTime === undefined) {
+			epochTime = this.getTime()
+		}
+		return Math.floor(epochTime / this.interval);
+	},
+
+	getSlotTime: function (slot) {
 		return slot * this.interval;
 	},
 
-	getNextSlot: function(){
+	getNextSlot: function () {
 		var slot = this.getSlotNumber();
-		var startCurrentSlot = this.getSlotTime(slot);
-		if (startCurrentSlot <= this.getTime()){
-			slot += 1;
-		}
-		return slot;
+
+		return slot + 1;
 	},
 
-	getLastSlot: function(nextSlot){
-		return nextSlot * this.delegates;
+	getLastSlot: function (nextSlot) {
+		return nextSlot + this.delegates;
 	}
 }

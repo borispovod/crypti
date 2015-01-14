@@ -6,12 +6,12 @@ var crypto = require('crypto'),
 	genesisblock = require("../helpers/genesisblock.js"),
 	transactionHelper = require("../helpers/transaction.js"),
 	constants = require('../helpers/constants.js'),
-	timeHelper = require('../helpers/time.js'),
 	params = require('../helpers/params.js'),
 	arrayHelper = require('../helpers/array.js'),
 	normalize = require('../helpers/normalize.js'),
 	Router = require('../helpers/router.js'),
 	relational = require("../helpers/relational.js"),
+	slots = require('../helpers/slots.js'),
 	util = require('util'),
 	async = require('async');
 
@@ -61,12 +61,11 @@ function attachApi() {
 	router.get('/', function (req, res) {
 		var limit = params.string(req.query.limit);
 		var orderBy = params.string(req.query.orderBy);
-		var generatorPublicKey = params.buffer(req.query.generatorPublicKey, 'hex');
+		var generatorPublicKey = params.string(req.query.generatorPublicKey);
 		list({
-			generatorPublicKey: generatorPublicKey.length ? generatorPublicKey : null,
+			generatorPublicKey: generatorPublicKey || null,
 			limit: limit || 20,
-			orderBy: orderBy,
-			hex: true
+			orderBy: orderBy
 		}, function (err, blocks) {
 			if (err) {
 				return res.json({success: false, error: "Blocks not found"});
@@ -81,9 +80,9 @@ function attachApi() {
 	});
 
 	router.get('/getForgedByAccount', function (req, res) {
-		var generatorPublicKey = params.buffer(req.query.generatorPublicKey, 'hex');
+		var generatorPublicKey = params.string(req.query.generatorPublicKey);
 
-		if (!generatorPublicKey.length) {
+		if (!generatorPublicKey) {
 			return res.json({success: false, error: "Provide generatorPublicKey in url"});
 		}
 
@@ -136,17 +135,20 @@ function getBytes(block) {
 
 	bb.writeInt(block.payloadLength);
 
-	for (var i = 0; i < block.payloadHash.length; i++) {
-		bb.writeByte(block.payloadHash[i]);
+	var payloadHashBuffer = new Buffer(block.payloadHash, 'hex');
+	for (var i = 0; i < payloadHashBuffer.length; i++) {
+		bb.writeByte(payloadHashBuffer[i]);
 	}
 
-	for (var i = 0; i < block.generatorPublicKey.length; i++) {
-		bb.writeByte(block.generatorPublicKey[i]);
+	var generatorPublicKeyBuffer = new Buffer(block.generatorPublicKey, 'hex');
+	for (var i = 0; i < generatorPublicKeyBuffer.length; i++) {
+		bb.writeByte(generatorPublicKeyBuffer[i]);
 	}
 
 	if (block.blockSignature) {
-		for (var i = 0; i < block.blockSignature.length; i++) {
-			bb.writeByte(block.blockSignature[i]);
+		var blockSignatureBuffer = new Buffer(block.blockSignature, 'hex');
+		for (var i = 0; i < blockSignatureBuffer.length; i++) {
+			bb.writeByte(blockSignatureBuffer[i]);
 		}
 	}
 
@@ -163,12 +165,7 @@ function sign(secret, block) {
 	var keypair = secret;
 	var hash = getHash(block);
 
-	if (typeof(secret) == 'string') {
-		var secretHash = crypto.createHash('sha256').update(secret, 'hex').digest();
-		keypair = ed.MakeKeypair(secretHash);
-	}
-
-	return ed.Sign(hash, keypair);
+	return ed.Sign(hash, keypair).toString('hex');
 }
 
 function getId(block) {
@@ -200,8 +197,8 @@ function saveGenesisBlock(cb) {
 					timestamp: 0,
 					recipientId: genesisTransaction.recipientId,
 					senderId: genesisblock.generatorId,
-					senderPublicKey: new Buffer(genesisblock.generatorPublicKey, 'hex'),
-					signature: new Buffer(genesisTransaction.signature, 'hex'),
+					senderPublicKey: genesisblock.generatorPublicKey,
+					signature: genesisTransaction.signature,
 					asset: {
 						votes: [],
 						delegate: genesisTransaction.asset.delegate
@@ -221,14 +218,14 @@ function saveGenesisBlock(cb) {
 				version: 0,
 				totalAmount: 100000000 * constants.fixedPoint,
 				totalFee: 0,
-				payloadHash: new Buffer(genesisblock.payloadHash, 'hex'),
+				payloadHash: genesisblock.payloadHash,
 				timestamp: 0,
 				numberOfTransactions: blockTransactions.length,
 				payloadLength: genesisblock.payloadLength,
 				previousBlock: null,
-				generatorPublicKey: new Buffer(genesisblock.generatorPublicKey, 'hex'),
+				generatorPublicKey: genesisblock.generatorPublicKey,
 				transactions: blockTransactions,
-				blockSignature: new Buffer(genesisblock.blockSignature, 'hex'),
+				blockSignature: genesisblock.blockSignature,
 				height: 1,
 				previousFee: constants.feeStart,
 				nextFeeVolume: nextFeeVolume,
@@ -285,35 +282,10 @@ function verifySignature(block) {
 	}
 
 	var hash = crypto.createHash('sha256').update(data2).digest();
-	return ed.Verify(hash, block.blockSignature || ' ', block.generatorPublicKey || ' ');
-}
+	var blockSignatureBuffer = new Buffer(block.blockSignature, 'hex');
+	var generatorPublicKeyBuffer = new Buffer(block.generatorPublicKey, 'hex');
 
-function verifyGenerationSignature(block, previousBlock) {
-	// maybe need to add requests to see how it's working
-	if (previousBlock == null) {
-		return false;
-	}
-
-	var hash = crypto.createHash('sha256').update(previousBlock.generationSignature).update(block.generatorPublicKey);
-	var generationSignatureHash = hash.digest();
-
-	var r = ed.Verify(generationSignatureHash, block.generationSignature || ' ', block.generatorPublicKey || ' ');
-
-	if (!r) {
-		return false;
-	}
-
-	var generator = modules.accounts.getAccountByPublicKey(block.generatorPublicKey);
-
-	if (!generator) {
-		return false;
-	}
-
-	if (generator.balance < 1000 * constants.fixedPoint) {
-		return false;
-	}
-
-	return true;
+	return ed.Verify(hash, blockSignatureBuffer || ' ', generatorPublicKeyBuffer || ' ');
 }
 
 function applyConfirmation(generatorPublicKey) {
@@ -482,7 +454,7 @@ function list(filter, cb) {
 			return cb(err)
 		}
 		async.mapSeries(rows, function (row, cb) {
-			setImmediate(cb, null, relational.getBlock(row, false, filter.hex));
+			setImmediate(cb, null, relational.getBlock(row));
 		}, cb)
 	})
 }
@@ -668,9 +640,9 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 	]
 	library.dbLite.query(
 		"SELECT " +
-		"b.id, b.version, b.timestamp, b.height, b.previousBlock, b.numberOfTransactions, b.totalAmount, b.totalFee, b.payloadLength, hex(b.payloadHash), hex(b.generatorPublicKey), hex(b.blockSignature), " +
-		"t.id, t.type, t.timestamp, hex(t.senderPublicKey), t.senderId, t.recipientId, t.amount, t.fee, hex(t.signature), hex(t.signSignature), " +
-		"s.id, s.timestamp, hex(s.publicKey), hex(s.generatorPublicKey), hex(s.signature), hex(s.generationSignature), " +
+		"b.id, b.version, b.timestamp, b.height, b.previousBlock, b.numberOfTransactions, b.totalAmount, b.totalFee, b.payloadLength, b.payloadHash, b.generatorPublicKey, b.blockSignature, " +
+		"t.id, t.type, t.timestamp, t.senderPublicKey, t.senderId, t.recipientId, t.amount, t.fee, t.signature, t.signSignature, " +
+		"s.id, s.timestamp, s.publicKey, s.generatorPublicKey, s.signature, s.generationSignature, " +
 		"d.username, " +
 		"v.votes " +
 		"FROM (select * from blocks limit $limit offset $offset) as b " +
@@ -699,7 +671,7 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 						break;
 					}
 
-					if (!verifySignature(blocks[i])) { //|| !self.verifyGenerationSignature(block, previousBlock)) {
+					if (!verifySignature(blocks[i])) {
 						// need to break cicle and delete this block and blocks after this block
 						err = {
 							message: "Can't verify signature",
@@ -770,8 +742,16 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 					if (blocks[i].transactions[n].type == 2) {
 						modules.delegates.cache(blocks[i].transactions[n].asset.delegate);
 					}
-					debugger
 					modules.delegates.voting(blocks[i].transactions[n].asset.votes, blocks[i].transactions[n].amount);
+					if (!modules.delegates.checkVotes(blocks[i].transactions[n].asset.votes)) {
+						err = {
+							message: "Can't verify votes, vote for not exists delegate found: " + transaction.id,
+							transaction: blocks[i].transactions[n],
+							rollbackTransactionsUntil: n > 0 ? (n - 1) : null,
+							block: blocks[i]
+						};
+						break;
+					}
 				}
 				if (err) {
 					for (var n = err.rollbackTransactionsUntil - 1; n > -1; n--) {
@@ -926,6 +906,7 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 		if (err) {
 			return cb(err);
 		}
+		debugger;
 
 		if (bId) {
 			cb("Block already exists: " + block.id);
@@ -938,17 +919,14 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 				return cb("Can't verify previous block: " + block.id);
 			}
 
-			if (!verifyGenerationSignature(block, lastBlock)) {
-				return cb("Can't verify generator signature: " + block.id);
-			}
-
 			if (block.version > 2 || block.version <= 0) {
 				return cb("Invalid version of block: " + block.id)
 			}
 
-			var now = timeHelper.getNow();
+			var blockSlotNumber = slots.getSlotNumber(block.timestamp);
+			var lastBlockSlotNumber = slots.getSlotNumber(lastBlock.timestamp);
 
-			if (block.timestamp > now + 15 || block.timestamp < lastBlock.timestamp || block.timestamp - lastBlock.timestamp < 60) {
+			if (blockSlotNumber > slots.getSlotNumber() || blockSlotNumber <= lastBlockSlotNumber) {
 				return cb("Can't verify block timestamp: " + block.id);
 			}
 
@@ -1049,7 +1027,7 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 
 				payloadHash = payloadHash.digest();
 
-				if (payloadHash.toString('hex') !== block.payloadHash.toString('hex')) {
+				if (payloadHash !== block.payloadHash) {
 					errors.push("Invalid payload hash: " + block.id);
 				}
 
@@ -1243,11 +1221,11 @@ Blocks.prototype.generateBlock = function (keypair, cb) {
 		totalAmount: totalAmount,
 		totalFee: totalFee,
 		payloadHash: payloadHash,
-		timestamp: timeHelper.getNow(),
+		timestamp: slots.getTime(),
 		numberOfTransactions: blockTransactions.length,
 		payloadLength: size,
 		previousBlock: lastBlock.id,
-		generatorPublicKey: keypair.publicKey,
+		generatorPublicKey: keypair.publicKey.toString('hex'),
 		transactions: blockTransactions
 	};
 

@@ -2,7 +2,6 @@ var crypto = require('crypto'),
 	bignum = require('bignum'),
 	ed = require('ed25519'),
 	params = require('../helpers/params.js'),
-	timeHelper = require('../helpers/time.js'),
 	shuffle = require('knuth-shuffle').knuthShuffle,
 	Router = require('../helpers/router.js'),
 	arrayHelper = require('../helpers/array.js'),
@@ -39,7 +38,7 @@ function attachApi() {
 
 	router.put('/', function (req, res) {
 		var secret = params.string(req.body.secret),
-			publicKey = params.buffer(req.body.publicKey, 'hex'),
+			publicKey = params.string(req.body.publicKey),
 			secondSecret = params.string(req.body.secondSecret),
 			username = params.string(req.body.username),
 			votingType = params.int(req.body.votingType);
@@ -48,12 +47,12 @@ function attachApi() {
 		var keypair = ed.MakeKeypair(hash);
 
 		if (publicKey.length > 0) {
-			if (keypair.publicKey.toString('hex') != publicKey.toString('hex')) {
+			if (keypair.publicKey.toString('hex') != publicKey) {
 				return res.json({success: false, error: "Please, provide valid secret key of your account"});
 			}
 		}
 
-		var account = modules.accounts.getAccountByPublicKey(keypair.publicKey);
+		var account = modules.accounts.getAccountByPublicKey(keypair.publicKey.toString('hex'));
 
 		if (!account) {
 			return res.json({success: false, error: "Account doesn't has balance"});
@@ -74,7 +73,7 @@ function attachApi() {
 			amount: 0,
 			recipientId: null,
 			senderPublicKey: account.publicKey,
-			timestamp: timeHelper.getNow(),
+			timestamp: slots.getTime(),
 			asset: {
 				delegate: {
 					username: username
@@ -131,17 +130,17 @@ function forAllVote() {
 	return [];
 }
 
-function getNextBlockTime() {
+function getCurrentBlockTime() {
 	var activeDelegates = self.getActiveDelegates();
-	var nextSlot = slots.getNextSlot();
-	var lastSlot = slots.getLastSlot(nextSlot);
+	var currentSlot = slots.getSlotNumber();
+	var lastSlot = slots.getLastSlot(currentSlot);
 
-	for (; nextSlot < lastSlot; nextSlot += 1) {
-		var delegate_pos = nextSlot % slots.delegates;
+	for (; currentSlot < lastSlot; currentSlot += 1) {
+		var delegate_pos = currentSlot % slots.delegates;
 		var delegate_id = activeDelegates[delegate_pos];
 
 		if (delegate_id && myDelegate.publicKey == delegate_id) {
-			return slots.getSlotTime(nextSlot);
+			return slots.getSlotTime(currentSlot);
 		}
 	}
 	return null;
@@ -156,27 +155,19 @@ function loop(cb) {
 		return setImmediate(cb);
 	}
 
-	if (account.balance < 1000 * constants.fixedPoint) {
-		return setImmediate(cb);
-	}
-
-	var nextBlockTime = getNextBlockTime()
-	if (nextBlockTime && nextBlockTime <= slots.getTime()) {
-		library.sequence.add(function (cb) {
-			if (slots.getSlotNumber(nextBlockTime) == slots.getSlotNumber()) {
-				modules.blocks.generateBlock(keypair, cb);
-			} else {
-				setImmediate(cb);
-			}
-		}, function (err) {
-			if (err) {
-				library.logger.error("Problem in block generation", err);
-			}
-			setImmediate(cb, err);
-		});
-	} else {
-		setImmediate(cb);
-	}
+	var currentBlockTime = getCurrentBlockTime();
+	library.sequence.add(function (cb) {
+		if (slots.getSlotNumber(currentBlockTime) == slots.getSlotNumber()) {
+			modules.blocks.generateBlock(keypair, cb);
+		} else {
+			setImmediate(cb);
+		}
+	}, function (err) {
+		if (err) {
+			library.logger.error("Problem in block generation", err);
+		}
+		setImmediate(cb, err);
+	});
 }
 
 function addUnconfirmedDelegate(delegate) {
@@ -192,9 +183,9 @@ function loadMyDelegates() {
 	var secret = library.config.forging.secret
 
 	if (secret) {
-		keypair = ed.MakeKeypair(crypto.createHash('sha256').update(secret, 'utf').digest());
-		myDelegate = modules.delegates.getDelegate(keypair.publicKey);
-		address = modules.accounts.getAddressByPublicKey(keypair.publicKey);
+		keypair = ed.MakeKeypair(crypto.createHash('sha256').update(secret, 'utf8').digest());
+		myDelegate = modules.delegates.getDelegate(keypair.publicKey.toString('hex'));
+		address = modules.accounts.getAddressByPublicKey(keypair.publicKey.toString('hex'));
 		account = modules.accounts.getAccount(address);
 
 		library.logger.info("Forging enabled on account: " + address);
@@ -202,23 +193,22 @@ function loadMyDelegates() {
 }
 
 function updateActiveDelegates() {
-	var count = modules.blocks.getLastBlock().height;
-	if (count % slots.delegates != 0) {
-		return cb(null, activeDelegates);
-	}
-	var seedSource = modules.blocks.getLastBlock().id;
-	var delegateIds = getKeysSortByVote();
-	var currentSeed = crypto.createHash('sha256').update(seedSource).digest();
-	for (var i = 0, delCount = delegateIds.length; i < delCount; i++) {
-		for (var x = 0; x < 4 && i < delCount; i++, x++) {
-			var newIndex = currentSeed[x % delCount];
-			var b = delegateIds[newIndex];
-			delegateIds[newIndex] = delegateIds[i];
-			delegateIds[i] = b;
+	var count = modules.blocks.getLastBlock().height - 1;
+	if (count % slots.delegates == 0) {
+		var seedSource = modules.blocks.getLastBlock().id;
+		var delegateIds = getKeysSortByVote();
+		var currentSeed = crypto.createHash('sha256').update(seedSource, 'hex').digest();
+		for (var i = 0, delCount = delegateIds.length; i < delCount; i++) {
+			for (var x = 0; x < 4 && i < delCount; i++, x++) {
+				var newIndex = currentSeed[x] % delCount;
+				var b = delegateIds[newIndex];
+				delegateIds[newIndex] = delegateIds[i];
+				delegateIds[i] = b;
+			}
+			currentSeed = crypto.createHash('sha256').update(currentSeed).digest();
 		}
-		currentSeed = crypto.createHash('sha256').update(currentSeed).digest();
+		activeDelegates = delegateIds;
 	}
-	activeDelegates = delegateIds;
 	return activeDelegates;
 }
 
@@ -234,7 +224,6 @@ Delegates.prototype.getVotesByType = function (votingType) {
 }
 
 Delegates.prototype.checkVotes = function (votes) {
-	votes = votes || []; //temp
 	if (votes.length == 0) {
 		return true;
 	} else {
@@ -255,11 +244,15 @@ Delegates.prototype.voting = function (publicKeys, amount) {
 	}
 	if (publicKeys.length == 0) {
 		Object.keys(delegates).forEach(function (publicKey) {
-			delegates[publicKey].vote = (delegates[publicKey].vote || 0) + amount;
+			if (delegates[publicKey]) {
+				delegates[publicKey].vote = (delegates[publicKey].vote || 0) + amount;
+			}
 		});
 	} else {
 		publicKeys.forEach(function (publicKey) {
-			delegates[publicKey].vote = (delegates[publicKey].vote || 0) + amount;
+			if (delegates[publicKey]) {
+				delegates[publicKey].vote = (delegates[publicKey].vote || 0) + amount;
+			}
 		});
 	}
 }
@@ -285,10 +278,12 @@ Delegates.prototype.removeUnconfirmedDelegate = function (publicKey) {
 
 Delegates.prototype.cache = function (delegate) {
 	delegates[delegate.publicKey] = delegate;
+	slots.delegates = Math.min(101, Object.keys(delegates).length)
 }
 
 Delegates.prototype.uncache = function (delegate) {
 	delete delegates[delegate.publicKey];
+	slots.delegates = Math.min(101, Object.keys(delegates).length)
 }
 
 //events
@@ -304,10 +299,11 @@ Delegates.prototype.onBlockchainReady = function () {
 	process.nextTick(function nextLoop() {
 		loop(function (err) {
 			err && library.logger.error('delegate loop', err);
+			debugger
 			var nextSlot = slots.getNextSlot();
 			var scheduledTime = slots.getSlotTime(nextSlot);
 			scheduledTime = scheduledTime <= slots.getTime() ? scheduledTime + 1 : scheduledTime;
-			schedule.scheduleJob(new Date(scheduledTime * 1000), nextLoop);
+			schedule.scheduleJob(slots.getRealTime(scheduledTime), nextLoop);
 		})
 	});
 }
@@ -326,7 +322,7 @@ Delegates.prototype.onUnconfirmedTransaction = function (transaction) {
 Delegates.prototype.onNewBlock = function (block) {
 	for (var i = 0; i < block.transactions.length; i++) {
 		var transaction = block.transactions[i];
-		if (transaction.type == 4) {
+		if (transaction.type == 2) {
 			self.cache({
 				publicKey: transaction.senderPublicKey,
 				username: transaction.asset.delegate.username,

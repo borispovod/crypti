@@ -12,9 +12,7 @@ module.exports = {
 			recipientId : null,
 			signature : "039ce42974196e45b2191ca11046cde9176a3f05492f19fd62563b171c2b66eb3824f5cb3f7f7ec35ee90a51a043b90488fdb930fab89974226e61504c012a08",
 			"asset" : {
-				"votes" : [
-					"631b91fa537f74e23addccd30555fbc7729ea267c7e0517cbf1bfcc46354abc3"
-				],
+				"votes" : [],
 				"delegate" : {
 					"username" : "genesisDelegate1"
 				}
@@ -27,7 +25,7 @@ module.exports = {
             signature : "4cef8bd7dd51e5c9173482597651c768444e2a04abecbc43e6dff12a0dbd08a2602f599ef5466b4ff1f862e5c015824253eead2c00eb5c8fb7d854a5a5db2507",
 			"asset" : {
 				"votes" : [
-					"631b91fa537f74e23addccd30555fbc7729ea267c7e0517cbf1bfcc46354abc3"
+					"22ebd6dca048c61ac83e2a677b8e39a399e2d1119381ba235d6bc71be674ca1c"
 				]
 			}
         }
