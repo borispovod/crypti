@@ -368,6 +368,9 @@ function undoBlock(block, previousBlock, cb) {
 				modules.transactions.undo(transaction);
 				modules.transactions.undoUnconfirmed(transaction);
 				undoForger(block.generatorPublicKey, transaction);
+				if (transaction.type == 2) {
+					modules.delegates.uncache(transaction.asset.delegate);
+				}
 				setImmediate(cb);
 			}, done);
 		},
@@ -1010,6 +1013,9 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 
 						if (appliedTransactions[transaction.id]) {
 							modules.transactions.undoUnconfirmed(transaction);
+							if (appliedTransactions[transaction.id].type == 2) {
+								modules.delegates.uncache(appliedTransactions[transaction.id].asset.delegate);
+							}
 						}
 					}
 
@@ -1019,6 +1025,9 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 						var transaction = block.transactions[i];
 
 						modules.transactions.apply(transaction);
+						if (transaction.type == 2) {
+							modules.delegates.cache(transaction.asset.delegate);
+						}
 						modules.transactions.removeUnconfirmedTransaction(transaction.id);
 						applyForger(block.generatorPublicKey, transaction);
 					}
@@ -1030,9 +1039,7 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 							return cb(err);
 						}
 
-						setTimeout(function () {
-							library.bus.message('newBlock', block, broadcast)
-						}, 1000);
+						library.bus.message('newBlock', block, broadcast)
 
 						lastBlock = block;
 						setImmediate(cb);

@@ -26,10 +26,12 @@ function normalizeBlock(block) {
 	return block;
 }
 
-function normalizeDelegate(delegate) {
+function normalizeDelegate(delegate, transaction) {
 	delegate = params.object(delegate);
 
 	delegate.username = params.string(delegate.username);
+	delegate.publicKey = params.string(transaction.senderPublicKey),
+	delegate.transactionId = params.string(transaction.id)
 	return delegate;
 }
 
@@ -83,7 +85,7 @@ function normalizeTransaction(transaction) {
 	}
 
 	if (transaction.type == 2) {
-		transaction.asset.delegate = normalizeDelegate(transaction.asset.delegate);
+		transaction.asset.delegate = normalizeDelegate(transaction.asset.delegate, transaction);
 	}
 
 	transaction.asset.votes = params.array(transaction.asset.votes);
