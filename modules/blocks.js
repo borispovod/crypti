@@ -906,7 +906,6 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 		if (err) {
 			return cb(err);
 		}
-		debugger;
 
 		if (bId) {
 			cb("Block already exists: " + block.id);

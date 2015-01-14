@@ -297,13 +297,14 @@ Delegates.prototype.onBlockchainReady = function () {
 	loadMyDelegates(); //temp
 
 	process.nextTick(function nextLoop() {
+		console.log('loop')
 		loop(function (err) {
 			err && library.logger.error('delegate loop', err);
-			debugger
 			var nextSlot = slots.getNextSlot();
+			console.log(nextSlot)
 			var scheduledTime = slots.getSlotTime(nextSlot);
 			scheduledTime = scheduledTime <= slots.getTime() ? scheduledTime + 1 : scheduledTime;
-			schedule.scheduleJob(slots.getRealTime(scheduledTime), nextLoop);
+			schedule.scheduleJob(new Date(slots.getRealTime(scheduledTime)), nextLoop);
 		})
 	});
 }
