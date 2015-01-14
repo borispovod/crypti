@@ -149,7 +149,12 @@ function loop(cb) {
 		return setImmediate(cb);
 	}
 
+	if (slots.getSlotNumber() == slots.getSlotNumber(modules.blocks.getLastBlock().timestamp)){
+		return setImmediate(cb);
+	}
+
 	var currentBlockTime = getCurrentBlockTime();
+
 	library.sequence.add(function (cb) {
 		if (slots.getSlotNumber(currentBlockTime) == slots.getSlotNumber()) {
 			modules.blocks.generateBlock(keypair, cb);

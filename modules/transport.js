@@ -47,6 +47,8 @@ function attachApi() {
 			version: params.string(req.headers['version'])
 		};
 
+		if (peer.version != '0.2.0') return;
+
 		if (peer.port > 0 && peer.port <= 65535) {
 			modules.peer.update(peer);
 		}
@@ -206,10 +208,9 @@ function attachApi() {
 		res.sendStatus(200);
 	});
 
-	router.get('/weight', function (req, res) {
+	router.get('/height', function (req, res) {
 		res.set(headers);
 		res.status(200).json({
-			weight: modules.blocks.getWeight().toString(),
 			height: modules.blocks.getLastBlock().height
 		});
 	});
@@ -235,6 +236,8 @@ function _request(peer, api, method, data, cb) {
 		headers: headers,
 		timeout: 5000
 	};
+
+	if (peer.version != '0.2.0') return cb && cb('old version');
 
 	library.logger.trace('request', req.url)
 
