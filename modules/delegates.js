@@ -142,23 +142,30 @@ function getCurrentBlockTime() {
 
 function loop(cb) {
 	if (!myDelegate || !account) {
+		library.logger.log('loop', 'exit: no delegate');
 		return setImmediate(cb);
 	}
 
 	if (!loaded || modules.loader.syncing()) {
+		library.logger.log('loop', 'exit: syncing');
 		return setImmediate(cb);
 	}
 
-	if (slots.getSlotNumber() == slots.getSlotNumber(modules.blocks.getLastBlock().timestamp)){
+	if (slots.getSlotNumber() == slots.getSlotNumber(modules.blocks.getLastBlock().timestamp)) {
+		library.logger.log('loop', 'exit: lastBlock is in the same slot');
 		return setImmediate(cb);
 	}
 
 	var currentBlockTime = getCurrentBlockTime();
 
+	library.logger.log('loop', 'delegates: ' + activeDelegates.join(','));
+
 	library.sequence.add(function (cb) {
 		if (slots.getSlotNumber(currentBlockTime) == slots.getSlotNumber()) {
+			library.logger.log('loop', 'generate in slot: ' + slots.getSlotNumber(currentBlockTime));
 			modules.blocks.generateBlock(keypair, cb);
 		} else {
+			library.logger.log('loop', 'exit: miss our slot');
 			setImmediate(cb);
 		}
 	}, function (err) {
