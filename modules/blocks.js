@@ -578,7 +578,7 @@ Blocks.prototype.loadBlocksPart = function (filter, cb) {
 	library.db.all(
 		"SELECT " +
 		"b.id b_id, b.version b_version, b.timestamp b_timestamp, b.height b_height, b.previousBlock b_previousBlock, b.numberOfTransactions b_numberOfTransactions, b.totalAmount b_totalAmount, b.totalFee b_totalFee, b.previousFee b_previousFee, b.nextFeeVolume b_nextFeeVolume, b.feeVolume b_feeVolume, b.payloadLength b_payloadLength,   b.payloadHash b_payloadHash, b.generatorPublicKey b_generatorPublicKey, b.blockSignature b_blockSignature, " +
-		"t.id t_id, t.type t_type, t.timestamp t_timestamp, t.senderPublicKey t_senderPublicKey, t.senderId t_senderId, t.recipientId t_recipientId, t.amount t_amount, t.fee t_fee, t.signature t_signature, t.signSignature t_signSignature" +
+		"t.id t_id, t.type t_type, t.timestamp t_timestamp, t.senderPublicKey t_senderPublicKey, t.senderId t_senderId, t.recipientId t_recipientId, t.amount t_amount, t.fee t_fee, t.signature t_signature, t.signSignature t_signSignature, " +
 		"s.id s_id, s.timestamp s_timestamp, s.publicKey s_publicKey, s.generatorPublicKey s_generatorPublicKey, s.signature s_signature, s.generationSignature s_generationSignature, " +
 		"d.username d_username, " +
 		"v.votes v_votes " +
