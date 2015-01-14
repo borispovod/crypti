@@ -256,7 +256,7 @@ function _request(peer, api, method, data, cb) {
 			});
 
 			modules.peer.state(peer.ip, peer.port, 0, 60);
-			library.logger.log('ban 60 sec ' + req.method + ' ' + req.url)
+			library.logger.debug('ban 60 sec ' + req.method + ' ' + req.url)
 			cb && cb(err || ('request status code' + response.statusCode));
 			return;
 		}

@@ -7,6 +7,7 @@ var crypto = require('crypto'),
 	arrayHelper = require('../helpers/array.js'),
 	slots = require('../helpers/slots.js'),
 	schedule = require('node-schedule');
+var strftime = require('strftime');
 
 //private fields
 var modules, library, self;
@@ -39,8 +40,7 @@ function attachApi() {
 		var secret = params.string(req.body.secret),
 			publicKey = params.string(req.body.publicKey),
 			secondSecret = params.string(req.body.secondSecret),
-			username = params.string(req.body.username),
-			votingType = params.int(req.body.votingType);
+			username = params.string(req.body.username);
 
 		var hash = crypto.createHash('sha256').update(secret, 'utf8').digest();
 		var keypair = ed.MakeKeypair(hash);
@@ -131,7 +131,6 @@ function getCurrentBlockTime() {
 	for (; currentSlot < lastSlot; currentSlot += 1) {
 		var delegate_pos = currentSlot % slots.delegates;
 		var delegate_id = activeDelegates[delegate_pos];
-
 		if (delegate_id && myDelegate.publicKey == delegate_id) {
 			return slots.getSlotTime(currentSlot);
 		}
@@ -157,24 +156,25 @@ function loop(cb) {
 
 	var currentBlockTime = getCurrentBlockTime();
 
-	if (currentBlockTime === null){
+	if (currentBlockTime === null) {
 		library.logger.log('loop', 'skip slot');
 		return setImmediate(cb);
 	}
 
+	setImmediate(cb);
+
 	library.sequence.add(function (cb) {
 		if (slots.getSlotNumber(currentBlockTime) == slots.getSlotNumber()) {
 			library.logger.log('loop', 'generate in slot: ' + slots.getSlotNumber(currentBlockTime));
-			modules.blocks.generateBlock(keypair, cb);
+			modules.blocks.generateBlock(keypair, currentBlockTime, cb);
 		} else {
-			library.logger.log('loop', 'exit: miss our slot');
+			library.logger.log('loop', 'exit: another delegate slot');
 			setImmediate(cb);
 		}
 	}, function (err) {
 		if (err) {
 			library.logger.error("Problem in block generation", err);
 		}
-		setImmediate(cb, err);
 	});
 }
 
@@ -193,7 +193,7 @@ function loadMyDelegates() {
 
 function updateActiveDelegates() {
 	var count = modules.blocks.getLastBlock().height - 1;
-	if (count % slots.delegates == 0) {
+	if (count % slots.delegates == 0 || !activeDelegates.length) {
 		var seedSource = modules.blocks.getLastBlock().id;
 		var delegateIds = getKeysSortByVote();
 		var currentSeed = crypto.createHash('sha256').update(seedSource, 'utf8').digest();
@@ -288,7 +288,9 @@ Delegates.prototype.onBlockchainReady = function () {
 	process.nextTick(function nextLoop() {
 		loop(function (err) {
 			err && library.logger.error('delegate loop', err);
+
 			var nextSlot = slots.getNextSlot();
+
 			var scheduledTime = slots.getSlotTime(nextSlot);
 			scheduledTime = scheduledTime <= slots.getTime() ? scheduledTime + 1 : scheduledTime;
 			schedule.scheduleJob(new Date(slots.getRealTime(scheduledTime)), nextLoop);
@@ -303,22 +305,8 @@ Delegates.prototype.onUnconfirmedTransaction = function (transaction) {
 			username: transaction.asset.delegate.username,
 			transactionId: transaction.id
 		};
-		addUnconfirmedDelegate(delegate);
 	}
 }
-
-//Delegates.prototype.onNewBlock = function (block) {
-//	for (var i = 0; i < block.transactions.length; i++) {
-//		var transaction = block.transactions[i];
-//		if (transaction.type == 2) {
-//			self.cache({
-//				publicKey: transaction.senderPublicKey,
-//				username: transaction.asset.delegate.username,
-//				transactionId: transaction.id
-//			});
-//		}
-//	}
-//}
 
 //export
 module.exports = Delegates;

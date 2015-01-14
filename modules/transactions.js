@@ -130,8 +130,7 @@ function attachApi() {
 			amount = params.int(req.body.amount),
 			recipientId = params.string(req.body.recipientId),
 			publicKey = params.string(req.body.publicKey),
-			secondSecret = params.string(req.body.secondSecret),
-			votingType = params.int(req.body.votingType);
+			secondSecret = params.string(req.body.secondSecret);
 
 		var hash = crypto.createHash('sha256').update(secret, 'utf8').digest();
 		var keypair = ed.MakeKeypair(hash);
@@ -156,12 +155,6 @@ function attachApi() {
 			return res.json({success: false, error: "Open account to make transaction"});
 		}
 
-		var votes = modules.delegates.getVotesByType(votingType);
-
-		if (!votes) {
-			return res.json({success: false, error: "Invalid voting type"});
-		}
-
 		var transaction = {
 			type: 0,
 			amount: amount,
@@ -169,7 +162,7 @@ function attachApi() {
 			senderPublicKey: account.publicKey,
 			timestamp: slots.getTime(),
 			asset: {
-				votes: votes
+				votes: modules.delegates.getVotesByType(2)
 			}
 		};
 
@@ -317,7 +310,6 @@ Transactions.prototype.getUnconfirmedTransactions = function (sort) {
 
 Transactions.prototype.removeUnconfirmedTransaction = function (id) {
 	if (unconfirmedTransactions[id]) {
-		modules.delegates.removeUnconfirmedDelegate(unconfirmedTransactions.senderPublicKey)
 		delete unconfirmedTransactions[id];
 	}
 }
@@ -423,9 +415,6 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 			async.parallel([
 				function (cb) {
 					if (transaction.type == 2) {
-						if (modules.delegates.getUnconfirmedDelegate(transaction.senderPublicKey)) {
-							return setImmediate(cb, "Delegate with this name is already exists");
-						}
 						if (modules.delegates.getDelegate(transaction.senderPublicKey)) {
 							return setImmediate(cb, "Delegate with this name is already exists");
 						}

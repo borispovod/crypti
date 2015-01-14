@@ -25,6 +25,7 @@
     "ip": "^0.3.2",
     "long": "^1.1.5",
     "method-override": "*",
+    "knuth-shuffle": "*",
     "pkginfo": "^0.3.0",
     "request": "*",
     "sqlite3": "*",
