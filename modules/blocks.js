@@ -185,8 +185,6 @@ function saveGenesisBlock(cb) {
 			cb(err)
 		} else if (!blockId) {
 			var blockTransactions = [];
-			var payloadLength = 0;
-			var payloadHash = crypto.createHash('sha256');
 
 			for (var i = 0; i < genesisblock.transactions.length; i++) {
 				var genesisTransaction = genesisblock.transactions[i];
@@ -344,29 +342,6 @@ function getForgedByAccount(generatorPublicKey, cb) {
 	});
 }
 
-function applyWeight(block) {
-	var hit = calculateHit(block, lastBlock);
-	weight = weight.add(hit);
-
-	return weight;
-}
-
-function undoWeight(block, previousBlock) {
-	var hit = calculateHit(block, previousBlock);
-	weight = weight.sub(hit);
-
-	return weight;
-}
-
-function calculateHit(block, previousBlock) {
-	var hash = crypto.createHash('sha256').update(previousBlock.generationSignature).update(block.generatorPublicKey).digest();
-	var elapsedTime = block.timestamp - previousBlock.timestamp;
-
-	var hit = bignum.fromBuffer(new Buffer([hash[7], hash[6], hash[5], hash[4], hash[3], hash[2], hash[1], hash[0]]));
-	hit = hit.div(parseInt(elapsedTime / 60));
-	return hit;
-}
-
 function applyFee(block) {
 	block.nextFeeVolume = nextFeeVolume;
 	block.feeVolume = feeVolume;
@@ -406,7 +381,6 @@ function undoBlock(block, previousBlock, cb) {
 			return setImmediate(cb, err);
 		}
 
-		undoWeight(block, previousBlock);
 		undoFee(block);
 		setImmediate(cb);
 	});
@@ -767,7 +741,6 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 
 				if (blocks[i].id != genesisblock.blockId) {
 					applyFee(blocks[i]);
-					applyWeight(blocks[i]);
 				}
 
 				lastBlock = blocks[i] //fast way
@@ -982,7 +955,7 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 									}
 								}
 
-								if (transaction.timestamp > now + 15 || transaction.timestamp > block.timestamp + 15) {
+								if (slots.getSlotNumber(transaction.timestamp) > slots.getSlotNumber() || slots.getSlotNumber(transaction.timestamp) > slots.getSlotNumber(block.timestamp)) {
 									return cb("Can't accept transaction timestamp: " + transaction.id);
 								}
 
@@ -1024,9 +997,7 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 					errors.push(err);
 				}
 
-				payloadHash = payloadHash.digest();
-
-				if (payloadHash !== block.payloadHash) {
+				if (payloadHash.digest().toString('hex') !== block.payloadHash) {
 					errors.push("Invalid payload hash: " + block.id);
 				}
 
@@ -1058,7 +1029,6 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 					}
 
 					applyFee(block);
-					applyWeight(block);
 
 					saveBlock(block, function (err) {
 						if (err) {
@@ -1213,13 +1183,11 @@ Blocks.prototype.generateBlock = function (keypair, cb) {
 		payloadHash.update(bytes);
 	}
 
-	payloadHash = payloadHash.digest();
-
 	var block = {
 		version: 2,
 		totalAmount: totalAmount,
 		totalFee: totalFee,
-		payloadHash: payloadHash,
+		payloadHash: payloadHash.digest().toString('hex'),
 		timestamp: slots.getTime(),
 		numberOfTransactions: blockTransactions.length,
 		payloadLength: size,
@@ -1244,13 +1212,6 @@ Blocks.prototype.onReceiveBlock = function (block) {
 			library.db.get("SELECT * FROM blocks WHERE id=$id", {$id: block.previousBlock}, function (err, previousBlock) {
 				if (err || !previousBlock) {
 					library.logger.error(err ? err.toString() : "Block " + block.previousBlock + " not found");
-					return cb();
-				}
-
-				var hitA = calculateHit(lastBlock, previousBlock),
-					hitB = calculateHit(block, previousBlock);
-
-				if (hitA.ge(hitB)) {
 					return cb();
 				}
 

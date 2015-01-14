@@ -197,7 +197,7 @@ function updateActiveDelegates() {
 	if (count % slots.delegates == 0) {
 		var seedSource = modules.blocks.getLastBlock().id;
 		var delegateIds = getKeysSortByVote();
-		var currentSeed = crypto.createHash('sha256').update(seedSource, 'hex').digest();
+		var currentSeed = crypto.createHash('sha256').update(seedSource, 'utf8').digest();
 		for (var i = 0, delCount = delegateIds.length; i < delCount; i++) {
 			for (var x = 0; x < 4 && i < delCount; i++, x++) {
 				var newIndex = currentSeed[x] % delCount;
@@ -301,7 +301,6 @@ Delegates.prototype.onBlockchainReady = function () {
 		loop(function (err) {
 			err && library.logger.error('delegate loop', err);
 			var nextSlot = slots.getNextSlot();
-			console.log(nextSlot)
 			var scheduledTime = slots.getSlotTime(nextSlot);
 			scheduledTime = scheduledTime <= slots.getTime() ? scheduledTime + 1 : scheduledTime;
 			schedule.scheduleJob(new Date(slots.getRealTime(scheduledTime)), nextLoop);
