@@ -60,10 +60,12 @@ function attachApi() {
 	router.get('/', function (req, res) {
 		var limit = params.string(req.query.limit);
 		var orderBy = params.string(req.query.orderBy);
+		var offset = params.string(req.query.offset);
 		var generatorPublicKey = params.string(req.query.generatorPublicKey);
 		list({
 			generatorPublicKey: generatorPublicKey || null,
 			limit: limit || 20,
+			offset: offset,
 			orderBy: orderBy
 		}, function (err, blocks) {
 			if (err) {
@@ -412,6 +414,10 @@ function list(filter, cb) {
 		}
 	}
 
+	if (filter.offset) {
+		params.offset = filter.offset;
+	}
+
 	if (filter.limit > 1000) {
 		return cb('Maximum of limit is 1000');
 	}
@@ -420,7 +426,8 @@ function list(filter, cb) {
 	"from blocks b " +
 	(fields.length ? "where " + fields.join(' and ') : '') + " " +
 	(filter.orderBy ? 'order by ' + sortBy + ' ' + sortMethod : '') + " " +
-	(filter.limit ? 'limit $limit' : ''), params, ['b_id', 'b_version', 'b_timestamp', 'b_height', 'b_previousBlock', 'b_numberOfTransactions', 'b_totalAmount', 'b_totalFee', 'b_payloadLength', 'b_payloadHash', 'b_generatorPublicKey', 'b_blockSignature'], function (err, rows) {
+	(filter.limit ? 'limit $limit' : '') + " " +
+	(filter.offset ? 'offset $offset' : ''), params, ['b_id', 'b_version', 'b_timestamp', 'b_height', 'b_previousBlock', 'b_numberOfTransactions', 'b_totalAmount', 'b_totalFee', 'b_payloadLength', 'b_payloadHash', 'b_generatorPublicKey', 'b_blockSignature'], function (err, rows) {
 		if (err) {
 			return cb(err)
 		}
@@ -550,36 +557,36 @@ Blocks.prototype.loadBlocksPart = function (filter, cb) {
 	filter.id && !filter.lastId && (params['id'] = filter.id);
 
 	var fields = [
-		'b_id', 'b_version', 'b_timestamp', 'b_height', 'b_previousBlock', 'b_numberOfTransactions', 'b_totalAmount', 'b_totalFee', 'b_previousFee', 'b_nextFeeVolume', 'b_feeVolume', 'b_payloadLength',  'b_payloadHash', 'b_generatorPublicKey', 'b_blockSignature',
+		'b_id', 'b_version', 'b_timestamp', 'b_height', 'b_previousBlock', 'b_numberOfTransactions', 'b_totalAmount', 'b_totalFee', 'b_previousFee', 'b_nextFeeVolume', 'b_feeVolume', 'b_payloadLength', 'b_payloadHash', 'b_generatorPublicKey', 'b_blockSignature',
 		't_id', 't_type', 't_timestamp', 't_senderPublicKey', 't_senderId', 't_recipientId', 't_amount', 't_fee', 't_signature', 't_signSignature',
 		's_id', 's_timestamp', 's_publicKey', 's_generatorPublicKey', 's_signature', 's_generationSignature',
 		'd_username',
 		'v_votes'
 	]
 	library.dbLite.query("SELECT " +
-		"b.id, b.version, b.timestamp, b.height, b.previousBlock, b.numberOfTransactions, b.totalAmount, b.totalFee, b.previousFee, b.nextFeeVolume, b.feeVolume, b.payloadLength, b.payloadHash, b.generatorPublicKey, b.blockSignature, " +
-		"t.id, t.type, t.timestamp, t.senderPublicKey, t.senderId, t.recipientId, t.amount, t.fee, t.signature, t.signSignature, " +
-		"s.id, s.timestamp, s.publicKey, s.generatorPublicKey, s.signature, s.generationSignature, " +
-		"d.username, " +
-		"v.votes " +
-		"FROM (select * from blocks " + (filter.id ? " where id = $id " : "") + (filter.lastId ? " where height > (SELECT height FROM blocks where id = $lastId) " : "") + " limit $limit) as b " +
-		"left outer join trs as t on t.blockId=b.id " +
-		"left outer join delegates as d on d.transactionId=t.id " +
-		"left outer join votes as v on v.transactionId=t.id " +
-		"left outer join signatures as s on s.transactionId=t.id " +
-		"ORDER BY b.height, t.rowid, s.rowid, d.rowid" +
-		"", params, fields, function (err, rows) {
-			// Some notes:
-			// If loading catch error, for example, invalid signature on block & transaction, need to stop loading and remove all blocks after last good block.
-			// We need to process all transactions of block
-			if (err) {
-				return cb(err, []);
-			}
+	"b.id, b.version, b.timestamp, b.height, b.previousBlock, b.numberOfTransactions, b.totalAmount, b.totalFee, b.previousFee, b.nextFeeVolume, b.feeVolume, b.payloadLength, b.payloadHash, b.generatorPublicKey, b.blockSignature, " +
+	"t.id, t.type, t.timestamp, t.senderPublicKey, t.senderId, t.recipientId, t.amount, t.fee, t.signature, t.signSignature, " +
+	"s.id, s.timestamp, s.publicKey, s.generatorPublicKey, s.signature, s.generationSignature, " +
+	"d.username, " +
+	"v.votes " +
+	"FROM (select * from blocks " + (filter.id ? " where id = $id " : "") + (filter.lastId ? " where height > (SELECT height FROM blocks where id = $lastId) " : "") + " limit $limit) as b " +
+	"left outer join trs as t on t.blockId=b.id " +
+	"left outer join delegates as d on d.transactionId=t.id " +
+	"left outer join votes as v on v.transactionId=t.id " +
+	"left outer join signatures as s on s.transactionId=t.id " +
+	"ORDER BY b.height, t.rowid, s.rowid, d.rowid" +
+	"", params, fields, function (err, rows) {
+		// Some notes:
+		// If loading catch error, for example, invalid signature on block & transaction, need to stop loading and remove all blocks after last good block.
+		// We need to process all transactions of block
+		if (err) {
+			return cb(err, []);
+		}
 
-			var blocks = relational.blockChainRelational2ObjectModel(rows);
+		var blocks = relational.blockChainRelational2ObjectModel(rows);
 
-			cb(null, blocks);
-		});
+		cb(null, blocks);
+	});
 }
 
 Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
@@ -813,15 +820,15 @@ Blocks.prototype.getMilestoneBlock = function (peer, cb) {
 					next();
 				} else {
 					async.eachSeries(data.body.milestoneBlockIds, function (blockId, cb) {
-						library.dbLite.query("SELECT count(id) FROM blocks WHERE id = $id", {id: blockId}, ['count'], function (err, rows) {
+						library.dbLite.query("SELECT id FROM blocks WHERE id = $id", {id: blockId}, ['id'], function (err, rows) {
 							if (err) {
 								return cb(err);
 							}
 
-							var block = rows.length && rows[0].count;
+							var block = rows.length && rows[0];
 
 							if (block) {
-								milestoneBlock = blockId;
+								milestoneBlock = block.id;
 								cb(true);
 							} else {
 								lastMilestoneBlockId = blockId;
@@ -1200,8 +1207,8 @@ Blocks.prototype.onReceiveBlock = function (block) {
 				cb();
 			});
 		} else if (block.previousBlock == lastBlock.previousBlock && block.id != lastBlock.id) {
-			library.dbLite.query("SELECT count(id) FROM blocks WHERE id=$id", {id: block.previousBlock}, ['count'], function (err, rows) {
-				if (err || (rows.length && !rows[0].count)) {
+			library.dbLite.query("SELECT id FROM blocks WHERE id=$id", {id: block.previousBlock}, ['id'], function (err, rows) {
+				if (err || !rows.length) {
 					library.logger.error(err ? err.toString() : "Block " + block.previousBlock + " not found");
 					return cb();
 				}
@@ -1216,14 +1223,15 @@ Blocks.prototype.onReceiveBlock = function (block) {
 
 					self.processBlock(block, false, function (err) {
 						if (err) {
-							return cb();
-						}
-						self.processBlock(lastBlock, false, function (err) {
-							if (err) {
-								library.logger.error("processBlock", err);
-							}
+							self.processBlock(lastBlock, false, function (err) {
+								if (err) {
+									library.logger.error("processBlock", err);
+								}
+								cb()
+							});
+						} else {
 							cb()
-						});
+						}
 					})
 				});
 			});
