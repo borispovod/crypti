@@ -159,20 +159,14 @@ function secondSignature(signature, secret) {
 
 //public methods
 Signatures.prototype.get = function (id, cb) {
-	var stmt = library.db.prepare("select s.id s_id, s.transactionId s_transactionId, s.timestamp s_timestamp, s.publicKey s_publicKey, s.generatorPublicKey s_generatorPublicKey, s.signature s_signature, s.generationSignature s_generationSignature " +
+	library.dbLite.query("select s.id s_id, s.transactionId s_transactionId, s.timestamp s_timestamp, s.publicKey s_publicKey, s.generatorPublicKey s_generatorPublicKey, s.signature s_signature, s.generationSignature s_generationSignature " +
 	"from signatures s " +
-	"where s.id = $id");
-
-	stmt.bind({
-		$id: id
-	});
-
-	stmt.get(function (err, row) {
-		if (err || !row) {
+	"where s.id = $id", {id: id}, ['s_id', 's_transactionId', 's_timestamp', 's_publicKey', 's_generatorPublicKey', 's_signature', 's_generationSignature'], function (err, rows) {
+		if (err || !rows.length) {
 			return cb(err || "Can't find signature: " + id);
 		}
 
-		var signature = relational.getSignature(row, false, true);
+		var signature = relational.getSignature(row[0]);
 		cb(null, signature);
 	});
 }

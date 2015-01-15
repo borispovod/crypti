@@ -179,10 +179,13 @@ function getId(block) {
 }
 
 function saveGenesisBlock(cb) {
-	library.db.get("SELECT id FROM blocks WHERE id=$id", {$id: genesisblock.blockId}, function (err, blockId) {
+	library.dbLite.query("SELECT id FROM blocks WHERE id=$id", {id: genesisblock.blockId}, ['id'], function (err, rows) {
 		if (err) {
-			cb(err)
-		} else if (!blockId) {
+			return cb(err)
+		}
+		var blockId = rows.length && rows[0].id;
+
+		if (!blockId) {
 			var blockTransactions = [];
 
 			for (var i = 0; i < genesisblock.transactions.length; i++) {
@@ -299,7 +302,7 @@ function applyConfirmation(generatorPublicKey) {
 }
 
 function getForgedByAccount(generatorPublicKey, cb) {
-	var stmt = library.db.prepare("select b.generatorPublicKey, t.type, " +
+	library.dbLite.query("select b.generatorPublicKey, t.type, " +
 	"CASE WHEN t.type = 0 " +
 	"THEN sum(t.fee)  " +
 	"ELSE  " +
@@ -327,17 +330,15 @@ function getForgedByAccount(generatorPublicKey, cb) {
 	"END sum " +
 	"from blocks b " +
 	"inner join trs t on t.blockId = b.id " +
-	"where b.generatorPublicKey = ? " +
-	"group by t.type");
-
-	stmt.bind(generatorPublicKey);
-
-	stmt.get(function (err, row) {
+	"where b.generatorPublicKey = $publicKey " +
+	"group by t.type", {publicKey: generatorPublicKey}, ['sum'], function (err, rows) {
 		if (err) {
 			return cb(err);
 		}
 
-		cb(null, row ? row.sum : 0);
+		var sum = rows.length ? row[0].sum : 0;
+
+		cb(null, sum);
 	});
 }
 
@@ -389,20 +390,18 @@ function undoBlock(block, previousBlock, cb) {
 }
 
 function deleteBlock(blockId, cb) {
-	library.db.serialize(function () {
-		library.db.run("DELETE FROM blocks WHERE id = $id", {$id: blockId}, cb);
-	});
+	library.dbLite.query("DELETE FROM blocks WHERE id = $id", {id: blockId}, cb);
 }
 
 function list(filter, cb) {
 	var params = {}, fields = [], sortMethod = '', sortBy = '';
 	if (filter.generatorPublicKey) {
 		fields.push('generatorPublicKey = $generatorPublicKey')
-		params.$generatorPublicKey = filter.generatorPublicKey;
+		params.generatorPublicKey = filter.generatorPublicKey;
 	}
 
 	if (filter.limit) {
-		params.$limit = filter.limit;
+		params.limit = filter.limit;
 	}
 	if (filter.orderBy) {
 		var sort = filter.orderBy.split(':');
@@ -417,15 +416,11 @@ function list(filter, cb) {
 		return cb('Maximum of limit is 1000');
 	}
 
-	var stmt = library.db.prepare("select b.id b_id, b.version b_version, b.timestamp b_timestamp, b.height b_height, b.previousBlock b_previousBlock,  b.numberOfTransactions b_numberOfTransactions, b.totalAmount b_totalAmount, b.totalFee b_totalFee, b.payloadLength b_payloadLength,  b.payloadHash b_payloadHash, b.generatorPublicKey b_generatorPublicKey, b.blockSignature b_blockSignature " +
+	library.dbLite.query("select b.id, b.version, b.timestamp, b.height, b.previousBlock,  b.numberOfTransactions, b.totalAmount, b.totalFee, b.payloadLength,  b.payloadHash, b.generatorPublicKey, b.blockSignature " +
 	"from blocks b " +
 	(fields.length ? "where " + fields.join(' and ') : '') + " " +
 	(filter.orderBy ? 'order by ' + sortBy + ' ' + sortMethod : '') + " " +
-	(filter.limit ? 'limit $limit' : ''));
-
-	stmt.bind(params);
-
-	stmt.all(function (err, rows) {
+	(filter.limit ? 'limit $limit' : ''), params, ['b_id', 'b_version', 'b_timestamp', 'b_height', 'b_previousBlock', 'b_numberOfTransactions', 'b_totalAmount', 'b_totalFee', 'b_payloadLength', 'b_payloadHash', 'b_generatorPublicKey', 'b_blockSignature'], function (err, rows) {
 		if (err) {
 			return cb(err)
 		}
@@ -436,162 +431,144 @@ function list(filter, cb) {
 }
 
 function getById(id, cb) {
-	var stmt = library.db.prepare("select b.id b_id, b.version b_version, b.timestamp b_timestamp, b.height b_height, b.previousBlock b_previousBlock, b.numberOfTransactions b_numberOfTransactions,  b.totalAmount b_totalAmount, b.totalFee b_totalFee, b.payloadLength b_payloadLength,  b.payloadHash b_payloadHash, b.generatorPublicKey b_generatorPublicKey, b.blockSignature b_blockSignature " +
+	library.dbLite.query("select b.id, b.version, b.timestamp, b.height, b.previousBlock, b.numberOfTransactions, b.totalAmount, b.totalFee, b.payloadLength,  b.payloadHash, b.generatorPublicKey, b.blockSignature " +
 	"from blocks b " +
-	"where b.id = ?");
-
-	stmt.bind(id);
-
-	stmt.get(function (err, row) {
-		if (err || !row) {
+	"where b.id = $id", {id: id}, ['b_id', 'b_version', 'b_timestamp', 'b_height', 'b_previousBlock', 'b_numberOfTransactions', 'b_totalAmount', 'b_totalFee', 'b_payloadLength', 'b_payloadHash', 'b_generatorPublicKey', 'b_blockSignature'], function (err, rows) {
+		if (err || !rows.length) {
 			return cb(err || "Can't find block: " + id);
 		}
 
-		var block = relational.getBlock(row, false, true);
+		var block = relational.getBlock(rows[0]);
 		cb(null, block);
 	});
 }
 
 function saveBlock(block, cb) {
-	library.db.beginTransaction(function (err, transactionDb) {
+	library.dbLite.query('BEGIN TRANSACTION;');
+
+	library.dbLite.query("INSERT INTO blocks(id, version, timestamp, height, previousBlock,  numberOfTransactions, totalAmount, totalFee, previousFee, nextFeeVolume, feeVolume, payloadLength, payloadHash, generatorPublicKey, blockSignature) VALUES($id, $version, $timestamp, $height, $previousBlock, $numberOfTransactions, $totalAmount, $totalFee, $previousFee, $nextFeeVolume, $feeVolume, $payloadLength,  $payloadHash, $generatorPublicKey, $blockSignature)", {
+		id: block.id,
+		version: block.version,
+		timestamp: block.timestamp,
+		height: block.height,
+		previousBlock: block.previousBlock,
+		numberOfTransactions: block.numberOfTransactions,
+		totalAmount: block.totalAmount,
+		totalFee: block.totalFee,
+		payloadLength: block.payloadLength,
+		payloadHash: block.payloadHash,
+		generatorPublicKey: block.generatorPublicKey,
+		blockSignature: block.blockSignature,
+		previousFee: block.previousFee,
+		nextFeeVolume: block.nextFeeVolume,
+		feeVolume: block.feeVolume
+	}, function (err) {
 		if (err) {
-			return cb(err);
+			library.dbLite.query('ROLLBACK;', function (rollbackErr) {
+				cb(rollbackErr || err);
+			});
+			return;
 		}
 
-		var st = transactionDb.prepare("INSERT INTO blocks(id, version, timestamp, height, previousBlock,  numberOfTransactions, totalAmount, totalFee, previousFee, nextFeeVolume, feeVolume, payloadLength, payloadHash, generatorPublicKey, blockSignature) VALUES($id, $version, $timestamp, $height, $previousBlock, $numberOfTransactions, $totalAmount, $totalFee, $previousFee, $nextFeeVolume, $feeVolume, $payloadLength,  $payloadHash, $generatorPublicKey, $blockSignature)");
-		st.bind({
-			$id: block.id,
-			$version: block.version,
-			$timestamp: block.timestamp,
-			$height: block.height,
-			$previousBlock: block.previousBlock,
-			$numberOfTransactions: block.numberOfTransactions,
-			$totalAmount: block.totalAmount,
-			$totalFee: block.totalFee,
-			$payloadLength: block.payloadLength,
-			$payloadHash: block.payloadHash,
-			$generatorPublicKey: block.generatorPublicKey,
-			$blockSignature: block.blockSignature,
-			$previousFee: block.previousFee,
-			$nextFeeVolume: block.nextFeeVolume,
-			$feeVolume: block.feeVolume
-		});
+		async.eachSeries(block.transactions, function (transaction, cb) {
+			library.dbLite.query("INSERT INTO trs(id, blockId, type, timestamp, senderPublicKey, senderId, recipientId, amount, fee, signature, signSignature) VALUES($id, $blockId, $type, $timestamp, $senderPublicKey, $senderId, $recipientId, $amount, $fee, $signature, $signSignature)", {
+				id: transaction.id,
+				blockId: block.id,
+				type: transaction.type,
+				timestamp: transaction.timestamp,
+				senderPublicKey: transaction.senderPublicKey,
+				senderId: transaction.senderId,
+				recipientId: transaction.recipientId,
+				amount: transaction.amount,
+				fee: transaction.fee,
+				signature: transaction.signature,
+				signSignature: transaction.signSignature
+			}, function (err) {
+				if (err) {
+					return cb(err);
+				}
 
-		st.run(function (err) {
+				async.series([
+					function (cb) {
+						library.dbLite.query("INSERT INTO votes(votes, transactionId) VALUES($votes, $transactionId)", {
+							votes: transaction.asset.votes.join(','),
+							transactionId: transaction.id
+						}, cb);
+					},
+					function (cb) {
+						if (transaction.type == 1) {
+							library.dbLite.query("INSERT INTO signatures(id, transactionId, timestamp , publicKey, generatorPublicKey, signature, generationSignature) VALUES($id, $transactionId, $timestamp , $publicKey, $generatorPublicKey, $signature , $generationSignature)", {
+								id: transaction.asset.signature.id,
+								transactionId: transaction.id,
+								timestamp: transaction.asset.signature.timestamp,
+								publicKey: transaction.asset.signature.publicKey,
+								generatorPublicKey: transaction.asset.signature.generatorPublicKey,
+								signature: transaction.asset.signature.signature,
+								generationSignature: transaction.asset.signature.generationSignature
+							}, cb);
+						} else if (transaction.type == 2) {
+							library.dbLite.query("INSERT INTO delegates(username, transactionId) VALUES($username, $transactionId)", {
+								username: transaction.asset.delegate.username,
+								transactionId: transaction.id
+							}, cb);
+						} else {
+							cb();
+						}
+					}
+				], cb)
+			});
+		}, function (err) {
 			if (err) {
-				transactionDb.rollback(function (rollbackErr) {
+				library.dbLite.query('ROLLBACK;', function (rollbackErr) {
 					cb(rollbackErr || err);
 				});
 				return;
 			}
 
-			async.parallel([
-				function (done) {
-					async.eachSeries(block.transactions, function (transaction, cb) {
-						st = transactionDb.prepare("INSERT INTO trs(id, blockId, type, timestamp, senderPublicKey, senderId, recipientId, amount, fee, signature, signSignature) VALUES($id, $blockId, $type, $timestamp, $senderPublicKey, $senderId, $recipientId, $amount, $fee, $signature, $signSignature)");
-						st.bind({
-							$id: transaction.id,
-							$blockId: block.id,
-							$type: transaction.type,
-							$timestamp: transaction.timestamp,
-							$senderPublicKey: transaction.senderPublicKey,
-							$senderId: transaction.senderId,
-							$recipientId: transaction.recipientId,
-							$amount: transaction.amount,
-							$fee: transaction.fee,
-							$signature: transaction.signature,
-							$signSignature: transaction.signSignature
-						});
-						st.run(function (err) {
-							if (err) {
-								return cb(err);
-							}
-
-							async.parallel([
-								function (cb) {
-									var st = transactionDb.prepare("INSERT INTO votes(votes, transactionId) VALUES($votes, $transactionId)");
-									st.bind({
-										$votes: transaction.asset.votes.join(','),
-										$transactionId: transaction.id
-									});
-									st.run(cb)
-								},
-								function (cb) {
-									if (transaction.type == 1) {
-										st = transactionDb.prepare("INSERT INTO signatures(id, transactionId, timestamp , publicKey, generatorPublicKey, signature, generationSignature) VALUES($id, $transactionId, $timestamp , $publicKey, $generatorPublicKey, $signature , $generationSignature)");
-										st.bind({
-											$id: transaction.asset.signature.id,
-											$transactionId: transaction.id,
-											$timestamp: transaction.asset.signature.timestamp,
-											$publicKey: transaction.asset.signature.publicKey,
-											$generatorPublicKey: transaction.asset.signature.generatorPublicKey,
-											$signature: transaction.asset.signature.signature,
-											$generationSignature: transaction.asset.signature.generationSignature
-										});
-										st.run(cb);
-									} else if (transaction.type == 2) {
-										st = transactionDb.prepare("INSERT INTO delegates(username, transactionId) VALUES($username, $transactionId)");
-										st.bind({
-											$username: transaction.asset.delegate.username,
-											$transactionId: transaction.id
-										});
-										st.run(cb);
-									} else {
-										cb();
-									}
-								}
-							], cb)
-						});
-					}, done)
-				},
-				function (done) {
-					// confirmations
-					done();
-				}
-			], function (err) {
-				if (err) {
-					transactionDb.rollback(function (rollbackErr) {
-						cb(rollbackErr || err);
-					});
-					return;
-				}
-
-				transactionDb.commit(cb)
-			});
+			library.dbLite.query('COMMIT;', cb);
 		});
-	})
+	});
 }
 
 //public methods
 Blocks.prototype.count = function (cb) {
-	library.db.get("select count(rowid) count " +
-	"from blocks", function (err, res) {
+	library.dbLite.query("select count(rowid) from blocks", ['count'], function (err, rows) {
 		if (err) {
 			return cb(err);
 		}
-		cb(null, res.count);
+
+		var res = rows.length ? rows[0].count : 0;
+
+		cb(null, res);
 	});
 }
 
 Blocks.prototype.loadBlocksPart = function (filter, cb) {
 	//console.time('loading');
-	var params = {$limit: filter.limit || 1};
-	filter.lastId && (params['$lastId'] = filter.lastId);
-	filter.id && !filter.lastId && (params['$id'] = filter.id);
-	library.db.all(
-		"SELECT " +
-		"b.id b_id, b.version b_version, b.timestamp b_timestamp, b.height b_height, b.previousBlock b_previousBlock, b.numberOfTransactions b_numberOfTransactions, b.totalAmount b_totalAmount, b.totalFee b_totalFee, b.previousFee b_previousFee, b.nextFeeVolume b_nextFeeVolume, b.feeVolume b_feeVolume, b.payloadLength b_payloadLength,   b.payloadHash b_payloadHash, b.generatorPublicKey b_generatorPublicKey, b.blockSignature b_blockSignature, " +
-		"t.id t_id, t.type t_type, t.timestamp t_timestamp, t.senderPublicKey t_senderPublicKey, t.senderId t_senderId, t.recipientId t_recipientId, t.amount t_amount, t.fee t_fee, t.signature t_signature, t.signSignature t_signSignature, " +
-		"s.id s_id, s.timestamp s_timestamp, s.publicKey s_publicKey, s.generatorPublicKey s_generatorPublicKey, s.signature s_signature, s.generationSignature s_generationSignature, " +
-		"d.username d_username, " +
-		"v.votes v_votes " +
+	var params = {limit: filter.limit || 1};
+	filter.lastId && (params['lastId'] = filter.lastId);
+	filter.id && !filter.lastId && (params['id'] = filter.id);
+
+	var fields = [
+		'b_id', 'b_version', 'b_timestamp', 'b_height', 'b_previousBlock', 'b_numberOfTransactions', 'b_totalAmount', 'b_totalFee', 'b_previousFee', 'b_nextFeeVolume', 'b_feeVolume', 'b_payloadLength',  'b_payloadHash', 'b_generatorPublicKey', 'b_blockSignature',
+		't_id', 't_type', 't_timestamp', 't_senderPublicKey', 't_senderId', 't_recipientId', 't_amount', 't_fee', 't_signature', 't_signSignature',
+		's_id', 's_timestamp', 's_publicKey', 's_generatorPublicKey', 's_signature', 's_generationSignature',
+		'd_username',
+		'v_votes'
+	]
+	library.dbLite.query("SELECT " +
+		"b.id, b.version, b.timestamp, b.height, b.previousBlock, b.numberOfTransactions, b.totalAmount, b.totalFee, b.previousFee, b.nextFeeVolume, b.feeVolume, b.payloadLength, b.payloadHash, b.generatorPublicKey, b.blockSignature, " +
+		"t.id, t.type, t.timestamp, t.senderPublicKey, t.senderId, t.recipientId, t.amount, t.fee, t.signature, t.signSignature, " +
+		"s.id, s.timestamp, s.publicKey, s.generatorPublicKey, s.signature, s.generationSignature, " +
+		"d.username, " +
+		"v.votes " +
 		"FROM (select * from blocks " + (filter.id ? " where id = $id " : "") + (filter.lastId ? " where height > (SELECT height FROM blocks where id = $lastId) " : "") + " limit $limit) as b " +
 		"left outer join trs as t on t.blockId=b.id " +
 		"left outer join delegates as d on d.transactionId=t.id " +
 		"left outer join votes as v on v.transactionId=t.id " +
 		"left outer join signatures as s on s.transactionId=t.id " +
 		"ORDER BY b.height, t.rowid, s.rowid, d.rowid" +
-		"", params, function (err, rows) {
+		"", params, fields, function (err, rows) {
 			// Some notes:
 			// If loading catch error, for example, invalid signature on block & transaction, need to stop loading and remove all blocks after last good block.
 			// We need to process all transactions of block
@@ -601,7 +578,7 @@ Blocks.prototype.loadBlocksPart = function (filter, cb) {
 
 			var blocks = relational.blockChainRelational2ObjectModel(rows);
 
-			cb(err, blocks);
+			cb(null, blocks);
 		});
 }
 
@@ -614,142 +591,141 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 		'd_username',
 		'v_votes'
 	]
-	library.dbLite.query(
-		"SELECT " +
-		"b.id, b.version, b.timestamp, b.height, b.previousBlock, b.numberOfTransactions, b.totalAmount, b.totalFee, b.payloadLength, b.payloadHash, b.generatorPublicKey, b.blockSignature, " +
-		"t.id, t.type, t.timestamp, t.senderPublicKey, t.senderId, t.recipientId, t.amount, t.fee, t.signature, t.signSignature, " +
-		"s.id, s.timestamp, s.publicKey, s.generatorPublicKey, s.signature, s.generationSignature, " +
-		"d.username, " +
-		"v.votes " +
-		"FROM (select * from blocks limit $limit offset $offset) as b " +
-		"left outer join trs as t on t.blockId=b.id " +
-		"left outer join delegates as d on d.transactionId=t.id " +
-		"left outer join votes as v on v.transactionId=t.id " +
-		"left outer join signatures as s on s.transactionId=t.id " +
-		"ORDER BY b.height, t.rowid, s.rowid, d.rowid" +
-		"", params, fields, function (err, rows) {
-			// Some notes:
-			// If loading catch error, for example, invalid signature on block & transaction, need to stop loading and remove all blocks after last good block.
-			// We need to process all transactions of block
-			if (err) {
-				return cb(err);
+	library.dbLite.query("SELECT " +
+	"b.id, b.version, b.timestamp, b.height, b.previousBlock, b.numberOfTransactions, b.totalAmount, b.totalFee, b.payloadLength, b.payloadHash, b.generatorPublicKey, b.blockSignature, " +
+	"t.id, t.type, t.timestamp, t.senderPublicKey, t.senderId, t.recipientId, t.amount, t.fee, t.signature, t.signSignature, " +
+	"s.id, s.timestamp, s.publicKey, s.generatorPublicKey, s.signature, s.generationSignature, " +
+	"d.username, " +
+	"v.votes " +
+	"FROM (select * from blocks limit $limit offset $offset) as b " +
+	"left outer join trs as t on t.blockId=b.id " +
+	"left outer join delegates as d on d.transactionId=t.id " +
+	"left outer join votes as v on v.transactionId=t.id " +
+	"left outer join signatures as s on s.transactionId=t.id " +
+	"ORDER BY b.height, t.rowid, s.rowid, d.rowid" +
+	"", params, fields, function (err, rows) {
+		// Some notes:
+		// If loading catch error, for example, invalid signature on block & transaction, need to stop loading and remove all blocks after last good block.
+		// We need to process all transactions of block
+		if (err) {
+			return cb(err);
+		}
+
+		var blocks = relational.blockChainRelational2ObjectModel(rows);
+
+		for (var i = 0, i_length = blocks.length; i < i_length; i++) {
+			if (blocks[i].id != genesisblock.blockId) {
+				if (blocks[i].previousBlock != lastBlock.id) {
+					err = {
+						message: "Can't verify previous block",
+						block: blocks[i]
+					}
+					break;
+				}
+
+				if (!verifySignature(blocks[i])) {
+					// need to break cicle and delete this block and blocks after this block
+					err = {
+						message: "Can't verify signature",
+						block: blocks[i]
+					};
+					break;
+				}
 			}
 
-			var blocks = relational.blockChainRelational2ObjectModel(rows);
-
-			for (var i = 0, i_length = blocks.length; i < i_length; i++) {
+			//verify block's transactions
+			for (var n = 0, n_length = blocks[i].transactions.length; n < n_length; n++) {
 				if (blocks[i].id != genesisblock.blockId) {
-					if (blocks[i].previousBlock != lastBlock.id) {
+					if (!modules.transactions.verifySignature(blocks[i].transactions[n])) {
 						err = {
-							message: "Can't verify previous block",
-							block: blocks[i]
-						}
-						break;
-					}
-
-					if (!verifySignature(blocks[i])) {
-						// need to break cicle and delete this block and blocks after this block
-						err = {
-							message: "Can't verify signature",
+							message: "Can't verify transaction: " + blocks[i].transactions[n].id,
+							transaction: blocks[i].transactions[n],
+							rollbackTransactionsUntil: n > 0 ? (n - 1) : null,
 							block: blocks[i]
 						};
 						break;
 					}
-				}
 
-				//verify block's transactions
-				for (var n = 0, n_length = blocks[i].transactions.length; n < n_length; n++) {
-					if (blocks[i].id != genesisblock.blockId) {
-						if (!modules.transactions.verifySignature(blocks[i].transactions[n])) {
+					var sender = modules.accounts.getAccountByPublicKey(blocks[i].transactions[n].senderPublicKey);
+
+					if (sender.secondSignature) {
+						if (!modules.transactions.verifySecondSignature(blocks[i].transactions[n], sender.secondPublicKey)) {
 							err = {
-								message: "Can't verify transaction: " + blocks[i].transactions[n].id,
+								message: "Can't verify second transaction: " + blocks[i].transactions[n].id,
 								transaction: blocks[i].transactions[n],
 								rollbackTransactionsUntil: n > 0 ? (n - 1) : null,
 								block: blocks[i]
 							};
 							break;
 						}
-
-						var sender = modules.accounts.getAccountByPublicKey(blocks[i].transactions[n].senderPublicKey);
-
-						if (sender.secondSignature) {
-							if (!modules.transactions.verifySecondSignature(blocks[i].transactions[n], sender.secondPublicKey)) {
-								err = {
-									message: "Can't verify second transaction: " + blocks[i].transactions[n].id,
-									transaction: blocks[i].transactions[n],
-									rollbackTransactionsUntil: n > 0 ? (n - 1) : null,
-									block: blocks[i]
-								};
-								break;
-							}
-						}
-					}
-
-					if (!modules.transactions.applyUnconfirmed(blocks[i].transactions[n])) {
-						err = {
-							message: "Can't apply transaction: " + blocks[i].transactions[n].id,
-							transaction: blocks[i].transactions[n],
-							rollbackTransactionsUntil: n > 0 ? (n - 1) : null,
-							block: blocks[i]
-						};
-						break;
-					}
-
-					if (!modules.transactions.apply(blocks[i].transactions[n])) {
-						err = {
-							message: "Can't apply transaction: " + blocks[i].transactions[n].id,
-							transaction: blocks[i].transactions[n],
-							rollbackTransactionsUntil: n > 0 ? (n - 1) : null,
-							block: blocks[i]
-						};
-						break;
-					}
-
-					if (!applyForger(blocks[i].generatorPublicKey, blocks[i].transactions[n])) {
-						err = {
-							message: "Can't apply transaction to forger: " + blocks[i].transactions[n].id,
-							transaction: blocks[i].transactions[n],
-							rollbackTransactionsUntil: n > 0 ? (n - 1) : null,
-							block: blocks[i]
-						};
-						break;
-					}
-
-					if (blocks[i].transactions[n].type == 2) {
-						modules.delegates.cache(blocks[i].transactions[n].asset.delegate);
-					}
-					modules.delegates.voting(blocks[i].transactions[n].asset.votes, blocks[i].transactions[n].amount);
-					if (!modules.delegates.checkVotes(blocks[i].transactions[n].asset.votes)) {
-						err = {
-							message: "Can't verify votes, vote for not exists delegate found: " + transaction.id,
-							transaction: blocks[i].transactions[n],
-							rollbackTransactionsUntil: n > 0 ? (n - 1) : null,
-							block: blocks[i]
-						};
-						break;
 					}
 				}
-				if (err) {
-					for (var n = err.rollbackTransactionsUntil - 1; n > -1; n--) {
-						modules.delegates.voting(blocks[i].transactions[n].asset.votes, -blocks[i].transactions[n].amount);
-						if (blocks[i].transactions[n].type == 2) {
-							modules.delegates.uncache(blocks[i].transactions[n].asset.delegate);
-						}
-						modules.transactions.undo(blocks[i].transactions[n]);
-						modules.transactions.undoUnconfirmed(blocks[i].transactions[n])
-					}
+
+				if (!modules.transactions.applyUnconfirmed(blocks[i].transactions[n])) {
+					err = {
+						message: "Can't apply transaction: " + blocks[i].transactions[n].id,
+						transaction: blocks[i].transactions[n],
+						rollbackTransactionsUntil: n > 0 ? (n - 1) : null,
+						block: blocks[i]
+					};
 					break;
 				}
 
-				if (blocks[i].id != genesisblock.blockId) {
-					applyFee(blocks[i]);
+				if (!modules.transactions.apply(blocks[i].transactions[n])) {
+					err = {
+						message: "Can't apply transaction: " + blocks[i].transactions[n].id,
+						transaction: blocks[i].transactions[n],
+						rollbackTransactionsUntil: n > 0 ? (n - 1) : null,
+						block: blocks[i]
+					};
+					break;
 				}
 
-				lastBlock = blocks[i] //fast way
+				if (!applyForger(blocks[i].generatorPublicKey, blocks[i].transactions[n])) {
+					err = {
+						message: "Can't apply transaction to forger: " + blocks[i].transactions[n].id,
+						transaction: blocks[i].transactions[n],
+						rollbackTransactionsUntil: n > 0 ? (n - 1) : null,
+						block: blocks[i]
+					};
+					break;
+				}
+
+				if (blocks[i].transactions[n].type == 2) {
+					modules.delegates.cache(blocks[i].transactions[n].asset.delegate);
+				}
+				modules.delegates.voting(blocks[i].transactions[n].asset.votes, blocks[i].transactions[n].amount);
+				if (!modules.delegates.checkVotes(blocks[i].transactions[n].asset.votes)) {
+					err = {
+						message: "Can't verify votes, vote for not exists delegate found: " + transaction.id,
+						transaction: blocks[i].transactions[n],
+						rollbackTransactionsUntil: n > 0 ? (n - 1) : null,
+						block: blocks[i]
+					};
+					break;
+				}
+			}
+			if (err) {
+				for (var n = err.rollbackTransactionsUntil - 1; n > -1; n--) {
+					modules.delegates.voting(blocks[i].transactions[n].asset.votes, -blocks[i].transactions[n].amount);
+					if (blocks[i].transactions[n].type == 2) {
+						modules.delegates.uncache(blocks[i].transactions[n].asset.delegate);
+					}
+					modules.transactions.undo(blocks[i].transactions[n]);
+					modules.transactions.undoUnconfirmed(blocks[i].transactions[n])
+				}
+				break;
 			}
 
-			cb(err, lastBlock);
-		});
+			if (blocks[i].id != genesisblock.blockId) {
+				applyFee(blocks[i]);
+			}
+
+			lastBlock = blocks[i] //fast way
+		}
+
+		cb(err, lastBlock);
+	});
 }
 
 Blocks.prototype.getCommonBlock = function (peer, milestoneBlock, cb) {
@@ -773,10 +749,13 @@ Blocks.prototype.getCommonBlock = function (peer, milestoneBlock, cb) {
 					next();
 				} else {
 					async.eachSeries(data.body.ids, function (id, cb) {
-						library.db.get("SELECT id FROM blocks WHERE id=$id", {$id: id}, function (err, block) {
+						library.dbLite.query("SELECT id FROM blocks WHERE id=$id", {id: id}, ['id'], function (err, rows) {
 							if (err) {
 								return cb(err);
 							}
+
+							var block = rows.length && rows[0];
+
 							if (block) {
 								tempBlock = block.id;
 								cb();
@@ -834,10 +813,12 @@ Blocks.prototype.getMilestoneBlock = function (peer, cb) {
 					next();
 				} else {
 					async.eachSeries(data.body.milestoneBlockIds, function (blockId, cb) {
-						library.db.get("SELECT id FROM blocks WHERE id = $id", {$id: blockId}, function (err, block) {
+						library.dbLite.query("SELECT count(id) FROM blocks WHERE id = $id", {id: blockId}, ['count'], function (err, rows) {
 							if (err) {
 								return cb(err);
 							}
+
+							var block = rows.length && rows[0].count;
 
 							if (block) {
 								milestoneBlock = blockId;
@@ -873,10 +854,12 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 	block.id = getId(block);
 	block.height = lastBlock.height + 1;
 
-	library.db.get("SELECT id FROM blocks WHERE id=$id", {$id: block.id}, function (err, bId) {
+	library.dbLite.query("SELECT id FROM blocks WHERE id=$id", {id: block.id}, ['id'], function (err, rows) {
 		if (err) {
 			return cb(err);
 		}
+
+		var bId = rows.length && rows[0].id
 
 		if (bId) {
 			cb("Block already exists: " + block.id);
@@ -925,10 +908,12 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 							return setImmediate(cb);
 						}
 
-						library.db.get("SELECT id FROM trs WHERE id=$id", {$id: transaction.id}, function (err, tId) {
+						library.dbLite.query("SELECT id FROM trs WHERE id=$id", {id: transaction.id}, ['id'], function (err, rows) {
 							if (err) {
 								return cb(err);
 							}
+
+							var tId = rows.length && rows[0].id;
 
 							if (tId) {
 								cb("Transaction already exists: " + transaction.id);
@@ -1051,7 +1036,7 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 }
 
 Blocks.prototype.simpleDeleteAfterBlock = function (blockId, cb) {
-	library.db.get("DELETE FROM blocks WHERE height >= (SELECT height FROM blocks where id = $id)", {$id: blockId}, cb);
+	library.dbLite.query("DELETE FROM blocks WHERE height >= (SELECT height FROM blocks where id = $id)", {id: blockId}, cb);
 }
 
 Blocks.prototype.loadBlocksFromPeer = function (peer, lastCommonBlockId, cb) {
@@ -1098,15 +1083,17 @@ Blocks.prototype.loadBlocksFromPeer = function (peer, lastCommonBlockId, cb) {
 Blocks.prototype.deleteBlocksBefore = function (blockId, cb) {
 	var blocks = [];
 
-	library.db.get("SELECT height FROM blocks WHERE id=$id", {$id: blockId}, function (err, needBlock) {
-		if (err || !needBlock) {
+	library.dbLite.query("SELECT height FROM blocks WHERE id=$id", {id: blockId}, ['height'], function (err, rows) {
+		if (err || !rows.length) {
 			cb(err ? err.toString() : "Can't find block: " + blockId);
 			return;
 		}
 
+		var needBlockHeight = rows[0].height;
+
 		async.whilst(
 			function () {
-				return !(needBlock.height >= lastBlock.height)
+				return !(needBlockHeight >= lastBlock.height)
 			},
 			function (next) {
 				blocks.push(lastBlock);
@@ -1154,7 +1141,7 @@ Blocks.prototype.popLastBlock = function (oldLastBlock, cb) {
 	});
 }
 
-Blocks.prototype.generateBlock = function (keypair, timestamp,  cb) {
+Blocks.prototype.generateBlock = function (keypair, timestamp, cb) {
 	var transactions = modules.transactions.getUnconfirmedTransactions();
 	transactions.sort(function compare(a, b) {
 		if (a.fee < b.fee)
@@ -1213,8 +1200,8 @@ Blocks.prototype.onReceiveBlock = function (block) {
 				cb();
 			});
 		} else if (block.previousBlock == lastBlock.previousBlock && block.id != lastBlock.id) {
-			library.db.get("SELECT * FROM blocks WHERE id=$id", {$id: block.previousBlock}, function (err, previousBlock) {
-				if (err || !previousBlock) {
+			library.dbLite.query("SELECT count(id) FROM blocks WHERE id=$id", {id: block.previousBlock}, ['count'], function (err, rows) {
+				if (err || (rows.length && !rows[0].count)) {
 					library.logger.error(err ? err.toString() : "Block " + block.previousBlock + " not found");
 					return cb();
 				}
@@ -1229,15 +1216,14 @@ Blocks.prototype.onReceiveBlock = function (block) {
 
 					self.processBlock(block, false, function (err) {
 						if (err) {
-							self.processBlock(lastBlock, false, function (err) {
-								if (err) {
-									library.logger.error("processBlock", err);
-								}
-								cb()
-							});
-						} else {
-							cb()
+							return cb();
 						}
+						self.processBlock(lastBlock, false, function (err) {
+							if (err) {
+								library.logger.error("processBlock", err);
+							}
+							cb()
+						});
 					})
 				});
 			});
