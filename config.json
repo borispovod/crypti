@@ -27,6 +27,6 @@
     },
 	"loading" : {
 		"verifyOnLoading" : true,
-		"loadPerIteration" : 5000
+		"loadPerIteration" : 10000
 	}
 }
