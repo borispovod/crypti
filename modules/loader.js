@@ -85,10 +85,12 @@ function loadBlocks(lastBlock, cb) {
 
 
 						if (lastBlock.id != commonBlockId) {
-							library.db.get("SELECT height FROM blocks WHERE id=$id", {$id: commonBlockId}, function (err, block) {
-								if (err || !block) {
+							library.dbLite.query("SELECT height FROM blocks WHERE id=$id", {id: commonBlockId}, ['height'], function (err, rows) {
+								if (err || !rows.length) {
 									return cb(err || 'block is null');
 								}
+
+								var block = rows[0];
 
 								if (lastBlock.height - block.height > 1440) {
 									modules.peer.state(data.peer.ip, data.peer.port, 0, 3600);
@@ -185,7 +187,6 @@ function loadBlockChain() {
 					});
 				})
 			}, function (err) {
-				library.dbLite.close();
 				if (err) {
 					library.logger.error('loadBlocksOffset', err);
 					if (err.block) {

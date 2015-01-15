@@ -201,21 +201,21 @@ function list(filter, cb) {
 	var params = {}, fields = [];
 	if (filter.blockId) {
 		fields.push('blockId = $blockId')
-		params.$blockId = filter.blockId;
+		params.blockId = filter.blockId;
 	}
 	if (filter.senderPublicKey) {
 		fields.push('senderPublicKey = $senderPublicKey')
-		params.$senderPublicKey = filter.senderPublicKey;
+		params.senderPublicKey = filter.senderPublicKey;
 	}
 	if (filter.recipientId) {
 		fields.push('recipientId = $recipientId')
-		params.$recipientId = filter.recipientId;
+		params.recipientId = filter.recipientId;
 	}
 	if (filter.limit) {
-		params.$limit = filter.limit;
+		params.limit = filter.limit;
 	}
 	if (filter.offset) {
-		params.$offset = filter.offset;
+		params.offset = filter.offset;
 	}
 
 	if (filter.orderBy) {
@@ -232,43 +232,32 @@ function list(filter, cb) {
 	}
 
 	// need to fix 'or' or 'and' in query
-	var stmt = library.db.prepare("select t.id t_id, t.blockId t_blockId, t.type t_type, t.timestamp t_timestamp, t.senderPublicKey t_senderPublicKey,  t.senderId t_senderId, t.recipientId t_recipientId, t.amount t_amount, t.fee t_fee, t.signature t_signature, t.signSignature t_signSignature, (select max(height) + 1 from blocks) - b.height as confirmations " +
-		"from trs t " +
-		"inner join blocks b on t.blockId = b.id " +
-		(fields.length ? "where " + fields.join(' or ') : '') + " " +
-		(filter.orderBy ? 'order by ' + sortBy + ' ' + sortMethod : '') + " " +
-		(filter.limit ? 'limit $limit' : '') + " " +
-		(filter.offset ? 'offset $offset' : '')
-	);
-
-	stmt.bind(params);
-
-	stmt.all(function (err, rows) {
+	library.dbLite.query("select t.id t_id, t.blockId t_blockId, t.type t_type, t.timestamp t_timestamp, t.senderPublicKey t_senderPublicKey,  t.senderId t_senderId, t.recipientId t_recipientId, t.amount t_amount, t.fee t_fee, t.signature t_signature, t.signSignature t_signSignature, (select max(height) + 1 from blocks) - b.height as confirmations " +
+	"from trs t " +
+	"inner join blocks b on t.blockId = b.id " +
+	(fields.length ? "where " + fields.join(' or ') : '') + " " +
+	(filter.orderBy ? 'order by ' + sortBy + ' ' + sortMethod : '') + " " +
+	(filter.limit ? 'limit $limit' : '') + " " +
+	(filter.offset ? 'offset $offset' : ''), params, ['t_id', 't_blockId', 't_type', 't_timestamp', 't_senderPublicKey', 't_senderId', 't_recipientId', 't_amount', 't_fee', 't_signature', 't_signSignature', 'confirmations'], function (err, rows) {
 		if (err) {
 			return cb(err)
 		}
 		async.mapSeries(rows, function (row, cb) {
 			setImmediate(cb, null, relational.getTransaction(row));
 		}, cb)
-	})
+	});
 }
 
 function getById(id, cb) {
-	var stmt = library.db.prepare("select t.id t_id, t.blockId t_blockId, t.type t_type, t.timestamp t_timestamp, t.senderPublicKey t_senderPublicKey, t.senderId t_senderId, t.recipientId t_recipientId, t.amount t_amount, t.fee t_fee, t.signature t_signature, t.signSignature t_signSignature, (select max(height) + 1 from blocks) - b.height as confirmations " +
+	library.dbLite.query("select t.id t_id, t.blockId t_blockId, t.type t_type, t.timestamp t_timestamp, t.senderPublicKey t_senderPublicKey, t.senderId t_senderId, t.recipientId t_recipientId, t.amount t_amount, t.fee t_fee, t.signature t_signature, t.signSignature t_signSignature, (select max(height) + 1 from blocks) - b.height as confirmations " +
 	"from trs t " +
 	"inner join blocks b on t.blockId = b.id " +
-	"where t.id = $id");
-
-	stmt.bind({
-		$id: id
-	});
-
-	stmt.get(function (err, row) {
-		if (err || !row) {
+	"where t.id = $id", {id: id}, ['t_id', 't_blockId', 't_type', 't_timestamp', 't_senderPublicKey', 't_senderId', 't_recipientId', 't_amount', 't_fee', 't_signature', 't_signSignature', 'confirmations'], function (err, rows) {
+		if (err || !rows.length) {
 			return cb(err || "Can't find transaction: " + id);
 		}
 
-		var transacton = relational.getTransaction(row);
+		var transacton = relational.getTransaction(rows[0]);
 		cb(null, transacton);
 	});
 }
@@ -324,52 +313,47 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 		transaction.id = txId;
 	}
 
-	library.db.get("SELECT id FROM trs WHERE id=$id", {$id: transaction.id}, function (err, confirmed) {
+	library.dbLite.query("SELECT count(id) FROM trs WHERE id=$id", {id: transaction.id}, ['count'], function (err, rows) {
 		if (err) {
 			cb && cb("Internal sql error");
 			return;
 		}
 
-		if (confirmed) {
-			cb && cb("Can't process transaction, transaction already confirmed");
-			return;
+		var res = rows.length && rows[0];
+
+		if (res.count) {
+			return cb && cb("Can't process transaction, transaction already confirmed");
 		} else {
 			// check in confirmed transactions
 			if (unconfirmedTransactions[transaction.id] || doubleSpendingTransactions[transaction.id]) {
-				cb && cb("This transaction already exists");
-				return;
+				return cb && cb("This transaction already exists");
 			}
 
 			var sender = modules.accounts.getAccountByPublicKey(transaction.senderPublicKey);
 
 			if (!sender) {
-				cb && cb("Can't process transaction, sender not found");
-				return;
+				return cb && cb("Can't process transaction, sender not found");
 			}
 
 			transaction.senderId = sender.address;
 
 			if (!self.verifySignature(transaction)) {
-				cb && cb("Can't verify signature");
-				return;
+				return cb && cb("Can't verify signature");
 			}
 
 			if (sender.secondSignature) {
 				if (!self.verifySecondSignature(transaction, sender.secondPublicKey)) {
-					cb && cb("Can't verify second signature");
-					return;
+					return cb && cb("Can't verify second signature");
 				}
 			}
 
 			// check if transaction is not float and great then 0
 			if (transaction.amount < 0 || transaction.amount.toString().indexOf('.') >= 0) {
-				cb && cb("Invalid transaction amount");
-				return;
+				return cb && cb("Invalid transaction amount");
 			}
 
 			if (slots.getSlotNumber(transaction.timestamp) > slots.getSlotNumber()) {
-				cb && cb("Invalid transaction timestamp");
-				return;
+				return cb && cb("Invalid transaction timestamp");
 			}
 
 			var fee = transactionHelper.getFee(transaction, modules.blocks.getFee());
@@ -383,23 +367,20 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 			switch (transaction.type) {
 				case 0:
 					if (transactionHelper.getLastChar(transaction) != "C") {
-						cb && cb("Invalid transaction recipient id");
-						return;
+						return cb && cb("Invalid transaction recipient id");
 					}
 					break;
 
 
 				case 1:
 					if (!transaction.asset.signature) {
-						cb && cb("Empty transaction asset for signature transaction")
-						return;
+						return cb && cb("Empty transaction asset for signature transaction")
 					}
 					break;
 
 				case 2:
 					if (!transaction.asset.delegate.username) {
-						cb && cb("Empty transaction asset for delegate transaction");
-						return;
+						return cb && cb("Empty transaction asset for delegate transaction");
 					}
 
 					if (transaction.asset.delegate.username.length == 0 || transaction.asset.delegate.username.length > 30) {
@@ -408,8 +389,7 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 					break;
 
 				default:
-					cb && cb("Unknown transaction type");
-					return;
+					return cb && cb("Unknown transaction type");
 			}
 
 			async.parallel([

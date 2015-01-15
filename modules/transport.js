@@ -70,14 +70,14 @@ function attachApi() {
 			return res.json({success: false, error: "Provide id in url"});
 		}
 
-		library.db.all("SELECT id FROM blocks WHERE height > (SELECT height FROM blocks where id=$id) ORDER BY height LIMIT 1440", {$id: id}, function (err, blocks) {
+		library.dbLite.query("SELECT id FROM blocks WHERE height > (SELECT height FROM blocks where id=$id) ORDER BY height LIMIT 1440", {id: id}, ['id'], function (err, rows) {
 			if (err) {
 				return res.status(200).json({success: false, error: "Internal sql error"});
 			}
 
 			var ids = [];
-			for (var i = 0; i < blocks.length; i++) {
-				ids.push(blocks[i].id);
+			for (var i = 0; i < rows.length; i++) {
+				ids.push(rows[i].id);
 			}
 			res.status(200).json({ids: ids});
 		});
@@ -103,10 +103,12 @@ function attachApi() {
 		async.series([
 			function (cb) {
 				if (lastMilestoneBlockId) {
-					library.db.get("SELECT height FROM blocks WHERE id=$id", {$id: lastMilestoneBlockId}, function (err, block) {
+					library.dbLite.query("SELECT height FROM blocks WHERE id=$id", {id: lastMilestoneBlockId}, ['height'], function (err, rows) {
 						if (err) {
 							return cb("Internal sql error");
 						}
+
+						var block = rows.length && rows[0];
 
 						if (!block) {
 							cb("Can't find block: " + lastMilestoneBlockId);
@@ -129,10 +131,12 @@ function attachApi() {
 			if (error) {
 				return res.status(200).json({success: false, error: error});
 			} else {
-				library.db.get("SELECT id FROM blocks WHERE height = $height", {$height: height}, function (err, block) {
+				library.dbLite.query("SELECT id FROM blocks WHERE height = $height", {height: height}, ['id'], function (err, rows) {
 					if (err) {
 						return res.status(200).json({success: false, error: "Internal sql error"});
 					}
+
+					var block = rows.length && rows[0];
 
 					if (!block) {
 						res.status(200).json({milestoneBlockIds: milestoneBlockIds});
@@ -145,10 +149,14 @@ function attachApi() {
 							},
 							function (next) {
 								milestoneBlockIds.push(blockId);
-								library.db.get("SELECT id FROM blocks WHERE height = $height", {$height: height}, function (err, block) {
+								library.dbLite.query("SELECT id FROM blocks WHERE height = $height", {height: height}, ['id'], function (err, rows) {
 									if (err) {
-										next(err);
-									} else if (!block) {
+										return next(err);
+									}
+
+									var block = rows.length && rows[0];
+
+									if (!block) {
 										next("Internal error");
 									} else {
 										blockId = block.id;
