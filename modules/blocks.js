@@ -939,9 +939,6 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 									}
 								}
 
-								// verify company in transaction
-								// here
-
 								if (!modules.transactions.applyUnconfirmed(transaction)) {
 									return cb("Can't apply transaction: " + transaction.id);
 								}

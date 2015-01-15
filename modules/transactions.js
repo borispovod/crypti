@@ -405,11 +405,8 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 				case 1:
 					switch (transaction.subtype) {
 						case 0:
-							if (transactionHelper.getLastChar(transaction) != "D") {
-								cb && cb("Invalid transaction recipient id");
-								return;
-							}
-							break;
+							cb && cb("Not supporting transaction");
+							return;
 
 						default:
 							cb && cb("Unknown transaction type");
@@ -511,24 +508,7 @@ Transactions.prototype.apply = function (transaction) {
 		}
 	} else if (transaction.type == 1) {
 		if (transaction.subtype == 0) {
-			if (transation.companyGeneratorPublicKey == null) {
-				return false;
-			}
-
-			var recipient = transaction.getAccountByPublicKey(transaction.companyGeneratorPublicKey);
-
-			if (!recipient) {
-				return false;
-			}
-
-
-			sender.addToBalance(-amount);
-
-			amount = transaction.amount + transactionHelper.getTransactionFee(transaction, false);
-			recipient.addToUnconfirmedBalance(amount);
-			recipient.addToBalance(amount);
-
-			return true;
+			return false;
 		}
 	} else if (transaction.type == 2) {
 		if (transaction.subtype == 0) {
@@ -601,35 +581,6 @@ Transactions.prototype.undo = function (transaction) {
 			recipient.addToUnconfirmedBalance(-transaction.amount);
 			recipient.addToBalance(-transaction.amount);
 
-			return true;
-		}
-	} else if (transaction.type == 1) {
-		if (transaction.subtype == 0) {
-			// merchant transaction, first need to find merchant
-			/*var recipient = transaction.recipientId;
-
-			 library.db.serialize(function () {
-			 library.db.get("SELECT generatorPublicKey FROM companies WHERE address = $address", {$address: recipient}, function (err, company) {
-			 if (err) {
-			 return cb(err);
-			 } else if (!company) {
-			 return cb();
-			 } else {
-			 var companyCreator = modules.accounts.getAccountByPublicKey(company.generatorPublicKey);
-
-			 if (!companyCreator) {
-			 return cb("Can't find company creator for address: " + recipient);
-			 }
-
-			 // need to calculate fee
-			 amount = transaction.amount + getTransactionFee(transaction, false);
-			 companyCreator.addToUnconfirmedBalance(-amount);
-			 companyCreator.addToBalance(-amount);
-
-			 return cb();
-			 }
-			 });
-			 });*/
 			return true;
 		}
 	} else if (transaction.type == 2) {
