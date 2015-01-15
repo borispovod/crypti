@@ -1036,6 +1036,8 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 						library.bus.message('newBlock', block, broadcast)
 
 						lastBlock = block;
+						console.log('processBlock', 'lastBlock=' + lastBlock.id)
+
 						setImmediate(cb);
 					});
 				}
@@ -1108,6 +1110,7 @@ Blocks.prototype.deleteBlocksBefore = function (blockId, cb) {
 				blocks.push(lastBlock);
 				self.popLastBlock(lastBlock, function (err, newLastBlock) {
 					lastBlock = newLastBlock;
+					console.log('deleteBlocksBefore', 'lastBlock=' + lastBlock.id)
 					next(err);
 				});
 			},
@@ -1203,6 +1206,7 @@ Blocks.prototype.generateBlock = function (keypair, timestamp, cb) {
 
 //events
 Blocks.prototype.onReceiveBlock = function (block) {
+	//console.log('received block', block.id)
 	library.sequence.add(function (cb) {
 		if (block.previousBlock == lastBlock.id) {
 			self.processBlock(block, true, function () {
@@ -1222,6 +1226,7 @@ Blocks.prototype.onReceiveBlock = function (block) {
 					}
 
 					lastBlock = newLastBlock;
+					console.log('onReceiveBlock', 'lastBlock=' + lastBlock.id)
 
 					self.processBlock(block, false, function (err) {
 						if (err) {
@@ -1241,9 +1246,6 @@ Blocks.prototype.onReceiveBlock = function (block) {
 			cb()
 		}
 	});
-}
-
-Blocks.prototype.onNewBlock = function (block) {
 }
 
 Blocks.prototype.onBind = function (scope) {
