@@ -83,7 +83,6 @@ function loadBlocks(lastBlock, cb) {
 							return cb(err);
 						}
 
-
 						if (lastBlock.id != commonBlockId) {
 							library.dbLite.query("SELECT height FROM blocks WHERE id=$id", {id: commonBlockId}, ['height'], function (err, rows) {
 								if (err || !rows.length) {
