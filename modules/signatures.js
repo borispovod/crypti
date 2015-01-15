@@ -66,7 +66,7 @@ function attachApi() {
 			return res.json({success: false, error: "Provide second secret key"});
 		}
 
-		if (publicKey.length > 0) {
+		if (publicKey) {
 			if (keypair.publicKey.toString('hex') != publicKey) {
 				return res.json({success: false, error: "Please, provide valid secret key of your account"});
 			}

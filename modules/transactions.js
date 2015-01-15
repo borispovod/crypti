@@ -313,7 +313,7 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 		transaction.id = txId;
 	}
 
-	library.dbLite.query("SELECT count(id) FROM trs WHERE id=$id", {id: transaction.id}, ['count'], function (err, rows) {
+	library.dbLite.query("SELECT count(id) FROM trs WHERE id=$id", {id: transaction.id}, {"count": Number}, function (err, rows) {
 		if (err) {
 			cb && cb("Internal sql error");
 			return;
