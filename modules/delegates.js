@@ -185,6 +185,7 @@ function loadMyDelegates() {
 		keypair = ed.MakeKeypair(crypto.createHash('sha256').update(secret, 'utf8').digest());
 		address = modules.accounts.getAddressByPublicKey(keypair.publicKey.toString('hex'));
 		account = modules.accounts.getAccount(address);
+		myDelegate = self.getDelegate(keypair.publicKey.toString('hex'));
 
 		library.logger.info("Forging enabled on account: " + address);
 	}
