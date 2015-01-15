@@ -163,6 +163,8 @@ function loop(cb) {
 
 	setImmediate(cb);
 
+	console.log(slots.getSlotNumber(), modules.blocks.getLastBlock().height, modules.blocks.getLastBlock().id, activeDelegates.map(function(id){return id.substring(0, 4)}))
+
 	library.sequence.add(function (cb) {
 		if (slots.getSlotNumber(currentBlockTime) == slots.getSlotNumber()) {
 			library.logger.log('loop', 'generate in slot: ' + slots.getSlotNumber(currentBlockTime));
@@ -194,7 +196,7 @@ function loadMyDelegates() {
 function updateActiveDelegates() {
 	var count = modules.blocks.getLastBlock().height - 1;
 	if (count % slots.delegates == 0 || !activeDelegates.length) {
-		var seedSource = modules.blocks.getLastBlock().id;
+		var seedSource = modules.blocks.getLastBlock().height.toString();
 		var delegateIds = getKeysSortByVote();
 		var currentSeed = crypto.createHash('sha256').update(seedSource, 'utf8').digest();
 		for (var i = 0, delCount = delegateIds.length; i < delCount; i++) {
@@ -293,19 +295,9 @@ Delegates.prototype.onBlockchainReady = function () {
 
 			var scheduledTime = slots.getSlotTime(nextSlot);
 			scheduledTime = scheduledTime <= slots.getTime() ? scheduledTime + 1 : scheduledTime;
-			schedule.scheduleJob(new Date(slots.getRealTime(scheduledTime)), nextLoop);
+			schedule.scheduleJob(new Date(slots.getRealTime(scheduledTime)+1000), nextLoop);
 		})
 	});
-}
-
-Delegates.prototype.onUnconfirmedTransaction = function (transaction) {
-	if (transaction.asset.delegate) {
-		var delegate = {
-			publicKey: transaction.senderPublicKey,
-			username: transaction.asset.delegate.username,
-			transactionId: transaction.id
-		};
-	}
 }
 
 Delegates.prototype.onReceiveBlock = function(){
