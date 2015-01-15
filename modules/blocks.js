@@ -366,7 +366,7 @@ Blocks.prototype.loadBlocksPart = function (filter, cb) {
 }
 
 Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
-	var verify = library.config.verifyOnLoading;
+	var verify = library.config.loading.verifyOnLoading;
 
 	var params = {limit: limit, offset: offset || 0};
 	var fields = [
