@@ -26,6 +26,6 @@
         "secret": ""
     },
 	"loading" : {
-		"loadPerIteration" : 5000
+		"loadPerIteration" : 10000
 	}
 }
