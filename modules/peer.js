@@ -116,7 +116,7 @@ function updatePeerList(cb) {
 function count(cb) {
 	var params = {};
 
-	library.dbLite.query("select count(rowid) from peers", ['count'], function (err, rows) {
+	library.dbLite.query("select count(rowid) from peers", {"count": Number}, function (err, rows) {
 		if (err) {
 			library.logger.error('Peer#count', err);
 			return cb(err);
@@ -146,7 +146,9 @@ function getByFilter(filter, cb) {
 	params['limit'] = limit;
 	offset && (params['offset'] = offset);
 
-	library.dbLite.query("select ip, port, state, os, sharePort, version from peers" + (where.length ? (' where ' + where.join(' and ')) : '') + ' limit $limit' + (offset ? ' offset $offset ' : ''), params, cb);
+	library.dbLite.query("select ip, port, state, os, sharePort, version from peers" + (where.length ? (' where ' + where.join(' and ')) : '') + ' limit $limit' + (offset ? ' offset $offset ' : ''), params, {"ip": String, "port": Number, "state": Number, "os": String, "sharePort": Number, "version": String}, function(err, rows){
+		cb(err, rows);
+	});
 }
 
 //public methods
@@ -154,7 +156,9 @@ Peer.prototype.list = function (limit, cb) {
 	limit = limit || 100;
 	var params = {limit: limit};
 
-	library.dbLite.query("select ip, port, state, os, sharePort, version from peers where state > 0 and sharePort = 1 ORDER BY RANDOM() LIMIT $limit", params, ['ip', 'port', 'state', 'os', 'sharePort', 'version'], cb);
+	library.dbLite.query("select ip, port, state, os, sharePort, version from peers where state > 0 and sharePort = 1 ORDER BY RANDOM() LIMIT $limit", params, {"ip": String, "port": Number, "state": Number, "os": String, "sharePort": Number, "version": String}, function(err, rows){
+		cb(err, rows);
+	});
 }
 
 Peer.prototype.state = function (ip, port, state, timeoutSeconds, cb) {
@@ -180,9 +184,9 @@ Peer.prototype.update = function (peer, cb) {
 	var params = {
 		ip: peer.ip,
 		port: peer.port,
-		os: peer.os,
+		os: peer.os || null,
 		sharePort: peer.sharePort,
-		version: peer.version
+		version: peer.version || null
 	}
 	async.series([
 		function (cb) {

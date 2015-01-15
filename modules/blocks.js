@@ -392,7 +392,9 @@ function undoBlock(block, previousBlock, cb) {
 }
 
 function deleteBlock(blockId, cb) {
-	library.dbLite.query("DELETE FROM blocks WHERE id = $id", {id: blockId}, cb);
+	library.dbLite.query("DELETE FROM blocks WHERE id = $id", {id: blockId}, function(err, res){
+		cb(err, res)
+	});
 }
 
 function list(filter, cb) {
@@ -458,7 +460,7 @@ function saveBlock(block, cb) {
 		version: block.version,
 		timestamp: block.timestamp,
 		height: block.height,
-		previousBlock: block.previousBlock,
+		previousBlock: block.previousBlock || null,
 		numberOfTransactions: block.numberOfTransactions,
 		totalAmount: block.totalAmount,
 		totalFee: block.totalFee,
@@ -485,11 +487,11 @@ function saveBlock(block, cb) {
 				timestamp: transaction.timestamp,
 				senderPublicKey: transaction.senderPublicKey,
 				senderId: transaction.senderId,
-				recipientId: transaction.recipientId,
+				recipientId: transaction.recipientId || null,
 				amount: transaction.amount,
 				fee: transaction.fee,
 				signature: transaction.signature,
-				signSignature: transaction.signSignature
+				signSignature: transaction.signSignature || null
 			}, function (err) {
 				if (err) {
 					return cb(err);
@@ -539,7 +541,7 @@ function saveBlock(block, cb) {
 
 //public methods
 Blocks.prototype.count = function (cb) {
-	library.dbLite.query("select count(rowid) from blocks", ['count'], function (err, rows) {
+	library.dbLite.query("select count(rowid) from blocks", {"count": Number}, function (err, rows) {
 		if (err) {
 			return cb(err);
 		}
