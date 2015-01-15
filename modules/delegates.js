@@ -183,7 +183,6 @@ function loadMyDelegates() {
 
 	if (secret) {
 		keypair = ed.MakeKeypair(crypto.createHash('sha256').update(secret, 'utf8').digest());
-		myDelegate = modules.delegates.getDelegate(keypair.publicKey.toString('hex'));
 		address = modules.accounts.getAddressByPublicKey(keypair.publicKey.toString('hex'));
 		account = modules.accounts.getAccount(address);
 
@@ -306,6 +305,10 @@ Delegates.prototype.onUnconfirmedTransaction = function (transaction) {
 			transactionId: transaction.id
 		};
 	}
+}
+
+Delegates.prototype.onReceiveBlock = function(){
+	myDelegate = self.getDelegate(keypair.publicKey.toString('hex'));
 }
 
 //export
