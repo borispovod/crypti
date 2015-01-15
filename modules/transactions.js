@@ -468,9 +468,9 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 						setImmediate(cb);
 					}
 				}
-			], function (errors) {
-				if (errors) {
-					return cb && cb(errors.pop());
+			], function (err) {
+				if (err) {
+					return cb && cb(err);
 				}
 
 				if (!self.applyUnconfirmed(transaction)) {
