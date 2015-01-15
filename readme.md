@@ -1,6 +1,6 @@
 ### Crypti coin ###
 
-Version 0.1
+Version 0.1.9
 
 
 ### Install ###
@@ -9,34 +9,64 @@ First run:
 npm install
 ```
 
-Then run:
+Dependencies
+
+* sqlite3
+* grunt-cli
+
+Install sqlite3 (Ubuntu/Debian)
+
 ```
-hg clone https://bpovod@bitbucket.org/bpovod/ed25519-node
-npm link ./ed25519-node
+apt-get install sqlite3
 ```
+
+Install sqltie3 (Fedora/CentOS)
+
+```
+yum install sqlite
+```
+
+Install grunt-cli with global flag
+
+```
+npm install grunt-cli -g
+```
+
+### Build ###
+
+Before start application static html interface stored in public folder should be built.
+```
+cd public
+bower install
+grunt
+```
+
+### Test ###
+
+To run tests use standard npm test method:
+```
+npm test
+```
+
+Crypti uses mocha so it possible to run test manually from cli:
+```
+mocha test/test.js
+mocha test/sandbox/index.js
+```
+
+#### Own tests ####
+
+To add custom test add test file into test dir and then require it in `test.js` file in the right place:
+```
+// test.js
+require('./sandbox');
+require('./custom-test');
+```
+
+Note to use semantic names to avoid mess of files. Try to name it similarly to testing module or functionality name.
 
 ### Start ###
 Run:
 ```
 node app.js
-```
-
-And open this link:
-```
-http://localhost:6040
-```
-
-### Test ###
-
-Open for unlock account:
-```
-http://localhost:6040/unlock?username=test&password=test
-```
-
-You will see:
-```
-{
-  "publicKey": "e9b52567e9e5ff99270e07b63a2a6f1ff41c4db58da62416f8b0b2c3f6c53b6c",
-  "address": "15880686153265399104C"
-}
 ```

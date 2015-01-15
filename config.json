@@ -26,6 +26,7 @@
         "secret": ""
     },
 	"loading" : {
-		"loadPerIteration" : 10000
+		"verifyOnLoading" : true,
+		"loadPerIteration" : 5000
 	}
 }

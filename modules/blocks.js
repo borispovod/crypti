@@ -121,7 +121,7 @@ function Blocks(cb, scope) {
 					subtype: 0,
 					amount: genesisTransaction.amount * constants.fixedPoint,
 					fee: 0,
-					timestamp: timeHelper.epochTime(),
+					timestamp: 0,
 					recipientId: genesisTransaction.recipientId,
 					signature: new Buffer(genesisTransaction.signature, 'hex'),
 					senderId: genesisblock.creatorId,
@@ -366,6 +366,8 @@ Blocks.prototype.loadBlocksPart = function (filter, cb) {
 }
 
 Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
+	var verify = library.config.verifyOnLoading;
+
 	var params = {limit: limit, offset: offset || 0};
 	var fields = [
 		'b_id', 'b_version', 'b_timestamp', 'b_height', 'b_previousBlock', 'b_numberOfRequests', 'b_numberOfTransactions', 'b_numberOfConfirmations', 'b_totalAmount', 'b_totalFee', 'b_payloadLength', 'b_requestsLength', 'b_confirmationsLength', 'b_payloadHash', 'b_generatorPublicKey', 'b_generationSignature', 'b_blockSignature',
@@ -408,7 +410,7 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 						break;
 					}
 
-					if (!self.verifySignature(blocks[i])) { //|| !self.verifyGenerationSignature(block, previousBlock)) {
+					if (verify && !self.verifySignature(blocks[i])) { //|| !self.verifyGenerationSignature(block, previousBlock)) {
 						// need to break cicle and delete this block and blocks after this block
 						err = {
 							message: "Can't verify signature",
@@ -420,7 +422,7 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 
 				//verify block's companyconfirmations
 				for (var n = 0, n_length = blocks[i].companyconfirmations.length; n < n_length; n++) {
-					if (!confirmationsHelper.verifySignature(blocks[i].companyconfirmations[n], blocks[i].generatorPublicKey)) {
+					if (verify && !confirmationsHelper.verifySignature(blocks[i].companyconfirmations[n], blocks[i].generatorPublicKey)) {
 						err = {
 							message: "Can't verify company confirmation signature",
 							companyconfirmation: blocks[i].companyconfirmations[n],
@@ -435,7 +437,7 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 				//verify block's transactions
 				for (var n = 0, n_length = blocks[i].transactions.length; n < n_length; n++) {
 					if (blocks[i].id != genesisblock.blockId) {
-						if (!modules.transactions.verifySignature(blocks[i].transactions[n])) {
+						if (verify && !modules.transactions.verifySignature(blocks[i].transactions[n])) {
 							err = {
 								message: "Can't verify transaction: " + blocks[i].transactions[n].id,
 								transaction: blocks[i].transactions[n],
@@ -449,7 +451,7 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 						var sender = modules.accounts.getAccountByPublicKey(blocks[i].transactions[n].senderPublicKey);
 
 						if (sender.secondSignature) {
-							if (!modules.transactions.verifySecondSignature(blocks[i].transactions[n], sender.secondPublicKey)) {
+							if (verify && !modules.transactions.verifySecondSignature(blocks[i].transactions[n], sender.secondPublicKey)) {
 								err = {
 									message: "Can't verify second transaction: " + blocks[i].transactions[n].id,
 									transaction: blocks[i].transactions[n],

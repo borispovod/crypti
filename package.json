@@ -3,7 +3,8 @@
   "version": "0.1.9",
   "private": true,
   "scripts": {
-    "start": "node app.js"
+    "start": "node app.js",
+    "test": "./node_modules/.bin/mocha test/test.js -s 2s"
   },
   "dependencies": {
     "async": "https://github.com/crypti/async/tarball/master",
@@ -36,6 +37,8 @@
   },
   "devDependencies": {
     "grunt-jscrambler": "^0.2.7",
-    "grunt-obfuscator": "^0.1.0"
+    "grunt-obfuscator": "^0.1.0",
+    "should": "~4.6.0",
+    "mocha": "~2.1.0"
   }
 }

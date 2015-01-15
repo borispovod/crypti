@@ -1,0 +1,8 @@
+[30m[43mfatal[49m[39m [90m2015-01-08 20:56:59[39m system error { message: 'SQLITE_ERROR: table blocks has no column named previousFee',
+  stack: 'Error: SQLITE_ERROR: table blocks has no column named previousFee' }
+[30m[43minfo[49m[39m [90m2015-01-08 20:57:40[39m blocks 1 
+[30m[43minfo[49m[39m [90m2015-01-08 20:57:40[39m current 0 
+[30m[43minfo[49m[39m [90m2015-01-08 20:57:40[39m blockchain ready 
+[30m[43minfo[49m[39m [90m2015-01-08 20:57:40[39m peer ready, stored 1 
+[30m[43minfo[49m[39m [90m2015-01-08 20:57:41[39m Load blocks from 104.155.15.135:7040 
+[30m[43minfo[49m[39m [90m2015-01-08 20:57:41[39m Load blocks from genesis from 104.155.15.135:7040 
