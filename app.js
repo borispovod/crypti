@@ -154,15 +154,11 @@ d.run(function () {
 		},
 
 
-		db: function (cb) {
-			var sqlite3 = require('./helpers/db.js');
-			sqlite3.connect(config.db, cb);
-		},
 
-		dbLite : ['db', function (cb) {
+		dbLite : function (cb) {
 			var dbLite = require('./helpers/dbLite.js');
 			dbLite.connect(config.db, cb);
-		}],
+		},
 
 		modules: ['dbLite', 'express', 'app', 'config', 'logger', 'bus', function (cb, scope) {
 			var tasks = {};

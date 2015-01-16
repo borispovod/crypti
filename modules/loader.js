@@ -156,12 +156,14 @@ Loader.prototype.loadBlocks = function (lastBlock, cb) {
 
 
 						if (lastBlock.id != commonBlockId) {
-							library.db.get("SELECT height FROM blocks WHERE id=$id", {$id: commonBlockId}, function (err, block) {
-								if (err || !block) {
+							library.dbLite.query("SELECT height FROM blocks WHERE id=$id", {id: commonBlockId}, ['height'], function (err, rows) {
+								if (err || rows.length == 0) {
 									return cb(err || 'block is null');
 								}
 
-								if (lastBlock.height - block.height > 1440) {
+								var blockHeight = rows[0];
+
+								if (lastBlock.height - blockHeight > 1440) {
 									modules.peer.state(data.peer.ip, data.peer.port, 0, 3600);
 									cb();
 								} else {

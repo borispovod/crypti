@@ -165,20 +165,16 @@ Signatures.prototype.parseSignature = function (signature) {
 }
 
 Signatures.prototype.get = function (id, cb) {
-	var stmt = library.db.prepare("select s.id s_id, s.transactionId s_transactionId, s.timestamp s_timestamp, s.publicKey s_publicKey, s.generatorPublicKey s_generatorPublicKey, s.signature s_signature, s.generationSignature s_generationSignature " +
-	"from signatures s " +
-	"where s.id = $id");
-
-	stmt.bind({
-		$id : id
-	});
-
-	stmt.get(function (err, row) {
+	library.dbLite.query("select s.id s_id, s.transactionId s_transactionId, s.timestamp s_timestamp, s.publicKey hex(s_publicKey), s.generatorPublicKey hex(s_generatorPublicKey), s.signature hex(s_signature), s.generationSignature hex(s_generationSignature) " +
+		"from signatures s " +
+		"where s.id = $id",{
+		id : id
+	}, ['s_id', 's_transactionId', 's_timestamp', 's_publicKey', 's_generatorPublicKey', 's_signature', 's_generationSignature'], function (err, rows) {
 		if (err || !row) {
 			return cb(err || "Can't find signature: " + id);
 		}
 
-		var signature = blockHelper.getSignature(row,false, true);
+		var signature = blockHelper.getSignature(row[0], true, true);
 		cb(null, signature);
 	});
 }

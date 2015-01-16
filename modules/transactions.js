@@ -216,21 +216,21 @@ Transactions.prototype.list = function (filter, cb) {
 	var params = {}, fields = [];
 	if (filter.blockId) {
 		fields.push('blockId = $blockId')
-		params.$blockId = filter.blockId;
+		params.blockId = filter.blockId;
 	}
 	if (filter.senderPublicKey) {
 		fields.push('senderPublicKey = $senderPublicKey')
-		params.$senderPublicKey = filter.senderPublicKey;
+		params.senderPublicKey = filter.senderPublicKey;
 	}
 	if (filter.recipientId) {
 		fields.push('recipientId = $recipientId')
-		params.$recipientId = filter.recipientId;
+		params.recipientId = filter.recipientId;
 	}
 	if (filter.limit) {
-		params.$limit = filter.limit;
+		params.limit = filter.limit;
 	}
 	if (filter.offset) {
-		params.$offset = filter.offset;
+		params.offset = filter.offset;
 	}
 
 	if (filter.orderBy) {
@@ -246,46 +246,34 @@ Transactions.prototype.list = function (filter, cb) {
 		return cb('Maximum of limit is 1000');
 	}
 
-	// need to fix 'or' or 'and' in query
-	var stmt = library.db.prepare("select t.id t_id, t.blockId t_blockId, t.type t_type, t.subtype t_subtype, t.timestamp t_timestamp, t.senderPublicKey t_senderPublicKey,  t.senderId t_senderId, t.recipientId t_recipientId, t.amount t_amount, t.fee t_fee, t.signature t_signature, t.signSignature t_signSignature, c_t.generatorPublicKey t_companyGeneratorPublicKey, (select max(height) + 1 from blocks) - b.height as confirmations " +
+	library.dbLite.query("select t.id t_id, t.blockId t_blockId, t.type t_type, t.timestamp t_timestamp, t.senderPublicKey hex(t_senderPublicKey),  t.senderId t_senderId, t.recipientId t_recipientId, t.amount t_amount, t.fee t_fee, t.signature hex(t_signature), t.signSignature hex(t_signSignature), (select max(height) + 1 from blocks) - b.height as confirmations " +
 		"from trs t " +
 		"inner join blocks b on t.blockId = b.id " +
-		"left outer join companies as c_t on c_t.address=t.recipientId " +
 		(fields.length ? "where " + fields.join(' or ') : '') + " " +
 		(filter.orderBy ? 'order by ' + sortBy + ' ' + sortMethod : '') + " " +
 		(filter.limit ? 'limit $limit' : '') + " " +
-		(filter.offset ? 'offset $offset' : '')
-	);
+		(filter.offset ? 'offset $offset' : ''), params, ['t_id', 't_blockId', 't_type', 't_timestamp', 't_senderPublicKey', 't_senderId', 't_recipientId', 't_amount', 't_fee', 't_signature', 't_signSignature', 'confirmations'], function (err, rows) {
+			if (err) {
+				return cb(err)
+			}
 
-	stmt.bind(params);
-
-	stmt.all(function (err, rows) {
-		if (err) {
-			return cb(err)
-		}
-		async.mapSeries(rows, function (row, cb) {
-			setImmediate(cb, null, blockHelper.getTransaction(row, false, filter.hex));
-		}, cb)
-	})
+			async.mapSeries(rows, function (row, cb) {
+				setImmediate(cb, null, blockHelper.getTransaction(row, true, filter.hex));
+			}, cb)
+	});
 }
 
 Transactions.prototype.get = function (id, hex, cb) {
-	var stmt = library.db.prepare("select t.id t_id, t.blockId t_blockId, t.type t_type, t.subtype t_subtype, t.timestamp t_timestamp, t.senderPublicKey t_senderPublicKey, t.senderId t_senderId, t.recipientId t_recipientId, t.amount t_amount, t.fee t_fee, t.signature t_signature, t.signSignature t_signSignature, c_t.generatorPublicKey t_companyGeneratorPublicKey, (select max(height) + 1 from blocks) - b.height as confirmations " +
+	library.dbLite.query("select t.id t_id, t.blockId t_blockId, t.type t_type, t.subtype t_subtype, t.timestamp t_timestamp, t.senderPublicKey hex(t_senderPublicKey), t.senderId t_senderId, t.recipientId t_recipientId, t.amount t_amount, t.fee t_fee, t.signature hex(t_signature), t.signSignature hex(t_signSignature), c_t.generatorPublicKey hex(t_companyGeneratorPublicKey), (select max(height) + 1 from blocks) - b.height as confirmations " +
 	"from trs t " +
 	"inner join blocks b on t.blockId = b.id " +
 	"left outer join companies as c_t on c_t.address=t.recipientId " +
-	"where t.id = $id");
-
-	stmt.bind({
-		$id: id
-	});
-
-	stmt.get(function (err, row) {
-		if (err || !row) {
+	"where t.id = $id", {id: id}, ['t_id', 't_blockId', 't_type', 't_timestamp', 't_senderPublicKey', 't_senderId', 't_recipientId', 't_amount', 't_fee', 't_signature', 't_signSignature', 'confirmations', 't_companyGeneratorPublicKey'], function (err, rows) {
+		if (err || rows.length == 0) {
 			return cb(err || "Can't find transaction: " + id);
 		}
 
-		var transacton = blockHelper.getTransaction(row, false, hex);
+		var transacton = blockHelper.getTransaction(rows[0], true, filter.hex);
 		cb(null, transacton);
 	});
 }
@@ -330,13 +318,13 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 		transaction.id = txId;
 	}
 
-	library.db.get("SELECT id FROM trs WHERE id=$id", {$id: transaction.id}, function (err, confirmed) {
+	library.dbLite.query("SELECT id FROM trs WHERE id=$id", {id: transaction.id}, ['id'], function (err, rows) {
 		if (err) {
 			cb && cb("Internal sql error");
 			return;
 		}
 
-		if (confirmed) {
+		if (rows.length > 0) {
 			cb && cb("Can't process transaction, transaction already confirmed");
 			return;
 		} else {
@@ -448,18 +436,16 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 			async.parallel([
 				function (cb) {
 					if (transaction.type == 1 && transaction.subtype == 0) {
-						library.db.serialize(function () {
-							library.db.get("SELECT id FROM companies WHERE address = $address", {$address: transaction.recipientId}, function (err, company) {
-								if (err) {
-									return cb("Internal sql error");
-								}
+						library.dbLite.query("SELECT id FROM companies WHERE address = $address", {address: transaction.recipientId}, ['id'], function (err, rows) {
+							if (err) {
+								return cb("Internal sql error");
+							}
 
-								if (company) {
-									cb();
-								} else {
-									cb("Company with this address as recipient not found");
-								}
-							});
+							if (rows.length > 0) {
+								cb();
+							} else {
+								cb("Company with this address as recipient not found");
+							}
 						});
 					} else {
 						setImmediate(cb);

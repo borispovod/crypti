@@ -60,14 +60,14 @@ function Transport(cb, scope) {
 			return res.json({success: false, error: "Provide id in url"});
 		}
 
-		library.db.all("SELECT id FROM blocks WHERE height > (SELECT height FROM blocks where id=$id) ORDER BY height LIMIT 1440", {$id: id}, function (err, blocks) {
+		library.dbLite.query("SELECT id FROM blocks WHERE height > (SELECT height FROM blocks where id=$id) ORDER BY height LIMIT 1440", {id: id}, ['id'], function (err, rows) {
 			if (err) {
 				return res.status(200).json({success: false, error: "Internal sql error"});
 			}
 
 			var ids = [];
-			for (var i = 0; i < blocks.length; i++) {
-				ids.push(blocks[i].id);
+			for (var i = 0; i < rows.length; i++) {
+				ids.push(rows[i].id);
 			}
 			res.status(200).json({ids: ids});
 		});
@@ -93,10 +93,12 @@ function Transport(cb, scope) {
 		async.series([
 			function (cb) {
 				if (lastMilestoneBlockId) {
-					library.db.get("SELECT height FROM blocks WHERE id=$id", {$id: lastMilestoneBlockId}, function (err, block) {
+					library.dbLite.query("SELECT height FROM blocks WHERE id=$id", {id: lastMilestoneBlockId}, ['height'], function (err, rows) {
 						if (err) {
 							return cb("Internal sql error");
 						}
+
+						var block = rows.length? rows[0] : null;
 
 						if (!block) {
 							cb("Can't find block: " + lastMilestoneBlockId);
@@ -119,10 +121,12 @@ function Transport(cb, scope) {
 			if (error) {
 				return res.status(200).json({success: false, error: error});
 			} else {
-				library.db.get("SELECT id FROM blocks WHERE height = $height", {$height: height}, function (err, block) {
+				library.dbLite.query("SELECT id FROM blocks WHERE height = $height", {height: height}, ['id'], function (err, rows) {
 					if (err) {
 						return res.status(200).json({success: false, error: "Internal sql error"});
 					}
+
+					var block = rows.length? rows[0] : null;
 
 					if (!block) {
 						res.status(200).json({milestoneBlockIds: milestoneBlockIds});
@@ -135,10 +139,14 @@ function Transport(cb, scope) {
 							},
 							function (next) {
 								milestoneBlockIds.push(blockId);
-								library.db.get("SELECT id FROM blocks WHERE height = $height", {$height: height}, function (err, block) {
+								library.dbLite.query("SELECT id FROM blocks WHERE height = $height", {height: height}, ['id'], function (err, rows) {
 									if (err) {
-										next(err);
-									} else if (!block) {
+										return next(err);
+									}
+
+									var block = rows.length? rows[0] : null;
+
+									if (!block) {
 										next("Internal error");
 									} else {
 										blockId = block.id;
@@ -188,11 +196,14 @@ function Transport(cb, scope) {
 						cb();
 					});
 				} else if (block.previousBlock == lastBlock.previousBlock && block.id != lastBlock.id) {
-					library.db.get("SELECT * FROM blocks WHERE id=$id", {$id: block.previousBlock}, function (err, previousBlock) {
-						if (err || !previousBlock) {
+					library.dbLite.query("SELECT id, timestamp, hex(generationSignature) FROM blocks WHERE id=$id", {id: block.previousBlock}, ['id', 'timestamp', 'generationSignature'], function (err, rows) {
+						if (err || rows.length == 0) {
 							library.logger.error(err ? err.toString() : "Block " + block.previousBlock + " not found");
 							return cb();
 						}
+
+						var previousBlock = rows[0];
+						previousBlock.generationSignature = new Buffer(previousBlock.generationSignature, 'hex');
 
 						var hitA = modules.blocks.calculateHit(lastBlock, previousBlock),
 							hitB = modules.blocks.calculateHit(block, previousBlock);
@@ -368,14 +379,13 @@ Transport.prototype.onBlockchainReady = function () {
 	apiReady = true;
 
 	async.forEach(library.config.peers.list, function (peer, cb) {
-		var st = library.db.prepare("INSERT OR IGNORE INTO peers(ip, port, state, sharePort) VALUES($ip, $port, $state, $sharePort)");
-		st.bind({
-			$ip: ip.toLong(peer.ip),
-			$port: peer.port,
-			$state: 2,
-			$sharePort: Number(true)
-		});
-		st.run(cb);
+		library.dbLite.query("INSERT OR IGNORE INTO peers(ip, port, state, sharePort) VALUES($ip, $port, $state, $sharePort)",
+			{
+				ip: ip.toLong(peer.ip),
+				port: peer.port,
+				state: 2,
+				sharePort: Number(true)
+			}, cb);
 	}, function (err) {
 		if (err) {
 			library.logger.error('onBlockchainReady', err);
