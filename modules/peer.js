@@ -95,7 +95,9 @@ Peer.prototype.list = function (limit, cb) {
 	limit = limit || 100;
 	var params = {limit: limit};
 
-	library.dbLite.query("select ip, port, state, os, sharePort, version from peers where state > 0 and sharePort = 1 ORDER BY RANDOM() LIMIT $limit", params, ['ip', 'port', 'state', 'os', 'sharePort', 'version'], cb);
+	library.dbLite.query("select ip, port, state, os, sharePort, version from peers where state > 0 and sharePort = 1 ORDER BY RANDOM() LIMIT $limit", params, {'ip' : Number, 'port' : Number, 'state' : Number, 'os' : String, 'sharePort' : Number, 'version' : String}, function (err, res) {
+		cb(err, res);
+	});
 }
 
 Peer.prototype.filter = function (filter, cb) {
@@ -131,7 +133,9 @@ Peer.prototype.filter = function (filter, cb) {
 	params['limit'] = limit;
 	offset && (params['offset'] = offset);
 
-	library.dbLite.query("select ip, port, state, os, sharePort, version from peers" + (where.length ? (' where ' + where.join(' and ')) : '') + ' limit $limit' + (offset ? ' offset $offset ' : ''), params, cb);
+	library.dbLite.query("select ip, port, state, os, sharePort, version from peers" + (where.length ? (' where ' + where.join(' and ')) : '') + ' limit $limit' + (offset ? ' offset $offset ' : ''), params, {"ip" : Number, "port" : Number, "state" : String, "os" : String, "sharePort" : Number, "version" : String}, function (err, rows) {
+		cb(err, rows);
+	});
 }
 
 Peer.prototype.state = function (ip, port, state, timeoutSeconds, cb) {
@@ -164,28 +168,34 @@ Peer.prototype.parsePeer = function (peer) {
 }
 
 Peer.prototype.banManager = function (cb) {
-	library.dbLite.query("UPDATE peers SET state = 1, clock = null where (state = 0 and clock - $now < 0)", {now: Date.now()}, cb);
+	library.dbLite.query("UPDATE peers SET state = 1, clock = null where (state = 0 and clock - $now < 0)", {now: Date.now()}, function (err, res) {
+		cb(err, res);
+	});
 }
 
 Peer.prototype.update = function (peer, cb) {
 	var params = {
 		ip: peer.ip,
 		port: peer.port,
-		os: peer.os,
+		os: peer.os || null,
 		sharePort: peer.sharePort,
-		version: peer.version
+		version: peer.version || null
 	}
 
 	async.series([
 		function (cb) {
-			library.dbLite.query("INSERT OR IGNORE INTO peers (ip, port, state, os, sharePort, version) VALUES ($ip, $port, $state, $os, $sharePort, $version);", extend({}, params, {state: 1}), cb);;
+			library.dbLite.query("INSERT OR IGNORE INTO peers (ip, port, state, os, sharePort, version) VALUES ($ip, $port, $state, $os, $sharePort, $version);", extend({}, params, {state: 1}), function (err, res) {
+				cb(err, res);
+			});
 		},
 		function (cb) {
 			if (peer.state !== undefined) {
 				params.state = peer.state;
 			}
 
-			library.dbLite.query("UPDATE peers SET os = $os, sharePort = $sharePort, version = $version" + (peer.state !== undefined ? ", state = $state " : "") + " WHERE ip = $ip and port = $port;", params, cb);
+			library.dbLite.query("UPDATE peers SET os = $os, sharePort = $sharePort, version = $version" + (peer.state !== undefined ? ", state = $state " : "") + " WHERE ip = $ip and port = $port;", params, function (err, res) {
+				cb(err, res);
+			});
 		}
 	], function (err) {
 		err && library.logger.error('Peer#update', err);
@@ -196,7 +206,7 @@ Peer.prototype.update = function (peer, cb) {
 Peer.prototype.count = function (cb) {
 	var params = {};
 
-	library.dbLite.query("select count(rowid) as count from peers", params, ['count'], function (err, rows) {
+	library.dbLite.query("select count(rowid) as count from peers", params, {"count": Number}, function (err, rows) {
 		if (err) {
 			library.logger.error('Peer#count', err);
 			return cb(err);

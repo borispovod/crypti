@@ -93,7 +93,7 @@ function Transport(cb, scope) {
 		async.series([
 			function (cb) {
 				if (lastMilestoneBlockId) {
-					library.dbLite.query("SELECT height FROM blocks WHERE id=$id", {id: lastMilestoneBlockId}, ['height'], function (err, rows) {
+					library.dbLite.query("SELECT height FROM blocks WHERE id=$id", {id: lastMilestoneBlockId}, {'height' : Number}, function (err, rows) {
 						if (err) {
 							return cb("Internal sql error");
 						}

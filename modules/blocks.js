@@ -256,7 +256,7 @@ Blocks.prototype.list = function (filter, cb) {
 }
 
 Blocks.prototype.count = function (cb) {
-	library.dbLite.query("select count(rowid) from blocks", ['count'], function (err, rows) {
+	library.dbLite.query("select count(rowid) from blocks", {"count": Number}, function (err, rows) {
 		if (err) {
 			return cb(err);
 		}
@@ -764,8 +764,7 @@ Blocks.prototype.getForgedByAccount = function (generatorPublicKey, cb) {
 		"END sum " +
 		"from blocks b " +
 		"inner join trs t on t.blockId = b.id " +
-		"where b.generatorPublicKey = $publicKey " +
-		+	"group by t.type", {publicKey: generatorPublicKey}, ['sum'], function (err, rows) {
+		"where b.generatorPublicKey = $publicKey " + +"group by t.type", {publicKey: generatorPublicKey}, ['sum'], function (err, rows) {
 		if (err) {
 			return cb(err);
 		}
@@ -1009,7 +1008,7 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 					async.forEach(block.companyconfirmations, function (confirmation, cb) {
 						confirmation.id = confirmationHelper.getId(confirmation);
 
-						library.dbLite.query("SELECT id FROM confirmations WHERE id=$id OR companyId=$companyId", {id: confirmation.id, companyId:confirmation.companyId}, ['id'], function (err, cId) {
+						library.dbLite.query("SELECT id FROM confirmations WHERE id=$id OR companyId=$companyId", {id: confirmation.id, companyId: confirmation.companyId}, ['id'], function (err, cId) {
 							if (err || cId.length == 0) {
 								return cb(err || "Confirmation already exists: " + cId);
 							}
@@ -1018,7 +1017,7 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 								return cb("Company already got confirmations: " + confirmation.companyId);
 							}
 
-							library.dbLite.query("SELECT id FROM companies WHERE id=$id", {id:confirmation.companyId}, ['id'], function (err, cId) {
+							library.dbLite.query("SELECT id FROM companies WHERE id=$id", {id: confirmation.companyId}, ['id'], function (err, cId) {
 								if (err || cId.length == 0) {
 									return cb(err || "Company for confirmation not found: " + confirmation.companyId);
 								}
@@ -1118,21 +1117,21 @@ Blocks.prototype.saveBlock = function (block, cb) {
 	library.dbLite.query('BEGIN TRANSACTION;');
 
 	library.dbLite.query("INSERT INTO blocks(id, version, timestamp, height, previousBlock,  numberOfTransactions, totalAmount, totalFee, previousFee, nextFeeVolume, feeVolume, payloadLength, payloadHash, generatorPublicKey, blockSignature) VALUES($id, $version, $timestamp, $height, $previousBlock, $numberOfTransactions, $totalAmount, $totalFee, $previousFee, $nextFeeVolume, $feeVolume, $payloadLength,  $payloadHash, $generatorPublicKey, $blockSignature)", {
-			id: block.id,
-			version: block.version,
-			timestamp: block.timestamp,
-			height: block.height,
-			previousBlock: block.previousBlock,
-			numberOfTransactions: block.numberOfTransactions,
-			totalAmount: block.totalAmount,
-			totalFee: block.totalFee,
-			payloadLength: block.payloadLength,
-			payloadHash: block.payloadHash,
-			generatorPublicKey: block.generatorPublicKey,
-			blockSignature: block.blockSignature,
-			previousFee: block.previousFee,
-			nextFeeVolume: block.nextFeeVolume,
-			feeVolume: block.feeVolume
+		id: block.id,
+		version: block.version,
+		timestamp: block.timestamp,
+		height: block.height,
+		previousBlock: block.previousBlock || null,
+		numberOfTransactions: block.numberOfTransactions,
+		totalAmount: block.totalAmount,
+		totalFee: block.totalFee,
+		payloadLength: block.payloadLength,
+		payloadHash: block.payloadHash,
+		generatorPublicKey: block.generatorPublicKey,
+		blockSignature: block.blockSignature,
+		previousFee: block.previousFee,
+		nextFeeVolume: block.nextFeeVolume,
+		feeVolume: block.feeVolume
 	}, function (err) {
 		if (err) {
 			library.dbLite.query('ROLLBACK;', function (rollbackErr) {
@@ -1152,11 +1151,11 @@ Blocks.prototype.saveBlock = function (block, cb) {
 						timestamp: transaction.timestamp,
 						senderPublicKey: transaction.senderPublicKey,
 						senderId: transaction.senderId,
-						recipientId: transaction.recipientId,
+						recipientId: transaction.recipientId || null,
 						amount: transaction.amount,
 						fee: transaction.fee,
 						signature: transaction.signature,
-						signSignature: transaction.signSignature
+						signSignature: transaction.signSignature || null
 					}, function (err) {
 						if (err) {
 							return cb(err);
@@ -1181,7 +1180,7 @@ Blocks.prototype.saveBlock = function (block, cb) {
 			},
 			function (done) {
 				async.eachSeries(block.requests, function (request, cb) {
-					library.dbLite.query("INSERT INTO requests(id, blockId, address) VALUES($id, $blockId, $address)",{
+					library.dbLite.query("INSERT INTO requests(id, blockId, address) VALUES($id, $blockId, $address)", {
 						id: request.id,
 						blockId: block.id,
 						address: request.address
@@ -1263,7 +1262,7 @@ Blocks.prototype.deleteBlocksBefore = function (blockId, cb) {
 			return;
 		}
 
-		var needBlockHeight = rows.length? rows[0] : cb("Can't find block: " + blockId);
+		var needBlockHeight = rows.length ? rows[0] : cb("Can't find block: " + blockId);
 
 		async.whilst(
 			function () {
@@ -1349,7 +1348,9 @@ Blocks.prototype.undoBlock = function (block, previousBlock, cb) {
 }
 
 Blocks.prototype.deleteBlock = function (blockId, cb) {
-	library.dbLite.query("DELETE FROM blocks WHERE id = $id", {id: blockId}, cb);
+	library.dbLite.query("DELETE FROM blocks WHERE id = $id", {id: blockId}, function (err, res) {
+		cb(err, res);
+	});
 }
 
 Blocks.prototype.parseBlock = function (block, cb) {
