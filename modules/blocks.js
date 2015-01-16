@@ -1020,7 +1020,7 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 						library.bus.message('newBlock', block, broadcast)
 
 						lastBlock = block;
-						console.log('processBlock', 'lastBlock=' + lastBlock.id)
+						//console.log('processBlock', 'lastBlock=' + lastBlock.id)
 
 						setImmediate(cb);
 					});
@@ -1094,7 +1094,7 @@ Blocks.prototype.deleteBlocksBefore = function (blockId, cb) {
 				blocks.push(lastBlock);
 				self.popLastBlock(lastBlock, function (err, newLastBlock) {
 					lastBlock = newLastBlock;
-					console.log('deleteBlocksBefore', 'lastBlock=' + lastBlock.id)
+					//console.log('deleteBlocksBefore', 'lastBlock=' + lastBlock.id)
 					next(err);
 				});
 			},
@@ -1192,6 +1192,7 @@ Blocks.prototype.generateBlock = function (keypair, timestamp, cb) {
 Blocks.prototype.onReceiveBlock = function (block) {
 	library.sequence.add(function (cb) {
 		if (block.previousBlock == lastBlock.id) {
+			console.log('recieved new block ' + block.id)
 			modules.delegates.validateBlockSlot(block, function (err, valid) {
 				if (!valid) {
 					return cb(err || 'block\'s slot validate is fail');
