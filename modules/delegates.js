@@ -203,7 +203,7 @@ function loadMyDelegates() {
 function getActiveDelegates(height, delegateCount) {
 	var count = height - 1;
 	var delegateIds;
-	if (!activeDelegates.length || count % delegateCount == 0) {
+	if (count % delegateCount == 0 || !activeDelegates.length) {
 		var seedSource = height.toString();
 		delegateIds = getKeysSortByVote();
 		var currentSeed = crypto.createHash('sha256').update(seedSource, 'utf8').digest();
