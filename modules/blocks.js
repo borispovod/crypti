@@ -304,36 +304,20 @@ function applyConfirmation(generatorPublicKey) {
 }
 
 function getForgedByAccount(generatorPublicKey, cb) {
-	library.dbLite.query("select b.generatorPublicKey, t.type, " +
-	"CASE WHEN t.type = 0 " +
-	"THEN sum(t.fee)  " +
-	"ELSE  " +
-	"CASE WHEN t.type = 1 " +
-	"THEN " +
-	"CASE WHEN t.fee >= 2 " +
-	"THEN " +
-	"CASE WHEN t.fee % 2 != 0 " +
-	"THEN sum(t.fee - round(t.fee / 2)) " +
-	"ELSE sum(t.fee / 2) " +
+	library.dbLite.query("SELECT sum(r.subsum) " +
+	"FROM " +
+	"(SELECT CASE " +
+	"WHEN t.type = 0 THEN sum(t.fee) " +
+	"ELSE CASE " +
+	"WHEN t.type = 1 THEN sum(100 * 100000000) " +
 	"END " +
-	"ELSE sum(t.fee) " +
-	"END " +
-	"ELSE " +
-	"CASE WHEN t.type = 2 " +
-	"THEN sum(100 * 100000000) " +
-	"ELSE " +
-	"CASE WHEN t.type = 3 " +
-	"THEN sum(100 * 100000000) " +
-	"ELSE " +
-	"sum(0) " +
-	"END " +
-	"END " +
-	"END " +
-	"END sum " +
-	"from blocks b " +
-	"inner join trs t on t.blockId = b.id " +
-	"where b.generatorPublicKey = $publicKey " +
-	"group by t.type", {publicKey: generatorPublicKey}, ['sum'], function (err, rows) {
+	"END subsum " +
+	"FROM blocks b " +
+	"INNER JOIN trs t ON t.blockId = b.id " +
+	"WHERE b.generatorPublicKey = $publicKey " +
+	"GROUP BY t.type " +
+	"HAVING t.type IN (0, " +
+	"1)) r", {publicKey: generatorPublicKey}, ['sum'], function (err, rows) {
 		if (err) {
 			return cb(err);
 		}
@@ -392,7 +376,7 @@ function undoBlock(block, previousBlock, cb) {
 }
 
 function deleteBlock(blockId, cb) {
-	library.dbLite.query("DELETE FROM blocks WHERE id = $id", {id: blockId}, function(err, res){
+	library.dbLite.query("DELETE FROM blocks WHERE id = $id", {id: blockId}, function (err, res) {
 		cb(err, res)
 	});
 }
