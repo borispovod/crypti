@@ -123,13 +123,14 @@ function forAllVote() {
 	return [];
 }
 
-function getCurrentBlockTime() {
-	var activeDelegates = self.getActiveDelegates();
-	var currentSlot = slots.getSlotNumber();
+function getBlockTime(slot, height, delegateCount) {
+	activeDelegates = getActiveDelegates(height, delegateCount);
+
+	var currentSlot = slot;
 	var lastSlot = slots.getLastSlot(currentSlot);
 
 	for (; currentSlot < lastSlot; currentSlot += 1) {
-		var delegate_pos = currentSlot % slots.delegates;
+		var delegate_pos = currentSlot % delegateCount;
 		var delegate_id = activeDelegates[delegate_pos];
 		if (delegate_id && myDelegate.publicKey == delegate_id) {
 			return slots.getSlotTime(currentSlot);
@@ -149,12 +150,16 @@ function loop(cb) {
 		return setImmediate(cb);
 	}
 
-	if (slots.getSlotNumber() == slots.getSlotNumber(modules.blocks.getLastBlock().timestamp)) {
+	debugger;
+	var currentSlot = slots.getSlotNumber();
+	var lastBlock = modules.blocks.getLastBlock();
+
+	if (currentSlot == slots.getSlotNumber(lastBlock.timestamp)) {
 		library.logger.log('loop', 'exit: lastBlock is in the same slot');
 		return setImmediate(cb);
 	}
 
-	var currentBlockTime = getCurrentBlockTime();
+	var currentBlockTime = getBlockTime(currentSlot, lastBlock.height, slots.delegates);
 
 	if (currentBlockTime === null) {
 		library.logger.log('loop', 'skip slot');
@@ -163,7 +168,9 @@ function loop(cb) {
 
 	setImmediate(cb);
 
-	console.log(slots.getSlotNumber(), modules.blocks.getLastBlock().height, modules.blocks.getLastBlock().id, activeDelegates.map(function(id){return id.substring(0, 4)}))
+	console.log(currentSlot, lastBlock.height, lastBlock.id, activeDelegates.map(function (id) {
+		return id.substring(0, 4);
+	}))
 
 	library.sequence.add(function (cb) {
 		if (slots.getSlotNumber(currentBlockTime) == slots.getSlotNumber()) {
@@ -193,10 +200,10 @@ function loadMyDelegates() {
 	}
 }
 
-function updateActiveDelegates() {
-	var count = modules.blocks.getLastBlock().height - 1;
-	if (count % slots.delegates == 0 || !activeDelegates.length) {
-		var seedSource = modules.blocks.getLastBlock().height.toString();
+function getActiveDelegates(height, delegateCount) {
+	var count = height - 1;
+	if (!activeDelegates.length || count % delegateCount == 0) {
+		var seedSource = height.toString();
 		var delegateIds = getKeysSortByVote();
 		var currentSeed = crypto.createHash('sha256').update(seedSource, 'utf8').digest();
 		for (var i = 0, delCount = delegateIds.length; i < delCount; i++) {
@@ -208,9 +215,9 @@ function updateActiveDelegates() {
 			}
 			currentSeed = crypto.createHash('sha256').update(currentSeed).digest();
 		}
-		activeDelegates = delegateIds;
+
 	}
-	return activeDelegates;
+	return delegateIds;
 }
 
 //public methods
@@ -262,11 +269,6 @@ Delegates.prototype.getDelegate = function (publicKey) {
 	return delegates[publicKey];
 }
 
-Delegates.prototype.getActiveDelegates = function () {
-	var delegates = updateActiveDelegates();
-	return delegates;
-}
-
 Delegates.prototype.cache = function (delegate) {
 	delegates[delegate.publicKey] = delegate;
 	slots.delegates = Math.min(101, Object.keys(delegates).length)
@@ -275,6 +277,25 @@ Delegates.prototype.cache = function (delegate) {
 Delegates.prototype.uncache = function (delegate) {
 	delete delegates[delegate.publicKey];
 	slots.delegates = Math.min(101, Object.keys(delegates).length)
+}
+
+Delegates.prototype.validateBlockSlot = function (block, cb) {
+	library.dbLite.query("select count(*) from blocks b inner join trs t on b.id = t.blockId and t.type = 2 where b.height <= $height", {height: block.height}, {"count": Number}, function (err, rows) {
+		if (err || !rows.length) {
+			return cb(err || 'delegates not found');
+		}
+		var delegateCount = rows[0].count;
+
+		var activeDelegates = getActiveDelegates(block.height, delegateCount);
+
+		var currentSlot = slots.getSlotNumber(block.timestamp);
+		var delegate_id = activeDelegates[currentSlot % delegateCount];
+		if (delegate_id && block.generatorPublicKey == delegate_id) {
+			return cb(null, true);
+		}
+
+		cb(null, false);
+	});
 }
 
 //events
@@ -295,13 +316,15 @@ Delegates.prototype.onBlockchainReady = function () {
 
 			var scheduledTime = slots.getSlotTime(nextSlot);
 			scheduledTime = scheduledTime <= slots.getTime() ? scheduledTime + 1 : scheduledTime;
-			schedule.scheduleJob(new Date(slots.getRealTime(scheduledTime)+1000), nextLoop);
+			schedule.scheduleJob(new Date(slots.getRealTime(scheduledTime) + 1000), nextLoop);
 		})
 	});
 }
 
-Delegates.prototype.onReceiveBlock = function(){
-	myDelegate = self.getDelegate(keypair.publicKey.toString('hex'));
+Delegates.prototype.onReceiveBlock = function () {
+	if (keypair) {
+		myDelegate = self.getDelegate(keypair.publicKey.toString('hex'));
+	}
 }
 
 //export
