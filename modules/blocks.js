@@ -211,8 +211,8 @@ Blocks.prototype.get = function (id, cb) {
 Blocks.prototype.list = function (filter, cb) {
 	var params = {}, fields = [], sortMethod = '', sortBy = '';
 	if (filter.generatorPublicKey) {
-		fields.push('generatorPublicKey = $generatorPublicKey')
-		params.generatorPublicKey = filter.generatorPublicKey;
+		fields.push('hex(generatorPublicKey) = $generatorPublicKey')
+		params.generatorPublicKey = filter.generatorPublicKey.toString('hex').toUpperCase();
 	}
 
 	if (filter.limit) {
@@ -235,6 +235,7 @@ Blocks.prototype.list = function (filter, cb) {
 	if (filter.limit > 1000) {
 		return cb('Maximum of limit is 1000');
 	}
+
 
 
 	library.dbLite.query("select b.id b_id, b.version b_version, b.timestamp b_timestamp, b.height b_height, b.previousBlock b_previousBlock, b.numberOfRequests b_numberOfRequests, b.numberOfTransactions b_numberOfTransactions, b.numberOfConfirmations b_numberOfConfirmations, b.totalAmount b_totalAmount, b.totalFee b_totalFee, b.payloadLength b_payloadLength, b.requestsLength b_requestsLength, b.confirmationsLength b_confirmationsLength, hex(b.payloadHash) b_payloadHash, hex(b.generatorPublicKey) b_generatorPublicKey, hex(b.generationSignature) b_generationSignature, hex(b.blockSignature) b_blockSignature " +
@@ -738,8 +739,9 @@ Blocks.prototype.undoConfirmation = function (generatorPublicKey) {
 }
 
 Blocks.prototype.getForgedByAccount = function (generatorPublicKey, cb) {
-	library.dbLite.query("select b.generatorPublicKey, t.type, " +
-		"CASE WHEN t.type = 0 " +
+	library.dbLite.query("SELECT sum(r.subsum) " +
+		"FROM "+
+		"(SELECT CASE WHEN t.type = 0 " +
 		"THEN sum(t.fee)  " +
 		"ELSE  " +
 		"CASE WHEN t.type = 1 " +
@@ -763,11 +765,11 @@ Blocks.prototype.getForgedByAccount = function (generatorPublicKey, cb) {
 		"END " +
 		"END " +
 		"END " +
-		"END sum " +
+		"END subsum " +
 		"from blocks b " +
 		"inner join trs t on t.blockId = b.id " +
 		"where hex(b.generatorPublicKey) = $publicKey " +
-		"group by t.type", {publicKey: generatorPublicKey.toString('hex')}, ['publicKey', 'type', 'sum'], function (err, rows) {
+		"group by t.type having t.type in (0,1,2,3)) r", {publicKey: generatorPublicKey.toString('hex').toUpperCase()}, ['sum'], function (err, rows) {
 		if (err) {
 			return cb(err);
 		}

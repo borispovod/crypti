@@ -219,8 +219,8 @@ Transactions.prototype.list = function (filter, cb) {
 		params.blockId = filter.blockId;
 	}
 	if (filter.senderPublicKey) {
-		fields.push('senderPublicKey = $senderPublicKey')
-		params.senderPublicKey = filter.senderPublicKey;
+		fields.push('hex(senderPublicKey) = $senderPublicKey')
+		params.senderPublicKey = filter.senderPublicKey.toString('hex').toUpperCase();
 	}
 	if (filter.recipientId) {
 		fields.push('recipientId = $recipientId')
