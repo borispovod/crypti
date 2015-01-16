@@ -131,6 +131,7 @@ function getBlockTime(slot, height, delegateCount) {
 
 	for (; currentSlot < lastSlot; currentSlot += 1) {
 		var delegate_pos = currentSlot % delegateCount;
+
 		var delegate_id = activeDelegates[delegate_pos];
 		if (delegate_id && myDelegate.publicKey == delegate_id) {
 			return slots.getSlotTime(currentSlot);
@@ -150,7 +151,6 @@ function loop(cb) {
 		return setImmediate(cb);
 	}
 
-	debugger;
 	var currentSlot = slots.getSlotNumber();
 	var lastBlock = modules.blocks.getLastBlock();
 
@@ -202,9 +202,10 @@ function loadMyDelegates() {
 
 function getActiveDelegates(height, delegateCount) {
 	var count = height - 1;
+	var delegateIds;
 	if (!activeDelegates.length || count % delegateCount == 0) {
 		var seedSource = height.toString();
-		var delegateIds = getKeysSortByVote();
+		delegateIds = getKeysSortByVote();
 		var currentSeed = crypto.createHash('sha256').update(seedSource, 'utf8').digest();
 		for (var i = 0, delCount = delegateIds.length; i < delCount; i++) {
 			for (var x = 0; x < 4 && i < delCount; i++, x++) {
@@ -215,8 +216,10 @@ function getActiveDelegates(height, delegateCount) {
 			}
 			currentSeed = crypto.createHash('sha256').update(currentSeed).digest();
 		}
-
+	} else {
+		delegateIds = activeDelegates;
 	}
+
 	return delegateIds;
 }
 
