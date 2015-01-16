@@ -4,6 +4,7 @@ var ip = require('ip');
 var Router = require('../helpers/router.js');
 var params = require('../helpers/params.js');
 var arrayHelper = require('../helpers/array.js');
+var extend = require('extend');
 
 //private
 var modules, library, self;
