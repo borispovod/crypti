@@ -738,8 +738,9 @@ Blocks.prototype.undoConfirmation = function (generatorPublicKey) {
 }
 
 Blocks.prototype.getForgedByAccount = function (generatorPublicKey, cb) {
-	library.dbLite.query("select b.generatorPublicKey, t.type, " +
-		"CASE WHEN t.type = 0 " +
+	library.dbLite.query("SELECT sum(r.subsum) " +
+		"FROM "+
+		"(SELECT CASE WHEN t.type = 0 " +
 		"THEN sum(t.fee)  " +
 		"ELSE  " +
 		"CASE WHEN t.type = 1 " +
@@ -763,11 +764,11 @@ Blocks.prototype.getForgedByAccount = function (generatorPublicKey, cb) {
 		"END " +
 		"END " +
 		"END " +
-		"END sum " +
+		"END subsum " +
 		"from blocks b " +
 		"inner join trs t on t.blockId = b.id " +
 		"where hex(b.generatorPublicKey) = $publicKey " +
-		"group by t.type", {publicKey: generatorPublicKey.toString('hex')}, ['publicKey', 'type', 'sum'], function (err, rows) {
+		"group by t.type having t.type in (0,1,2,3)) r", {publicKey: generatorPublicKey.toString('hex')}, ['publicKey', 'type', 'sum'], function (err, rows) {
 		if (err) {
 			return cb(err);
 		}
