@@ -333,9 +333,9 @@ function relational2object(rows, includeRequests) {
 }
 
 Blocks.prototype.loadBlocksPart = function (filter, cb) {
-	var params = {$limit: filter.limit || 1};
-	filter.lastId && (params['$lastId'] = filter.lastId);
-	filter.id && !filter.lastId && (params['$id'] = filter.id);
+	var params = {limit: filter.limit || 1};
+	filter.lastId && (params['lastId'] = filter.lastId);
+	filter.id && !filter.lastId && (params['id'] = filter.id);
 
 	var fields = [
 		'b_id', 'b_version', 'b_timestamp', 'b_height', 'b_previousBlock', 'b_numberOfRequests', 'b_numberOfTransactions', 'b_numberOfConfirmations', 'b_totalAmount', 'b_totalFee', 'b_payloadLength', 'b_requestsLength', 'b_confirmationsLength', 'b_payloadHash', 'b_generatorPublicKey', 'b_generationSignature', 'b_blockSignature',
@@ -367,10 +367,11 @@ Blocks.prototype.loadBlocksPart = function (filter, cb) {
 			// If loading catch error, for example, invalid signature on block & transaction, need to stop loading and remove all blocks after last good block.
 			// We need to process all transactions of block
 			if (err) {
+				console.log("!here");
+
 				return cb(err, []);
 			}
 
-			console.log("!here");
 			var blocks = relational2object(rows, true);
 
 			cb(err, blocks);
