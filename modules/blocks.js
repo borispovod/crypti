@@ -1190,44 +1190,16 @@ Blocks.prototype.generateBlock = function (keypair, timestamp, cb) {
 
 //events
 Blocks.prototype.onReceiveBlock = function (block) {
-	//console.log('received block', block.id)
 	library.sequence.add(function (cb) {
 		if (block.previousBlock == lastBlock.id) {
-			self.processBlock(block, true, function () {
-				cb();
-			});
-		} else if (block.previousBlock == lastBlock.previousBlock && block.id != lastBlock.id) {
-			library.dbLite.query("SELECT id FROM blocks WHERE id=$id", {id: block.previousBlock}, ['id'], function (err, rows) {
-				if (err || !rows.length) {
-					library.logger.error(err ? err.toString() : "Block " + block.previousBlock + " not found");
-					return cb();
+			modules.delegates.validateBlockSlot(block, function (err, valid) {
+				if (!valid) {
+					return cb(err || 'block\'s slot validate is fail');
 				}
-
-				self.popLastBlock(lastBlock, function (err, newLastBlock) {
-					if (err) {
-						library.logger.error('popLastBlock', err);
-						return cb();
-					}
-
-					lastBlock = newLastBlock;
-					console.log('onReceiveBlock', 'lastBlock=' + lastBlock.id)
-
-					self.processBlock(block, false, function (err) {
-						if (err) {
-							self.processBlock(lastBlock, false, function (err) {
-								if (err) {
-									library.logger.error("processBlock", err);
-								}
-								cb()
-							});
-						} else {
-							cb()
-						}
-					})
-				});
+				self.processBlock(block, true, cb);
 			});
 		} else {
-			cb()
+			cb('fork')
 		}
 	});
 }
