@@ -29,8 +29,6 @@
     "pkginfo": "^0.3.0",
     "request": "*",
     "segfault-handler": "*",
-    "sqlite3": "*",
-    "sqlite3-transactions": "*",
     "stack-trace": "0.0.9",
     "strftime": "*",
     "underscore": "https://github.com/crypti/underscore/tarball/master"

@@ -246,7 +246,7 @@ Transactions.prototype.list = function (filter, cb) {
 		return cb('Maximum of limit is 1000');
 	}
 
-	library.dbLite.query("select t.id t_id, t.blockId t_blockId, t.type t_type, t.timestamp t_timestamp, t.senderPublicKey hex(t_senderPublicKey),  t.senderId t_senderId, t.recipientId t_recipientId, t.amount t_amount, t.fee t_fee, t.signature hex(t_signature), t.signSignature hex(t_signSignature), (select max(height) + 1 from blocks) - b.height as confirmations " +
+	library.dbLite.query("select t.id t_id, t.blockId t_blockId, t.type t_type, t.timestamp t_timestamp, hex(t.senderPublicKey) t_senderPublicKey,  t.senderId t_senderId, t.recipientId t_recipientId, t.amount t_amount, t.fee t_fee, hex(t.signature) t_signature, hex(t.signSignature) t_signSignature, (select max(height) + 1 from blocks) - b.height as confirmations " +
 		"from trs t " +
 		"inner join blocks b on t.blockId = b.id " +
 		(fields.length ? "where " + fields.join(' or ') : '') + " " +
@@ -264,7 +264,7 @@ Transactions.prototype.list = function (filter, cb) {
 }
 
 Transactions.prototype.get = function (id, hex, cb) {
-	library.dbLite.query("select t.id t_id, t.blockId t_blockId, t.type t_type, t.subtype t_subtype, t.timestamp t_timestamp, t.senderPublicKey hex(t_senderPublicKey), t.senderId t_senderId, t.recipientId t_recipientId, t.amount t_amount, t.fee t_fee, t.signature hex(t_signature), t.signSignature hex(t_signSignature), c_t.generatorPublicKey hex(t_companyGeneratorPublicKey), (select max(height) + 1 from blocks) - b.height as confirmations " +
+	library.dbLite.query("select t.id t_id, t.blockId t_blockId, t.type t_type, t.subtype t_subtype, t.timestamp t_timestamp, hex(t.senderPublicKey) t_senderPublicKey, t.senderId t_senderId, t.recipientId t_recipientId, t.amount t_amount, t.fee t_fee, hex(t.signature) t_signature, hex(t.signSignature) t_signSignature, hex(c_t.generatorPublicKey) t_companyGeneratorPublicKey, (select max(height) + 1 from blocks) - b.height as confirmations " +
 	"from trs t " +
 	"inner join blocks b on t.blockId = b.id " +
 	"left outer join companies as c_t on c_t.address=t.recipientId " +

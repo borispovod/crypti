@@ -165,7 +165,7 @@ Signatures.prototype.parseSignature = function (signature) {
 }
 
 Signatures.prototype.get = function (id, cb) {
-	library.dbLite.query("select s.id s_id, s.transactionId s_transactionId, s.timestamp s_timestamp, s.publicKey hex(s_publicKey), s.generatorPublicKey hex(s_generatorPublicKey), s.signature hex(s_signature), s.generationSignature hex(s_generationSignature) " +
+	library.dbLite.query("select s.id s_id, s.transactionId s_transactionId, s.timestamp s_timestamp, hex(s.publicKey) s_publicKey, hex(s.generatorPublicKey) s_generatorPublicKey, hex(s.signature) s_signature, hex(s.generationSignature) s_generationSignature " +
 		"from signatures s " +
 		"where s.id = $id",{
 		id : id

@@ -237,12 +237,12 @@ Blocks.prototype.list = function (filter, cb) {
 	}
 
 
-	library.dbLite.query("select b.id b_id, b.version b_version, b.timestamp b_timestamp, b.height b_height, b.previousBlock b_previousBlock, b.numberOfRequests b_numberOfRequests, b.numberOfTransactions b_numberOfTransactions, b.numberOfConfirmations b_numberOfConfirmations, b.totalAmount b_totalAmount, b.totalFee b_totalFee, b.payloadLength b_payloadLength, b.requestsLength b_requestsLength, b.confirmationsLength b_confirmationsLength, b.payloadHash hex(b_payloadHash), b.generatorPublicKey hex(b_generatorPublicKey), b.generationSignature hex(b_generationSignature), b.blockSignature hex(b_blockSignature) " +
+	library.dbLite.query("select b.id b_id, b.version b_version, b.timestamp b_timestamp, b.height b_height, b.previousBlock b_previousBlock, b.numberOfRequests b_numberOfRequests, b.numberOfTransactions b_numberOfTransactions, b.numberOfConfirmations b_numberOfConfirmations, b.totalAmount b_totalAmount, b.totalFee b_totalFee, b.payloadLength b_payloadLength, b.requestsLength b_requestsLength, b.confirmationsLength b_confirmationsLength, hex(b.payloadHash) b_payloadHash, hex(b.generatorPublicKey) b_generatorPublicKey, hex(b.generationSignature) b_generationSignature, hex(b.blockSignature) b_blockSignature " +
 		"from blocks b " +
-		(fields.length ? "where " + fields.join(' and ') : '') + " " +
+		(fields.length ? "where " + fields.join(' or ') : '') + " " +
 		(filter.orderBy ? 'order by ' + sortBy + ' ' + sortMethod : '') + " " +
 		(filter.limit ? 'limit $limit' : '') + " " +
-		(filter.offset ? 'offset $offset' : ''), params, ['b_id', 'b_version', 'b_timestamp', 'b_height', 'b_previousBlock', 'b_numberOfTransactions', 'b_totalAmount', 'b_totalFee', 'b_payloadLength', 'b_payloadHash', 'b_generatorPublicKey', 'b_blockSignature'], function (err, rows) {
+		(filter.offset ? 'offset $offset' : ''), params, ["b_id", "b_version", "b_timestamp", "b_height", "b_previousBlock", "b_numberOfRequests", "b_numberOfTransactions", "b_numberOfConfirmations", "b_totalAmount", "b_totalFee", "b_payloadLength", "b_requestsLength", "b_confirmationsLength", "b_payloadHash", "b_generatorPublicKey", "b_generationSignature", "b_blockSignature"], function (err, rows) {
 
 		if (err) {
 			return cb(err)
@@ -370,6 +370,7 @@ Blocks.prototype.loadBlocksPart = function (filter, cb) {
 				return cb(err, []);
 			}
 
+			console.log("!here");
 			var blocks = relational2object(rows, true);
 
 			cb(err, blocks);
@@ -764,12 +765,13 @@ Blocks.prototype.getForgedByAccount = function (generatorPublicKey, cb) {
 		"END sum " +
 		"from blocks b " +
 		"inner join trs t on t.blockId = b.id " +
-		"where b.generatorPublicKey = $publicKey " + +"group by t.type", {publicKey: generatorPublicKey}, ['sum'], function (err, rows) {
+		"where hex(b.generatorPublicKey) = $publicKey " +
+		"group by t.type", {publicKey: generatorPublicKey.toString('hex')}, ['publicKey', 'type', 'sum'], function (err, rows) {
 		if (err) {
 			return cb(err);
 		}
 
-		var sum = rows.length ? row[0].sum : 0;
+		var sum = rows.length ? rows[0].sum : 0;
 		cb(null, sum);
 	});
 }
@@ -1116,18 +1118,23 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 Blocks.prototype.saveBlock = function (block, cb) {
 	library.dbLite.query('BEGIN TRANSACTION;');
 
-	library.dbLite.query("INSERT INTO blocks(id, version, timestamp, height, previousBlock,  numberOfTransactions, totalAmount, totalFee, previousFee, nextFeeVolume, feeVolume, payloadLength, payloadHash, generatorPublicKey, blockSignature) VALUES($id, $version, $timestamp, $height, $previousBlock, $numberOfTransactions, $totalAmount, $totalFee, $previousFee, $nextFeeVolume, $feeVolume, $payloadLength,  $payloadHash, $generatorPublicKey, $blockSignature)", {
+	library.dbLite.query("INSERT INTO blocks(id, version, timestamp, height, previousBlock, numberOfRequests, numberOfTransactions, numberOfConfirmations, totalAmount, totalFee, previousFee, nextFeeVolume, feeVolume, payloadLength, requestsLength, confirmationsLength, payloadHash, generatorPublicKey, generationSignature, blockSignature) VALUES($id, $version, $timestamp, $height, $previousBlock, $numberOfRequests, $numberOfTransactions, $numberOfConfirmations, $totalAmount, $totalFee, $previousFee, $nextFeeVolume, $feeVolume, $payloadLength, $requestsLength, $confirmationsLength, $payloadHash, $generatorPublicKey, $generationSignature, $blockSignature)", {
 		id: block.id,
 		version: block.version,
 		timestamp: block.timestamp,
 		height: block.height,
-		previousBlock: block.previousBlock || null,
+		previousBlock: block.previousBlock,
+		numberOfRequests: block.numberOfRequests,
 		numberOfTransactions: block.numberOfTransactions,
+		numberOfConfirmations: block.numberOfConfirmations,
 		totalAmount: block.totalAmount,
 		totalFee: block.totalFee,
 		payloadLength: block.payloadLength,
+		requestsLength: block.requestsLength,
+		confirmationsLength: block.confirmationsLength,
 		payloadHash: block.payloadHash,
 		generatorPublicKey: block.generatorPublicKey,
+		generationSignature: block.generationSignature,
 		blockSignature: block.blockSignature,
 		previousFee: block.previousFee,
 		nextFeeVolume: block.nextFeeVolume,
@@ -1143,7 +1150,7 @@ Blocks.prototype.saveBlock = function (block, cb) {
 		async.parallel([
 			function (done) {
 				async.eachSeries(block.transactions, function (transaction, cb) {
-					library.dbLite.query("INSERT INTO trs(id, blockId, type, timestamp, senderPublicKey, senderId, recipientId, amount, fee, signature, signSignature) VALUES($id, $blockId, $type, $timestamp, $senderPublicKey, $senderId, $recipientId, $amount, $fee, $signature, $signSignature)", {
+					library.dbLite.query("INSERT INTO trs(id, blockId, type, subtype, timestamp, senderPublicKey, senderId, recipientId, amount, fee, signature, signSignature) VALUES($id, $blockId, $type, $subtype, $timestamp, $senderPublicKey, $senderId, $recipientId, $amount, $fee, $signature, $signSignature)", {
 						id: transaction.id,
 						blockId: block.id,
 						type: transaction.type,
