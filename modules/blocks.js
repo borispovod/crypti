@@ -314,7 +314,7 @@ function getForgedByAccount(generatorPublicKey, cb) {
 	"END subsum " +
 	"FROM blocks b " +
 	"INNER JOIN trs t ON t.blockId = b.id " +
-	"WHERE b.generatorPublicKey = $publicKey " +
+	"WHERE lower(hex(b.generatorPublicKey)) = $publicKey " +
 	"GROUP BY t.type " +
 	"HAVING t.type IN (0, " +
 	"1)) r", {publicKey: generatorPublicKey}, ['sum'], function (err, rows) {
@@ -384,7 +384,7 @@ function deleteBlock(blockId, cb) {
 function list(filter, cb) {
 	var params = {}, fields = [], sortMethod = '', sortBy = '';
 	if (filter.generatorPublicKey) {
-		fields.push('generatorPublicKey = $generatorPublicKey')
+		fields.push('lower(hex(generatorPublicKey)) = $generatorPublicKey')
 		params.generatorPublicKey = filter.generatorPublicKey;
 	}
 
@@ -408,7 +408,7 @@ function list(filter, cb) {
 		return cb('Maximum of limit is 1000');
 	}
 
-	library.dbLite.query("select b.id, b.version, b.timestamp, b.height, b.previousBlock,  b.numberOfTransactions, b.totalAmount, b.totalFee, b.payloadLength,  b.payloadHash, b.generatorPublicKey, b.blockSignature " +
+	library.dbLite.query("select b.id, b.version, b.timestamp, b.height, b.previousBlock, b.numberOfTransactions, b.totalAmount, b.totalFee, b.payloadLength,  lower(hex(b.payloadHash)), lower(hex(b.generatorPublicKey)), lower(hex(b.blockSignature)) " +
 	"from blocks b " +
 	(fields.length ? "where " + fields.join(' and ') : '') + " " +
 	(filter.orderBy ? 'order by ' + sortBy + ' ' + sortMethod : '') + " " +
@@ -424,7 +424,7 @@ function list(filter, cb) {
 }
 
 function getById(id, cb) {
-	library.dbLite.query("select b.id, b.version, b.timestamp, b.height, b.previousBlock, b.numberOfTransactions, b.totalAmount, b.totalFee, b.payloadLength,  b.payloadHash, b.generatorPublicKey, b.blockSignature " +
+	library.dbLite.query("select b.id, b.version, b.timestamp, b.height, b.previousBlock, b.numberOfTransactions, b.totalAmount, b.totalFee, b.payloadLength,  lower(hex(b.payloadHash)), lower(hex(b.generatorPublicKey)), lower(hex(b.blockSignature)) " +
 	"from blocks b " +
 	"where b.id = $id", {id: id}, ['b_id', 'b_version', 'b_timestamp', 'b_height', 'b_previousBlock', 'b_numberOfTransactions', 'b_totalAmount', 'b_totalFee', 'b_payloadLength', 'b_payloadHash', 'b_generatorPublicKey', 'b_blockSignature'], function (err, rows) {
 		if (err || !rows.length) {
@@ -449,9 +449,9 @@ function saveBlock(block, cb) {
 		totalAmount: block.totalAmount,
 		totalFee: block.totalFee,
 		payloadLength: block.payloadLength,
-		payloadHash: block.payloadHash,
-		generatorPublicKey: block.generatorPublicKey,
-		blockSignature: block.blockSignature,
+		payloadHash: new Buffer(block.payloadHash,'hex'),
+		generatorPublicKey: new Buffer(block.generatorPublicKey,'hex'),
+		blockSignature: new Buffer(block.blockSignature,'hex'),
 		previousFee: block.previousFee,
 		nextFeeVolume: block.nextFeeVolume,
 		feeVolume: block.feeVolume
@@ -469,13 +469,13 @@ function saveBlock(block, cb) {
 				blockId: block.id,
 				type: transaction.type,
 				timestamp: transaction.timestamp,
-				senderPublicKey: transaction.senderPublicKey,
+				senderPublicKey: new Buffer(transaction.senderPublicKey, 'hex'),
 				senderId: transaction.senderId,
 				recipientId: transaction.recipientId || null,
 				amount: transaction.amount,
 				fee: transaction.fee,
-				signature: transaction.signature,
-				signSignature: transaction.signSignature || null
+				signature: new Buffer(transaction.signature, 'hex'),
+				signSignature: transaction.signSignature ? new Buffer(transaction.signSignature, 'hex') : null
 			}, function (err) {
 				if (err) {
 					return cb(err);
@@ -494,10 +494,10 @@ function saveBlock(block, cb) {
 								id: transaction.asset.signature.id,
 								transactionId: transaction.id,
 								timestamp: transaction.asset.signature.timestamp,
-								publicKey: transaction.asset.signature.publicKey,
-								generatorPublicKey: transaction.asset.signature.generatorPublicKey,
-								signature: transaction.asset.signature.signature,
-								generationSignature: transaction.asset.signature.generationSignature
+								publicKey: new Buffer(transaction.asset.signature.publicKey, 'hex'),
+								generatorPublicKey: new Buffer(transaction.asset.signature.generatorPublicKey, 'hex'),
+								signature: new Buffer(transaction.asset.signature.signature, 'hex'),
+								generationSignature: new Buffer(transaction.asset.signature.generationSignature, 'hex')
 							}, cb);
 						} else if (transaction.type == 2) {
 							library.dbLite.query("INSERT INTO delegates(username, transactionId) VALUES($username, $transactionId)", {
@@ -550,9 +550,9 @@ Blocks.prototype.loadBlocksPart = function (filter, cb) {
 		'v_votes'
 	]
 	library.dbLite.query("SELECT " +
-	"b.id, b.version, b.timestamp, b.height, b.previousBlock, b.numberOfTransactions, b.totalAmount, b.totalFee, b.previousFee, b.nextFeeVolume, b.feeVolume, b.payloadLength, b.payloadHash, b.generatorPublicKey, b.blockSignature, " +
-	"t.id, t.type, t.timestamp, t.senderPublicKey, t.senderId, t.recipientId, t.amount, t.fee, t.signature, t.signSignature, " +
-	"s.id, s.timestamp, s.publicKey, s.generatorPublicKey, s.signature, s.generationSignature, " +
+	"b.id, b.version, b.timestamp, b.height, b.previousBlock, b.numberOfTransactions, b.totalAmount, b.totalFee, b.previousFee, b.nextFeeVolume, b.feeVolume, b.payloadLength, lower(hex(b.payloadHash)), lower(hex(b.generatorPublicKey)), lower(hex(b.blockSignature)), " +
+	"t.id, t.type, t.timestamp, lower(hex(t.senderPublicKey)), t.senderId, t.recipientId, t.amount, t.fee, lower(hex(t.signature)), lower(hex(t.signSignature)), " +
+	"s.id, s.timestamp, lower(hex(s.publicKey)), lower(hex(s.generatorPublicKey)), lower(hex(s.signature)), lower(hex(s.generationSignature)), " +
 	"d.username, " +
 	"v.votes " +
 	"FROM (select * from blocks " + (filter.id ? " where id = $id " : "") + (filter.lastId ? " where height > (SELECT height FROM blocks where id = $lastId) " : "") + " limit $limit) as b " +
@@ -585,9 +585,9 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 		'v_votes'
 	]
 	library.dbLite.query("SELECT " +
-	"b.id, b.version, b.timestamp, b.height, b.previousBlock, b.numberOfTransactions, b.totalAmount, b.totalFee, b.payloadLength, b.payloadHash, b.generatorPublicKey, b.blockSignature, " +
-	"t.id, t.type, t.timestamp, t.senderPublicKey, t.senderId, t.recipientId, t.amount, t.fee, t.signature, t.signSignature, " +
-	"s.id, s.timestamp, s.publicKey, s.generatorPublicKey, s.signature, s.generationSignature, " +
+	"b.id, b.version, b.timestamp, b.height, b.previousBlock, b.numberOfTransactions, b.totalAmount, b.totalFee, b.payloadLength, lower(hex(b.payloadHash)), lower(hex(b.generatorPublicKey)), lower(hex(b.blockSignature)), " +
+	"t.id, t.type, t.timestamp, lower(hex(t.senderPublicKey)), t.senderId, t.recipientId, t.amount, t.fee, lower(hex(t.signature)), lower(hex(t.signSignature)), " +
+	"s.id, s.timestamp, lower(hex(s.publicKey)), lower(hex(s.generatorPublicKey)), lower(hex(s.signature)), lower(hex(s.generationSignature)), " +
 	"d.username, " +
 	"v.votes " +
 	"FROM (select * from blocks limit $limit offset $offset) as b " +
@@ -1192,9 +1192,10 @@ Blocks.prototype.generateBlock = function (keypair, timestamp, cb) {
 Blocks.prototype.onReceiveBlock = function (block) {
 	library.sequence.add(function (cb) {
 		if (block.previousBlock == lastBlock.id) {
-			console.log('recieved new block ' + block.id)
+			library.logger.log('recieved new block ' + block.id)
 			modules.delegates.validateBlockSlot(block, function (err, valid) {
 				if (!valid) {
+					console.log('no valid')
 					return cb(err || 'block\'s slot validate is fail');
 				}
 				self.processBlock(block, true, cb);

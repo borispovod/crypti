@@ -204,7 +204,7 @@ function list(filter, cb) {
 		params.blockId = filter.blockId;
 	}
 	if (filter.senderPublicKey) {
-		fields.push('senderPublicKey = $senderPublicKey')
+		fields.push('lower(hex(senderPublicKey)) = $senderPublicKey')
 		params.senderPublicKey = filter.senderPublicKey;
 	}
 	if (filter.recipientId) {
@@ -232,7 +232,7 @@ function list(filter, cb) {
 	}
 
 	// need to fix 'or' or 'and' in query
-	library.dbLite.query("select t.id t_id, t.blockId t_blockId, t.type t_type, t.timestamp t_timestamp, t.senderPublicKey t_senderPublicKey,  t.senderId t_senderId, t.recipientId t_recipientId, t.amount t_amount, t.fee t_fee, t.signature t_signature, t.signSignature t_signSignature, (select max(height) + 1 from blocks) - b.height as confirmations " +
+	library.dbLite.query("select t.id, t.blockId, t.type, t.timestamp, lower(hex(t.senderPublicKey)), t.senderId, t.recipientId, t.amount, t.fee, lower(hex(t.signature)), lower(hex(t.signSignature)), (select max(height) + 1 from blocks) - b.height " +
 	"from trs t " +
 	"inner join blocks b on t.blockId = b.id " +
 	(fields.length ? "where " + fields.join(' or ') : '') + " " +
@@ -249,7 +249,7 @@ function list(filter, cb) {
 }
 
 function getById(id, cb) {
-	library.dbLite.query("select t.id t_id, t.blockId t_blockId, t.type t_type, t.timestamp t_timestamp, t.senderPublicKey t_senderPublicKey, t.senderId t_senderId, t.recipientId t_recipientId, t.amount t_amount, t.fee t_fee, t.signature t_signature, t.signSignature t_signSignature, (select max(height) + 1 from blocks) - b.height as confirmations " +
+	library.dbLite.query("select t.id, t.blockId, t.type, t.timestamp, lower(hex(t.senderPublicKey)), t.senderId, t.recipientId, t.amount, t.fee, lower(hex(t.signature)), lower(hex(t.signSignature)), (select max(height) + 1 from blocks) - b.height " +
 	"from trs t " +
 	"inner join blocks b on t.blockId = b.id " +
 	"where t.id = $id", {id: id}, ['t_id', 't_blockId', 't_type', 't_timestamp', 't_senderPublicKey', 't_senderId', 't_recipientId', 't_amount', 't_fee', 't_signature', 't_signSignature', 'confirmations'], function (err, rows) {

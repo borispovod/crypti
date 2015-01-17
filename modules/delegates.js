@@ -174,10 +174,13 @@ function loop(cb) {
 
 	library.sequence.add(function (cb) {
 		if (slots.getSlotNumber(currentBlockTime) == slots.getSlotNumber()) {
-			library.logger.log('loop', 'generate in slot: ' + slots.getSlotNumber(currentBlockTime));
-			modules.blocks.generateBlock(keypair, currentBlockTime, cb);
+			//library.logger.log('loop', 'generate in slot: ' + slots.getSlotNumber(currentBlockTime));
+			modules.blocks.generateBlock(keypair, currentBlockTime, function (err) {
+				console.log('new block ' + modules.blocks.getLastBlock().id, modules.blocks.getLastBlock().height, slots.getSlotNumber(currentBlockTime))
+				cb(err);
+			});
 		} else {
-			library.logger.log('loop', 'exit: another delegate slot');
+			//library.logger.log('loop', 'exit: another delegate slot');
 			setImmediate(cb);
 		}
 	}, function (err) {
@@ -200,24 +203,37 @@ function loadMyDelegates() {
 	}
 }
 
+function generateDelegateList(height) {
+	var seedSource = height.toString();
+	var delegateIds = getKeysSortByVote();
+	var currentSeed = crypto.createHash('sha256').update(seedSource, 'utf8').digest();
+	for (var i = 0, delCount = delegateIds.length; i < delCount; i++) {
+		for (var x = 0; x < 4 && i < delCount; i++, x++) {
+			var newIndex = currentSeed[x] % delCount;
+			var b = delegateIds[newIndex];
+			delegateIds[newIndex] = delegateIds[i];
+			delegateIds[i] = b;
+		}
+		currentSeed = crypto.createHash('sha256').update(currentSeed).digest();
+	}
+
+	return delegateIds;
+}
+
 function getActiveDelegates(height, delegateCount) {
 	var count = height - 1;
 	var delegateIds;
+	var yes = !activeDelegates.length;
 	if (count % delegateCount == 0 || !activeDelegates.length) {
-		var seedSource = height.toString();
-		delegateIds = getKeysSortByVote();
-		var currentSeed = crypto.createHash('sha256').update(seedSource, 'utf8').digest();
-		for (var i = 0, delCount = delegateIds.length; i < delCount; i++) {
-			for (var x = 0; x < 4 && i < delCount; i++, x++) {
-				var newIndex = currentSeed[x] % delCount;
-				var b = delegateIds[newIndex];
-				delegateIds[newIndex] = delegateIds[i];
-				delegateIds[i] = b;
-			}
-			currentSeed = crypto.createHash('sha256').update(currentSeed).digest();
-		}
+		delegateIds = generateDelegateList(height);
 	} else {
 		delegateIds = activeDelegates;
+	}
+
+	if (yes) {
+		console.log(getKeysSortByVote().map(function (id) {
+			return id.substring(0, 4);
+		}))
 	}
 
 	return delegateIds;
@@ -289,10 +305,13 @@ Delegates.prototype.validateBlockSlot = function (block, cb) {
 		}
 		var delegateCount = rows[0].count;
 
-		var activeDelegates = getActiveDelegates(block.height, delegateCount);
+		var activeDelegates = generateDelegateList(block.height);
 
 		var currentSlot = slots.getSlotNumber(block.timestamp);
 		var delegate_id = activeDelegates[currentSlot % delegateCount];
+		console.log('validation', currentSlot, block.height, delegate_id.substring(0, 4), block.generatorPublicKey.substring(0, 4), activeDelegates.map(function (id) {
+			return id.substring(0, 4);
+		}))
 		if (delegate_id && block.generatorPublicKey == delegate_id) {
 			return cb(null, true);
 		}
