@@ -43,7 +43,7 @@ function verifySignature(confirmation, publicKey) {
 }
 
 function getId(confirmation) {
-	var hash = crypto.createHash('sha256').update(getBytes(company)).digest();
+	var hash = crypto.createHash('sha256').update(getBytes(confirmation)).digest();
 	var temp = new Buffer(8);
 
 	for (var i = 0; i < 8; i++) {

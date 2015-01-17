@@ -56,7 +56,11 @@ function getTransactionFee(transaction, isGenerator) {
         case 3:
             switch (transaction.subtype) {
                 case 0:
-                    fee = 100 * constants.fixedPoint;
+					if (!isGenerator) {
+						fee = 1000 * constants.fixedPoint;
+					} else {
+						fee = 100 * constants.fixedPoint;
+					}
                     break;
             }
             break;

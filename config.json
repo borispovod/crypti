@@ -30,7 +30,7 @@
         "secret": ""
     },
 	"loading" : {
-		"verifyOnLoading" : false,
+		"verifyOnLoading" : true,
 		"loadPerIteration" : 5000
 	}
 }

@@ -108,7 +108,7 @@ function Blocks(cb, scope) {
 		res.status(500).send({success: false, error: err});
 	});
 
-	library.dbLite.query("SELECT id FROM blocks WHERE id=$id", {id: genesisblock.blockId}, ['id'], function (err, rows) {
+	library.dbLite.query("SELECT id FROM blocks WHERE id=$id", {id: genesisblock.blockId}, {'id' : String}, function (err, rows) {
 		if (err) {
 			cb(err, self);
 			return;
@@ -368,8 +368,6 @@ Blocks.prototype.loadBlocksPart = function (filter, cb) {
 			// If loading catch error, for example, invalid signature on block & transaction, need to stop loading and remove all blocks after last good block.
 			// We need to process all transactions of block
 			if (err) {
-				console.log("!here");
-
 				return cb(err, []);
 			}
 
@@ -416,6 +414,7 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 
 			var blocks = relational2object(rows);
 
+
 			for (var i = 0, i_length = blocks.length; i < i_length; i++) {
 				if (blocks[i].id != genesisblock.blockId) {
 					if (blocks[i].previousBlock != lastBlock.id) {
@@ -449,6 +448,8 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 					self.applyConfirmation(blocks[i].generatorPublicKey);
 				}
 				if (err) break;
+
+
 
 				//verify block's transactions
 				for (var n = 0, n_length = blocks[i].transactions.length; n < n_length; n++) {
@@ -1013,38 +1014,46 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 					async.forEach(block.companyconfirmations, function (confirmation, cb) {
 						confirmation.id = confirmationHelper.getId(confirmation);
 
-						library.dbLite.query("SELECT id FROM confirmations WHERE id=$id OR companyId=$companyId", {id: confirmation.id, companyId: confirmation.companyId}, ['id'], function (err, cId) {
-							if (err || cId.length == 0) {
-								return cb(err || "Confirmation already exists: " + cId);
+						library.dbLite.query("SELECT id FROM companyconfirmations WHERE id=$id", {id: confirmation.id}, ['id'], function (err, rows) {
+							if (err || rows.length > 0) {
+								return cb(err || "Confirmation already exists: " + confirmation.id);
 							}
 
-							if (cId.length > 9) {
-								return cb("Company already got confirmations: " + confirmation.companyId);
-							}
-
-							library.dbLite.query("SELECT id FROM companies WHERE id=$id", {id: confirmation.companyId}, ['id'], function (err, cId) {
-								if (err || cId.length == 0) {
-									return cb(err || "Company for confirmation not found: " + confirmation.companyId);
+							library.dbLite.query("SELECT count(id) FROM companyconfirmations WHERE companyId=$companyId", {companyId: confirmation.companyId}, ['id'], function (err, rows) {
+								if (err || !rows.length) {
+									return cb(err || "Can't find rows");
 								}
 
-								if (!confirmationsHelper.verifySignature(confirmation, block.generatorPublicKey)) {
-									return cb("Can't verify company confirmation: " + confirmation.id);
+								if (rows.length > 9) {
+									return cb("Company already got confirmations: " + confirmation.companyId);
 								}
 
-								if (confirmation.timestamp > now + 15 || confirmation.timestamp < block.timestamp) {
-									return cb("Can't accept confirmation timestamp: " + confirmation.id);
-								}
+								library.dbLite.query("SELECT id FROM companies WHERE id=$id", {id: confirmation.companyId}, ['id'], function (err, cId) {
+									if (err || cId.length == 0) {
+										return cb(err || "Company for confirmation not found: " + confirmation.companyId);
+									}
 
-								if (acceptedConfirmations[confirmation.id]) {
-									return cb("Doublicated confirmation: " + confirmation.id);
-								}
+									if (!confirmationsHelper.verifySignature(confirmation, block.generatorPublicKey)) {
+										return cb("Can't verify company confirmation: " + confirmation.id);
+									}
 
-								if (!self.applyConfirmation(block.generatorPublicKey)) {
-									return cb("Can't apply confirmation: " + confirmation.id);
-								}
+									if (confirmation.timestamp > now + 15 || confirmation.timestamp < block.timestamp) {
+										return cb("Can't accept confirmation timestamp: " + confirmation.id);
+									}
 
-								acceptedConfirmations[confirmation.id] = confirmation;
-								cb();
+									if (acceptedConfirmations[confirmation.id]) {
+										return cb("Doublicated confirmation: " + confirmation.id);
+									}
+
+									if (!self.applyConfirmation(block.generatorPublicKey)) {
+										return cb("Can't apply confirmation: " + confirmation.id);
+									}
+
+									acceptedConfirmations[confirmation.id] = confirmation;
+									totalFee += 100 * constants.fixedPoint;
+									payloadHash.update(confirmationHelper.getBytes(confirmation));
+									cb();
+								});
 							});
 						});
 					}, done);
@@ -1058,7 +1067,7 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 
 				payloadHash = payloadHash.digest();
 
-				if (payloadHash.toString('hex') !== block.payloadHash.toString('hex')) {
+				if (lastBlock.height >= 350 && payloadHash.toString('hex') !== block.payloadHash.toString('hex')) {
 					errors.push("Invalid payload hash: " + block.id);
 				}
 
@@ -1083,7 +1092,7 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 						var confirmation = block.companyconfirmations[i];
 
 						if (acceptedConfirmations[confirmation.id]) {
-							self.undoConfirmation(block.generationPublicKey);
+							self.undoConfirmation(block.generatorPublicKey);
 						}
 					}
 
@@ -1180,7 +1189,23 @@ Blocks.prototype.saveBlock = function (block, cb) {
 								generatorPublicKey: transaction.asset.signature.generatorPublicKey,
 								signature: transaction.asset.signature.signature,
 								generationSignature: transaction.asset.signature.generationSignature
-							}, cb);
+							}, function (err, res) {
+								cb(err, res);
+							});
+						} else if (transaction.type == 3 && transaction.subtype == 0) {
+							library.dbLite.query("INSERT INTO companies(id, transactionId, name, description, domain, email, timestamp, generatorPublicKey, signature) VALUES($id, $transactionId, $name, $description, $domain, $email, $timestamp, $generatorPublicKey, $signature)", {
+								id : transaction.asset.company.id,
+								transactionId : transaction.id,
+								name : transaction.asset.company.name,
+								description : transaction.asset.company.description,
+								domain : transaction.asset.company.domain,
+								email : transaction.asset.company.email,
+								timestamp : transaction.asset.company.timestamp,
+								generatorPublicKey : transaction.asset.company.generatorPublicKey,
+								signature : transaction.asset.company.signature
+							}, function (err, res) {
+								cb(err, res);
+							});
 						} else {
 							// companies
 							cb();
@@ -1194,12 +1219,24 @@ Blocks.prototype.saveBlock = function (block, cb) {
 						id: request.id,
 						blockId: block.id,
 						address: request.address
-					}, cb);
+					}, function (err, res) {
+						cb(err, res);
+					});
 				}, done);
 			},
 			function (done) {
-				// confirmations
-				done();
+				async.eachSeries(block.companyconfirmations, function (confirmation, cb) {
+					library.dbLite.query("INSERT INTO companyconfirmations(id, blockId, companyId, verified, timestamp, signature) VALUES($id, $blockId, $companyId, $verified, $timestamp, $signature)", {
+						id : confirmation.id,
+						blockId : confirmation.blockId,
+						companyId : confirmation.companyId,
+						verified : confirmation.verified,
+						timestamp : confirmation.timestamp,
+						signature : confirmation.signature
+					}, function (err, res) {
+						cb(err, res);
+					});
+				}, done);
 			}
 		], function (err) {
 			if (err) {
@@ -1383,6 +1420,7 @@ Blocks.prototype.parseBlock = function (block, cb) {
 	block.blockSignature = params.buffer(block.blockSignature);
 	block.transactions = params.array(block.transactions);
 	block.requests = params.array(block.requests);
+	block.companyconfirmations = params.array(block.companyconfirmations);
 
 	async.parallel([
 		function (done) {
@@ -1397,6 +1435,18 @@ Blocks.prototype.parseBlock = function (block, cb) {
 				request.id = params.string(request.id);
 				request.blockId = params.string(request.blockId);
 				request.address = params.string(request.address);
+				setImmediate(cb);
+			}, done);
+		},
+		function (done) {
+			async.eachLimit(block.companyconfirmations, 10, function (confirmation, cb) {
+				confirmation = params.object(confirmation);
+				confirmation.id = params.string(confirmation.id);
+				confirmation.blockId = params.string(confirmation.blockId);
+				confirmation.companyId = params.string(confirmation.companyId);
+				confirmation.verified = params.int(confirmation.verified);
+				confirmation.timestamp = params.int(confirmation.timestamp);
+				confirmation.signature = params.buffer(confirmation.signature);
 				setImmediate(cb);
 			}, done);
 		}

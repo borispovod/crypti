@@ -90,7 +90,6 @@ Loader.prototype.run = function (scope) {
 					library.logger.error('loadBlocksOffset', err);
 					if (err.block) {
 						library.logger.error('blockchain failed at ', err.block.height)
-						process.exit(0);
 						modules.blocks.deleteById(err.block.id, function (err, res) {
 							loaded = true;
 							library.logger.error('blockchain clipped');
