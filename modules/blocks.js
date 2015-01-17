@@ -1192,10 +1192,9 @@ Blocks.prototype.generateBlock = function (keypair, timestamp, cb) {
 Blocks.prototype.onReceiveBlock = function (block) {
 	library.sequence.add(function (cb) {
 		if (block.previousBlock == lastBlock.id) {
-			library.logger.log('recieved new block ' + block.id)
+			library.logger.log('recieved new block ' + block.id + ' ' + block.height + ' '+ slots.getSlotNumber(block.timestamp))
 			modules.delegates.validateBlockSlot(block, function (err, valid) {
 				if (!valid) {
-					console.log('no valid')
 					return cb(err || 'block\'s slot validate is fail');
 				}
 				self.processBlock(block, true, cb);
