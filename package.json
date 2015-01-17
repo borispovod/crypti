@@ -15,7 +15,7 @@
     "change-case": "*",
     "colors": "*",
     "cycle": "^1.0.3",
-    "dblite": "^0.6.1",
+    "dblite": "https://github.com/crypti/dblite/tarball/master",
     "ed25519": "https://github.com/crypti/Ed25519/tarball/master",
     "ejs": "*",
     "express": "4.x",

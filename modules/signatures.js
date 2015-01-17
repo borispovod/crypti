@@ -159,7 +159,7 @@ function secondSignature(signature, secret) {
 
 //public methods
 Signatures.prototype.get = function (id, cb) {
-	library.dbLite.query("select s.id s_id, s.transactionId s_transactionId, s.timestamp s_timestamp, s.publicKey s_publicKey, s.generatorPublicKey s_generatorPublicKey, s.signature s_signature, s.generationSignature s_generationSignature " +
+	library.dbLite.query("select s.id, s.transactionId, s.timestamp, lower(hex(s.publicKey)), lower(hex(s.generatorPublicKey)), lower(hex(s.signature)), lower(hex(s.generationSignature)) " +
 	"from signatures s " +
 	"where s.id = $id", {id: id}, ['s_id', 's_transactionId', 's_timestamp', 's_publicKey', 's_generatorPublicKey', 's_signature', 's_generationSignature'], function (err, rows) {
 		if (err || !rows.length) {
