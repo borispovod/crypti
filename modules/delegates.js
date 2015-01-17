@@ -225,11 +225,13 @@ function getActiveDelegates(height, delegateCount) {
 	var count = height - 1;
 	var delegateIds;
 	var yes = !activeDelegates.length;
-	if (count % delegateCount == 0 || !activeDelegates.length) {
+	//if (count % delegateCount == 0 || !activeDelegates.length) {
+	//	console.log('new list')
 		delegateIds = generateDelegateList(height);
-	} else {
-		delegateIds = activeDelegates;
-	}
+	//} else {
+//		console.log('old list')
+		//delegateIds = activeDelegates;
+	//}
 
 	if (yes) {
 		library.logger.log('init', getKeysSortByVote().map(function (id) {
