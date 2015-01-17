@@ -126,6 +126,10 @@ function forAllVote() {
 function getBlockTime(slot, height, delegateCount) {
 	activeDelegates = getActiveDelegates(height, delegateCount);
 
+	library.logger.log('getBlockTime ' + slot + ' ' + height + ' ' + delegateCount, activeDelegates.map(function (id) {
+		return id.substring(0, 4);
+	}))
+
 	var currentSlot = slot;
 	var lastSlot = slots.getLastSlot(currentSlot);
 
@@ -168,19 +172,16 @@ function loop(cb) {
 
 	setImmediate(cb);
 
-	console.log(currentSlot, lastBlock.height, lastBlock.id, activeDelegates.map(function (id) {
-		return id.substring(0, 4);
-	}))
-
 	library.sequence.add(function (cb) {
 		if (slots.getSlotNumber(currentBlockTime) == slots.getSlotNumber()) {
-			//library.logger.log('loop', 'generate in slot: ' + slots.getSlotNumber(currentBlockTime));
 			modules.blocks.generateBlock(keypair, currentBlockTime, function (err) {
-				console.log('new block ' + modules.blocks.getLastBlock().id, modules.blocks.getLastBlock().height, slots.getSlotNumber(currentBlockTime))
+				library.logger.log('new block ' + modules.blocks.getLastBlock().id + ' ' + modules.blocks.getLastBlock().height + ' ' + slots.getSlotNumber(currentBlockTime) + ' ' + lastBlock.height, activeDelegates.map(function (id) {
+					return id.substring(0, 4);
+				}))
 				cb(err);
 			});
 		} else {
-			//library.logger.log('loop', 'exit: another delegate slot');
+			library.logger.log('loop', 'exit: another delegate slot');
 			setImmediate(cb);
 		}
 	}, function (err) {
@@ -231,7 +232,7 @@ function getActiveDelegates(height, delegateCount) {
 	}
 
 	if (yes) {
-		console.log(getKeysSortByVote().map(function (id) {
+		library.logger.log('init', getKeysSortByVote().map(function (id) {
 			return id.substring(0, 4);
 		}))
 	}
@@ -305,17 +306,20 @@ Delegates.prototype.validateBlockSlot = function (block, cb) {
 		}
 		var delegateCount = rows[0].count;
 
-		var activeDelegates = generateDelegateList(block.height);
+		var activeDelegates = generateDelegateList(block.height - 1);
 
 		var currentSlot = slots.getSlotNumber(block.timestamp);
 		var delegate_id = activeDelegates[currentSlot % delegateCount];
-		console.log('validation', currentSlot, block.height, delegate_id.substring(0, 4), block.generatorPublicKey.substring(0, 4), activeDelegates.map(function (id) {
-			return id.substring(0, 4);
-		}))
 		if (delegate_id && block.generatorPublicKey == delegate_id) {
+			library.logger.log('validation pass', activeDelegates.map(function (id) {
+				return id.substring(0, 4);
+			}))
 			return cb(null, true);
 		}
 
+		library.logger.log('validation fail', activeDelegates.map(function (id) {
+			return id.substring(0, 4);
+		}))
 		cb(null, false);
 	});
 }
