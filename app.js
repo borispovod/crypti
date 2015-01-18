@@ -3,6 +3,7 @@ var appConfig = require("./config.json");
 var logger = new Logger({echo: appConfig.consoleLogLevel, errorLevel: appConfig.fileLogLevel});
 var async = require('async');
 var SegfaultHandler = require('segfault-handler');
+var compression = require('compression');
 
 SegfaultHandler.registerHandler();
 
@@ -80,6 +81,7 @@ d.run(function () {
 			app.use(require('express-domain-middleware'));
 			app.set('view engine', 'ejs');
 			app.set('views', path.join(__dirname, 'public'));
+			app.use(compression())
 			app.use(scope.express.static(path.join(__dirname, 'public')));
 			app.use(bodyParser.urlencoded({extended: true, parameterLimit: 5000}));
 			app.use(bodyParser.json());
