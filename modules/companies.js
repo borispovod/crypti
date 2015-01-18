@@ -51,6 +51,20 @@ function Companies(cb, scope) {
 	setImmediate(cb, null, self);
 }
 
+Companies.prototype.parseCompany = function (company) {
+	company.id = params.string(company.id);
+	company.transactionId = params.string(company.transactionId);
+	company.name = params.string(company.name);
+	company.description = params.string(company.description);
+	company.domain = params.string(company.domain);
+	company.email = params.string(company.email);
+	company.timestamp = params.int(company.timestamp);
+	company.generatorPublicKey = params.buffer(company.generatorPublicKey);
+	company.signature = params.buffer(company.signature);
+
+	return company;
+}
+
 Companies.prototype.find = function (filter, cb) {
 	var params = {}, fields = [];
 	if (filter.id) {

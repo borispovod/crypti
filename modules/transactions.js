@@ -605,6 +605,10 @@ Transactions.prototype.parseTransaction = function (transaction) {
 		transaction.asset.signature = modules.signatures.parseSignature(params.object(params.object(transaction.asset).signature));
 	}
 
+	if (transaction.type == 3 && transaction.subtype == 0) {
+		transaction.asset.company = modules.companies.parseCompany(params.object(params.object(transaction.asset).company))
+	}
+
 	return transaction;
 }
 
