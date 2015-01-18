@@ -856,8 +856,6 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 
 		var bId = rows.length && rows[0].id;
 
-		console.log(block.generatorPublicKey.length, block.blockSignature.length);
-
 		if (bId) {
 			cb("Block already exists: " + block.id);
 		} else {
@@ -1407,7 +1405,6 @@ Blocks.prototype.deleteBlock = function (blockId, cb) {
 }
 
 Blocks.prototype.parseBlock = function (block, cb) {
-	console.log(block);
 	block.id = params.string(block.id);
 	block.version = params.int(block.version);
 	block.timestamp = params.int(block.timestamp);
