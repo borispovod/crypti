@@ -294,7 +294,7 @@ function _request(peer, api, method, data, cb) {
 		method: method,
 		json: true,
 		headers: headers,
-		timeout: 20000
+		timeout: 40000
 	};
 
 	library.logger.trace('request', req.url)
