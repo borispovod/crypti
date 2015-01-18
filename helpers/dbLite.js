@@ -29,7 +29,7 @@ module.exports.connect = function (connectString, cb) {
 
 	async.eachSeries(sql, function (command, cb) {
 		db.query(command, function (err, res) {
-			cb(err);
+			cb(err, res);
 		});
 	}, function (err) {
 		cb(err, db);

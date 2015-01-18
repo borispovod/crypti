@@ -565,6 +565,10 @@ Blocks.prototype.undoForger = function (generatorPublicKey, transaction) {
 }
 
 Blocks.prototype.verifySignature = function (block) {
+	if (block.blockSignature.length != 64 || block.generatorPublicKey.length != 32) {
+		return false;
+	}
+
 	var data = blockHelper.getBytes(block);
 	var data2 = new Buffer(data.length - 64);
 
@@ -851,6 +855,8 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 		}
 
 		var bId = rows.length && rows[0].id;
+
+		console.log(block.generatorPublicKey.length, block.blockSignature.length);
 
 		if (bId) {
 			cb("Block already exists: " + block.id);
@@ -1401,6 +1407,7 @@ Blocks.prototype.deleteBlock = function (blockId, cb) {
 }
 
 Blocks.prototype.parseBlock = function (block, cb) {
+	console.log(block);
 	block.id = params.string(block.id);
 	block.version = params.int(block.version);
 	block.timestamp = params.int(block.timestamp);
@@ -1421,6 +1428,7 @@ Blocks.prototype.parseBlock = function (block, cb) {
 	block.transactions = params.array(block.transactions);
 	block.requests = params.array(block.requests);
 	block.companyconfirmations = params.array(block.companyconfirmations);
+
 
 	async.parallel([
 		function (done) {

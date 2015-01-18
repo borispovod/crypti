@@ -31,6 +31,10 @@ function getBytes(confirmation) {
 }
 
 function verifySignature(confirmation, publicKey) {
+	if (confirmation.signature.length != 64 || publicKey.length != 32) {
+		return false;
+	}
+
 	var bytes = getBytes(confirmation);
 	var data2 = new Buffer(bytes.length - 64);
 

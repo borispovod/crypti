@@ -609,6 +609,10 @@ Transactions.prototype.parseTransaction = function (transaction) {
 }
 
 Transactions.prototype.verifySignature = function (transaction) {
+	if (transaction.signature.length != 64 || transaction.senderPublicKey.length != 32) {
+		return false;
+	}
+
 	var remove = 64;
 
 	if (transaction.signSignature) {
@@ -635,6 +639,10 @@ Transactions.prototype.verifySignature = function (transaction) {
 }
 
 Transactions.prototype.verifySecondSignature = function (transaction, publicKey) {
+	if (transaction.signSignature.length != 64 || publicKey.length != 32) {
+		return false;
+	}
+
 	var bytes = transactionHelper.getBytes(transaction);
 	var data2 = new Buffer(bytes.length - 64);
 
