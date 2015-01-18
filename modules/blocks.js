@@ -202,14 +202,10 @@ function saveGenesisBlock(cb) {
 					senderPublicKey: genesisblock.generatorPublicKey,
 					signature: genesisTransaction.signature,
 					asset: {
-						votes: [],
+						votes: genesisTransaction.asset.votes,
 						delegate: genesisTransaction.asset.delegate
 					}
 				};
-
-				for (var j = 0; j < genesisTransaction.asset.votes.length; j++) {
-					transaction.asset.votes.push(genesisTransaction.asset.votes[j]);
-				}
 
 				transaction.id = transactionHelper.getId(transaction);
 				blockTransactions.push(transaction);
@@ -449,9 +445,9 @@ function saveBlock(block, cb) {
 		totalAmount: block.totalAmount,
 		totalFee: block.totalFee,
 		payloadLength: block.payloadLength,
-		payloadHash: new Buffer(block.payloadHash,'hex'),
-		generatorPublicKey: new Buffer(block.generatorPublicKey,'hex'),
-		blockSignature: new Buffer(block.blockSignature,'hex'),
+		payloadHash: new Buffer(block.payloadHash, 'hex'),
+		generatorPublicKey: new Buffer(block.generatorPublicKey, 'hex'),
+		blockSignature: new Buffer(block.blockSignature, 'hex'),
 		previousFee: block.previousFee,
 		nextFeeVolume: block.nextFeeVolume,
 		feeVolume: block.feeVolume
@@ -484,7 +480,7 @@ function saveBlock(block, cb) {
 				async.series([
 					function (cb) {
 						library.dbLite.query("INSERT INTO votes(votes, transactionId) VALUES($votes, $transactionId)", {
-							votes: transaction.asset.votes.join(','),
+							votes: util.isArray(transaction.asset.votes) ? transaction.asset.votes.join(',') : null,
 							transactionId: transaction.id
 						}, cb);
 					},
@@ -628,6 +624,7 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 
 			//verify block's transactions
 			for (var n = 0, n_length = blocks[i].transactions.length; n < n_length; n++) {
+
 				if (blocks[i].id != genesisblock.blockId) {
 					if (!modules.transactions.verifySignature(blocks[i].transactions[n])) {
 						err = {
@@ -653,6 +650,23 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 						}
 					}
 				}
+
+				if (blocks[i].transactions[n].type == 2) {
+					modules.delegates.cache(blocks[i].transactions[n].asset.delegate);
+				}
+				if (!modules.delegates.checkDelegates(blocks[i].transactions[n].asset.votes)) {
+					err = {
+						message: "Can't verify votes, vote for not exists delegate found: " + transaction.id,
+						transaction: blocks[i].transactions[n],
+						rollbackTransactionsUntil: n > 0 ? (n - 1) : null,
+						block: blocks[i]
+					};
+					break;
+				}
+
+				//var sender = modules.accounts.getAccountByPublicKey(blocks[i].transactions[n].senderPublicKey);
+
+				//sender.updateDelegateList(blocks[i].transactions[n].asset.votes);
 
 				if (!modules.transactions.applyUnconfirmed(blocks[i].transactions[n])) {
 					err = {
@@ -683,24 +697,9 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 					};
 					break;
 				}
-
-				if (blocks[i].transactions[n].type == 2) {
-					modules.delegates.cache(blocks[i].transactions[n].asset.delegate);
-				}
-				modules.delegates.voting(blocks[i].transactions[n].asset.votes, blocks[i].transactions[n].amount);
-				if (!modules.delegates.checkVotes(blocks[i].transactions[n].asset.votes)) {
-					err = {
-						message: "Can't verify votes, vote for not exists delegate found: " + transaction.id,
-						transaction: blocks[i].transactions[n],
-						rollbackTransactionsUntil: n > 0 ? (n - 1) : null,
-						block: blocks[i]
-					};
-					break;
-				}
 			}
 			if (err) {
 				for (var n = err.rollbackTransactionsUntil - 1; n > -1; n--) {
-					modules.delegates.voting(blocks[i].transactions[n].asset.votes, -blocks[i].transactions[n].amount);
 					if (blocks[i].transactions[n].type == 2) {
 						modules.delegates.uncache(blocks[i].transactions[n].asset.delegate);
 					}
@@ -1185,6 +1184,7 @@ Blocks.prototype.generateBlock = function (keypair, timestamp, cb) {
 
 	block.blockSignature = sign(keypair, block);
 
+	block = normalize.block(block);
 	self.processBlock(block, true, cb);
 }
 
@@ -1192,7 +1192,7 @@ Blocks.prototype.generateBlock = function (keypair, timestamp, cb) {
 Blocks.prototype.onReceiveBlock = function (block) {
 	library.sequence.add(function (cb) {
 		if (block.previousBlock == lastBlock.id) {
-			library.logger.log('recieved new block ' + block.id + ' ' + block.height + ' '+ slots.getSlotNumber(block.timestamp))
+			library.logger.log('recieved new block ' + block.id + ' ' + block.height + ' ' + slots.getSlotNumber(block.timestamp))
 			modules.delegates.validateBlockSlot(block, function (err, valid) {
 				if (!valid) {
 					return cb(err || 'block\'s slot validate is fail');

@@ -51,7 +51,9 @@ function getBytes(transaction) {
 			break;
     }
 
-    var bb = new ByteBuffer(1 + 4 + 32 + 8 + 8 + 64 + 64 + (transaction.asset.votes.length * 32) + assetSize, true);
+	var votesSize = transaction.asset.votes ? ((transaction.asset.votes.length * 65) - 1) : 0;
+
+    var bb = new ByteBuffer(1 + 4 + 32 + 8 + 8 + 64 + 64 + votesSize + assetSize, true);
     bb.writeByte(transaction.type);
     bb.writeInt(transaction.timestamp);
 
@@ -75,11 +77,13 @@ function getBytes(transaction) {
 
     bb.writeLong(transaction.amount);
 
-	for (var i = 0; i < transaction.asset.votes.length; i++) {
-		var publicKey = new Buffer(transaction.asset.votes[i], 'hex');
+	if (votesSize > 0) {
+		for (var i = 0; i < transaction.asset.votes.length; i++) {
+			var publicKey = new Buffer(transaction.asset.votes[i], 'hex');
 
-		for (var j = 0; j < publicKey.length; j++) {
-			bb.writeByte(publicKey[j]);
+			for (var j = 0; j < publicKey.length; j++) {
+				bb.writeByte(publicKey[j]);
+			}
 		}
 	}
 

@@ -162,7 +162,7 @@ function attachApi() {
 			senderPublicKey: account.publicKey,
 			timestamp: slots.getTime(),
 			asset: {
-				votes: modules.delegates.getVotesByType(2)
+				votes: modules.delegates.getDelegateList(account.publicKey)
 			}
 		};
 
@@ -409,7 +409,7 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 					return cb && cb(errors.pop());
 				}
 
-				if (!modules.delegates.checkVotes(transaction.asset.votes)) {
+				if (!modules.delegates.checkDelegates(transaction.asset.votes)) {
 					return cb && cb("Can't verify votes, vote for not exists delegate found: " + transaction.id);
 				}
 

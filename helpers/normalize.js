@@ -34,6 +34,12 @@ function normalizeDelegate(delegate, transaction) {
 	return delegate;
 }
 
+function normalizeVotes(votes) {
+	votes = votes ? votes.split(',') : null
+
+	return votes;
+}
+
 function normalizePeer(peer) {
 	peer = params.object(peer);
 
@@ -87,7 +93,7 @@ function normalizeTransaction(transaction) {
 		transaction.asset.delegate = normalizeDelegate(transaction.asset.delegate, transaction);
 	}
 
-	transaction.asset.votes = params.array(transaction.asset.votes);
+	transaction.asset.votes = normalizeVotes(transaction.asset.votes);
 
 	return transaction;
 }
@@ -95,6 +101,7 @@ function normalizeTransaction(transaction) {
 module.exports = {
 	block: normalizeBlock,
 	delegate: normalizeDelegate,
+	vote: normalizeVotes,
 	peer: normalizePeer,
 	signature: normalizeSignature,
 	transaction: normalizeTransaction
