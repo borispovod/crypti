@@ -175,7 +175,7 @@ function Transport(cb, scope) {
 		var lastBlockId = params.string(req.query.lastBlockId);
 
 		// get 1400+ blocks with all data (joins) from provided block id
-		modules.blocks.loadBlocksPart({limit: 1440, lastId: lastBlockId}, function (err, blocks) {
+		modules.blocks.loadBlocksPart({limit: 500, lastId: lastBlockId}, function (err, blocks) {
 			return res.status(200).json({blocks: !err ? blocks : []});
 		});
 	});
