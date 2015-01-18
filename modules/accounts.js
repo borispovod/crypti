@@ -17,6 +17,7 @@ function Account(address, publicKey, balance, unconfirmedBalance) {
 	this.unconfirmedSignature = false;
 	this.secondSignature = false;
 	this.secondPublicKey = null;
+	this.delegates = null;
 }
 
 Account.prototype.setUnconfirmedSignature = function (unconfirmedSignature) {
@@ -29,18 +30,17 @@ Account.prototype.setSecondSignature = function (secondSignature) {
 
 Account.prototype.addToBalance = function (amount) {
 	this.balance += amount;
+	//if (this.balance > 0) {
+	library.bus.message('changeBalance', this, amount);
+	//}
 }
 
 Account.prototype.addToUnconfirmedBalance = function (amount) {
 	this.unconfirmedBalance += amount;
 }
 
-Account.prototype.setBalance = function (balance) {
-	this.balance = balance;
-}
-
-Account.prototype.setUnconfirmedBalance = function (unconfirmedBalance) {
-	this.unconfirmedBalance = unconfirmedBalance;
+Account.prototype.updateDelegateList = function (delegateIds) {
+	this.delegates = delegateIds;
 }
 
 //constructor
@@ -230,6 +230,12 @@ Accounts.prototype.getAccountOrCreateByAddress = function (address) {
 
 Accounts.prototype.getAllAccounts = function () {
 	return accounts;
+}
+
+Accounts.prototype.getDelegates = function (publicKey) {
+	var account = self.getAccountByPublicKey(publicKey);
+	return account.delegates;
+
 }
 
 //events

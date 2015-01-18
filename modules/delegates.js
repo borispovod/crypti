@@ -6,8 +6,8 @@ var crypto = require('crypto'),
 	Router = require('../helpers/router.js'),
 	arrayHelper = require('../helpers/array.js'),
 	slots = require('../helpers/slots.js'),
-	schedule = require('node-schedule');
-var strftime = require('strftime');
+	schedule = require('node-schedule'),
+	util = require('util');
 
 //private fields
 var modules, library, self;
@@ -71,7 +71,7 @@ function attachApi() {
 				delegate: {
 					username: username
 				},
-				votes: []
+				votes: null
 			}
 		};
 
@@ -104,6 +104,9 @@ function attachApi() {
 
 function getKeysSortByVote() {
 	var delegatesArray = arrayHelper.hash2array(delegates);
+	console.log(delegatesArray.map(function(item){
+		return {k: item.publicKey.substring(0, 4), v: item.vote}
+	}));
 	delegatesArray = delegatesArray.sort(function compare(a, b) {
 		return (b.vote || 0) - (a.vote || 0);
 	})
@@ -111,16 +114,6 @@ function getKeysSortByVote() {
 		return v.publicKey;
 	});
 	return justKeys;
-}
-
-function getShuffleVotes() {
-	var delegatesIds = getKeysSortByVote();
-	var final = delegatesIds.slice(0, 33);
-	return shuffle(final);
-}
-
-function forAllVote() {
-	return [];
 }
 
 function getBlockTime(slot, height, delegateCount) {
@@ -225,13 +218,8 @@ function getActiveDelegates(height, delegateCount) {
 	var count = height - 1;
 	var delegateIds;
 	var yes = !activeDelegates.length;
-	//if (count % delegateCount == 0 || !activeDelegates.length) {
-	//	console.log('new list')
-		delegateIds = generateDelegateList(height);
-	//} else {
-//		console.log('old list')
-		//delegateIds = activeDelegates;
-	//}
+
+	delegateIds = generateDelegateList(height);
 
 	if (yes) {
 		library.logger.log('init', getKeysSortByVote().map(function (id) {
@@ -243,20 +231,12 @@ function getActiveDelegates(height, delegateCount) {
 }
 
 //public methods
-Delegates.prototype.getVotesByType = function (votingType) {
-	if (votingType == 1) {
-		return forAllVote();
-	} else if (votingType == 2) {
-		return getShuffleVotes();
-	} else {
-		return null;
-	}
-}
-
-Delegates.prototype.checkVotes = function (votes) {
-	if (votes.length == 0) {
+Delegates.prototype.checkDelegates = function (votes) {
+	if (votes === null) {
 		return true;
-	} else {
+	}
+
+	if (util.isArray(votes)) {
 		votes.forEach(function (publicKey) {
 			if (!delegates[publicKey]) {
 				return false;
@@ -264,26 +244,8 @@ Delegates.prototype.checkVotes = function (votes) {
 		});
 
 		return true;
-	}
-}
-
-Delegates.prototype.voting = function (publicKeys, amount) {
-	amount = amount || 0
-	if (publicKeys.length > 33) {
-		publicKeys = publicKeys.slice(0, 33);
-	}
-	if (publicKeys.length == 0) {
-		Object.keys(delegates).forEach(function (publicKey) {
-			if (delegates[publicKey]) {
-				delegates[publicKey].vote = (delegates[publicKey].vote || 0) + amount;
-			}
-		});
-	} else {
-		publicKeys.forEach(function (publicKey) {
-			if (delegates[publicKey]) {
-				delegates[publicKey].vote = (delegates[publicKey].vote || 0) + amount;
-			}
-		});
+	}else{
+		return false;
 	}
 }
 
@@ -352,6 +314,15 @@ Delegates.prototype.onBlockchainReady = function () {
 Delegates.prototype.onReceiveBlock = function () {
 	if (keypair) {
 		myDelegate = self.getDelegate(keypair.publicKey.toString('hex'));
+	}
+}
+
+Delegates.prototype.onChangeBalance = function (account, amount) {
+	//console.log(account)
+	if (util.isArray(account.delegates)){
+		account.delegates.forEach(function (publicKey) {
+			delegates[publicKey] = delegates[publicKey] + amount;
+		});
 	}
 }
 
