@@ -24,6 +24,7 @@ function Transport(cb, scope) {
 	});
 
 	router.use(function (req, res, next) {
+		return next();
 		var peerIp = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
 
 		if (peerIp == "127.0.0.1") {
