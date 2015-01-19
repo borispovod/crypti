@@ -47,8 +47,8 @@ function getBytes(transaction) {
 			break;
 
 		case 2:
-			assetSize = assetBytes.length;
 			assetBytes = new Buffer(transaction.asset.delegate.username, 'utf8');
+			assetSize = assetBytes.length;
 			break;
 
 		case 3:
