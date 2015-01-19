@@ -32,7 +32,8 @@
     "strftime": "*",
     "underscore": "https://github.com/crypti/underscore/tarball/master",
     "segfault-handler": "*",
-    "node-schedule": "*"
+    "node-schedule": "*",
+    "array.prototype.find": "*"
   },
   "devDependencies": {
     "grunt-jscrambler": "^0.2.7",
