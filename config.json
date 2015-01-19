@@ -1,11 +1,11 @@
 {
-    "port": 7040,
+    "port": 8040,
     "address": "0.0.0.0",
     "serveHttpAPI": true,
     "serveHttpWallet": true,
     "version": "0.2.0",
     "fileLogLevel": "info",
-    "consoleLogLevel": "info",
+    "consoleLogLevel": "log",
     "sharePort": true,
     "adminPanel": {
         "whiteList": [
@@ -19,11 +19,16 @@
     },
     "peers": {
         "list": [
+			{
+				"ip" : "104.155.15.135",
+				"port" : 5040
+			}
         ],
         "blackList": []
     },
     "forging": {
-        "secret": ""
+        "-secret": "ms02kf",
+        "secret": "4AMbeHpDvmtcHnCu5AWjbgzT4psH8RVMgjPnRNBbYUZxStBMSqGE"
     },
 	"loading" : {
 		"loadPerIteration" : 5000

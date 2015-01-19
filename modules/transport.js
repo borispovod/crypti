@@ -47,7 +47,7 @@ function attachApi() {
 			version: params.string(req.headers['version'])
 		};
 
-		if (peer.port != 5040) return;
+		if (peer.port != 8040) return;
 
 		if (peer.port > 0 && peer.port <= 65535) {
 			modules.peer.update(peer);
@@ -245,7 +245,7 @@ function _request(peer, api, method, data, cb) {
 		timeout: 5000
 	};
 
-	if (peer.port != 5040) return cb && cb('old version');
+	if (peer.port != 8040) return cb && cb('old version');
 
 	library.logger.trace('request', req.url)
 
