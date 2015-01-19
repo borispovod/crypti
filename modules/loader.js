@@ -122,7 +122,8 @@ Loader.prototype.updatePeerList = function (cb) {
 				return;
 			}
 
-			modules.peer.update(peer, cb);
+			//modules.peer.update(peer, cb);
+			cb();
 		}, cb);
 	});
 }

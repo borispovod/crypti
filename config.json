@@ -5,7 +5,7 @@
     "serveHttpWallet": true,
     "version": "0.1.9",
     "fileLogLevel": "info",
-    "consoleLogLevel": "info",
+    "consoleLogLevel": "trace",
     "sharePort": true,
     "adminPanel": {
         "whiteList": [
@@ -20,14 +20,14 @@
     "peers": {
         "list": [
 			{
-				"ip" : "130.211.103.218",
-				"port" : 5040
+				"ip" : "108.61.196.43",
+				"port" : 7040
 			}
         ],
         "blackList": []
     },
     "forging": {
-        "secret": "4G92kut51ms02kf"
+        "secret": ""
     },
 	"loading" : {
 		"verifyOnLoading" : false,
