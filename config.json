@@ -22,16 +22,12 @@
 			{
 				"ip" : "130.211.103.218",
 				"port" : 5040
-			},
-			{
-				"ip" : "188.232.52.85",
-				"port" : 5040
 			}
         ],
         "blackList": []
     },
     "forging": {
-        "secret": ""
+        "secret": "4G92kut51ms02kf"
     },
 	"loading" : {
 		"verifyOnLoading" : false,
