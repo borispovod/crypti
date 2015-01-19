@@ -1321,7 +1321,6 @@ Blocks.prototype.deleteBlocksBefore = function (blockId, cb) {
 			},
 			function (next) {
 				blocks.push(lastBlock);
-				console.log(lastBlock);
 				self.popLastBlock(lastBlock, next);
 			},
 			function (err) {
