@@ -104,9 +104,6 @@ function attachApi() {
 
 function getKeysSortByVote() {
 	var delegatesArray = arrayHelper.hash2array(delegates);
-	console.log(delegatesArray.map(function(item){
-		return {k: item.publicKey.substring(0, 4), v: item.vote}
-	}));
 	delegatesArray = delegatesArray.sort(function compare(a, b) {
 		return (b.vote || 0) - (a.vote || 0);
 	})
@@ -244,7 +241,7 @@ Delegates.prototype.checkDelegates = function (votes) {
 		});
 
 		return true;
-	}else{
+	} else {
 		return false;
 	}
 }
@@ -318,10 +315,25 @@ Delegates.prototype.onReceiveBlock = function () {
 }
 
 Delegates.prototype.onChangeBalance = function (account, amount) {
-	//console.log(account)
-	if (util.isArray(account.delegates)){
+	amount = amount / 1000000000;
+	if (util.isArray(account.delegates)) {
 		account.delegates.forEach(function (publicKey) {
-			delegates[publicKey] = delegates[publicKey] + amount;
+			delegates[publicKey].vote = (delegates[publicKey].vote || 0) + amount;
+		});
+	}
+}
+
+Delegates.prototype.onChangeDelegates = function (account, newDelegates) {
+	var balance = account.balance / 1000000000;
+	if (util.isArray(account.delegates)) {
+		account.delegates.forEach(function (publicKey) {
+			delegates[publicKey].vote = (delegates[publicKey].vote || 0) - balance;
+		});
+	}
+
+	if (util.isArray(newDelegates)) {
+		newDelegates.forEach(function (publicKey) {
+			delegates[publicKey].vote = (delegates[publicKey].vote || 0) + balance;
 		});
 	}
 }

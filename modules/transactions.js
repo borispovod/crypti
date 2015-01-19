@@ -437,6 +437,7 @@ Transactions.prototype.apply = function (transaction) {
 		return false;
 	}
 
+	sender.updateDelegateList(transaction.asset.votes);
 	// process only two types of transactions
 	if (transaction.type == 0) {
 		sender.addToBalance(-amount);

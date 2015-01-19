@@ -30,9 +30,7 @@ Account.prototype.setSecondSignature = function (secondSignature) {
 
 Account.prototype.addToBalance = function (amount) {
 	this.balance += amount;
-	//if (this.balance > 0) {
 	library.bus.message('changeBalance', this, amount);
-	//}
 }
 
 Account.prototype.addToUnconfirmedBalance = function (amount) {
@@ -40,6 +38,7 @@ Account.prototype.addToUnconfirmedBalance = function (amount) {
 }
 
 Account.prototype.updateDelegateList = function (delegateIds) {
+	library.bus.message('changeDelegates', this, delegateIds);
 	this.delegates = delegateIds;
 }
 

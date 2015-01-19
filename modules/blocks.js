@@ -664,10 +664,6 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 					break;
 				}
 
-				//var sender = modules.accounts.getAccountByPublicKey(blocks[i].transactions[n].senderPublicKey);
-
-				//sender.updateDelegateList(blocks[i].transactions[n].asset.votes);
-
 				if (!modules.transactions.applyUnconfirmed(blocks[i].transactions[n])) {
 					err = {
 						message: "Can't apply transaction: " + blocks[i].transactions[n].id,
