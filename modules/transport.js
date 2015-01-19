@@ -196,7 +196,7 @@ function Transport(cb, scope) {
 						cb();
 					});
 				} else if (block.previousBlock == lastBlock.previousBlock && block.id != lastBlock.id) {
-					library.dbLite.query("SELECT id, timestamp, hex(generationSignature) FROM blocks WHERE id=$id", {id: block.previousBlock}, ['id', 'timestamp', 'generationSignature'], function (err, rows) {
+					library.dbLite.query("SELECT id, timestamp, hex(generationSignature), hex(generatorPublicKey) FROM blocks WHERE id=$id", {id: block.previousBlock}, ['id', 'timestamp', 'generationSignature', 'generatorPublicKey'], function (err, rows) {
 						if (err || rows.length == 0) {
 							library.logger.error(err ? err.toString() : "Block " + block.previousBlock + " not found");
 							return cb();
@@ -204,6 +204,7 @@ function Transport(cb, scope) {
 
 						var previousBlock = rows[0];
 						previousBlock.generationSignature = new Buffer(previousBlock.generationSignature, 'hex');
+						previousBlock.generatorPublicKey = new Buffer(previousBlock.generatorPublicKey, 'hex');
 
 						var hitA = modules.blocks.calculateHit(lastBlock, previousBlock),
 							hitB = modules.blocks.calculateHit(block, previousBlock);
