@@ -30,7 +30,7 @@ function normalizeDelegate(delegate, transaction) {
 
 	delegate.username = params.string(delegate.username);
 	delegate.publicKey = params.string(transaction.senderPublicKey),
-	delegate.transactionId = params.string(transaction.id)
+		delegate.transactionId = params.string(transaction.id)
 	return delegate;
 }
 
@@ -85,15 +85,17 @@ function normalizeTransaction(transaction) {
 		transaction.signSignature = params.string(transaction.signSignature);
 	}
 
-	if (transaction.type == 1) {
-		transaction.asset.signature = normalizeSignature(transaction.asset.signature);
+	switch (transaction.type) {
+		case 1:
+			transaction.asset.signature = normalizeSignature(transaction.asset.signature);
+			break;
+		case 2:
+			transaction.asset.delegate = normalizeDelegate(transaction.asset.delegate, transaction);
+			break;
+		case 3:
+			transaction.asset.votes = normalizeVotes(transaction.asset.votes);
+			break;
 	}
-
-	if (transaction.type == 2) {
-		transaction.asset.delegate = normalizeDelegate(transaction.asset.delegate, transaction);
-	}
-
-	transaction.asset.votes = normalizeVotes(transaction.asset.votes);
 
 	return transaction;
 }

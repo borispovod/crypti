@@ -9,6 +9,8 @@ var crypto = require('crypto'),
 	schedule = require('node-schedule'),
 	util = require('util');
 
+require('array.prototype.find'); //old node fix
+
 //private fields
 var modules, library, self;
 
@@ -70,8 +72,7 @@ function attachApi() {
 			asset: {
 				delegate: {
 					username: username
-				},
-				votes: null
+				}
 			}
 		};
 
@@ -248,6 +249,13 @@ Delegates.prototype.checkDelegates = function (votes) {
 
 Delegates.prototype.getDelegate = function (publicKey) {
 	return delegates[publicKey];
+}
+
+Delegates.prototype.getDelegateByName = function (userName) {
+	var delegatesArray = arrayHelper.hash2array(delegates);
+	return delegatesArray.find(function (item) {
+		return item.username === userName;
+	})
 }
 
 Delegates.prototype.cache = function (delegate) {

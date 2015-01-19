@@ -94,8 +94,7 @@ function attachApi() {
 			senderPublicKey: account.publicKey,
 			timestamp: slots.getTime(),
 			asset: {
-				signature: signature,
-				votes: modules.delegates.getDelegateList(account.publicKey)
+				signature: signature
 			}
 		};
 

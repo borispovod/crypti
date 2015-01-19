@@ -202,7 +202,6 @@ function saveGenesisBlock(cb) {
 					senderPublicKey: genesisblock.generatorPublicKey,
 					signature: genesisTransaction.signature,
 					asset: {
-						votes: genesisTransaction.asset.votes,
 						delegate: genesisTransaction.asset.delegate
 					}
 				};
@@ -477,34 +476,29 @@ function saveBlock(block, cb) {
 					return cb(err);
 				}
 
-				async.series([
-					function (cb) {
-						library.dbLite.query("INSERT INTO votes(votes, transactionId) VALUES($votes, $transactionId)", {
-							votes: util.isArray(transaction.asset.votes) ? transaction.asset.votes.join(',') : null,
-							transactionId: transaction.id
-						}, cb);
-					},
-					function (cb) {
-						if (transaction.type == 1) {
-							library.dbLite.query("INSERT INTO signatures(id, transactionId, timestamp , publicKey, generatorPublicKey, signature, generationSignature) VALUES($id, $transactionId, $timestamp , $publicKey, $generatorPublicKey, $signature , $generationSignature)", {
-								id: transaction.asset.signature.id,
-								transactionId: transaction.id,
-								timestamp: transaction.asset.signature.timestamp,
-								publicKey: new Buffer(transaction.asset.signature.publicKey, 'hex'),
-								generatorPublicKey: new Buffer(transaction.asset.signature.generatorPublicKey, 'hex'),
-								signature: new Buffer(transaction.asset.signature.signature, 'hex'),
-								generationSignature: new Buffer(transaction.asset.signature.generationSignature, 'hex')
-							}, cb);
-						} else if (transaction.type == 2) {
-							library.dbLite.query("INSERT INTO delegates(username, transactionId) VALUES($username, $transactionId)", {
-								username: transaction.asset.delegate.username,
-								transactionId: transaction.id
-							}, cb);
-						} else {
-							cb();
-						}
-					}
-				], cb)
+				if (transaction.type == 1) {
+					library.dbLite.query("INSERT INTO signatures(id, transactionId, timestamp , publicKey, generatorPublicKey, signature, generationSignature) VALUES($id, $transactionId, $timestamp , $publicKey, $generatorPublicKey, $signature , $generationSignature)", {
+						id: transaction.asset.signature.id,
+						transactionId: transaction.id,
+						timestamp: transaction.asset.signature.timestamp,
+						publicKey: new Buffer(transaction.asset.signature.publicKey, 'hex'),
+						generatorPublicKey: new Buffer(transaction.asset.signature.generatorPublicKey, 'hex'),
+						signature: new Buffer(transaction.asset.signature.signature, 'hex'),
+						generationSignature: new Buffer(transaction.asset.signature.generationSignature, 'hex')
+					}, cb);
+				} else if (transaction.type == 2) {
+					library.dbLite.query("INSERT INTO delegates(username, transactionId) VALUES($username, $transactionId)", {
+						username: transaction.asset.delegate.username,
+						transactionId: transaction.id
+					}, cb);
+				} else if (transaction.type == 3) {
+					library.dbLite.query("INSERT INTO votes(votes, transactionId) VALUES($votes, $transactionId)", {
+						votes: util.isArray(transaction.asset.votes) ? transaction.asset.votes.join(',') : null,
+						transactionId: transaction.id
+					}, cb);
+				} else {
+					cb();
+				}
 			});
 		}, function (err) {
 			if (err) {
@@ -654,14 +648,25 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 				if (blocks[i].transactions[n].type == 2) {
 					modules.delegates.cache(blocks[i].transactions[n].asset.delegate);
 				}
-				if (!modules.delegates.checkDelegates(blocks[i].transactions[n].asset.votes)) {
-					err = {
-						message: "Can't verify votes, vote for not exists delegate found: " + transaction.id,
-						transaction: blocks[i].transactions[n],
-						rollbackTransactionsUntil: n > 0 ? (n - 1) : null,
-						block: blocks[i]
-					};
-					break;
+				if (blocks[i].transactions[n].type == 3) {
+					if (blocks[i].transactions[n].recipientId != blocks[i].transactions[n].senderId) {
+						err = {
+							message: "Can't verify transaction, has another recipient: " + transaction.id,
+							transaction: blocks[i].transactions[n],
+							rollbackTransactionsUntil: n > 0 ? (n - 1) : null,
+							block: blocks[i]
+						};
+						break;
+					}
+					if (!modules.delegates.checkDelegates(blocks[i].transactions[n].asset.votes)) {
+						err = {
+							message: "Can't verify votes, vote for not exists delegate found: " + transaction.id,
+							transaction: blocks[i].transactions[n],
+							rollbackTransactionsUntil: n > 0 ? (n - 1) : null,
+							block: blocks[i]
+						};
+						break;
+					}
 				}
 
 				if (!modules.transactions.applyUnconfirmed(blocks[i].transactions[n])) {
@@ -943,6 +948,12 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 								if (transaction.type == 1) {
 									if (!transaction.asset.signature) {
 										return cb("Transaction must have signature");
+									}
+								}
+
+								if (transaction.type == 3) {
+									if (transaction.senderId != transaction.recipientId) {
+										return cb("Invalid recipient");
 									}
 								}
 

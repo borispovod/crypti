@@ -161,9 +161,7 @@ function attachApi() {
 			recipientId: recipientId,
 			senderPublicKey: account.publicKey,
 			timestamp: slots.getTime(),
-			asset: {
-				votes: modules.delegates.getDelegateList(account.publicKey)
-			}
+			asset: {}
 		};
 
 		self.sign(secret, transaction);
@@ -384,47 +382,37 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 					}
 
 					if (transaction.asset.delegate.username.length == 0 || transaction.asset.delegate.username.length > 30) {
-						cb && cb("Incorrect delegate username length");
+						return cb && cb("Incorrect delegate username length");
+					}
+
+					if (modules.delegates.getDelegateByName(transaction.asset.delegate.username)) {
+						return cb && cb("Delegate with this name is already exists");
 					}
 					break;
+				case 3:
+					if (blocks[i].transactions[n].recipientId != blocks[i].transactions[n].senderId) {
+						return cb && cb("Incorrect recipient");
+					}
 
+					if (!modules.delegates.checkDelegates(transaction.asset.votes)) {
+						return cb && cb("Can't verify votes, vote for not exists delegate found: " + transaction.id);
+					}
+					break;
 				default:
 					return cb && cb("Unknown transaction type");
 			}
 
-			async.parallel([
-				function (cb) {
-					if (transaction.type == 2) {
-						if (modules.delegates.getDelegate(transaction.senderPublicKey)) {
-							return setImmediate(cb, "Delegate with this name is already exists");
-						}
 
-						setImmediate(cb);
-					} else {
-						setImmediate(cb);
-					}
-				}
-			], function (errors) {
-				if (errors) {
-					return cb && cb(errors.pop());
-				}
+			if (!self.applyUnconfirmed(transaction)) {
+				doubleSpendingTransactions[transaction.id] = transaction;
+				return cb && cb("Can't apply transaction: " + transaction.id);
+			}
 
-				if (!modules.delegates.checkDelegates(transaction.asset.votes)) {
-					return cb && cb("Can't verify votes, vote for not exists delegate found: " + transaction.id);
-				}
+			unconfirmedTransactions[transaction.id] = transaction;
 
-				if (!self.applyUnconfirmed(transaction)) {
-					doubleSpendingTransactions[transaction.id] = transaction;
-					return cb && cb("Can't apply transaction: " + transaction.id);
-				}
+			library.bus.message('unconfirmedTransaction', transaction, broadcast)
 
-				unconfirmedTransactions[transaction.id] = transaction;
-
-				library.bus.message('unconfirmedTransaction', transaction, broadcast)
-
-				cb && cb(null, transaction.id);
-
-			});
+			cb && cb(null, transaction.id);
 		}
 	});
 }
@@ -437,7 +425,6 @@ Transactions.prototype.apply = function (transaction) {
 		return false;
 	}
 
-	sender.updateDelegateList(transaction.asset.votes);
 	// process only two types of transactions
 	if (transaction.type == 0) {
 		sender.addToBalance(-amount);
@@ -456,6 +443,10 @@ Transactions.prototype.apply = function (transaction) {
 		return true;
 	} else if (transaction.type == 2) {
 		sender.addToBalance(-amount);
+
+		return true;
+	} else if (transaction.type == 3) {
+		sender.updateDelegateList(transaction.asset.votes);
 
 		return true;
 	} else {

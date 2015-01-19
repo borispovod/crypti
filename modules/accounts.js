@@ -2,6 +2,7 @@ var crypto = require('crypto'),
 	bignum = require('bignum'),
 	ed = require('ed25519'),
 	params = require('../helpers/params.js'),
+	slots = require('../helpers/slots.js'),
 	Router = require('../helpers/router.js');
 
 //private
@@ -123,6 +124,77 @@ function attachApi() {
 
 		var account = openAccount(secret);
 		return res.json({success: true, publicKey: account.publicKey});
+	});
+
+	router.get("/delegates", function (req, res) {
+		var address = params.string(req.query.address);
+
+		if (!address) {
+			return res.json({success: false, error: "Provide address in url"});
+		}
+
+		var account = self.getAccount(address);
+
+		return res.json({success: true, delegates: account.delegates});
+	});
+
+	router.put("/delegates", function (req, res) {
+		var secret = params.string(req.body.secret),
+			publicKey = params.string(req.body.publicKey),
+			secondSecret = params.string(req.body.secondSecret),
+			delegates = params.array(req.body.delegates);
+
+		var hash = crypto.createHash('sha256').update(secret, 'utf8').digest();
+		var keypair = ed.MakeKeypair(hash);
+
+		if (publicKey) {
+			if (keypair.publicKey.toString('hex') != publicKey) {
+				return res.json({success: false, error: "Please, provide valid secret key of your account"});
+			}
+		}
+
+		if (delegates.length > 33){
+			return res.json({success: false, error: "Please, provide less 33th delegates"});
+		}
+
+		var account = modules.accounts.getAccountByPublicKey(keypair.publicKey.toString('hex'));
+
+		if (!account) {
+			return res.json({success: false, error: "Account doesn't has balance"});
+		}
+
+		if (!account.publicKey) {
+			return res.json({success: false, error: "Open account to make transaction"});
+		}
+
+		var transaction = {
+			type: 3,
+			amount: 0,
+			recipientId: account.address,
+			senderPublicKey: account.publicKey,
+			timestamp: slots.getTime(),
+			asset: {
+				votes: delegates.length ? delegates : null
+			}
+		};
+
+		modules.transactions.sign(secret, transaction);
+
+		if (account.secondSignature) {
+			if (!secondSecret || secondSecret.length == 0) {
+				return res.json({success: false, error: "Provide second secret key"});
+			}
+
+			modules.transactions.secondSign(secondSecret, transaction);
+		}
+
+		modules.transactions.processUnconfirmedTransaction(transaction, true, function (err) {
+			if (err) {
+				return res.json({success: false, error: err});
+			}
+
+			res.json({success: true, transaction: transaction});
+		});
 	});
 
 	router.get("/", function (req, res) {
