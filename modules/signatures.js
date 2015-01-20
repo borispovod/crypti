@@ -37,7 +37,7 @@ function attachApi() {
 	router.get('/get', function (req, res) {
 		var id = params.string(req.query.id);
 
-		if (!id || id.length == 0) {
+		if (!id) {
 			return res.json({success: false, error: "Provide id in url"});
 		}
 
@@ -53,7 +53,7 @@ function attachApi() {
 	router.put('/', function (req, res) {
 		var secret = params.string(req.body.secret),
 			secondSecret = params.string(req.body.secondSecret),
-			publicKey = params.string(req.body.publicKey);
+			publicKey = params.string(req.body.publicKey, true);
 
 		var hash = crypto.createHash('sha256').update(secret, 'utf8').digest();
 		var keypair = ed.MakeKeypair(hash);

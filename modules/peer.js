@@ -31,9 +31,9 @@ function attachApi() {
 
 	router.get('/', function (req, res) {
 		var state = params.int(req.query.state),
-			os = params.string(req.query.os),
-			version = params.string(req.query.version),
-			limit = params.string(req.query.limit),
+			os = params.string(req.query.os, true),
+			version = params.string(req.query.version, true),
+			limit = params.int(req.query.limit),
 			shared = params.bool(req.query.shared),
 			orderBy = params.string(req.query.orderBy),
 			offset = params.int(req.query.offset);
