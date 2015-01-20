@@ -52,14 +52,18 @@ function getBytes(transaction) {
 			break;
 
 		case 3:
-			assetSize = transaction.asset.votes ? (transaction.asset.votes.length * 64) : 0;
-			assetBytes = new ByteBuffer(assetSize, true);
-			for (var i = 0; i < transaction.asset.votes.length; i++) {
-				var publicKey = new Buffer(transaction.asset.votes[i], 'hex');
+			if (transaction.asset.votes !== null) {
+				assetSize = transaction.asset.votes.length * 32;
+				var bb = new ByteBuffer(assetSize, true);
+				for (var i = 0; i < transaction.asset.votes.length; i++) {
+					var publicKey = new Buffer(transaction.asset.votes[i], 'hex');
 
-				for (var j = 0; j < publicKey.length; j++) {
-					assetBytes.writeByte(publicKey[j]);
+					for (var j = 0; j < publicKey.length; j++) {
+						bb.writeByte(publicKey[j]);
+					}
 				}
+				bb.flip();
+				assetBytes = bb.toBuffer();
 			}
 			break;
 	}

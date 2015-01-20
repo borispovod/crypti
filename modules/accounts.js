@@ -147,15 +147,13 @@ function attachApi() {
 		var hash = crypto.createHash('sha256').update(secret, 'utf8').digest();
 		var keypair = ed.MakeKeypair(hash);
 
-		console.log('secret', req.body)
-
 		if (publicKey) {
 			if (keypair.publicKey.toString('hex') != publicKey) {
 				return res.json({success: false, error: "Please, provide valid secret key of your account"});
 			}
 		}
 
-		if (delegates.length > 33){
+		if (delegates && delegates.length > 33){
 			return res.json({success: false, error: "Please, provide less 33 delegates"});
 		}
 
@@ -176,7 +174,7 @@ function attachApi() {
 			senderPublicKey: account.publicKey,
 			timestamp: slots.getTime(),
 			asset: {
-				votes: delegates.length ? delegates : null
+				votes: delegates
 			}
 		};
 

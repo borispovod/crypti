@@ -390,7 +390,7 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 					}
 					break;
 				case 3:
-					if (blocks[i].transactions[n].recipientId != blocks[i].transactions[n].senderId) {
+					if (transaction.recipientId != transaction.senderId) {
 						return cb && cb("Incorrect recipient");
 					}
 
