@@ -12,7 +12,7 @@ var accounts = {};
 
 function Account(address, publicKey, balance, unconfirmedBalance) {
 	this.address = address;
-	this.publicKey = publicKey;
+	this.publicKey = publicKey || null;
 	this.balance = balance || 0;
 	this.unconfirmedBalance = unconfirmedBalance || 0;
 	this.unconfirmedSignature = false;
@@ -80,7 +80,7 @@ function attachApi() {
 				publicKey: account.publicKey,
 				unconfirmedSignature: account.unconfirmedSignature,
 				secondSignature: account.secondSignature,
-				secondPublicKey: account.secondPublicKey || null
+				secondPublicKey: account.secondPublicKey
 			}
 		});
 	});
@@ -140,12 +140,14 @@ function attachApi() {
 
 	router.put("/delegates", function (req, res) {
 		var secret = params.string(req.body.secret),
-			publicKey = params.string(req.body.publicKey),
-			secondSecret = params.string(req.body.secondSecret),
-			delegates = params.array(req.body.delegates);
+			publicKey = params.string(req.body.publicKey, true),
+			secondSecret = params.string(req.body.secondSecret, true),
+			delegates = params.array(req.body.delegates, true);
 
 		var hash = crypto.createHash('sha256').update(secret, 'utf8').digest();
 		var keypair = ed.MakeKeypair(hash);
+
+		console.log('secret', req.body)
 
 		if (publicKey) {
 			if (keypair.publicKey.toString('hex') != publicKey) {
@@ -154,10 +156,10 @@ function attachApi() {
 		}
 
 		if (delegates.length > 33){
-			return res.json({success: false, error: "Please, provide less 33th delegates"});
+			return res.json({success: false, error: "Please, provide less 33 delegates"});
 		}
 
-		var account = modules.accounts.getAccountByPublicKey(keypair.publicKey.toString('hex'));
+		var account = self.getAccountByPublicKey(keypair.publicKey.toString('hex'));
 
 		if (!account) {
 			return res.json({success: false, error: "Account doesn't has balance"});
@@ -216,10 +218,10 @@ function attachApi() {
 				address: account.address,
 				unconfirmedBalance: account.unconfirmedBalance,
 				balance: account.balance,
-				publicKey: account.publicKey || null,
+				publicKey: account.publicKey,
 				unconfirmedSignature: account.unconfirmedSignature,
 				secondSignature: account.secondSignature,
-				secondPublicKey: account.secondPublicKey || null
+				secondPublicKey: account.secondPublicKey
 			}
 		});
 	})

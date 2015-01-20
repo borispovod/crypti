@@ -42,9 +42,9 @@ function attachApi() {
 			ip: ip.toLong(peerIp),
 			port: params.int(req.headers['port']),
 			state: 2,
-			os: params.string(req.headers['os']),
+			os: params.string(req.headers['os'], true),
 			sharePort: Number(!!params.int(req.headers['share-port'])),
-			version: params.string(req.headers['version'])
+			version: params.string(req.headers['version'], true)
 		};
 
 		if (peer.port != 8040) return;
@@ -86,8 +86,8 @@ function attachApi() {
 	router.get("/blocks/milestone", function (req, res) {
 		res.set(headers);
 
-		var lastBlockId = params.string(req.query.lastBlockId);
-		var lastMilestoneBlockId = params.string(req.query.lastMilestoneBlockId);
+		var lastBlockId = params.string(req.query.lastBlockId, true);
+		var lastMilestoneBlockId = params.string(req.query.lastMilestoneBlockId, true);
 		if (!lastBlockId && !lastMilestoneBlockId) {
 			return res.json({success: false, error: "Error, provide lastBlockId or lastMilestoneBlockId"});
 		}
@@ -275,9 +275,9 @@ function _request(peer, api, method, data, cb) {
 				ip: peer.ip,
 				port: port,
 				state: 2,
-				os: params.string(response.headers['os']),
+				os: params.string(response.headers['os'], true),
 				sharePort: Number(!!params.int(response.headers['share-port'])),
-				version: params.string(response.headers['version'])
+				version: params.string(response.headers['version'], true)
 			});
 		}
 

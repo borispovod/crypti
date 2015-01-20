@@ -44,12 +44,12 @@ function attachApi() {
 		var limit = params.int(req.query.limit);
 		var orderBy = params.string(req.query.orderBy);
 		var offset = params.int(req.query.offset);
-		var senderPublicKey = params.string(req.query.senderPublicKey);
+		var senderPublicKey = params.string(req.query.senderPublicKey, true);
 		var recipientId = params.string(req.query.recipientId)
 
 		list({
 			blockId: blockId,
-			senderPublicKey: senderPublicKey || null,
+			senderPublicKey: senderPublicKey, //check null
 			recipientId: recipientId,
 			limit: limit || 20,
 			orderBy: orderBy,
@@ -99,8 +99,8 @@ function attachApi() {
 		var transactions = self.getUnconfirmedTransactions(true),
 			toSend = [];
 
-		var senderPublicKey = params.string(req.query.senderPublicKey),
-			address = params.string(req.query.address);
+		var senderPublicKey = params.string(req.query.senderPublicKey, true),
+			address = params.string(req.query.address, true);
 
 		if (senderPublicKey || address) {
 			for (var i = 0; i < transactions.length; i++) {
@@ -128,9 +128,9 @@ function attachApi() {
 	router.put('/', function (req, res) {
 		var secret = params.string(req.body.secret),
 			amount = params.int(req.body.amount),
-			recipientId = params.string(req.body.recipientId),
-			publicKey = params.string(req.body.publicKey),
-			secondSecret = params.string(req.body.secondSecret);
+			recipientId = params.string(req.body.recipientId, true),
+			publicKey = params.string(req.body.publicKey, true),
+			secondSecret = params.string(req.body.secondSecret, true);
 
 		var hash = crypto.createHash('sha256').update(secret, 'utf8').digest();
 		var keypair = ed.MakeKeypair(hash);
@@ -167,7 +167,7 @@ function attachApi() {
 		self.sign(secret, transaction);
 
 		if (account.secondSignature) {
-			if (!secondSecret || secondSecret.length == 0) {
+			if (!secondSecret) {
 				return res.json({success: false, error: "Provide second secret key"});
 			}
 

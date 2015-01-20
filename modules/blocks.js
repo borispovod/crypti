@@ -58,12 +58,12 @@ function attachApi() {
 	});
 
 	router.get('/', function (req, res) {
-		var limit = params.string(req.query.limit);
+		var limit = params.int(req.query.limit);
 		var orderBy = params.string(req.query.orderBy);
-		var offset = params.string(req.query.offset);
-		var generatorPublicKey = params.string(req.query.generatorPublicKey);
+		var offset = params.int(req.query.offset);
+		var generatorPublicKey = params.string(req.query.generatorPublicKey, true);
 		list({
-			generatorPublicKey: generatorPublicKey || null,
+			generatorPublicKey: generatorPublicKey, //check null
 			limit: limit || 20,
 			offset: offset,
 			orderBy: orderBy

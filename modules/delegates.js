@@ -40,8 +40,8 @@ function attachApi() {
 
 	router.put('/', function (req, res) {
 		var secret = params.string(req.body.secret),
-			publicKey = params.string(req.body.publicKey),
-			secondSecret = params.string(req.body.secondSecret),
+			publicKey = params.string(req.body.publicKey, true),
+			secondSecret = params.string(req.body.secondSecret, true),
 			username = params.string(req.body.username);
 
 		var hash = crypto.createHash('sha256').update(secret, 'utf8').digest();
