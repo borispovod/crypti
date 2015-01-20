@@ -37,8 +37,10 @@ function Transactions(cb, scope) {
 		var offset = req.query.offset;
 		var senderPublicKey = req.query.senderPublicKey;
 		var recipientId = req.query.recipientId;
+		var senderId = req.query.senderId;
 
 		self.list({
+			senderId : senderId,
 			blockId: blockId,
 			senderPublicKey: senderPublicKey,
 			recipientId: recipientId,
@@ -222,6 +224,10 @@ Transactions.prototype.list = function (filter, cb) {
 		fields.push('hex(senderPublicKey) = $senderPublicKey')
 		parameters.senderPublicKey = params.buffer(filter.senderPublicKey, 'hex').toString('hex').toUpperCase();
 	}
+	if (filter.senderId) {
+		fields.push('senderId = $senderId');
+		parameters.senderId = params.string(filter.senderId);
+	}
 	if (filter.recipientId) {
 		fields.push('recipientId = $recipientId')
 		parameters.recipientId = params.string(filter.recipientId);
@@ -247,13 +253,13 @@ Transactions.prototype.list = function (filter, cb) {
 		return cb('Maximum of limit is 1000');
 	}
 
-	library.dbLite.query("select t.id t_id, t.blockId t_blockId, t.type t_type, t.timestamp t_timestamp, hex(t.senderPublicKey) t_senderPublicKey,  t.senderId t_senderId, t.recipientId t_recipientId, t.amount t_amount, t.fee t_fee, hex(t.signature) t_signature, hex(t.signSignature) t_signSignature, (select max(height) + 1 from blocks) - b.height as confirmations " +
+	library.dbLite.query("select t.id t_id, t.blockId t_blockId, t.type t_type, t.subtype t_subtype, t.timestamp t_timestamp, hex(t.senderPublicKey) t_senderPublicKey,  t.senderId t_senderId, t.recipientId t_recipientId, t.amount t_amount, t.fee t_fee, hex(t.signature) t_signature, hex(t.signSignature) t_signSignature, (select max(height) + 1 from blocks) - b.height as confirmations " +
 		"from trs t " +
 		"inner join blocks b on t.blockId = b.id " +
 		(fields.length ? "where " + fields.join(' or ') : '') + " " +
 		(filter.orderBy ? 'order by ' + sortBy + ' ' + sortMethod : '') + " " +
 		(filter.limit ? 'limit $limit' : '') + " " +
-		(filter.offset ? 'offset $offset' : ''), parameters, ['t_id', 't_blockId', 't_type', 't_timestamp', 't_senderPublicKey', 't_senderId', 't_recipientId', 't_amount', 't_fee', 't_signature', 't_signSignature', 'confirmations'], function (err, rows) {
+		(filter.offset ? 'offset $offset' : ''), parameters, ['t_id', 't_blockId', 't_type', 't_subtype', 't_timestamp', 't_senderPublicKey', 't_senderId', 't_recipientId', 't_amount', 't_fee', 't_signature', 't_signSignature', 'confirmations'], function (err, rows) {
 			if (err) {
 				return cb(err)
 			}
