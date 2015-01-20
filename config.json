@@ -21,14 +21,15 @@
         "list": [
 			{
 				"ip" : "104.155.15.135",
-				"port" : 5040
+				"port" : 8040
 			}
         ],
         "blackList": []
     },
     "forging": {
         "-secret": "ms02kf",
-        "secret": "4AMbeHpDvmtcHnCu5AWjbgzT4psH8RVMgjPnRNBbYUZxStBMSqGE"
+        "-secret": "4AMbeHpDvmtcHnCu5AWjbgzT4psH8RVMgjPnRNBbYUZxStBMSqGE",
+        "secret": "test2"
     },
 	"loading" : {
 		"loadPerIteration" : 5000
