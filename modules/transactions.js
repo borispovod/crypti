@@ -31,16 +31,16 @@ function Transactions(cb, scope) {
 	});
 
 	router.get('/', function (req, res) {
-		var blockId = params.string(req.query.blockId);
-		var limit = params.int(req.query.limit);
-		var orderBy = params.string(req.query.orderBy);
-		var offset = params.int(req.query.offset);
-		var senderPublicKey = params.buffer(req.query.senderPublicKey, 'hex');
-		var recipientId = params.string(req.query.recipientId)
+		var blockId = req.query.blockId;
+		var limit = req.query.limit;
+		var orderBy = req.query.orderBy;
+		var offset = req.query.offset;
+		var senderPublicKey = req.query.senderPublicKey;
+		var recipientId = req.query.recipientId;
 
 		self.list({
 			blockId: blockId,
-			senderPublicKey: senderPublicKey.length ? senderPublicKey : null,
+			senderPublicKey: senderPublicKey,
 			recipientId: recipientId,
 			limit: limit || 20,
 			orderBy: orderBy,
@@ -213,27 +213,28 @@ Transactions.prototype.secondSign = function (secret, transaction) {
 }
 
 Transactions.prototype.list = function (filter, cb) {
-	var params = {}, fields = [];
+	var parameters = {}, fields = [];
 	if (filter.blockId) {
 		fields.push('blockId = $blockId')
-		params.blockId = filter.blockId;
+		parameters.blockId = params.string(filter.blockId);
 	}
 	if (filter.senderPublicKey) {
 		fields.push('hex(senderPublicKey) = $senderPublicKey')
-		params.senderPublicKey = filter.senderPublicKey.toString('hex').toUpperCase();
+		parameters.senderPublicKey = params.buffer(filter.senderPublicKey, 'hex').toString('hex').toUpperCase();
 	}
 	if (filter.recipientId) {
 		fields.push('recipientId = $recipientId')
-		params.recipientId = filter.recipientId;
+		parameters.recipientId = params.string(filter.recipientId);
 	}
 	if (filter.limit) {
-		params.limit = filter.limit;
+		parameters.limit = params.int(filter.limit);
 	}
 	if (filter.offset) {
-		params.offset = filter.offset;
+		parameters.offset = params.int(filter.offset);
 	}
 
 	if (filter.orderBy) {
+		filter.orderBy = params.string(filter.orderBy);
 		var sort = filter.orderBy.split(':');
 		sortBy = sort[0].replace(/[^\w\s]/gi, '');
 		sortBy = "t." + sortBy;
@@ -242,7 +243,7 @@ Transactions.prototype.list = function (filter, cb) {
 		}
 	}
 
-	if (filter.limit > 1000) {
+	if (params.int(filter.limit) > 1000) {
 		return cb('Maximum of limit is 1000');
 	}
 
@@ -252,7 +253,7 @@ Transactions.prototype.list = function (filter, cb) {
 		(fields.length ? "where " + fields.join(' or ') : '') + " " +
 		(filter.orderBy ? 'order by ' + sortBy + ' ' + sortMethod : '') + " " +
 		(filter.limit ? 'limit $limit' : '') + " " +
-		(filter.offset ? 'offset $offset' : ''), params, ['t_id', 't_blockId', 't_type', 't_timestamp', 't_senderPublicKey', 't_senderId', 't_recipientId', 't_amount', 't_fee', 't_signature', 't_signSignature', 'confirmations'], function (err, rows) {
+		(filter.offset ? 'offset $offset' : ''), parameters, ['t_id', 't_blockId', 't_type', 't_timestamp', 't_senderPublicKey', 't_senderId', 't_recipientId', 't_amount', 't_fee', 't_signature', 't_signSignature', 'confirmations'], function (err, rows) {
 			if (err) {
 				return cb(err)
 			}
@@ -273,7 +274,7 @@ Transactions.prototype.get = function (id, hex, cb) {
 			return cb(err || "Can't find transaction: " + id);
 		}
 
-		var transacton = blockHelper.getTransaction(rows[0], true, filter.hex);
+		var transacton = blockHelper.getTransaction(rows[0], true, hex);
 		cb(null, transacton);
 	});
 }

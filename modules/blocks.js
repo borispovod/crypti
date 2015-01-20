@@ -54,13 +54,21 @@ function Blocks(cb, scope) {
 	});
 
 	router.get('/', function (req, res) {
-		var limit = params.string(req.query.limit);
-		var orderBy = params.string(req.query.orderBy);
-		var generatorPublicKey = params.buffer(req.query.generatorPublicKey, 'hex');
-		var offset = params.int(req.query.offset);
+		var limit = req.query.limit;
+		var orderBy = req.query.orderBy;
+		var generatorPublicKey = req.query.generatorPublicKey;
+		var totalAmount = req.query.totalAmount;
+		var totalFee = req.query.totalFee;
+		var height = req.query.height;
+		var previousBlock = req.query.previousBlock;
+		var offset = req.query.offset;
 
 		self.list({
-			generatorPublicKey: generatorPublicKey.length ? generatorPublicKey : null,
+			totalAmount : totalAmount,
+			totalFee : totalFee,
+			height : height,
+			previousBlock : previousBlock,
+			generatorPublicKey: generatorPublicKey,
 			limit: limit || 20,
 			orderBy: orderBy,
 			offset: offset,
@@ -209,21 +217,43 @@ Blocks.prototype.get = function (id, cb) {
 }
 
 Blocks.prototype.list = function (filter, cb) {
-	var params = {}, fields = [], sortMethod = '', sortBy = '';
+	var parameters = {}, fields = [], sortMethod = '', sortBy = '';
 	if (filter.generatorPublicKey) {
 		fields.push('hex(generatorPublicKey) = $generatorPublicKey')
-		params.generatorPublicKey = filter.generatorPublicKey.toString('hex').toUpperCase();
+		parameters.generatorPublicKey = params.buffer(filter.generatorPublicKey, 'hex').toString('hex').toUpperCase();
 	}
 
-	if (filter.limit) {
-		params.limit = filter.limit;
+	if (filter.limit > 0) {
+		parameters.limit = params.int(filter.limit);
 	}
 
-	if (filter.offset) {
-		params.offset = filter.offset;
+	if (filter.offset > 0) {
+		parameters.offset = params.int(filter.offset);
 	}
+
+	if (filter.totalAmount > 0) {
+		fields.push('totalAmount = $totalAmount')
+		parameters.totalAmount = params.int(filter.totalAmount);
+	}
+
+	if (filter.totalFee > 0) {
+		fields.push('totalFee = $totalFee');
+		parameters.totalFee = params.int(filter.totalFee);
+	}
+
+	if (filter.height > 0) {
+		fields.push('height = $height');
+		parameters.height = params.int(filter.height);
+	}
+
+	if (filter.previousBlock) {
+		fields.push('previousBlock = $previousBlock');
+		parameters.previousBlock = params.string(filter.previousBlock);
+	}
+
 
 	if (filter.orderBy) {
+		filter.orderBy = params.string(filter.orderBy);
 		var sort = filter.orderBy.split(':');
 		sortBy = sort[0].replace(/[^\w\s]/gi, '');
 		sortBy = "b." + sortBy;
@@ -232,10 +262,9 @@ Blocks.prototype.list = function (filter, cb) {
 		}
 	}
 
-	if (filter.limit > 1000) {
+	if (params.int(filter.limit) > 1000) {
 		return cb('Maximum of limit is 1000');
 	}
-
 
 
 	library.dbLite.query("select b.id b_id, b.version b_version, b.timestamp b_timestamp, b.height b_height, b.previousBlock b_previousBlock, b.numberOfRequests b_numberOfRequests, b.numberOfTransactions b_numberOfTransactions, b.numberOfConfirmations b_numberOfConfirmations, b.totalAmount b_totalAmount, b.totalFee b_totalFee, b.payloadLength b_payloadLength, b.requestsLength b_requestsLength, b.confirmationsLength b_confirmationsLength, hex(b.payloadHash) b_payloadHash, hex(b.generatorPublicKey) b_generatorPublicKey, hex(b.generationSignature) b_generationSignature, hex(b.blockSignature) b_blockSignature " +
@@ -243,7 +272,7 @@ Blocks.prototype.list = function (filter, cb) {
 		(fields.length ? "where " + fields.join(' or ') : '') + " " +
 		(filter.orderBy ? 'order by ' + sortBy + ' ' + sortMethod : '') + " " +
 		(filter.limit ? 'limit $limit' : '') + " " +
-		(filter.offset ? 'offset $offset' : ''), params, ["b_id", "b_version", "b_timestamp", "b_height", "b_previousBlock", "b_numberOfRequests", "b_numberOfTransactions", "b_numberOfConfirmations", "b_totalAmount", "b_totalFee", "b_payloadLength", "b_requestsLength", "b_confirmationsLength", "b_payloadHash", "b_generatorPublicKey", "b_generationSignature", "b_blockSignature"], function (err, rows) {
+		(filter.offset ? 'offset $offset' : ''), parameters, ["b_id", "b_version", "b_timestamp", "b_height", "b_previousBlock", "b_numberOfRequests", "b_numberOfTransactions", "b_numberOfConfirmations", "b_totalAmount", "b_totalFee", "b_payloadLength", "b_requestsLength", "b_confirmationsLength", "b_payloadHash", "b_generatorPublicKey", "b_generationSignature", "b_blockSignature"], function (err, rows) {
 
 		if (err) {
 			return cb(err)
