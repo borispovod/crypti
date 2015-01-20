@@ -269,7 +269,7 @@ Transactions.prototype.get = function (id, hex, cb) {
 	"from trs t " +
 	"inner join blocks b on t.blockId = b.id " +
 	"left outer join companies as c_t on c_t.address=t.recipientId " +
-	"where t.id = $id", {id: id}, ['t_id', 't_blockId', 't_type', 't_timestamp', 't_senderPublicKey', 't_senderId', 't_recipientId', 't_amount', 't_fee', 't_signature', 't_signSignature', 'confirmations', 't_companyGeneratorPublicKey'], function (err, rows) {
+	"where t.id = $id", {id: id}, ['t_id', 't_blockId', 't_type', 't_subtype', 't_timestamp', 't_senderPublicKey', 't_senderId', 't_recipientId', 't_amount', 't_fee', 't_signature', 't_signSignature', 't_companyGeneratorPublicKey', 'confirmations'], function (err, rows) {
 		if (err || rows.length == 0) {
 			return cb(err || "Can't find transaction: " + id);
 		}
