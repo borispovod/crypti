@@ -50,6 +50,14 @@ function normalizePeer(peer) {
 	return peer;
 }
 
+function normalizeScript(script){
+	script = params.object(script);
+
+	script.input = params.object(script.input);
+	script.body = params.string(script.code);
+	return script;
+}
+
 function normalizeSignature(signature) {
 	signature = params.object(signature);
 
@@ -89,6 +97,9 @@ function normalizeTransaction(transaction) {
 			break;
 		case 3:
 			transaction.asset.votes = normalizeVotes(transaction.asset.votes);
+			break;
+		case 4:
+			transaction.asset.script = normalizeScript(transaction.asset.script);
 			break;
 	}
 

@@ -2,42 +2,7 @@ var crypto = require('crypto'),
 	ed = require('ed25519'),
 	bignum = require('bignum'),
 	ByteBuffer = require("bytebuffer"),
-	constants = require("./constants.js"),
-	signatureHelper = require("./signature.js");
-
-// get valid transaction fee, if we need to get fee for block generator, use isGenerator = true
-function getTransactionFee(transaction, isGenerator) {
-	var fee = -1;
-
-	switch (transaction.type) {
-		case 0:
-			fee = transaction.fee;
-			break;
-		case 1:
-			fee = 100 * constants.fixedPoint;
-			break;
-		case 2:
-			// delegate registration
-			fee = 50 * constants.fixedPoint;
-			break;
-		case 3:
-			fee = transaction.fee;
-			break;
-		case 4:
-			fee = 100 * constants.fixedPoint;
-			break;
-	}
-
-	if (fee == -1) {
-		return false;
-	}
-
-	return fee;
-}
-
-function getLastChar(transaction) {
-	return transaction.recipientId[transaction.recipientId.length - 1];
-}
+	constants = require("./constants.js");
 
 function getBytes(transaction) {
 	var assetSize = 0,
@@ -124,46 +89,7 @@ function getBytes(transaction) {
 	return bb.toBuffer();
 }
 
-function getId(transaction) {
-	var hash = crypto.createHash('sha256').update(getBytes(transaction)).digest();
-	var temp = new Buffer(8);
-	for (var i = 0; i < 8; i++) {
-		temp[i] = hash[7 - i];
-	}
-
-	var id = bignum.fromBuffer(temp).toString();
-	return id;
-}
-
-function getHash(transaction) {
-	return crypto.createHash('sha256').update(getBytes(transaction)).digest();
-}
-
-function getFee(transaction, percent) {
-	switch (transaction.type) {
-		case 0:
-			return parseInt(transaction.amount / 100 * percent);
-			break;
-
-		case 1:
-			return 100 * constants.fixedPoint;
-			break;
-
-		case 2:
-			return 50 * constants.fixedPoint;
-			break;
-
-		case 3:
-			return parseInt(transaction.amount / 100 * percent);
-			break;
-	}
-}
-
 module.exports = {
-	getTransactionFee: getTransactionFee,
 	getBytes: getBytes,
-	getId: getId,
-	getLastChar: getLastChar,
-	getHash: getHash,
-	getFee: getFee
+	getId: getId
 };

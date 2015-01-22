@@ -24,7 +24,8 @@ var config = {
 		"loader": "./modules/loader.js",
 		"system": "./modules/system.js",
 		"peer": "./modules/peer.js",
-		"delegates": "./modules/delegates.js"
+		"delegates": "./modules/delegates.js",
+		"scripts": "./modules/scripts.js"
 	}
 }
 
