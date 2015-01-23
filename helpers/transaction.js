@@ -3,7 +3,8 @@ var crypto = require('crypto'),
 	bignum = require('bignum'),
 	ByteBuffer = require("bytebuffer"),
 	constants = require("./constants.js"),
-	signatureHelper = require("./signature.js");
+	signatureHelper = require("./signature.js"),
+	scriptHelper = require("./script.js");
 
 // get valid transaction fee, if we need to get fee for block generator, use isGenerator = true
 function getTransactionFee(transaction, isGenerator) {
@@ -155,6 +156,10 @@ function getFee(transaction, percent) {
 
 		case 3:
 			return parseInt(transaction.amount / 100 * percent);
+			break;
+
+		case 4:
+			return 100 * constants.fixedPoint;
 			break;
 	}
 }

@@ -43,6 +43,10 @@ function relational2object(rows) {
 						__transaction.asset.votes = getVotes(rows[i]);
 					}
 
+					if (!__transaction.asset.script) {
+						__transaction.asset.script = getScript(rows[i]);
+					}
+
 					blocks[__block.id].transactions[__transaction.id] = __transaction;
 				}
 			}
@@ -103,6 +107,20 @@ function getDelegate(raw) {
 			username: raw.d_username,
 			publicKey: raw.t_senderPublicKey,
 			transactionId: raw.t_id
+		}
+
+		return d;
+	}
+}
+
+function getScript(raw) {
+	if (!raw.js_id) {
+		return null
+	} else {
+		var d = {
+			id: raw.js_id,
+			code: raw.js_code,
+			input: raw.js_input
 		}
 
 		return d;

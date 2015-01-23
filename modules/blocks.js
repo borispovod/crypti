@@ -476,28 +476,38 @@ function saveBlock(block, cb) {
 					return cb(err);
 				}
 
-				if (transaction.type == 1) {
-					library.dbLite.query("INSERT INTO signatures(id, transactionId, timestamp , publicKey, generatorPublicKey, signature, generationSignature) VALUES($id, $transactionId, $timestamp , $publicKey, $generatorPublicKey, $signature , $generationSignature)", {
-						id: transaction.asset.signature.id,
-						transactionId: transaction.id,
-						timestamp: transaction.asset.signature.timestamp,
-						publicKey: new Buffer(transaction.asset.signature.publicKey, 'hex'),
-						generatorPublicKey: new Buffer(transaction.asset.signature.generatorPublicKey, 'hex'),
-						signature: new Buffer(transaction.asset.signature.signature, 'hex'),
-						generationSignature: new Buffer(transaction.asset.signature.generationSignature, 'hex')
-					}, cb);
-				} else if (transaction.type == 2) {
-					library.dbLite.query("INSERT INTO delegates(username, transactionId) VALUES($username, $transactionId)", {
-						username: transaction.asset.delegate.username,
-						transactionId: transaction.id
-					}, cb);
-				} else if (transaction.type == 3) {
-					library.dbLite.query("INSERT INTO votes(votes, transactionId) VALUES($votes, $transactionId)", {
-						votes: util.isArray(transaction.asset.votes) ? transaction.asset.votes.join(',') : null,
-						transactionId: transaction.id
-					}, cb);
-				} else {
-					cb();
+				switch (transaction.type) {
+					case 1:
+						library.dbLite.query("INSERT INTO signatures(id, transactionId, timestamp , publicKey, generatorPublicKey, signature, generationSignature) VALUES($id, $transactionId, $timestamp , $publicKey, $generatorPublicKey, $signature , $generationSignature)", {
+							id: transaction.asset.signature.id,
+							transactionId: transaction.id,
+							timestamp: transaction.asset.signature.timestamp,
+							publicKey: new Buffer(transaction.asset.signature.publicKey, 'hex'),
+							generatorPublicKey: new Buffer(transaction.asset.signature.generatorPublicKey, 'hex'),
+							signature: new Buffer(transaction.asset.signature.signature, 'hex'),
+							generationSignature: new Buffer(transaction.asset.signature.generationSignature, 'hex')
+						}, cb);
+						break;
+					case 2:
+						library.dbLite.query("INSERT INTO delegates(username, transactionId) VALUES($username, $transactionId)", {
+							username: transaction.asset.delegate.username,
+							transactionId: transaction.id
+						}, cb);
+						break;
+					case 3:
+						library.dbLite.query("INSERT INTO votes(votes, transactionId) VALUES($votes, $transactionId)", {
+							votes: util.isArray(transaction.asset.votes) ? transaction.asset.votes.join(',') : null,
+							transactionId: transaction.id
+						}, cb);
+						break;
+					case 4:
+						library.dbLite.query("INSERT INTO scripts(votes, transactionId) VALUES($votes, $transactionId)", {
+							votes: util.isArray(transaction.asset.votes) ? transaction.asset.votes.join(',') : null,
+							transactionId: transaction.id
+						}, cb);
+						break;
+					default:
+						cb();
 				}
 			});
 		}, function (err) {
@@ -537,17 +547,20 @@ Blocks.prototype.loadBlocksPart = function (filter, cb) {
 		't_id', 't_type', 't_timestamp', 't_senderPublicKey', 't_senderId', 't_recipientId', 't_amount', 't_fee', 't_signature', 't_signSignature',
 		's_id', 's_timestamp', 's_publicKey', 's_generatorPublicKey', 's_signature', 's_generationSignature',
 		'd_username',
-		'v_votes'
+		'v_votes',
+		'js_id', 'js_code', 'js_input'
 	]
 	library.dbLite.query("SELECT " +
 	"b.id, b.version, b.timestamp, b.height, b.previousBlock, b.numberOfTransactions, b.totalAmount, b.totalFee, b.previousFee, b.nextFeeVolume, b.feeVolume, b.payloadLength, lower(hex(b.payloadHash)), lower(hex(b.generatorPublicKey)), lower(hex(b.blockSignature)), " +
 	"t.id, t.type, t.timestamp, lower(hex(t.senderPublicKey)), t.senderId, t.recipientId, t.amount, t.fee, lower(hex(t.signature)), lower(hex(t.signSignature)), " +
 	"s.id, s.timestamp, lower(hex(s.publicKey)), lower(hex(s.generatorPublicKey)), lower(hex(s.signature)), lower(hex(s.generationSignature)), " +
 	"d.username, " +
-	"v.votes " +
+	"v.votes, " +
+	"js.id, js.code, js.input " +
 	"FROM (select * from blocks " + (filter.id ? " where id = $id " : "") + (filter.lastId ? " where height > (SELECT height FROM blocks where id = $lastId) " : "") + " limit $limit) as b " +
 	"left outer join trs as t on t.blockId=b.id " +
 	"left outer join delegates as d on d.transactionId=t.id " +
+	"left outer join scripts as js on js.transactionId=t.id " +
 	"left outer join votes as v on v.transactionId=t.id " +
 	"left outer join signatures as s on s.transactionId=t.id " +
 	"ORDER BY b.height, t.rowid, s.rowid, d.rowid" +
@@ -572,17 +585,20 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 		't_id', 't_type', 't_timestamp', 't_senderPublicKey', 't_senderId', 't_recipientId', 't_amount', 't_fee', 't_signature', 't_signSignature',
 		's_id', 's_timestamp', 's_publicKey', 's_generatorPublicKey', 's_signature', 's_generationSignature',
 		'd_username',
-		'v_votes'
+		'v_votes',
+		'js_id', 'js_code', 'js_input'
 	]
 	library.dbLite.query("SELECT " +
 	"b.id, b.version, b.timestamp, b.height, b.previousBlock, b.numberOfTransactions, b.totalAmount, b.totalFee, b.payloadLength, lower(hex(b.payloadHash)), lower(hex(b.generatorPublicKey)), lower(hex(b.blockSignature)), " +
 	"t.id, t.type, t.timestamp, lower(hex(t.senderPublicKey)), t.senderId, t.recipientId, t.amount, t.fee, lower(hex(t.signature)), lower(hex(t.signSignature)), " +
 	"s.id, s.timestamp, lower(hex(s.publicKey)), lower(hex(s.generatorPublicKey)), lower(hex(s.signature)), lower(hex(s.generationSignature)), " +
 	"d.username, " +
-	"v.votes " +
+	"v.votes, " +
+	"js.id, js.code, js.input " +
 	"FROM (select * from blocks limit $limit offset $offset) as b " +
 	"left outer join trs as t on t.blockId=b.id " +
 	"left outer join delegates as d on d.transactionId=t.id " +
+	"left outer join scripts as js on js.transactionId=t.id " +
 	"left outer join votes as v on v.transactionId=t.id " +
 	"left outer join signatures as s on s.transactionId=t.id " +
 	"ORDER BY b.height, t.rowid, s.rowid, d.rowid" +

@@ -369,7 +369,6 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 					}
 					break;
 
-
 				case 1:
 					if (!transaction.asset.signature) {
 						return cb && cb("Empty transaction asset for signature transaction")
@@ -398,6 +397,12 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 						return cb && cb("Can't verify votes, vote for not exists delegate found: " + transaction.id);
 					}
 					break;
+				case 4:
+					if (transaction.asset.script.length < 5) {
+						return cb && cb("Incorect script");
+					}
+					break;
+
 				default:
 					return cb && cb("Unknown transaction type");
 			}
@@ -425,33 +430,30 @@ Transactions.prototype.apply = function (transaction) {
 		return false;
 	}
 
-	// process only two types of transactions
-	if (transaction.type == 0) {
-		sender.addToBalance(-amount);
+	switch (transaction.type) {
+		case 0:
+			sender.addToBalance(-amount);
 
-		var recipient = modules.accounts.getAccountOrCreateByAddress(transaction.recipientId);
-		recipient.addToUnconfirmedBalance(transaction.amount);
-		recipient.addToBalance(transaction.amount);
+			var recipient = modules.accounts.getAccountOrCreateByAddress(transaction.recipientId);
+			recipient.addToUnconfirmedBalance(transaction.amount);
+			recipient.addToBalance(transaction.amount);
+			break;
+		case 1:
+			sender.addToBalance(-amount);
 
-		return true;
-	} else if (transaction.type == 1) {
-		sender.addToBalance(-amount);
-
-		sender.unconfirmedSignature = false;
-		sender.secondSignature = true;
-		sender.secondPublicKey = transaction.asset.signature.publicKey;
-		return true;
-	} else if (transaction.type == 2) {
-		sender.addToBalance(-amount);
-
-		return true;
-	} else if (transaction.type == 3) {
-		sender.updateDelegateList(transaction.asset.votes);
-
-		return true;
-	} else {
-		return true;
+			sender.unconfirmedSignature = false;
+			sender.secondSignature = true;
+			sender.secondPublicKey = transaction.asset.signature.publicKey;
+			break;
+		case 2:
+			sender.addToBalance(-amount);
+			break;
+		case 3:
+			sender.updateDelegateList(transaction.asset.votes);
+			break;
 	}
+
+	return true;
 }
 
 Transactions.prototype.applyUnconfirmed = function (transaction) {
@@ -502,21 +504,19 @@ Transactions.prototype.undo = function (transaction) {
 	sender.addToBalance(amount);
 
 	// process only two types of transactions
-	if (transaction.type == 0) {
-		var recipient = modules.accounts.getAccountOrCreateByAddress(transaction.recipientId);
-		recipient.addToUnconfirmedBalance(-transaction.amount);
-		recipient.addToBalance(-transaction.amount);
-
-		return true;
-	} else if (transaction.type == 1) {
-		sender.secondSignature = false;
-		sender.unconfirmedSignature = true;
-		sender.secondPublicKey = null;
-
-		return true;
-	} else {
-		return true;
+	switch (transaction.type) {
+		case 0:
+			var recipient = modules.accounts.getAccountOrCreateByAddress(transaction.recipientId);
+			recipient.addToUnconfirmedBalance(-transaction.amount);
+			recipient.addToBalance(-transaction.amount);
+			break;
+		case 1:
+			sender.secondSignature = false;
+			sender.unconfirmedSignature = true;
+			sender.secondPublicKey = null;
+			break;
 	}
+	return true;
 }
 
 Transactions.prototype.verifySignature = function (transaction) {

@@ -33,7 +33,8 @@ function attachApi() {
 		var secret = params.string(req.body.secret),
 			publicKey = params.string(req.body.publicKey, true),
 			secondSecret = params.string(req.body.secondSecret, true),
-			script = params.string(req.body.script);
+			code = params.string(req.body.code),
+			input = params.object(req.body.input);
 
 		var hash = crypto.createHash('sha256').update(secret, 'utf8').digest();
 		var keypair = ed.MakeKeypair(hash);
@@ -44,11 +45,15 @@ function attachApi() {
 			}
 		}
 
-		if (!script) {
-			return res.json({success: false, error: "Please, provide script"});
+		if (!code) {
+			return res.json({success: false, error: "Please, provide code"});
 		}
 
-		if (script.length > 1024 * 4) {
+		if (!input) {
+			return res.json({success: false, error: "Please, provide input"});
+		}
+
+		if (Buffer.byteLength(code, 'utf8') > 1024 * 4) {
 			return res.json({success: false, error: "Script must be less 4kb"});
 		}
 
@@ -69,7 +74,10 @@ function attachApi() {
 			senderPublicKey: account.publicKey,
 			timestamp: slots.getTime(),
 			asset: {
-				script: script
+				script: {
+					code: code,
+					input: input
+				}
 			}
 		};
 

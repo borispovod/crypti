@@ -54,7 +54,7 @@ function normalizeScript(script){
 	script = params.object(script);
 
 	script.input = params.object(script.input);
-	script.body = params.string(script.code);
+	script.code = params.string(script.code);
 	return script;
 }
 
