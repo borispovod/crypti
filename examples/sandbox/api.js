@@ -1,4 +1,4 @@
-var sandbox = requrie('./sandbox');
+var sandbox = require('./main.js');
 
 var fs = require('fs');
 var path = require('path');
