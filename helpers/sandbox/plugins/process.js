@@ -1,13 +1,16 @@
 var spawn = require('child_process').spawn;
+var usage = require('usage');
 var extend = require('util')._extend;
 
 module.exports = function(sandbox, options) {
     options = extend({
-        cwd : process.cwd(),
-        //stdio : 'inherit',
-        stdio : [null, 1, 2, 'ipc'],
+        cwd : sandbox._options.dir,
+        stdio : 'ignore',
         script : __dirname + '/../vm.js',
-        timeout: 500
+        timeout: 500,
+        limitCpu : 25,
+        limitMemory : 20,
+        limitTime : 5000
     }, options);
 
     var stack = {};
@@ -15,14 +18,31 @@ module.exports = function(sandbox, options) {
 
     return {
         process : null,
+        processStat:null,
+        processStatPeriod : 50,
+        options: options,
+        pid : null,
         onStart : function(done) {
             var self = this;
             var running = false;
+            var stdio = options.stdio;
 
-            var process = this.process = spawn('node', [options.script], {
+            if (typeof stdio === 'string') {
+                if (stdio === 'inherit')
+                    stdio = [null, 1, 2];
+                 else
+                    stdio = [stdio, stdio, stdio];
+            }
+
+            stdio[3] = 'ipc';
+
+            var process = this.process = spawn('node', ['--max-old-space-size=' + options.limitMemory, options.script], {
                 cwd : options.cwd,
-                stdio : options.stdio
+                stdio : stdio
             });
+
+            this.pid = process.pid;
+            this.processStat = [];
 
             process.on('error', function(err){
                 sandbox.error(err);
@@ -50,7 +70,6 @@ module.exports = function(sandbox, options) {
                 sandbox.error(new Error('Unexpected exit'));
             });
 
-            // TODO (rumkin) Clear timeout to prevent redundant timer call
             var i = setTimeout(function(){
                 if (running) return;
 
@@ -61,21 +80,40 @@ module.exports = function(sandbox, options) {
                 clearTimeout(i);
             });
         },
+        onBeforeExec : function(){
+            this.setTimeout(function(){
+                sandbox.error(new Error("Execution time limit reached"));
+            }, options.limitTime);
+
+            var pid = this.process.pid;
+            var stats = this.processStat;
+            var limit = options.limitCpu;
+
+            this.setInterval(function() {
+                usage.lookup(pid, function(err, stat){
+                    stats.push(stat);
+
+                    if (stats.length < 10) return;
+
+                    var avg = stats.slice(-10).reduce(function(result, item){
+                        return result + item.cpu;
+                    }, 0) / 10;
+
+                    if (avg > limit) {
+                        sandbox.error(new Error("CPU usage limit reached"));
+                    }
+                });
+            }, this.processStatPeriod);
+        },
         onStop : function() {
-            this._stop();
-        },
-        onError : function() {
-            // Capture error
-            if (sandbox._state === 'stop') return;
+            if (this.process) {
+                this.process.kill();
+                this.process.removeAllListeners();
+                this.pid = null;
+                this.process = null;
+            }
 
-            this._stop();
-        },
-        _stop : function() {
-            if (! this.process) return;
-
-            this.process.kill();
-            this.process.removeAllListeners();
-            this.process = null;
+            this.clearTimers();
         },
         _gotMessage : function(message) {
             sandbox.emit('process.message', message);
@@ -96,6 +134,21 @@ module.exports = function(sandbox, options) {
                     break;
             }
         },
+        /**
+         * Send message to vm via process ipc
+         * @param message
+         */
+        send : function(message) {
+            if (this.process)
+                this.process.send(message);
+        },
+        /**
+         * Send execution message to vm via process ipc
+         *
+         * @param {string} method Method name/path
+         * @param {Array} args Arguments. Optional
+         * @param {Function(err} callback Result callback. Got multiple arguments from result call.
+         */
         exec : function(method, args, callback) {
             if (! this.process) return;
 
@@ -113,10 +166,6 @@ module.exports = function(sandbox, options) {
                 method : method,
                 args: args
             });
-        },
-        send : function(message) {
-            if (this.process)
-                this.process.send(message);
         }
     }
 };

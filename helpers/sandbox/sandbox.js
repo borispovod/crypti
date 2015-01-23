@@ -14,22 +14,23 @@ var plugins = {
 
 // Helpers
 
-// Wrap func call to prevent argument passing
-function noar(func) {
-    return function(){
-        func();
-    };
-}
-
-// No-operation
-function noop(){}
-
-// Extend object with another
+/**
+ * Extend target object with source properties and return it. If source is not an object do nothing.
+ *
+ * @param {object} target
+ * @param {object} source
+ * @returns {*} Target object.
+ */
 function extend(target, source) {
     return util._extend(target, source);
 }
 
-// uppercase first character
+/**
+ * Uppercase first char of string.
+ *
+ * @param {string} str Any string
+ * @returns {string}
+ */
 function ucfirst(str) {
     str = String(str);
     return str.charAt(0).toUpperCase() + str.slice(1);
@@ -38,11 +39,23 @@ function ucfirst(str) {
 
 // Sandbox implementation
 
-function Sandbox(options) {
+/**
+ * Create sandbox object.
+ *
+ * @param {object} options Sandbox options.
+ * @param {object} plugins Custom plugins object where key is plugin name and value is factory.
+ * @constructor
+ */
+function Sandbox(options, plugins) {
     EventEmitter.call(this);
+    extend(this._plugins, plugins);
 
-    options = this._options = extend({}, options);
+    options = this._options = extend({
+        dir : process.cwd(),
+        plugins : {}
+    }, options);
     this._pluginNames = [];
+    this._queue = [];
 
     var name, value, plugin, plugins;
 
@@ -70,17 +83,27 @@ function Sandbox(options) {
 
 util.inherits(Sandbox, EventEmitter);
 
+/**
+ * Inititalize plugin
+ *
+ * @param {string} name Plugin name
+ * @param {object} options Plugin factory options
+ * @returns {object}
+ */
 Sandbox.prototype.initPlugin = function(name, options) {
     if (! this._plugins.hasOwnProperty(name))
         throw new Error('Plugin "' + name + "' not found");
 
     var instance = this._plugins[name].call(null, this, options);
-    if (typeof plugin === 'object') {
-        instance.__proto__ = this._pluginPrototype;
-    }
+    instance.__proto__ = this._pluginPrototype;
     return instance;
 };
 
+/**
+ * Bind listeners from `events` object where key is event and property is method. Use `plugin` as this object and methods owner.
+ * @param {object} events Binding map
+ * @param {object} plugin Plugin instance
+ */
 Sandbox.prototype.bindListeners = function(events, plugin) {
     var self = this;
     Object.keys(events).forEach(function(event){
@@ -90,6 +113,71 @@ Sandbox.prototype.bindListeners = function(events, plugin) {
 
 Sandbox.plugins = Sandbox.prototype._plugins = plugins;
 
+/**
+ * Plugin prototype object added as plugin instance __proto__.
+ * @type {object}
+ * @private
+ */
+Sandbox.prototype._pluginPrototype = {
+    /**
+     * Add timeout and remember it's id for further batch delete.
+     * @param {function} call Timeout function
+     * @param {number} timeout Timeout milliseconds
+     * @returns {function(this:null)} Function to clear timeout
+     */
+    setTimeout : function(call, timeout) {
+        this._timeouts = this._timeouts||[];
+        var id = setTimeout(call, timeout);
+        this._timeouts.push(id);
+
+        return clearTimeout.bind(null, id);
+    },
+    /**
+     * Add interval and remember it's id for further batch delete.
+     *
+     * @param {function} call Interval function
+     * @param {number} interval Interval in milliseconds
+     * @returns {function(this:null)} Function to clear interval
+     */
+    setInterval : function(call, interval) {
+        this._intervals = this._intervals||[];
+        var id = setInterval(call, interval);
+        this._intervals.push(id);
+
+        return clearInterval.bind(null, id);
+    },
+    /**
+     * Clear all intervals
+     */
+    clearIntervals : function() {
+        if (this._intervals) {
+            this._intervals.forEach(clearInterval);
+            this._intervals = [];
+        }
+    },
+    /**
+     * Clear all timeouts
+     */
+    clearTimeouts : function() {
+        if (this._timeouts) {
+            this._timeouts.forEach(clearTimeout);
+            this._timeouts = [];
+        }
+    },
+    /**
+     * Clear all intervals and timeouts
+     */
+    clearTimers : function() {
+        this.clearTimeouts();
+        this.clearIntervals();
+    }
+};
+
+/**
+ * Resolve plugin initialization order based on plugins `require` property.
+ *
+ * @returns {String[]} List of plugin names
+ */
 Sandbox.prototype.resolveOrder = function() {
     var self = this;
 
@@ -114,6 +202,12 @@ Sandbox.prototype.resolveOrder = function() {
     }).reverse();
 };
 
+/**
+ * Execute script in virtual machine. Script should be a string or object with properties `source` and `filename`.
+ *
+ * @param {object,string} script Script object
+ * @param {function(error,result,session)} callback
+ */
 Sandbox.prototype.run = function(script, callback) {
     if (typeof script === 'string') {
         script = {
@@ -122,28 +216,37 @@ Sandbox.prototype.run = function(script, callback) {
         };
     }
 
-    if (this.running) throw new Error('Already running');
+    if (this.running) {
+        this._queue.push([script, callback]);
+        return this;
+    }
 
     var self = this;
     var order = this._order;
     var stack = new Stack();
 
+    // Session object is pure EventEmitter instance
+    var session = new EventEmitter;
+
+    order.forEach(function(name){
+        var plugin = self[name];
+        plugin.session = session;
+    });
+
     [
         'start',
-        'ready',
+        'beforeExec',
         function(){
             var stopped = false;
 
             return {
-                name : 'run',
+                name : 'exec',
                 _ : function(next) {
                     // Do not run script if there is a error
                     if (self.hasError) return next();
 
                     // Run script
-                    self._state = 'run';
-                    self.intercept = noar(next);
-
+                    self._state = 'exec';
                     self.process.exec('vm.exec', [script], function(err, result){
                         if (stopped) return;
 
@@ -159,7 +262,7 @@ Sandbox.prototype.run = function(script, callback) {
                 }
             };
         },
-        'stop'
+        'afterExec'
     ].forEach(function(point){
             if (typeof point === 'object') {
                 stack.push(point);
@@ -199,40 +302,47 @@ Sandbox.prototype.run = function(script, callback) {
         });
 
     stack.push({
-        type : 'shutdown',
-        _ : noop
-    });
-
-    stack.push({
         name : 'final',
-        type : 'exit',
+        type : 'shutdown',
         _ : function(){
-            if (self.hasError) {
+            try {
                 order.forEach(function(name){
                     var plugin = self[name];
-                    if (typeof plugin.onError === 'function') {
-                        plugin.onError(noop, _error);
+                    if (typeof plugin.onStop === 'function') {
+                        plugin.onStop(_error);
                     }
                 });
 
-                callback = callback.bind(null, _error);
-            } else if (! self.hasResult) {
-                callback = callback.bind(null, new Error('No result passed'));
-            }  else {
-                callback = callback.bind(null, null, self.result);
+                if (self.hasError) {
+                    order.forEach(function(name){
+                        var plugin = self[name];
+                        if (typeof plugin.onError === 'function') {
+                            plugin.onError(_error);
+                        }
+                    });
+
+                    callback = callback.bind(null, _error, null, session);
+                } else if (! self.hasResult) {
+                    callback = callback.bind(null, new Error('No result passed'), null, session);
+                }  else {
+                    callback = callback.bind(null, null, self.result, session);
+                }
+            } catch (err) {
+                callback = callback.bind(null, err);
             }
 
-            //console.log(self._stack.trace);
-
-            callback();
-        }
-    });
-
-    // Last call clear sandbox object
-    stack.push({
-        _ : function(){
             self._state = null;
             self._stack = null;
+            self.running = false;
+
+            self.emit('end', script, session);
+            setImmediate(callback);
+
+
+            if (self._queue.length) {
+                var call = self._queue.shift();
+                setImmediate(self.run.bind(self, call[0], call[1]));
+            }
         }
     });
 
@@ -244,26 +354,35 @@ Sandbox.prototype.run = function(script, callback) {
 
         // GOTO Shutdown
         var i = stack.search('shutdown');
-        if (i !== null) stack.slice(i);
-
-        if (stack.search('exit') !== null)
+        if (i !== null) {
+            stack.slice(i);
             stack.run();
+        }
 
-        //console.log(error, self._state);
+        if (self._options.verbose)
+            console.log(error);
 
         // TODO (rumkin) Decide what to do with errors called after final state reached
     });
 
+    this.running = true;
     this.hasError = false;
     this.hasResult = false;
     this.result = null;
 
     this._state = null;
     this._stack = stack;
+    this._session = session;
 
+    self.emit('start', script, session);
     stack.run();
+    return this;
 };
 
+/**
+ * Emit sandbox error and intercept current async call
+ * @param {Error} err Error object
+ */
 Sandbox.prototype.error = function(err) {
     if (! this._stack) return;
 
@@ -279,6 +398,9 @@ Sandbox.prototype.error = function(err) {
     this.intercept();
 };
 
+/**
+ * Intercept current call in stacks
+ */
 Sandbox.prototype.intercept = function(){
     this._stack.intercept();
 };

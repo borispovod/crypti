@@ -16,11 +16,7 @@ Scope.prototype.$new = function(values) {
 // TODO Create Scope object with EventEmitter
 var scope = new Scope({
     // Process transport
-    process : new Scope({
-        send : function(message) {
-            process.send(message);
-        }
-    }),
+    process : process,
     exec : exec,
     echo : function(done, value) {
         console.log('->', value);

@@ -1,9 +1,10 @@
 var net = require('net');
+var fs = require('fs');
 var extend = require('util')._extend;
 
 module.exports = function(sandbox, options) {
     options = extend({
-        socket : '/tmp/test.sock'
+        dir : '/tmp/'
     });
 
     var cid = 0;
@@ -13,13 +14,16 @@ module.exports = function(sandbox, options) {
         require : ['process'],
         onStart : function(done) {
             var self = this;
+            var socket = this.socket = options.dir + '/' + sandbox.process.pid + '.sock';
+
             sandbox.process.exec('require', [__dirname + '/tcp-vm.js'], function(err){
                 if (err) return done(err);
 
-                sandbox.process.exec('tcpServer', [options.socket], function(err){
+
+                sandbox.process.exec('tcpServer', [socket], function(err){
                     if (err) return done(err);
 
-                    var connection = self.connection = net.connect(options.socket);
+                    var connection = self.connection = net.connect(socket);
 
                     connection.on('connect', done);
                     connection.on('error', function(err){
@@ -55,10 +59,8 @@ module.exports = function(sandbox, options) {
                 this.connection.removeAllListeners();
                 this.connection.end();
                 this.connection = null;
+                this.socket = null;
             }
-        },
-        onError : function(done, error) {
-            this.onStop();
         },
         _gotMessage : function(message) {
             sandbox.emit('tcp.message', message);
@@ -72,9 +74,19 @@ module.exports = function(sandbox, options) {
                 }
             }
         },
+        /**
+         * Send message to VM via TCP
+         * @param message
+         */
         send : function(message) {
             this.connection.write(JSON.stringify(message) + '\r\n');
         },
+        /**
+         * Send execution message to VM via TCP
+         * @param method
+         * @param args
+         * @param callback
+         */
         exec : function(method, args, callback) {
             if (! this.connection) return;
             var id = cid++;

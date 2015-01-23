@@ -9,32 +9,20 @@ module.exports = function (sandbox, options) {
     return {
         time : null,
         timeout : null,
-        onStart : function(done) {
+        onStart : function() {
             this.time = Date.now();
-
-            done();
         },
-        onReady : function(done){
-            this.timeout = setTimeout(function(){
+        onBeforeExec : function(){
+            this.setTimeout(function(){
                 sandbox.error(new Error('Timeout: ' + options.limit))
             }, options.limit);
-
-            done();
         },
-        onStop : function(done) {
-            if (sandbox._options.verbose) console.log('Done in %d ms', (Date.now() - this.time)/1000);
-
+        onStop : function() {
+            var time = Date.now() - this.time;
+            this.session.timer = time;
 
             this.time = null;
-            clearTimeout(this.timeout);
-            this.timeout = null;
-
-            done();
-        },
-        onError : function(){
-            this.time = null;
-            clearTimeout(this.timeout);
-            this.timeout = null;
+            this.clearTimers();
         }
     };
 };

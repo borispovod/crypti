@@ -13,16 +13,16 @@ module.exports = function(sandbox, options) {
     return {
         require : options.transport,
         events : events,
-        bindings : {},
-        module : function(bindings){
-            extend(this.bindings, bindings);
-        },
+        /**
+         * All API bindings
+         */
+        _bindings : {},
         onStart : function(done){
             var transport = this.transport = sandbox[options.transport];
 
             transport.exec('require', [__dirname + '/api-vm.js', {
                 transport : options.transport,
-                bindings : prepareBindings(this.bindings)
+                bindings : prepareBindings(this._bindings)
             }], done);
         },
         onStop : function(){
@@ -54,7 +54,7 @@ module.exports = function(sandbox, options) {
 
             }
 
-            if (typeof this.bindings[message.method] !== "function") {
+            if (typeof this._bindings[message.method] !== "function") {
                 done({
                     message : "Method not found"
                 });
@@ -62,14 +62,38 @@ module.exports = function(sandbox, options) {
             }
 
             try {
-                this.bindings[message.method].apply(null, [done].concat(message.args));
+                this._bindings[message.method].apply(null, [done].concat(message.args));
             } catch (err) {
                 done(err);
             }
+        },
+        /**
+         * Register module as object where key is method name and property is a method function.
+         *
+         * @param {object} bindings
+         * @example
+         *
+         * sandbox.api.module({
+         *  echo : function(done, message) {
+         *      done(null, message);
+         *  },
+         *  print : function(done, message) {
+         *      console.log(message);
+         *      done();
+         *  }
+         * })
+         */
+        module : function(bindings){
+            extend(this._bindings, bindings);
         }
     };
 };
 
+/**
+ * convert object to map of provided methods and values
+ * @param {object} api
+ * @returns {{}}
+ */
 function prepareBindings(api) {
     var result = {};
 
