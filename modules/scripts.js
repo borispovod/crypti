@@ -3,6 +3,7 @@ var crypto = require('crypto'),
 	ed = require('ed25519'),
 	params = require('../helpers/params.js'),
 	slots = require('../helpers/slots.js'),
+	scriptHelper = require('../helpers/script.js'),
 	Router = require('../helpers/router.js');
 
 //private fields
@@ -53,11 +54,17 @@ function attachApi() {
 			return res.json({success: false, error: "Please, provide input"});
 		}
 
+		try {
+			input = JSON.stringify(input);
+		} catch (e) {
+			return res.json({success: false, error: "Please, provide correct input"});
+		}
+
 		if (Buffer.byteLength(code, 'utf8') > 1024 * 4) {
 			return res.json({success: false, error: "Script must be less 4kb"});
 		}
 
-		var account = self.getAccountByPublicKey(keypair.publicKey.toString('hex'));
+		var account = modules.accounts.getAccountByPublicKey(keypair.publicKey.toString('hex'));
 
 		if (!account) {
 			return res.json({success: false, error: "Account doesn't has balance"});
@@ -67,6 +74,13 @@ function attachApi() {
 			return res.json({success: false, error: "Open account to make transaction"});
 		}
 
+		var script = {
+			code: new Buffer(code, 'utf8').toString('hex'),
+			input: new Buffer(input, 'utf8').toString('hex')
+		}
+
+		script.id = scriptHelper.getId(script);
+
 		var transaction = {
 			type: 4,
 			amount: 0,
@@ -74,10 +88,7 @@ function attachApi() {
 			senderPublicKey: account.publicKey,
 			timestamp: slots.getTime(),
 			asset: {
-				script: {
-					code: code,
-					input: input
-				}
+				script: script
 			}
 		};
 

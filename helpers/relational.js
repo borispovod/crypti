@@ -119,6 +119,7 @@ function getScript(raw) {
 	} else {
 		var d = {
 			id: raw.js_id,
+			transactionId: raw.t_id,
 			code: raw.js_code,
 			input: raw.js_input
 		}
