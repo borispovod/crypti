@@ -114,12 +114,11 @@ function getDelegate(raw) {
 }
 
 function getScript(raw) {
-	if (!raw.js_id) {
+	if (!raw.js_code) {
 		return null
 	} else {
 		var d = {
-			id: raw.js_id,
-			transactionId: raw.t_id,
+			id: raw.t_id,
 			code: raw.js_code,
 			input: raw.js_input
 		}

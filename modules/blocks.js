@@ -501,8 +501,7 @@ function saveBlock(block, cb) {
 						}, cb);
 						break;
 					case 4:
-						library.dbLite.query("INSERT INTO scripts(id, input, code, transactionId) VALUES($id, $input, $code, $transactionId)", {
-							id: transaction.asset.script.id,
+						library.dbLite.query("INSERT INTO scripts(input, code, transactionId) VALUES($input, $code, $transactionId)", {
 							input: new Buffer(transaction.asset.script.input, 'hex'),
 							code: new Buffer(transaction.asset.script.code, 'hex'),
 							transactionId: transaction.id
@@ -550,7 +549,7 @@ Blocks.prototype.loadBlocksPart = function (filter, cb) {
 		's_id', 's_timestamp', 's_publicKey', 's_generatorPublicKey', 's_signature', 's_generationSignature',
 		'd_username',
 		'v_votes',
-		'js_id', 'js_code', 'js_input'
+		'js_code', 'js_input'
 	]
 	library.dbLite.query("SELECT " +
 	"b.id, b.version, b.timestamp, b.height, b.previousBlock, b.numberOfTransactions, b.totalAmount, b.totalFee, b.previousFee, b.nextFeeVolume, b.feeVolume, b.payloadLength, lower(hex(b.payloadHash)), lower(hex(b.generatorPublicKey)), lower(hex(b.blockSignature)), " +
@@ -558,7 +557,7 @@ Blocks.prototype.loadBlocksPart = function (filter, cb) {
 	"s.id, s.timestamp, lower(hex(s.publicKey)), lower(hex(s.generatorPublicKey)), lower(hex(s.signature)), lower(hex(s.generationSignature)), " +
 	"d.username, " +
 	"v.votes, " +
-	"js.id, lower(hex(js.code)), lower(hex(js.input)) " +
+	"lower(hex(js.code)), lower(hex(js.input)) " +
 	"FROM (select * from blocks " + (filter.id ? " where id = $id " : "") + (filter.lastId ? " where height > (SELECT height FROM blocks where id = $lastId) " : "") + " limit $limit) as b " +
 	"left outer join trs as t on t.blockId=b.id " +
 	"left outer join delegates as d on d.transactionId=t.id " +
@@ -588,7 +587,7 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 		's_id', 's_timestamp', 's_publicKey', 's_generatorPublicKey', 's_signature', 's_generationSignature',
 		'd_username',
 		'v_votes',
-		'js_id', 'js_code', 'js_input'
+		'js_code', 'js_input'
 	]
 	library.dbLite.query("SELECT " +
 	"b.id, b.version, b.timestamp, b.height, b.previousBlock, b.numberOfTransactions, b.totalAmount, b.totalFee, b.payloadLength, lower(hex(b.payloadHash)), lower(hex(b.generatorPublicKey)), lower(hex(b.blockSignature)), " +
@@ -596,7 +595,7 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 	"s.id, s.timestamp, lower(hex(s.publicKey)), lower(hex(s.generatorPublicKey)), lower(hex(s.signature)), lower(hex(s.generationSignature)), " +
 	"d.username, " +
 	"v.votes, " +
-	"js.id, lower(hex(js.code)), lower(hex(js.input)) " +
+	"lower(hex(js.code)), lower(hex(js.input)) " +
 	"FROM (select * from blocks limit $limit offset $offset) as b " +
 	"left outer join trs as t on t.blockId=b.id " +
 	"left outer join delegates as d on d.transactionId=t.id " +

@@ -3,7 +3,6 @@ var crypto = require('crypto'),
 	ed = require('ed25519'),
 	params = require('../helpers/params.js'),
 	slots = require('../helpers/slots.js'),
-	scriptHelper = require('../helpers/script.js'),
 	Router = require('../helpers/router.js');
 
 //private fields
@@ -78,8 +77,6 @@ function attachApi() {
 			code: new Buffer(code, 'utf8').toString('hex'),
 			input: new Buffer(input, 'utf8').toString('hex')
 		}
-
-		script.id = scriptHelper.getId(script);
 
 		var transaction = {
 			type: 4,
