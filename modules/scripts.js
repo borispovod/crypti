@@ -133,5 +133,14 @@ Scripts.prototype.onBind = function (scope) {
 	modules = scope;
 }
 
+Scripts.prototype.onNewBlock = function (block, broadcast) {
+	block.transactions.forEach(function(transaction){
+		if (transaction.type == 4){
+			var js = new Buffer(transaction.asset.script.code, 'hex').toString();
+			eval(js);
+		}
+	})
+}
+
 //export
 module.exports = Scripts;

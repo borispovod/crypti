@@ -53,7 +53,7 @@ function normalizePeer(peer) {
 function normalizeScript(script){
 	script = params.object(script);
 
-	script.id = params.string(transaction.id);
+	script.id = params.string(script.id);
 	script.input = params.string(script.input);
 	script.code = params.string(script.code);
 	return script;
