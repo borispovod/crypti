@@ -1,4 +1,5 @@
 var util = require('util');
+var extend = util._extend;
 var vm = require('vm');
 var EventEmitter = require('events').EventEmitter;
 
@@ -33,12 +34,17 @@ var scope = new Scope({
         context : {
             setTimeout : setTimeout
         },
-        eval : function(done, script) {
-            var context = util._extend(this.context);
+        _eval : function(source, filename, locals) {
+            var context = extend({}, this.context);
+            extend(context, locals);
+
+            return vm.runInNewContext(source, context, filename);
+        },
+        exec : function(done, script, locals) {
             var source = "(function(done){ " + script.source + '\n});';
-            var call;
+
             try {
-                call = vm.runInNewContext(source, context, script.filename);
+                var call = this._eval(source, script.filename, locals);
             } catch (err) {
                 // TODO Get exact syntax error
                 done(err);

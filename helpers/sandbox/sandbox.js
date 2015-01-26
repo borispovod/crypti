@@ -9,7 +9,8 @@ var plugins = {
     api : require('./plugins/api'),
     tcp : require('./plugins/tcp'),
     process : require('./plugins/process'),
-    timer : require('./plugins/timer')
+    timer : require('./plugins/timer'),
+    transaction : require('./plugins/transaction')
 };
 
 // Helpers
@@ -402,7 +403,7 @@ Sandbox.prototype.eval = function(script, callback) {
         };
     }
 
-    return this.exec('vm.eval', [script], callback);
+    return this.exec('vm.exec', [script], callback);
 };
 
 /**
