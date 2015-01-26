@@ -59,6 +59,7 @@ function attachApi() {
 	router.get('/list', function (req, res) {
 		res.set(headers);
 		modules.peer.list(100, function (err, peers) {
+			console.log("send");
 			return res.status(200).json({peers: !err ? peers : []});
 		})
 	});
