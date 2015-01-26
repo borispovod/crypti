@@ -1,5 +1,5 @@
 {
-    "port": 5040,
+    "port": 7040,
     "address": "0.0.0.0",
     "serveHttpAPI": true,
     "serveHttpWallet": true,
@@ -19,17 +19,14 @@
     },
     "peers": {
         "list": [
-			{
-				"ip" : "130.211.72.188",
-				"port" : 5040
-			}
         ],
         "blackList": []
     },
     "forging": {
-        "secret": "F3DP835EBuZMAhiuYn2AzhJh1lz8glLolghCMD4X8lRh5v2GlcBWws7plIDUuPjf3GUTOnyYEfXQx7cH"
+        "secret": ""
     },
 	"loading" : {
+		"verifyOnLoading" : false,
 		"loadPerIteration" : 5000
     }
 }

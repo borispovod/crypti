@@ -6,7 +6,10 @@ var crypto = require('crypto'),
 	Router = require('../helpers/router.js'),
 	arrayHelper = require('../helpers/array.js'),
 	slots = require('../helpers/slots.js'),
-	schedule = require('node-schedule');
+	schedule = require('node-schedule'),
+	util = require('util');
+
+require('array.prototype.find'); //old node fix
 
 //private fields
 var modules, library, self;
@@ -37,15 +40,14 @@ function attachApi() {
 
 	router.put('/', function (req, res) {
 		var secret = params.string(req.body.secret),
-			publicKey = params.string(req.body.publicKey),
-			secondSecret = params.string(req.body.secondSecret),
-			username = params.string(req.body.username),
-			votingType = params.int(req.body.votingType);
+			publicKey = params.string(req.body.publicKey, true),
+			secondSecret = params.string(req.body.secondSecret, true),
+			username = params.string(req.body.username);
 
 		var hash = crypto.createHash('sha256').update(secret, 'utf8').digest();
 		var keypair = ed.MakeKeypair(hash);
 
-		if (publicKey.length > 0) {
+		if (publicKey) {
 			if (keypair.publicKey.toString('hex') != publicKey) {
 				return res.json({success: false, error: "Please, provide valid secret key of your account"});
 			}
@@ -70,8 +72,7 @@ function attachApi() {
 			asset: {
 				delegate: {
 					username: username
-				},
-				votes: []
+				}
 			}
 		};
 
@@ -113,25 +114,20 @@ function getKeysSortByVote() {
 	return justKeys;
 }
 
-function getShuffleVotes() {
-	var delegatesIds = getKeysSortByVote();
-	var final = delegatesIds.slice(0, 33);
-	return shuffle(final);
-}
+function getBlockTime(slot, height, delegateCount) {
+	activeDelegates = getActiveDelegates(height, delegateCount);
 
-function forAllVote() {
-	return [];
-}
+	library.logger.log('getBlockTime ' + slot + ' ' + height + ' ' + delegateCount, activeDelegates.map(function (id) {
+		return id.substring(0, 4);
+	}))
 
-function getCurrentBlockTime() {
-	var activeDelegates = self.getActiveDelegates();
-	var currentSlot = slots.getSlotNumber();
+	var currentSlot = slot;
 	var lastSlot = slots.getLastSlot(currentSlot);
 
 	for (; currentSlot < lastSlot; currentSlot += 1) {
-		var delegate_pos = currentSlot % slots.delegates;
-		var delegate_id = activeDelegates[delegate_pos];
+		var delegate_pos = currentSlot % delegateCount;
 
+		var delegate_id = activeDelegates[delegate_pos];
 		if (delegate_id && myDelegate.publicKey == delegate_id) {
 			return slots.getSlotTime(currentSlot);
 		}
@@ -150,31 +146,39 @@ function loop(cb) {
 		return setImmediate(cb);
 	}
 
-	if (slots.getSlotNumber() == slots.getSlotNumber(modules.blocks.getLastBlock().timestamp)) {
+	var currentSlot = slots.getSlotNumber();
+	var lastBlock = modules.blocks.getLastBlock();
+
+	if (currentSlot == slots.getSlotNumber(lastBlock.timestamp)) {
 		library.logger.log('loop', 'exit: lastBlock is in the same slot');
 		return setImmediate(cb);
 	}
 
-	var currentBlockTime = getCurrentBlockTime();
+	var currentBlockTime = getBlockTime(currentSlot, lastBlock.height, slots.delegates);
 
-	if (currentBlockTime === null){
+	if (currentBlockTime === null) {
 		library.logger.log('loop', 'skip slot');
 		return setImmediate(cb);
 	}
 
+	setImmediate(cb);
+
 	library.sequence.add(function (cb) {
 		if (slots.getSlotNumber(currentBlockTime) == slots.getSlotNumber()) {
-			library.logger.log('loop', 'generate in slot: ' + slots.getSlotNumber(currentBlockTime));
-			modules.blocks.generateBlock(keypair, cb);
+			modules.blocks.generateBlock(keypair, currentBlockTime, function (err) {
+				library.logger.log('new block ' + modules.blocks.getLastBlock().id + ' ' + modules.blocks.getLastBlock().height + ' ' + slots.getSlotNumber(currentBlockTime) + ' ' + lastBlock.height, activeDelegates.map(function (id) {
+					return id.substring(0, 4);
+				}))
+				cb(err);
+			});
 		} else {
-			library.logger.log('loop', 'exit: miss our slot');
+			library.logger.log('loop', 'exit: another delegate slot');
 			setImmediate(cb);
 		}
 	}, function (err) {
 		if (err) {
 			library.logger.error("Problem in block generation", err);
 		}
-		setImmediate(cb, err);
 	});
 }
 
@@ -183,49 +187,54 @@ function loadMyDelegates() {
 
 	if (secret) {
 		keypair = ed.MakeKeypair(crypto.createHash('sha256').update(secret, 'utf8').digest());
-		myDelegate = modules.delegates.getDelegate(keypair.publicKey.toString('hex'));
 		address = modules.accounts.getAddressByPublicKey(keypair.publicKey.toString('hex'));
 		account = modules.accounts.getAccount(address);
+		myDelegate = self.getDelegate(keypair.publicKey.toString('hex'));
 
 		library.logger.info("Forging enabled on account: " + address);
 	}
 }
 
-function updateActiveDelegates() {
-	var count = modules.blocks.getLastBlock().height - 1;
-	if (count % slots.delegates == 0) {
-		var seedSource = modules.blocks.getLastBlock().id;
-		var delegateIds = getKeysSortByVote();
-		var currentSeed = crypto.createHash('sha256').update(seedSource, 'utf8').digest();
-		for (var i = 0, delCount = delegateIds.length; i < delCount; i++) {
-			for (var x = 0; x < 4 && i < delCount; i++, x++) {
-				var newIndex = currentSeed[x] % delCount;
-				var b = delegateIds[newIndex];
-				delegateIds[newIndex] = delegateIds[i];
-				delegateIds[i] = b;
-			}
-			currentSeed = crypto.createHash('sha256').update(currentSeed).digest();
+function generateDelegateList(height) {
+	var seedSource = height.toString();
+	var delegateIds = getKeysSortByVote();
+	var currentSeed = crypto.createHash('sha256').update(seedSource, 'utf8').digest();
+	for (var i = 0, delCount = delegateIds.length; i < delCount; i++) {
+		for (var x = 0; x < 4 && i < delCount; i++, x++) {
+			var newIndex = currentSeed[x] % delCount;
+			var b = delegateIds[newIndex];
+			delegateIds[newIndex] = delegateIds[i];
+			delegateIds[i] = b;
 		}
-		activeDelegates = delegateIds;
+		currentSeed = crypto.createHash('sha256').update(currentSeed).digest();
 	}
-	return activeDelegates;
+
+	return delegateIds;
+}
+
+function getActiveDelegates(height, delegateCount) {
+	var count = height - 1;
+	var delegateIds;
+	var yes = !activeDelegates.length;
+
+	delegateIds = generateDelegateList(height);
+
+	if (yes) {
+		library.logger.log('init', getKeysSortByVote().map(function (id) {
+			return id.substring(0, 4);
+		}))
+	}
+
+	return delegateIds;
 }
 
 //public methods
-Delegates.prototype.getVotesByType = function (votingType) {
-	if (votingType == 1) {
-		return forAllVote();
-	} else if (votingType == 2) {
-		return getShuffleVotes();
-	} else {
-		return null;
-	}
-}
-
-Delegates.prototype.checkVotes = function (votes) {
-	if (votes.length == 0) {
+Delegates.prototype.checkDelegates = function (votes) {
+	if (votes === null) {
 		return true;
-	} else {
+	}
+
+	if (util.isArray(votes)) {
 		votes.forEach(function (publicKey) {
 			if (!delegates[publicKey]) {
 				return false;
@@ -233,26 +242,8 @@ Delegates.prototype.checkVotes = function (votes) {
 		});
 
 		return true;
-	}
-}
-
-Delegates.prototype.voting = function (publicKeys, amount) {
-	amount = amount || 0
-	if (publicKeys.length > 33) {
-		publicKeys = publicKeys.slice(0, 33);
-	}
-	if (publicKeys.length == 0) {
-		Object.keys(delegates).forEach(function (publicKey) {
-			if (delegates[publicKey]) {
-				delegates[publicKey].vote = (delegates[publicKey].vote || 0) + amount;
-			}
-		});
 	} else {
-		publicKeys.forEach(function (publicKey) {
-			if (delegates[publicKey]) {
-				delegates[publicKey].vote = (delegates[publicKey].vote || 0) + amount;
-			}
-		});
+		return false;
 	}
 }
 
@@ -260,9 +251,11 @@ Delegates.prototype.getDelegate = function (publicKey) {
 	return delegates[publicKey];
 }
 
-Delegates.prototype.getActiveDelegates = function () {
-	var delegates = updateActiveDelegates();
-	return delegates;
+Delegates.prototype.getDelegateByName = function (userName) {
+	var delegatesArray = arrayHelper.hash2array(delegates);
+	return delegatesArray.find(function (item) {
+		return item.username === userName;
+	})
 }
 
 Delegates.prototype.cache = function (delegate) {
@@ -273,6 +266,31 @@ Delegates.prototype.cache = function (delegate) {
 Delegates.prototype.uncache = function (delegate) {
 	delete delegates[delegate.publicKey];
 	slots.delegates = Math.min(101, Object.keys(delegates).length)
+}
+
+Delegates.prototype.validateBlockSlot = function (block, cb) {
+	library.dbLite.query("select count(*) from blocks b inner join trs t on b.id = t.blockId and t.type = 2 where b.height <= $height", {height: block.height}, {"count": Number}, function (err, rows) {
+		if (err || !rows.length) {
+			return cb(err || 'delegates not found');
+		}
+		var delegateCount = rows[0].count;
+
+		var activeDelegates = generateDelegateList(block.height - 1);
+
+		var currentSlot = slots.getSlotNumber(block.timestamp);
+		var delegate_id = activeDelegates[currentSlot % delegateCount];
+		if (delegate_id && block.generatorPublicKey == delegate_id) {
+			library.logger.log('validation pass', activeDelegates.map(function (id) {
+				return id.substring(0, 4);
+			}))
+			return cb(null, true);
+		}
+
+		library.logger.log('validation fail', activeDelegates.map(function (id) {
+			return id.substring(0, 4);
+		}))
+		cb(null, false);
+	});
 }
 
 //events
@@ -288,37 +306,45 @@ Delegates.prototype.onBlockchainReady = function () {
 	process.nextTick(function nextLoop() {
 		loop(function (err) {
 			err && library.logger.error('delegate loop', err);
+
 			var nextSlot = slots.getNextSlot();
+
 			var scheduledTime = slots.getSlotTime(nextSlot);
 			scheduledTime = scheduledTime <= slots.getTime() ? scheduledTime + 1 : scheduledTime;
-			schedule.scheduleJob(new Date(slots.getRealTime(scheduledTime)), nextLoop);
+			schedule.scheduleJob(new Date(slots.getRealTime(scheduledTime) + 1000), nextLoop);
 		})
 	});
 }
 
-Delegates.prototype.onUnconfirmedTransaction = function (transaction) {
-	if (transaction.asset.delegate) {
-		var delegate = {
-			publicKey: transaction.senderPublicKey,
-			username: transaction.asset.delegate.username,
-			transactionId: transaction.id
-		};
-		addUnconfirmedDelegate(delegate);
+Delegates.prototype.onReceiveBlock = function () {
+	if (keypair) {
+		myDelegate = self.getDelegate(keypair.publicKey.toString('hex'));
 	}
 }
 
-//Delegates.prototype.onNewBlock = function (block) {
-//	for (var i = 0; i < block.transactions.length; i++) {
-//		var transaction = block.transactions[i];
-//		if (transaction.type == 2) {
-//			self.cache({
-//				publicKey: transaction.senderPublicKey,
-//				username: transaction.asset.delegate.username,
-//				transactionId: transaction.id
-//			});
-//		}
-//	}
-//}
+Delegates.prototype.onChangeBalance = function (account, amount) {
+	amount = amount / 1000000000;
+	if (util.isArray(account.delegates)) {
+		account.delegates.forEach(function (publicKey) {
+			delegates[publicKey].vote = (delegates[publicKey].vote || 0) + amount;
+		});
+	}
+}
+
+Delegates.prototype.onChangeDelegates = function (account, newDelegates) {
+	var balance = account.balance / 1000000000;
+	if (util.isArray(account.delegates)) {
+		account.delegates.forEach(function (publicKey) {
+			delegates[publicKey].vote = (delegates[publicKey].vote || 0) - balance;
+		});
+	}
+
+	if (util.isArray(newDelegates)) {
+		newDelegates.forEach(function (publicKey) {
+			delegates[publicKey].vote = (delegates[publicKey].vote || 0) + balance;
+		});
+	}
+}
 
 //export
 module.exports = Delegates;

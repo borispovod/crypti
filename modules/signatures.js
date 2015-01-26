@@ -37,7 +37,7 @@ function attachApi() {
 	router.get('/get', function (req, res) {
 		var id = params.string(req.query.id);
 
-		if (!id || id.length == 0) {
+		if (!id) {
 			return res.json({success: false, error: "Provide id in url"});
 		}
 
@@ -53,8 +53,7 @@ function attachApi() {
 	router.put('/', function (req, res) {
 		var secret = params.string(req.body.secret),
 			secondSecret = params.string(req.body.secondSecret),
-			publicKey = params.string(req.body.publicKey),
-			votingType = params.int(req.body.votingType);
+			publicKey = params.string(req.body.publicKey, true);
 
 		var hash = crypto.createHash('sha256').update(secret, 'utf8').digest();
 		var keypair = ed.MakeKeypair(hash);
@@ -67,7 +66,7 @@ function attachApi() {
 			return res.json({success: false, error: "Provide second secret key"});
 		}
 
-		if (publicKey.length > 0) {
+		if (publicKey) {
 			if (keypair.publicKey.toString('hex') != publicKey) {
 				return res.json({success: false, error: "Please, provide valid secret key of your account"});
 			}
@@ -87,12 +86,6 @@ function attachApi() {
 			return res.json({success: false, error: "Second signature already enabled"});
 		}
 
-		var votes = modules.delegates.getVotesByType();
-
-		if (!votes) {
-			return res.json({success: false, error: "Invalid voting type"});
-		}
-
 		var signature = self.newSignature(secret, secondSecret);
 		var transaction = {
 			type: 1,
@@ -101,8 +94,7 @@ function attachApi() {
 			senderPublicKey: account.publicKey,
 			timestamp: slots.getTime(),
 			asset: {
-				signature: signature,
-				votes: votes
+				signature: signature
 			}
 		};
 
@@ -166,20 +158,14 @@ function secondSignature(signature, secret) {
 
 //public methods
 Signatures.prototype.get = function (id, cb) {
-	var stmt = library.db.prepare("select s.id s_id, s.transactionId s_transactionId, s.timestamp s_timestamp, s.publicKey s_publicKey, s.generatorPublicKey s_generatorPublicKey, s.signature s_signature, s.generationSignature s_generationSignature " +
+	library.dbLite.query("select s.id, s.transactionId, s.timestamp, lower(hex(s.publicKey)), lower(hex(s.generatorPublicKey)), lower(hex(s.signature)), lower(hex(s.generationSignature)) " +
 	"from signatures s " +
-	"where s.id = $id");
-
-	stmt.bind({
-		$id: id
-	});
-
-	stmt.get(function (err, row) {
-		if (err || !row) {
+	"where s.id = $id", {id: id}, ['s_id', 's_transactionId', 's_timestamp', 's_publicKey', 's_generatorPublicKey', 's_signature', 's_generationSignature'], function (err, rows) {
+		if (err || !rows.length) {
 			return cb(err || "Can't find signature: " + id);
 		}
 
-		var signature = relational.getSignature(row, false, true);
+		var signature = relational.getSignature(row[0]);
 		cb(null, signature);
 	});
 }
