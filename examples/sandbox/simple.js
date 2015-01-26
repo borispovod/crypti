@@ -3,19 +3,19 @@ var sandbox = require('./main.js');
 
 
 // Run strict
-sandbox.run('done(null, true)', function(err){
+sandbox.eval('done(null, true)', function(err, result){
     if (err) {
-        console.log(err.stack);
+        console.log(err.stack||err.message);
     } else {
-        console.log('Done');
+        console.log('Done', result);
     }
 });
 
 // Run delayed
-sandbox.run('setTimeout(function(){ done(null, true); }, 300)', function(err){
+sandbox.eval('setTimeout(function(){ done(null, true); }, 300)', function(err, result){
     if (err) {
-        console.log(err.stack);
+        console.log(err.stack||err.message);
     } else {
-        console.log('Done');
+        console.log('Done', result);
     }
 });

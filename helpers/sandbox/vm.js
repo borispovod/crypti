@@ -33,7 +33,7 @@ var scope = new Scope({
         context : {
             setTimeout : setTimeout
         },
-        exec : function(done, script) {
+        eval : function(done, script) {
             var context = util._extend(this.context);
             var source = "(function(done){ " + script.source + '\n});';
             var call;
@@ -111,7 +111,7 @@ function exec(call, callback) {
     while (method.length > 1) {
         cur = method.shift();
         if (typeof target[cur] !== "object") {
-            return done({error:"Method '" + call.method + "' not found"});
+            return done({message:"Method '" + call.method + "' not found"});
         }
 
         target = target[cur];
@@ -119,7 +119,7 @@ function exec(call, callback) {
 
     cur = method.shift();
     if (typeof target[cur] !== "function") {
-        return done({error:"Method '" + call.method + "' not found"});
+        return done({message:"Method '" + call.method + "' not found"});
     }
 
     try {

@@ -208,16 +208,9 @@ Sandbox.prototype.resolveOrder = function() {
  * @param {object,string} script Script object
  * @param {function(error,result,session)} callback
  */
-Sandbox.prototype.run = function(script, callback) {
-    if (typeof script === 'string') {
-        script = {
-            filename : '@vm',
-            source : script
-        };
-    }
-
+Sandbox.prototype.run = function(process, callback) {
     if (this.running) {
-        this._queue.push([script, callback]);
+        this._queue.push([process, callback]);
         return this;
     }
 
@@ -242,20 +235,10 @@ Sandbox.prototype.run = function(script, callback) {
             return {
                 name : 'exec',
                 _ : function(next) {
-                    // Do not run script if there is a error
+                    // Do nothing if there is a error
                     if (self.hasError) return next();
 
-                    // Run script
-                    self._state = 'exec';
-                    self.process.exec('vm.exec', [script], function(err, result){
-                        if (stopped) return;
-
-                        if (err) return next(err);
-
-                        self.hasResult = true;
-                        self.result = result;
-                        next();
-                    });
+                    process(next, session);
                 },
                 x : function() {
                     stopped = true;
@@ -321,21 +304,21 @@ Sandbox.prototype.run = function(script, callback) {
                         }
                     });
 
-                    callback = callback.bind(null, _error, null, session);
-                } else if (! self.hasResult) {
-                    callback = callback.bind(null, new Error('No result passed'), null, session);
+                    callback = callback.bind(session, _error, null);
+                //} else if (! self.hasResult) {
+                //    callback = callback.bind(session, new Error('No result passed'), null);
                 }  else {
-                    callback = callback.bind(null, null, self.result, session);
+                    callback = callback.bind(session, null);
                 }
             } catch (err) {
-                callback = callback.bind(null, err);
+                callback = callback.bind(session, err);
             }
 
             self._state = null;
             self._stack = null;
             self.running = false;
 
-            self.emit('end', script, session);
+            self.emit('end', session);
             setImmediate(callback);
 
 
@@ -367,20 +350,64 @@ Sandbox.prototype.run = function(script, callback) {
 
     this.running = true;
     this.hasError = false;
-    this.hasResult = false;
     this.result = null;
 
     this._state = null;
     this._stack = stack;
     this._session = session;
 
-    self.emit('start', script, session);
+    self.emit('start', session);
     stack.run();
     return this;
 };
 
 /**
- * Emit sandbox error and intercept current async call
+ * Execute method inside vm with specified arguments. Result callback get `err`, `result` and `session` arguments.
+ *
+ * @param {String} method Method path like `echo`, `vm.exec` or `api.register`
+ * @param {Array} args List of arguments. Values should be primitives (not functions or instances without toJSON method)
+ * @param {Function} callback Result callback
+ * @returns {*}
+ */
+Sandbox.prototype.exec = function(method, args, callback) {
+    if (arguments.length < 3) {
+        callback = args;
+        args = [];
+    }
+
+    var self = this;
+    var args;
+
+    return this.run(function(done){
+        self.process.exec(method, args, function(err, result){
+            args = Array.prototype.slice.call(arguments, 1);
+            done(err);
+        });
+    }, function(err){
+        callback.apply(this, [err].concat(args));
+    });
+};
+
+/**
+ * Evaluate script inside vm
+ * @param script
+ * @param callback
+ * @returns {*}
+ */
+Sandbox.prototype.eval = function(script, callback) {
+    if (typeof script === 'string') {
+        script = {
+            filename : '@vm',
+            source : script
+        };
+    }
+
+    return this.exec('vm.eval', [script], callback);
+};
+
+/**
+ * Emit sandbox error and intercept current async call.
+ *
  * @param {Error} err Error object
  */
 Sandbox.prototype.error = function(err) {

@@ -37,7 +37,7 @@ describe('Sandbox.', function(){
 
     describe('Method run().', function() {
         it('Should run code.', function(done){
-            sandbox.run('done(null,true)', function(err, result){
+            sandbox.eval('done(null,true)', function(err, result){
                 should(err).equal(null, 'Error should equal null');
                 should(result).equal(true, 'Result is true');
                 done();
@@ -45,7 +45,7 @@ describe('Sandbox.', function(){
         });
 
         it('Should call setTimeout', function(done){
-            sandbox.run('setTimeout(done.bind(null, null, true))', function(err, result){
+            sandbox.eval('setTimeout(done.bind(null, null, true))', function(err, result){
                 should(err).equal(null, 'No error is passed');
                 should(result).equal(true, 'Result is true');
                 done();
@@ -56,7 +56,7 @@ describe('Sandbox.', function(){
         it('Should reach timer limit', function(done){
             sandbox.process.options.limitTime = 100;
 
-            sandbox.run('setTimeout(done, 1000)', function(err){
+            sandbox.eval('setTimeout(done, 1000)', function(err){
                 sandbox.process.options.limitTime = 1000;
                 should(err).not.equal(null, '`err` not empty');
 
@@ -65,7 +65,7 @@ describe('Sandbox.', function(){
         });
 
         it('Should not reach CPU limit 25%', function(done){
-            sandbox.run('setTimeout(done, 500);', function(err){
+            sandbox.eval('setTimeout(done, 500);', function(err){
                 should(err).equal(null, '`err` is empty');
 
                 done();
@@ -74,7 +74,7 @@ describe('Sandbox.', function(){
 
         it('Should reach sandbox.cpuLimit 1%', function(done){
             sandbox.cpuLimit = 1;
-            sandbox.run('setTimeout(done, 1000)', function(err){
+            sandbox.eval('setTimeout(done, 1000)', function(err){
                 should(err).not.equal(null, '`err` is not null');
                 sandbox.cpuLimit = 25;
                 done();
@@ -90,7 +90,7 @@ describe('Sandbox.', function(){
                 }
             });
 
-            sandbox.run('done(null, typeof callApi)', function(err, type){
+            sandbox.eval('done(null, typeof callApi)', function(err, type){
                 should(err).equal(null, '`err` is null');
                 should(type).equal('function', 'callApi should be function');
                 done();
@@ -98,7 +98,7 @@ describe('Sandbox.', function(){
         });
 
         it('Should call api method', function(done){
-            sandbox.run('callApi(done)', function(err, result){
+            sandbox.eval('callApi(done)', function(err, result){
                 should(err).equal(null, '`err` is null');
                 should(result).equal(true, 'Result is `true`');
 
@@ -116,7 +116,7 @@ describe('Sandbox.', function(){
         //        }
         //    });
         //
-        //    sandbox.run('nested.method(done)', function(err, result){
+        //    sandbox.eval('nested.method(done)', function(err, result){
         //        should(err).equal(null, 'There is no error');
         //        should(result).equal(true);
         //
