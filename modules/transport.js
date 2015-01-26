@@ -42,12 +42,12 @@ function attachApi() {
 			ip: ip.toLong(peerIp),
 			port: params.int(req.headers['port']),
 			state: 2,
-			os: params.string(req.headers['os']),
+			os: params.string(req.headers['os'], true),
 			sharePort: Number(!!params.int(req.headers['share-port'])),
-			version: params.string(req.headers['version'])
+			version: params.string(req.headers['version'], true)
 		};
 
-		if (peer.port != 5040) return;
+		if (peer.port != 8040) return;
 
 		if (peer.port > 0 && peer.port <= 65535) {
 			modules.peer.update(peer);
@@ -70,14 +70,14 @@ function attachApi() {
 			return res.json({success: false, error: "Provide id in url"});
 		}
 
-		library.db.all("SELECT id FROM blocks WHERE height > (SELECT height FROM blocks where id=$id) ORDER BY height LIMIT 1440", {$id: id}, function (err, blocks) {
+		library.dbLite.query("SELECT id FROM blocks WHERE height > (SELECT height FROM blocks where id=$id) ORDER BY height LIMIT 1440", {id: id}, ['id'], function (err, rows) {
 			if (err) {
 				return res.status(200).json({success: false, error: "Internal sql error"});
 			}
 
 			var ids = [];
-			for (var i = 0; i < blocks.length; i++) {
-				ids.push(blocks[i].id);
+			for (var i = 0; i < rows.length; i++) {
+				ids.push(rows[i].id);
 			}
 			res.status(200).json({ids: ids});
 		});
@@ -86,8 +86,8 @@ function attachApi() {
 	router.get("/blocks/milestone", function (req, res) {
 		res.set(headers);
 
-		var lastBlockId = params.string(req.query.lastBlockId);
-		var lastMilestoneBlockId = params.string(req.query.lastMilestoneBlockId);
+		var lastBlockId = params.string(req.query.lastBlockId, true);
+		var lastMilestoneBlockId = params.string(req.query.lastMilestoneBlockId, true);
 		if (!lastBlockId && !lastMilestoneBlockId) {
 			return res.json({success: false, error: "Error, provide lastBlockId or lastMilestoneBlockId"});
 		}
@@ -103,10 +103,12 @@ function attachApi() {
 		async.series([
 			function (cb) {
 				if (lastMilestoneBlockId) {
-					library.db.get("SELECT height FROM blocks WHERE id=$id", {$id: lastMilestoneBlockId}, function (err, block) {
+					library.dbLite.query("SELECT height FROM blocks WHERE id=$id", {id: lastMilestoneBlockId}, {"height": Number}, function (err, rows) {
 						if (err) {
 							return cb("Internal sql error");
 						}
+
+						var block = rows.length && rows[0];
 
 						if (!block) {
 							cb("Can't find block: " + lastMilestoneBlockId);
@@ -129,10 +131,12 @@ function attachApi() {
 			if (error) {
 				return res.status(200).json({success: false, error: error});
 			} else {
-				library.db.get("SELECT id FROM blocks WHERE height = $height", {$height: height}, function (err, block) {
+				library.dbLite.query("SELECT id FROM blocks WHERE height = $height", {height: height}, ['id'], function (err, rows) {
 					if (err) {
 						return res.status(200).json({success: false, error: "Internal sql error"});
 					}
+
+					var block = rows.length && rows[0];
 
 					if (!block) {
 						res.status(200).json({milestoneBlockIds: milestoneBlockIds});
@@ -145,10 +149,14 @@ function attachApi() {
 							},
 							function (next) {
 								milestoneBlockIds.push(blockId);
-								library.db.get("SELECT id FROM blocks WHERE height = $height", {$height: height}, function (err, block) {
+								library.dbLite.query("SELECT id FROM blocks WHERE height = $height", {height: height}, ['id'], function (err, rows) {
 									if (err) {
-										next(err);
-									} else if (!block) {
+										return next(err);
+									}
+
+									var block = rows.length && rows[0];
+
+									if (!block) {
 										next("Internal error");
 									} else {
 										blockId = block.id;
@@ -237,7 +245,7 @@ function _request(peer, api, method, data, cb) {
 		timeout: 5000
 	};
 
-	if (peer.port != 5040) return cb && cb('old version');
+	if (peer.port != 8040) return cb && cb('old version');
 
 	library.logger.trace('request', req.url)
 
@@ -256,7 +264,7 @@ function _request(peer, api, method, data, cb) {
 			});
 
 			modules.peer.state(peer.ip, peer.port, 0, 60);
-			library.logger.log('ban 60 sec ' + req.method + ' ' + req.url)
+			library.logger.debug('ban 60 sec ' + req.method + ' ' + req.url)
 			cb && cb(err || ('request status code' + response.statusCode));
 			return;
 		}
@@ -267,9 +275,9 @@ function _request(peer, api, method, data, cb) {
 				ip: peer.ip,
 				port: port,
 				state: 2,
-				os: params.string(response.headers['os']),
+				os: params.string(response.headers['os'], true),
 				sharePort: Number(!!params.int(response.headers['share-port'])),
-				version: params.string(response.headers['version'])
+				version: params.string(response.headers['version'], true)
 			});
 		}
 

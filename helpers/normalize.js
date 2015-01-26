@@ -7,7 +7,7 @@ function normalizeBlock(block) {
 	block.version = params.int(block.version);
 	block.timestamp = params.int(block.timestamp);
 	block.height = params.int(block.height);
-	block.previousBlock = params.string(block.previousBlock);
+	block.previousBlock = params.string(block.previousBlock, true);
 	block.numberOfTransactions = params.int(block.numberOfTransactions);
 	block.totalAmount = params.int(block.totalAmount);
 	block.totalFee = params.int(block.totalFee);
@@ -18,7 +18,6 @@ function normalizeBlock(block) {
 	block.transactions = params.array(block.transactions);
 
 	for (var i = 0; i < block.transactions.length; i++) {
-		block.transactions[i] = params.object(block.transactions[i])
 		block.transactions[i] = normalizeTransaction(block.transactions[i]);
 	}
 
@@ -30,9 +29,13 @@ function normalizeDelegate(delegate, transaction) {
 	delegate = params.object(delegate);
 
 	delegate.username = params.string(delegate.username);
-	delegate.publicKey = params.string(transaction.senderPublicKey),
-	delegate.transactionId = params.string(transaction.id)
+	delegate.publicKey = params.string(transaction.senderPublicKey);
+	delegate.transactionId = params.string(transaction.id);
 	return delegate;
+}
+
+function normalizeVotes(votes) {
+	return params.array(votes, true);
 }
 
 function normalizePeer(peer) {
@@ -41,9 +44,9 @@ function normalizePeer(peer) {
 	peer.ip = params.int(peer.ip);
 	peer.port = params.int(peer.port);
 	peer.state = params.int(peer.state);
-	peer.os = params.string(peer.os);
+	peer.os = params.string(peer.os, true);
 	peer.sharePort = params.bool(peer.sharePort);
-	peer.version = params.string(peer.version);
+	peer.version = params.string(peer.version, true);
 	return peer;
 }
 
@@ -70,33 +73,30 @@ function normalizeTransaction(transaction) {
 	transaction.timestamp = params.int(transaction.timestamp);
 	transaction.senderPublicKey = params.string(transaction.senderPublicKey);
 	transaction.senderId = params.string(transaction.senderId);
-	transaction.recipientId = params.string(transaction.recipientId);
+	transaction.recipientId = params.string(transaction.recipientId, true);
 	transaction.amount = params.int(transaction.amount);
 	transaction.fee = params.int(transaction.fee);
 	transaction.signature = params.string(transaction.signature);
+	transaction.signSignature = params.string(transaction.signSignature, true);
 	transaction.asset = params.object(transaction.asset);
 
-	if (transaction.signSignature) {
-		transaction.signSignature = params.string(transaction.signSignature);
+	switch (transaction.type) {
+		case 1:
+			transaction.asset.signature = normalizeSignature(transaction.asset.signature);
+			break;
+		case 2:
+			transaction.asset.delegate = normalizeDelegate(transaction.asset.delegate, transaction);
+			break;
+		case 3:
+			transaction.asset.votes = normalizeVotes(transaction.asset.votes);
+			break;
 	}
-
-	if (transaction.type == 1) {
-		transaction.asset.signature = normalizeSignature(transaction.asset.signature);
-	}
-
-	if (transaction.type == 2) {
-		transaction.asset.delegate = normalizeDelegate(transaction.asset.delegate, transaction);
-	}
-
-	transaction.asset.votes = params.array(transaction.asset.votes);
 
 	return transaction;
 }
 
 module.exports = {
 	block: normalizeBlock,
-	delegate: normalizeDelegate,
 	peer: normalizePeer,
-	signature: normalizeSignature,
 	transaction: normalizeTransaction
 }

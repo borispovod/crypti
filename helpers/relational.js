@@ -136,8 +136,6 @@ function getSignature(raw) {
 	if (!raw.s_id) {
 		return null
 	} else {
-		var enconding = null;
-
 		var signature = {
 			id: raw.s_id,
 			transactionId: raw.t_id,
@@ -153,11 +151,13 @@ function getSignature(raw) {
 }
 
 function getVotes(raw) {
-	var votes = [];
-	if (raw.v_votes) {
-		votes = raw.v_votes.split(',');
+	if (!raw.v_votes) {
+		return null
+	} else {
+		var votes = raw.v_votes.split(',');
+
+		return votes;
 	}
-	return votes;
 }
 
 module.exports = {

@@ -29,7 +29,7 @@ module.exports = {
 			epochTime = this.getTime()
 		}
 		var d = new Date(Date.UTC(2014, 4, 2, 0, 0, 0, 0));
-		var t = d.getTime();
+		var t = Math.floor(d.getTime() / 1000) * 1000;
 		return t + epochTime * 1000;
 	},
 

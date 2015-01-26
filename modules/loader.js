@@ -63,7 +63,7 @@ function loadBlocks(lastBlock, cb) {
 		}
 
 		var peerStr = data.peer ? ip.fromLong(data.peer.ip) + ":" + data.peer.port : 'unknown';
-		library.logger.info("Load blocks from " + peerStr);
+		library.logger.debug("Load blocks from " + peerStr);
 
 		if (bignum(modules.blocks.getLastBlock().height).lt(params.string(data.body.height))) {
 			sync = true;
@@ -83,12 +83,13 @@ function loadBlocks(lastBlock, cb) {
 							return cb(err);
 						}
 
-
 						if (lastBlock.id != commonBlockId) {
-							library.db.get("SELECT height FROM blocks WHERE id=$id", {$id: commonBlockId}, function (err, block) {
-								if (err || !block) {
+							library.dbLite.query("SELECT height FROM blocks WHERE id=$id", {id: commonBlockId}, {"height": Number}, function (err, rows) {
+								if (err || !rows.length) {
 									return cb(err || 'block is null');
 								}
+
+								var block = rows[0];
 
 								if (lastBlock.height - block.height > 1440) {
 									modules.peer.state(data.peer.ip, data.peer.port, 0, 3600);
@@ -99,7 +100,7 @@ function loadBlocks(lastBlock, cb) {
 										if (err) {
 											return setImmediate(cb, err);
 										}
-										library.logger.info("Load blocks from peer " + peerStr);
+										library.logger.debug("Load blocks from peer " + peerStr);
 										modules.blocks.loadBlocksFromPeer(data.peer, commonBlockId, function (err) {
 											if (err) {
 												library.logger.error(err);
@@ -125,14 +126,14 @@ function loadBlocks(lastBlock, cb) {
 								}
 							});
 						} else { //found common block
-							library.logger.info("Load blocks from peer " + peerStr);
+							library.logger.debug("Load blocks from peer " + peerStr);
 							modules.blocks.loadBlocksFromPeer(data.peer, commonBlockId, cb);
 						}
 					})
 				})
 			} else { //have to load full db
 				var commonBlockId = genesisBlock.blockId;
-				library.logger.info("Load blocks from genesis from " + peerStr);
+				library.logger.debug("Load blocks from genesis from " + peerStr);
 				modules.blocks.loadBlocksFromPeer(data.peer, commonBlockId, cb);
 			}
 		} else {
@@ -185,7 +186,6 @@ function loadBlockChain() {
 					});
 				})
 			}, function (err) {
-				library.dbLite.close();
 				if (err) {
 					library.logger.error('loadBlocksOffset', err);
 					if (err.block) {

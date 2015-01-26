@@ -2,6 +2,7 @@ var crypto = require('crypto'),
 	bignum = require('bignum'),
 	ed = require('ed25519'),
 	params = require('../helpers/params.js'),
+	slots = require('../helpers/slots.js'),
 	Router = require('../helpers/router.js');
 
 //private
@@ -11,12 +12,13 @@ var accounts = {};
 
 function Account(address, publicKey, balance, unconfirmedBalance) {
 	this.address = address;
-	this.publicKey = publicKey;
+	this.publicKey = publicKey || null;
 	this.balance = balance || 0;
 	this.unconfirmedBalance = unconfirmedBalance || 0;
 	this.unconfirmedSignature = false;
 	this.secondSignature = false;
 	this.secondPublicKey = null;
+	this.delegates = null;
 }
 
 Account.prototype.setUnconfirmedSignature = function (unconfirmedSignature) {
@@ -29,18 +31,16 @@ Account.prototype.setSecondSignature = function (secondSignature) {
 
 Account.prototype.addToBalance = function (amount) {
 	this.balance += amount;
+	library.bus.message('changeBalance', this, amount);
 }
 
 Account.prototype.addToUnconfirmedBalance = function (amount) {
 	this.unconfirmedBalance += amount;
 }
 
-Account.prototype.setBalance = function (balance) {
-	this.balance = balance;
-}
-
-Account.prototype.setUnconfirmedBalance = function (unconfirmedBalance) {
-	this.unconfirmedBalance = unconfirmedBalance;
+Account.prototype.updateDelegateList = function (delegateIds) {
+	library.bus.message('changeDelegates', this, delegateIds);
+	this.delegates = delegateIds;
 }
 
 //constructor
@@ -80,7 +80,7 @@ function attachApi() {
 				publicKey: account.publicKey,
 				unconfirmedSignature: account.unconfirmedSignature,
 				secondSignature: account.secondSignature,
-				secondPublicKey: account.secondPublicKey || null
+				secondPublicKey: account.secondPublicKey
 			}
 		});
 	});
@@ -126,6 +126,77 @@ function attachApi() {
 		return res.json({success: true, publicKey: account.publicKey});
 	});
 
+	router.get("/delegates", function (req, res) {
+		var address = params.string(req.query.address);
+
+		if (!address) {
+			return res.json({success: false, error: "Provide address in url"});
+		}
+
+		var account = self.getAccount(address);
+
+		return res.json({success: true, delegates: account.delegates});
+	});
+
+	router.put("/delegates", function (req, res) {
+		var secret = params.string(req.body.secret),
+			publicKey = params.string(req.body.publicKey, true),
+			secondSecret = params.string(req.body.secondSecret, true),
+			delegates = params.array(req.body.delegates, true);
+
+		var hash = crypto.createHash('sha256').update(secret, 'utf8').digest();
+		var keypair = ed.MakeKeypair(hash);
+
+		if (publicKey) {
+			if (keypair.publicKey.toString('hex') != publicKey) {
+				return res.json({success: false, error: "Please, provide valid secret key of your account"});
+			}
+		}
+
+		if (delegates && delegates.length > 33){
+			return res.json({success: false, error: "Please, provide less 33 delegates"});
+		}
+
+		var account = self.getAccountByPublicKey(keypair.publicKey.toString('hex'));
+
+		if (!account) {
+			return res.json({success: false, error: "Account doesn't has balance"});
+		}
+
+		if (!account.publicKey) {
+			return res.json({success: false, error: "Open account to make transaction"});
+		}
+
+		var transaction = {
+			type: 3,
+			amount: 0,
+			recipientId: account.address,
+			senderPublicKey: account.publicKey,
+			timestamp: slots.getTime(),
+			asset: {
+				votes: delegates
+			}
+		};
+
+		modules.transactions.sign(secret, transaction);
+
+		if (account.secondSignature) {
+			if (!secondSecret || secondSecret.length == 0) {
+				return res.json({success: false, error: "Provide second secret key"});
+			}
+
+			modules.transactions.secondSign(secondSecret, transaction);
+		}
+
+		modules.transactions.processUnconfirmedTransaction(transaction, true, function (err) {
+			if (err) {
+				return res.json({success: false, error: err});
+			}
+
+			res.json({success: true, transaction: transaction});
+		});
+	});
+
 	router.get("/", function (req, res) {
 		var address = params.string(req.query.address);
 
@@ -145,10 +216,10 @@ function attachApi() {
 				address: account.address,
 				unconfirmedBalance: account.unconfirmedBalance,
 				balance: account.balance,
-				publicKey: account.publicKey || null,
+				publicKey: account.publicKey,
 				unconfirmedSignature: account.unconfirmedSignature,
 				secondSignature: account.secondSignature,
-				secondPublicKey: account.secondPublicKey || null
+				secondPublicKey: account.secondPublicKey
 			}
 		});
 	})
@@ -230,6 +301,12 @@ Accounts.prototype.getAccountOrCreateByAddress = function (address) {
 
 Accounts.prototype.getAllAccounts = function () {
 	return accounts;
+}
+
+Accounts.prototype.getDelegates = function (publicKey) {
+	var account = self.getAccountByPublicKey(publicKey);
+	return account.delegates;
+
 }
 
 //events
