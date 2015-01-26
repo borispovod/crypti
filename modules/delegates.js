@@ -258,6 +258,7 @@ Delegates.prototype.getDelegateByName = function (userName) {
 	})
 }
 
+
 Delegates.prototype.cache = function (delegate) {
 	delegates[delegate.publicKey] = delegate;
 	slots.delegates = Math.min(101, Object.keys(delegates).length)

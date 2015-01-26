@@ -957,7 +957,24 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 									if (transaction.senderId != transaction.recipientId) {
 										return cb("Invalid recipient");
 									}
+
+									if (!transaction.asset.delegate.username) {
+										return cb && cb("Empty transaction asset for delegate transaction");
+									}
+
+									if (transaction.asset.delegate.username.length == 0 || transaction.asset.delegate.username.length > 30) {
+										return cb && cb("Incorrect delegate username length");
+									}
+
+									if (modules.delegates.getDelegateByName(transaction.asset.delegate.username)) {
+										return cb && cb("Delegate with this name is already exists");
+									}
+
+									if (modules.delegates.getDelegate(transaction.senderPublicKey)) {
+										return cb && cb("This account already delegate");
+									}
 								}
+
 
 								if (!modules.transactions.applyUnconfirmed(transaction)) {
 									return cb("Can't apply transaction: " + transaction.id);

@@ -388,6 +388,10 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 					if (modules.delegates.getDelegateByName(transaction.asset.delegate.username)) {
 						return cb && cb("Delegate with this name is already exists");
 					}
+
+					if (modules.delegates.getDelegate(transaction.senderPublicKey)) {
+						return cb && cb("This account already delegate");
+					}
 					break;
 				case 3:
 					if (transaction.recipientId != transaction.senderId) {

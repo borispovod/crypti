@@ -19,15 +19,11 @@
     },
     "peers": {
         "list": [
-			{
-				"ip" : "104.155.15.135",
-				"port" : 7040
-			}
 		],
         "blackList": []
     },
     "forging": {
-        "secret": ""
+        "secret": "F3DP835EBuZMAhiuYn2AzhJh1lz8glLolghCMD4X8lRh5v2GlcBWws7plIDUuPjf3GUTOnyYEfXQx7cH"
     },
 	"loading" : {
 		"verifyOnLoading" : true,
