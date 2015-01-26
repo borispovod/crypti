@@ -2,11 +2,7 @@ var Logger = require('./logger.js');
 var appConfig = require("./config.json");
 var logger = new Logger({echo: appConfig.consoleLogLevel, errorLevel: appConfig.fileLogLevel});
 var async = require('async');
-var SegfaultHandler = require('segfault-handler');
 var compression = require('compression');
-
-SegfaultHandler.registerHandler();
-
 
 process.on('uncaughtException', function (err) {
 	// handle the error safely

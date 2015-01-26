@@ -223,11 +223,11 @@ Blocks.prototype.list = function (filter, cb) {
 		parameters.generatorPublicKey = params.buffer(filter.generatorPublicKey, 'hex').toString('hex').toUpperCase();
 	}
 
-	if (filter.limit > 0) {
+	if (filter.limit) {
 		parameters.limit = params.int(filter.limit);
 	}
 
-	if (filter.offset > 0) {
+	if (filter.offset) {
 		parameters.offset = params.int(filter.offset);
 	}
 
@@ -265,7 +265,6 @@ Blocks.prototype.list = function (filter, cb) {
 	if (params.int(filter.limit) > 1000) {
 		return cb('Maximum of limit is 1000');
 	}
-
 
 	library.dbLite.query("select b.id b_id, b.version b_version, b.timestamp b_timestamp, b.height b_height, b.previousBlock b_previousBlock, b.numberOfRequests b_numberOfRequests, b.numberOfTransactions b_numberOfTransactions, b.numberOfConfirmations b_numberOfConfirmations, b.totalAmount b_totalAmount, b.totalFee b_totalFee, b.payloadLength b_payloadLength, b.requestsLength b_requestsLength, b.confirmationsLength b_confirmationsLength, hex(b.payloadHash) b_payloadHash, hex(b.generatorPublicKey) b_generatorPublicKey, hex(b.generationSignature) b_generationSignature, hex(b.blockSignature) b_blockSignature " +
 		"from blocks b " +

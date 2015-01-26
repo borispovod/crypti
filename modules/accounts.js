@@ -72,9 +72,9 @@ function Accounts(cb, scope) {
 				unconfirmedBalance: account.unconfirmedBalance,
 				balance: account.balance,
 				publicKey: account.publicKey.toString('hex'),
-				unconfirmedSignature : account.unconfirmedSignature,
-				secondSignature : account.secondSignature,
-				secondPublicKey : account.secondPublicKey? account.secondPublicKey.toString('hex') : null
+				unconfirmedSignature: account.unconfirmedSignature,
+				secondSignature: account.secondSignature,
+				secondPublicKey: account.secondPublicKey ? account.secondPublicKey.toString('hex') : null
 			}
 		});
 	});
@@ -130,7 +130,7 @@ function Accounts(cb, scope) {
 		var account = self.getAccount(address);
 
 		if (!account) {
-			return res.json({ success : false, error : "Account not found" });
+			return res.json({ success: false, error: "Account not found" });
 		}
 
 		return res.json({
@@ -139,10 +139,10 @@ function Accounts(cb, scope) {
 				address: account.address,
 				unconfirmedBalance: account.unconfirmedBalance,
 				balance: account.balance,
-				publicKey: account.publicKey? account.publicKey.toString('hex') : null,
-				unconfirmedSignature : account.unconfirmedSignature,
-				secondSignature : account.secondSignature,
-				secondPublicKey : account.secondPublicKey? account.secondPublicKey.toString('hex') : null
+				publicKey: account.publicKey ? account.publicKey.toString('hex') : null,
+				unconfirmedSignature: account.unconfirmedSignature,
+				secondSignature: account.secondSignature,
+				secondPublicKey: account.secondPublicKey ? account.secondPublicKey.toString('hex') : null
 			}
 		});
 	})

@@ -1,5 +1,5 @@
 {
-    "port": 5040,
+    "port": 6040,
     "address": "0.0.0.0",
     "serveHttpAPI": true,
     "serveHttpWallet": true,
@@ -19,10 +19,6 @@
     },
     "peers": {
         "list": [
-			{
-				"ip" : "127.0.0.1",
-				"port" : 5040
-			}
         ],
         "blackList": []
     },
@@ -30,7 +26,7 @@
         "secret": ""
     },
 	"loading" : {
-		"verifyOnLoading" : false,
+		"verifyOnLoading" : true,
 		"loadPerIteration" : 5000
 	}
 }

@@ -123,10 +123,6 @@ Peer.prototype.filter = function (filter, cb) {
 		}
 	}
 
-	if (filter.limit > 1000) {
-		return cb('Maximum of limit is 1000');
-	}
-
 	if (filter.ip) {
 		filter.ip = params.string(filter.ip);
 		where.push("ip = $ip");
@@ -167,6 +163,10 @@ Peer.prototype.filter = function (filter, cb) {
 		limit = params.int(limit);
 	} else {
 		limit = 100;
+	}
+
+	if (limit > 100) {
+		return cb('Maximum of limit is 100');
 	}
 
 	if (offset) {
