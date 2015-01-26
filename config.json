@@ -6,7 +6,7 @@
     "version": "0.2.0",
     "fileLogLevel": "info",
     "consoleLogLevel": "log",
-    "sharePort": false,
+    "sharePort": true,
     "adminPanel": {
         "whiteList": [
             "127.0.0.1"
@@ -27,7 +27,7 @@
         "blackList": []
     },
     "forging": {
-        "secret": ""
+        "secret": "4AMbeHpDvmtcHnCu5AWjbgzT4psH8RVMgjPnRNBbYUZxStBMSqGE"
     },
 	"loading" : {
 		"verifyOnLoading" : true,
