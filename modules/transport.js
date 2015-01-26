@@ -268,7 +268,7 @@ function _request(peer, api, method, data, cb) {
 		}
 
 		var port = params.int(response.headers['port']);
-		if (port > 0 && port <= 65535 && version == library.config.version) {
+		if (port > 0 && port <= 65535 && params.string(response.headers['version'], true) == library.config.version) {
 			modules.peer.update({
 				ip: peer.ip,
 				port: port,
