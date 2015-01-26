@@ -156,10 +156,7 @@ Peer.prototype.list = function (limit, cb) {
 	limit = limit || 100;
 	var params = {limit: limit};
 
-	console.log("here");
 	library.dbLite.query("select ip, port, state, os, sharePort, version from peers where state > 0 and sharePort = 1 ORDER BY RANDOM() LIMIT $limit", params, {"ip": String, "port": Number, "state": Number, "os": String, "sharePort": Number, "version": String}, function(err, rows){
-		console.log(cb);
-		console.log("go to callback");
 		cb(err, rows);
 	});
 }
