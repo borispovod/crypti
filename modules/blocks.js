@@ -317,7 +317,7 @@ function getForgedByAccount(generatorPublicKey, cb) {
 			return cb(err);
 		}
 
-		var sum = rows.length ? row[0].sum : 0;
+		var sum = rows.length ? rows[0].sum : 0;
 
 		cb(null, sum);
 	});
