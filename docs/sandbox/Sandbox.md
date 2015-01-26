@@ -82,6 +82,22 @@ sandbox.eval({
 Each plugin has two separated parts one is running inside host process and other in sandbox process. They could to
 communicate with each other via sandbox transport system (`ipc` by default).
 
+There is core plugins: `process`, `tcp`, `api`, `transaction`.
+
+### Plugin factory
+
+Plugin factory is a function which returns plugin instance. It has two arguments `sandbox` and `options`. Example:
+
+```javascript
+module.exports = function(sandbox, options) {
+    return {
+        onStart : function(){
+            //...
+        }
+    }
+};
+```
+
 ### Properties
 
 * `session` – current vm session `EventEmitter`.
@@ -117,9 +133,6 @@ To make event handler asynchronous add `done` as the first argument to function 
 }
 
 ```
-
-
-There is several plugins: `process`, `tcp`, `api` and `timer`. Core plugins are `process`
 
 ### Default methods
 
