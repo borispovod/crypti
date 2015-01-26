@@ -47,7 +47,8 @@ function attachApi() {
 			version: params.string(req.headers['version'], true)
 		};
 
-		if (peer.port > 0 && peer.port <= 65535) {
+
+		if (peer.port > 0 && peer.port <= 65535 && peer.version == library.config.version) {
 			modules.peer.update(peer);
 		}
 
@@ -267,7 +268,7 @@ function _request(peer, api, method, data, cb) {
 		}
 
 		var port = params.int(response.headers['port']);
-		if (port > 0 && port <= 65535) {
+		if (port > 0 && port <= 65535 && version == library.config.version) {
 			modules.peer.update({
 				ip: peer.ip,
 				port: port,
