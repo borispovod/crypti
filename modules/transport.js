@@ -47,8 +47,6 @@ function attachApi() {
 			version: params.string(req.headers['version'], true)
 		};
 
-		if (peer.port != 8040) return;
-
 		if (peer.port > 0 && peer.port <= 65535) {
 			modules.peer.update(peer);
 		}
@@ -57,10 +55,8 @@ function attachApi() {
 	});
 
 	router.get('/list', function (req, res) {
-		console.log("list!");
 		res.set(headers);
 		modules.peer.list(100, function (err, peers) {
-			console.log("send");
 			return res.status(200).json({peers: !err ? peers : []});
 		})
 	});
