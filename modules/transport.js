@@ -245,7 +245,6 @@ function _request(peer, api, method, data, cb) {
 		timeout: 5000
 	};
 
-	if (peer.port != 8040) return cb && cb('old version');
 
 	library.logger.trace('request', req.url)
 
