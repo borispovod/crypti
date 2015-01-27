@@ -204,9 +204,9 @@ Sandbox.prototype.resolveOrder = function() {
 };
 
 /**
- * Execute script in virtual machine. Script should be a string or object with properties `source` and `filename`.
+ * Start up vm, run interactions and shutdown vm.
  *
- * @param {object,string} script Script object
+ * @param {function(done)} process VM interactions.
  * @param {function(error,result,session)} callback
  */
 Sandbox.prototype.run = function(process, callback) {
@@ -239,7 +239,11 @@ Sandbox.prototype.run = function(process, callback) {
                     // Do nothing if there is a error
                     if (self.hasError) return next();
 
-                    process(next, session);
+                    try {
+                        process(next, session);
+                    } catch (err) {
+                        next(err);
+                    }
                 },
                 x : function() {
                     stopped = true;
@@ -306,8 +310,6 @@ Sandbox.prototype.run = function(process, callback) {
                     });
 
                     callback = callback.bind(session, _error, null);
-                //} else if (! self.hasResult) {
-                //    callback = callback.bind(session, new Error('No result passed'), null);
                 }  else {
                     callback = callback.bind(session, null);
                 }
@@ -391,8 +393,8 @@ Sandbox.prototype.exec = function(method, args, callback) {
 
 /**
  * Evaluate script inside vm
- * @param script
- * @param callback
+ * @param {string|object} script Script source string or object
+ * @param {Function} callback Result callbakc
  * @returns {*}
  */
 Sandbox.prototype.eval = function(script, callback) {

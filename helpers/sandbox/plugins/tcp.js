@@ -70,7 +70,11 @@ module.exports = function(sandbox, options) {
                 if (id in stack) {
                     var call = stack[id];
                     delete stack[id];
-                    call.apply(null, message.args);
+                    try {
+                        call.apply(null, message.args);
+                    } catch (err) {
+                        sandbox.error(err);
+                    }
                 }
             }
         },

@@ -1,11 +1,5 @@
 // Dependencies
 var should = require('should');
-var fs = require('fs');
-
-// Read file content sync
-function readFile(path) {
-    return fs.readFileSync(__dirname + '/' + path, 'utf-8');
-}
 
 // Test body ------------------------------------------------------------------
 
@@ -15,7 +9,7 @@ describe('Sandbox.', function(){
     var sandbox;
 
     it('Module exports a function', function(){
-        Sandbox = require('../../helpers/sandbox/sandbox.js');
+        Sandbox = require('../helpers/sandbox/sandbox.js');
         should(Sandbox).type('function', 'Sandbox is a function');
     });
 
@@ -28,14 +22,13 @@ describe('Sandbox.', function(){
                 tcp : true,
                 api : {
                     transport : 'tcp'
-                },
-                timer : true
+                }
             }
         });
         should(sandbox).type('object', 'Its\' instance is an object');
     });
 
-    describe('Method run().', function() {
+    describe('Method eval().', function() {
         it('Should run code.', function(done){
             sandbox.eval('done(null,true)', function(err, result){
                 should(err).equal(null, 'Error should equal null');
@@ -82,6 +75,27 @@ describe('Sandbox.', function(){
         });
     });
 
+    describe('TCP Plugin.', function(){
+        it('Should exec method', function(done){
+            sandbox.run(function(done){
+                sandbox.tcp.exec('echo', ['Hello world'], function(err, result){
+                    if (err) return done(err);
+
+                    should(result).equal('Hello world');
+                    done();
+                });
+            }, function(err){
+                if (err && err.name === 'AssertionError') {
+                    return done(err);
+                }
+
+                should(err).equal(null, '`err` should be empty');
+                done();
+            });
+        });
+    });
+
+
     describe('API plugin.', function(){
         it('Should create context functions', function(done){
             sandbox.api.module({
@@ -123,5 +137,32 @@ describe('Sandbox.', function(){
         //        done();
         //    });
         //});
+    });
+
+    describe('Transactions.', function(){
+        it('Should run transactions code', function(done){
+            var sandbox = new Sandbox({
+                plugins : {
+                    process : true,
+                    transaction : true
+                }
+            });
+
+            var transaction = {
+                id : 1,
+                assets : {
+                    script : {
+                        input : {},
+                        code : "(function(done, input){ done(null, 'TRUE'); })"
+                    }
+                }
+            };
+
+            sandbox.transaction.exec(transaction, function(err, result){
+                should(err).equal(null, '`err` is empty');
+                should(result).type('string').and.equal('TRUE', 'Result value is "TRUE"');
+                done();
+            });
+        });
     });
 });

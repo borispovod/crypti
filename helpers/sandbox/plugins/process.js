@@ -125,7 +125,11 @@ module.exports = function(sandbox, options) {
                         var cb = stack[message.id];
                         delete stack[message.id];
                         // TODO Cast error
-                        cb.apply(null, message.args);
+                        try {
+                            cb.apply(null, message.args);
+                        } catch (err) {
+                            sandbox.error(err);
+                        }
                     }
                     break;
                 // Process error

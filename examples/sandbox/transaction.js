@@ -12,6 +12,7 @@ var sandbox = new Sandbox({
 });
 
 var transaction = {
+    id : 1,
     assets : {
         script : {
             input : {},

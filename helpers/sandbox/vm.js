@@ -19,7 +19,6 @@ var scope = new Scope({
     process : process,
     exec : exec,
     echo : function(done, value) {
-        console.log('->', value);
         done(null, value);
     },
     require : function(done, filepath, options) {

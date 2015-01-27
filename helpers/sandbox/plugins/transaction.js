@@ -4,11 +4,22 @@ module.exports = function(sandbox, options) {
     options = extend({}, options);
 
     return {
+        require : 'process',
         onStart : function(done){
             sandbox.process.exec('require', [__dirname + '/transaction-vm.js'], done);
         },
         exec : function(transaction, callback) {
-            sandbox.exec('transaction', [transaction.assets.script.code, transaction.assets.script.input], function(err, result){
+            var script = {
+                filename : 'transaction#' + transaction.id,
+                source : transaction.assets.script.code
+            };
+
+            var input = transaction.assets.script.input;
+
+            sandbox.exec('transaction', [script, input], function(err, result){
+                // Bind session object
+                callback = callback.bind(this);
+
                 if (err) return callback(err);
 
                 if (typeof result !== 'string') {
