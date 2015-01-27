@@ -150,7 +150,7 @@ describe('Sandbox.', function(){
 
             var transaction = {
                 id : 1,
-                assets : {
+                asset : {
                     script : {
                         input : {},
                         code : "(function(done, input){ done(null, 'TRUE'); })"
@@ -161,6 +161,26 @@ describe('Sandbox.', function(){
             sandbox.transaction.exec(transaction, function(err, result){
                 should(err).equal(null, '`err` is empty');
                 should(result).type('string').and.equal('TRUE', 'Result value is "TRUE"');
+                done();
+            });
+        });
+    });
+
+    describe('Context.', function(){
+        it('Should register modules in context', function(done){
+            var sandbox = new Sandbox({
+                plugins : {
+                    process : true,
+                    context : {
+                        async : true,
+                        jsonschema : true
+                    }
+                }
+            });
+
+            sandbox.eval('done(null, typeof async !== "undefined" && typeof jsonschema !== "undefined");', function(err, result){
+                should(err).equal(null, '`err` is empty');
+                should(result).type('boolean').and.equal(true, '`async` and `jsonschema` modules are required');
                 done();
             });
         });

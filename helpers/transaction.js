@@ -73,6 +73,7 @@ function getBytes(transaction) {
 
 		case 4:
 			assetBytes = scriptHelper.getBytes(transaction.asset.script);
+			assetBytes = Buffer.concat([assetBytes, new Buffer(transaction.asset.input, 'hex')]);
 			assetSize = assetBytes.length;
 			break;
 	}

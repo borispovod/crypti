@@ -10,7 +10,8 @@ var plugins = {
     tcp : require('./plugins/tcp'),
     process : require('./plugins/process'),
     timer : require('./plugins/timer'),
-    transaction : require('./plugins/transaction')
+    transaction : require('./plugins/transaction'),
+    context : require('./plugins/context')
 };
 
 // Helpers

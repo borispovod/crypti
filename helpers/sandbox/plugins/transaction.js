@@ -11,12 +11,16 @@ module.exports = function(sandbox, options) {
         exec : function(transaction, callback) {
             var script = {
                 filename : 'transaction#' + transaction.id,
-                source : transaction.assets.script.code
+                source : transaction.asset.script.code
             };
 
-            var input = transaction.assets.script.input;
+            var args = [
+                script,
+                transaction.asset.input,
+                transaction.asset.script.params
+            ];
 
-            sandbox.exec('transaction', [script, input], function(err, result){
+            sandbox.exec('transaction', args, function(err, result){
                 // Bind session object
                 callback = callback.bind(this);
 
