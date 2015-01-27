@@ -369,6 +369,7 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 					}
 					break;
 
+
 				case 1:
 					if (!transaction.asset.signature) {
 						return cb && cb("Empty transaction asset for signature transaction")
@@ -380,12 +381,16 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 						return cb && cb("Empty transaction asset for delegate transaction");
 					}
 
-					if (transaction.asset.delegate.username.length == 0 || transaction.asset.delegate.username.length > 30) {
+					if (transaction.asset.delegate.username.length == 0 || transaction.asset.delegate.username.length > 20) {
 						return cb && cb("Incorrect delegate username length");
 					}
 
 					if (modules.delegates.getDelegateByName(transaction.asset.delegate.username)) {
 						return cb && cb("Delegate with this name is already exists");
+					}
+
+					if (modules.delegates.getDelegate(transaction.senderPublicKey)) {
+						return cb && cb("This account already delegate");
 					}
 					break;
 				case 3:
@@ -446,6 +451,9 @@ Transactions.prototype.apply = function (transaction) {
 			sender.secondPublicKey = transaction.asset.signature.publicKey;
 			break;
 		case 2:
+			modules.delegates.removeUnconfirmedDelegate(transaction.publicKey);
+			modules.delegates.cache(transaction.asset.delegate);
+
 			sender.addToBalance(-amount);
 			break;
 		case 3:
@@ -454,6 +462,26 @@ Transactions.prototype.apply = function (transaction) {
 	}
 
 	return true;
+}
+
+Transactions.prototype.applyUnconfirmedList = function (ids) {
+	for (var i = 0; i < ids.length; i++) {
+		var transaction = unconfirmedTransactions[ids[i]];
+		if (!this.applyUnconfirmed(transaction)) {
+			delete unconfirmedTransactions[ids[i]];
+			doubleSpendingTransactions[ids[i]] = transaction;
+		}
+	}
+}
+
+Transactions.prototype.undoAllUnconfirmed = function () {
+	var ids = Object.keys(unconfirmedTransactions);
+	for (var i = 0; i < ids.length; i++) {
+		var transaction = unconfirmedTransactions[ids[i]];
+		this.undoUnconfirmed(transaction);
+	}
+
+	return ids;
 }
 
 Transactions.prototype.applyUnconfirmed = function (transaction) {
@@ -471,6 +499,12 @@ Transactions.prototype.applyUnconfirmed = function (transaction) {
 		}
 
 		sender.unconfirmedSignature = true;
+	} else if (transaction.type == 2) {
+		if (modules.delegates.getUnconfirmedDelegate(transaction.senderPublicKey)) {
+			return false;
+		}
+
+		modules.delegates.addUnconfirmedDelegate(transaction.senderPublicKey);
 	}
 
 	var amount = transaction.amount + transaction.fee;
@@ -492,6 +526,8 @@ Transactions.prototype.undoUnconfirmed = function (transaction) {
 
 	if (transaction.type == 1) {
 		sender.unconfirmedSignature = false;
+	} else if (transaction.type == 2) {
+		module.delegates.removeUnconfirmedDelegate(transaction.senderPublicKey);
 	}
 
 	return true;
@@ -514,6 +550,10 @@ Transactions.prototype.undo = function (transaction) {
 			sender.secondSignature = false;
 			sender.unconfirmedSignature = true;
 			sender.secondPublicKey = null;
+			break;
+		case 2:
+			modules.delegates.uncache(transaction.asset.delegate);
+			modules.delegates.addUnconfirmedDelegate(transaction.senderPublicKey);
 			break;
 	}
 	return true;

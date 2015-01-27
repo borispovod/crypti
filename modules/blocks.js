@@ -317,7 +317,7 @@ function getForgedByAccount(generatorPublicKey, cb) {
 			return cb(err);
 		}
 
-		var sum = rows.length ? row[0].sum : 0;
+		var sum = rows.length ? rows[0].sum : 0;
 
 		cb(null, sum);
 	});
@@ -350,9 +350,6 @@ function undoBlock(block, previousBlock, cb) {
 				modules.transactions.undo(transaction);
 				modules.transactions.undoUnconfirmed(transaction);
 				undoForger(block.generatorPublicKey, transaction);
-				if (transaction.type == 2) {
-					modules.delegates.uncache(transaction.asset.delegate);
-				}
 				setImmediate(cb);
 			}, done);
 		},
@@ -580,6 +577,8 @@ Blocks.prototype.loadBlocksPart = function (filter, cb) {
 }
 
 Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
+	var verify = library.config.loading.verifyOnLoading;
+
 	var params = {limit: limit, offset: offset || 0};
 	var fields = [
 		'b_id', 'b_version', 'b_timestamp', 'b_height', 'b_previousBlock', 'b_numberOfTransactions', 'b_totalAmount', 'b_totalFee', 'b_payloadLength', 'b_payloadHash', 'b_generatorPublicKey', 'b_blockSignature',
@@ -623,7 +622,7 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 					break;
 				}
 
-				if (!verifySignature(blocks[i])) {
+				if (verify && !verifySignature(blocks[i])) {
 					// need to break cicle and delete this block and blocks after this block
 					err = {
 						message: "Can't verify signature",
@@ -637,7 +636,7 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 			for (var n = 0, n_length = blocks[i].transactions.length; n < n_length; n++) {
 
 				if (blocks[i].id != genesisblock.blockId) {
-					if (!modules.transactions.verifySignature(blocks[i].transactions[n])) {
+					if (verify && !modules.transactions.verifySignature(blocks[i].transactions[n])) {
 						err = {
 							message: "Can't verify transaction: " + blocks[i].transactions[n].id,
 							transaction: blocks[i].transactions[n],
@@ -650,7 +649,7 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 					var sender = modules.accounts.getAccountByPublicKey(blocks[i].transactions[n].senderPublicKey);
 
 					if (sender.secondSignature) {
-						if (!modules.transactions.verifySecondSignature(blocks[i].transactions[n], sender.secondPublicKey)) {
+						if (verify && !modules.transactions.verifySecondSignature(blocks[i].transactions[n], sender.secondPublicKey)) {
 							err = {
 								message: "Can't verify second transaction: " + blocks[i].transactions[n].id,
 								transaction: blocks[i].transactions[n],
@@ -718,9 +717,6 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 			}
 			if (err) {
 				for (var n = err.rollbackTransactionsUntil - 1; n > -1; n--) {
-					if (blocks[i].transactions[n].type == 2) {
-						modules.delegates.uncache(blocks[i].transactions[n].asset.delegate);
-					}
 					modules.transactions.undo(blocks[i].transactions[n]);
 					modules.transactions.undoUnconfirmed(blocks[i].transactions[n])
 				}
@@ -863,6 +859,7 @@ Blocks.prototype.getLastBlock = function () {
 Blocks.prototype.processBlock = function (block, broadcast, cb) {
 	block.id = getId(block);
 	block.height = lastBlock.height + 1;
+	var unconfirmedTransactions = modules.transactions.undoAllUnconfirmed();
 
 	library.dbLite.query("SELECT id FROM blocks WHERE id=$id", {id: block.id}, ['id'], function (err, rows) {
 		if (err) {
@@ -909,14 +906,6 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 				function (done) {
 					async.eachSeries(block.transactions, function (transaction, cb) {
 						transaction.id = transactionHelper.getId(transaction);
-
-						if (modules.transactions.getUnconfirmedTransaction(transaction.id)) {
-							totalAmount += transaction.amount;
-							totalFee += transaction.fee;
-							appliedTransactions[transaction.id] = transaction;
-							payloadHash.update(transactionHelper.getBytes(transaction));
-							return setImmediate(cb);
-						}
 
 						library.dbLite.query("SELECT id FROM trs WHERE id=$id", {id: transaction.id}, ['id'], function (err, rows) {
 							if (err) {
@@ -966,13 +955,30 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 									if (!transaction.asset.signature) {
 										return cb("Transaction must have signature");
 									}
-								}
+								} else if (transaction.type == 2) {
 
-								if (transaction.type == 3) {
+								} else if (transaction.type == 3) {
 									if (transaction.senderId != transaction.recipientId) {
 										return cb("Invalid recipient");
 									}
+
+									if (!transaction.asset.delegate.username) {
+										return cb && cb("Empty transaction asset for delegate transaction");
+									}
+
+									if (transaction.asset.delegate.username.length == 0 || transaction.asset.delegate.username.length > 20) {
+										return cb && cb("Incorrect delegate username length");
+									}
+
+									if (modules.delegates.getDelegateByName(transaction.asset.delegate.username)) {
+										return cb && cb("Delegate with this name is already exists");
+									}
+
+									if (modules.delegates.getDelegate(transaction.senderPublicKey)) {
+										return cb && cb("This account already delegate");
+									}
 								}
+
 
 								if (!modules.transactions.applyUnconfirmed(transaction)) {
 									return cb("Can't apply transaction: " + transaction.id);
@@ -980,6 +986,12 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 
 
 								appliedTransactions[transaction.id] = transaction;
+
+								var index = unconfirmedTransactions.indexOf(transaction.id);
+								if (index >= 0) {
+									unconfirmedTransactions.splice(index, 1);
+								}
+
 								payloadHash.update(transactionHelper.getBytes(transaction));
 								totalAmount += transaction.amount;
 								totalFee += transaction.fee;
@@ -1014,21 +1026,19 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 
 						if (appliedTransactions[transaction.id]) {
 							modules.transactions.undoUnconfirmed(transaction);
-							if (appliedTransactions[transaction.id].type == 2) {
-								modules.delegates.uncache(appliedTransactions[transaction.id].asset.delegate);
-							}
 						}
 					}
 
+					modules.transactions.applyUnconfirmedList(unconfirmedTransactions);
+
 					setImmediate(cb, errors[0]);
 				} else {
+					modules.transactions.applyUnconfirmedList(unconfirmedTransactions);
+
 					for (var i = 0; i < block.transactions.length; i++) {
 						var transaction = block.transactions[i];
 
 						modules.transactions.apply(transaction);
-						if (transaction.type == 2) {
-							modules.delegates.cache(transaction.asset.delegate);
-						}
 						modules.transactions.removeUnconfirmedTransaction(transaction.id);
 						applyForger(block.generatorPublicKey, transaction);
 					}
@@ -1043,6 +1053,7 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 						library.bus.message('newBlock', block, broadcast)
 
 						lastBlock = block;
+						//console.log('processBlock', 'lastBlock=' + lastBlock.id)
 
 						setImmediate(cb);
 					});
@@ -1078,12 +1089,17 @@ Blocks.prototype.loadBlocksFromPeer = function (peer, lastCommonBlockId, cb) {
 				} else {
 					async.eachSeries(data.body.blocks, function (block, cb) {
 						block = normalize.block(block);
-						self.processBlock(block, false, function (err) {
-							if (!err) {
-								lastCommonBlockId = block.id;
+						modules.delegates.validateBlockSlot(block, function (err, valid) {
+							if (!valid) {
+								return cb(err || 'block\'s slot validate is fail');
 							}
+							self.processBlock(block, false, function (err) {
+								if (!err) {
+									lastCommonBlockId = block.id;
+								}
 
-							setImmediate(cb, err);
+								setImmediate(cb, err);
+							});
 						});
 					}, next);
 				}

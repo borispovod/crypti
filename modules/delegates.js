@@ -18,6 +18,9 @@ var keypair, myDelegate, address, account;
 var delegates = {};
 var activeDelegates = [];
 var loaded = false;
+var roundDelegateList = [];
+var prevRound = null;
+var unconfirmedDelegates = [];
 
 //constructor
 function Delegates(cb, scope) {
@@ -115,7 +118,7 @@ function getKeysSortByVote() {
 }
 
 function getBlockTime(slot, height, delegateCount) {
-	activeDelegates = getActiveDelegates(height, delegateCount);
+	activeDelegates = generateDelegateList(height + 1, delegateCount);
 
 	library.logger.log('getBlockTime ' + slot + ' ' + height + ' ' + delegateCount, activeDelegates.map(function (id) {
 		return id.substring(0, 4);
@@ -195,37 +198,25 @@ function loadMyDelegates() {
 	}
 }
 
-function generateDelegateList(height) {
-	var seedSource = height.toString();
-	var delegateIds = getKeysSortByVote();
+function generateDelegateList(height, delegateCount) {
+	var round = Math.floor(height / delegateCount) + (height % delegateCount > 0 ? 1 : 0);
+	var seedSource = round.toString();
+	if (prevRound !== round){
+		roundDelegateList = getKeysSortByVote();
+		prevRound = round;
+	}
 	var currentSeed = crypto.createHash('sha256').update(seedSource, 'utf8').digest();
-	for (var i = 0, delCount = delegateIds.length; i < delCount; i++) {
+	for (var i = 0, delCount = roundDelegateList.length; i < delCount; i++) {
 		for (var x = 0; x < 4 && i < delCount; i++, x++) {
 			var newIndex = currentSeed[x] % delCount;
-			var b = delegateIds[newIndex];
-			delegateIds[newIndex] = delegateIds[i];
-			delegateIds[i] = b;
+			var b = roundDelegateList[newIndex];
+			roundDelegateList[newIndex] = roundDelegateList[i];
+			roundDelegateList[i] = b;
 		}
 		currentSeed = crypto.createHash('sha256').update(currentSeed).digest();
 	}
 
-	return delegateIds;
-}
-
-function getActiveDelegates(height, delegateCount) {
-	var count = height - 1;
-	var delegateIds;
-	var yes = !activeDelegates.length;
-
-	delegateIds = generateDelegateList(height);
-
-	if (yes) {
-		library.logger.log('init', getKeysSortByVote().map(function (id) {
-			return id.substring(0, 4);
-		}))
-	}
-
-	return delegateIds;
+	return roundDelegateList;
 }
 
 //public methods
@@ -247,6 +238,18 @@ Delegates.prototype.checkDelegates = function (votes) {
 	}
 }
 
+Delegates.prototype.addUnconfirmedDelegate = function (publicKey) {
+	unconfirmedDelegates[publicKey];
+}
+
+Delegates.prototype.getUnconfirmedDelegate = function (publicKey) {
+	return unconfirmedDelegates[publicKey];
+}
+
+Delegates.prototype.removeUnconfirmedDelegate = function (publicKey) {
+	delete unconfirmedDelegates[publicKey];
+}
+
 Delegates.prototype.getDelegate = function (publicKey) {
 	return delegates[publicKey];
 }
@@ -257,6 +260,7 @@ Delegates.prototype.getDelegateByName = function (userName) {
 		return item.username === userName;
 	})
 }
+
 
 Delegates.prototype.cache = function (delegate) {
 	delegates[delegate.publicKey] = delegate;
@@ -275,7 +279,7 @@ Delegates.prototype.validateBlockSlot = function (block, cb) {
 		}
 		var delegateCount = rows[0].count;
 
-		var activeDelegates = generateDelegateList(block.height - 1);
+		var activeDelegates = generateDelegateList(block.height, delegateCount);
 
 		var currentSlot = slots.getSlotNumber(block.timestamp);
 		var delegate_id = activeDelegates[currentSlot % delegateCount];
