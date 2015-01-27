@@ -890,14 +890,6 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 					async.eachSeries(block.transactions, function (transaction, cb) {
 						transaction.id = transactionHelper.getId(transaction);
 
-						if (modules.transactions.getUnconfirmedTransaction(transaction.id)) {
-							totalAmount += transaction.amount;
-							totalFee += transaction.fee;
-							appliedTransactions[transaction.id] = transaction;
-							payloadHash.update(transactionHelper.getBytes(transaction));
-							return setImmediate(cb);
-						}
-
 						library.dbLite.query("SELECT id FROM trs WHERE id=$id", {id: transaction.id}, ['id'], function (err, rows) {
 							if (err) {
 								return cb(err);
