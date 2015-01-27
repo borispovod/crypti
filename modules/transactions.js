@@ -381,7 +381,7 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 						return cb && cb("Empty transaction asset for delegate transaction");
 					}
 
-					if (transaction.asset.delegate.username.length == 0 || transaction.asset.delegate.username.length > 30) {
+					if (transaction.asset.delegate.username.length == 0 || transaction.asset.delegate.username.length > 20) {
 						return cb && cb("Incorrect delegate username length");
 					}
 
@@ -446,8 +446,10 @@ Transactions.prototype.apply = function (transaction) {
 		sender.secondPublicKey = transaction.asset.signature.publicKey;
 		return true;
 	} else if (transaction.type == 2) {
-		sender.addToBalance(-amount);
+		modules.delegates.removeUnconfirmedDelegate(transaction.publicKey);
+		modules.delegates.cache(transaction.asset.delegate);
 
+		sender.addToBalance(-amount);
 		return true;
 	} else if (transaction.type == 3) {
 		sender.updateDelegateList(transaction.asset.votes);
@@ -461,7 +463,10 @@ Transactions.prototype.apply = function (transaction) {
 Transactions.prototype.applyUnconfirmedList = function (ids) {
 	for (var i = 0; i < ids.length; i++) {
 		var transaction = unconfirmedTransactions[ids[i]];
-		this.applyUnconfirmed(transaction);
+		if (!this.applyUnconfirmed(transaction)) {
+			delete unconfirmedTransactions[ids[i]];
+			doubleSpendingTransactions[ids[i]] = transaction;
+		}
 	}
 }
 
@@ -490,6 +495,12 @@ Transactions.prototype.applyUnconfirmed = function (transaction) {
 		}
 
 		sender.unconfirmedSignature = true;
+	} else if (transaction.type == 2) {
+		if (modules.delegates.getUnconfirmedDelegate(transaction.senderPublicKey)) {
+			return false;
+		}
+
+		modules.delegates.addUnconfirmedDelegate(transaction.senderPublicKey);
 	}
 
 	var amount = transaction.amount + transaction.fee;
@@ -511,6 +522,8 @@ Transactions.prototype.undoUnconfirmed = function (transaction) {
 
 	if (transaction.type == 1) {
 		sender.unconfirmedSignature = false;
+	} else if (transaction.type == 2) {
+		module.delegates.removeUnconfirmedDelegate(transaction.senderPublicKey);
 	}
 
 	return true;
@@ -535,8 +548,9 @@ Transactions.prototype.undo = function (transaction) {
 		sender.secondPublicKey = null;
 
 		return true;
-	} else {
-		return true;
+	} else if (transaction.type == 2) {
+		modules.delegates.uncache(transaction.asset.delegate);
+		modules.delegates.addUnconfirmedDelegate(transaction.senderPublicKey);
 	}
 }
 

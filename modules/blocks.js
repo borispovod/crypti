@@ -350,9 +350,6 @@ function undoBlock(block, previousBlock, cb) {
 				modules.transactions.undo(transaction);
 				modules.transactions.undoUnconfirmed(transaction);
 				undoForger(block.generatorPublicKey, transaction);
-				if (transaction.type == 2) {
-					modules.delegates.uncache(transaction.asset.delegate);
-				}
 				setImmediate(cb);
 			}, done);
 		},
@@ -703,9 +700,6 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 			}
 			if (err) {
 				for (var n = err.rollbackTransactionsUntil - 1; n > -1; n--) {
-					if (blocks[i].transactions[n].type == 2) {
-						modules.delegates.uncache(blocks[i].transactions[n].asset.delegate);
-					}
 					modules.transactions.undo(blocks[i].transactions[n]);
 					modules.transactions.undoUnconfirmed(blocks[i].transactions[n])
 				}
@@ -952,9 +946,9 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 									if (!transaction.asset.signature) {
 										return cb("Transaction must have signature");
 									}
-								}
+								} else if (transaction.type == 2) {
 
-								if (transaction.type == 3) {
+								} else if (transaction.type == 3) {
 									if (transaction.senderId != transaction.recipientId) {
 										return cb("Invalid recipient");
 									}
@@ -963,7 +957,7 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 										return cb && cb("Empty transaction asset for delegate transaction");
 									}
 
-									if (transaction.asset.delegate.username.length == 0 || transaction.asset.delegate.username.length > 30) {
+									if (transaction.asset.delegate.username.length == 0 || transaction.asset.delegate.username.length > 20) {
 										return cb && cb("Incorrect delegate username length");
 									}
 
@@ -1023,9 +1017,6 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 
 						if (appliedTransactions[transaction.id]) {
 							modules.transactions.undoUnconfirmed(transaction);
-							if (appliedTransactions[transaction.id].type == 2) {
-								modules.delegates.uncache(appliedTransactions[transaction.id].asset.delegate);
-							}
 						}
 					}
 
@@ -1039,9 +1030,6 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 						var transaction = block.transactions[i];
 
 						modules.transactions.apply(transaction);
-						if (transaction.type == 2) {
-							modules.delegates.cache(transaction.asset.delegate);
-						}
 						modules.transactions.removeUnconfirmedTransaction(transaction.id);
 						applyForger(block.generatorPublicKey, transaction);
 					}

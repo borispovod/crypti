@@ -18,6 +18,7 @@ var keypair, myDelegate, address, account;
 var delegates = {};
 var activeDelegates = [];
 var loaded = false;
+var unconfirmedDelegates = [];
 
 //constructor
 function Delegates(cb, scope) {
@@ -230,6 +231,18 @@ Delegates.prototype.checkDelegates = function (votes) {
 	} else {
 		return false;
 	}
+}
+
+Delegates.prototype.addUnconfirmedDelegate = function (publicKey) {
+	unconfirmedDelegates[publicKey];
+}
+
+Delegates.prototype.getUnconfirmedDelegate = function (publicKey) {
+	return unconfirmedDelegates[publicKey];
+}
+
+Delegates.prototype.removeUnconfirmedDelegate = function (publicKey) {
+	delete unconfirmedDelegates[publicKey];
 }
 
 Delegates.prototype.getDelegate = function (publicKey) {
