@@ -3,7 +3,7 @@
     "address": "0.0.0.0",
     "serveHttpAPI": true,
     "serveHttpWallet": true,
-    "version": "0.1.9",
+    "version": "0.1.9a",
     "fileLogLevel": "info",
     "consoleLogLevel": "info",
     "sharePort": true,
