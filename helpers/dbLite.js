@@ -2,7 +2,7 @@ var dblite = require('dblite');
 var async = require('async');
 var path = require('path');
 
-dblite.bin = path.join(process.cwd(), 'sqlite', 'sqlite3');
+//dblite.bin = path.join(process.cwd(), 'sqlite', 'sqlite3');
 
 module.exports.connect = function (connectString, cb) {
 	var db = dblite(connectString);
