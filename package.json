@@ -35,7 +35,8 @@
     "segfault-handler": "*",
     "node-schedule": "*",
     "array.prototype.find": "*",
-    "toposort": "~0.2.10"
+    "toposort": "~0.2.10",
+    "json-schema": "~0.2.2"
   },
   "devDependencies": {
     "grunt-jscrambler": "^0.2.7",

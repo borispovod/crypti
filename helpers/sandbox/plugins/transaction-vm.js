@@ -1,6 +1,6 @@
 module.exports = function(done, scope, options) {
 
-    scope.transaction = function(done, script, input) {
+    scope.transaction = function(done, script, params, input) {
         var call = this.vm._eval(script.source, script.filename);
 
         if (typeof call !== 'function') {
@@ -8,7 +8,7 @@ module.exports = function(done, scope, options) {
         }
 
         try {
-            call(done, input);
+            call(done, input, params);
         } catch (err) {
             done(err);
         }
