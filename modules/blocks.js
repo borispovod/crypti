@@ -350,9 +350,6 @@ function undoBlock(block, previousBlock, cb) {
 				modules.transactions.undo(transaction);
 				modules.transactions.undoUnconfirmed(transaction);
 				undoForger(block.generatorPublicKey, transaction);
-				if (transaction.type == 2) {
-					modules.delegates.uncache(transaction.asset.delegate);
-				}
 				setImmediate(cb);
 			}, done);
 		},
@@ -703,9 +700,6 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 			}
 			if (err) {
 				for (var n = err.rollbackTransactionsUntil - 1; n > -1; n--) {
-					if (blocks[i].transactions[n].type == 2) {
-						modules.delegates.uncache(blocks[i].transactions[n].asset.delegate);
-					}
 					modules.transactions.undo(blocks[i].transactions[n]);
 					modules.transactions.undoUnconfirmed(blocks[i].transactions[n])
 				}
@@ -848,6 +842,7 @@ Blocks.prototype.getLastBlock = function () {
 Blocks.prototype.processBlock = function (block, broadcast, cb) {
 	block.id = getId(block);
 	block.height = lastBlock.height + 1;
+	var unconfirmedTransactions = modules.transactions.undoAllUnconfirmed();
 
 	library.dbLite.query("SELECT id FROM blocks WHERE id=$id", {id: block.id}, ['id'], function (err, rows) {
 		if (err) {
@@ -894,14 +889,6 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 				function (done) {
 					async.eachSeries(block.transactions, function (transaction, cb) {
 						transaction.id = transactionHelper.getId(transaction);
-
-						if (modules.transactions.getUnconfirmedTransaction(transaction.id)) {
-							totalAmount += transaction.amount;
-							totalFee += transaction.fee;
-							appliedTransactions[transaction.id] = transaction;
-							payloadHash.update(transactionHelper.getBytes(transaction));
-							return setImmediate(cb);
-						}
 
 						library.dbLite.query("SELECT id FROM trs WHERE id=$id", {id: transaction.id}, ['id'], function (err, rows) {
 							if (err) {
@@ -951,9 +938,9 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 									if (!transaction.asset.signature) {
 										return cb("Transaction must have signature");
 									}
-								}
+								} else if (transaction.type == 2) {
 
-								if (transaction.type == 3) {
+								} else if (transaction.type == 3) {
 									if (transaction.senderId != transaction.recipientId) {
 										return cb("Invalid recipient");
 									}
@@ -962,7 +949,7 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 										return cb && cb("Empty transaction asset for delegate transaction");
 									}
 
-									if (transaction.asset.delegate.username.length == 0 || transaction.asset.delegate.username.length > 30) {
+									if (transaction.asset.delegate.username.length == 0 || transaction.asset.delegate.username.length > 20) {
 										return cb && cb("Incorrect delegate username length");
 									}
 
@@ -982,6 +969,12 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 
 
 								appliedTransactions[transaction.id] = transaction;
+
+								var index = unconfirmedTransactions.indexOf(transaction.id);
+								if (index >= 0) {
+									unconfirmedTransactions.splice(index, 1);
+								}
+
 								payloadHash.update(transactionHelper.getBytes(transaction));
 								totalAmount += transaction.amount;
 								totalFee += transaction.fee;
@@ -1016,21 +1009,19 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 
 						if (appliedTransactions[transaction.id]) {
 							modules.transactions.undoUnconfirmed(transaction);
-							if (appliedTransactions[transaction.id].type == 2) {
-								modules.delegates.uncache(appliedTransactions[transaction.id].asset.delegate);
-							}
 						}
 					}
 
+					modules.transactions.applyUnconfirmedList(unconfirmedTransactions);
+
 					setImmediate(cb, errors[0]);
 				} else {
+					modules.transactions.applyUnconfirmedList(unconfirmedTransactions);
+
 					for (var i = 0; i < block.transactions.length; i++) {
 						var transaction = block.transactions[i];
 
 						modules.transactions.apply(transaction);
-						if (transaction.type == 2) {
-							modules.delegates.cache(transaction.asset.delegate);
-						}
 						modules.transactions.removeUnconfirmedTransaction(transaction.id);
 						applyForger(block.generatorPublicKey, transaction);
 					}
