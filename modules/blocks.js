@@ -848,6 +848,7 @@ Blocks.prototype.getLastBlock = function () {
 Blocks.prototype.processBlock = function (block, broadcast, cb) {
 	block.id = getId(block);
 	block.height = lastBlock.height + 1;
+	var unconfirmedTransactions = modules.transactions.undoAllUnconfirmed();
 
 	library.dbLite.query("SELECT id FROM blocks WHERE id=$id", {id: block.id}, ['id'], function (err, rows) {
 		if (err) {
@@ -982,6 +983,12 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 
 
 								appliedTransactions[transaction.id] = transaction;
+
+								var index = unconfirmedTransactions.indexOf(transaction.id);
+								if (index >= 0) {
+									unconfirmedTransactions.splice(index, 1);
+								}
+
 								payloadHash.update(transactionHelper.getBytes(transaction));
 								totalAmount += transaction.amount;
 								totalFee += transaction.fee;
@@ -1022,8 +1029,12 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 						}
 					}
 
+					modules.transactions.applyUnconfirmedList(unconfirmedTransactions);
+
 					setImmediate(cb, errors[0]);
 				} else {
+					modules.transactions.applyUnconfirmedList(unconfirmedTransactions);
+
 					for (var i = 0; i < block.transactions.length; i++) {
 						var transaction = block.transactions[i];
 

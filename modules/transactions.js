@@ -458,6 +458,23 @@ Transactions.prototype.apply = function (transaction) {
 	}
 }
 
+Transactions.prototype.applyUnconfirmedList = function (ids) {
+	for (var i = 0; i < ids.length; i++) {
+		var transaction = unconfirmedTransactions[ids[i]];
+		this.applyUnconfirmed(transaction);
+	}
+}
+
+Transactions.prototype.undoAllUnconfirmed = function () {
+	var ids = Object.keys(unconfirmedTransactions);
+	for (var i = 0; i < ids.length; i++) {
+		var transaction = unconfirmedTransactions[ids[i]];
+		this.undoUnconfirmed(transaction);
+	}
+
+	return ids;
+}
+
 Transactions.prototype.applyUnconfirmed = function (transaction) {
 	var sender = modules.accounts.getAccountByPublicKey(transaction.senderPublicKey);
 
