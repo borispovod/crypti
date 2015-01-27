@@ -480,6 +480,27 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 	});
 }
 
+Transactions.prototype.applyUnconfirmedList = function (ids) {
+	for (var i = 0; i < ids.length; i++) {
+		var transaction = unconfirmedTransactions[ids[i]];
+		if (!this.applyUnconfirmed(transaction)) {
+			delete unconfirmedTransactions[ids[i]];
+			doubleSpendingTransactions[ids[i]] = transaction;
+		}
+	}
+}
+
+Transactions.prototype.undoAllUnconfirmed = function () {
+	var ids = Object.keys(unconfirmedTransactions);
+	for (var i = 0; i < ids.length; i++) {
+		var transaction = unconfirmedTransactions[ids[i]];
+		this.undoUnconfirmed(transaction);
+	}
+
+	return ids;
+}
+
+
 Transactions.prototype.apply = function (transaction) {
 	var sender = modules.accounts.getAccountByPublicKey(transaction.senderPublicKey);
 	var amount = transaction.amount + transaction.fee;
