@@ -98,21 +98,25 @@ module.exports = function(sandbox, options) {
 };
 ```
 
-### Properties
+### Reserved properties
 
-* `session` – current vm session `EventEmitter`.
-* `sandbox` – current sandbox object `Sandbox`.
-* `require` – plugin dependencies `String|Array`.
+| Key       | Type                   | Description         |
+|-----------|------------------------|---------------------|
+| `session` | `EventEmitter`         | Current vm session  |
+| `require` | `String|Array`         | Plugin dependencies |
+| `events`  | `Object<event,method>` | Events bindings map |
 
 ### Events
 
-Each plugin has named event methods. Some of them are optionally async:
+Each plugin has named event methods. Some of them are optionally async (marked italic):
 
-* _onStart_
-* _onBeforeExec_
-* _onAfterExec_
-* onStop
-* onError
+| Event         | Note  |
+|---------------|-------|
+| onStart       | async |
+| onBeforeExec  | async |
+| onAfterExec   | async |
+| onStop        |       |
+| onError       |       |
 
 To make event handler asynchronous add `done` as the first argument to function definition. Example:
 
