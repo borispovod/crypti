@@ -1081,12 +1081,17 @@ Blocks.prototype.loadBlocksFromPeer = function (peer, lastCommonBlockId, cb) {
 				} else {
 					async.eachSeries(data.body.blocks, function (block, cb) {
 						block = normalize.block(block);
-						self.processBlock(block, false, function (err) {
-							if (!err) {
-								lastCommonBlockId = block.id;
+						modules.delegates.validateBlockSlot(block, function (err, valid) {
+							if (!valid) {
+								return cb(err || 'block\'s slot validate is fail');
 							}
+							self.processBlock(block, false, function (err) {
+								if (!err) {
+									lastCommonBlockId = block.id;
+								}
 
-							setImmediate(cb, err);
+								setImmediate(cb, err);
+							});
 						});
 					}, next);
 				}
