@@ -445,7 +445,7 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 						// TODO (rumkin) Pass report
 						return done("Input values incorrect");
 					}
-
+					break;
 				default:
 					return done("Unknown transaction type");
 			}
