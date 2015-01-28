@@ -15,7 +15,7 @@ var transactionHelper = require('../helpers/transaction.js'),
 	arrayHelper = require('../helpers/array.js'),
 	async = require('async'),
 	jsonschema = require('jsonschema'),
-	Sandbox = require('../helpers/sandbox')
+	esprima = require('esprima')
 	;
 
 // private fields
@@ -478,8 +478,15 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 						return done("Can't parse code/parameters from hex to strings in script transaction.");
 					}
 
+
 					if (code.length > 4 * 1024) {
 						return done("Incorrect script code length");
+					}
+
+					try {
+						esprima.parse(code.toString('utf8'));
+					} catch (err) {
+						return done("Transaction script code is not valid");
 					}
 
 					if (parameters.length > 4 * 1024) {
