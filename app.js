@@ -48,7 +48,6 @@ d.run(function () {
 		},
 
 		sequence: function (cb) {
-
 			var sequence = [];
 			process.nextTick(function sequenceManager() {
 				var worker = sequence.shift();
