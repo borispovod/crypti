@@ -18,6 +18,8 @@ var keypair, myDelegate, address, account;
 var delegates = {};
 var activeDelegates = [];
 var loaded = false;
+var roundDelegateList = [];
+var prevRound = null;
 var unconfirmedDelegates = [];
 
 //constructor
@@ -199,19 +201,22 @@ function loadMyDelegates() {
 function generateDelegateList(height, delegateCount) {
 	var round = Math.floor(height / delegateCount) + (height % delegateCount > 0 ? 1 : 0);
 	var seedSource = round.toString();
-	var delegateIds = getKeysSortByVote();
+	if (prevRound !== round){
+		roundDelegateList = getKeysSortByVote();
+		prevRound = round;
+	}
 	var currentSeed = crypto.createHash('sha256').update(seedSource, 'utf8').digest();
-	for (var i = 0, delCount = delegateIds.length; i < delCount; i++) {
+	for (var i = 0, delCount = roundDelegateList.length; i < delCount; i++) {
 		for (var x = 0; x < 4 && i < delCount; i++, x++) {
 			var newIndex = currentSeed[x] % delCount;
-			var b = delegateIds[newIndex];
-			delegateIds[newIndex] = delegateIds[i];
-			delegateIds[i] = b;
+			var b = roundDelegateList[newIndex];
+			roundDelegateList[newIndex] = roundDelegateList[i];
+			roundDelegateList[i] = b;
 		}
 		currentSeed = crypto.createHash('sha256').update(currentSeed).digest();
 	}
 
-	return delegateIds;
+	return roundDelegateList;
 }
 
 //public methods
