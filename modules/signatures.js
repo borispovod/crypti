@@ -86,7 +86,7 @@ function attachApi() {
 			return res.json({success: false, error: "Second signature already enabled"});
 		}
 
-		var signature = self.newSignature(secret, secondSecret);
+		var signature = newSignature(secondSecret);
 		var transaction = {
 			type: 1,
 			amount: 0,
@@ -122,23 +122,15 @@ function attachApi() {
 	});
 }
 
-function newSignature(secret, secondSecret) {
-	var hash1 = crypto.createHash('sha256').update(secret, 'utf8').digest();
-	var keypair1 = ed.MakeKeypair(hash1);
-
-	var hash2 = crypto.createHash('sha256').update(secondSecret, 'utf8').digest();
-	var keypair2 = ed.MakeKeypair(hash2);
+function newSignature(secondSecret) {
+	var hash = crypto.createHash('sha256').update(secondSecret, 'utf8').digest();
+	var keypair = ed.MakeKeypair(hash);
 
 	var signature = {
-		timestamp: slots.getTime(),
-		publicKey: keypair2.publicKey.toString('hex'),
-		generatorPublicKey: keypair1.publicKey.toString('hex')
-	}
+		publicKey: keypair.publicKey.toString('hex')
+	};
 
-	signature.signature = sign(signature, secondSecret);
-	signature.generationSignature = secondSignature(signature, secret);
 	signature.id = signatureHelper.getId(signature);
-
 	return signature;
 }
 
@@ -158,9 +150,9 @@ function secondSignature(signature, secret) {
 
 //public methods
 Signatures.prototype.get = function (id, cb) {
-	library.dbLite.query("select s.id, s.transactionId, s.timestamp, lower(hex(s.publicKey)), lower(hex(s.generatorPublicKey)), lower(hex(s.signature)), lower(hex(s.generationSignature)) " +
+	library.dbLite.query("select s.id, s.transactionId, lower(hex(s.publicKey)) " +
 	"from signatures s " +
-	"where s.id = $id", {id: id}, ['s_id', 's_transactionId', 's_timestamp', 's_publicKey', 's_generatorPublicKey', 's_signature', 's_generationSignature'], function (err, rows) {
+	"where s.id = $id", {id: id}, ['s_id', 's_transactionId', 's_publicKey'], function (err, rows) {
 		if (err || !rows.length) {
 			return cb(err || "Can't find signature: " + id);
 		}
