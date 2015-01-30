@@ -42,7 +42,7 @@ function getBytes(transaction) {
 
 	switch (transaction.type) {
 		case 1:
-			assetSize = 196;
+			assetSize = 32;
 			assetBytes = signatureHelper.getBytes(transaction.asset.signature);
 			break;
 

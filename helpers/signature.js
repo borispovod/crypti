@@ -5,29 +5,9 @@ var crypto = require('crypto'),
 function getBytes(signature) {
 	var bb = new ByteBuffer(32 + 32 + 4 + 64 + 64, true);
 	var publicKeyBuffer = new Buffer(signature.publicKey, 'hex');
+
 	for (var i = 0; i < publicKeyBuffer.length; i++) {
 		bb.writeByte(publicKeyBuffer[i]);
-	}
-
-	var generatorPublicKeyBuffer = new Buffer(signature.generatorPublicKey, 'hex');
-	for (var i = 0; i < generatorPublicKeyBuffer.length; i++) {
-		bb.writeByte(generatorPublicKeyBuffer[i]);
-	}
-
-	bb.writeInt(signature.timestamp);
-
-	if (signature.signature) {
-		var signatureBuffer = new Buffer(signature.signature, 'hex');
-		for (var i = 0; i < signatureBuffer.length; i++) {
-			bb.writeByte(signatureBuffer[i]);
-		}
-	}
-
-	if (signature.generationSignature) {
-		var generationSignatureBuffer = new Buffer(signature.generationSignature, 'hex');
-		for (var i = 0; i < generationSignatureBuffer.length; i++) {
-			bb.writeByte(generationSignatureBuffer[i]);
-		}
 	}
 
 	bb.flip();
