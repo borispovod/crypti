@@ -3,14 +3,18 @@ var crypto = require('crypto'),
 	ByteBuffer = require('bytebuffer');
 
 function getBytes(signature) {
-	var bb = new ByteBuffer(32, true);
-	var publicKeyBuffer = new Buffer(signature.publicKey, 'hex');
+	try {
+		var bb = new ByteBuffer(32, true);
+		var publicKeyBuffer = new Buffer(signature.publicKey, 'hex');
 
-	for (var i = 0; i < publicKeyBuffer.length; i++) {
-		bb.writeByte(publicKeyBuffer[i]);
+		for (var i = 0; i < publicKeyBuffer.length; i++) {
+			bb.writeByte(publicKeyBuffer[i]);
+		}
+
+		bb.flip();
+	} catch (e) {
+		return new Buffer();
 	}
-
-	bb.flip();
 	return bb.toBuffer();
 }
 
