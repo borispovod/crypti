@@ -450,7 +450,7 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 					if (!transaction.asset.script.name || transaction.asset.script.name.length == 0 || transaction.asset.script.name.length > 16) {
 						return done("Incorrect name length");
 					}
-
+pr
 					if (transaction.asset.script.description && transaction.asset.script.description.length > 140) {
 						return done("Incorrect description length");
 					}
