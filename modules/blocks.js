@@ -63,7 +63,7 @@ function attachApi() {
 		var offset = params.int(req.query.offset);
 		var generatorPublicKey = params.hex(req.query.generatorPublicKey, true);
 		list({
-			generatorPublicKey: generatorPublicKey, //check null
+			generatorPublicKey: generatorPublicKey,
 			limit: limit || 20,
 			offset: offset,
 			orderBy: orderBy
@@ -114,47 +114,52 @@ function attachApi() {
 function getBytes(block) {
 	var size = 4 + 4 + 8 + 4 + 4 + 8 + 8 + 4 + 4 + 4 + 32 + 32 + 64;
 
-	var bb = new ByteBuffer(size, true);
-	bb.writeInt(block.version);
-	bb.writeInt(block.timestamp);
+	try {
+		var bb = new ByteBuffer(size, true);
+		bb.writeInt(block.version);
+		bb.writeInt(block.timestamp);
 
-	if (block.previousBlock) {
-		var pb = bignum(block.previousBlock).toBuffer({size: '8'});
+		if (block.previousBlock) {
+			var pb = bignum(block.previousBlock).toBuffer({size: '8'});
 
-		for (var i = 0; i < 8; i++) {
-			bb.writeByte(pb[i]);
+			for (var i = 0; i < 8; i++) {
+				bb.writeByte(pb[i]);
+			}
+		} else {
+			for (var i = 0; i < 8; i++) {
+				bb.writeByte(0);
+			}
 		}
-	} else {
-		for (var i = 0; i < 8; i++) {
-			bb.writeByte(0);
+
+		bb.writeInt(block.numberOfTransactions);
+		bb.writeLong(block.totalAmount);
+		bb.writeLong(block.totalFee);
+
+		bb.writeInt(block.payloadLength);
+
+		var payloadHashBuffer = new Buffer(block.payloadHash, 'hex');
+		for (var i = 0; i < payloadHashBuffer.length; i++) {
+			bb.writeByte(payloadHashBuffer[i]);
 		}
-	}
 
-	bb.writeInt(block.numberOfTransactions);
-	bb.writeLong(block.totalAmount);
-	bb.writeLong(block.totalFee);
-
-	bb.writeInt(block.payloadLength);
-
-	var payloadHashBuffer = new Buffer(block.payloadHash, 'hex');
-	for (var i = 0; i < payloadHashBuffer.length; i++) {
-		bb.writeByte(payloadHashBuffer[i]);
-	}
-
-	var generatorPublicKeyBuffer = new Buffer(block.generatorPublicKey, 'hex');
-	for (var i = 0; i < generatorPublicKeyBuffer.length; i++) {
-		bb.writeByte(generatorPublicKeyBuffer[i]);
-	}
-
-	if (block.blockSignature) {
-		var blockSignatureBuffer = new Buffer(block.blockSignature, 'hex');
-		for (var i = 0; i < blockSignatureBuffer.length; i++) {
-			bb.writeByte(blockSignatureBuffer[i]);
+		var generatorPublicKeyBuffer = new Buffer(block.generatorPublicKey, 'hex');
+		for (var i = 0; i < generatorPublicKeyBuffer.length; i++) {
+			bb.writeByte(generatorPublicKeyBuffer[i]);
 		}
+
+		if (block.blockSignature) {
+			var blockSignatureBuffer = new Buffer(block.blockSignature, 'hex');
+			for (var i = 0; i < blockSignatureBuffer.length; i++) {
+				bb.writeByte(blockSignatureBuffer[i]);
+			}
+		}
+
+		bb.flip();
+		var b = bb.toBuffer();
+	}catch (e){
+		return new Buffer('');
 	}
 
-	bb.flip();
-	var b = bb.toBuffer();
 	return b;
 }
 
@@ -278,11 +283,16 @@ function verifySignature(block) {
 		data2[i] = data[i];
 	}
 
-	var hash = crypto.createHash('sha256').update(data2).digest();
-	var blockSignatureBuffer = new Buffer(block.blockSignature, 'hex');
-	var generatorPublicKeyBuffer = new Buffer(block.generatorPublicKey, 'hex');
+	try {
+		var hash = crypto.createHash('sha256').update(data2).digest();
+		var blockSignatureBuffer = new Buffer(block.blockSignature, 'hex');
+		var generatorPublicKeyBuffer = new Buffer(block.generatorPublicKey, 'hex');
+		var res = ed.Verify(hash, blockSignatureBuffer || ' ', generatorPublicKeyBuffer || ' ');
+	} catch (e) {
+		library.logger.error(e, {err: e, block: block})
+	}
 
-	return ed.Verify(hash, blockSignatureBuffer || ' ', generatorPublicKeyBuffer || ' ');
+	return res;
 }
 
 function applyConfirmation(generatorPublicKey) {
