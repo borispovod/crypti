@@ -39,6 +39,16 @@ module.exports = {
 		}
 		return res;
 	},
+	hex: function(val, nullable){
+		if (nullable === true && (val === null || val === undefined)){
+			return null;
+		}
+		if (/^[a-f0-9].(..)$/i.exec(val)){
+			return val;
+		}else{
+			return null;
+		}
+	},
 	object: function (val, nullable) {
 		if (nullable === true && (val === null || val === undefined)){
 			return null;
