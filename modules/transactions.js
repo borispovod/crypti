@@ -523,7 +523,7 @@ Transactions.prototype.undoUnconfirmed = function (transaction) {
 	if (transaction.type == 1) {
 		sender.unconfirmedSignature = false;
 	} else if (transaction.type == 2) {
-		module.delegates.removeUnconfirmedDelegate(transaction.senderPublicKey);
+		modules.delegates.removeUnconfirmedDelegate(transaction.senderPublicKey);
 	}
 
 	return true;
