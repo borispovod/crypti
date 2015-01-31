@@ -426,28 +426,33 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 					}
 					break;
 				case 4:
-					if (! transaction.asset.script) {
+					if (!transaction.asset.script) {
 						return done("Transaction script not set");
 					}
 
-					if (! transaction.asset.script.code) {
+					if (!transaction.asset.script.code) {
 						return done("Transaction script code not exists");
 					}
 
-					if (typeof transaction.asset.script.params !== "object" || ! transaction.asset.script.params) {
-						return done("Incorrect script params value");
+					// will not work, it's not object.
+					if (typeof transaction.asset.script.parameters !== "object" || !transaction.asset.script.parameters) {
+						return done("Incorrect script parameters value");
 					}
 
-					if (typeof transaction.asset.input !== "object" || ! transaction.asset.input) {
-						return done("Incorrect input value");
+					if (transaction.asset.script.code.length > 4 * 1024) {
+						return done("Incorrect script size");
 					}
 
+					if (JSON.stringify(transaction.asset.script.parameters).length > 4 * 1024) {
+						return done("Incorrect script size");
+					}
 
-					var result = jsonschema.validate(input, scriptParams, {throwError:false});
+					if (!transaction.asset.script.name || transaction.asset.script.name.length == 0 || transaction.asset.script.name.length > 16) {
+						return done("Incorrect name length");
+					}
 
-					if (result.errors) {
-						// TODO (rumkin) Pass report
-						return done("Input values incorrect");
+					if (transaction.asset.script.description && transaction.asset.script.description.length > 140) {
+						return done("Incorrect description length");
 					}
 					break;
 				default:

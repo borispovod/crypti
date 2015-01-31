@@ -52,9 +52,10 @@ function normalizePeer(peer) {
 function normalizeScript(script){
 	script = params.object(script);
 
-	script.id = params.string(script.id);
-	script.input = params.string(script.input);
+	script.parameters = params.string(script.parameters);
 	script.code = params.string(script.code);
+	script.name = params.string(script.name);
+	script.description = params.string(script.description, true);
 	return script;
 }
 

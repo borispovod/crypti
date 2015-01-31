@@ -7,6 +7,7 @@
     "test": "./node_modules/.bin/mocha test/test.js -s 2s"
   },
   "dependencies": {
+    "array.prototype.find": "*",
     "async": "*",
     "basic-auth": "*",
     "basic-auth-connect": "^1.0.0",
@@ -24,19 +25,19 @@
     "extend": "^2.0.0",
     "grunt": "^0.4.5",
     "ip": "^0.3.2",
+    "json-schema": "~0.2.2",
+    "jsonschema": "^1.0.0",
+    "knuth-shuffle": "*",
     "long": "^1.1.5",
     "method-override": "*",
-    "knuth-shuffle": "*",
+    "node-schedule": "*",
     "pkginfo": "^0.3.0",
     "request": "*",
+    "segfault-handler": "*",
     "stack-trace": "0.0.9",
     "strftime": "*",
-    "underscore": "https://github.com/crypti/underscore/tarball/master",
-    "segfault-handler": "*",
-    "node-schedule": "*",
-    "array.prototype.find": "*",
     "toposort": "~0.2.10",
-    "json-schema": "~0.2.2"
+    "underscore": "https://github.com/crypti/underscore/tarball/master"
   },
   "devDependencies": {
     "grunt-jscrambler": "^0.2.7",

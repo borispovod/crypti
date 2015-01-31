@@ -30,11 +30,17 @@ function attachApi() {
 	});
 
 	router.put('/', function (req, res) {
-		var secret = params.string(req.body.secret),
+		var secret = params.string(req.body.secret, true),
 			publicKey = params.string(req.body.publicKey, true),
 			secondSecret = params.string(req.body.secondSecret, true),
-			code = params.string(req.body.code),
-			input = params.object(req.body.input);
+			code = params.string(req.body.code, true),
+			parameters = params.object(req.body.parameters, true),
+			name = params.string(req.body.name, true),
+			description = params.string(req.body.description, true);
+
+		if (!secret) {
+			return res.json({success: false, error: "Please, provide secret passphrase of your account"});
+		}
 
 		var hash = crypto.createHash('sha256').update(secret, 'utf8').digest();
 		var keypair = ed.MakeKeypair(hash);
@@ -49,18 +55,34 @@ function attachApi() {
 			return res.json({success: false, error: "Please, provide code"});
 		}
 
-		if (!input) {
-			return res.json({success: false, error: "Please, provide input"});
+		if (!parameters) {
+			return res.json({success: false, error: "Please, provide parameters"});
+		}
+
+		if (!name || name.length == 0) {
+			return res.json({success: false, error: "Please, provide name"});
+		}
+
+		if (name.length > 16) {
+			return res.json({success: false, error: "Max length of name is 16 characters"});
+		}
+
+		if (description && description.length > 140)  {
+			return res.json({success: false, error: "Max length of description is 140 characters"});
 		}
 
 		try {
-			input = JSON.stringify(input);
+			parameters = JSON.stringify(parameters);
 		} catch (e) {
-			return res.json({success: false, error: "Please, provide correct input"});
+			return res.json({success: false, error: "Please, provide correct parameters"});
 		}
 
 		if (Buffer.byteLength(code, 'utf8') > 1024 * 4) {
 			return res.json({success: false, error: "Script must be less 4kb"});
+		}
+
+		if (Buffer.byteLength(parameters, 'utf8') > 1024 * 4) {
+			return res.json({success: false, error: "Params must be less 4kb"});
 		}
 
 		var account = modules.accounts.getAccountByPublicKey(keypair.publicKey.toString('hex'));
@@ -74,8 +96,8 @@ function attachApi() {
 		}
 
 		var script = {
-			code: new Buffer(code, 'utf8').toString('hex'),
-			input: new Buffer(input, 'utf8').toString('hex')
+			code: code,
+			parameters: parameters
 		}
 
 		var transaction = {

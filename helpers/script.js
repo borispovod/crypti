@@ -4,7 +4,7 @@ var crypto = require('crypto'),
 exports.getBytes = getBytes;
 
 function getBytes(script) {
-	var inputBuffer = new Buffer(script.params, 'hex');
+	var inputBuffer = new Buffer(script.parameters, 'hex');
 	var codeBuffer = new Buffer(script.code, 'hex');
 	var objBuffer = Buffer.concat([inputBuffer, codeBuffer])
 
