@@ -498,8 +498,8 @@ function saveBlock(block, cb) {
 						}, cb);
 						break;
 					case 4:
-						library.dbLite.query("INSERT INTO scripts(input, code, transactionId) VALUES($input, $code, $transactionId)", {
-							input: new Buffer(transaction.asset.script.input, 'hex'),
+						library.dbLite.query("INSERT INTO scripts(parameters, code, transactionId) VALUES($parameters, $code, $transactionId)", {
+							parameters: new Buffer(transaction.asset.script.parameters, 'hex'),
 							code: new Buffer(transaction.asset.script.code, 'hex'),
 							transactionId: transaction.id
 						}, cb);
