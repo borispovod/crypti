@@ -61,7 +61,7 @@ function attachApi() {
 		var limit = params.int(req.query.limit);
 		var orderBy = params.string(req.query.orderBy);
 		var offset = params.int(req.query.offset);
-		var generatorPublicKey = params.string(req.query.generatorPublicKey, true);
+		var generatorPublicKey = params.hex(req.query.generatorPublicKey, true);
 		list({
 			generatorPublicKey: generatorPublicKey, //check null
 			limit: limit || 20,
@@ -81,7 +81,7 @@ function attachApi() {
 	});
 
 	router.get('/getForgedByAccount', function (req, res) {
-		var generatorPublicKey = params.string(req.query.generatorPublicKey);
+		var generatorPublicKey = params.hex(req.query.generatorPublicKey);
 
 		if (!generatorPublicKey) {
 			return res.json({success: false, error: "Provide generatorPublicKey in url"});
