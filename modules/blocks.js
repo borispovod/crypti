@@ -543,7 +543,7 @@ Blocks.prototype.loadBlocksPart = function (filter, cb) {
 	var fields = [
 		'b_id', 'b_version', 'b_timestamp', 'b_height', 'b_previousBlock', 'b_numberOfTransactions', 'b_totalAmount', 'b_totalFee', 'b_previousFee', 'b_nextFeeVolume', 'b_feeVolume', 'b_payloadLength', 'b_payloadHash', 'b_generatorPublicKey', 'b_blockSignature',
 		't_id', 't_type', 't_timestamp', 't_senderPublicKey', 't_senderId', 't_recipientId', 't_amount', 't_fee', 't_signature', 't_signSignature',
-		's_id', 's_timestamp', 's_publicKey', 's_generatorPublicKey', 's_signature', 's_generationSignature',
+		's_id', 's_publicKey',
 		'd_username',
 		'v_votes',
 		'js_code', 'js_input'
@@ -551,7 +551,7 @@ Blocks.prototype.loadBlocksPart = function (filter, cb) {
 	library.dbLite.query("SELECT " +
 	"b.id, b.version, b.timestamp, b.height, b.previousBlock, b.numberOfTransactions, b.totalAmount, b.totalFee, b.previousFee, b.nextFeeVolume, b.feeVolume, b.payloadLength, lower(hex(b.payloadHash)), lower(hex(b.generatorPublicKey)), lower(hex(b.blockSignature)), " +
 	"t.id, t.type, t.timestamp, lower(hex(t.senderPublicKey)), t.senderId, t.recipientId, t.amount, t.fee, lower(hex(t.signature)), lower(hex(t.signSignature)), " +
-	"s.id, s.timestamp, lower(hex(s.publicKey)), lower(hex(s.generatorPublicKey)), lower(hex(s.signature)), lower(hex(s.generationSignature)), " +
+	"s.id, lower(hex(s.publicKey)), " +
 	"d.username, " +
 	"v.votes, " +
 	"lower(hex(js.code)), lower(hex(js.input)) " +
@@ -583,15 +583,16 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 	var fields = [
 		'b_id', 'b_version', 'b_timestamp', 'b_height', 'b_previousBlock', 'b_numberOfTransactions', 'b_totalAmount', 'b_totalFee', 'b_payloadLength', 'b_payloadHash', 'b_generatorPublicKey', 'b_blockSignature',
 		't_id', 't_type', 't_timestamp', 't_senderPublicKey', 't_senderId', 't_recipientId', 't_amount', 't_fee', 't_signature', 't_signSignature',
-		's_id', 's_timestamp', 's_publicKey', 's_generatorPublicKey', 's_signature', 's_generationSignature',
+		's_id', 's_publicKey',
 		'd_username',
 		'v_votes',
 		'js_code', 'js_input'
-	]
+	];
+
 	library.dbLite.query("SELECT " +
 	"b.id, b.version, b.timestamp, b.height, b.previousBlock, b.numberOfTransactions, b.totalAmount, b.totalFee, b.payloadLength, lower(hex(b.payloadHash)), lower(hex(b.generatorPublicKey)), lower(hex(b.blockSignature)), " +
 	"t.id, t.type, t.timestamp, lower(hex(t.senderPublicKey)), t.senderId, t.recipientId, t.amount, t.fee, lower(hex(t.signature)), lower(hex(t.signSignature)), " +
-	"s.id, s.timestamp, lower(hex(s.publicKey)), lower(hex(s.generatorPublicKey)), lower(hex(s.signature)), lower(hex(s.generationSignature)), " +
+	"s.id, lower(hex(s.publicKey)), " +
 	"d.username, " +
 	"v.votes, " +
 	"lower(hex(js.code)), lower(hex(js.input)) " +

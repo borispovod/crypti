@@ -411,6 +411,10 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 					if (modules.delegates.getDelegate(transaction.senderPublicKey)) {
 						return cb && cb("This account already delegate");
 					}
+
+					if (modules.delegates.getDelegate(transaction.senderPublicKey)) {
+						return cb && cb("This account already delegate");
+					}
 					break;
 				case 3:
 					if (transaction.recipientId != transaction.senderId) {
@@ -491,6 +495,26 @@ Transactions.prototype.apply = function (transaction) {
 	}
 
 	return true;
+}
+
+Transactions.prototype.applyUnconfirmedList = function (ids) {
+	for (var i = 0; i < ids.length; i++) {
+		var transaction = unconfirmedTransactions[ids[i]];
+		if (!this.applyUnconfirmed(transaction)) {
+			delete unconfirmedTransactions[ids[i]];
+			doubleSpendingTransactions[ids[i]] = transaction;
+		}
+	}
+}
+
+Transactions.prototype.undoAllUnconfirmed = function () {
+	var ids = Object.keys(unconfirmedTransactions);
+	for (var i = 0; i < ids.length; i++) {
+		var transaction = unconfirmedTransactions[ids[i]];
+		this.undoUnconfirmed(transaction);
+	}
+
+	return ids;
 }
 
 Transactions.prototype.applyUnconfirmedList = function (ids) {

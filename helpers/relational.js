@@ -157,11 +157,7 @@ function getSignature(raw) {
 		var signature = {
 			id: raw.s_id,
 			transactionId: raw.t_id,
-			timestamp: parseInt(raw.s_timestamp),
-			publicKey: raw.s_publicKey,
-			generatorPublicKey: raw.s_generatorPublicKey,
-			signature: raw.s_signature,
-			generationSignature: raw.s_generationSignature
+			publicKey: raw.s_publicKey
 		}
 
 		return signature;

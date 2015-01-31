@@ -21,7 +21,6 @@ function normalizeBlock(block) {
 		block.transactions[i] = normalizeTransaction(block.transactions[i]);
 	}
 
-
 	return block;
 }
 
@@ -64,11 +63,7 @@ function normalizeSignature(signature) {
 
 	signature.id = params.string(signature.id);
 	signature.transactionId = params.string(signature.transactionId);
-	signature.timestamp = params.int(signature.timestamp);
 	signature.publicKey = params.string(signature.publicKey);
-	signature.generatorPublicKey = params.string(signature.generatorPublicKey);
-	signature.signature = params.string(signature.signature);
-	signature.generationSignature = params.string(signature.generationSignature);
 
 	return signature;
 }
