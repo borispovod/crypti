@@ -18,7 +18,7 @@ module.exports = {
 
 	interval: 10,
 
-	delegates: 101,
+	delegates: 1,
 
 	getTime: function (time) {
 		return getEpochTime(time);

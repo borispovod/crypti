@@ -75,6 +75,7 @@ function getBlock(raw) {
 		var block = {
 			id: raw.b_id,
 			version: parseInt(raw.b_version),
+			delegates: parseInt(raw.b_delegates),
 			timestamp: parseInt(raw.b_timestamp),
 			height: parseInt(raw.b_height),
 			previousBlock: raw.b_previousBlock,
