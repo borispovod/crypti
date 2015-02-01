@@ -4,6 +4,7 @@ function normalizeBlock(block) {
 	block = params.object(block);
 
 	block.id = params.string(block.id);
+	block.delegates = params.int(block.delegates);
 	block.version = params.int(block.version);
 	block.timestamp = params.int(block.timestamp);
 	block.height = params.int(block.height);

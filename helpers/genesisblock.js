@@ -1,4 +1,5 @@
 module.exports = {
+	delegates: 1,
 	payloadLength: 314,
 	payloadHash: "2404d19b91899938c9bd3e9e191c71aed41d09c8c929b20a0295797353f001d6",
 	generatorId: "5802249785291420991C",
