@@ -4,6 +4,7 @@ function normalizeBlock(block) {
 	block = params.object(block);
 
 	block.id = params.string(block.id);
+	block.delegates = params.int(block.delegates);
 	block.version = params.int(block.version);
 	block.timestamp = params.int(block.timestamp);
 	block.height = params.int(block.height);
@@ -12,9 +13,9 @@ function normalizeBlock(block) {
 	block.totalAmount = params.int(block.totalAmount);
 	block.totalFee = params.int(block.totalFee);
 	block.payloadLength = params.int(block.payloadLength);
-	block.payloadHash = params.string(block.payloadHash);
-	block.generatorPublicKey = params.string(block.generatorPublicKey);
-	block.blockSignature = params.string(block.blockSignature);
+	block.payloadHash = params.hex(block.payloadHash);
+	block.generatorPublicKey = params.hex(block.generatorPublicKey);
+	block.blockSignature = params.hex(block.blockSignature);
 	block.transactions = params.array(block.transactions);
 
 	for (var i = 0; i < block.transactions.length; i++) {
@@ -28,7 +29,7 @@ function normalizeDelegate(delegate, transaction) {
 	delegate = params.object(delegate);
 
 	delegate.username = params.string(delegate.username);
-	delegate.publicKey = params.string(transaction.senderPublicKey);
+	delegate.publicKey = params.hex(transaction.senderPublicKey);
 	delegate.transactionId = params.string(transaction.id);
 	return delegate;
 }
@@ -64,7 +65,7 @@ function normalizeSignature(signature) {
 
 	signature.id = params.string(signature.id);
 	signature.transactionId = params.string(signature.transactionId);
-	signature.publicKey = params.string(signature.publicKey);
+	signature.publicKey = params.hex(signature.publicKey);
 
 	return signature;
 }
@@ -76,13 +77,13 @@ function normalizeTransaction(transaction) {
 	transaction.blockId = params.string(transaction.blockId);
 	transaction.type = params.int(transaction.type);
 	transaction.timestamp = params.int(transaction.timestamp);
-	transaction.senderPublicKey = params.string(transaction.senderPublicKey);
+	transaction.senderPublicKey = params.hex(transaction.senderPublicKey);
 	transaction.senderId = params.string(transaction.senderId);
 	transaction.recipientId = params.string(transaction.recipientId, true);
 	transaction.amount = params.int(transaction.amount);
 	transaction.fee = params.int(transaction.fee);
-	transaction.signature = params.string(transaction.signature);
-	transaction.signSignature = params.string(transaction.signSignature, true);
+	transaction.signature = params.hex(transaction.signature);
+	transaction.signSignature = params.hex(transaction.signSignature, true);
 	transaction.asset = params.object(transaction.asset);
 
 	switch (transaction.type) {

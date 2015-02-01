@@ -7,7 +7,8 @@ var crypto = require('crypto'),
 	arrayHelper = require('../helpers/array.js'),
 	slots = require('../helpers/slots.js'),
 	schedule = require('node-schedule'),
-	util = require('util');
+	util = require('util'),
+	genesisblock = require("../helpers/genesisblock.js");
 
 require('array.prototype.find'); //old node fix
 
@@ -18,9 +19,8 @@ var keypair, myDelegate, address, account;
 var delegates = {};
 var activeDelegates = [];
 var loaded = false;
-var roundDelegateList = [];
-var prevRound = null;
 var unconfirmedDelegates = [];
+var tasks = [];
 
 //constructor
 function Delegates(cb, scope) {
@@ -43,7 +43,7 @@ function attachApi() {
 
 	router.put('/', function (req, res) {
 		var secret = params.string(req.body.secret),
-			publicKey = params.string(req.body.publicKey, true),
+			publicKey = params.hex(req.body.publicKey, true),
 			secondSecret = params.string(req.body.secondSecret, true),
 			username = params.string(req.body.username);
 
@@ -106,7 +106,7 @@ function attachApi() {
 	});
 }
 
-function getKeysSortByVote() {
+function getKeysSortByVote(delegates) {
 	var delegatesArray = arrayHelper.hash2array(delegates);
 	delegatesArray = delegatesArray.sort(function compare(a, b) {
 		return (b.vote || 0) - (a.vote || 0);
@@ -118,7 +118,7 @@ function getKeysSortByVote() {
 }
 
 function getBlockTime(slot, height, delegateCount) {
-	activeDelegates = generateDelegateList(height + 1, delegateCount);
+	activeDelegates = self.generateDelegateList(getKeysSortByVote(delegates), height, delegateCount);
 
 	library.logger.log('getBlockTime ' + slot + ' ' + height + ' ' + delegateCount, activeDelegates.map(function (id) {
 		return id.substring(0, 4);
@@ -139,14 +139,16 @@ function getBlockTime(slot, height, delegateCount) {
 }
 
 function loop(cb) {
+	setImmediate(cb);
+
 	if (!myDelegate || !account) {
 		library.logger.log('loop', 'exit: no delegate');
-		return setImmediate(cb);
+		return;
 	}
 
 	if (!loaded || modules.loader.syncing()) {
 		library.logger.log('loop', 'exit: syncing');
-		return setImmediate(cb);
+		return;
 	}
 
 	var currentSlot = slots.getSlotNumber();
@@ -154,21 +156,21 @@ function loop(cb) {
 
 	if (currentSlot == slots.getSlotNumber(lastBlock.timestamp)) {
 		library.logger.log('loop', 'exit: lastBlock is in the same slot');
-		return setImmediate(cb);
+		return;
 	}
 
-	var currentBlockTime = getBlockTime(currentSlot, lastBlock.height, slots.delegates);
+	var delegateCount = slots.delegates;
+
+	var currentBlockTime = getBlockTime(currentSlot, lastBlock.height + 1, delegateCount);
 
 	if (currentBlockTime === null) {
 		library.logger.log('loop', 'skip slot');
-		return setImmediate(cb);
+		return;
 	}
-
-	setImmediate(cb);
 
 	library.sequence.add(function (cb) {
 		if (slots.getSlotNumber(currentBlockTime) == slots.getSlotNumber()) {
-			modules.blocks.generateBlock(keypair, currentBlockTime, function (err) {
+			modules.blocks.generateBlock(keypair, currentBlockTime, delegateCount, function (err) {
 				library.logger.log('new block ' + modules.blocks.getLastBlock().id + ' ' + modules.blocks.getLastBlock().height + ' ' + slots.getSlotNumber(currentBlockTime) + ' ' + lastBlock.height, activeDelegates.map(function (id) {
 					return id.substring(0, 4);
 				}))
@@ -185,6 +187,10 @@ function loop(cb) {
 	});
 }
 
+function calcRound(height, delegateCount) {
+	return Math.floor(height / delegateCount) + (height % delegateCount > 0 ? 1 : 0);
+}
+
 function loadMyDelegates() {
 	var secret = library.config.forging.secret
 
@@ -198,13 +204,10 @@ function loadMyDelegates() {
 	}
 }
 
-function generateDelegateList(height, delegateCount) {
-	var round = Math.floor(height / delegateCount) + (height % delegateCount > 0 ? 1 : 0);
-	var seedSource = round.toString();
-	if (prevRound !== round){
-		roundDelegateList = getKeysSortByVote();
-		prevRound = round;
-	}
+//public methods
+Delegates.prototype.generateDelegateList = function (roundDelegateList, height, delegateCount) {
+	var seedSource = calcRound(height, delegateCount).toString();
+
 	var currentSeed = crypto.createHash('sha256').update(seedSource, 'utf8').digest();
 	for (var i = 0, delCount = roundDelegateList.length; i < delCount; i++) {
 		for (var x = 0; x < 4 && i < delCount; i++, x++) {
@@ -219,7 +222,6 @@ function generateDelegateList(height, delegateCount) {
 	return roundDelegateList;
 }
 
-//public methods
 Delegates.prototype.checkDelegates = function (votes) {
 	if (votes === null) {
 		return true;
@@ -261,7 +263,6 @@ Delegates.prototype.getDelegateByName = function (userName) {
 	})
 }
 
-
 Delegates.prototype.cache = function (delegate) {
 	delegates[delegate.publicKey] = delegate;
 	slots.delegates = Math.min(101, Object.keys(delegates).length)
@@ -272,29 +273,33 @@ Delegates.prototype.uncache = function (delegate) {
 	slots.delegates = Math.min(101, Object.keys(delegates).length)
 }
 
-Delegates.prototype.validateBlockSlot = function (block, cb) {
-	library.dbLite.query("select count(*) from blocks b inner join trs t on b.id = t.blockId and t.type = 2 where b.height <= $height", {height: block.height}, {"count": Number}, function (err, rows) {
-		if (err || !rows.length) {
-			return cb(err || 'delegates not found');
-		}
-		var delegateCount = rows[0].count;
+Delegates.prototype.validateBlockSlot = function (block) {
+	if (!block.delegates) return false;
 
-		var activeDelegates = generateDelegateList(block.height, delegateCount);
+	var activeDelegates = self.generateDelegateList(getKeysSortByVote(delegates), block.height, block.delegates);
 
-		var currentSlot = slots.getSlotNumber(block.timestamp);
-		var delegate_id = activeDelegates[currentSlot % delegateCount];
-		if (delegate_id && block.generatorPublicKey == delegate_id) {
-			library.logger.log('validation pass', activeDelegates.map(function (id) {
-				return id.substring(0, 4);
-			}))
-			return cb(null, true);
-		}
+	var currentSlot = slots.getSlotNumber(block.timestamp);
+	var delegate_id = activeDelegates[currentSlot % block.delegates];
+	if (delegate_id && block.generatorPublicKey == delegate_id) {
+		//library.logger.log('validation pass', activeDelegates.map(function (id) {
+		//	return id.substring(0, 4);
+		//}))
+		return true;
+	}
 
-		library.logger.log('validation fail', activeDelegates.map(function (id) {
-			return id.substring(0, 4);
-		}))
-		cb(null, false);
-	});
+	library.logger.log('validation fail', activeDelegates.map(function (id) {
+		return id.substring(0, 4);
+	}))
+	return false;
+}
+
+Delegates.prototype.tick = function (block) {
+	var lastRound = calcRound(block.height, block.delegates);
+	var nextRound = calcRound(block.height + 1, slots.delegates);
+
+	if (nextRound !== lastRound) {
+		library.bus.message('finishRound', lastRound);
+	}
 }
 
 //events
@@ -320,33 +325,48 @@ Delegates.prototype.onBlockchainReady = function () {
 	});
 }
 
-Delegates.prototype.onReceiveBlock = function () {
-	if (keypair) {
-		myDelegate = self.getDelegate(keypair.publicKey.toString('hex'));
-	}
+Delegates.prototype.onNewBlock = function (block, broadcast) {
+	tasks.push(function () {
+		if (keypair) {
+			myDelegate = self.getDelegate(keypair.publicKey.toString('hex'));
+		}
+	});
+
+	self.tick(block);
 }
 
 Delegates.prototype.onChangeBalance = function (account, amount) {
-	amount = amount / 1000000000;
-	if (util.isArray(account.delegates)) {
-		account.delegates.forEach(function (publicKey) {
-			delegates[publicKey].vote = (delegates[publicKey].vote || 0) + amount;
-		});
-	}
+	tasks.push(function () {
+		amount = amount / 1000000000;
+		if (util.isArray(account.delegates)) {
+			account.delegates.forEach(function (publicKey) {
+				delegates[publicKey].vote = (delegates[publicKey].vote || 0) + amount;
+			});
+		}
+	});
 }
 
 Delegates.prototype.onChangeDelegates = function (account, newDelegates) {
-	var balance = account.balance / 1000000000;
-	if (util.isArray(account.delegates)) {
-		account.delegates.forEach(function (publicKey) {
-			delegates[publicKey].vote = (delegates[publicKey].vote || 0) - balance;
-		});
-	}
+	tasks.push(function () {
+		var balance = account.balance / 1000000000;
+		if (util.isArray(account.delegates)) {
+			account.delegates.forEach(function (publicKey) {
+				delegates[publicKey].vote = (delegates[publicKey].vote || 0) - balance;
+			});
+		}
 
-	if (util.isArray(newDelegates)) {
-		newDelegates.forEach(function (publicKey) {
-			delegates[publicKey].vote = (delegates[publicKey].vote || 0) + balance;
-		});
+		if (util.isArray(newDelegates)) {
+			newDelegates.forEach(function (publicKey) {
+				delegates[publicKey].vote = (delegates[publicKey].vote || 0) + balance;
+			});
+		}
+	});
+}
+
+Delegates.prototype.onFinishRound = function (round) {
+	while (tasks.length) {
+		var task = tasks.shift();
+		task();
 	}
 }
 

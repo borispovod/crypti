@@ -48,7 +48,7 @@ function attachApi() {
 		var limit = params.int(req.query.limit);
 		var orderBy = params.string(req.query.orderBy);
 		var offset = params.int(req.query.offset);
-		var senderPublicKey = params.string(req.query.senderPublicKey, true);
+		var senderPublicKey = params.hex(req.query.senderPublicKey, true);
 		var recipientId = params.string(req.query.recipientId)
 
 		list({
@@ -103,7 +103,7 @@ function attachApi() {
 		var transactions = self.getUnconfirmedTransactions(true),
 			toSend = [];
 
-		var senderPublicKey = params.string(req.query.senderPublicKey, true),
+		var senderPublicKey = params.hex(req.query.senderPublicKey, true),
 			address = params.string(req.query.address, true);
 
 		if (senderPublicKey || address) {
@@ -133,7 +133,7 @@ function attachApi() {
 		var secret = params.string(req.body.secret),
 			amount = params.int(req.body.amount),
 			recipientId = params.string(req.body.recipientId, true),
-			publicKey = params.string(req.body.publicKey, true),
+			publicKey = params.hex(req.body.publicKey, true),
 			secondSecret = params.string(req.body.secondSecret, true);
 
 		var hash = crypto.createHash('sha256').update(secret, 'utf8').digest();
@@ -585,7 +585,7 @@ Transactions.prototype.undoUnconfirmed = function (transaction) {
 	if (transaction.type == 1) {
 		sender.unconfirmedSignature = false;
 	} else if (transaction.type == 2) {
-		module.delegates.removeUnconfirmedDelegate(transaction.senderPublicKey);
+		modules.delegates.removeUnconfirmedDelegate(transaction.senderPublicKey);
 	}
 
 	return true;
