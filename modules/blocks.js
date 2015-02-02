@@ -1093,6 +1093,8 @@ Blocks.prototype.loadBlocksFromPeer = function (peer, lastCommonBlockId, cb) {
 						try {
 							block = normalize.block(block);
 						} catch (e) {
+							var peerStr = data.peer ? ip.fromLong(data.peer.ip) + ":" + data.peer.port : 'unknown';
+							library.logger.log('ban 60 min', peerStr);
 							modules.peer.state(peer.ip, peer.port, 0, 3600);
 							return setImmediate(cb, e);
 						}
