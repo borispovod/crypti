@@ -92,6 +92,7 @@ function loadBlocks(lastBlock, cb) {
 								var block = rows[0];
 
 								if (lastBlock.height - block.height > 1440) {
+									library.logger.log('ban 60 min', peerStr);
 									modules.peer.state(data.peer.ip, data.peer.port, 0, 3600);
 									cb();
 								} else {
@@ -154,6 +155,8 @@ function loadUnconfirmedTransactions(cb) {
 			try {
 				transactions[i] = normalize.transaction(transactions[i]);
 			} catch (e) {
+				var peerStr = data.peer ? ip.fromLong(data.peer.ip) + ":" + data.peer.port : 'unknown';
+				library.logger.log('ban 60 min', peerStr);
 				modules.peer.state(data.peer.ip, data.peer.port, 0, 3600);
 				return setImmediate(cb);
 			}
