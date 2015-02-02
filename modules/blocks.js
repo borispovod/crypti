@@ -438,7 +438,7 @@ function list(filter, cb) {
 	}
 
 	if (filter.limit > 100) {
-		return cb('Maximum of limit is 1000');
+		return cb('Maximum of limit is 100');
 	}
 
 	library.dbLite.query("select b.id, b.delegates, b.version, b.timestamp, b.height, b.previousBlock, b.numberOfTransactions, b.totalAmount, b.totalFee, b.payloadLength,  lower(hex(b.payloadHash)), lower(hex(b.generatorPublicKey)), lower(hex(b.blockSignature)) " +

@@ -224,10 +224,10 @@ function list(filter, cb) {
 
 	if (filter.orderBy) {
 		var sort = filter.orderBy.split(':');
-		sortBy = sort[0].replace(/[^\w\s]/gi, '');
+		var sortBy = sort[0].replace(/[^\w\s]/gi, '');
 		sortBy = "t." + sortBy;
 		if (sort.length == 2) {
-			sortMethod = sort[1] == 'desc' ? 'desc' : 'asc'
+			var sortMethod = sort[1] == 'desc' ? 'desc' : 'asc'
 		}
 	}
 
