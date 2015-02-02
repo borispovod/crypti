@@ -151,7 +151,12 @@ function loadUnconfirmedTransactions(cb) {
 		var transactions = params.array(data.body.transactions);
 
 		for (var i = 0; i < transactions.length; i++) {
-			transactions[i] = normalize.transaction(transactions[i]);
+			try {
+				transactions[i] = normalize.transaction(transactions[i]);
+			} catch (e) {
+				modules.peer.state(data.peer.ip, data.peer.port, 0, 3600);
+				return setImmediate(cb);
+			}
 		}
 		library.bus.message('receiveTransaction', transactions);
 		cb();
