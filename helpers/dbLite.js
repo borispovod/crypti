@@ -25,7 +25,7 @@ module.exports.connect = function (connectString, cb) {
 
 	async.eachSeries(sql, function (command, cb) {
 		db.query(command, function(err, data){
-			cb(err)
+			cb(err, data)
 		});
 	}, function (err) {
 		cb(err, db);
