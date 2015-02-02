@@ -190,6 +190,7 @@ function loadBlockChain() {
 					library.logger.error('loadBlocksOffset', err);
 					if (err.block) {
 						library.logger.error('blockchain failed at ', err.block.height)
+						process.exit(0);
 						modules.blocks.simpleDeleteAfterBlock(err.block.id, function (err, res) {
 							library.logger.error('blockchain clipped');
 							library.bus.message('blockchainReady');

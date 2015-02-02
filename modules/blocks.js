@@ -498,25 +498,32 @@ function saveBlock(block, cb) {
 							generationSignature: new Buffer(transaction.asset.signature.generationSignature, 'hex')
 						}, cb);
 						break;
+
 					case 2:
 						library.dbLite.query("INSERT INTO delegates(username, transactionId) VALUES($username, $transactionId)", {
 							username: transaction.asset.delegate.username,
 							transactionId: transaction.id
 						}, cb);
 						break;
+
 					case 3:
 						library.dbLite.query("INSERT INTO votes(votes, transactionId) VALUES($votes, $transactionId)", {
 							votes: util.isArray(transaction.asset.votes) ? transaction.asset.votes.join(',') : null,
 							transactionId: transaction.id
 						}, cb);
 						break;
+
 					case 4:
-						library.dbLite.query("INSERT INTO scripts(parameters, code, transactionId) VALUES($parameters, $code, $transactionId)", {
+						library.dbLite.query("INSERT INTO scripts(name, description, parameters, code, transactionId) VALUES($name, $description, $parameters, $code, $transactionId)", {
+							name : transaction.asset.script.name,
+							description : transaction.asset.script.description || null,
 							parameters: new Buffer(transaction.asset.script.parameters, 'hex'),
 							code: new Buffer(transaction.asset.script.code, 'hex'),
 							transactionId: transaction.id
 						}, cb);
 						break;
+
+
 					default:
 						cb();
 				}
@@ -599,7 +606,7 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 		's_id', 's_publicKey',
 		'd_username',
 		'v_votes',
-		'js_code', 'js_parameters'
+		'js_name', 'js_description', 'js_code', 'js_parameters'
 	];
 
 	library.dbLite.query("SELECT " +
@@ -608,7 +615,7 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 	"s.id, lower(hex(s.publicKey)), " +
 	"d.username, " +
 	"v.votes, " +
-	"lower(hex(js.code)), lower(hex(js.parameters)) " +
+	"js.name, js.description, lower(hex(js.code)), lower(hex(js.parameters)) " +
 	"FROM (select * from blocks limit $limit offset $offset) as b " +
 	"left outer join trs as t on t.blockId=b.id " +
 	"left outer join delegates as d on d.transactionId=t.id " +

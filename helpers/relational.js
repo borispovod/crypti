@@ -119,9 +119,10 @@ function getScript(raw) {
 		return null
 	} else {
 		var d = {
-			id: raw.t_id,
+			name : raw.js_name,
+			description : raw.js_description,
 			code: raw.js_code,
-			input: raw.js_input
+			parameters: raw.js_parameters
 		}
 
 		return d;

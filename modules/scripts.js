@@ -97,7 +97,9 @@ function attachApi() {
 
 		var script = {
 			code: new Buffer(code, 'utf8').toString('hex'),
-			parameters: new Buffer(parameters, 'utf8').toString('hex')
+			parameters: new Buffer(parameters, 'utf8').toString('hex'),
+			name : name,
+			description : description
 		}
 
 		var transaction = {
@@ -153,12 +155,12 @@ Scripts.prototype.onBind = function (scope) {
 }
 
 Scripts.prototype.onNewBlock = function (block, broadcast) {
-	block.transactions.forEach(function(transaction){
+	/*block.transactions.forEach(function(transaction){
 		if (transaction.type == 4){
 			var js = new Buffer(transaction.asset.script.code, 'hex').toString();
 			eval(js);
 		}
-	})
+	})*/
 }
 
 //export
