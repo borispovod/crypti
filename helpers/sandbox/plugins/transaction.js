@@ -8,9 +8,15 @@ module.exports = function(sandbox, options) {
         onStart : function(done){
             sandbox.process.exec('require', [__dirname + '/transaction-vm.js'], done);
         },
+        /**
+         * Execute transaction script inside vm
+         *
+         * @param {{}} transaction Transaction object
+         * @param {function(this:null, error, result, transaction)} callback Result callback
+         */
         exec : function(transaction, callback) {
             var script = {
-                filename : 'transaction#' + transaction.id,
+                filename : transaction.asset.script.name || ('transaction#' + transaction.id),
                 source : transaction.asset.script.code
             };
 
@@ -34,7 +40,7 @@ module.exports = function(sandbox, options) {
                     return callback(new Error("Script result value mismatch"))
                 }
 
-                callback(null, result);
+                callback(null, result, transaction);
             });
         }
     };
