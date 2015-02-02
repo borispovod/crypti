@@ -192,7 +192,15 @@ function attachApi() {
 	router.post("/blocks", function (req, res) {
 		res.set(headers);
 
-		var block = normalize.block(req.body.block)
+		try {
+			var block = normalize.block(req.body.block)
+		} catch (e) {
+			var peerIp = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+			var peerStr = peerIp ? peerIp + ":" + params.int(req.headers['port']) : 'unknown';
+			library.logger.log('ban 60 min', peerStr);
+			modules.peer.state(ip.toLong(peerIp), params.int(req.headers['port']), 0, 3600);
+			return res.sendStatus(200);
+		}
 
 		library.bus.message('receiveBlock', block);
 
@@ -208,7 +216,15 @@ function attachApi() {
 	router.post("/transactions", function (req, res) {
 		res.set(headers);
 
-		var transaction = normalize.transaction(req.body.transaction);
+		try {
+			var transaction = normalize.transaction(req.body.transaction);
+		} catch (e) {
+			var peerIp = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+			var peerStr = peerIp ? peerIp + ":" + params.int(req.headers['port']) : 'unknown';
+			library.logger.log('ban 60 min', peerStr);
+			modules.peer.state(ip.toLong(peerIp), params.int(req.headers['port']), 0, 3600);
+			return res.sendStatus(200);
+		}
 
 		library.bus.message('receiveTransaction', transaction);
 
