@@ -40,12 +40,13 @@ function attachApi() {
 	});
 
 	router.get('/', function (req, res) {
-		var blockId = params.string(req.query.blockId);
-		var limit = params.int(req.query.limit);
-		var orderBy = params.string(req.query.orderBy);
-		var offset = params.int(req.query.offset);
+		var blockId = params.string(req.query.blockId, true);
+		var limit = params.int(req.query.limit, true);
+		var orderBy = params.string(req.query.orderBy, true);
+		var offset = params.int(req.query.offset, true);
 		var senderPublicKey = params.hex(req.query.senderPublicKey, true);
-		var recipientId = params.string(req.query.recipientId)
+		var senderId = params.string(req.query.senderId, true);
+		var recipientId = params.string(req.query.recipientId, true)
 
 		list({
 			blockId: blockId,
@@ -53,7 +54,8 @@ function attachApi() {
 			recipientId: recipientId,
 			limit: limit || 20,
 			orderBy: orderBy,
-			offset: offset
+			offset: offset,
+			senderId : senderId
 		}, function (err, transactions) {
 			if (err) {
 				return res.json({success: false, error: "Transactions not found"});
@@ -205,6 +207,10 @@ function list(filter, cb) {
 		fields.push('lower(hex(senderPublicKey)) = $senderPublicKey')
 		params.senderPublicKey = filter.senderPublicKey;
 	}
+	if (filter.senderId) {
+		fields.push('senderId = $senderId');
+		params.senderId = filter.senderId;
+	}
 	if (filter.recipientId) {
 		fields.push('recipientId = $recipientId')
 		params.recipientId = filter.recipientId;
@@ -225,8 +231,8 @@ function list(filter, cb) {
 		}
 	}
 
-	if (filter.limit > 1000) {
-		return cb('Maximum of limit is 1000');
+	if (filter.limit > 100) {
+		return cb('Maximum of limit is 100');
 	}
 
 	// need to fix 'or' or 'and' in query
