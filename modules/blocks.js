@@ -1119,7 +1119,14 @@ Blocks.prototype.loadBlocksFromPeer = function (peer, lastCommonBlockId, cb) {
 					next();
 				} else {
 					async.eachSeries(data.body.blocks, function (block, cb) {
-						block = normalize.block(block);
+						try {
+							block = normalize.block(block);
+						} catch (e) {
+							var peerStr = data.peer ? ip.fromLong(data.peer.ip) + ":" + data.peer.port : 'unknown';
+							library.logger.log('ban 60 min', peerStr);
+							modules.peer.state(peer.ip, peer.port, 0, 3600);
+							return setImmediate(cb, e);
+						}
 						self.processBlock(block, false, function (err) {
 							if (!err) {
 								lastCommonBlockId = block.id;
@@ -1250,7 +1257,11 @@ Blocks.prototype.generateBlock = function (keypair, timestamp, delegateCount, cb
 
 	block.blockSignature = sign(keypair, block);
 
-	block = normalize.block(block);
+	try {
+		block = normalize.block(block);
+	} catch (e) {
+		return setImmediate(cb, e);
+	}
 	self.processBlock(block, true, cb);
 }
 
