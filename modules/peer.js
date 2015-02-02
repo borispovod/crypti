@@ -30,19 +30,17 @@ function attachApi() {
 	});
 
 	router.get('/', function (req, res) {
-		var state = params.int(req.query.state),
+		var state = params.int(req.query.state, true),
 			os = params.string(req.query.os, true),
 			version = params.string(req.query.version, true),
-			limit = params.int(req.query.limit),
-			shared = params.bool(req.query.shared),
-			orderBy = params.string(req.query.orderBy),
-			offset = params.int(req.query.offset);
-
-		if (limit < 0 || limit > 100) {
-			return res.json({success: false, error: "Max limit is 100"});
-		}
+			limit = params.int(req.query.limit, true),
+			shared = params.bool(req.query.shared, true),
+			orderBy = params.string(req.query.orderBy, true),
+			offset = params.int(req.query.offset, true),
+			port = params.int(req.query.port, true);
 
 		getByFilter({
+			port : port,
 			state: state,
 			os: os,
 			version: version,
@@ -131,22 +129,52 @@ function banManager(cb) {
 }
 
 function getByFilter(filter, cb) {
-	var limit = filter.limit || 100;
+	var limit = filter.limit;
 	var offset = filter.offset;
 	delete filter.limit;
 	delete filter.offset;
 
 	var where = [];
 	var params = {};
-	Object.keys(filter).forEach(function (key) {
-		where.push(key + " = " + '$' + key);
-		params[key] = filter[key];
-	});
 
-	params['limit'] = limit;
-	offset && (params['offset'] = offset);
+	if (limit > 100) {
+		return cb("Maximum limit is 100");
+	}
 
-	library.dbLite.query("select ip, port, state, os, sharePort, version from peers" + (where.length ? (' where ' + where.join(' and ')) : '') + ' limit $limit' + (offset ? ' offset $offset ' : ''), params, {"ip": String, "port": Number, "state": Number, "os": String, "sharePort": Number, "version": String}, function(err, rows){
+	if (filter.state) {
+		where.push("state = $state");
+		params.state = filter.state;
+	}
+
+	if (filter.os) {
+		where.push("os = $os");
+		params.os = filter.os;
+	}
+
+	if (filter.version) {
+		where.push("version = $version");
+		params.version = filter.version;
+	}
+
+	if (filter.shared) {
+		where.push("sharePort = $sharePort");
+		params.sharePort = filter.shared;
+	}
+
+	if (filter.port) {
+		where.push("port = $port");
+		params.port = filter.port;
+	}
+
+	if (limit) {
+		params['limit'] = limit;
+	}
+
+	if (offset) {
+		params['offset'] = offset;
+	}
+
+	library.dbLite.query("select ip, port, state, os, sharePort, version from peers" + (where.length ? (' where ' + where.join(' and ')) : '') + (limit? ' limit $limit' : '') + (offset ? ' offset $offset ' : ''), params, {"ip": String, "port": Number, "state": Number, "os": String, "sharePort": Number, "version": String}, function(err, rows){
 		cb(err, rows);
 	});
 }
