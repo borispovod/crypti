@@ -393,6 +393,14 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 					if (!transaction.asset.signature) {
 						return done("Empty transaction asset for signature transaction")
 					}
+
+					try {
+						if (new Buffer(transaction.asset.signature.publicKey, 'hex').length != 32) {
+							return done("Invalid length for signature public key");
+						}
+					} catch (e) {
+						return done("Invalid hex in signature public key");
+					}
 					break;
 
 				case 2:
@@ -426,6 +434,10 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 					}
 					break;
 				case 4:
+					if (transaction.recipientId != null) {
+						return done("Incorrect recipient");
+					}
+
 					if (!transaction.asset.script) {
 						return done("Transaction script not set");
 					}
@@ -434,23 +446,33 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 						return done("Transaction script code not exists");
 					}
 
-					// will not work, it's not object.
-					if (typeof transaction.asset.script.parameters !== "object" || !transaction.asset.script.parameters) {
-						return done("Incorrect script parameters value");
+					var code = null, parameters = null;
+
+					try {
+						code = new Buffer(transaction.asset.script.code, 'hex');
+						parameters = new Buffer(transaction.asset.script.parameters, 'hex');
+					} catch (e) {
+						return done("Can't parse code/parameters from hex to strings in script transaction.");
 					}
 
-					if (transaction.asset.script.code.length > 4 * 1024) {
-						return done("Incorrect script size");
+					if (code.length > 4 * 1024) {
+						return done("Incorrect script code length");
 					}
 
-					if (JSON.stringify(transaction.asset.script.parameters).length > 4 * 1024) {
-						return done("Incorrect script size");
+					if (parameters.length > 4 * 1024) {
+						return done("Incorrect script parameters length");
+					}
+
+					try {
+						parameters = JSON.parse(parameters);
+					} catch (e) {
+						return done("Incorrect script parameters json");
 					}
 
 					if (!transaction.asset.script.name || transaction.asset.script.name.length == 0 || transaction.asset.script.name.length > 16) {
 						return done("Incorrect name length");
 					}
-pr
+
 					if (transaction.asset.script.description && transaction.asset.script.description.length > 140) {
 						return done("Incorrect description length");
 					}

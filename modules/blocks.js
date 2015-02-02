@@ -980,8 +980,6 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 										return cb("Transaction must have signature");
 									}
 								} else if (transaction.type == 2) {
-
-								} else if (transaction.type == 3) {
 									if (transaction.senderId != transaction.recipientId) {
 										return cb("Invalid recipient");
 									}
@@ -1001,13 +999,62 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 									if (modules.delegates.getDelegate(transaction.senderPublicKey)) {
 										return cb && cb("This account already delegate");
 									}
-								}
+								} else if (transaction.type == 3) {
+									if (transaction.recipientId != transaction.senderId) {
+										return cb && cb("Incorrect recipient");
+									}
 
+									if (!modules.delegates.checkDelegates(transaction.asset.votes)) {
+										return cb && cb("Can't verify votes, vote for not exists delegate found: " + transaction.id);
+									}
+								} else  if (transaction.type == 4) {
+									if (transaction.recipientId != null) {
+										return cb && cb("Incorrect recipient");
+									}
+
+									if (!transaction.asset.script) {
+										return cb && cb("Transaction script not set");
+									}
+
+									if (!transaction.asset.script.code) {
+										return cb && cb("Transaction script code not exists");
+									}
+
+									var code = null, parameters = null;
+
+									try {
+										code = new Buffer(transaction.asset.script.code, 'hex');
+										parameters = new Buffer(transaction.asset.script.parameters, 'hex');
+									} catch (e) {
+										return done("Can't parse code/parameters from hex to strings in script transaction.");
+									}
+
+									if (code.length > 4 * 1024) {
+										return cb && cb("Incorrect script code length");
+									}
+
+									if (parameters.length > 4 * 1024) {
+										return cb && cb("Incorrect script parameters length");
+									}
+
+									try {
+										parameters = JSON.parse(parameters);
+									} catch (e) {
+										return cb && cb("Incorrect script parameters json");
+									}
+
+									if (!transaction.asset.script.name || transaction.asset.script.name.length == 0 || transaction.asset.script.name.length > 16) {
+										return cb && cb("Incorrect name length");
+									}
+
+									if (transaction.asset.script.description && transaction.asset.script.description.length > 140) {
+										return cb && cb("Incorrect description length");
+									}
+								}
 
 								if (!modules.transactions.applyUnconfirmed(transaction)) {
 									return cb("Can't apply transaction: " + transaction.id);
 								}
-
 
 								appliedTransactions[transaction.id] = transaction;
 

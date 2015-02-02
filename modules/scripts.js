@@ -96,14 +96,14 @@ function attachApi() {
 		}
 
 		var script = {
-			code: code,
-			parameters: parameters
+			code: new Buffer(code, 'utf8').toString('hex'),
+			parameters: new Buffer(parameters, 'utf8').toString('hex')
 		}
 
 		var transaction = {
 			type: 4,
 			amount: 0,
-			recipientId: account.address,
+			recipientId: null,
 			senderPublicKey: account.publicKey,
 			timestamp: slots.getTime(),
 			asset: {
