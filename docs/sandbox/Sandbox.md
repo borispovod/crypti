@@ -191,14 +191,14 @@ redirections: [0, null, 2].
 
 Rise error if process sent no ready message before timeout ends.
 
-### Option limitCpu
+#### Option limitCpu
 
 Limit average cpu usage in one second period in percents. Process terminates if limit reached.
 
-### Option limitMemory
+#### Option limitMemory
 
 Limit maximum process RAM usage in MB.
 
-### Option limitTime
+#### Option limitTime
 
 Limit time period from _execution start_. Process terminates if limit reached.
