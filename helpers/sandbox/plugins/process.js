@@ -4,12 +4,41 @@ var extend = require('util')._extend;
 
 module.exports = function(sandbox, options) {
     options = extend({
+        /**
+         * Child process CWD
+         * @type {String}
+         */
         cwd : sandbox._options.dir,
+        /**
+         * Child process stdio redirections
+         * See http://nodejs.org/api/child_process.html#child_process_options_stdio
+         * @type {String|Array}
+         */
         stdio : 'ignore',
+        /**
+         * Default vm script filename
+         * @type {String}
+         */
         script : __dirname + '/../vm.js',
+        /**
+         * Process start time limit
+         * @type {number}
+         */
         timeout: 500,
+        /**
+         * Process average cpu limit in one second in percents.
+         * @type {number}
+         */
         limitCpu : 25,
+        /**
+         * Maximum process HEAP size in MB
+         * @type {number}
+         */
         limitMemory : 20,
+        /**
+         * Maximum execution time in milliseconds
+         * @type {number}
+         */
         limitTime : 5000
     }, options);
 
@@ -30,7 +59,7 @@ module.exports = function(sandbox, options) {
             if (typeof stdio === 'string') {
                 if (stdio === 'inherit')
                     stdio = [null, 1, 2];
-                 else
+                else
                     stdio = [stdio, stdio, stdio];
             }
 
@@ -48,6 +77,7 @@ module.exports = function(sandbox, options) {
                 sandbox.error(err);
             });
 
+            // Bind message listener
             process.once('message', function(message){
                 running = true;
 
@@ -115,6 +145,11 @@ module.exports = function(sandbox, options) {
 
             this.clearTimers();
         },
+        /**
+         * Process IPC channel message
+         * @param {Object} message
+         * @private
+         */
         _gotMessage : function(message) {
             sandbox.emit('process.message', message);
 

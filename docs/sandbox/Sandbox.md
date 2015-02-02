@@ -163,3 +163,42 @@ Remove all intervals.
 
 Remove all timers from plugin memory
 
+
+## Built-in plugins
+
+### Process plugin
+
+This plugin spawn new node process and initialize communication channel via native node ipc.
+
+#### Options
+
+| Name        | Type         | Default value | Description |
+|:------------|:-------------|:--------------|:------------|
+|`cwd`        | string       | process.cwd   | Child process directory    |
+|`stdio`      | string,Array | 'ignore'      | Child process stdio object (see below)    |
+|`timeout`    | number       | 500           | Time difference in milliseconds between process started and `ready` message sent by process (see below)    |
+|`limitCpu`   | number       | 25            | Maximum average cpu limit during 1 second in percents (see below)    |
+|`limitMemory`| number       | 20            | Maximum available RAM memory in MB    |
+|`limitTime`  | number       | 5000          | Maximum execution time in milliseconds    |
+
+#### Option stdio
+
+Stdio is a child process output redirection rule similar to [default child_process spawn method option](http://nodejs.org/api/child_process.html#child_process_options_stdio) with some exception. It could be `pipe` (create streams for each descriptor),
+`ignore` (ignore output) or `inherit` (use current process io descriptors except of stdin). Or it could be an Array of
+redirections: [0, null, 2].
+
+#### Option timeout
+
+Rise error if process sent no ready message before timeout ends.
+
+### Option limitCpu
+
+Limit average cpu usage in one second period in percents. Process terminates if limit reached.
+
+### Option limitMemory
+
+Limit maximum process RAM usage in MB.
+
+### Option limitTime
+
+Limit time period from _execution start_. Process terminates if limit reached.
