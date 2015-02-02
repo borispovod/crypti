@@ -134,7 +134,9 @@ function attachApi() {
 			amount = params.int(req.body.amount),
 			recipientId = params.string(req.body.recipientId, true),
 			publicKey = params.hex(req.body.publicKey, true),
-			secondSecret = params.string(req.body.secondSecret, true);
+			secondSecret = params.string(req.body.secondSecret, true),
+			scriptId = params.string(req.body.scriptId, true),
+			input = params.object(req.body.input, true);
 
 		var hash = crypto.createHash('sha256').update(secret, 'utf8').digest();
 		var keypair = ed.MakeKeypair(hash);
@@ -159,13 +161,34 @@ function attachApi() {
 			return res.json({success: false, error: "Open account to make transaction"});
 		}
 
+		var type = 0,
+			asset = {};
+
+		if (scriptId) {
+			modules.scripts.getScript(scriptId, function (err, script) {
+				if (err || !script) {
+					return res.json({success: false, error: "Script not found"});
+				}
+
+				var parameters = JSON.parse(new Buffer(script.parameters, 'hex').toString('utf8'));
+
+				// validate input with parameters?
+				// JSONscheme.validate(parameters,input)?
+
+				// set transaction
+				type = 5;
+				asset.input = new Buffer(JSON.stringify(input), 'utf8').toString('hex');
+				asset.scriptId = scriptId;
+			});
+		}
+
 		var transaction = {
-			type: 0,
+			type: type,
 			amount: amount,
 			recipientId: recipientId,
 			senderPublicKey: account.publicKey,
 			timestamp: slots.getTime(),
-			asset: {}
+			asset: asset
 		};
 
 		self.sign(secret, transaction);
@@ -409,7 +432,7 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 					}
 
 					if (transaction.asset.delegate.username.length == 0 || transaction.asset.delegate.username.length > 20) {
-						return cb && cb("Incorrect delegate username length");
+						return done("Incorrect delegate username length");
 					}
 
 					if (modules.delegates.getDelegateByName(transaction.asset.delegate.username)) {
@@ -417,11 +440,11 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 					}
 
 					if (modules.delegates.getDelegate(transaction.senderPublicKey)) {
-						return cb && cb("This account already delegate");
+						return done("This account already delegate");
 					}
 
 					if (modules.delegates.getDelegate(transaction.senderPublicKey)) {
-						return cb && cb("This account already delegate");
+						return done("This account already delegate");
 					}
 					break;
 				case 3:
@@ -464,7 +487,7 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 					}
 
 					try {
-						parameters = JSON.parse(parameters);
+						parameters = JSON.parse(parameters.toString('utf8'));
 					} catch (e) {
 						return done("Incorrect script parameters json");
 					}
@@ -476,6 +499,26 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 					if (transaction.asset.script.description && transaction.asset.script.description.length > 140) {
 						return done("Incorrect description length");
 					}
+					break;
+				case 5:
+					// verify input
+					if (!transaction.asset.scriptId) {
+						return done("Empty script id in transaction");
+					}
+
+					if (!transaction.asset.input) {
+						return done("Empty input in transaction");
+					}
+
+					// need to rewrite this part async
+					modules.scripts.getScript(transaction.asset.scriptId, function (err, script) {
+						if (err || !script) {
+							return done(err || "Script not found: " + transaction.asset.scriptId);
+						}
+
+						// check script input parameters
+					});
+
 					break;
 				default:
 					return done("Unknown transaction type");

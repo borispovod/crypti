@@ -1,8 +1,6 @@
 var crypto = require('crypto'),
 	bignum = require('bignum');
 
-exports.getBytes = getBytes;
-
 function getBytes(script) {
 	// need to fix
 	var inputBuffer = new Buffer(script.parameters, 'hex');
@@ -12,4 +10,15 @@ function getBytes(script) {
 	var objBuffer = Buffer.concat([inputBuffer, codeBuffer, name, description]);
 
 	return objBuffer;
+}
+
+function getInputBytes(input) {
+	var inputBuffer = new Buffer(input, 'hex');
+	var scriptId = new Buffer(scriptId, 'utf8');
+	return Buffer.concat([inputBuffer, scriptId]);
+}
+
+modules.exports = {
+	getBytes : getBytes,
+	getInputBytes : getInputBytes
 }

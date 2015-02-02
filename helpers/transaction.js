@@ -27,6 +27,9 @@ function getTransactionFee(transaction, isGenerator) {
 		case 4:
 			fee = 100 * constants.fixedPoint;
 			break;
+		case 5:
+			fee = 10 * constants.fixedPoint;
+			break;
 	}
 
 	if (fee == -1) {
@@ -76,6 +79,11 @@ function getBytes(transaction) {
 
 			case 4:
 				assetBytes = scriptHelper.getBytes(transaction.asset.script);
+				assetSize = assetBytes.length;
+				break;
+
+			case 5:
+				assetBytes = scriptHelper.getInputBytes(transaction.asset.input);
 				assetSize = assetBytes.length;
 				break;
 		}

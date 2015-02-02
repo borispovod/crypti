@@ -154,6 +154,13 @@ Scripts.prototype.onBind = function (scope) {
 	modules = scope;
 }
 
+Scripts.prototype.getScript = function (transactionId, cb) {
+	var fields = ['name', 'description', 'transactionId', 'code', 'parameters'];
+	library.dbLite.query("SELECT name, description, transactionId, lower(hex(code)), lower(hex(parameters)) FROM scripts WHERE transactionId=$transactionId", {transactionId: transactionId}, fields, function (err, rows) {
+		setImmediate(cb, err, rows.length > 0? rows[0] : null);
+	});
+}
+
 Scripts.prototype.onNewBlock = function (block, broadcast) {
 	/*block.transactions.forEach(function(transaction){
 		if (transaction.type == 4){
