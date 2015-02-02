@@ -58,15 +58,24 @@ function attachApi() {
 	});
 
 	router.get('/', function (req, res) {
-		var limit = params.int(req.query.limit);
-		var orderBy = params.string(req.query.orderBy);
-		var offset = params.int(req.query.offset);
+		var limit = params.int(req.query.limit, true);
+		var orderBy = params.string(req.query.orderBy, true);
+		var offset = params.int(req.query.offset, true);
 		var generatorPublicKey = params.hex(req.query.generatorPublicKey, true);
+		var totalAmount = params.int(req.query.totalAmount, true);
+		var totalFee = params.int(req.query.totalFee, true);
+		var previousBlock = params.string(req.query.previousBlock, true);
+		var height = params.int(req.query.height, true);
+
 		list({
 			generatorPublicKey: generatorPublicKey,
 			limit: limit || 20,
 			offset: offset,
-			orderBy: orderBy
+			orderBy: orderBy,
+			totalAmount : totalAmount,
+			totalFee : totalFee,
+			previousBlock : previousBlock,
+			height : height
 		}, function (err, blocks) {
 			if (err) {
 				return res.json({success: false, error: "Blocks not found"});
@@ -392,6 +401,26 @@ function list(filter, cb) {
 		params.generatorPublicKey = filter.generatorPublicKey;
 	}
 
+	if (filter.previousBlock) {
+		fields.push('previousBlock = $previousBlock');
+		params.previousBlock = filter.previousBlock;
+	}
+
+	if (filter.totalAmount) {
+		fields.push('totalAmount = $totalAmount');
+		params.totalAmount = filter.totalAmount;
+	}
+
+	if (filter.totalFee) {
+		fields.push('totalFee = $totalFee');
+		params.totalFee = filter.totalFee;
+	}
+
+	if (filter.height) {
+		fields.push('height = $height');
+		params.height = filter.height;
+	}
+
 	if (filter.limit) {
 		params.limit = filter.limit;
 	}
@@ -408,7 +437,7 @@ function list(filter, cb) {
 		params.offset = filter.offset;
 	}
 
-	if (filter.limit > 1000) {
+	if (filter.limit > 100) {
 		return cb('Maximum of limit is 1000');
 	}
 
