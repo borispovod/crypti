@@ -68,18 +68,33 @@ module.exports = function(sandbox, options) {
                     type : 'result',
                     args :  args
                 });
-
             }
 
-            if (typeof this._bindings[message.method] !== "function") {
+            // Resolve mthod location
+            var bindings = this._bindings;
+            var path = message.method.slice();
+            var segment;
+            while (path.length > 1) {
+                segment = path.shift();
+                if (typeof bindings[segment] !== 'object') {
+                    done({
+                        message : "Method '" + message.method.join('.') + "' not found."
+                    });
+                    return;
+                }
+                bindings = bindings[segment];
+            }
+
+            segment = path.shift();
+            if (typeof bindings[segment] !== 'function') {
                 done({
-                    message : "Method not found"
+                    message : "Method '" + message.method.join('.') + "' not found."
                 });
                 return;
             }
 
             try {
-                this._bindings[message.method].apply(null, [done].concat(message.args));
+                bindings[segment].apply(bindings, [done].concat(message.args));
             } catch (err) {
                 done(err);
             }
@@ -120,17 +135,33 @@ module.exports = function(sandbox, options) {
 /**
  * convert object to map of provided methods and values
  * @param {object} api
- * @returns {{}}
+ * @returns {[]}
  */
 function prepareBindings(api) {
-    var result = {};
+    var result = [];
+
+    // TODO Convert API to bindings
 
     Object.keys(api).map(function(name){
         var binding = api[name];
         if (typeof binding === 'object') {
-            result[name] = prepareBindings(value);
+            result.push({
+                name  : name,
+                type  : 'object',
+                items : prepareBindings(binding)
+            });
+
         } else if (typeof binding === 'function') {
-            result[name] = true;
+            result.push({
+                name : name,
+                type : 'function'
+            });
+        } else {
+            result.push({
+                name : name,
+                type : 'value',
+                value : binding
+            });
         }
     });
 

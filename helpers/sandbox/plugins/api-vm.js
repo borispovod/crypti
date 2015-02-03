@@ -7,7 +7,7 @@ module.exports = function(done, scope, options) {
 
     options = extend({
         transport : 'process',
-        bindings : {},
+        bindings : []
     }, options);
 
     var transport = options.transport || 'process';
@@ -45,10 +45,11 @@ module.exports = function(done, scope, options) {
         }
     };
 
-    //if (typeof options.bindings === 'object') {
-    //
-    //}
-
+    /**
+     * Create binding
+     * @param {string|Array} method Method name/path
+     * @returns {Function}
+     */
     function createMethod (method) {
         return function() {
             var args = Array.prototype.slice.call(arguments);
@@ -70,20 +71,43 @@ module.exports = function(done, scope, options) {
         };
     }
 
-    function addBindings(target, bindings) {
-        Object.keys(bindings).forEach(function(name){
-            var value = bindings[name];
-            if (value === true) {
-                target[name] = createMethod(name);
-            } else if (typeof value === 'object') {
-                if (typeof target[name] !== 'object') {
+    /**
+     * Recursively unwrap api binding object and add bindings to target object
+     * @param {object} target Object for API injecting
+     * @param {Array} bindings List of bindings
+     * @param {Array} prefix Prefix path (used for nested calls)
+     */
+    function addBindings(target, bindings, prefix) {
+        prefix = prefix || [];
+
+        //console.log(prefix, bindings);
+
+        bindings.forEach(function(binding){
+            var name = binding.name;
+
+            switch (binding.type) {
+                case 'object':
+                    // TODO (rumkin) Freeze API Object
                     target[name] = {};
-                }
-                addBindings(target[name], value)
+                    addBindings(target[name], binding.items, prefix.concat(name));
+                    break;
+                case 'function':
+                    target[name] = createMethod(prefix.concat(name));
+                    break;
+                case 'value':
+                    // TODO (rumkin) Decide to use getter/define immutable property?
+                    target[name] = binding.value;
+                    break;
+                default:
+                    throw new Error('Invalid binding type "' + binding.type + '".');
             }
         });
     }
 
+    /**
+     * Message handler
+     * @param {{}} message
+     */
     function onMessage(message) {
         if (! message || message.type !== 'result') return;
 

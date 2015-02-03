@@ -99,14 +99,20 @@ describe('Sandbox.', function(){
     describe('API plugin.', function(){
         it('Should bind several methods with `module` method', function(done){
             sandbox.api.module({
-                callApi : function(done) {
-                    done(null, true);
+                api : {
+                    method1 : function(done){
+                        done(null, true);
+                    },
+                    method2 : function(done) {
+                        done();
+                    }
                 }
             });
 
-            sandbox.eval('done(null, typeof callApi)', function(err, type){
+            sandbox.eval('done(null, typeof api.method1, typeof api.method2)', function(err, method1, method2){
                 should(err).equal(null, '`err` is null');
-                should(type).equal('function', 'callApi should be function');
+                should(method1).equal('function', 'api.method1 should be a function');
+                should(method2).equal('function', 'api.method2 should be a function');
                 done();
             });
         });
@@ -124,10 +130,20 @@ describe('Sandbox.', function(){
         });
 
         it('Should call api method', function(done){
-            sandbox.eval('callApi(done)', function(err, result){
+            sandbox.eval('api.method1(done)', function(err, result){
                 should(err).equal(null, '`err` is null');
                 should(result).equal(true, 'Result is `true`');
 
+                done();
+            });
+        });
+
+        it('Should bind nested value', function(done){
+            sandbox.api.bind("api", {name:"test"});
+
+            sandbox.eval("done(null, api.name)", function(err, apiName){
+                should(err).equal(null, '`err` is null');
+                should(apiName).type("string").and.equal("test");
                 done();
             });
         });
