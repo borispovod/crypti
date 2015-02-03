@@ -2,21 +2,33 @@ var extend = require('util')._extend;
 
 module.exports = function(sandbox, options) {
     options = extend({
-        // Transport plugin
-        transport : 'process'
+        /**
+         * Transport plugin name.
+         * @type {string}
+         */
+        transport : 'process',
+        /**
+         * Sandbox vm bindings
+         * @type {object}
+         */
+        bindings : {}
     }, options);
 
     // Listen custom transport event
     var events = {};
     events[options.transport +'.message'] = '_gotMessage';
 
+    var bindings = extend({}, options.bindings);
+
     return {
         require : options.transport,
         events : events,
         /**
          * All API bindings
+         * @type {{}}
+         * @private
          */
-        _bindings : {},
+        _bindings : bindings,
         onStart : function(done){
             var transport = this.transport = sandbox[options.transport];
 
@@ -28,6 +40,11 @@ module.exports = function(sandbox, options) {
         onStop : function(){
             this.transport = null;
         },
+        /**
+         * Transport response message handler
+         * @param {{}} message Received message object
+         * @private
+         */
         _gotMessage : function(message) {
             if (! message || message.type !== 'api.call') return;
 
@@ -85,6 +102,17 @@ module.exports = function(sandbox, options) {
          */
         module : function(bindings){
             extend(this._bindings, bindings);
+            return this;
+        },
+        /**
+         * Register single api item
+         * @param {string} name API Name
+         * @param {object|function} binding Value. Could be function or object with methods.
+         */
+        bind : function(name, binding) {
+            this._bindings[name] = binding;
+            // TODO (rumkin) Skip or register if running
+            return this;
         }
     };
 };

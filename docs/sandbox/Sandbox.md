@@ -161,14 +161,27 @@ Remove all intervals.
 
 #### clearTimers()
 
-Remove all timers from plugin memory
+Remove all timers from plugin memory.
+
+## Sandbox messages
+
+Sandbox messages are JSON convertible objects. Each message has `type` property to specify message type. Each plugin could
+specify it's own exchange format. But it strongly recommended to use messages as objects and do not use `type` in other purposes
+then described.
+
+## Sandbox transport
+
+Transport plugins should to realize `send` and `exec` methods for sandbox communication and provide transport functionality.
 
 
 ## Built-in plugins
 
 ### Process plugin
 
-This plugin spawn new node process and initialize communication channel via native node ipc.
+This plugin spawn new node process and initialize communication channel via default node IPC.
+
+Note that default IPC channel is blocking and should not be used for big data transaction. It's limited to 64 Kb. Use TCP
+transport plugin to send big amounts of data.
 
 #### Options
 
@@ -202,3 +215,105 @@ Limit maximum process RAM usage in MB.
 #### Option limitTime
 
 Limit time period from _execution start_. Process terminates if limit reached.
+
+#### process.exec(method, args, callback(err [,arg1, arg2, ...])) -> process
+
+Execute method inside sandbox process via IPC. `method` should be registered inside sandbox. `args` should be json convertible.
+
+#### process.send(message) -> process
+
+Send message to sandbox process via IPC. Message could be any json convertible value. See [sandbox messages](#sandbox-messages).
+
+
+
+### TCP plugin
+
+Add TCP channel to process with two way communication with JSON-messages. It's a transport plugin.
+
+
+#### Options
+
+| Name        | Type         | Default value | Description |
+|:------------|:-------------|:--------------|:------------|
+|`dir`        | string       | '/tmp'        | Socket file directory    |
+
+#### Option dir
+
+VM use unix socket file descriptors as TCP channels. So it need to create .sock file. To limit access and files mess specify
+custom directory with appropriate permissions for socket files.
+
+#### tcp.exec(method, args, callback(err [,arg1, arg2, ...])) -> tcp
+
+Execute method inside sandbox process via TCP. `method` should be registered inside sandbox. `args` should be json convertible.
+
+#### tcp.send(message) -> tcp
+
+Send message to sandbox process via TCP. Message could be any json convertible value. See [sandbox messages](#sandbox-messages).
+
+### API Plugin
+
+API plugin allow to execute specified host process methods inside sandbox VM. API allow to register functions, values and
+nested API objects. API methods should has `done` callback as the first argument.
+
+#### Options
+
+| Name        | Type         | Default value | Description |
+|:------------|:-------------|:--------------|:------------|
+|`transport`  | string       | 'process'     | Transport plugin name    |
+|`bindings`   | object       | {}            | Initial plugin bindings object    |
+
+#### api.bind(name, binding) -> api
+
+Register bindings with name. Example:
+
+```javascript
+sandbox.api.bind("echo", function(done, message) {
+    done(null, message);
+})
+```
+
+#### api.module(module) -> api
+
+Batch binding API methods and values. `module` is object which keys are global context names and values are API bindings.
+Example:
+
+```javascript
+sandbox.api.module({
+    echo : function(done, message){
+        done(null, message);
+    },
+    sayHello : function(done) {
+        console.log('Hello world'); // Output "Hello world" in host process
+        done();
+    }
+});
+```
+
+### Context plugin
+
+Context plugin allow to include node modules inside VM global scope context. Required modules import into script global context
+ and could be accessed directly. All modules specified in options object resolved in current process directory.
+
+#### Options
+
+Context plugin is a map where key is variable name inside VM and value is node module name/filepath. If value is true than use
+key as package name. Example:
+
+```javascript
+{
+    "chalk" : true,          // require chalk as chalk
+    "_"     : "underscore",  // require underscore as _
+    "misc"  : "./misc.js"    // require misc.js as misc
+}
+```
+
+
+
+### Transaction plugin
+
+This plugin provides API to run crypti transaction script inside VM with `exec` method.
+
+#### transaction.exec(transaction, callback(err, result, transaction)) -> transaction
+
+Execute transaction script inside sandbox VM. Evaluate transaction script source code and pass transaction values as
+script input.

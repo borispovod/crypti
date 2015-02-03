@@ -4,6 +4,10 @@ var extend = require('util')._extend;
 
 module.exports = function(sandbox, options) {
     options = extend({
+        /**
+         * Socket files directory
+         * @type {string}
+         */
         dir : '/tmp/'
     });
 
@@ -62,6 +66,11 @@ module.exports = function(sandbox, options) {
                 this.socket = null;
             }
         },
+        /**
+         * Process TCP channel message handler
+         * @param {Object} message
+         * @private
+         */
         _gotMessage : function(message) {
             sandbox.emit('tcp.message', message);
 
@@ -79,17 +88,20 @@ module.exports = function(sandbox, options) {
             }
         },
         /**
-         * Send message to VM via TCP
-         * @param message
+         * Send message to sandbox via TCP
+         * @param {{}} message
          */
         send : function(message) {
+            // TODO Add message validators
             this.connection.write(JSON.stringify(message) + '\r\n');
+            return this;
         },
         /**
-         * Send execution message to VM via TCP
-         * @param method
-         * @param args
-         * @param callback
+         * Send execution message to sandbox via process TCP
+         *
+         * @param {string} method Method name/path
+         * @param {Array} args Arguments. Optional
+         * @param {function(this:null,err)} callback Result callback. Got multiple arguments from result call.
          */
         exec : function(method, args, callback) {
             if (! this.connection) return;
@@ -102,6 +114,8 @@ module.exports = function(sandbox, options) {
                 method : method,
                 args : args
             });
+
+            return this;
         }
     }
 };

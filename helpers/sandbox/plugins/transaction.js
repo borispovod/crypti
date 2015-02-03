@@ -9,7 +9,7 @@ module.exports = function(sandbox, options) {
             sandbox.process.exec('require', [__dirname + '/transaction-vm.js'], done);
         },
         /**
-         * Execute transaction script inside vm
+         * Execute transaction script inside Sandbox
          *
          * @param {{}} transaction Transaction object
          * @param {function(this:null, error, result, transaction)} callback Result callback
@@ -41,6 +41,8 @@ module.exports = function(sandbox, options) {
                 }
 
                 callback(null, result, transaction);
+
+                return this;
             });
         }
     };

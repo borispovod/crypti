@@ -97,7 +97,7 @@ describe('Sandbox.', function(){
 
 
     describe('API plugin.', function(){
-        it('Should create context functions', function(done){
+        it('Should bind several methods with `module` method', function(done){
             sandbox.api.module({
                 callApi : function(done) {
                     done(null, true);
@@ -107,6 +107,18 @@ describe('Sandbox.', function(){
             sandbox.eval('done(null, typeof callApi)', function(err, type){
                 should(err).equal(null, '`err` is null');
                 should(type).equal('function', 'callApi should be function');
+                done();
+            });
+        });
+
+        it('Should bind single value with `bind` method', function(done){
+            sandbox.api.bind("bindMethod", function(done) {
+                done(null, true);
+            });
+
+            sandbox.eval('done(null, typeof bindMethod)', function(err, type){
+                should(err).equal(null, '`err` is null');
+                should(type).equal('function', 'bindMethod should be function');
                 done();
             });
         });

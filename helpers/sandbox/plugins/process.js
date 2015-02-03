@@ -46,10 +46,25 @@ module.exports = function(sandbox, options) {
     var cid = 0;
 
     return {
-        process : null,
-        processStat:null,
-        processStatPeriod : 50,
         options: options,
+        /**
+         * Child process instance
+         */
+        process : null,
+        /**
+         * Process stat object
+         * @type {{}}
+         */
+        processStat : null,
+        /**
+         * Process cpu usage stat collection period in milliseconds
+         * @type {number}
+         */
+        processStatPeriod : 50,
+        /**
+         * Child process PID
+         * @type {number} PID
+         */
         pid : null,
         onStart : function(done) {
             var self = this;
@@ -146,7 +161,7 @@ module.exports = function(sandbox, options) {
             this.clearTimers();
         },
         /**
-         * Process IPC channel message
+         * Process IPC channel message handler
          * @param {Object} message
          * @private
          */
@@ -174,19 +189,22 @@ module.exports = function(sandbox, options) {
             }
         },
         /**
-         * Send message to vm via process ipc
-         * @param message
+         * Send message to sandbox via process IPC.
+         * @param {{}} message
          */
         send : function(message) {
+            // TODO Add message validators
             if (this.process)
                 this.process.send(message);
+
+            return this;
         },
         /**
-         * Send execution message to vm via process ipc
+         * Send execution message to sandbox via process IPC
          *
          * @param {string} method Method name/path
          * @param {Array} args Arguments. Optional
-         * @param {Function(err} callback Result callback. Got multiple arguments from result call.
+         * @param {function(this:null,err)} callback Result callback. Got multiple arguments from result call.
          */
         exec : function(method, args, callback) {
             if (! this.process) return;
@@ -205,6 +223,8 @@ module.exports = function(sandbox, options) {
                 method : method,
                 args: args
             });
+
+            return this;
         }
     }
 };
