@@ -38,13 +38,13 @@
     "strftime": "*",
     "toposort": "~0.2.10",
     "underscore": "https://github.com/crypti/underscore/tarball/master",
-    "json-schema": "~0.2.2",
     "esprima": "~1.2.3"
   },
   "devDependencies": {
     "grunt-jscrambler": "^0.2.7",
     "grunt-obfuscator": "^0.1.0",
     "should": "~4.6.0",
-    "mocha": "~2.1.0"
+    "mocha": "~2.1.0",
+    "cli-table": "~0.3.1"
   }
 }

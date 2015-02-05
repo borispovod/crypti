@@ -32,10 +32,13 @@ function Validator(options) {
 
     this.forceAsync = this.forceAsync || options.forceAsync;
     this.skipMissed = this.skipMissed || options.skipMissed;
+    this.execRules = this.execRules || options.execRules;
+
     this.rules = extend(Object.create(this.rules), options.rules);
 
     this.onInit();
 }
+
 /**
  * Make validation async even if no async rules are used.
  * @type {boolean}
@@ -47,6 +50,12 @@ Validator.prototype.forceAsync = false;
  * @type {boolean}
  */
 Validator.prototype.skipMissed = false;
+
+/**
+ * If rule value is function run it to get value
+ * @type {boolean}
+ */
+Validator.prototype.execRules = true;
 
 /**
  * Check whether rule exists.
@@ -176,7 +185,8 @@ Validator.fieldProperty = function(name, value){
  */
 Validator.options = {
     forceAsync : false,
-    skipMissed : false
+    skipMissed : false,
+    execRules  : true
 };
 
 /**
@@ -187,7 +197,7 @@ Validator.options = {
  * @param {function(err:Error, report:object[], result:*)} callback Result callback
  */
 Validator.validate = function(value, rules, customRules, callback) {
-    if (arguments.length == 3) {
+    if (typeof customRules === "function") {
         callback = customRules;
         customRules = {};
     }
