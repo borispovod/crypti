@@ -15,7 +15,8 @@ require('array.prototype.find'); //old node fix
 //private fields
 var modules, library, self;
 
-var keypair, myDelegate, address, account;
+
+var keypairs, myDelegate, address, account;
 var delegates = {};
 var activeDelegates = [];
 var loaded = false;
@@ -26,6 +27,7 @@ var tasks = [];
 function Delegates(cb, scope) {
 	library = scope;
 	self = this;
+	keypairs = [];
 
 	attachApi();
 
@@ -39,6 +41,66 @@ function attachApi() {
 	router.use(function (req, res, next) {
 		if (modules && loaded) return next();
 		res.status(500).send({success: false, error: 'loading'});
+	});
+
+	router.get('/forging/status', function (req, res) {
+		var publicKey = req.query.publicKey;
+
+		if (!publicKey) {
+			return res.json({success: false, error: "Provide public key of account"});
+		}
+
+		var enabled = false;
+		for (var i = 0; i < keypairs.length; i++) {
+			if (keypairs[i].publicKey.toString('hex') == req.query.publicKey) {
+				enabled = true;
+				break;
+			}
+		}
+
+		return res.json({success: true, enabled: enabled});
+	});
+
+	router.post('/forging/enable', function (req, res) {
+		var secret = req.query.secret;
+
+		if (!secret) {
+			return res.json({success: false, error: "Provide secret key of account"});
+		}
+
+		var hash = crypto.createHash('sha256').update(secret, 'utf8').digest();
+		var keypair = ed.MakeKeypair(hash);
+		var publicKey = keypair.publicKey.toString('hex')
+
+		for (var i = 0; i < keypairs.length; i++) {
+			if (keypairs[i].publicKey.toString('hex') == publicKey) {
+				return res.json({success: false, error: "Forging on this account already enabled"});
+			}
+		}
+
+		keypairs.push(keypair);
+		return res.json({success: true});
+	});
+
+	router.get('/forging/disable', function (req, res) {
+		var secret = req.queyr.secret;
+
+		if (!secret) {
+			return res.json({success: false, error: "Provide secret key of account"});
+		}
+
+		var hash = crypto.createHash('sha256').update(secret, 'utf8').digest();
+		var keypair = ed.MakeKeypair(hash);
+		var publicKey = keypair.publicKey.toString('hex')
+
+		for (var i = 0; i < keypairs.length; i++) {
+			if (keypairs[i].publicKey.toString('hex') == publicKey) {
+				keypairs.splice(i, 1);
+				return res.json({success: true});
+			}
+		}
+
+		return res.json({success: false, error: "Forger with this public key not found"});
 	});
 
 	router.put('/', function (req, res) {
@@ -169,6 +231,7 @@ function loop(cb) {
 	}
 
 	library.sequence.add(function (cb) {
+		// how to detect keypair
 		if (slots.getSlotNumber(currentBlockTime) == slots.getSlotNumber()) {
 			modules.blocks.generateBlock(keypair, currentBlockTime, delegateCount, function (err) {
 				library.logger.log('new block ' + modules.blocks.getLastBlock().id + ' ' + modules.blocks.getLastBlock().height + ' ' + slots.getSlotNumber(currentBlockTime) + ' ' + lastBlock.height, activeDelegates.map(function (id) {
