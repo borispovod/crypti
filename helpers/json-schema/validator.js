@@ -271,16 +271,17 @@ JsonSchema.addRule("uniqueItems", {
         while(++i < l) {
             item = value[i];
 
-            if (unique.indexOf(item) > 0) {
+            if (unique.indexOf(item) > -1) {
                 field.issue({
                     path : i,
-                    rule : 'unique',
+                    rule : 'uniqueItems',
                     accept : true
                 });
+            } else {
+                unique.push(item);
             }
-
-            unique.push(item);
         }
+
         return Array.isArray(value) && value.length >= accept;
     }
 });
