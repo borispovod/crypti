@@ -11,17 +11,9 @@ describe('Validator.', function(){
         it('Should has `validate` method', function(){
             should(JsonSchema).hasOwnProperty('validate').type('function');
         });
-
-        it('Should validate empty rules', function(done){
-            JsonSchema.validate(null, {}, function(err, report){
-                should(err).equal(null);
-                should(report).instanceOf(Array).length(0);
-                done();
-            });
-        });
     });
 
-    describe("Common rules", function(){
+    describe("Common rules.", function(){
         it('Should report an issue for type', function(done){
             JsonSchema.validate("Hello", {type:"number"}, function(err, report){
                 should(err).equal(null);
@@ -41,7 +33,7 @@ describe('Validator.', function(){
         });
     });
 
-    describe('String rules', function(){
+    describe('String rules.', function(){
         it('Should report an issue for minLength', function(done){
             JsonSchema.validate("Hello", {minLength:10}, function(err, report){
                 should(err).equal(null);
@@ -117,7 +109,7 @@ describe('Validator.', function(){
         });
     });
 
-    describe("Array rules", function(){
+    describe("Array rules.", function(){
         it("Should report an issue for items", function(done){
             JsonSchema.validate([0,null], {items:{type:"number"}}, function(err, report){
                 should(err).equal(null);
@@ -156,7 +148,7 @@ describe('Validator.', function(){
         });
     });
 
-    describe("Object rules", function(){
+    describe("Object rules.", function(){
         it("Should report an issue for properties", function(done){
             JsonSchema.validate({a:null}, {properties:{a:{type:"number"}}}, function(err, report){
                 should(err).equal(null);

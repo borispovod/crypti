@@ -1,4 +1,4 @@
-var util = require('util');
+var utils = require('../validator/utils');
 
 module.exports = JsonSchema;
 
@@ -9,17 +9,17 @@ function JsonSchema(options) {
     Validator.call(this, options);
 }
 
-util.inherits(JsonSchema, Validator);
+utils.inherits(JsonSchema, Validator);
 
 JsonSchema.prototype.Field = JsonSchema.Field = Field;
 
 JsonSchema.prototype.rules = JsonSchema.rules = {};
 
 JsonSchema.addRule = Validator.addRule;
-JsonSchema.addProperty = Validator.addProperty;
+JsonSchema.fieldProperty = Validator.fieldProperty;
 
 // Add fast call
-JsonSchema.options = util._extend({}, Validator.options);
+JsonSchema.options = utils.extend({}, Validator.options);
 JsonSchema.validate = Validator.validate;
 
 JsonSchema.addRule("type", {

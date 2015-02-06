@@ -1,18 +1,7 @@
 // Dependencies
-var _extend = require('util')._extend;
+var utils = require('./utils');
 
-// Helpers
-function extend(target, source) {
-    if (! target || typeof target !== 'object') return target;
-
-    Array.prototype.slice.call(arguments).forEach(function(source){
-        if (! source || typeof source !== 'object') return;
-
-        _extend(target, source);
-    });
-
-    return target;
-}
+var extend = utils.extend;
 
 // Implementation
 var Field = require('./field');
@@ -33,8 +22,14 @@ function Validator(options) {
     this.forceAsync = this.forceAsync || options.forceAsync;
     this.skipMissed = this.skipMissed || options.skipMissed;
     this.execRules = this.execRules || options.execRules;
-
     this.rules = extend(Object.create(this.rules), options.rules);
+
+    var reporter = this.reporter || options.reporter;
+    if (typeof reporter === 'function') {
+        reporter = new reporter(this);
+    }
+
+    this.reporter = reporter;
 
     this.onInit();
 }
@@ -56,6 +51,12 @@ Validator.prototype.skipMissed = false;
  * @type {boolean}
  */
 Validator.prototype.execRules = true;
+
+/**
+ * Issue reporter. Convert issues.
+ * @type {Reporter}
+ */
+Validator.prototype.reporter = null;
 
 /**
  * Check whether rule exists.
@@ -80,7 +81,7 @@ Validator.prototype.getRule = function(name){
  * Validate values with specified rules set
  * @param {*} value
  * @param {object} rules Set of rules
- * @param {function()} callback Result callback
+ * @param {function(err:Error,report:Array,output:*)} callback Result callback
  */
 Validator.prototype.validate = function(value, rules, callback) {
     var self = this;
@@ -88,16 +89,17 @@ Validator.prototype.validate = function(value, rules, callback) {
     var field = this.createField(null, value, rules);
     field.validate(finish);
 
-    function finish() {
-        var args = Array.prototype.slice.call(arguments);
+    function finish(err, report, output) {
+        if (self.reporter)
+            report = self.reporter.convert(report, rules);
 
         if (! self.forceAsync) {
             self.onEnd();
-            callback.apply(null, args);
+            callback.call(self, err, report, output);
         } else {
             setTimeout(function(){
                 self.onEnd();
-                callback.apply(null, args);
+                callback.call(self, err, report, output);
             }, 1);
         }
     }
@@ -114,7 +116,7 @@ Validator.prototype.Field = Field;
  * @param {string|string[]} path Field path
  * @param {*} value Validated value
  * @param {object} rules Rule set
- * @param {*} thisArg Validation methods this reference
+ * @param {*=} thisArg This reference for Validation methods. Optional
  * @returns {Validator.Field}
  */
 Validator.prototype.createField = function(path, value, rules, thisArg) {
@@ -186,7 +188,8 @@ Validator.fieldProperty = function(name, value){
 Validator.options = {
     forceAsync : false,
     skipMissed : false,
-    execRules  : true
+    execRules  : true,
+    reporter   : null
 };
 
 /**
