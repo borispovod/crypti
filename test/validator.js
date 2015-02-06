@@ -32,6 +32,12 @@ describe("Validator.", function(){
                 done();
             });
         });
+
+        it ('Should validate in sync style', function(){
+            var report = Validator.validate(null, {type : "string"});
+            should(report).be.an.Array.length(1);
+            should(report[0]).be.an.Object.and.hasOwnProperty("rule").equal("type");
+        });
     });
 
     describe("Reporter.", function(){

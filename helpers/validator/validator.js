@@ -81,28 +81,55 @@ Validator.prototype.getRule = function(name){
  * Validate values with specified rules set
  * @param {*} value
  * @param {object} rules Set of rules
- * @param {function(err:Error,report:Array,output:*)} callback Result callback
+ * @param {function(err:Error,report:Array,output:*)=} callback Result callback
  */
 Validator.prototype.validate = function(value, rules, callback) {
     var self = this;
 
     var field = this.createField(null, value, rules);
-    field.validate(finish);
+    var async, _report;
+
+    _report = field.report;
 
     function finish(err, report, output) {
-        if (self.reporter)
-            report = self.reporter.convert(report, rules);
+        if (self.reporter) {
+            // Preserve report from flushing
+            report = report.slice();
+            // Preserve link to original report object for async mode
+            _report.splice(0);
 
-        if (! self.forceAsync) {
+            self.reporter.convert(report, rules).forEach(function(item){
+                _report.push(item);
+            });
+        }
+
+        _report.isValid = !report.length;
+        _report.isAsync = async;
+
+        if (! callback) {
+            if (err) {
+                throw err;
+            }
+
+            return;
+        }
+
+        if (async || ! self.forceAsync) {
             self.onEnd();
-            callback.call(self, err, report, output);
+            callback.call(self, err, _report, output);
         } else {
             setTimeout(function(){
                 self.onEnd();
-                callback.call(self, err, report, output);
+                callback.call(self, err, _report, output);
             }, 1);
         }
     }
+
+    async = false;
+    field.validate(finish);
+    async = true;
+
+    return _report;
 };
 
 /**
@@ -209,8 +236,7 @@ Validator.validate = function(value, rules, customRules, callback) {
         rules : customRules
     }));
 
-    instance.validate(value, rules, callback);
-    return instance;
+    return instance.validate(value, rules, callback);
 };
 
 // Default rules
