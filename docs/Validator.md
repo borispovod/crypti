@@ -37,7 +37,7 @@ of validation issues if there is no an issue `report` is empty. `output` is filt
 ## Add rule
 
 Rule can be added with constructor's method `addRule`. It has two arguments `name` and `descriptor`. Rule descriptor is an
-object containing mathods `filter` and `validate`. Example:
+object containing methods `filter` and `validate`. Example:
 
 ```javascript
 Validator.addRule("type", {
