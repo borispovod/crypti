@@ -24,7 +24,8 @@ var config = {
 		"loader": "./modules/loader.js",
 		"system": "./modules/system.js",
 		"peer": "./modules/peer.js",
-		"delegates": "./modules/delegates.js"
+		"delegates": "./modules/delegates.js",
+		"round": "./modules/round.js"
 	}
 }
 
@@ -54,7 +55,7 @@ d.run(function () {
 			var sequence = [];
 			process.nextTick(function nextSequenceTick() {
 				var task = sequence.shift();
-				if (!task){
+				if (!task) {
 					return setTimeout(nextSequenceTick, 100);
 				}
 				task(function () {

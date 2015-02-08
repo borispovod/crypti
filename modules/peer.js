@@ -40,7 +40,7 @@ function attachApi() {
 			port = params.int(req.query.port, true);
 
 		getByFilter({
-			port : port,
+			port: port,
 			state: state,
 			os: os,
 			version: version,
@@ -174,7 +174,14 @@ function getByFilter(filter, cb) {
 		params['offset'] = offset;
 	}
 
-	library.dbLite.query("select ip, port, state, os, sharePort, version from peers" + (where.length ? (' where ' + where.join(' and ')) : '') + (limit? ' limit $limit' : '') + (offset ? ' offset $offset ' : ''), params, {"ip": String, "port": Number, "state": Number, "os": String, "sharePort": Number, "version": String}, function(err, rows){
+	library.dbLite.query("select ip, port, state, os, sharePort, version from peers" + (where.length ? (' where ' + where.join(' and ')) : '') + (limit ? ' limit $limit' : '') + (offset ? ' offset $offset ' : ''), params, {
+		"ip": String,
+		"port": Number,
+		"state": Number,
+		"os": String,
+		"sharePort": Number,
+		"version": String
+	}, function (err, rows) {
 		cb(err, rows);
 	});
 }
@@ -184,7 +191,14 @@ Peer.prototype.list = function (limit, cb) {
 	limit = limit || 100;
 	var params = {limit: limit};
 
-	library.dbLite.query("select ip, port, state, os, sharePort, version from peers where state > 0 and sharePort = 1 ORDER BY RANDOM() LIMIT $limit", params, {"ip": String, "port": Number, "state": Number, "os": String, "sharePort": Number, "version": String}, function(err, rows){
+	library.dbLite.query("select ip, port, state, os, sharePort, version from peers where state > 0 and sharePort = 1 ORDER BY RANDOM() LIMIT $limit", params, {
+		"ip": String,
+		"port": Number,
+		"state": Number,
+		"os": String,
+		"sharePort": Number,
+		"version": String
+	}, function (err, rows) {
 		cb(err, rows);
 	});
 }

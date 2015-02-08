@@ -21,7 +21,7 @@ function getTransactionFee(transaction, isGenerator) {
 			fee = 50 * constants.fixedPoint;
 			break;
 		case 3:
-			fee = transaction.fee;
+			fee = 1 * constants.fixedPoint;
 			break;
 	}
 
@@ -54,17 +54,8 @@ function getBytes(transaction) {
 
 			case 3:
 				if (transaction.asset.votes !== null) {
-					assetSize = transaction.asset.votes.length * 32;
-					var bb = new ByteBuffer(assetSize, true);
-					for (var i = 0; i < transaction.asset.votes.length; i++) {
-						var publicKey = new Buffer(transaction.asset.votes[i], 'hex');
-
-						for (var j = 0; j < publicKey.length; j++) {
-							bb.writeByte(publicKey[j]);
-						}
-					}
-					bb.flip();
-					assetBytes = bb.toBuffer();
+					assetBytes = new Buffer(transaction.asset.votes.join(''), 'utf8');
+					assetSize = assetBytes.length;
 				}
 				break;
 		}
@@ -115,7 +106,7 @@ function getBytes(transaction) {
 
 		bb.flip();
 	} catch (e) {
-		return new Buffer('');
+		throw e.toString();
 	}
 	return bb.toBuffer();
 }
@@ -150,7 +141,7 @@ function getFee(transaction, percent) {
 			break;
 
 		case 3:
-			return parseInt(transaction.amount / 100 * percent);
+			return 1 * constants.fixedPoint;
 			break;
 	}
 }
