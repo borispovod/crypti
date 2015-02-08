@@ -21,6 +21,28 @@ function Account(address, publicKey, balance, unconfirmedBalance) {
 	this.delegates = null;
 }
 
+function accountApplyDiff(account, diff) {
+	for (var i = 0; i < diff.length; i++) {
+		var math = diff[i][0];
+		var publicKey = diff[i].slice(1);
+
+		if (math == "+") {
+			account.delegates = account.delegates || [];
+			account.delegates.push(publicKey);
+		}
+		if (math == "-") {
+			var index = account.delegates.indexOf(publicKey);
+			if (index == -1) {
+				throw "delegate not found";
+			}
+			account.delegates.splice(index, 1);
+			if (!account.delegates.length) {
+				account.delegates = null;
+			}
+		}
+	}
+}
+
 Account.prototype.setUnconfirmedSignature = function (unconfirmedSignature) {
 	this.unconfirmedSignature = unconfirmedSignature;
 }
@@ -31,16 +53,30 @@ Account.prototype.setSecondSignature = function (secondSignature) {
 
 Account.prototype.addToBalance = function (amount) {
 	this.balance += amount;
-	library.bus.message('changeBalance', this, amount);
+	var delegate = this.delegates ? this.delegates.slice() : null
+	library.bus.message('changeBalance', delegate, amount);
 }
 
 Account.prototype.addToUnconfirmedBalance = function (amount) {
 	this.unconfirmedBalance += amount;
 }
 
-Account.prototype.updateDelegateList = function (delegateIds) {
-	library.bus.message('changeDelegates', this, delegateIds);
-	this.delegates = delegateIds;
+Account.prototype.applyDelegateList = function (diff) {
+	accountApplyDiff(this, diff);
+
+	library.bus.message('changeDelegates', this.balance, diff);
+}
+
+Account.prototype.undoDelegateList = function (diff) {
+	var copyDiff = diff.slice();
+	for (var i = 0; i < copyDiff.length; i++) {
+		var math = copyDiff[i][0] == '-' ? '+' : '-';
+		copyDiff[i] = math + copyDiff[i].slice(1);
+	}
+
+	accountApplyDiff(this, copyDiff);
+
+	library.bus.message('changeDelegates', this.balance, copyDiff);
 }
 
 //constructor
@@ -140,7 +176,7 @@ function attachApi() {
 
 	router.put("/delegates", function (req, res) {
 		var secret = params.string(req.body.secret),
-			publicKey = params.hex(req.body.publicKey, true),
+			publicKey = params.hex(req.body.publicKey || null, true),
 			secondSecret = params.string(req.body.secondSecret, true),
 			delegates = params.array(req.body.delegates, true);
 
@@ -153,7 +189,7 @@ function attachApi() {
 			}
 		}
 
-		if (delegates && delegates.length > 33){
+		if (delegates && delegates.length > 33) {
 			return res.json({success: false, error: "Please, provide less 33 delegates"});
 		}
 

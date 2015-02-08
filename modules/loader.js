@@ -65,73 +65,52 @@ function loadBlocks(lastBlock, cb) {
 		var peerStr = data.peer ? ip.fromLong(data.peer.ip) + ":" + data.peer.port : 'unknown';
 		library.logger.debug("Load blocks from " + peerStr);
 
-		if (bignum(modules.blocks.getLastBlock().height).lt(params.string(data.body.height))) {
+		if (bignum(modules.blocks.getLastBlock().height).lt(params.string(data.body.height))) { //diff in chainbases
 			sync = true;
 			blocksToSync = params.int(data.body.height);
 
 			if (lastBlock.id != genesisBlock.blockId) { //have to found common block
-
-				library.logger.info("Find milestone block from " + peerStr);
-				modules.blocks.getMilestoneBlock(data.peer, function (err, milestoneBlock) {
+				library.logger.info("Find common block from " + peerStr);
+				modules.blocks.getCommonBlock(data.peer, lastBlock.height, function (err, commonBlock) {
 					if (err) {
 						return cb(err);
 					}
 
-					library.logger.info("Find common block from " + peerStr);
-					modules.blocks.getCommonBlock(data.peer, milestoneBlock, function (err, commonBlockId) {
+					if (!commonBlock) {
+						return cb();
+					}
+
+					debugger;
+
+					library.logger.info("Resolve fork before " + commonBlock.id + " from " + peerStr);
+					modules.blocks.deleteBlocksBefore(commonBlock, function (err, backupBlocks) {
 						if (err) {
-							return cb(err);
+							return setImmediate(cb, err);
 						}
+						library.logger.debug("Load blocks from peer " + peerStr);
+						modules.blocks.loadBlocksFromPeer(data.peer, commonBlock.id, function (err) {
+							if (err) {
+								library.logger.error(err);
+								library.logger.log('ban 60 min', peerStr);
+								modules.peer.state(data.peer.ip, data.peer.port, 0, 3600);
 
-						if (lastBlock.id != commonBlockId) {
-							library.dbLite.query("SELECT height FROM blocks WHERE id=$id", {id: commonBlockId}, {"height": Number}, function (err, rows) {
-								if (err || !rows.length) {
-									return cb(err || 'block is null');
-								}
+								modules.blocks.deleteBlocksBefore(commonBlock, function (err) {
+									if (err) {
+										library.logger.error(err);
+										return setImmediate(cb);
+									}
 
-								var block = rows[0];
-
-								if (lastBlock.height - block.height > 1440) {
-									library.logger.log('ban 60 min', peerStr);
-									modules.peer.state(data.peer.ip, data.peer.port, 0, 3600);
-									cb();
-								} else {
-									library.logger.info("Resolve fork before " + commonBlockId + " from " + peerStr);
-									modules.blocks.deleteBlocksBefore(commonBlockId, function (err, backupBlocks) {
-										if (err) {
-											return setImmediate(cb, err);
-										}
-										library.logger.debug("Load blocks from peer " + peerStr);
-										modules.blocks.loadBlocksFromPeer(data.peer, commonBlockId, function (err) {
-											if (err) {
-												library.logger.error(err);
-												library.logger.log('ban 60 min', peerStr);
-												modules.peer.state(data.peer.ip, data.peer.port, 0, 3600);
-
-												modules.blocks.deleteBlocksBefore(commonBlockId, function (err) {
-													if (err) {
-														library.logger.error(err);
-														return setImmediate(cb);
-													}
-
-													library.logger.info("First last block already: " + modules.blocks.getLastBlock().height + ", first block in backup: " + backupBlocks[0].height);
-													async.eachSeries(backupBlocks, function (block, cb) {
-														modules.blocks.processBlock(block, false, cb);
-													}, cb);
-												});
-											} else {
-												setImmediate(cb);
-											}
-										});
-									})
-								}
-							});
-						} else { //found common block
-							library.logger.debug("Load blocks from peer " + peerStr);
-							modules.blocks.loadBlocksFromPeer(data.peer, commonBlockId, cb);
-						}
+									library.logger.info("First last block already: " + modules.blocks.getLastBlock().height + ", first block in backup: " + backupBlocks[0].height);
+									async.eachSeries(backupBlocks, function (block, cb) {
+										modules.blocks.processBlock(block, false, cb);
+									}, cb);
+								});
+							} else {
+								setImmediate(cb);
+							}
+						});
 					})
-				})
+				});
 			} else { //have to load full db
 				var commonBlockId = genesisBlock.blockId;
 				library.logger.debug("Load blocks from genesis from " + peerStr);
