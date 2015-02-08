@@ -548,6 +548,7 @@ Transactions.prototype.applyUnconfirmed = function (transaction) {
 	var sender = modules.accounts.getAccountByPublicKey(transaction.senderPublicKey);
 
 	if (!sender && transaction.blockId != genesisblock.blockId) {
+		console.log("sender not found");
 		return false;
 	} else {
 		sender = modules.accounts.getAccountOrCreate(transaction.senderPublicKey);
@@ -556,6 +557,7 @@ Transactions.prototype.applyUnconfirmed = function (transaction) {
 	if (transaction.type == 2) {
 		if (transaction.subtype == 0) {
 			if (sender.unconfirmedSignature || sender.secondSignature) {
+				console.log("already enabled second signature");
 				return false;
 			}
 
@@ -566,6 +568,7 @@ Transactions.prototype.applyUnconfirmed = function (transaction) {
 	var amount = transaction.amount + transaction.fee;
 
 	if (sender.unconfirmedBalance < amount && transaction.blockId != genesisblock.blockId) {
+		console.log("not enought balance: " + sender.unconfirmedBalance + " / " + amount);
 		return false;
 	}
 

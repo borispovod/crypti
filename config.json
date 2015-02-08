@@ -6,7 +6,7 @@
     "version": "0.1.9",
     "fileLogLevel": "info",
     "consoleLogLevel": "info",
-    "sharePort": true,
+    "sharePort": false,
     "adminPanel": {
         "whiteList": [
             "127.0.0.1"
@@ -26,7 +26,7 @@
         "secret": ""
     },
 	"loading" : {
-		"verifyOnLoading" : true,
+		"verifyOnLoading" : false,
 		"loadPerIteration" : 5000
 	}
 }
