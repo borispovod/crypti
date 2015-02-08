@@ -27,6 +27,10 @@ Round.prototype.calc = function (height) {
 
 Round.prototype.fowardTick = function (block, previousBlock) {
 	debugger;
+
+	feesByRound = {};
+	delegatesByRound = {};
+
 	var round = self.calc(block.height);
 	var prevRound = self.calc(previousBlock.height);
 
@@ -37,17 +41,18 @@ Round.prototype.fowardTick = function (block, previousBlock) {
 	unDelegatesByRound[round].push(block.generatorPublicKey);
 
 	if (prevRound !== round) {
-		debugger;
-		while (tasks.length) {
-			var task = tasks.shift();
-			task();
-		}
-		var roundFee = unFeesByRound[round] / slots.delegates;
-		if (roundFee) {
-			unDelegatesByRound[round].forEach(function (delegate) {
-				var recipient = modules.accounts.getAccountOrCreateByAddress(delegate);
-				recipient.addToBalance(roundFee);
-			});
+		if (unDelegatesByRound[round].length == slots.delegates) {
+			while (tasks.length) {
+				var task = tasks.shift();
+				task();
+			}
+			var roundFee = unFeesByRound[round] / slots.delegates;
+			if (roundFee) {
+				unDelegatesByRound[round].forEach(function (delegate) {
+					var recipient = modules.accounts.getAccountOrCreateByAddress(delegate);
+					recipient.addToBalance(-roundFee);
+				});
+			}
 		}
 		delete unFeesByRound[round];
 		delete unDelegatesByRound[round];
@@ -55,6 +60,11 @@ Round.prototype.fowardTick = function (block, previousBlock) {
 }
 
 Round.prototype.tick = function (block) {
+	debugger;
+
+	unFeesByRound = {};
+	unDelegatesByRound = {};
+
 	var round = self.calc(block.height);
 
 	feesByRound[round] = (feesByRound[round] || 0);
@@ -66,7 +76,23 @@ Round.prototype.tick = function (block) {
 	var nextRound = self.calc(block.height + 1);
 
 	if (round !== nextRound) {
-		library.bus.message('finishRound', round);
+		if (delegatesByRound[round].length == slots.delegates) {
+			while (tasks.length) {
+				var task = tasks.shift();
+				task();
+			}
+			var roundFee = feesByRound[round] / slots.delegates;
+			if (roundFee) {
+				delegatesByRound[round].forEach(function (delegate) {
+					var recipient = modules.accounts.getAccountOrCreateByAddress(delegate);
+					recipient.addToBalance(roundFee);
+				});
+			}
+			library.bus.message('finishRound', round);
+		}
+
+		delete feesByRound[round];
+		delete delegatesByRound[round];
 	}
 }
 
@@ -97,19 +123,7 @@ Round.prototype.onBind = function (scope) {
 }
 
 Round.prototype.onFinishRound = function (round) {
-	while (tasks.length) {
-		var task = tasks.shift();
-		task();
-	}
-	var roundFee = feesByRound[round] / slots.delegates;
-	if (roundFee) {
-		delegatesByRound[round].forEach(function (delegate) {
-			var recipient = modules.accounts.getAccountOrCreateByAddress(delegate);
-			recipient.addToBalance(roundFee);
-		});
-	}
-	delete feesByRound[round];
-	delete delegatesByRound[round];
+
 }
 
 //export
