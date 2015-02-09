@@ -84,7 +84,7 @@ d.run(function () {
 			var path = require('path');
 			var bodyParser = require('body-parser');
 			var methodOverride = require('method-override');
-			var JsonSchema = require('./helpers/validation');
+			var requestSanitizer = require('./helpers/request-sanitizer');
 
 			app.engine('html', require('ejs').renderFile);
 			app.use(require('express-domain-middleware'));
@@ -94,6 +94,7 @@ d.run(function () {
 			app.use(bodyParser.urlencoded({extended: true, parameterLimit: 5000}));
 			app.use(bodyParser.json());
 			app.use(methodOverride());
+			app.use(requestSanitizer.express());
 
 			app.use(function (req, res, next) {
 				var parts = req.url.split('/');
