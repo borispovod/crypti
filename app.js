@@ -84,6 +84,7 @@ d.run(function () {
 			var path = require('path');
 			var bodyParser = require('body-parser');
 			var methodOverride = require('method-override');
+			var JsonSchema = require('./helpers/validation');
 
 			app.engine('html', require('ejs').renderFile);
 			app.use(require('express-domain-middleware'));
