@@ -162,6 +162,11 @@ JsonSchema.addRule("properties", {
                     acceptProperty = accept[property];
                     if (acceptProperty.hasOwnProperty("default")) {
                         result[property] = acceptProperty.default;
+                    } else {
+                        field.issue({
+                            path : property,
+                            rule : 'properties'
+                        });
                     }
                     return end();
                 } else {

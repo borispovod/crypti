@@ -28,15 +28,15 @@ describe("Validator.", function(){
         it('Should validate empty rules', function(done){
             Validator.validate(null, {}, function(err, report){
                 should(err).equal(null);
-                should(report).instanceOf(Array).length(0);
+                should(report.issues).instanceOf(Array).length(0);
                 done();
             });
         });
 
         it ('Should validate in sync style', function(){
             var report = Validator.validate(null, {type : "string"});
-            should(report).be.an.Array.length(1);
-            should(report[0]).be.an.Object.and.hasOwnProperty("rule").equal("type");
+            should(report.issues).be.an.Array.length(1);
+            should(report.issues[0]).be.an.Object.and.hasOwnProperty("rule").equal("type");
         });
     });
 
@@ -62,9 +62,9 @@ describe("Validator.", function(){
 
             validator.validate(null, {type:"string"}, function(err, report, output){
                 should(err).be.equal(null);
-                should(report).be.an.Array.length(1);
+                should(report.issues).be.an.Array.length(1);
 
-                var issue = report[0];
+                var issue = report.issues[0];
                 should(issue).be.a.String.and.equal("Value of instance breaks 'type' rule.");
                 done();
             });

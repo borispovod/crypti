@@ -87,40 +87,40 @@ Validator.prototype.validate = function(value, rules, callback) {
     var self = this;
 
     var field = this.createField(null, value, rules);
-    var async, _report;
+    var async, finished, report;
 
-    _report = field.report;
+    report = {};
 
-    function finish(err, report, output) {
+    function finish(err, issues, output) {
+        finished = true;
+
         if (self.reporter) {
-            // Preserve report from flushing
-            report = report.slice();
-            // Preserve link to original report object for async mode
-            _report.splice(0);
-
-            self.reporter.convert(report, rules).forEach(function(item){
-                _report.push(item);
-            });
+            issues = self.reporter.convert(issues, rules);
         }
 
-        _report.isValid = !report.length;
-        _report.isAsync = async;
+        report.isValid = !issues.length;
+        report.isAsync = async;
+        report.issues = issues;
+        report.rules = rules;
+        report.value = value;
 
         if (! callback) {
             if (err) {
                 throw err;
+            } else if (async) {
+                throw new Error("Async validation without callback");
             }
 
             return;
         }
 
-        if (async || ! self.forceAsync) {
+        if (async || ! callback || ! self.forceAsync) {
             self.onEnd();
-            callback.call(self, err, _report, output);
+            callback.call(self, err, report, output);
         } else {
             setTimeout(function(){
                 self.onEnd();
-                callback.call(self, err, _report, output);
+                callback.call(self, err, report, output);
             }, 1);
         }
     }
@@ -129,7 +129,11 @@ Validator.prototype.validate = function(value, rules, callback) {
     field.validate(finish);
     async = true;
 
-    return _report;
+    if (! callback && ! finished) {
+        throw new Error("Validation not finished");
+    }
+
+    return report;
 };
 
 /**
@@ -311,4 +315,16 @@ Validator.fieldProperty("isObject", function(){
 
 Validator.fieldProperty("isObjectInstance", function(){
     return this.value && typeof this.value === "object" && this.value.constructor === Object;
+});
+
+Validator.fieldProperty("isDefault", function(){
+    return this.value === this.rules.defaults;
+});
+
+Validator.fieldProperty("isUndefined", function(){
+    return typeof this.value === 'undefined';
+});
+
+Validator.fieldProperty("isEmpty", function(){
+    return typeof this.value === 'undefined' || this.value === null;
 });

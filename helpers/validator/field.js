@@ -89,13 +89,13 @@ Field.prototype.validate = function(callback) {
                 stack.length = 0;
             }
         } catch (err) {
-            Object.defineProperty(err, "field", {
-                enumerable : false,
-                value : this
-            });
+            if (! err.field)
+                Object.defineProperty(err, "field", {
+                    enumerable : false,
+                    value : this
+                });
 
             this.validator.onError(this, err);
-
             this.end(err, report, value);
             return;
         }
