@@ -62,119 +62,39 @@ function attachApi() {
 		})
 	});
 
-	router.get("/blocks/ids", function (req, res) {
+	router.get("/blocks/common", function (req, res) {
 		res.set(headers);
-		var id = params.string(req.query.id);
-		if (!id) {
-			return res.json({success: false, error: "Provide id in url"});
+
+		var max = params.int(req.query.max);
+		var min = params.int(req.query.min);
+		var ids = params.string(req.query.ids).split(',');
+		if (!ids.length || ids.length > 1000) {
+			return res.json({success: false, error: "Error, provide ids array less then 1000"});
 		}
-
-		library.dbLite.query("SELECT id FROM blocks WHERE height > (SELECT height FROM blocks where id=$id) ORDER BY height LIMIT 1440", {id: id}, ['id'], function (err, rows) {
-			if (err) {
-				return res.status(200).json({success: false, error: "Internal sql error"});
-			}
-
-			var ids = [];
-			for (var i = 0; i < rows.length; i++) {
-				ids.push(rows[i].id);
-			}
-			res.status(200).json({ids: ids});
+		if (!max || !min) {
+			return res.json({success: false, error: "Error, provide max & min"});
+		}
+		var numberPattern = /\d+/g;
+		var escapedIds = ids.map(function (id) {
+			return "'" + id.replace(/\D/g, '') + "'";
 		});
-	});
-
-	router.get("/blocks/milestone", function (req, res) {
-		res.set(headers);
-
-		var lastBlockId = params.string(req.query.lastBlockId, true);
-		var lastMilestoneBlockId = params.string(req.query.lastMilestoneBlockId, true);
-		if (!lastBlockId && !lastMilestoneBlockId) {
-			return res.json({success: false, error: "Error, provide lastBlockId or lastMilestoneBlockId"});
-		}
-
-		var lastBlock = modules.blocks.getLastBlock();
-
-		if (lastBlockId == lastBlock.id) {
-			return res.status(200).json({last: true, milestoneBlockIds: [lastBlockId]});
-		}
-
-		var blockId, height, jump, limit;
-		var milestoneBlockIds = [];
-		async.series([
-			function (cb) {
-				if (lastMilestoneBlockId) {
-					library.dbLite.query("SELECT height FROM blocks WHERE id=$id", {id: lastMilestoneBlockId}, {"height": Number}, function (err, rows) {
-						if (err) {
-							return cb("Internal sql error");
-						}
-
-						var block = rows.length && rows[0];
-
-						if (!block) {
-							cb("Can't find block: " + lastMilestoneBlockId);
-						} else {
-							height = block.height;
-							jump = Math.min(1440, lastBlock.height - height);
-							height = Math.max(height - jump, 0);
-							limit = 10;
-							cb();
-						}
-					});
-				} else if (lastBlockId) {
-					height = lastBlock.height;
-					jump = 10;
-					limit = 10;
-					cb();
-				}
+		library.dbLite.query("select max(height), id, previousBlock, timestamp, lower(hex(blockSignature)) from blocks where id in (" + escapedIds.join(',') + ") and height >= $min and height <= $max", {
+			"max": max,
+			"min": min
+		}, {
+			"height": Number,
+			"id": String,
+			"previousBlock": String,
+			"timestamp": Number,
+			"blockSignature": String
+		}, function (err, rows) {
+			if (err) {
+				cb(err);
+				return res.json({success: false, error: "Error in db"});
 			}
-		], function (error) {
-			if (error) {
-				return res.status(200).json({success: false, error: error});
-			} else {
-				library.dbLite.query("SELECT id FROM blocks WHERE height = $height", {height: height}, ['id'], function (err, rows) {
-					if (err) {
-						return res.status(200).json({success: false, error: "Internal sql error"});
-					}
 
-					var block = rows.length && rows[0];
-
-					if (!block) {
-						res.status(200).json({milestoneBlockIds: milestoneBlockIds});
-					} else {
-						blockId = block.id;
-
-						async.whilst(
-							function () {
-								return (height > 0 && limit-- > 0);
-							},
-							function (next) {
-								milestoneBlockIds.push(blockId);
-								library.dbLite.query("SELECT id FROM blocks WHERE height = $height", {height: height}, ['id'], function (err, rows) {
-									if (err) {
-										return next(err);
-									}
-
-									var block = rows.length && rows[0];
-
-									if (!block) {
-										next("Internal error");
-									} else {
-										blockId = block.id;
-										height = height - jump;
-										next();
-									}
-								});
-							},
-							function (err) {
-								if (err) {
-									return res.status(200).json({success: false, error: err});
-								}
-
-								res.status(200).json({milestoneBlockIds: milestoneBlockIds});
-							}
-						)
-					}
-				});
-			}
+			var commonBlock = rows.length ? rows[0] : null;
+			return res.json({success: true, common: commonBlock});
 		});
 	});
 

@@ -75,7 +75,6 @@ function getBlock(raw) {
 		var block = {
 			id: raw.b_id,
 			version: parseInt(raw.b_version),
-			delegates: parseInt(raw.b_delegates),
 			timestamp: parseInt(raw.b_timestamp),
 			height: parseInt(raw.b_height),
 			previousBlock: raw.b_previousBlock,
@@ -86,10 +85,7 @@ function getBlock(raw) {
 			payloadHash: raw.b_payloadHash,
 			generatorPublicKey: raw.b_generatorPublicKey,
 			generatorId: getAddressByPublicKey(raw.b_generatorPublicKey),
-			blockSignature: raw.b_blockSignature,
-			previousFee: parseFloat(raw.b_previousFee),
-			nextFeeVolume: parseInt(raw.b_nextFeeVolume),
-			feeVolume: parseInt(raw.b_feeVolume)
+			blockSignature: raw.b_blockSignature
 		}
 
 		return block;
