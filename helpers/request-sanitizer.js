@@ -2,6 +2,8 @@ var Validator = require('./validator');
 var extend = require('extend');
 var inherits = require('util').inherits;
 
+module.exports = RequestSanitizer;
+
 function RequestSanitizer(options) {
     Validator.call(this, options);
 }
@@ -9,8 +11,11 @@ function RequestSanitizer(options) {
 inherits(RequestSanitizer, Validator);
 
 RequestSanitizer.prototype.rules = {};
-RequestSanitizer.addRule = Validator.addRule;
-RequestSanitizer.fieldProperty = Validator.fieldProperty;
+extend(RequestSanitizer, Validator);
+
+RequestSanitizer.options = extend({
+    reporter : SanitizeReporter
+}, Validator.options);
 
 RequestSanitizer.addRule("empty", {});
 
@@ -87,6 +92,20 @@ RequestSanitizer.addRule("hex", {
     }
 });
 
+RequestSanitizer.addRule("buffer", {
+    filter : function(accept, value) {
+        if (typeof accept !== "string") {
+            accept = 'utf8';
+        }
+
+        try {
+            return new Buffer(value||'', accept);
+        } catch (err) {
+            return new Buffer();
+        }
+    }
+});
+
 RequestSanitizer.addRule("variant", {
     filter : function(accept, value, field) {
         if (field.isEmpty() && field.rules.empty) return null;
@@ -95,7 +114,20 @@ RequestSanitizer.addRule("variant", {
     }
 });
 
-RequestSanitizer.addRule("all", {
+RequestSanitizer.addRule("required", {
+    message : "value is required",
+    validate : function(accept, value) {
+        return (typeof value !== 'undefined') == accept;
+    }
+});
+
+RequestSanitizer.addRule("default", {
+    filter : function(accept, value) {
+        return (typeof value === 'undefined') ? accept : value;
+    }
+});
+
+RequestSanitizer.addRule("properties", {
     validate : function(accept, value, field) {
         if (! field.isObject()) return false;
 
@@ -110,23 +142,96 @@ RequestSanitizer.addRule("all", {
     }
 });
 
-
-exports.express = function(options) {
+/**
+ * Express middleware factory
+ * @param {Object} options Validator constructor options
+ * @returns {Function} Express middleware
+ */
+RequestSanitizer.express = function(options) {
     options = extend({}, RequestSanitizer.options, options);
 
-    function sanitize(value, properties, callback) {
-        var values = {};
-
-        Object.getOwnPropertyNames(properties).forEach(function(name){
-            values[name] = value.hasOwnProperty(name) ? value[name] : undefined;
-        });
-
-        return (new RequestSanitizer(options)).validate(values, {all:properties}, callback);
-    }
 
     return function(req, res, next) {
         req.sanitize = sanitize;
 
+        function sanitize(value, properties, callback) {
+            var values = {};
+            if (typeof value === "string") {
+                value = req[value] || {};
+            }
+
+            Object.getOwnPropertyNames(properties).forEach(function(name){
+                values[name] = value.hasOwnProperty(name) ? value[name] : undefined;
+                if (typeof properties[name] === "string") {
+                    var rules = properties[name];
+                    properties[name] = {};
+
+                    if (rules.charAt(rules.length-1) === "!") {
+                        properties[name].required = true;
+                        rules = rules.slice(0, -1);
+                    }
+
+                    if (rules.charAt(rules.length-1) === "?") {
+                        properties[name].empty = true;
+                        rules = rules.slice(0, -1);
+                    }
+
+                    properties[name][rules] = true;
+                }
+            });
+
+            return (new RequestSanitizer(options)).validate(values, {properties:properties}, callback);
+        }
+
         next();
     };
+};
+
+RequestSanitizer.options.reporter = SanitizeReporter;
+
+function SanitizeReporter(validator) {
+    this.validator = validator;
+}
+
+SanitizeReporter.prototype.format = function(message, values) {
+    return String(message).replace(/\{([^}]+)}/g, function(match, id) {
+        if (id in values) {
+            return values[id];
+        } else {
+            return '';
+        }
+    });
+};
+
+SanitizeReporter.prototype.convert = function(issues) {
+    var self = this;
+
+    var grouped = issues.reduce(function(result, item){
+        var path = item.path.join('.');
+        if (path in result === false) result[path] = [];
+
+        result[path].push(item);
+
+        return result;
+    }, {});
+
+    var result = "";
+
+    Object.getOwnPropertyNames(grouped).forEach(function(path){
+        result += "Property \"" + path + "\":\n";
+
+        grouped[path].forEach(function(item){
+            var rule = self.validator.getRule(item.rule);
+
+            result += "\t- ";
+
+            if (rule.hasOwnProperty('message')) {
+                result += self.format(rule.message, item) + "\n";
+            } else {
+                result += "break rule \"" + item.rule + "\"\n";
+            }
+        });
+    });
+
+    return result;
 };
