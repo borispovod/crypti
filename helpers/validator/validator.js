@@ -94,15 +94,17 @@ Validator.prototype.validate = function(value, rules, callback) {
     function finish(err, issues, output) {
         finished = true;
 
+        report.isValid = !issues.length;
+
         if (self.reporter) {
             issues = self.reporter.convert(issues, rules);
         }
 
-        report.isValid = !issues.length;
         report.isAsync = async;
         report.issues = issues;
         report.rules = rules;
         report.value = value;
+
 
         if (! callback) {
             if (err) {
@@ -326,5 +328,5 @@ Validator.fieldProperty("isUndefined", function(){
 });
 
 Validator.fieldProperty("isEmpty", function(){
-    return typeof this.value === 'undefined' || this.value === null;
+    return typeof this.value === 'undefined' || this.value === null || this.value === '';
 });
