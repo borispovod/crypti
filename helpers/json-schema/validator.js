@@ -152,10 +152,6 @@ JsonSchema.addRule("properties", {
                     } else if (additionalProperty) {
                         acceptProperty = additionalProperty; // check custom property to match additionalProperties
                     } else {
-                        field.issue({
-                            path: property,
-                            rule: 'properties'
-                        });
                         return end();
                     }
                 } else if (! value.hasOwnProperty(property)) {
