@@ -58,15 +58,19 @@ Field.prototype.validate = function(callback) {
         accept = this.rules[rule];
 
         try {
-            if (this.validator.execRules && typeof accept === 'function') {
-                accept = accept.call(thisArg, value);
-            }
-
             if (! this.validator.hasRule(rule) && ! this.validator.skipMissed) {
                 throw new Error('Rule "' + rule + '" not found for "' + this.path.join('.') + '".');
             }
 
             descriptor = this.validator.getRule(rule);
+
+            if (this.validator.execRules && typeof accept === 'function') {
+                accept = accept.call(thisArg, value);
+            }
+
+            if (descriptor.accept) {
+                accept = descriptor.accept.call(thisArg, accept, value, this);
+            }
 
             if (descriptor.filter) {
                 value = this.value = descriptor.filter.call(thisArg, accept, value, this);
