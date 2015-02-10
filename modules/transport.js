@@ -3,7 +3,7 @@ var Router = require('../helpers/router.js'),
 	request = require('request'),
 	ip = require('ip'),
 	util = require('util'),
-	params = require('../helpers/params.js'),
+	RequestSanitizer = require('../helpers/request-sanitizer.js'),
 	normalize = require('../helpers/normalize.js');
 
 //private fields
@@ -38,21 +38,32 @@ function attachApi() {
 			return next();
 		}
 
-		var peer = {
-			ip: ip.toLong(peerIp),
-			port: params.int(req.headers['port']),
-			state: 2,
-			os: params.string(req.headers['os'], true),
-			sharePort: Number(!!params.int(req.headers['share-port'])),
-			version: params.string(req.headers['version'], true)
-		};
+		req.sanitize("headers", {
+			port : "int",
+			os : "string?",
+			'share-port' : "int",
+			version : "string"
+		}, function(err, report, headers) {
+			if (err) return next(err);
+			if (!report.isValid) return res.json({success: false, error: report.issues});
+
+			var peer = {
+				ip: ip.toLong(peerIp),
+				port: headers.port,
+				state: 2,
+				os: headers.os,
+				sharePort: Number(!!headers['share-port']),
+				version: headers.version
+			};
 
 
-		if (peer.port > 0 && peer.port <= 65535 && peer.version == library.config.version) {
-			modules.peer.update(peer);
-		}
+			if (peer.port > 0 && peer.port <= 65535 && peer.version == library.config.version) {
+				modules.peer.update(peer);
+			}
 
-		next();
+			next();
+		});
+
 	});
 
 	router.get('/list', function (req, res) {
@@ -64,7 +75,7 @@ function attachApi() {
 
 	router.get("/blocks/ids", function (req, res) {
 		res.set(headers);
-		var id = params.string(req.query.id);
+		var id = RequestSanitizer.string(req.query.id);
 		if (!id) {
 			return res.json({success: false, error: "Provide id in url"});
 		}
@@ -85,103 +96,112 @@ function attachApi() {
 	router.get("/blocks/milestone", function (req, res) {
 		res.set(headers);
 
-		var lastBlockId = params.string(req.query.lastBlockId, true);
-		var lastMilestoneBlockId = params.string(req.query.lastMilestoneBlockId, true);
-		if (!lastBlockId && !lastMilestoneBlockId) {
-			return res.json({success: false, error: "Error, provide lastBlockId or lastMilestoneBlockId"});
-		}
+		req.sanitize("query", {
+			lastBlockId : "string?",
+			lastMilestoneBlockId: "string?"
+		}, function(err, report, query) {
+			if (err) return next(err);
+			if (!report.isValid) return res.json({success: false, error: report.issues});
 
-		var lastBlock = modules.blocks.getLastBlock();
+			var lastBlockId = query.lastBlockId;
+			var lastMilestoneBlockId = query.lastMilestoneBlockId;
 
-		if (lastBlockId == lastBlock.id) {
-			return res.status(200).json({last: true, milestoneBlockIds: [lastBlockId]});
-		}
+			if (!lastBlockId && !lastMilestoneBlockId) {
+				return res.json({success: false, error: "Error, provide lastBlockId or lastMilestoneBlockId"});
+			}
 
-		var blockId, height, jump, limit;
-		var milestoneBlockIds = [];
-		async.series([
-			function (cb) {
-				if (lastMilestoneBlockId) {
-					library.dbLite.query("SELECT height FROM blocks WHERE id=$id", {id: lastMilestoneBlockId}, {"height": Number}, function (err, rows) {
+			var lastBlock = modules.blocks.getLastBlock();
+
+			if (lastBlockId == lastBlock.id) {
+				return res.status(200).json({last: true, milestoneBlockIds: [lastBlockId]});
+			}
+
+			var blockId, height, jump, limit;
+			var milestoneBlockIds = [];
+			async.series([
+				function (cb) {
+					if (lastMilestoneBlockId) {
+						library.dbLite.query("SELECT height FROM blocks WHERE id=$id", {id: lastMilestoneBlockId}, {"height": Number}, function (err, rows) {
+							if (err) {
+								return cb("Internal sql error");
+							}
+
+							var block = rows.length && rows[0];
+
+							if (!block) {
+								cb("Can't find block: " + lastMilestoneBlockId);
+							} else {
+								height = block.height;
+								jump = Math.min(1440, lastBlock.height - height);
+								height = Math.max(height - jump, 0);
+								limit = 10;
+								cb();
+							}
+						});
+					} else if (lastBlockId) {
+						height = lastBlock.height;
+						jump = 10;
+						limit = 10;
+						cb();
+					}
+				}
+			], function (error) {
+				if (error) {
+					return res.status(200).json({success: false, error: error});
+				} else {
+					library.dbLite.query("SELECT id FROM blocks WHERE height = $height", {height: height}, ['id'], function (err, rows) {
 						if (err) {
-							return cb("Internal sql error");
+							return res.status(200).json({success: false, error: "Internal sql error"});
 						}
 
 						var block = rows.length && rows[0];
 
 						if (!block) {
-							cb("Can't find block: " + lastMilestoneBlockId);
+							res.status(200).json({milestoneBlockIds: milestoneBlockIds});
 						} else {
-							height = block.height;
-							jump = Math.min(1440, lastBlock.height - height);
-							height = Math.max(height - jump, 0);
-							limit = 10;
-							cb();
+							blockId = block.id;
+
+							async.whilst(
+								function () {
+									return (height > 0 && limit-- > 0);
+								},
+								function (next) {
+									milestoneBlockIds.push(blockId);
+									library.dbLite.query("SELECT id FROM blocks WHERE height = $height", {height: height}, ['id'], function (err, rows) {
+										if (err) {
+											return next(err);
+										}
+
+										var block = rows.length && rows[0];
+
+										if (!block) {
+											next("Internal error");
+										} else {
+											blockId = block.id;
+											height = height - jump;
+											next();
+										}
+									});
+								},
+								function (err) {
+									if (err) {
+										return res.status(200).json({success: false, error: err});
+									}
+
+									res.status(200).json({milestoneBlockIds: milestoneBlockIds});
+								}
+							)
 						}
 					});
-				} else if (lastBlockId) {
-					height = lastBlock.height;
-					jump = 10;
-					limit = 10;
-					cb();
 				}
-			}
-		], function (error) {
-			if (error) {
-				return res.status(200).json({success: false, error: error});
-			} else {
-				library.dbLite.query("SELECT id FROM blocks WHERE height = $height", {height: height}, ['id'], function (err, rows) {
-					if (err) {
-						return res.status(200).json({success: false, error: "Internal sql error"});
-					}
-
-					var block = rows.length && rows[0];
-
-					if (!block) {
-						res.status(200).json({milestoneBlockIds: milestoneBlockIds});
-					} else {
-						blockId = block.id;
-
-						async.whilst(
-							function () {
-								return (height > 0 && limit-- > 0);
-							},
-							function (next) {
-								milestoneBlockIds.push(blockId);
-								library.dbLite.query("SELECT id FROM blocks WHERE height = $height", {height: height}, ['id'], function (err, rows) {
-									if (err) {
-										return next(err);
-									}
-
-									var block = rows.length && rows[0];
-
-									if (!block) {
-										next("Internal error");
-									} else {
-										blockId = block.id;
-										height = height - jump;
-										next();
-									}
-								});
-							},
-							function (err) {
-								if (err) {
-									return res.status(200).json({success: false, error: err});
-								}
-
-								res.status(200).json({milestoneBlockIds: milestoneBlockIds});
-							}
-						)
-					}
-				});
-			}
+			});
 		});
 	});
 
 	router.get("/blocks", function (req, res) {
 		res.set(headers);
 
-		var lastBlockId = params.string(req.query.lastBlockId);
+		var lastBlockId = RequestSanitizer.string(req.query.lastBlockId);
 
 		// get 1400+ blocks with all data (joins) from provided block id
 		modules.blocks.loadBlocksPart({limit: 1440, lastId: lastBlockId}, function (err, blocks) {
@@ -267,15 +287,15 @@ function _request(peer, api, method, data, cb) {
 			return;
 		}
 
-		var port = params.int(response.headers['port']);
-		if (port > 0 && port <= 65535 && params.string(response.headers['version'], true) == library.config.version) {
+		var port = RequestSanitizer.int(response.headers['port']);
+		if (port > 0 && port <= 65535 && RequestSanitizer.string(response.headers['version'], true) == library.config.version) {
 			modules.peer.update({
 				ip: peer.ip,
 				port: port,
 				state: 2,
-				os: params.string(response.headers['os'], true),
-				sharePort: Number(!!params.int(response.headers['share-port'])),
-				version: params.string(response.headers['version'], true)
+				os: RequestSanitizer.string(response.headers['os'], true),
+				sharePort: Number(!!RequestSanitizer.int(response.headers['share-port'])),
+				version: RequestSanitizer.string(response.headers['version'], true)
 			});
 		}
 

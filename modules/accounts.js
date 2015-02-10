@@ -1,7 +1,6 @@
 var crypto = require('crypto'),
 	bignum = require('bignum'),
 	ed = require('ed25519'),
-	params = require('../helpers/params.js'),
 	slots = require('../helpers/slots.js'),
 	Router = require('../helpers/router.js');
 

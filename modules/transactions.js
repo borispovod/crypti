@@ -9,7 +9,7 @@ var transactionHelper = require('../helpers/transaction.js'),
 	constants = require("../helpers/constants.js"),
 	relational = require("../helpers/relational.js"),
 	slots = require('../helpers/slots.js'),
-	params = require('../helpers/params.js'),
+	RequestSanitizer = require('../helpers/request-sanitizer.js'),
 	extend = require('extend'),
 	Router = require('../helpers/router.js'),
 	arrayHelper = require('../helpers/array.js'),
@@ -43,32 +43,30 @@ function attachApi() {
 		res.status(500).send({success: false, error: 'loading'});
 	});
 
-	router.get('/', function (req, res) {
-		var blockId = params.string(req.query.blockId);
-		var limit = params.int(req.query.limit);
-		var orderBy = params.string(req.query.orderBy);
-		var offset = params.int(req.query.offset);
-		var senderPublicKey = params.hex(req.query.senderPublicKey, true);
-		var recipientId = params.string(req.query.recipientId)
+	router.get('/', function (req, res, next) {
+		req.sanitize("query", {
+			blockId : "string",
+			limit : {default:20, int:true},
+			orderBy : "string",
+			offset : "int",
+			senderPublicKey : "hex?",
+			recipientId : "string"
+		}, function(err, report, query){
+			if (err) return next(err);
+			if (! report.isValid) return res.json({success:false, error:report.issues});
 
-		list({
-			blockId: blockId,
-			senderPublicKey: senderPublicKey, //check null
-			recipientId: recipientId,
-			limit: limit || 20,
-			orderBy: orderBy,
-			offset: offset
-		}, function (err, transactions) {
-			if (err) {
-				return res.json({success: false, error: "Transactions not found"});
-			}
+			list(query, function (err, transactions) {
+				if (err) {
+					return res.json({success: false, error: "Transactions not found"});
+				}
 
-			res.json({success: true, transactions: transactions});
+				res.json({success: true, transactions: transactions});
+			});
 		});
 	});
 
 	router.get('/get', function (req, res) {
-		var id = params.string(req.query.id);
+		var id = RequestSanitizer.string(req.query.id);
 		if (!id) {
 			return res.json({success: false, error: "Provide id in url"});
 		}
@@ -82,7 +80,7 @@ function attachApi() {
 	});
 
 	router.get('/unconfirmed/get', function (req, res) {
-		var id = params.string(req.query.id);
+		var id = RequestSanitizer.string(req.query.id);
 
 		if (!id) {
 			return res.json({success: false, error: "Provide id in url"});
@@ -103,12 +101,28 @@ function attachApi() {
 		var transactions = self.getUnconfirmedTransactions(true),
 			toSend = [];
 
-		var senderPublicKey = params.hex(req.query.senderPublicKey, true),
-			address = params.string(req.query.address, true);
+		req.sanitize("query", {
+			address : "string?",
+			senderPublicKey : "string?"
+		}, function(err, report, query){
+			if (err) return next(err);
+			if (! report.isValid) return res.json({success: false, error: report.issues});
 
-		if (senderPublicKey || address) {
-			for (var i = 0; i < transactions.length; i++) {
-				if (transactions[i].senderPublicKey == senderPublicKey || transactions[i].recipientId == address) {
+			var senderPublicKey = query.senderPublicKey,
+				address = query.address;
+
+			if (senderPublicKey || address) {
+				for (var i = 0; i < transactions.length; i++) {
+					if (transactions[i].senderPublicKey == senderPublicKey || transactions[i].recipientId == address) {
+						var transaction = extend(true, {}, transactions[i]);
+
+						delete transaction.asset;
+
+						toSend.push(transaction);
+					}
+				}
+			} else {
+				for (var i = 0; i < transactions.length; i++) {
 					var transaction = extend(true, {}, transactions[i]);
 
 					delete transaction.asset;
@@ -116,97 +130,102 @@ function attachApi() {
 					toSend.push(transaction);
 				}
 			}
-		} else {
-			for (var i = 0; i < transactions.length; i++) {
-				var transaction = extend(true, {}, transactions[i]);
-
-				delete transaction.asset;
-
-				toSend.push(transaction);
-			}
-		}
+		});
 
 		res.json({success: true, transactions: toSend});
 	});
 
 	router.put('/', function (req, res) {
-		var secret = params.string(req.body.secret),
-			amount = params.int(req.body.amount),
-			recipientId = params.string(req.body.recipientId, true),
-			publicKey = params.hex(req.body.publicKey, true),
-			secondSecret = params.string(req.body.secondSecret, true),
-			scriptId = params.string(req.body.scriptId, true),
-			input = params.object(req.body.input, true);
+		req.sanitize("body", {
+			secret : "string",
+			amount : "int",
+			recipientId : "string?",
+			publicKey : "hex?",
+			secondSecret : "string?",
+			scriptId : "string?",
+			input : "object?"
+		}, function(err, report, body) {
+			if (err) return next(err);
+			if (! report.isValid) return res.json({success: false, error: report.issues});
 
-		var hash = crypto.createHash('sha256').update(secret, 'utf8').digest();
-		var keypair = ed.MakeKeypair(hash);
+			var secret = body.secret,
+				amount = body.amount,
+				recipientId = body.recipientId,
+				publicKey = body.publicKey,
+				secondSecret = body.secondSecret,
+				scriptId = body.scriptId,
+				input = body.input;
 
-		if (secret.length == 0) {
-			return res.json({success: false, error: "Provide secret key"});
-		}
+			var hash = crypto.createHash('sha256').update(secret, 'utf8').digest();
+			var keypair = ed.MakeKeypair(hash);
 
-		if (publicKey) {
-			if (keypair.publicKey.toString('hex') != publicKey) {
-				return res.json({success: false, error: "Please, provide valid secret key of your account"});
+			if (secret.length == 0) {
+				return res.json({success: false, error: "Provide secret key"});
 			}
-		}
 
-		var account = modules.accounts.getAccountByPublicKey(keypair.publicKey.toString('hex'));
+			if (publicKey) {
+				if (keypair.publicKey.toString('hex') != publicKey) {
+					return res.json({success: false, error: "Please, provide valid secret key of your account"});
+				}
+			}
 
-		if (!account) {
-			return res.json({success: false, error: "Account doesn't has balance"});
-		}
+			var account = modules.accounts.getAccountByPublicKey(keypair.publicKey.toString('hex'));
 
-		if (!account.publicKey) {
-			return res.json({success: false, error: "Open account to make transaction"});
-		}
+			if (!account) {
+				return res.json({success: false, error: "Account doesn't has balance"});
+			}
 
-		var type = 0,
-			asset = {};
+			if (!account.publicKey) {
+				return res.json({success: false, error: "Open account to make transaction"});
+			}
 
-		if (scriptId) {
-			modules.scripts.getScript(scriptId, function (err, script) {
-				if (err || !script) {
-					return res.json({success: false, error: "Script not found"});
+			var type = 0,
+				asset = {};
+
+			if (scriptId) {
+				modules.scripts.getScript(scriptId, function (err, script) {
+					if (err || !script) {
+						return res.json({success: false, error: "Script not found"});
+					}
+
+					var parameters = JSON.parse(new Buffer(script.parameters, 'hex').toString('utf8'));
+
+					// validate input with parameters?
+					// JSONscheme.validate(parameters,input)?
+
+					// set transaction
+					type = 5;
+					asset.input = new Buffer(JSON.stringify(input), 'utf8').toString('hex');
+					asset.scriptId = scriptId;
+				});
+			}
+
+			var transaction = {
+				type: type,
+				amount: amount,
+				recipientId: recipientId,
+				senderPublicKey: account.publicKey,
+				timestamp: slots.getTime(),
+				asset: asset
+			};
+
+			self.sign(secret, transaction);
+
+			if (account.secondSignature) {
+				if (!secondSecret) {
+					return res.json({success: false, error: "Provide second secret key"});
 				}
 
-				var parameters = JSON.parse(new Buffer(script.parameters, 'hex').toString('utf8'));
+				self.secondSign(secondSecret, transaction);
+			}
 
-				// validate input with parameters?
-				// JSONscheme.validate(parameters,input)?
+			self.processUnconfirmedTransaction(transaction, true, function (err) {
+				if (err) {
+					return res.json({success: false, error: err});
+				}
 
-				// set transaction
-				type = 5;
-				asset.input = new Buffer(JSON.stringify(input), 'utf8').toString('hex');
-				asset.scriptId = scriptId;
+				res.json({success: true, transactionId: transaction.id});
 			});
-		}
-
-		var transaction = {
-			type: type,
-			amount: amount,
-			recipientId: recipientId,
-			senderPublicKey: account.publicKey,
-			timestamp: slots.getTime(),
-			asset: asset
-		};
-
-		self.sign(secret, transaction);
-
-		if (account.secondSignature) {
-			if (!secondSecret) {
-				return res.json({success: false, error: "Provide second secret key"});
-			}
-
-			self.secondSign(secondSecret, transaction);
-		}
-
-		self.processUnconfirmedTransaction(transaction, true, function (err) {
-			if (err) {
-				return res.json({success: false, error: err});
-			}
-
-			res.json({success: true, transactionId: transaction.id});
 		});
 	});
 

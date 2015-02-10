@@ -2,7 +2,7 @@ var async = require('async'),
 	util = require('util'),
 	ip = require('ip'),
 	Router = require('../helpers/router.js'),
-	params = require('../helpers/params.js'),
+	RequestSanitizer = require('../helpers/request-sanitizer'),
 	arrayHelper = require('../helpers/array.js'),
 	normalize = require('../helpers/normalize.js'),
 	extend = require('extend');
@@ -29,57 +29,71 @@ function attachApi() {
 		res.status(500).send({success: false, error: 'loading'});
 	});
 
-	router.get('/', function (req, res) {
-		var state = params.int(req.query.state),
-			os = params.string(req.query.os, true),
-			version = params.string(req.query.version, true),
-			limit = params.int(req.query.limit),
-			shared = params.bool(req.query.shared),
-			orderBy = params.string(req.query.orderBy),
-			offset = params.int(req.query.offset);
+	router.get('/', function (req, res, next) {
+		req.sanitize("query", {
+			state : "int",
+			os : "string?",
+			version : "string?",
+			limit : "int",
+			shared : "boolean",
+			orderBy : "string",
+			offset : "int"
+		}, function(err, report, query){
+			if (err) return next(err);
+			if (! report.isValid) return res.json({success:false, error:report.issues});
 
-		if (limit < 0 || limit > 100) {
-			return res.json({success: false, error: "Max limit is 100"});
-		}
+			var state = query.state,
+				os = query.os,
+				version = query.version,
+				limit = query.limit,
+				shared = query.shared,
+				orderBy = query.orderBy,
+				offset = query.offset;
 
-		getByFilter({
-			state: state,
-			os: os,
-			version: version,
-			limit: limit,
-			shared: shared,
-			orderBy: orderBy,
-			offset: offset
-		}, function (err, peers) {
-			if (err) {
-				return res.json({success: false, error: "Peers not found"});
+
+			if (limit < 0 || limit > 100) {
+				return res.json({success: false, error: "Max limit is 100"});
 			}
-			res.json({success: true, peers: peers});
+
+			getByFilter({
+				state: state,
+				os: os,
+				version: version,
+				limit: limit,
+				shared: shared,
+				orderBy: orderBy,
+				offset: offset
+			}, function (err, peers) {
+				if (err) {
+					return res.json({success: false, error: "Peers not found"});
+				}
+				res.json({success: true, peers: peers});
+			});
 		});
 	});
 
 	router.get('/get', function (req, res) {
-		var ip = params.string(req.query.ip);
-		var port = params.int(req.query.port);
+		req.sanitize("query", {
+			ip : "string",
+			port : "int"
+		}, function(err, report, query) {
+			if (err) return next(err);
+			if (!report.isValid) return res.json({success: false, error: report.issues});
 
-		if (!ip) {
-			return res.json({success: false, error: "Provide ip in url"});
-		}
+			var ip = query.ip;
+			var port = query.port;
 
-		if (!port) {
-			return res.json({success: false, error: "Provide port in url"});
-		}
-
-		getByFilter({
-			ip: ip,
-			port: port
-		}, function (err, peers) {
-			if (err) {
-				return res.json({success: false, error: "Peers not found"});
-			}
-			res.json({success: true, peer: peers.length ? peers[0] : {}});
+			getByFilter({
+				ip: ip,
+				port: port
+			}, function (err, peers) {
+				if (err) {
+					return res.json({success: false, error: "Peers not found"});
+				}
+				res.json({success: true, peer: peers.length ? peers[0] : {}});
+			});
 		});
-	})
+	});
 
 	router.use(function (req, res, next) {
 		res.status(500).send({success: false, error: 'api not found'});
@@ -99,7 +113,7 @@ function updatePeerList(cb) {
 			return cb();
 		}
 
-		var peers = params.array(data.body.peers);
+		var peers = RequestSanitizer.array(data.body.peers);
 		async.eachLimit(peers, 2, function (peer, cb) {
 			peer = normalize.peer(peer);
 
