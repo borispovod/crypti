@@ -17,7 +17,13 @@ RequestSanitizer.options = extend({
     reporter : SanitizeReporter
 }, Validator.options);
 
-RequestSanitizer.addRule("empty", {});
+RequestSanitizer.addRule("empty", {
+    validate : function(accept, value, field) {
+        if (accept !== false) return;
+
+        return !field.isEmpty();
+    }
+});
 
 RequestSanitizer.addRule("string", {
     filter : function(accept, value, field){
@@ -140,6 +146,57 @@ RequestSanitizer.addRule("properties", {
     }
 });
 
+RequestSanitizer.addRule("minLength", {
+    message : "minimum length is ${accept}.",
+    validate : function(accept, value) {
+        return value.length >= accept;
+    }
+});
+
+RequestSanitizer.addRule("maxLength", {
+    message : "maximum length is ${accept}.",
+    validate : function(accept, value) {
+        return value.length <= accept;
+    }
+});
+
+RequestSanitizer.addRule("maxByteLength", {
+    message : "maximum size is ${accept.length} bytes",
+    accept : function(accept){
+        if (typeof accept !== "object") {
+            accept = {
+                encoding : 'utf8',
+                length : accept
+            };
+        }
+        return accept;
+    },
+    validate : function(accept, value, field) {
+        if (field.isEmpty() && field.rules.empty) return null;
+
+        return Buffer.byteLength(value, 'utf-8') <= accept.length;
+    }
+});
+
+RequestSanitizer.addRule("minByteLength", {
+    message : "minimum size is ${accept.length} bytes",
+    accept : function(accept){
+        if (typeof accept !== "object") {
+            accept = {
+                encoding : 'utf8',
+                length : accept
+            };
+        }
+
+        return accept;
+    },
+    validate : function(accept, value, field) {
+        if (field.isEmpty() && field.rules.empty) return null;
+
+        return Buffer.byteLength(value, 'utf-8') >= accept.length;
+    }
+});
+
 /**
  * Express middleware factory
  * @param {Object} options Validator constructor options
@@ -202,11 +259,11 @@ var rules = RequestSanitizer.prototype.rules;
     if (typeof rule.filter !== 'function') return;
     if (name in RequestSanitizer) return;
 
-    RequestSanitizer[name] = function(value, extra) {
+    RequestSanitizer[name] = function filter(value, extra) {
         var rules = {};
         if (typeof extra === "object") {
             extend(rules, extra);
-        } else {
+        } else if (typeof extra !== 'undefined') {
             rules.empty = extra;
         }
 
@@ -231,12 +288,8 @@ function SanitizeReporter(validator) {
 }
 
 SanitizeReporter.prototype.format = function(message, values) {
-    return String(message).replace(/\{([^}]+)}/g, function(match, id) {
-        if (id in values) {
-            return values[id];
-        } else {
-            return '';
-        }
+    return String(message).replace(/\$\{([^}]+)}/g, function(match, id) {
+        return getByPath(values, id.split('.')) || '';
     });
 };
 
@@ -272,3 +325,20 @@ SanitizeReporter.prototype.convert = function(issues) {
 
     return result;
 };
+
+function getByPath(target, path) {
+    var segment;
+    path = path.slice();
+    var i = -1;
+    var l = path.length - 1;
+    while (++i < l) {
+        segment = path[i];
+        if (typeof target[segment] !== 'object') {
+            return null;
+        }
+
+        target = target[segment];
+    }
+
+    return target[path[l]];
+}
