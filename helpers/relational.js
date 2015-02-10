@@ -9,7 +9,7 @@ function relational2object(rows) {
 	var blocks = {};
 	var order = [];
 	for (var i = 0, length = rows.length; i < length; i++) {
-		var __block = getBlock(rows[i], true);
+		var __block = getBlock(rows[i]);
 		if (__block) {
 			if (!blocks[__block.id]) {
 				if (__block.id == genesisblock.blockId) {
@@ -20,19 +20,19 @@ function relational2object(rows) {
 				blocks[__block.id] = __block;
 			}
 
-			var __transaction = getTransaction(rows[i], true);
+			var __transaction = getTransaction(rows[i]);
 			blocks[__block.id].transactions = blocks[__block.id].transactions || {};
 			if (__transaction) {
 				__transaction.asset = __transaction.asset || {};
 				if (!blocks[__block.id].transactions[__transaction.id]) {
-					var __signature = getSignature(rows[i], true);
+					var __signature = getSignature(rows[i]);
 					if (__signature) {
 						if (!__transaction.asset.signature) {
 							__transaction.asset.signature = __signature;
 						}
 					}
 
-					var __delegate = getDelegate(rows[i], true, true);
+					var __delegate = getDelegate(rows[i]);
 					if (__delegate) {
 						if (!__transaction.asset.delegate) {
 							__transaction.asset.delegate = __delegate;

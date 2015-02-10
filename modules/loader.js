@@ -52,20 +52,20 @@ function attachApi() {
 	library.app.use(function (err, req, res, next) {
 		if (!err) return next();
 		library.logger.error('/api/loader', err)
-		res.status(500).send({success: false, error: err});
+		res.status(500).send({success: false, error: err.toString()});
 	});
 }
 
 function loadBlocks(lastBlock, cb) {
 	modules.transport.getFromRandomPeer('/height', function (err, data) {
-		if (err) {
+		if (err || !data.body) {
 			return cb();
 		}
 
 		var peerStr = data.peer ? ip.fromLong(data.peer.ip) + ":" + data.peer.port : 'unknown';
 		library.logger.debug("Load blocks from " + peerStr);
 
-		if (bignum(modules.blocks.getLastBlock().height).lt(params.string(data.body.height))) { //diff in chainbases
+		if (bignum(modules.blocks.getLastBlock().height).lt(params.string(data.body.height || 0))) { //diff in chainbases
 			sync = true;
 			blocksToSync = params.int(data.body.height);
 
