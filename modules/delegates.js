@@ -1,7 +1,6 @@
 var crypto = require('crypto'),
 	bignum = require('bignum'),
 	ed = require('ed25519'),
-	params = require('../helpers/params.js'),
 	shuffle = require('knuth-shuffle').knuthShuffle,
 	Router = require('../helpers/router.js'),
 	arrayHelper = require('../helpers/array.js'),
@@ -42,60 +41,73 @@ function attachApi() {
 	});
 
 	router.put('/', function (req, res) {
-		var secret = params.string(req.body.secret),
-			publicKey = params.hex(req.body.publicKey, true),
-			secondSecret = params.string(req.body.secondSecret, true),
-			username = params.string(req.body.username);
+		req.sanitize("body", {
+			secret : "string",
+			publicKey : "string?",
+			secondSecret : "string?",
+			username : "string"
+		}, function(err, report, body) {
+			if (err) return next(err);
+			if (!report.isValid) return res.json({success: false, error: report.issues});
 
-		var hash = crypto.createHash('sha256').update(secret, 'utf8').digest();
-		var keypair = ed.MakeKeypair(hash);
 
-		if (publicKey) {
-			if (keypair.publicKey.toString('hex') != publicKey) {
-				return res.json({success: false, error: "Please, provide valid secret key of your account"});
-			}
-		}
+			var secret = body.secret,
+				publicKey = body.publicKey,
+				secondSecret = body.secondSecret,
+				username = req.body.username;
 
-		var account = modules.accounts.getAccountByPublicKey(keypair.publicKey.toString('hex'));
+			var hash = crypto.createHash('sha256').update(secret, 'utf8').digest();
+			var keypair = ed.MakeKeypair(hash);
 
-		if (!account) {
-			return res.json({success: false, error: "Account doesn't has balance"});
-		}
-
-		if (!account.publicKey) {
-			return res.json({success: false, error: "Open account to make transaction"});
-		}
-
-		var transaction = {
-			type: 2,
-			amount: 0,
-			recipientId: null,
-			senderPublicKey: account.publicKey,
-			timestamp: slots.getTime(),
-			asset: {
-				delegate: {
-					username: username
+			if (publicKey) {
+				if (keypair.publicKey.toString('hex') != publicKey) {
+					return res.json({success: false, error: "Please, provide valid secret key of your account"});
 				}
 			}
-		};
 
-		modules.transactions.sign(secret, transaction);
+			var account = modules.accounts.getAccountByPublicKey(keypair.publicKey.toString('hex'));
 
-		if (account.secondSignature) {
-			if (!secondSecret || secondSecret.length == 0) {
-				return res.json({success: false, error: "Provide second secret key"});
+			if (!account) {
+				return res.json({success: false, error: "Account doesn't has balance"});
 			}
 
-			modules.transactions.secondSign(secondSecret, transaction);
-		}
-
-		modules.transactions.processUnconfirmedTransaction(transaction, true, function (err) {
-			if (err) {
-				return res.json({success: false, error: err});
+			if (!account.publicKey) {
+				return res.json({success: false, error: "Open account to make transaction"});
 			}
 
-			res.json({success: true, transaction: transaction});
+			var transaction = {
+				type: 2,
+				amount: 0,
+				recipientId: null,
+				senderPublicKey: account.publicKey,
+				timestamp: slots.getTime(),
+				asset: {
+					delegate: {
+						username: username
+					}
+				}
+			};
+
+			modules.transactions.sign(secret, transaction);
+
+			if (account.secondSignature) {
+				if (!secondSecret || secondSecret.length == 0) {
+					return res.json({success: false, error: "Provide second secret key"});
+				}
+
+				modules.transactions.secondSign(secondSecret, transaction);
+			}
+
+			modules.transactions.processUnconfirmedTransaction(transaction, true, function (err) {
+				if (err) {
+					return res.json({success: false, error: err});
+				}
+
+				res.json({success: true, transaction: transaction});
+			});
 		});
+
+
 	});
 
 	library.app.use('/api/delegates', router);

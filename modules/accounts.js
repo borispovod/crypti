@@ -62,167 +62,188 @@ function attachApi() {
 		res.status(500).send({success: false, error: 'loading'});
 	});
 
-	router.post('/open', function (req, res) {
-		var secret = params.string(req.body.secret);
+	router.post('/open', function (req, res, next) {
+		req.sanitize(req.body, {
+			secret : "string"
+		}, function(err, report, body){
+			if (err) return next(err);
+			if (! report.isValid) return res.json({success: false, error: report.issues});
 
-		if (!secret) {
-			return res.json({success: false, error: "Provide secret key of account"});
-		}
+			var account = openAccount(body.secret);
 
-		var account = openAccount(secret);
-
-		return res.json({
-			success: true,
-			account: {
-				address: account.address,
-				unconfirmedBalance: account.unconfirmedBalance,
-				balance: account.balance,
-				publicKey: account.publicKey,
-				unconfirmedSignature: account.unconfirmedSignature,
-				secondSignature: account.secondSignature,
-				secondPublicKey: account.secondPublicKey
-			}
+			res.json({
+				success: true,
+				account: {
+					address: account.address,
+					unconfirmedBalance: account.unconfirmedBalance,
+					balance: account.balance,
+					publicKey: account.publicKey,
+					unconfirmedSignature: account.unconfirmedSignature,
+					secondSignature: account.secondSignature,
+					secondPublicKey: account.secondPublicKey
+				}
+			});
 		});
 	});
 
 	router.get('/getBalance', function (req, res) {
-		var address = params.string(req.query.address);
+		req.sanitize("query", {
+			address : "string!"
+		}, function(err, report, query){
+			if (err) return next(err);
+			if (! report.isValid) return res.json({success: false, error: report.issues});
 
-		if (!address) {
-			return res.json({success: false, error: "Provide address in url"});
-		}
 
-		var account = self.getAccount(address);
-		var balance = account ? account.balance : 0;
-		var unconfirmedBalance = account ? account.unconfirmedBalance : 0;
 
-		return res.json({success: true, balance: balance, unconfirmedBalance: unconfirmedBalance});
+			var account = self.getAccount(query.address);
+			var balance = account ? account.balance : 0;
+			var unconfirmedBalance = account ? account.unconfirmedBalance : 0;
+
+			return res.json({success: true, balance: balance, unconfirmedBalance: unconfirmedBalance});
+		});
 	});
 
 	router.get('/getPublicKey', function (req, res) {
-		var address = params.string(req.query.address);
+		req.sanitize("query", {
+			address : "string!"
+		}, function(err, report, query) {
+			if (err) return next(err);
+			if (! report.isValid) return res.json({success: false, error: report.issues});
 
-		if (!address) {
-			return res.json({success: false, error: "Provide address in url"});
-		}
+			var account = self.getAccount(query.address);
 
-		var account = self.getAccount(address);
-
-		if (!account || !account.publicKey) {
-			return res.json({success: false, error: "Account public key can't be found "});
-		}
-
-		return res.json({success: true, publicKey: account.publicKey});
-	});
-
-	router.post("/generatePublicKey", function (req, res) {
-		var secret = params.string(req.body.secret);
-
-		if (!secret) {
-			return res.json({success: false, error: "Provide secret key to generate public key"});
-		}
-
-		var account = openAccount(secret);
-		return res.json({success: true, publicKey: account.publicKey});
-	});
-
-	router.get("/delegates", function (req, res) {
-		var address = params.string(req.query.address);
-
-		if (!address) {
-			return res.json({success: false, error: "Provide address in url"});
-		}
-
-		var account = self.getAccount(address);
-
-		return res.json({success: true, delegates: account.delegates});
-	});
-
-	router.put("/delegates", function (req, res) {
-		var secret = params.string(req.body.secret),
-			publicKey = params.hex(req.body.publicKey, true),
-			secondSecret = params.string(req.body.secondSecret, true),
-			delegates = params.array(req.body.delegates, true);
-
-		var hash = crypto.createHash('sha256').update(secret, 'utf8').digest();
-		var keypair = ed.MakeKeypair(hash);
-
-		if (publicKey) {
-			if (keypair.publicKey.toString('hex') != publicKey) {
-				return res.json({success: false, error: "Please, provide valid secret key of your account"});
-			}
-		}
-
-		if (delegates && delegates.length > 33){
-			return res.json({success: false, error: "Please, provide less 33 delegates"});
-		}
-
-		var account = self.getAccountByPublicKey(keypair.publicKey.toString('hex'));
-
-		if (!account) {
-			return res.json({success: false, error: "Account doesn't has balance"});
-		}
-
-		if (!account.publicKey) {
-			return res.json({success: false, error: "Open account to make transaction"});
-		}
-
-		var transaction = {
-			type: 3,
-			amount: 0,
-			recipientId: account.address,
-			senderPublicKey: account.publicKey,
-			timestamp: slots.getTime(),
-			asset: {
-				votes: delegates
-			}
-		};
-
-		modules.transactions.sign(secret, transaction);
-
-		if (account.secondSignature) {
-			if (!secondSecret || secondSecret.length == 0) {
-				return res.json({success: false, error: "Provide second secret key"});
+			if (!account || !account.publicKey) {
+				return res.json({success: false, error: "Account public key can't be found "});
 			}
 
-			modules.transactions.secondSign(secondSecret, transaction);
-		}
-
-		modules.transactions.processUnconfirmedTransaction(transaction, true, function (err) {
-			if (err) {
-				return res.json({success: false, error: err});
-			}
-
-			res.json({success: true, transaction: transaction});
+			return res.json({success: true, publicKey: account.publicKey});
 		});
 	});
 
-	router.get("/", function (req, res) {
-		var address = params.string(req.query.address);
+	router.post("/generatePublicKey", function (req, res, next) {
+		req.sanitize("query", {
+			secret : "string!"
+		}, function(err, report, query) {
+			if (err) return next(err);
+			if (! report.isValid) return res.json({success: false, error: report.issues});
 
-		if (!address) {
-			return res.json({success: false, error: "Provide address in url"});
-		}
-
-		var account = self.getAccount(address);
-
-		if (!account) {
-			return res.json({success: false, error: "Account not found"});
-		}
-
-		return res.json({
-			success: true,
-			account: {
-				address: account.address,
-				unconfirmedBalance: account.unconfirmedBalance,
-				balance: account.balance,
-				publicKey: account.publicKey,
-				unconfirmedSignature: account.unconfirmedSignature,
-				secondSignature: account.secondSignature,
-				secondPublicKey: account.secondPublicKey
-			}
+			var account = openAccount(query.secret);
+			return res.json({success: true, publicKey: account.publicKey});
 		});
-	})
+
+	});
+
+	router.get("/delegates", function (req, res, next) {
+		req.sanitize("query", {
+			address : "string!"
+		}, function(err, report, query) {
+			if (err) return next(err);
+			if (! report.isValid) return res.json({success: false, error: report.issues});
+
+
+			var account = self.getAccount(query.address);
+
+			return res.json({success: true, delegates: account.delegates});
+		});
+	});
+
+	router.put("/delegates", function (req, res, next) {
+		req.sanitize("body", {
+			secret : "string!",
+			publicKey : "hex?",
+			secondSecret : "string?",
+			delegates : "array?"
+		}, function(err, report, body) {
+			if (err) return next(err);
+			if (! report.isValid) return res.json({success: false, error: report.issues});
+
+			var secret = body.secret,
+				publicKey = body.publicKey,
+				secondSecret = body.secondSecret,
+				delegates = body.delegates;
+
+			var hash = crypto.createHash('sha256').update(secret, 'utf8').digest();
+			var keypair = ed.MakeKeypair(hash);
+
+			if (publicKey) {
+				if (keypair.publicKey.toString('hex') != publicKey) {
+					return res.json({success: false, error: "Please, provide valid secret key of your account"});
+				}
+			}
+
+			if (delegates && delegates.length > 33){
+				return res.json({success: false, error: "Please, provide less 33 delegates"});
+			}
+
+			var account = self.getAccountByPublicKey(keypair.publicKey.toString('hex'));
+
+			if (!account) {
+				return res.json({success: false, error: "Account doesn't has balance"});
+			}
+
+			if (!account.publicKey) {
+				return res.json({success: false, error: "Open account to make transaction"});
+			}
+
+			var transaction = {
+				type: 3,
+				amount: 0,
+				recipientId: account.address,
+				senderPublicKey: account.publicKey,
+				timestamp: slots.getTime(),
+				asset: {
+					votes: delegates
+				}
+			};
+
+			modules.transactions.sign(secret, transaction);
+
+			if (account.secondSignature) {
+				if (!secondSecret || secondSecret.length == 0) {
+					return res.json({success: false, error: "Provide second secret key"});
+				}
+
+				modules.transactions.secondSign(secondSecret, transaction);
+			}
+
+			modules.transactions.processUnconfirmedTransaction(transaction, true, function (err) {
+				if (err) {
+					return res.json({success: false, error: err});
+				}
+
+				res.json({success: true, transaction: transaction});
+			});
+		});
+	});
+
+	router.get("/", function (req, res, next) {
+		req.sanitize("query", {
+			address : "address!"
+		}, function(err, report, query) {
+			if (err) return next(err);
+			if (! report.isValid) return res.json({success: false, error: report.issues});
+
+
+			var account = self.getAccount(query.address);
+
+			if (!account) {
+				return res.json({success: false, error: "Account not found"});
+			}
+
+			return res.json({
+				success: true,
+				account: {
+					address: account.address,
+					unconfirmedBalance: account.unconfirmedBalance,
+					balance: account.balance,
+					publicKey: account.publicKey,
+					unconfirmedSignature: account.unconfirmedSignature,
+					secondSignature: account.secondSignature,
+					secondPublicKey: account.secondPublicKey
+				}
+			});
+		});
+	});
 
 	router.use(function (req, res, next) {
 		res.status(500).send({success: false, error: 'api not found'});
