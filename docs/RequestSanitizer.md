@@ -3,7 +3,7 @@
 Request sanitizer is data filtration tool based on Validator. But it's goal is to provide clear API for data sanitizing,
 safe type converting and error notifying.
 
-## Usage
+## Express middleware
 
 Request sanitizer has express middleware to use it with request object:
 
@@ -68,8 +68,8 @@ attempt to call async rule will throw an Error.
 
 ## Sanitizer rules
 
-| Rule       | Accept  | Description |
-|:-----------|:--------|:------------------------|
+| Rule         | Accept  | Description |
+|:-------------|:--------|:------------------------|
 | `required`   | boolean | Check whether value is exists.   |
 | `empty`      | boolean | Indicate that value could null or undefined.    |
 | `default`    | *       | Set default value if it not defined.    |
@@ -83,5 +83,24 @@ attempt to call async rule will throw an Error.
 | `hex`        | *       | Check if value is a valid hex.    |
 | `buffer`     | boolean, string | Convert value to buffer. If accept is string than use it as buffer encoding.     |
 | `properties` | object | Check value as object and validate all it's properties. Accept should be object with rules   |
+
+## Direct call
+
+RequestSanitizer filters could be used directly. It allow to filter single value. Each filter call has two arguments:
+`value` and `extra` properties. If extra properties set to true than filtered value could be undefined, null or ''. If
+ extra properties is an object than it uses as a validator rules. Example:
+
+```javascript
+// Normal call
+RequestSanitizer.array([1, 2]); // -> [1, 2]
+// Convert null-like value to Array
+RequestSanitizer.array(); // -> []
+// Convert null-like value to Array
+RequestSanitizer.array('', true); // -> []
+// Allow empty value. Returns null
+RequestSanitizer.array(undefined, true); // -> null
+// Replace null-like object. Returns null
+RequestSanitizer.array(null, {default:[1,2,3]}); // -> [1,2,3]
+```
 
 

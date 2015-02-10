@@ -65,9 +65,7 @@ RequestSanitizer.addRule("object", {
     filter : function(accept, value , field) {
         if (field.isEmpty() && field.rules.empty) return null;
 
-        value = parseInt(value);
-
-        return isNaN(value) ? 0 : value;
+       return Object.prototype.toString.call(value) == "[object Object]" ? value : {};
     }
 });
 
@@ -75,7 +73,7 @@ RequestSanitizer.addRule("array", {
     filter : function(accept, value, field) {
         if (field.isEmpty() && field.rules.empty) return null;
 
-        return util.isArray(value) ? value : [];
+        return Array.isArray(value) ? value : [];
     }
 });
 
@@ -186,6 +184,45 @@ RequestSanitizer.express = function(options) {
         next();
     };
 };
+
+// Define filter rules as standalone methods
+var rules = RequestSanitizer.prototype.rules;
+[
+    'string',
+    'boolean',
+    'int',
+    'float',
+    'variant',
+    'array',
+    'object',
+    'hex',
+    'buffer'
+].forEach(function(name){
+    var rule = rules[name];
+    if (typeof rule.filter !== 'function') return;
+    if (name in RequestSanitizer) return;
+
+    RequestSanitizer[name] = function(value, extra) {
+        var rules = {};
+        if (typeof extra === "object") {
+            extend(rules, extra);
+        } else {
+            rules.empty = extra;
+        }
+
+        rules[name] = true;
+
+        var report = (new RequestSanitizer(RequestSanitizer.options)).validate(value, rules);
+        if (! report.isValid) {
+            var error = new Error(report.issues);
+            error.name = 'ValidationError';
+            error.report = report; // TODO (rumkin) Decide to leave or to remove.
+            throw error;
+        }
+
+        return report.value;
+    };
+});
 
 RequestSanitizer.options.reporter = SanitizeReporter;
 

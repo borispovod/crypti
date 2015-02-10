@@ -103,7 +103,7 @@ Validator.prototype.validate = function(value, rules, callback) {
         report.isAsync = async;
         report.issues = issues;
         report.rules = rules;
-        report.value = value;
+        report.value = output;
 
 
         if (! callback) {
