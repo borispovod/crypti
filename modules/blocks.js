@@ -44,35 +44,50 @@ function attachApi() {
 		res.status(500).send({success: false, error: 'loading'});
 	});
 
-	router.get('/get', function (req, res) {
-		var id = params.string(req.query.id);
-		if (!id) {
-			return res.json({success: false, error: "Provide id in url"});
-		}
-		getById(id, function (err, block) {
-			if (!block || err) {
-				return res.json({success: false, error: "Block not found"});
-			}
-			res.json({success: true, block: block});
+	router.get('/get', function (req, res, next) {
+		req.sanitize("query", {id:"string!"}, function(err, report, query){
+			if (err) return next(err);
+			if (! report.isValid) return res.json({success: false, error: report.issues});
+
+
+
+			getById(query.id, function (err, block) {
+				if (!block || err) {
+					return res.json({success: false, error: "Block not found"});
+				}
+				res.json({success: true, block: block});
+			});
 		});
 	});
 
-	router.get('/', function (req, res) {
-		var limit = params.int(req.query.limit);
-		var orderBy = params.string(req.query.orderBy);
-		var offset = params.int(req.query.offset);
-		var generatorPublicKey = params.hex(req.query.generatorPublicKey, true);
-		list({
-			generatorPublicKey: generatorPublicKey,
-			limit: limit || 20,
-			offset: offset,
-			orderBy: orderBy
-		}, function (err, blocks) {
-			if (err) {
-				return res.json({success: false, error: "Blocks not found"});
-			}
+	router.get('/', function (req, res, next) {
+		req.sanitize("query", {
+			limit:"int",
+			orderBy:"string",
+			offset:"int",
+			generatorPublicKey:"string?"
+		}, function(err, report, query) {
+			if (err) return next(err);
+			if (!report.isValid) return res.json({success: false, error: report.issues});
 
-			res.json({success: true, blocks: blocks});
+			var limit = query.limit;
+			var orderBy = query.orderBy;
+			var offset = query.offset;
+			var generatorPublicKey = query.generatorPublicKey;
+
+
+			list({
+				generatorPublicKey: generatorPublicKey,
+				limit: limit || 20,
+				offset: offset,
+				orderBy: orderBy
+			}, function (err, blocks) {
+				if (err) {
+					return res.json({success: false, error: "Blocks not found"});
+				}
+
+				res.json({success: true, blocks: blocks});
+			});
 		});
 	});
 
@@ -80,18 +95,19 @@ function attachApi() {
 		res.json({success: true, fee: fee});
 	});
 
-	router.get('/getForgedByAccount', function (req, res) {
-		var generatorPublicKey = params.hex(req.query.generatorPublicKey);
+	router.get('/getForgedByAccount', function (req, res, next) {
+		req.sanitize("query", {
+			generatorPublicKey:"string"
+		}, function(err, report, query) {
+			if (err) return next(err);
+			if (!report.isValid) return res.json({success: false, error: report.issues});
 
-		if (!generatorPublicKey) {
-			return res.json({success: false, error: "Provide generatorPublicKey in url"});
-		}
-
-		getForgedByAccount(generatorPublicKey, function (err, sum) {
-			if (err) {
-				return res.json({success: false, error: "Account not found"});
-			}
-			res.json({success: true, sum: sum});
+			getForgedByAccount(query.generatorPublicKey, function (err, sum) {
+				if (err) {
+					return res.json({success: false, error: "Account not found"});
+				}
+				res.json({success: true, sum: sum});
+			});
 		});
 	});
 
