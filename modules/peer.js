@@ -52,6 +52,11 @@ function attachApi() {
 			if (err) {
 				return res.json({success: false, error: "Peers not found"});
 			}
+
+			for (var i = 0; i < peers.length; i++) {
+				peers[i].ip = ip.fromLong(peers[i].ip);
+			}
+
 			res.json({success: true, peers: peers});
 		});
 	});
@@ -75,7 +80,14 @@ function attachApi() {
 			if (err) {
 				return res.json({success: false, error: "Peers not found"});
 			}
-			res.json({success: true, peer: peers.length ? peers[0] : {}});
+
+			var peer = peers.length ? peers[0] : null;
+
+			if (peer) {
+				peer.ip = ip.fromLong(peer.ip);
+			}
+
+			res.json({success: true, peer: peer || {}});
 		});
 	})
 

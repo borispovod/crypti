@@ -28,10 +28,13 @@ var publicKeyIndex = {};
 var transactionIdIndex = {};
 var delegates = [];
 
+//var keypairs;
+
 //constructor
 function Delegates(cb, scope) {
 	library = scope;
 	self = this;
+	//keypairs = [];
 
 	attachApi();
 
@@ -132,6 +135,66 @@ function attachApi() {
 			res.json({success: false});
 		}
 	});
+
+	/*router.get('/forging/status', function (req, res) {
+		var publicKey = req.query.publicKey;
+
+		if (!publicKey) {
+			return res.json({success: false, error: "Provide public key of account"});
+		}
+
+		var enabled = false;
+		for (var i = 0; i < keypairs.length; i++) {
+			if (keypairs[i].publicKey.toString('hex') == req.query.publicKey) {
+				enabled = true;
+				break;
+			}
+		}
+
+		return res.json({success: true, enabled: enabled});
+	});
+
+	router.post('/forging/enable', function (req, res) {
+		var secret = req.query.secret;
+
+		if (!secret) {
+			return res.json({success: false, error: "Provide secret key of account"});
+		}
+
+		var hash = crypto.createHash('sha256').update(secret, 'utf8').digest();
+		var keypair = ed.MakeKeypair(hash);
+		var publicKey = keypair.publicKey.toString('hex')
+
+		for (var i = 0; i < keypairs.length; i++) {
+			if (keypairs[i].publicKey.toString('hex') == publicKey) {
+				return res.json({success: false, error: "Forging on this account already enabled"});
+			}
+		}
+
+		keypairs.push(keypair);
+		return res.json({success: true});
+	});
+
+	router.get('/forging/disable', function (req, res) {
+		var secret = req.queyr.secret;
+
+		if (!secret) {
+			return res.json({success: false, error: "Provide secret key of account"});
+		}
+
+		var hash = crypto.createHash('sha256').update(secret, 'utf8').digest();
+		var keypair = ed.MakeKeypair(hash);
+		var publicKey = keypair.publicKey.toString('hex')
+
+		for (var i = 0; i < keypairs.length; i++) {
+			if (keypairs[i].publicKey.toString('hex') == publicKey) {
+				keypairs.splice(i, 1);
+				return res.json({success: true});
+			}
+		}
+
+		return res.json({success: false, error: "Forger with this public key not found"});
+	});*/
 
 	router.put('/', function (req, res) {
 		var secret = params.string(req.body.secret),
@@ -252,6 +315,7 @@ function loop(cb) {
 	}
 
 	library.sequence.add(function (cb) {
+		// how to detect keypair
 		if (slots.getSlotNumber(currentBlockTime) == slots.getSlotNumber()) {
 			modules.blocks.generateBlock(keypair, currentBlockTime, function (err) {
 				library.logger.log('round: ' + modules.round.calc(modules.blocks.getLastBlock().height) + ' new block id: ' + modules.blocks.getLastBlock().id + ' height:' + modules.blocks.getLastBlock().height + ' slot:' + slots.getSlotNumber(currentBlockTime))
