@@ -83,6 +83,27 @@ attempt to call async rule will throw an Error.
 | `hex`        | *       | Check if value is a valid hex.    |
 | `buffer`     | boolean, string | Convert value to buffer. If accept is string than use it as buffer encoding.     |
 | `properties` | object | Check value as object and validate all it's properties. Accept should be object with rules   |
+| `minLength`  | number | Check minimum string or array length.   |
+| `maxLength`  | number | Check maximum string or array length.   |
+| `minByteLength` | number, object | Check minimum string length in bytes.   |
+| `maxByteLength` | number, object | Check maximum string length in bytes.   |
+
+### minByteLength, maxByteLength
+
+This validation is dependant on string encoding. By default strings are utf8 encoded. If you need to change it than
+specify encoding passing object as accepted value. Example:
+```javascript
+{
+    file : {
+        hex : true,
+        buffer : true,
+        minByteLength : {
+            encoding : 'hex',
+            length : 4 * 1024 // 4 Kb
+        }
+    }
+}
+```
 
 ## Direct call
 

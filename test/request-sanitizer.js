@@ -25,6 +25,7 @@ function request(url, callback) {
         });
     }).on('error', callback);
 }
+
 describe("Sanitizer.", function(){
     describe("Single methods.", function(){
         // String
@@ -95,6 +96,149 @@ describe("Sanitizer.", function(){
             var value = validation.object();
 
             should(value).be.an.Object.eql({});
+        });
+
+        // Buffer
+        it("Should return a buffer with empty value", function(){
+            var value = validation.buffer();
+
+            should(value).be.instanceOf(Buffer).length(0);
+        });
+
+        // Hex
+        it("Should return a hex", function(){
+            var value = validation.hex("4869");
+
+            should(value).be.a.String.and.have.length(4);
+            should(Buffer(value, 'hex').toString('utf8')).be.a.String.and.equal('Hi');
+            should(Buffer.byteLength(value, 'hex')).be.equal(2);
+        });
+    });
+
+    describe("Special rules:", function(){
+        describe("Empty.", function(){
+            it("should return not valid report on empty value", function(done){
+                var report = validation.validate("", {
+                    empty : false
+                });
+
+                should(report).be.an.Object.and.hasOwnProperty("isValid").equal(false);
+                should(report.issues).be.an.String.and.have.match(/"empty"/);
+                done();
+            });
+
+            it("should return not valid report on null value", function(done){
+                var report = validation.validate(null, {
+                    empty : false
+                });
+
+                should(report).be.an.Object.and.hasOwnProperty("isValid").equal(false);
+                should(report.issues).be.an.String.and.have.match(/"empty"/);
+                done();
+            });
+
+            it("should return not valid report on undefined value", function(done){
+                var report = validation.validate(void(0), {
+                    empty : false
+                });
+
+                should(report).be.an.Object.and.hasOwnProperty("isValid").equal(false);
+                should(report.issues).be.an.String.and.have.match(/"empty"/);
+                done();
+            });
+
+            it("should return valid report on proper value", function(done){
+                var report = validation.validate("", {
+                    empty : true
+                });
+
+                should(report).be.an.Object.and.hasOwnProperty("isValid").equal(true);
+                done();
+            });
+        });
+
+        describe("minLength.", function(){
+            it("should return not valid report on short value", function(done){
+                var report = validation.validate("Hello", {
+                    minLength : 10
+                });
+
+                should(report).be.an.Object.and.hasOwnProperty("isValid").equal(false);
+                should(report.issues).be.an.String.and.have.match(/minimum length is \d+/);
+                done();
+            });
+
+            it("should return valid report on proper value", function(done){
+                var report = validation.validate("Hello", {
+                    minLength : 5
+                });
+
+                should(report).be.an.Object.and.hasOwnProperty("isValid").equal(true);
+                done();
+            });
+        });
+
+        describe("maxLength.", function(){
+            it("should return not valid report on short value", function(done){
+                var report = validation.validate("Hello", {
+                    maxLength : 2
+                });
+
+                should(report).be.an.Object.and.hasOwnProperty("isValid").equal(false);
+                should(report.issues).be.an.String.and.have.match(/maximum length is \d+/);
+                done();
+            });
+
+            it("should return valid report on proper value", function(done){
+                var report = validation.validate("Hello", {
+                    minLength : 5
+                });
+
+                should(report).be.an.Object.and.hasOwnProperty("isValid").equal(true);
+                done();
+            });
+        });
+
+        describe("minByteLength.", function(){
+            it("should return not valid report on short value", function(done){
+                var report = validation.validate("Hello", {
+                    minByteLength : 6
+                });
+
+                should(report).be.an.Object.and.hasOwnProperty("isValid").equal(false);
+                should(report.issues).be.an.String.and.have.match(/minimum size is \d+ bytes/);
+                done();
+            });
+
+            it("should return valid report on proper value", function(done){
+                var report = validation.validate("Hello", {
+                    minByteLength : 5
+                });
+
+                should(report).be.an.Object.and.hasOwnProperty("isValid").equal(true);
+                done();
+            });
+        });
+
+        describe("maxByteLength.", function(){
+            it("should return not valid report on short value", function(done){
+                var report = validation.validate("Hello", {
+                    maxByteLength : 2
+                });
+
+                should(report).be.an.Object.and.hasOwnProperty("isValid").equal(false);
+                should(report.issues).be.an.String.and.have.match(/maximum size is \d+ bytes/);
+                done();
+            });
+
+            it("should return valid report on proper value", function(done){
+                var report = validation.validate("Hello", {
+                    maxByteLength : 5
+                });
+
+                should(report).be.an.Object.and.hasOwnProperty("isValid").equal(true);
+                done();
+            });
         });
     });
 
