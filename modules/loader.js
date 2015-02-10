@@ -4,7 +4,7 @@ var async = require('async'),
 	genesisBlock = require("../helpers/genesisblock.js"),
 	ip = require("ip"),
 	bignum = require('bignum'),
-	params = require('../helpers/params.js'),
+	RequestSanitizer = require('../helpers/request-sanitizer'),
 	normalize = require('../helpers/normalize.js');
 
 //private fields
@@ -65,9 +65,9 @@ function loadBlocks(lastBlock, cb) {
 		var peerStr = data.peer ? ip.fromLong(data.peer.ip) + ":" + data.peer.port : 'unknown';
 		library.logger.debug("Load blocks from " + peerStr);
 
-		if (bignum(modules.blocks.getLastBlock().height).lt(params.string(data.body.height))) {
+		if (bignum(modules.blocks.getLastBlock().height).lt(RequestSanitizer.string(data.body.height))) {
 			sync = true;
-			blocksToSync = params.int(data.body.height);
+			blocksToSync = RequestSanitizer.int(data.body.height);
 
 			if (lastBlock.id != genesisBlock.blockId) { //have to found common block
 
@@ -148,7 +148,7 @@ function loadUnconfirmedTransactions(cb) {
 			return cb()
 		}
 
-		var transactions = params.array(data.body.transactions);
+		var transactions = RequestSanitizer.array(data.body.transactions);
 
 		for (var i = 0; i < transactions.length; i++) {
 			transactions[i] = normalize.transaction(transactions[i]);

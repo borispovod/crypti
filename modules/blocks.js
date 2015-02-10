@@ -6,7 +6,7 @@ var crypto = require('crypto'),
 	genesisblock = require("../helpers/genesisblock.js"),
 	transactionHelper = require("../helpers/transaction.js"),
 	constants = require('../helpers/constants.js'),
-	params = require('../helpers/params.js'),
+	RequestSanitizer = require('../helpers/request-sanitizer'),
 	arrayHelper = require('../helpers/array.js'),
 	normalize = require('../helpers/normalize.js'),
 	Router = require('../helpers/router.js'),
@@ -788,10 +788,10 @@ Blocks.prototype.getCommonBlock = function (peer, milestoneBlock, cb) {
 		function (next) {
 			modules.transport.getFromPeer(peer, "/blocks/ids?id=" + tempBlock, function (err, data) {
 				if (err || data.body.error) {
-					return next(err || params.string(data.body.error));
+					return next(err || RequestSanitizer.string(data.body.error));
 				}
 
-				data.body.ids = params.array(data.body.ids);
+				data.body.ids = RequestSanitizer.array(data.body.ids);
 
 				if (data.body.ids.length == 0) {
 					commonBlock = tempBlock;
@@ -852,10 +852,10 @@ Blocks.prototype.getMilestoneBlock = function (peer, cb) {
 
 			modules.transport.getFromPeer(peer, url, function (err, data) {
 				if (err || data.body.error) {
-					return next(err || params.string(data.body.error));
+					return next(err || RequestSanitizer.string(data.body.error));
 				}
 
-				data.body.milestoneBlockIds = params.array(data.body.milestoneBlockIds);
+				data.body.milestoneBlockIds = RequestSanitizer.array(data.body.milestoneBlockIds);
 
 				if (data.body.milestoneBlockIds.length == 0) {
 					milestoneBlock = genesisblock.blockId;
@@ -1171,11 +1171,11 @@ Blocks.prototype.loadBlocksFromPeer = function (peer, lastCommonBlockId, cb) {
 		function (next) {
 			modules.transport.getFromPeer(peer, '/blocks?lastBlockId=' + lastCommonBlockId, function (err, data) {
 				if (err || data.body.error) {
-					return next(err || params.string(data.body.error));
+					return next(err || RequestSanitizer.string(data.body.error));
 				}
 
 				// not working of data.body is empty....
-				data.body.blocks = params.array(data.body.blocks);
+				data.body.blocks = RequestSanitizer.array(data.body.blocks);
 
 				if (data.body.blocks.length == 0) {
 					loaded = true;
