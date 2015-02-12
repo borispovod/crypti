@@ -40,7 +40,7 @@ function Transactions(cb, scope) {
 		var senderId = req.query.senderId;
 
 		self.list({
-			senderId : senderId,
+			senderId: senderId,
 			blockId: blockId,
 			senderPublicKey: senderPublicKey,
 			recipientId: recipientId,
@@ -177,7 +177,9 @@ function Transactions(cb, scope) {
 			self.secondSign(secondSecret, transaction);
 		}
 
-		self.processUnconfirmedTransaction(transaction, true, function (err) {
+		library.sequence.add(function (cb) {
+			self.processUnconfirmedTransaction(transaction, true, cb);
+		}, function (err) {
 			if (err) {
 				return res.json({success: false, error: err});
 			}
@@ -254,19 +256,19 @@ Transactions.prototype.list = function (filter, cb) {
 	}
 
 	library.dbLite.query("select t.id t_id, t.blockId t_blockId, t.type t_type, t.subtype t_subtype, t.timestamp t_timestamp, hex(t.senderPublicKey) t_senderPublicKey,  t.senderId t_senderId, t.recipientId t_recipientId, t.amount t_amount, t.fee t_fee, hex(t.signature) t_signature, hex(t.signSignature) t_signSignature, (select max(height) + 1 from blocks) - b.height as confirmations " +
-		"from trs t " +
-		"inner join blocks b on t.blockId = b.id " +
-		(fields.length ? "where " + fields.join(' or ') : '') + " " +
-		(filter.orderBy ? 'order by ' + sortBy + ' ' + sortMethod : '') + " " +
-		(filter.limit ? 'limit $limit' : '') + " " +
-		(filter.offset ? 'offset $offset' : ''), parameters, ['t_id', 't_blockId', 't_type', 't_subtype', 't_timestamp', 't_senderPublicKey', 't_senderId', 't_recipientId', 't_amount', 't_fee', 't_signature', 't_signSignature', 'confirmations'], function (err, rows) {
-			if (err) {
-				return cb(err)
-			}
+	"from trs t " +
+	"inner join blocks b on t.blockId = b.id " +
+	(fields.length ? "where " + fields.join(' or ') : '') + " " +
+	(filter.orderBy ? 'order by ' + sortBy + ' ' + sortMethod : '') + " " +
+	(filter.limit ? 'limit $limit' : '') + " " +
+	(filter.offset ? 'offset $offset' : ''), parameters, ['t_id', 't_blockId', 't_type', 't_subtype', 't_timestamp', 't_senderPublicKey', 't_senderId', 't_recipientId', 't_amount', 't_fee', 't_signature', 't_signSignature', 'confirmations'], function (err, rows) {
+		if (err) {
+			return cb(err)
+		}
 
-			async.mapSeries(rows, function (row, cb) {
-				setImmediate(cb, null, blockHelper.getTransaction(row, true, filter.hex));
-			}, cb)
+		async.mapSeries(rows, function (row, cb) {
+			setImmediate(cb, null, blockHelper.getTransaction(row, true, filter.hex));
+		}, cb)
 	});
 }
 
@@ -319,7 +321,7 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 	var txId = transactionHelper.getId(transaction);
 
 	if (transaction.id && transaction.id != txId) {
-		cb && cb("Invalid transaction id");
+		cb && setImmediate(cb, "Invalid transaction id");
 		return;
 	} else {
 		transaction.id = txId;

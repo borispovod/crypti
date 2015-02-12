@@ -93,12 +93,12 @@ function Transport(cb, scope) {
 		async.series([
 			function (cb) {
 				if (lastMilestoneBlockId) {
-					library.dbLite.query("SELECT height FROM blocks WHERE id=$id", {id: lastMilestoneBlockId}, {'height' : Number}, function (err, rows) {
+					library.dbLite.query("SELECT height FROM blocks WHERE id=$id", {id: lastMilestoneBlockId}, {'height': Number}, function (err, rows) {
 						if (err) {
 							return cb("Internal sql error");
 						}
 
-						var block = rows.length? rows[0] : null;
+						var block = rows.length ? rows[0] : null;
 
 						if (!block) {
 							cb("Can't find block: " + lastMilestoneBlockId);
@@ -126,7 +126,7 @@ function Transport(cb, scope) {
 						return res.status(200).json({success: false, error: "Internal sql error"});
 					}
 
-					var block = rows.length? rows[0] : null;
+					var block = rows.length ? rows[0] : null;
 
 					if (!block) {
 						res.status(200).json({milestoneBlockIds: milestoneBlockIds});
@@ -144,7 +144,7 @@ function Transport(cb, scope) {
 										return next(err);
 									}
 
-									var block = rows.length? rows[0] : null;
+									var block = rows.length ? rows[0] : null;
 
 									if (!block) {
 										next("Internal error");
@@ -252,14 +252,19 @@ function Transport(cb, scope) {
 		res.set(headers);
 
 		var transaction = modules.transactions.parseTransaction(req.body.transaction);
-		modules.transactions.processUnconfirmedTransaction(transaction, true);
+		library.sequence.add(function (cb) {
+			modules.transactions.processUnconfirmedTransaction(transaction, true, cb);
+		});
 
 		res.sendStatus(200);
 	});
 
 	router.get('/weight', function (req, res) {
 		res.set(headers);
-		res.status(200).json({weight: modules.blocks.getWeight().toString(), height: modules.blocks.getLastBlock().height});
+		res.status(200).json({
+			weight: modules.blocks.getWeight().toString(),
+			height: modules.blocks.getLastBlock().height
+		});
 	});
 
 	router.use(function (req, res, next) {

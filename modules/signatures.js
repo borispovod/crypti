@@ -96,11 +96,17 @@ function Signatures(cb, scope) {
 
 		transaction.id = transactionHelper.getId(transaction);
 
-		modules.transactions.processUnconfirmedTransaction(transaction, true, function (err) {
+		library.sequence.add(function (cb) {
+			modules.transactions.processUnconfirmedTransaction(transaction, true, cb);
+		}, function (err) {
 			if (err) {
 				return res.json({success: false, error: err});
 			}
-			res.json({success: true, transactionId: transaction.id, publicKey: transaction.asset.signature.publicKey.toString('hex') });
+			res.json({
+				success: true,
+				transactionId: transaction.id,
+				publicKey: transaction.asset.signature.publicKey.toString('hex')
+			});
 		});
 	});
 
@@ -166,9 +172,9 @@ Signatures.prototype.parseSignature = function (signature) {
 
 Signatures.prototype.get = function (id, cb) {
 	library.dbLite.query("select s.id s_id, s.transactionId s_transactionId, s.timestamp s_timestamp, hex(s.publicKey) s_publicKey, hex(s.generatorPublicKey) s_generatorPublicKey, hex(s.signature) s_signature, hex(s.generationSignature) s_generationSignature " +
-		"from signatures s " +
-		"where s.id = $id",{
-		id : id
+	"from signatures s " +
+	"where s.id = $id", {
+		id: id
 	}, ['s_id', 's_transactionId', 's_timestamp', 's_publicKey', 's_generatorPublicKey', 's_signature', 's_generationSignature'], function (err, rows) {
 		if (err || !row) {
 			return cb(err || "Can't find signature: " + id);

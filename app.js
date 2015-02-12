@@ -49,19 +49,28 @@ d.run(function () {
 
 		sequence: function (cb) {
 			var sequence = [];
-			process.nextTick(function sequenceManager() {
-				var worker = sequence.shift();
-				if (worker && typeof(worker) == 'function') {
-					worker(function () {
-						setTimeout(sequenceManager, 1000);
-					})
-				} else {
-					setTimeout(sequenceManager, 1000);
+			process.nextTick(function nextSequenceTick() {
+				var task = sequence.shift();
+				if (!task) {
+					return setTimeout(nextSequenceTick, 100);
 				}
+				task(function () {
+					setTimeout(nextSequenceTick, 100);
+				});
 			});
 			cb(null, {
-				add: function (worker) {
-					sequence.push(worker);
+				add: function (worker, done) {
+					sequence.push(function (cb) {
+						if (worker && typeof(worker) == 'function') {
+							worker(function (err, res) {
+								setImmediate(cb);
+								done && setImmediate(done, err, res);
+							});
+						} else {
+							setImmediate(cb);
+							done && setImmediate(done);
+						}
+					});
 				}
 			});
 		},
