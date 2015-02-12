@@ -55,7 +55,7 @@ function attachApi() {
 			offset = params.int(req.query.offset),
 			orderBy = params.string(req.query.orderBy);
 
-		limit = limit > 100 ? 100 : limit;
+		limit = limit > 100 || limit == 0 ? 100 : limit;
 		var length = Math.min(limit, Object.keys(publicKeyIndex).length);
 		var realLimit = Math.min(offset + limit, length);
 		var result = [];
