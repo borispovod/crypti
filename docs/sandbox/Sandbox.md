@@ -272,18 +272,28 @@ sandbox.api.bind("echo", function(done, message) {
 })
 ```
 
-#### api.module(module) -> api
+#### api.register([path,] module) -> api
 
 Batch binding API methods and values. `module` is object which keys are global context names and values are API bindings.
 Example:
 
 ```javascript
-sandbox.api.module({
+sandbox.api.register({
     echo : function(done, message){
         done(null, message);
     },
     sayHello : function(done) {
         console.log('Hello world'); // Output "Hello world" in host process
+        done();
+    },
+    robot : {
+        name : "Bender"
+    }
+});
+
+sandbox.api.register("robot", {
+    sayHello : function(done){
+        console.log("Hello, %s", this.name); // Output "Hello, Bender"
         done();
     }
 });

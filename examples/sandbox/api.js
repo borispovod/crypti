@@ -4,7 +4,7 @@ var fs = require('fs');
 var path = require('path');
 
 // Add API methods
-sandbox.api.module({
+sandbox.api.register({
     fs : {
         readdir : function(done, dir) {
             fs.readdir(path.resolve(__dirname, dir), done);

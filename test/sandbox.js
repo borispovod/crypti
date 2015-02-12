@@ -97,8 +97,8 @@ describe('Sandbox.', function(){
 
 
     describe('API plugin.', function(){
-        it('Should bind several methods with `module` method', function(done){
-            sandbox.api.module({
+        it('Should bind several methods with `register` method', function(done){
+            sandbox.api.register({
                 api : {
                     method1 : function(done){
                         done(null, true);
@@ -148,23 +148,20 @@ describe('Sandbox.', function(){
             });
         });
 
-        // TODO Implement nested API methods bindings
-        //it('Should support nested api objects', function(done){
-        //    sandbox.api.module({
-        //        nested : {
-        //            method: function (done) {
-        //                done(null, true);
-        //            }
-        //        }
-        //    });
-        //
-        //    sandbox.eval('nested.method(done)', function(err, result){
-        //        should(err).equal(null, 'There is no error');
-        //        should(result).equal(true);
-        //
-        //        done();
-        //    });
-        //});
+        it ('Should register nested method', function(done){
+            sandbox.api.register("robot", {
+                name : "Bender",
+                sayHello : function(done) {
+                    done(null, "Hello, " + this.name);
+                }
+            });
+
+            sandbox.eval("robot.sayHello(done)", function(err, result){
+                should(err).be.equal(null);
+                should(result).be.a.String.and.be.equal("Hello, Bender");
+                done();
+            });
+        });
     });
 
     describe('Transactions.', function(){

@@ -102,10 +102,11 @@ module.exports = function(sandbox, options) {
         /**
          * Register module as object where key is method name and property is a method function.
          *
-         * @param {object} bindings
+         * @param {string=} path Path as string. Path separator is "."
+         * @param {object} bindings Bind API object
          * @example
          *
-         * sandbox.api.module({
+         * sandbox.api.register({
          *  echo : function(done, message) {
          *      done(null, message);
          *  },
@@ -115,8 +116,25 @@ module.exports = function(sandbox, options) {
          *  }
          * })
          */
-        module : function(bindings){
-            extend(this._bindings, bindings);
+        register : function(path, bindings){
+            if (arguments.length === 1) {
+                bindings = path;
+                path = null;
+            }
+
+            var target, segment, segments;
+            target = this._bindings;
+            segments = path ? path.split(".") : [];
+
+            while (segments.length) {
+                segment = segments.shift();
+                if (typeof target[segment] !== 'object') {
+                    target[segment] = {};
+                }
+                target = target[segment];
+            }
+
+            extend(target, bindings);
             return this;
         },
         /**
@@ -139,8 +157,6 @@ module.exports = function(sandbox, options) {
  */
 function prepareBindings(api) {
     var result = [];
-
-    // TODO Convert API to bindings
 
     Object.keys(api).map(function(name){
         var binding = api[name];
