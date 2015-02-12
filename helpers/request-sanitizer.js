@@ -273,7 +273,7 @@ var rules = RequestSanitizer.prototype.rules;
         if (! report.isValid) {
             var error = new Error(report.issues);
             error.name = 'ValidationError';
-            error.report = report; // TODO (rumkin) Decide to leave or to remove.
+            error.issues = report.issues;
             throw error;
         }
 
