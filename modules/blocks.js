@@ -965,7 +965,7 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 								cb("Transaction already exists: " + transaction.id);
 							} else {
 								if (appliedTransactions[transaction.id]) {
-									return cb("Dublicated transaction in block: " + transaction.id);
+									return cb("Duplicated transaction in block: " + transaction.id);
 								}
 
 								var sender = modules.accounts.getAccountByPublicKey(transaction.senderPublicKey);
@@ -974,123 +974,47 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 									return cb("Invalid sender id: " + transaction.id);
 								}
 
-								if (!modules.transactions.verifySignature(transaction)) {
-									return cb("Can't verify transaction signature: " + transaction.id);
-								}
-
-								if (sender.secondSignature) {
-									if (!modules.transactions.verifySecondSignature(transaction, sender.secondPublicKey)) {
-										return cb("Can't verify second signature: " + transaction.id);
-									}
-								}
-
 								if (slots.getSlotNumber(transaction.timestamp) > slots.getSlotNumber() || slots.getSlotNumber(transaction.timestamp) > slots.getSlotNumber(block.timestamp)) {
 									return cb("Can't accept transaction timestamp: " + transaction.id);
 								}
 
-								transaction.fee = transactionHelper.getTransactionFee(transaction);
 
-								if (transaction.fee === false) {
-									return cb("Invalid transaction type/fee: " + transaction.id);
-								}
+								modules.transactions.validateTransaction(transaction, function(err, transaction){
+									if (err) return cb(err);
 
-								if (transaction.amount < 0) {
-									return cb("Invalid transaction amount: " + transaction.id);
-								}
+									// Execute transaction
+									function finish(err, transaction) {
+										if (err) return cb(err);
 
-								if (transaction.type == 1) {
-									if (!transaction.asset.signature) {
-										return cb("Transaction must have signature");
-									}
-								} else if (transaction.type == 2) {
-									if (transaction.senderId != transaction.recipientId) {
-										return cb("Invalid recipient");
-									}
+										if (!modules.transactions.applyUnconfirmed(transaction)) {
+											return cb("Can't apply transaction: " + transaction.id);
+										}
 
-									if (!transaction.asset.delegate.username) {
-										return cb && cb("Empty transaction asset for delegate transaction");
-									}
+										appliedTransactions[transaction.id] = transaction;
 
-									if (transaction.asset.delegate.username.length == 0 || transaction.asset.delegate.username.length > 20) {
-										return cb && cb("Incorrect delegate username length");
-									}
+										var index = unconfirmedTransactions.indexOf(transaction.id);
+										if (index >= 0) {
+											unconfirmedTransactions.splice(index, 1);
+										}
 
-									if (modules.delegates.getDelegateByName(transaction.asset.delegate.username)) {
-										return cb && cb("Delegate with this name is already exists");
+										payloadHash.update(transactionHelper.getBytes(transaction));
+										totalAmount += transaction.amount;
+										totalFee += transaction.fee;
+
+										setImmediate(cb);
 									}
 
-									if (modules.delegates.getDelegate(transaction.senderPublicKey)) {
-										return cb && cb("This account already delegate");
-									}
-								} else if (transaction.type == 3) {
-									if (transaction.recipientId != transaction.senderId) {
-										return cb && cb("Incorrect recipient");
-									}
+									if (transaction.type !== 4) return finish();
 
-									if (!modules.delegates.checkDelegates(transaction.asset.votes)) {
-										return cb && cb("Can't verify votes, vote for not exists delegate found: " + transaction.id);
-									}
-								} else  if (transaction.type == 4) {
-									if (transaction.recipientId != null) {
-										return cb && cb("Incorrect recipient");
-									}
+									modules.sandboxes.execTransaction(transaction, function(err, result){
+										if (err) return finish(err);
+										if (result !== 'TRUE') return done("Result is FALSE");
 
-									if (!transaction.asset.script) {
-										return cb && cb("Transaction script not set");
-									}
+										finish(null, transaction);
+									});
+								});
 
-									if (!transaction.asset.script.code) {
-										return cb && cb("Transaction script code not exists");
-									}
 
-									var code = null, parameters = null;
-
-									try {
-										code = new Buffer(transaction.asset.script.code, 'hex');
-										parameters = new Buffer(transaction.asset.script.parameters, 'hex');
-									} catch (e) {
-										return done("Can't parse code/parameters from hex to strings in script transaction.");
-									}
-
-									if (code.length > 4 * 1024) {
-										return cb && cb("Incorrect script code length");
-									}
-
-									if (parameters.length > 4 * 1024) {
-										return cb && cb("Incorrect script parameters length");
-									}
-
-									try {
-										parameters = JSON.parse(parameters);
-									} catch (e) {
-										return cb && cb("Incorrect script parameters json");
-									}
-
-									if (!transaction.asset.script.name || transaction.asset.script.name.length == 0 || transaction.asset.script.name.length > 16) {
-										return cb && cb("Incorrect name length");
-									}
-
-									if (transaction.asset.script.description && transaction.asset.script.description.length > 140) {
-										return cb && cb("Incorrect description length");
-									}
-								}
-
-								if (!modules.transactions.applyUnconfirmed(transaction)) {
-									return cb("Can't apply transaction: " + transaction.id);
-								}
-
-								appliedTransactions[transaction.id] = transaction;
-
-								var index = unconfirmedTransactions.indexOf(transaction.id);
-								if (index >= 0) {
-									unconfirmedTransactions.splice(index, 1);
-								}
-
-								payloadHash.update(transactionHelper.getBytes(transaction));
-								totalAmount += transaction.amount;
-								totalFee += transaction.fee;
-
-								setImmediate(cb);
 							}
 						});
 					}, done);

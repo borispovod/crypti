@@ -9,10 +9,12 @@ function Sandboxes(cb, scope) {
 	setImmediate(cb, null, self);
 }
 
-Sandboxes.prototype.runTransaction = function (transaction, cb) {
+Sandboxes.prototype.execTransaction = function (transaction, cb) {
 	var sandbox = new Sandbox({
 		plugins : {
 			process : {
+				limitCpu : 25,
+				limitTime : 100,
 				stdio : 'inherit'
 			},
 			tcp : true,
@@ -24,16 +26,13 @@ Sandboxes.prototype.runTransaction = function (transaction, cb) {
 	});
 
 	// accounts api
-	sandbox.api.module({
+	sandbox.api.register({
 		accounts : {
 			getAccount : modules.accounts.getAccount,
 			getAccountByPublicKey : modules.accounts.getAccountByPublicKey,
 			getAddressByPublicKey : modules.accounts.getAddressByPublicKey
 		}
 	});
-
-	sandbox.cpuLimit = 25; // is it in percents?
-	sandbox.process.options.limitTime = 100; // is it milliseconds?
 
 	// run script
 	sandbox.transaction.exec(transaction, cb);

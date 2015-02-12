@@ -14,7 +14,7 @@ var transactionHelper = require('../helpers/transaction.js'),
 	Router = require('../helpers/router.js'),
 	arrayHelper = require('../helpers/array.js'),
 	async = require('async'),
-	jsonschema = require('jsonschema'),
+	JsonSchema = require('../helpers/json-schema'),
 	esprima = require('esprima')
 	;
 
@@ -367,7 +367,7 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 
 		unconfirmedTransactions[transaction.id] = transaction;
 
-		library.bus.message('unconfirmedTransaction', transaction, broadcast)
+		library.bus.message('unconfirmedTransaction', transaction, broadcast);
 
 		cb && cb(null, transaction.id);
 	}
@@ -423,136 +423,204 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 
 			transaction.fee = fee;
 
-			switch (transaction.type) {
-				case 0:
-					if (transactionHelper.getLastChar(transaction) != "C") {
-						return done("Invalid transaction recipient id");
-					}
-					break;
+			self.validateTransaction(transaction, function(err){
+				if (err) return done(err);
+
+				modules.sandboxes.execTransaction(transaction, function(err, result){
+					if (err) return done(err);
+					if (result !== 'TRUE') return done("Result is FALSE");
+
+					done(null, transaction);
+				});
+			});
+		}
+	});
+}
+
+/**
+ * Validate unconfirmed transaction
+ *
+ * @param {object} transaction Transaction object
+ * @param {function(err:Error|string,transaction:object=)} done Result callback
+ * @returns {*}
+ */
+Transactions.prototype.validateTransaction = function(transaction, done) {
+	var sender = modules.accounts.getAccountByPublicKey(transaction.senderPublicKey);
+
+	if (!modules.transactions.verifySignature(transaction)) {
+		return done("Can't verify transaction signature: " + transaction.id);
+	}
+
+	if (sender.secondSignature) {
+		if (!modules.transactions.verifySecondSignature(transaction, sender.secondPublicKey)) {
+			return done("Can't verify second signature: " + transaction.id);
+		}
+	}
+
+	transaction.fee = transactionHelper.getTransactionFee(transaction);
+
+	if (transaction.fee === false) {
+		return done("Invalid transaction type/fee: " + transaction.id);
+	}
+
+	if (transaction.amount < 0) {
+		return done("Invalid transaction amount: " + transaction.id);
+	}
 
 
-				case 1:
-					if (!transaction.asset.signature) {
-						return done("Empty transaction asset for signature transaction")
-					}
-
-					try {
-						if (new Buffer(transaction.asset.signature.publicKey, 'hex').length != 32) {
-							return done("Invalid length for signature public key");
-						}
-					} catch (e) {
-						return done("Invalid hex in signature public key");
-					}
-					break;
-
-				case 2:
-					if (!transaction.asset.delegate.username) {
-						return done("Empty transaction asset for delegate transaction");
-					}
-
-					if (transaction.asset.delegate.username.length == 0 || transaction.asset.delegate.username.length > 20) {
-						return done("Incorrect delegate username length");
-					}
-
-					if (modules.delegates.getDelegateByName(transaction.asset.delegate.username)) {
-						return done("Delegate with this name is already exists");
-					}
-
-					if (modules.delegates.getDelegate(transaction.senderPublicKey)) {
-						return done("This account already delegate");
-					}
-
-					if (modules.delegates.getDelegate(transaction.senderPublicKey)) {
-						return done("This account already delegate");
-					}
-					break;
-				case 3:
-					if (transaction.recipientId != transaction.senderId) {
-						return done("Incorrect recipient");
-					}
-
-					if (!modules.delegates.checkDelegates(transaction.asset.votes)) {
-						return done("Can't verify votes, vote for not exists delegate found: " + transaction.id);
-					}
-					break;
-				case 4:
-					if (transaction.recipientId != null) {
-						return done("Incorrect recipient");
-					}
-
-					if (!transaction.asset.script) {
-						return done("Transaction script not set");
-					}
-
-					if (!transaction.asset.script.code) {
-						return done("Transaction script code not exists");
-					}
-
-					var code = null, parameters = null;
-
-					try {
-						code = new Buffer(transaction.asset.script.code, 'hex');
-						parameters = new Buffer(transaction.asset.script.parameters, 'hex');
-					} catch (e) {
-						return done("Can't parse code/parameters from hex to strings in script transaction.");
-					}
+	switch (transaction.type) {
+		case 0:
+			if (getLastChar(transaction) != "C") {
+				return done("Invalid transaction recipient id");
+			}
+			break;
 
 
-					if (code.length > 4 * 1024) {
-						return done("Incorrect script code length");
-					}
-
-					try {
-						esprima.parse(code.toString('utf8'));
-					} catch (err) {
-						return done("Transaction script code is not valid");
-					}
-
-					if (parameters.length > 4 * 1024) {
-						return done("Incorrect script parameters length");
-					}
-
-					try {
-						parameters = JSON.parse(parameters.toString('utf8'));
-					} catch (e) {
-						return done("Incorrect script parameters json");
-					}
-
-					if (!transaction.asset.script.name || transaction.asset.script.name.length == 0 || transaction.asset.script.name.length > 16) {
-						return done("Incorrect name length");
-					}
-
-					if (transaction.asset.script.description && transaction.asset.script.description.length > 140) {
-						return done("Incorrect description length");
-					}
-					break;
-				case 5:
-					// verify input
-					if (!transaction.asset.scriptId) {
-						return done("Empty script id in transaction");
-					}
-
-					if (!transaction.asset.input) {
-						return done("Empty input in transaction");
-					}
-
-					// need to rewrite this part async
-					modules.scripts.getScript(transaction.asset.scriptId, function (err, script) {
-						if (err || !script) {
-							return done(err || "Script not found: " + transaction.asset.scriptId);
-						}
-
-						// check script input parameters
-					});
-
-					break;
-				default:
-					return done("Unknown transaction type");
+		case 1:
+			if (!transaction.asset.signature) {
+				return done("Empty transaction asset for signature transaction")
 			}
 
+			try {
+				if (new Buffer(transaction.asset.signature.publicKey, 'hex').length != 32) {
+					return done("Invalid length for signature public key");
+				}
+			} catch (e) {
+				return done("Invalid hex in signature public key");
+			}
+			break;
 
-			done(null, transaction);
-		}
+		case 2:
+			if (transaction.senderId != transaction.recipientId) {
+				return done("Invalid recipient");
+			}
+
+			if (!transaction.asset.delegate.username) {
+				return done("Empty transaction asset for delegate transaction");
+			}
+
+			if (transaction.asset.delegate.username.length < 1 || transaction.asset.delegate.username.length > 20) {
+				return done("Incorrect delegate username length");
+			}
+
+			if (modules.delegates.getDelegateByName(transaction.asset.delegate.username)) {
+				return done("Delegate with this name is already exists");
+			}
+
+			if (modules.delegates.getDelegate(transaction.senderPublicKey)) {
+				return done("This account already delegated");
+			}
+			break;
+		case 3:
+			if (transaction.recipientId != transaction.senderId) {
+				return done("Incorrect recipient");
+			}
+
+			if (!modules.delegates.checkDelegates(transaction.asset.votes)) {
+				return done("Can't verify votes, vote for not exists delegate found: " + transaction.id);
+			}
+			break;
+		case 4:
+			self.validateTransactionScript(transaction.script, function(err){
+				if (err) return done(err);
+
+				if (!transaction.asset.script.name || transaction.asset.script.name.length == 0 || transaction.asset.script.name.length > 16) {
+					return done("Incorrect name length");
+				}
+
+				if (transaction.asset.script.description && transaction.asset.script.description.length > 140) {
+					return done("Incorrect description length");
+				}
+
+				done(null, transaction);
+			});
+
+			break;
+		case 5:
+			// verify input
+			if (!transaction.asset.scriptId) {
+				return done("Empty script id in transaction");
+			}
+
+			if (!transaction.asset.input) {
+				return done("Empty input in transaction");
+			}
+
+			// need to rewrite this part async
+			modules.scripts.getScript(transaction.asset.scriptId, function (err, script) {
+				if (err || !script) {
+					return done(err || ("Script not found: " + transaction.asset.scriptId));
+				}
+
+				self.validateTransactionScript(script, function(err, script){
+					if (err) return done(err);
+
+					try {
+						var input = JSON.parse(transaction.asset.input);
+					} catch (err) {
+						return done(err);
+					}
+
+					JsonSchema.validate(input, script.parameters, function(err, report){
+						if (err) return done(err);
+						if (! report.isValid) return done(report.issues);
+
+						done(null, transaction);
+					});
+				});
+			});
+
+			break;
+		default:
+			return done("Unknown transaction type");
+	}
+}
+
+/**
+ * Validate transaction script.
+ * @param {{code:string,parameters:string}} script Script object.
+ * @param {function(err:Error, script:{code:string,parameters:{}})} callback Result callback
+ * @returns {*}
+ */
+Transactions.prototype.validateTransactionScript = function (script, callback) {
+
+	if (!script.code) {
+		return callback("Transaction script code not exists");
+	}
+
+	var code = null, parameters = null;
+
+	try {
+		code = new Buffer(script.code, 'hex');
+		parameters = new Buffer(script.parameters, 'hex');
+	} catch (e) {
+		return callback("Can't parse code/parameters from hex to strings in script transaction.");
+	}
+
+
+	if (code.length > 4 * 1024) {
+		return callback("Incorrect script code length");
+	}
+
+	try {
+		esprima.parse(code.toString('utf8'));
+	} catch (err) {
+		return callback("Transaction script code is not valid");
+	}
+
+	if (parameters.length > 4 * 1024) {
+		return callback("Incorrect script parameters length");
+	}
+
+	try {
+		parameters = JSON.parse(parameters.toString('utf8'));
+	} catch (e) {
+		return callback("Incorrect script parameters json");
+	}
+
+	callback(null, {
+		code : code,
+		parameters : parameters
 	});
 }
 
