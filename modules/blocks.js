@@ -1001,6 +1001,9 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 									unconfirmedTransactions.splice(index, 1);
 								}
 
+								self.applyForger(block.generatorPublicKey, transaction);
+								modules.transactions.apply(transaction);
+
 								payloadHash.update(transactionHelper.getBytes(transaction));
 								totalAmount += transaction.amount;
 								totalFee += transaction.fee;
@@ -1115,6 +1118,8 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 						var transaction = block.transactions[i];
 
 						if (appliedTransactions[transaction.id]) {
+							self.undoForger(block.generatorPublicKey, transaction);
+							modules.transactions.undo(transaction);
 							modules.transactions.undoUnconfirmed(transaction);
 						}
 					}
@@ -1136,10 +1141,7 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 
 					for (var i = 0; i < block.transactions.length; i++) {
 						var transaction = block.transactions[i];
-
-						modules.transactions.apply(transaction);
 						modules.transactions.removeUnconfirmedTransaction(transaction.id);
-						self.applyForger(block.generatorPublicKey, transaction);
 					}
 
 					self.applyFee(block);
