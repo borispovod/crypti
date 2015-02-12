@@ -153,39 +153,40 @@ function getByFilter(filter, cb) {
 		return cb("Maximum limit is 100");
 	}
 
-	if (filter.state) {
+	if (filter.state !== null) {
 		where.push("state = $state");
 		params.state = filter.state;
 	}
 
-	if (filter.os) {
+	if (filter.os !== null) {
 		where.push("os = $os");
 		params.os = filter.os;
 	}
 
-	if (filter.version) {
+	if (filter.version !== null) {
 		where.push("version = $version");
 		params.version = filter.version;
 	}
 
-	if (filter.shared) {
+	if (filter.shared !== null) {
 		where.push("sharePort = $sharePort");
 		params.sharePort = filter.shared;
 	}
 
-	if (filter.port) {
+	if (filter.port !== null) {
 		where.push("port = $port");
 		params.port = filter.port;
 	}
 
-	if (limit) {
+	if (limit !== null) {
 		params['limit'] = limit;
 	}
 
-	if (offset) {
+	if (offset !== null) {
 		params['offset'] = offset;
 	}
 
+	console.log("select ip, port, state, os, sharePort, version from peers" + (where.length ? (' where ' + where.join(' and ')) : '') + (limit ? ' limit $limit' : '') + (offset ? ' offset $offset ' : ''))
 	library.dbLite.query("select ip, port, state, os, sharePort, version from peers" + (where.length ? (' where ' + where.join(' and ')) : '') + (limit ? ' limit $limit' : '') + (offset ? ' offset $offset ' : ''), params, {
 		"ip": String,
 		"port": Number,
