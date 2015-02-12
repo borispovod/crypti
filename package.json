@@ -2,6 +2,9 @@
   "name": "Crypti",
   "version": "0.1.9",
   "private": true,
+  "bin": {
+    "crypti":"./crypti"
+  },
   "scripts": {
     "start": "node app.js",
     "test": "./node_modules/.bin/mocha test/test.js -s 2s"
@@ -38,7 +41,8 @@
     "strftime": "*",
     "toposort": "~0.2.10",
     "underscore": "https://github.com/crypti/underscore/tarball/master",
-    "esprima": "~1.2.3"
+    "esprima": "~1.2.3",
+    "commander": "~2.6.0"
   },
   "devDependencies": {
     "grunt-jscrambler": "^0.2.7",

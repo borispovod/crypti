@@ -68,5 +68,5 @@ Note to use semantic names to avoid mess of files. Try to name it similarly to t
 ### Start ###
 Run:
 ```
-node app.js
+crypti -p [port] -a [address] -c [config-path]
 ```

@@ -1,11 +1,33 @@
+var program = require('commander');
+var packageJson = require('./package.json');
 var Logger = require('./logger.js');
 var appConfig = require("./config.json");
 var logger = new Logger({echo: appConfig.consoleLogLevel, errorLevel: appConfig.fileLogLevel});
 var async = require('async');
+var extend = require('extend');
+var path = require('path');
 var SegfaultHandler = require('segfault-handler');
 
-SegfaultHandler.registerHandler();
+program
+	.version(packageJson.version)
+	.option('-c, --config <path>', 'Config file path')
+	.option('-p, --port <port>', 'Listening port number')
+	.option('-a, --address <ip>', 'Listening host name or ip')
+	.parse(process.argv);
 
+if (program.config) {
+	extend(appConfig, require(path.resolve(process.cwd(), program.config)));
+}
+
+if (program.port) {
+	appConfig[port] = program.port;
+}
+
+if (program.address) {
+	appConfig[port] = program.address;
+}
+
+SegfaultHandler.registerHandler();
 
 process.on('uncaughtException', function (err) {
 	// handle the error safely
