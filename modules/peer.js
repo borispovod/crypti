@@ -186,7 +186,6 @@ function getByFilter(filter, cb) {
 		params['offset'] = offset;
 	}
 
-	console.log("select ip, port, state, os, sharePort, version from peers" + (where.length ? (' where ' + where.join(' and ')) : '') + (limit ? ' limit $limit' : '') + (offset ? ' offset $offset ' : ''))
 	library.dbLite.query("select ip, port, state, os, sharePort, version from peers" + (where.length ? (' where ' + where.join(' and ')) : '') + (limit ? ' limit $limit' : '') + (offset ? ' offset $offset ' : ''), params, {
 		"ip": String,
 		"port": Number,

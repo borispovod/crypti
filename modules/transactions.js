@@ -317,47 +317,62 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 		transaction.id = txId;
 	}
 
+	function done(err, transaction) {
+		if (err) return cb && cb(err);
+
+		if (!self.applyUnconfirmed(transaction)) {
+			doubleSpendingTransactions[transaction.id] = transaction;
+			return cb && cb("Can't apply transaction: " + transaction.id);
+		}
+
+		unconfirmedTransactions[transaction.id] = transaction;
+
+		library.bus.message('unconfirmedTransaction', transaction, broadcast)
+
+		cb && cb(null, transaction.id);
+	}
+
 	library.dbLite.query("SELECT count(id) FROM trs WHERE id=$id", {id: transaction.id}, {"count": Number}, function (err, rows) {
 		if (err) {
-			cb && cb("Internal sql error");
+			done("Internal sql error");
 			return;
 		}
 
 		var res = rows.length && rows[0];
 
 		if (res.count) {
-			return cb && cb("Can't process transaction, transaction already confirmed");
+			return done("Can't process transaction, transaction already confirmed");
 		} else {
 			// check in confirmed transactions
 			if (unconfirmedTransactions[transaction.id] || doubleSpendingTransactions[transaction.id]) {
-				return cb && cb("This transaction already exists");
+				return done("This transaction already exists");
 			}
 
 			var sender = modules.accounts.getAccountByPublicKey(transaction.senderPublicKey);
 
 			if (!sender) {
-				return cb && cb("Can't process transaction, sender not found");
+				return done("Can't process transaction, sender not found");
 			}
 
 			transaction.senderId = sender.address;
 
 			if (!self.verifySignature(transaction)) {
-				return cb && cb("Can't verify signature");
+				return done("Can't verify signature");
 			}
 
 			if (sender.secondSignature) {
 				if (!self.verifySecondSignature(transaction, sender.secondPublicKey)) {
-					return cb && cb("Can't verify second signature");
+					return done("Can't verify second signature");
 				}
 			}
 
 			// check if transaction is not float and great then 0
 			if (transaction.amount < 0 || transaction.amount.toString().indexOf('.') >= 0) {
-				return cb && cb("Invalid transaction amount");
+				return done("Invalid transaction amount");
 			}
 
 			if (slots.getSlotNumber(transaction.timestamp) > slots.getSlotNumber()) {
-				return cb && cb("Invalid transaction timestamp");
+				return done("Invalid transaction timestamp");
 			}
 
 			var fee = transactionHelper.getFee(transaction, modules.blocks.getFee());
@@ -371,58 +386,57 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 			switch (transaction.type) {
 				case 0:
 					if (transactionHelper.getLastChar(transaction) != "C") {
-						return cb && cb("Invalid transaction recipient id");
+						return done("Invalid transaction recipient id");
 					}
 					break;
 
 
 				case 1:
 					if (!transaction.asset.signature) {
-						return cb && cb("Empty transaction asset for signature transaction")
+						return done("Empty transaction asset for signature transaction")
+					}
+
+					try {
+						if (new Buffer(transaction.asset.signature.publicKey, 'hex').length != 32) {
+							return done("Invalid length for signature public key");
+						}
+					} catch (e) {
+						return done("Invalid hex in signature public key");
 					}
 					break;
 
 				case 2:
 					if (!transaction.asset.delegate.username) {
-						return cb && cb("Empty transaction asset for delegate transaction");
+						return done("Empty transaction asset for delegate transaction");
 					}
 
 					if (transaction.asset.delegate.username.length == 0 || transaction.asset.delegate.username.length > 20) {
-						return cb && cb("Incorrect delegate username length");
+						return done("Incorrect delegate username length");
 					}
 
 					if (modules.delegates.existsName(transaction.asset.delegate.username)) {
-						return cb && cb("Delegate with this name is already exists");
+						return done("Delegate with this name is already exists");
 					}
 
 					if (modules.delegates.existsDelegate(transaction.senderPublicKey)) {
-						return cb && cb("This account already delegate");
+						return done("This account already delegate");
 					}
 					break;
 				case 3:
 					if (transaction.recipientId != transaction.senderId) {
-						return cb && cb("Incorrect recipient");
+						return done("Incorrect recipient");
 					}
 
 					if (!modules.delegates.checkDelegates(transaction.senderPublicKey, transaction.asset.votes)) {
-						return cb && cb("Can't verify votes, vote for not exists delegate found: " + transaction.id);
+						return done("Can't verify votes, vote for not exists delegate found: " + transaction.id);
 					}
 					break;
 				default:
-					return cb && cb("Unknown transaction type");
+					return done("Unknown transaction type");
 			}
 
 
-			if (!self.applyUnconfirmed(transaction)) {
-				doubleSpendingTransactions[transaction.id] = transaction;
-				return cb && cb("Can't apply transaction: " + transaction.id);
-			}
-
-			unconfirmedTransactions[transaction.id] = transaction;
-
-			library.bus.message('unconfirmedTransaction', transaction, broadcast)
-
-			cb && cb(null, transaction.id);
+			done(null, transaction);
 		}
 	});
 }
