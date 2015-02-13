@@ -912,6 +912,10 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 										}
 										break;
 									case 2:
+										if (transaction.senderId != transaction.recipientId) {
+											return cb("Invalid recipient");
+										}
+
 										if (!transaction.asset.delegate.username) {
 											return cb && cb("Empty transaction asset for delegate transaction");
 										}
