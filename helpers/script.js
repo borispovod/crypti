@@ -18,7 +18,7 @@ function getInputBytes(input) {
 	return Buffer.concat([inputBuffer, scriptId]);
 }
 
-modules.exports = {
+module.exports = {
 	getBytes : getBytes,
 	getInputBytes : getInputBytes
 }
