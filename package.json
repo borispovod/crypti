@@ -3,14 +3,14 @@
   "version": "0.1.9",
   "private": true,
   "bin": {
-    "crypti":"./crypti"
+    "crypti": "./crypti"
   },
   "scripts": {
     "start": "node app.js",
     "test": "./node_modules/.bin/mocha test/test.js -s 2s"
   },
   "dependencies": {
-    "array.prototype.find": "*",
+    "array.prototype.find": "~1.0.0",
     "async": "*",
     "basic-auth": "*",
     "basic-auth-connect": "^1.0.0",
@@ -30,10 +30,10 @@
     "ip": "^0.3.2",
     "json-schema": "~0.2.2",
     "jsonschema": "^1.0.0",
-    "knuth-shuffle": "*",
+    "knuth-shuffle": "~1.0.1",
     "long": "^1.1.5",
     "method-override": "*",
-    "node-schedule": "*",
+    "node-schedule": "~0.1.16",
     "pkginfo": "^0.3.0",
     "request": "*",
     "segfault-handler": "*",
