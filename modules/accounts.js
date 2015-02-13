@@ -217,7 +217,7 @@ function attachApi() {
 
 	router.get("/", function (req, res, next) {
 		req.sanitize("query", {
-			address : "address!"
+			address : "string!"
 		}, function(err, report, query) {
 			if (err) return next(err);
 			if (! report.isValid) return res.json({success: false, error: report.issues});
