@@ -74,6 +74,7 @@ function attachApi() {
 		if (!max || !min) {
 			return res.json({success: false, error: "Error, provide max & min"});
 			}
+
 		var numberPattern = /\d+/g;
 		var escapedIds = ids.map(function (id) {
 			return "'" + id.replace(/\D/g, '') + "'";
@@ -113,7 +114,7 @@ function attachApi() {
 		res.set(headers);
 
 		try {
-		var block = normalize.block(req.body.block)
+			var block = normalize.block(req.body.block)
 		} catch (e) {
 			var peerIp = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
 			var peerStr = peerIp ? peerIp + ":" + params.int(req.headers['port']) : 'unknown';
@@ -137,7 +138,7 @@ function attachApi() {
 		res.set(headers);
 
 		try {
-		var transaction = normalize.transaction(req.body.transaction);
+			var transaction = normalize.transaction(req.body.transaction);
 		} catch (e) {
 			var peerIp = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
 			var peerStr = peerIp ? peerIp + ":" + params.int(req.headers['port']) : 'unknown';

@@ -189,7 +189,7 @@ function attachApi() {
 			}
 		}
 
-		if (delegates && delegates.length > 33){
+		if (delegates && delegates.length > 33) {
 			return res.json({success: false, error: "Please, provide less 33 delegates"});
 		}
 

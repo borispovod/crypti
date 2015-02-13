@@ -78,7 +78,7 @@ d.run(function () {
 			var sequence = [];
 			process.nextTick(function nextSequenceTick() {
 				var task = sequence.shift();
-				if (!task){
+				if (!task) {
 					return setTimeout(nextSequenceTick, 100);
 				}
 				task(function () {

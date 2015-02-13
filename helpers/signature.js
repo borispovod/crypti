@@ -34,7 +34,7 @@ function getId(signature) {
 }
 
 module.exports = {
-	getHash : getHash,
-	getId : getId,
-	getBytes : getBytes
+	getHash: getHash,
+	getId: getId,
+	getBytes: getBytes
 }

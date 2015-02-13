@@ -792,6 +792,7 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 				if (!modules.transactions.apply(blocks[i].transactions[n])) {
 					err = {
 						message: "Can't apply transaction: " + blocks[i].transactions[n].id,
+
 						transaction: blocks[i].transactions[n],
 						rollbackTransactionsUntil: n > 0 ? (n - 1) : null,
 						block: blocks[i]
@@ -1000,6 +1001,42 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 									}
 								}
 
+//=======
+//								switch (transaction.type) {
+//									case 1:
+//										if (!transaction.asset.signature) {
+//											return cb("Transaction must have signature");
+//										}
+//										break;
+//									case 2:
+//										if (!transaction.asset.delegate.username) {
+//											return cb && cb("Empty transaction asset for delegate transaction");
+//										}
+//
+//										if (transaction.asset.delegate.username.length == 0 || transaction.asset.delegate.username.length > 20) {
+//											return cb && cb("Incorrect delegate username length");
+//										}
+//
+//										if (modules.delegates.existsName(transaction.asset.delegate.username)) {
+//											return cb && cb("Delegate with this name is already exists");
+//										}
+//
+//										if (modules.delegates.existsDelegate(transaction.senderPublicKey)) {
+//											return cb && cb("This account already delegate");
+//										}
+//										break;
+//									case 3:
+//										if (transaction.recipientId != transaction.senderId) {
+//											return cb && cb("Incorrect recipient");
+//										}
+//
+//										if (!modules.delegates.checkDelegates(transaction.senderPublicKey, transaction.asset.votes)) {
+//											return cb && cb("Can't verify votes, vote for not exists delegate found: " + transaction.id);
+//										}
+//										break;
+//								}
+//
+//>>>>>>> 0.2.0
 								if (!modules.transactions.applyUnconfirmed(transaction)) {
 									return cb("Can't apply transaction: " + transaction.id);
 								}

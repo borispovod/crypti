@@ -454,8 +454,9 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 						return done("Incorrect recipient");
 					}
 
-					if (!modules.delegates.checkDelegates(transaction.asset.votes)) {
-						return done("Can't verify votes, vote for not exists delegate found: " + transaction.id);
+
+					if (!modules.delegates.checkDelegates(transaction.senderPublicKey, transaction.asset.votes)) {
+						return cb && cb("Can't verify votes, vote for not exists delegate found: " + transaction.id);
 					}
 					break;
 				case 4:
