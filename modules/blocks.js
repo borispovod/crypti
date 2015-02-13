@@ -456,7 +456,7 @@ function saveBlock(block, cb) {
 
 				switch (transaction.type) {
 					case 1:
-						library.dbLite.query("INSERT INTO signatures(id, transactionId, timestamp , publicKey, generatorPublicKey, signature, generationSignature) VALUES($id, $transactionId, $timestamp , $publicKey, $generatorPublicKey, $signature , $generationSignature)", {
+						library.dbLite.query("INSERT INTO signatures(id, transactionId, publicKey) VALUES($id, $transactionId, $publicKey)", {
 							id: transaction.asset.signature.id,
 							transactionId: transaction.id,
 							publicKey: new Buffer(transaction.asset.signature.publicKey, 'hex')
@@ -924,119 +924,88 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 									return cb("Invalid transaction amount: " + transaction.id);
 								}
 
-								if (transaction.type == 1) {
-									if (!transaction.asset.signature) {
-										return cb("Transaction must have signature");
-									}
-								} else if (transaction.type == 2) {
-									if (transaction.senderId != transaction.recipientId) {
-										return cb("Invalid recipient");
-									}
+								switch (transaction.type) {
+									case 1:
+										if (!transaction.asset.signature) {
+											return cb("Transaction must have signature");
+										}
+										break;
+									case 2:
+										if (transaction.senderId != transaction.recipientId) {
+											return cb("Invalid recipient");
+										}
 
-									if (!transaction.asset.delegate.username) {
-										return cb && cb("Empty transaction asset for delegate transaction");
-									}
+										if (!transaction.asset.delegate.username) {
+											return cb && cb("Empty transaction asset for delegate transaction");
+										}
 
-									if (transaction.asset.delegate.username.length == 0 || transaction.asset.delegate.username.length > 20) {
-										return cb && cb("Incorrect delegate username length");
-									}
+										if (transaction.asset.delegate.username.length == 0 || transaction.asset.delegate.username.length > 20) {
+											return cb && cb("Incorrect delegate username length");
+										}
 
-									if (modules.delegates.existsName(transaction.asset.delegate.username)) {
-										return cb && cb("Delegate with this name is already exists");
-									}
+										if (modules.delegates.existsName(transaction.asset.delegate.username)) {
+											return cb && cb("Delegate with this name is already exists");
+										}
 
-									if (modules.delegates.existsDelegate(transaction.senderPublicKey)) {
-										return cb && cb("This account already delegate");
-									}
-								} else if (transaction.type == 3) {
-									if (transaction.recipientId != transaction.senderId) {
-										return cb && cb("Incorrect recipient");
-									}
+										if (modules.delegates.existsDelegate(transaction.senderPublicKey)) {
+											return cb && cb("This account already delegate");
+										}
+										break;
+									case 3:
+										if (transaction.recipientId != transaction.senderId) {
+											return cb && cb("Incorrect recipient");
+										}
 
-									if (!modules.delegates.checkDelegates(transaction.senderPublicKey, transaction.asset.votes)) {
-										return cb && cb("Can't verify votes, vote for not exists delegate found: " + transaction.id);
-									}
-								} else if (transaction.type == 4) {
-									if (transaction.recipientId != null) {
-										return cb && cb("Incorrect recipient");
-									}
+										if (!modules.delegates.checkDelegates(transaction.senderPublicKey, transaction.asset.votes)) {
+											return cb && cb("Can't verify votes, vote for not exists delegate found: " + transaction.id);
+										}
+										break;
+									case 4:
+										if (transaction.recipientId != null) {
+											return cb && cb("Incorrect recipient");
+										}
 
-									if (!transaction.asset.script) {
-										return cb && cb("Transaction script not set");
-									}
+										if (!transaction.asset.script) {
+											return cb && cb("Transaction script not set");
+										}
 
-									if (!transaction.asset.script.code) {
-										return cb && cb("Transaction script code not exists");
-									}
+										if (!transaction.asset.script.code) {
+											return cb && cb("Transaction script code not exists");
+										}
 
-									var code = null, parameters = null;
+										var code = null, parameters = null;
 
-									try {
-										code = new Buffer(transaction.asset.script.code, 'hex');
-										parameters = new Buffer(transaction.asset.script.parameters, 'hex');
-									} catch (e) {
-										return done("Can't parse code/parameters from hex to strings in script transaction.");
-									}
+										try {
+											code = new Buffer(transaction.asset.script.code, 'hex');
+											parameters = new Buffer(transaction.asset.script.parameters, 'hex');
+										} catch (e) {
+											return done("Can't parse code/parameters from hex to strings in script transaction.");
+										}
 
-									if (code.length > 4 * 1024) {
-										return cb && cb("Incorrect script code length");
-									}
+										if (code.length > 4 * 1024) {
+											return cb && cb("Incorrect script code length");
+										}
 
-									if (parameters.length > 4 * 1024) {
-										return cb && cb("Incorrect script parameters length");
-									}
+										if (parameters.length > 4 * 1024) {
+											return cb && cb("Incorrect script parameters length");
+										}
 
-									try {
-										parameters = JSON.parse(parameters);
-									} catch (e) {
-										return cb && cb("Incorrect script parameters json");
-									}
+										try {
+											parameters = JSON.parse(parameters);
+										} catch (e) {
+											return cb && cb("Incorrect script parameters json");
+										}
 
-									if (!transaction.asset.script.name || transaction.asset.script.name.length == 0 || transaction.asset.script.name.length > 16) {
-										return cb && cb("Incorrect name length");
-									}
+										if (!transaction.asset.script.name || transaction.asset.script.name.length == 0 || transaction.asset.script.name.length > 16) {
+											return cb && cb("Incorrect name length");
+										}
 
-									if (transaction.asset.script.description && transaction.asset.script.description.length > 140) {
-										return cb && cb("Incorrect description length");
-									}
+										if (transaction.asset.script.description && transaction.asset.script.description.length > 140) {
+											return cb && cb("Incorrect description length");
+										}
+										break;
 								}
-
-//=======
-//								switch (transaction.type) {
-//									case 1:
-//										if (!transaction.asset.signature) {
-//											return cb("Transaction must have signature");
-//										}
-//										break;
-//									case 2:
-//										if (!transaction.asset.delegate.username) {
-//											return cb && cb("Empty transaction asset for delegate transaction");
-//										}
-//
-//										if (transaction.asset.delegate.username.length == 0 || transaction.asset.delegate.username.length > 20) {
-//											return cb && cb("Incorrect delegate username length");
-//										}
-//
-//										if (modules.delegates.existsName(transaction.asset.delegate.username)) {
-//											return cb && cb("Delegate with this name is already exists");
-//										}
-//
-//										if (modules.delegates.existsDelegate(transaction.senderPublicKey)) {
-//											return cb && cb("This account already delegate");
-//										}
-//										break;
-//									case 3:
-//										if (transaction.recipientId != transaction.senderId) {
-//											return cb && cb("Incorrect recipient");
-//										}
-//
-//										if (!modules.delegates.checkDelegates(transaction.senderPublicKey, transaction.asset.votes)) {
-//											return cb && cb("Can't verify votes, vote for not exists delegate found: " + transaction.id);
-//										}
-//										break;
-//								}
-//
-//>>>>>>> 0.2.0
+								
 								if (!modules.transactions.applyUnconfirmed(transaction)) {
 									return cb("Can't apply transaction: " + transaction.id);
 								}
