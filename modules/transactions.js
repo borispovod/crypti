@@ -15,8 +15,7 @@ var transactionHelper = require('../helpers/transaction.js'),
 	arrayHelper = require('../helpers/array.js'),
 	async = require('async'),
 	jsonschema = require('jsonschema'),
-	esprima = require('esprima')
-	;
+	esprima = require('esprima');
 
 // private fields
 var modules, library, self;
@@ -454,7 +453,7 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 						return done("Incorrect recipient");
 					}
 
-					if (!modules.delegates.checkDelegates(transaction.asset.votes)) {
+					if (!modules.delegates.checkDelegates(transaction.senderPublicKey, transaction.asset.votes)) {
 						return done("Can't verify votes, vote for not exists delegate found: " + transaction.id);
 					}
 					break;

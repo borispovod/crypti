@@ -82,7 +82,7 @@ function normalizeTransaction(transaction) {
 	transaction.amount = params.int(transaction.amount);
 	transaction.fee = params.int(transaction.fee);
 	transaction.signature = params.hex(transaction.signature);
-	transaction.signSignature = params.hex(transaction.signSignature, true);
+	transaction.signSignature = params.hex(transaction.signSignature || null, true);
 	transaction.asset = params.object(transaction.asset);
 
 	switch (transaction.type) {
