@@ -102,7 +102,9 @@ function attachApi() {
 
 		transaction.id = transactionHelper.getId(transaction);
 
-		modules.transactions.processUnconfirmedTransaction(transaction, true, function (err) {
+		library.sequence.add(function (cb) {
+			modules.transactions.processUnconfirmedTransaction(transaction, true, cb);
+		}, function (err) {
 			if (err) {
 				return res.json({success: false, error: err});
 			}

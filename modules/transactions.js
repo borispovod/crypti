@@ -176,7 +176,9 @@ function attachApi() {
 			self.secondSign(secondSecret, transaction);
 		}
 
-		self.processUnconfirmedTransaction(transaction, true, function (err) {
+		library.sequence.add(function (cb) {
+			self.processUnconfirmedTransaction(transaction, true, cb);
+		}, function (err) {
 			if (err) {
 				return res.json({success: false, error: err});
 			}
@@ -639,8 +641,10 @@ Transactions.prototype.onReceiveTransaction = function (transactions) {
 		transactions = [transactions];
 	}
 
-	async.forEach(transactions, function (transaction, cb) {
-		self.processUnconfirmedTransaction(transaction, true, cb);
+	library.sequence.add(function (cb) {
+		async.forEach(transactions, function (transaction, cb) {
+			self.processUnconfirmedTransaction(transaction, true, cb);
+		}, cb);
 	});
 }
 
