@@ -53,7 +53,7 @@ function attachApi() {
 	router.put('/', function (req, res) {
 		var secret = params.string(req.body.secret),
 			secondSecret = params.string(req.body.secondSecret),
-			publicKey = params.hex(req.body.publicKey, true);
+			publicKey = params.hex(req.body.publicKey || null, true);
 
 		var hash = crypto.createHash('sha256').update(secret, 'utf8').digest();
 		var keypair = ed.MakeKeypair(hash);
@@ -118,7 +118,7 @@ function attachApi() {
 	library.app.use(function (err, req, res, next) {
 		err && library.logger.error('/api/signatures', err)
 		if (!err) return next();
-		res.status(500).send({success: false, error: err});
+		res.status(500).send({success: false, error: err.toString()});
 	});
 }
 

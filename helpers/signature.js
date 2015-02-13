@@ -13,7 +13,7 @@ function getBytes(signature) {
 
 		bb.flip();
 	} catch (e) {
-		return new Buffer();
+		throw e.toString();
 	}
 	return bb.toBuffer();
 }

@@ -47,7 +47,8 @@ var config = {
 		"system": "./modules/system.js",
 		"peer": "./modules/peer.js",
 		"delegates": "./modules/delegates.js",
-		"scripts": "./modules/scripts.js"
+		"scripts": "./modules/scripts.js",
+		"round": "./modules/round.js"
 	}
 }
 

@@ -9,7 +9,7 @@ function relational2object(rows) {
 	var blocks = {};
 	var order = [];
 	for (var i = 0, length = rows.length; i < length; i++) {
-		var __block = getBlock(rows[i], true);
+		var __block = getBlock(rows[i]);
 		if (__block) {
 			if (!blocks[__block.id]) {
 				if (__block.id == genesisblock.blockId) {
@@ -20,19 +20,19 @@ function relational2object(rows) {
 				blocks[__block.id] = __block;
 			}
 
-			var __transaction = getTransaction(rows[i], true);
+			var __transaction = getTransaction(rows[i]);
 			blocks[__block.id].transactions = blocks[__block.id].transactions || {};
 			if (__transaction) {
 				__transaction.asset = __transaction.asset || {};
 				if (!blocks[__block.id].transactions[__transaction.id]) {
-					var __signature = getSignature(rows[i], true);
+					var __signature = getSignature(rows[i]);
 					if (__signature) {
 						if (!__transaction.asset.signature) {
 							__transaction.asset.signature = __signature;
 						}
 					}
 
-					var __delegate = getDelegate(rows[i], true, true);
+					var __delegate = getDelegate(rows[i]);
 					if (__delegate) {
 						if (!__transaction.asset.delegate) {
 							__transaction.asset.delegate = __delegate;
@@ -79,7 +79,6 @@ function getBlock(raw) {
 		var block = {
 			id: raw.b_id,
 			version: parseInt(raw.b_version),
-			delegates: parseInt(raw.b_delegates),
 			timestamp: parseInt(raw.b_timestamp),
 			height: parseInt(raw.b_height),
 			previousBlock: raw.b_previousBlock,
@@ -90,10 +89,7 @@ function getBlock(raw) {
 			payloadHash: raw.b_payloadHash,
 			generatorPublicKey: raw.b_generatorPublicKey,
 			generatorId: getAddressByPublicKey(raw.b_generatorPublicKey),
-			blockSignature: raw.b_blockSignature,
-			previousFee: parseFloat(raw.b_previousFee),
-			nextFeeVolume: parseInt(raw.b_nextFeeVolume),
-			feeVolume: parseInt(raw.b_feeVolume)
+			blockSignature: raw.b_blockSignature
 		}
 
 		return block;

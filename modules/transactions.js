@@ -44,12 +44,13 @@ function attachApi() {
 	});
 
 	router.get('/', function (req, res) {
-		var blockId = params.string(req.query.blockId);
-		var limit = params.int(req.query.limit);
-		var orderBy = params.string(req.query.orderBy);
-		var offset = params.int(req.query.offset);
-		var senderPublicKey = params.hex(req.query.senderPublicKey, true);
-		var recipientId = params.string(req.query.recipientId)
+		var blockId = params.string(req.query.blockId, true);
+		var limit = params.int(req.query.limit, true);
+		var orderBy = params.string(req.query.orderBy, true);
+		var offset = params.int(req.query.offset, true);
+		var senderPublicKey = params.hex(req.query.senderPublicKey || null, true);
+		var senderId = params.string(req.query.senderId, true);
+		var recipientId = params.string(req.query.recipientId, true)
 
 		list({
 			blockId: blockId,
@@ -57,7 +58,8 @@ function attachApi() {
 			recipientId: recipientId,
 			limit: limit || 20,
 			orderBy: orderBy,
-			offset: offset
+			offset: offset,
+			senderId: senderId
 		}, function (err, transactions) {
 			if (err) {
 				return res.json({success: false, error: "Transactions not found"});
@@ -103,7 +105,7 @@ function attachApi() {
 		var transactions = self.getUnconfirmedTransactions(true),
 			toSend = [];
 
-		var senderPublicKey = params.hex(req.query.senderPublicKey, true),
+		var senderPublicKey = params.hex(req.query.senderPublicKey || null, true),
 			address = params.string(req.query.address, true);
 
 		if (senderPublicKey || address) {
@@ -132,11 +134,11 @@ function attachApi() {
 	router.put('/', function (req, res) {
 		var secret = params.string(req.body.secret),
 			amount = params.int(req.body.amount),
-			recipientId = params.string(req.body.recipientId, true),
-			publicKey = params.hex(req.body.publicKey, true),
-			secondSecret = params.string(req.body.secondSecret, true),
-			scriptId = params.string(req.body.scriptId, true),
-			input = params.object(req.body.input, true);
+			recipientId = params.string(req.body.recipientId || null, true),
+			publicKey = params.hex(req.body.publicKey || null, true),
+			secondSecret = params.string(req.body.secondSecret || null, true),
+			scriptId = params.string(req.body.scriptId || null, true),
+			input = params.object(req.body.input || null, true);
 
 		var hash = crypto.createHash('sha256').update(secret, 'utf8').digest();
 		var keypair = ed.MakeKeypair(hash);
@@ -218,7 +220,7 @@ function attachApi() {
 	library.app.use(function (err, req, res, next) {
 		err && library.logger.error('/api/transactions', err)
 		if (!err) return next();
-		res.status(500).send({success: false, error: err});
+		res.status(500).send({success: false, error: err.toString()});
 	});
 }
 
@@ -231,6 +233,10 @@ function list(filter, cb) {
 	if (filter.senderPublicKey) {
 		fields.push('lower(hex(senderPublicKey)) = $senderPublicKey')
 		params.senderPublicKey = filter.senderPublicKey;
+	}
+	if (filter.senderId) {
+		fields.push('senderId = $senderId');
+		params.senderId = filter.senderId;
 	}
 	if (filter.recipientId) {
 		fields.push('recipientId = $recipientId')
@@ -245,15 +251,15 @@ function list(filter, cb) {
 
 	if (filter.orderBy) {
 		var sort = filter.orderBy.split(':');
-		sortBy = sort[0].replace(/[^\w\s]/gi, '');
+		var sortBy = sort[0].replace(/[^\w\s]/gi, '');
 		sortBy = "t." + sortBy;
 		if (sort.length == 2) {
-			sortMethod = sort[1] == 'desc' ? 'desc' : 'asc'
+			var sortMethod = sort[1] == 'desc' ? 'desc' : 'asc'
 		}
 	}
 
-	if (filter.limit > 1000) {
-		return cb('Maximum of limit is 1000');
+	if (filter.limit > 100) {
+		return cb('Maximum of limit is 100');
 	}
 
 	// need to fix 'or' or 'and' in query
@@ -435,15 +441,11 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 						return done("Incorrect delegate username length");
 					}
 
-					if (modules.delegates.getDelegateByName(transaction.asset.delegate.username)) {
+					if (modules.delegates.existsName(transaction.asset.delegate.username)) {
 						return done("Delegate with this name is already exists");
 					}
 
-					if (modules.delegates.getDelegate(transaction.senderPublicKey)) {
-						return done("This account already delegate");
-					}
-
-					if (modules.delegates.getDelegate(transaction.senderPublicKey)) {
+					if (modules.delegates.existsDelegate(transaction.senderPublicKey)) {
 						return done("This account already delegate");
 					}
 					break;
@@ -545,6 +547,7 @@ Transactions.prototype.apply = function (transaction) {
 		return false;
 	}
 
+	// process only two types of transactions
 	switch (transaction.type) {
 		case 0:
 			sender.addToBalance(-amount);
@@ -561,37 +564,18 @@ Transactions.prototype.apply = function (transaction) {
 			sender.secondPublicKey = transaction.asset.signature.publicKey;
 			break;
 		case 2:
-			modules.delegates.removeUnconfirmedDelegate(transaction.publicKey);
-			modules.delegates.cache(transaction.asset.delegate);
-
 			sender.addToBalance(-amount);
+
+			modules.delegates.removeUnconfirmedDelegate(transaction.asset.delegate);
+			modules.delegates.cache(transaction.asset.delegate);
 			break;
 		case 3:
-			sender.updateDelegateList(transaction.asset.votes);
+			sender.addToBalance(-amount);
+
+			sender.applyDelegateList(transaction.asset.votes);
 			break;
 	}
-
 	return true;
-}
-
-Transactions.prototype.applyUnconfirmedList = function (ids) {
-	for (var i = 0; i < ids.length; i++) {
-		var transaction = unconfirmedTransactions[ids[i]];
-		if (!this.applyUnconfirmed(transaction)) {
-			delete unconfirmedTransactions[ids[i]];
-			doubleSpendingTransactions[ids[i]] = transaction;
-		}
-	}
-}
-
-Transactions.prototype.undoAllUnconfirmed = function () {
-	var ids = Object.keys(unconfirmedTransactions);
-	for (var i = 0; i < ids.length; i++) {
-		var transaction = unconfirmedTransactions[ids[i]];
-		this.undoUnconfirmed(transaction);
-	}
-
-	return ids;
 }
 
 Transactions.prototype.applyUnconfirmedList = function (ids) {
@@ -630,11 +614,17 @@ Transactions.prototype.applyUnconfirmed = function (transaction) {
 
 		sender.unconfirmedSignature = true;
 	} else if (transaction.type == 2) {
-		if (modules.delegates.getUnconfirmedDelegate(transaction.senderPublicKey)) {
+		if (modules.delegates.getUnconfirmedDelegate(transaction.asset.delegate)) {
 			return false;
 		}
 
-		modules.delegates.addUnconfirmedDelegate(transaction.senderPublicKey);
+		if (modules.delegates.getUnconfirmedName(transaction.asset.delegate)) {
+			return false;
+		}
+
+		modules.delegates.addUnconfirmedDelegate(transaction.asset.delegate);
+	} else if (transaction.type == 3) {
+
 	}
 
 	var amount = transaction.amount + transaction.fee;
@@ -657,7 +647,7 @@ Transactions.prototype.undoUnconfirmed = function (transaction) {
 	if (transaction.type == 1) {
 		sender.unconfirmedSignature = false;
 	} else if (transaction.type == 2) {
-		modules.delegates.removeUnconfirmedDelegate(transaction.senderPublicKey);
+		modules.delegates.removeUnconfirmedDelegate(transaction.asset.delegate);
 	}
 
 	return true;
@@ -669,7 +659,6 @@ Transactions.prototype.undo = function (transaction) {
 
 	sender.addToBalance(amount);
 
-	// process only two types of transactions
 	switch (transaction.type) {
 		case 0:
 			var recipient = modules.accounts.getAccountOrCreateByAddress(transaction.recipientId);
@@ -683,9 +672,13 @@ Transactions.prototype.undo = function (transaction) {
 			break;
 		case 2:
 			modules.delegates.uncache(transaction.asset.delegate);
-			modules.delegates.addUnconfirmedDelegate(transaction.senderPublicKey);
+			modules.delegates.addUnconfirmedDelegate(transaction.asset.delegate);
+			break;
+		case 3:
+			sender.undoDelegateList(transaction.asset.votes);
 			break;
 	}
+
 	return true;
 }
 
