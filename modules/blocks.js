@@ -1134,7 +1134,6 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 
 					modules.transactions.applyUnconfirmedList(unconfirmedTransactions);
 
-
 					setImmediate(cb, errors[0]);
 				} else {
 					modules.transactions.applyUnconfirmedList(unconfirmedTransactions);
