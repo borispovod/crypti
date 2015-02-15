@@ -3,6 +3,7 @@ var Router = require('../helpers/router.js'),
 	request = require('request'),
 	ip = require('ip'),
 	util = require('util'),
+	params = require('../helpers/params.js'),
 	RequestSanitizer = require('../helpers/request-sanitizer.js'),
 	normalize = require('../helpers/normalize.js');
 
@@ -38,21 +39,25 @@ function attachApi() {
 			return next();
 		}
 
-		req.sanitize("headers", {
+		req.sanitize(req.headers, {
 			port : "int",
 			os : "string?",
-			'share-port' : "int",
-			version : "string"
-		}, function(err, report, headers) {
+			'share-port' : {
+				int : true,
+				boolean : true
+			},
+			version : "string?"
+		}, function(err, report, headers){
 			if (err) return next(err);
-			if (!report.isValid) return res.json({success: false, error: report.issues});
+			if (! report.isValid) return {status:false, error:report.issues};
+
 
 			var peer = {
 				ip: ip.toLong(peerIp),
 				port: headers.port,
 				state: 2,
 				os: headers.os,
-				sharePort: Number(!!headers['share-port']),
+				sharePort: Number(headers['share-port']),
 				version: headers.version
 			};
 
@@ -73,127 +78,51 @@ function attachApi() {
 		})
 	});
 
-	router.get("/blocks/ids", function (req, res) {
-		res.set(headers);
-		var id = RequestSanitizer.string(req.query.id);
-		if (!id) {
-			return res.json({success: false, error: "Provide id in url"});
-		}
-
-		library.dbLite.query("SELECT id FROM blocks WHERE height > (SELECT height FROM blocks where id=$id) ORDER BY height LIMIT 1440", {id: id}, ['id'], function (err, rows) {
-			if (err) {
-				return res.status(200).json({success: false, error: "Internal sql error"});
-			}
-
-			var ids = [];
-			for (var i = 0; i < rows.length; i++) {
-				ids.push(rows[i].id);
-			}
-			res.status(200).json({ids: ids});
-		});
-	});
-
-	router.get("/blocks/milestone", function (req, res) {
+	router.get("/blocks/common", function (req, res, next) {
 		res.set(headers);
 
 		req.sanitize("query", {
-			lastBlockId : "string?",
-			lastMilestoneBlockId: "string?"
-		}, function(err, report, query) {
+			max : "int!",
+			min : "int!",
+			ids : {
+				required : true,
+				string : true,
+				array : ",",
+				minLength : 1,
+				maxLength : 1000
+			}
+		}, function(err, report, query){
 			if (err) return next(err);
-			if (!report.isValid) return res.json({success: false, error: report.issues});
+			if (! report.isValid) return res.json({success:false, error: report.issue});
 
-			var lastBlockId = query.lastBlockId;
-			var lastMilestoneBlockId = query.lastMilestoneBlockId;
 
-			if (!lastBlockId && !lastMilestoneBlockId) {
-				return res.json({success: false, error: "Error, provide lastBlockId or lastMilestoneBlockId"});
-			}
+			var max = query.max;
+			var min = query.min;
+			var ids = query.ids;
 
-			var lastBlock = modules.blocks.getLastBlock();
+			var numberPattern = /\d+/g;
+			var escapedIds = ids.map(function (id) {
+				// Stop operation?
+				return "'" + id.replace(/\D/g, '') + "'";
+			});
 
-			if (lastBlockId == lastBlock.id) {
-				return res.status(200).json({last: true, milestoneBlockIds: [lastBlockId]});
-			}
-
-			var blockId, height, jump, limit;
-			var milestoneBlockIds = [];
-			async.series([
-				function (cb) {
-					if (lastMilestoneBlockId) {
-						library.dbLite.query("SELECT height FROM blocks WHERE id=$id", {id: lastMilestoneBlockId}, {"height": Number}, function (err, rows) {
+			library.dbLite.query("select max(height), id, previousBlock, timestamp, lower(hex(blockSignature)) from blocks where id in (" + escapedIds.join(',') + ") and height >= $min and height <= $max", {
+				"max": max,
+				"min": min
+			}, {
+				"height": Number,
+				"id": String,
+				"previousBlock": String,
+				"timestamp": Number,
+				"blockSignature": String
+			}, function (err, rows) {
 							if (err) {
-								return cb("Internal sql error");
+					cb(err);
+					return res.json({success: false, error: "Error in db"});
 							}
 
-							var block = rows.length && rows[0];
-
-							if (!block) {
-								cb("Can't find block: " + lastMilestoneBlockId);
-							} else {
-								height = block.height;
-								jump = Math.min(1440, lastBlock.height - height);
-								height = Math.max(height - jump, 0);
-								limit = 10;
-								cb();
-							}
-						});
-					} else if (lastBlockId) {
-						height = lastBlock.height;
-						jump = 10;
-						limit = 10;
-						cb();
-					}
-				}
-			], function (error) {
-				if (error) {
-					return res.status(200).json({success: false, error: error});
-				} else {
-					library.dbLite.query("SELECT id FROM blocks WHERE height = $height", {height: height}, ['id'], function (err, rows) {
-						if (err) {
-							return res.status(200).json({success: false, error: "Internal sql error"});
-						}
-
-						var block = rows.length && rows[0];
-
-						if (!block) {
-							res.status(200).json({milestoneBlockIds: milestoneBlockIds});
-						} else {
-							blockId = block.id;
-
-							async.whilst(
-								function () {
-									return (height > 0 && limit-- > 0);
-								},
-								function (next) {
-									milestoneBlockIds.push(blockId);
-									library.dbLite.query("SELECT id FROM blocks WHERE height = $height", {height: height}, ['id'], function (err, rows) {
-										if (err) {
-											return next(err);
-										}
-
-										var block = rows.length && rows[0];
-
-										if (!block) {
-											next("Internal error");
-										} else {
-											blockId = block.id;
-											height = height - jump;
-											next();
-										}
-									});
-								},
-								function (err) {
-									if (err) {
-										return res.status(200).json({success: false, error: err});
-									}
-
-									res.status(200).json({milestoneBlockIds: milestoneBlockIds});
-								}
-							)
-						}
-					});
-				}
+				var commonBlock = rows.length ? rows[0] : null;
+				return res.json({success: true, common: commonBlock});
 			});
 		});
 	});
@@ -212,7 +141,15 @@ function attachApi() {
 	router.post("/blocks", function (req, res) {
 		res.set(headers);
 
-		var block = normalize.block(req.body.block)
+		try {
+			var block = normalize.block(req.body.block)
+		} catch (e) {
+			var peerIp = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+			var peerStr = peerIp ? peerIp + ":" + RequestSanitizer.int(req.headers['port']) : 'unknown';
+			library.logger.log('ban 60 min', peerStr);
+			modules.peer.state(ip.toLong(peerIp), RequestSanitizer.int(req.headers['port']), 0, 3600);
+			return res.sendStatus(200);
+		}
 
 		library.bus.message('receiveBlock', block);
 
@@ -228,7 +165,15 @@ function attachApi() {
 	router.post("/transactions", function (req, res) {
 		res.set(headers);
 
-		var transaction = normalize.transaction(req.body.transaction);
+		try {
+			var transaction = normalize.transaction(req.body.transaction);
+		} catch (e) {
+			var peerIp = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+			var peerStr = peerIp ? peerIp + ":" + RequestSanitizer.int(req.headers['port']) : 'unknown';
+			library.logger.log('ban 60 min', peerStr);
+			modules.peer.state(ip.toLong(peerIp), RequestSanitizer.int(req.headers['port']), 0, 3600);
+			return res.sendStatus(200);
+		}
 
 		library.bus.message('receiveTransaction', transaction);
 
@@ -251,7 +196,7 @@ function attachApi() {
 	library.app.use(function (err, req, res, next) {
 		library.logger.error('/peer', err)
 		if (!err) return next();
-		res.status(500).send({success: false, error: err});
+		res.status(500).send({success: false, error: err.toString()});
 	});
 }
 
@@ -265,7 +210,7 @@ function _request(peer, api, method, data, cb) {
 	};
 
 
-	library.logger.trace('request', req.url)
+	library.logger.trace('request', req.url);
 
 	if (Object.prototype.toString.call(data) == "[object Object]" || util.isArray(data)) {
 		req.json = data;

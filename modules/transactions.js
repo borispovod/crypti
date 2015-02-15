@@ -9,14 +9,13 @@ var transactionHelper = require('../helpers/transaction.js'),
 	constants = require("../helpers/constants.js"),
 	relational = require("../helpers/relational.js"),
 	slots = require('../helpers/slots.js'),
-	RequestSanitizer = require('../helpers/request-sanitizer.js'),
 	extend = require('extend'),
 	Router = require('../helpers/router.js'),
 	arrayHelper = require('../helpers/array.js'),
 	async = require('async'),
+	RequestSanitizer = require('../helpers/request-sanitizer.js'),
 	JsonSchema = require('../helpers/json-schema'),
-	esprima = require('esprima')
-	;
+	esprima = require('esprima');
 
 // private fields
 var modules, library, self;
@@ -43,19 +42,20 @@ function attachApi() {
 		res.status(500).send({success: false, error: 'loading'});
 	});
 
-	router.get('/', function (req, res, next) {
+	router.get('/', function (req, res) {
 		req.sanitize("query", {
-			blockId : "string",
-			limit : {default:20, int:true},
-			orderBy : "string",
-			offset : "int",
-			senderPublicKey : "hex?",
-			recipientId : "string"
+			blockId : "string?",
+			limit : "int?",
+			orderBy: "string?",
+			offset : {default:20,int:true},
+			senderPublicKey:"hex?",
+			senderId:"string",
+			recipientId:"string?"
 		}, function(err, report, query){
 			if (err) return next(err);
 			if (! report.isValid) return res.json({success:false, error:report.issues});
 
-			list(query, function (err, transactions) {
+			list(query, function(err, transactions){
 				if (err) {
 					return res.json({success: false, error: "Transactions not found"});
 				}
@@ -101,28 +101,12 @@ function attachApi() {
 		var transactions = self.getUnconfirmedTransactions(true),
 			toSend = [];
 
-		req.sanitize("query", {
-			address : "string?",
-			senderPublicKey : "string?"
-		}, function(err, report, query){
-			if (err) return next(err);
-			if (! report.isValid) return res.json({success: false, error: report.issues});
+		var senderPublicKey = RequestSanitizer.hex(req.query.senderPublicKey || null, true),
+			address = RequestSanitizer.string(req.query.address, true);
 
-			var senderPublicKey = query.senderPublicKey,
-				address = query.address;
-
-			if (senderPublicKey || address) {
-				for (var i = 0; i < transactions.length; i++) {
-					if (transactions[i].senderPublicKey == senderPublicKey || transactions[i].recipientId == address) {
-						var transaction = extend(true, {}, transactions[i]);
-
-						delete transaction.asset;
-
-						toSend.push(transaction);
-					}
-				}
-			} else {
-				for (var i = 0; i < transactions.length; i++) {
+		if (senderPublicKey || address) {
+			for (var i = 0; i < transactions.length; i++) {
+				if (transactions[i].senderPublicKey == senderPublicKey || transactions[i].recipientId == address) {
 					var transaction = extend(true, {}, transactions[i]);
 
 					delete transaction.asset;
@@ -130,14 +114,25 @@ function attachApi() {
 					toSend.push(transaction);
 				}
 			}
-		});
+		} else {
+			for (var i = 0; i < transactions.length; i++) {
+				var transaction = extend(true, {}, transactions[i]);
+
+				delete transaction.asset;
+
+				toSend.push(transaction);
+			}
+		}
 
 		res.json({success: true, transactions: toSend});
 	});
 
 	router.put('/', function (req, res) {
 		req.sanitize("body", {
-			secret : "string",
+			secret : {
+				string:true,
+				minLength : 1
+			},
 			amount : "int",
 			recipientId : "string?",
 			publicKey : "hex?",
@@ -159,10 +154,6 @@ function attachApi() {
 			var hash = crypto.createHash('sha256').update(secret, 'utf8').digest();
 			var keypair = ed.MakeKeypair(hash);
 
-			if (secret.length == 0) {
-				return res.json({success: false, error: "Provide secret key"});
-			}
-
 			if (publicKey) {
 				if (keypair.publicKey.toString('hex') != publicKey) {
 					return res.json({success: false, error: "Please, provide valid secret key of your account"});
@@ -183,21 +174,10 @@ function attachApi() {
 				asset = {};
 
 			if (scriptId) {
-				modules.scripts.getScript(scriptId, function (err, script) {
-					if (err || !script) {
-						return res.json({success: false, error: "Script not found"});
-					}
-
-					var parameters = JSON.parse(new Buffer(script.parameters, 'hex').toString('utf8'));
-
-					// validate input with parameters?
-					// JSONscheme.validate(parameters,input)?
-
-					// set transaction
-					type = 5;
-					asset.input = new Buffer(JSON.stringify(input), 'utf8').toString('hex');
-					asset.scriptId = scriptId;
-				});
+				// set transaction
+				type = 5;
+				asset.input = new Buffer(JSON.stringify(input), 'utf8').toString('hex');
+				asset.scriptId = scriptId;
 			}
 
 			var transaction = {
@@ -220,9 +200,7 @@ function attachApi() {
 			}
 
 			self.processUnconfirmedTransaction(transaction, true, function (err) {
-				if (err) {
-					return res.json({success: false, error: err});
-				}
+				if (err) return res.json({success: false, error: err});
 
 				res.json({success: true, transactionId: transaction.id});
 			});
@@ -237,7 +215,7 @@ function attachApi() {
 	library.app.use(function (err, req, res, next) {
 		err && library.logger.error('/api/transactions', err)
 		if (!err) return next();
-		res.status(500).send({success: false, error: err});
+		res.status(500).send({success: false, error: err.toString()});
 	});
 }
 
@@ -250,6 +228,10 @@ function list(filter, cb) {
 	if (filter.senderPublicKey) {
 		fields.push('lower(hex(senderPublicKey)) = $senderPublicKey')
 		params.senderPublicKey = filter.senderPublicKey;
+	}
+	if (filter.senderId) {
+		fields.push('senderId = $senderId');
+		params.senderId = filter.senderId;
 	}
 	if (filter.recipientId) {
 		fields.push('recipientId = $recipientId')
@@ -264,15 +246,15 @@ function list(filter, cb) {
 
 	if (filter.orderBy) {
 		var sort = filter.orderBy.split(':');
-		sortBy = sort[0].replace(/[^\w\s]/gi, '');
+		var sortBy = sort[0].replace(/[^\w\s]/gi, '');
 		sortBy = "t." + sortBy;
 		if (sort.length == 2) {
-			sortMethod = sort[1] == 'desc' ? 'desc' : 'asc'
+			var sortMethod = sort[1] == 'desc' ? 'desc' : 'asc'
 		}
 	}
 
-	if (filter.limit > 1000) {
-		return cb('Maximum of limit is 1000');
+	if (filter.limit > 100) {
+		return cb('Maximum of limit is 100');
 	}
 
 	// need to fix 'or' or 'and' in query
@@ -341,12 +323,22 @@ Transactions.prototype.getUnconfirmedTransactions = function (sort) {
 	return a;
 }
 
+/**
+ * Remove transaction from list of unconfirmed transactions by it's id.
+ * @param {string} id Transaction id
+ */
 Transactions.prototype.removeUnconfirmedTransaction = function (id) {
 	if (unconfirmedTransactions[id]) {
 		delete unconfirmedTransactions[id];
 	}
 }
 
+/**
+ * Process unconfirmed transaction
+ * @param {object} transaction
+ * @param {boolean} broadcast Broadcast transaction confirmation
+ * @param {function(err,transaction=)} cb Result callback.
+ */
 Transactions.prototype.processUnconfirmedTransaction = function (transaction, broadcast, cb) {
 	var txId = transactionHelper.getId(transaction);
 
@@ -367,7 +359,7 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 
 		unconfirmedTransactions[transaction.id] = transaction;
 
-		library.bus.message('unconfirmedTransaction', transaction, broadcast);
+		library.bus.message('unconfirmedTransaction', transaction, broadcast)
 
 		cb && cb(null, transaction.id);
 	}
@@ -400,39 +392,7 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 				return done("Can't verify signature");
 			}
 
-			if (sender.secondSignature) {
-				if (!self.verifySecondSignature(transaction, sender.secondPublicKey)) {
-					return done("Can't verify second signature");
-				}
-			}
-
-			// check if transaction is not float and great then 0
-			if (transaction.amount < 0 || transaction.amount.toString().indexOf('.') >= 0) {
-				return done("Invalid transaction amount");
-			}
-
-			if (slots.getSlotNumber(transaction.timestamp) > slots.getSlotNumber()) {
-				return done("Invalid transaction timestamp");
-			}
-
-			var fee = transactionHelper.getFee(transaction, modules.blocks.getFee());
-
-			if (fee <= 0) {
-				fee = 1;
-			}
-
-			transaction.fee = fee;
-
-			self.validateTransaction(transaction, function(err){
-				if (err) return done(err);
-
-				modules.sandboxes.execTransaction(transaction, function(err, result){
-					if (err) return done(err);
-					if (result !== 'TRUE') return done("Result is FALSE");
-
-					done(null, transaction);
-				});
-			});
+			self.validateTransaction(transaction, done);
 		}
 	});
 }
@@ -463,14 +423,19 @@ Transactions.prototype.validateTransaction = function(transaction, done) {
 		return done("Invalid transaction type/fee: " + transaction.id);
 	}
 
-	if (transaction.amount < 0) {
+	if (transaction.amount < 0 || String(transaction.amount).indexOf('.') >= 0) {
 		return done("Invalid transaction amount: " + transaction.id);
+	}
+
+	if (slots.getSlotNumber(transaction.timestamp) > slots.getSlotNumber()) {
+		return done("Invalid transaction timestamp");
 	}
 
 
 	switch (transaction.type) {
+
 		case 0:
-			if (getLastChar(transaction) != "C") {
+			if (transactionHelper.getLastChar(transaction) != "C") {
 				return done("Invalid transaction recipient id");
 			}
 			break;
@@ -491,24 +456,20 @@ Transactions.prototype.validateTransaction = function(transaction, done) {
 			break;
 
 		case 2:
-			if (transaction.senderId != transaction.recipientId) {
-				return done("Invalid recipient");
-			}
-
 			if (!transaction.asset.delegate.username) {
 				return done("Empty transaction asset for delegate transaction");
 			}
 
-			if (transaction.asset.delegate.username.length < 1 || transaction.asset.delegate.username.length > 20) {
+			if (transaction.asset.delegate.username.length == 0 || transaction.asset.delegate.username.length > 20) {
 				return done("Incorrect delegate username length");
 			}
 
-			if (modules.delegates.getDelegateByName(transaction.asset.delegate.username)) {
+			if (modules.delegates.existsName(transaction.asset.delegate.username)) {
 				return done("Delegate with this name is already exists");
 			}
 
-			if (modules.delegates.getDelegate(transaction.senderPublicKey)) {
-				return done("This account already delegated");
+			if (modules.delegates.existsDelegate(transaction.senderPublicKey)) {
+				return done("This account already delegate");
 			}
 			break;
 		case 3:
@@ -516,12 +477,20 @@ Transactions.prototype.validateTransaction = function(transaction, done) {
 				return done("Incorrect recipient");
 			}
 
-			if (!modules.delegates.checkDelegates(transaction.asset.votes)) {
+			if (!modules.delegates.checkDelegates(transaction.senderPublicKey, transaction.asset.votes)) {
 				return done("Can't verify votes, vote for not exists delegate found: " + transaction.id);
 			}
 			break;
 		case 4:
-			self.validateTransactionScript(transaction.script, function(err){
+			if (transaction.recipientId != null) {
+				return done("Incorrect recipient");
+			}
+
+			if (!transaction.asset.script) {
+				return done("Transaction script not set");
+			}
+
+			self.validateTransactionScript(transaction.asset.script, function(err){
 				if (err) return done(err);
 
 				if (!transaction.asset.script.name || transaction.asset.script.name.length == 0 || transaction.asset.script.name.length > 16) {
@@ -579,13 +548,14 @@ Transactions.prototype.validateTransaction = function(transaction, done) {
 /**
  * Validate transaction script.
  * @param {{code:string,parameters:string}} script Script object.
- * @param {function(err:Error, script:{code:string,parameters:{}})} callback Result callback
+ * @param {function(err:Error|string, script:{code:string,parameters:{}}=)} callback Result callback
  * @returns {*}
  */
-Transactions.prototype.validateTransactionScript = function (script, callback) {
+Transactions.prototype.validateTransactionScript = function (script, cb) {
+
 
 	if (!script.code) {
-		return callback("Transaction script code not exists");
+		return cb("Transaction script code not exists");
 	}
 
 	var code = null, parameters = null;
@@ -594,31 +564,31 @@ Transactions.prototype.validateTransactionScript = function (script, callback) {
 		code = new Buffer(script.code, 'hex');
 		parameters = new Buffer(script.parameters, 'hex');
 	} catch (e) {
-		return callback("Can't parse code/parameters from hex to strings in script transaction.");
+		return cb("Can't parse code/parameters from hex to strings in script transaction.");
 	}
 
 
 	if (code.length > 4 * 1024) {
-		return callback("Incorrect script code length");
+		return cb("Incorrect script code length");
 	}
 
 	try {
 		esprima.parse(code.toString('utf8'));
 	} catch (err) {
-		return callback("Transaction script code is not valid");
+		return cb("Transaction script code is not valid");
 	}
 
 	if (parameters.length > 4 * 1024) {
-		return callback("Incorrect script parameters length");
+		return cb("Incorrect script parameters length");
 	}
 
 	try {
 		parameters = JSON.parse(parameters.toString('utf8'));
 	} catch (e) {
-		return callback("Incorrect script parameters json");
+		return cb("Incorrect script parameters json");
 	}
 
-	callback(null, {
+	cb(null, {
 		code : code,
 		parameters : parameters
 	});
@@ -632,6 +602,7 @@ Transactions.prototype.apply = function (transaction) {
 		return false;
 	}
 
+	// process only two types of transactions
 	switch (transaction.type) {
 		case 0:
 			sender.addToBalance(-amount);
@@ -648,37 +619,18 @@ Transactions.prototype.apply = function (transaction) {
 			sender.secondPublicKey = transaction.asset.signature.publicKey;
 			break;
 		case 2:
-			modules.delegates.removeUnconfirmedDelegate(transaction.publicKey);
-			modules.delegates.cache(transaction.asset.delegate);
-
 			sender.addToBalance(-amount);
+
+			modules.delegates.removeUnconfirmedDelegate(transaction.asset.delegate);
+			modules.delegates.cache(transaction.asset.delegate);
 			break;
 		case 3:
-			sender.updateDelegateList(transaction.asset.votes);
+			sender.addToBalance(-amount);
+
+			sender.applyDelegateList(transaction.asset.votes);
 			break;
 	}
-
 	return true;
-}
-
-Transactions.prototype.applyUnconfirmedList = function (ids) {
-	for (var i = 0; i < ids.length; i++) {
-		var transaction = unconfirmedTransactions[ids[i]];
-		if (!this.applyUnconfirmed(transaction)) {
-			delete unconfirmedTransactions[ids[i]];
-			doubleSpendingTransactions[ids[i]] = transaction;
-		}
-	}
-}
-
-Transactions.prototype.undoAllUnconfirmed = function () {
-	var ids = Object.keys(unconfirmedTransactions);
-	for (var i = 0; i < ids.length; i++) {
-		var transaction = unconfirmedTransactions[ids[i]];
-		this.undoUnconfirmed(transaction);
-	}
-
-	return ids;
 }
 
 Transactions.prototype.applyUnconfirmedList = function (ids) {
@@ -717,11 +669,17 @@ Transactions.prototype.applyUnconfirmed = function (transaction) {
 
 		sender.unconfirmedSignature = true;
 	} else if (transaction.type == 2) {
-		if (modules.delegates.getUnconfirmedDelegate(transaction.senderPublicKey)) {
+		if (modules.delegates.getUnconfirmedDelegate(transaction.asset.delegate)) {
 			return false;
 		}
 
-		modules.delegates.addUnconfirmedDelegate(transaction.senderPublicKey);
+		if (modules.delegates.getUnconfirmedName(transaction.asset.delegate)) {
+			return false;
+		}
+
+		modules.delegates.addUnconfirmedDelegate(transaction.asset.delegate);
+	} else if (transaction.type == 3) {
+
 	}
 
 	var amount = transaction.amount + transaction.fee;
@@ -744,7 +702,7 @@ Transactions.prototype.undoUnconfirmed = function (transaction) {
 	if (transaction.type == 1) {
 		sender.unconfirmedSignature = false;
 	} else if (transaction.type == 2) {
-		modules.delegates.removeUnconfirmedDelegate(transaction.senderPublicKey);
+		modules.delegates.removeUnconfirmedDelegate(transaction.asset.delegate);
 	}
 
 	return true;
@@ -756,7 +714,6 @@ Transactions.prototype.undo = function (transaction) {
 
 	sender.addToBalance(amount);
 
-	// process only two types of transactions
 	switch (transaction.type) {
 		case 0:
 			var recipient = modules.accounts.getAccountOrCreateByAddress(transaction.recipientId);
@@ -770,9 +727,13 @@ Transactions.prototype.undo = function (transaction) {
 			break;
 		case 2:
 			modules.delegates.uncache(transaction.asset.delegate);
-			modules.delegates.addUnconfirmedDelegate(transaction.senderPublicKey);
+			modules.delegates.addUnconfirmedDelegate(transaction.asset.delegate);
+			break;
+		case 3:
+			sender.undoDelegateList(transaction.asset.votes);
 			break;
 	}
+
 	return true;
 }
 

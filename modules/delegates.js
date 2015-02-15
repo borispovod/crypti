@@ -15,16 +15,25 @@ require('array.prototype.find'); //old node fix
 var modules, library, self;
 
 var keypair, myDelegate, address, account;
-var delegates = {};
 var activeDelegates = [];
 var loaded = false;
 var unconfirmedDelegates = [];
-var tasks = [];
+var unconfirmedNames = [];
+
+var votes = {};
+
+var namesIndex = {};
+var publicKeyIndex = {};
+var transactionIdIndex = {};
+var delegates = [];
+
+//var keypairs;
 
 //constructor
 function Delegates(cb, scope) {
 	library = scope;
 	self = this;
+	//keypairs = [];
 
 	attachApi();
 
@@ -40,7 +49,153 @@ function attachApi() {
 		res.status(500).send({success: false, error: 'loading'});
 	});
 
-	router.put('/', function (req, res) {
+	router.get('/', function (req, res) {
+		var limit = params.int(req.query.limit),
+			offset = params.int(req.query.offset),
+			orderBy = params.string(req.query.orderBy);
+
+		limit = limit > 100 || limit == 0 ? 100 : limit;
+		var length = Math.min(limit, Object.keys(publicKeyIndex).length);
+		var realLimit = Math.min(offset + limit, length);
+		var result = [];
+		for (var i = offset; i < realLimit; i++) {
+			if (delegates[i] === false) {
+				i--;
+				continue;
+			}
+			result.push(delegates[i]);
+		}
+
+		if (orderBy) {
+			if (orderBy == 'username') {
+				result = result.sort(function compare(a, b) {
+					if (a[orderBy] > b[orderBy])
+						return -1;
+					if (a[orderBy] < b[orderBy])
+						return 1;
+					return 0;
+				});
+			}
+			if (orderBy == 'vote') {
+				result = result.sort(function compare(a, b) {
+					return votes[b.publicKey] - votes[a.publicKey];
+				});
+			}
+		}
+
+		res.json({success: true, delegates: result});
+	});
+
+	router.get('/get', function (req, res) {
+		var transactionId = params.string(req.query.id);
+
+		var index = transactionIdIndex[transactionId];
+		if (index === undefined) {
+			return res.json({success: false, error: "Delagate not found"});
+		}
+
+		res.json({success: true, delegate: delegates[index]});
+	});
+
+	router.post('/forging/enable', function (req, res) {
+		var secret = params.string(req.body.secret);
+
+		if (!secret) {
+			return res.json({success: false, error: "Provide secret in request"});
+		}
+
+		keypair = ed.MakeKeypair(crypto.createHash('sha256').update(secret, 'utf8').digest());
+		address = modules.accounts.getAddressByPublicKey(keypair.publicKey.toString('hex'));
+		account = modules.accounts.getAccount(address);
+		if (account && self.existsDelegate(keypair.publicKey.toString('hex'))) {
+			myDelegate = keypair.publicKey.toString('hex');
+			res.json({success: true, address: address});
+			library.logger.info("Forging enabled on account: " + address);
+		} else {
+			res.json({success: false});
+		}
+	});
+
+	router.post('/forging/disable', function (req, res) {
+		var secret = params.string(req.body.secret);
+
+		if (!secret) {
+			return res.json({success: false, error: "Provide secret in request"});
+		}
+
+		keypair = ed.MakeKeypair(crypto.createHash('sha256').update(secret, 'utf8').digest());
+		address = modules.accounts.getAddressByPublicKey(keypair.publicKey.toString('hex'));
+		account = modules.accounts.getAccount(address);
+		if (account && self.existsDelegate(keypair.publicKey.toString('hex'))) {
+			myDelegate = null;
+			res.json({success: true, address: address});
+			library.logger.info("Forging disabled on account: " + address);
+		} else {
+			res.json({success: false});
+		}
+	});
+
+	/*router.get('/forging/status', function (req, res) {
+	 var publicKey = req.query.publicKey;
+
+	 if (!publicKey) {
+	 return res.json({success: false, error: "Provide public key of account"});
+	 }
+
+	 var enabled = false;
+	 for (var i = 0; i < keypairs.length; i++) {
+	 if (keypairs[i].publicKey.toString('hex') == req.query.publicKey) {
+	 enabled = true;
+	 break;
+	 }
+	 }
+
+	 return res.json({success: true, enabled: enabled});
+	 });
+
+	 router.post('/forging/enable', function (req, res) {
+	 var secret = req.query.secret;
+
+	 if (!secret) {
+	 return res.json({success: false, error: "Provide secret key of account"});
+	 }
+
+	 var hash = crypto.createHash('sha256').update(secret, 'utf8').digest();
+	 var keypair = ed.MakeKeypair(hash);
+	 var publicKey = keypair.publicKey.toString('hex')
+
+	 for (var i = 0; i < keypairs.length; i++) {
+	 if (keypairs[i].publicKey.toString('hex') == publicKey) {
+	 return res.json({success: false, error: "Forging on this account already enabled"});
+	 }
+	 }
+
+	 keypairs.push(keypair);
+	 return res.json({success: true});
+	 });
+
+	 router.get('/forging/disable', function (req, res) {
+	 var secret = req.queyr.secret;
+
+	 if (!secret) {
+	 return res.json({success: false, error: "Provide secret key of account"});
+	 }
+
+	 var hash = crypto.createHash('sha256').update(secret, 'utf8').digest();
+	 var keypair = ed.MakeKeypair(hash);
+	 var publicKey = keypair.publicKey.toString('hex')
+
+	 for (var i = 0; i < keypairs.length; i++) {
+	 if (keypairs[i].publicKey.toString('hex') == publicKey) {
+	 keypairs.splice(i, 1);
+	 return res.json({success: true});
+	 }
+	 }
+
+	 return res.json({success: false, error: "Forger with this public key not found"});
+	 });*/
+
+	router.put('/', function (req, res, next) {
 		req.sanitize("body", {
 			secret : "string",
 			publicKey : "string?",
@@ -114,36 +269,29 @@ function attachApi() {
 	library.app.use(function (err, req, res, next) {
 		if (!err) return next();
 		library.logger.error('/api/delegates', err)
-		res.status(500).send({success: false, error: err});
+		res.status(500).send({success: false, error: err.toString()});
 	});
 }
 
-function getKeysSortByVote(delegates) {
-	var delegatesArray = arrayHelper.hash2array(delegates);
-	delegatesArray = delegatesArray.sort(function compare(a, b) {
-		return (b.vote || 0) - (a.vote || 0);
-	})
-	var justKeys = delegatesArray.map(function (v) {
-		return v.publicKey;
+function getKeysSortByVote(votes) {
+	var delegates = Object.keys(votes);
+	delegates = delegates.sort(function compare(a, b) {
+		return votes[b] - votes[a];
 	});
-	return justKeys;
+	return delegates;
 }
 
-function getBlockTime(slot, height, delegateCount) {
-	activeDelegates = self.generateDelegateList(getKeysSortByVote(delegates), height, delegateCount);
-
-	library.logger.log('getBlockTime ' + slot + ' ' + height + ' ' + delegateCount, activeDelegates.map(function (id) {
-		return id.substring(0, 4);
-	}))
+function getBlockTime(slot, height) {
+	activeDelegates = self.generateDelegateList(getKeysSortByVote(votes), height);
 
 	var currentSlot = slot;
 	var lastSlot = slots.getLastSlot(currentSlot);
 
 	for (; currentSlot < lastSlot; currentSlot += 1) {
-		var delegate_pos = currentSlot % delegateCount;
+		var delegate_pos = currentSlot % slots.delegates;
 
 		var delegate_id = activeDelegates[delegate_pos];
-		if (delegate_id && myDelegate.publicKey == delegate_id) {
+		if (delegate_id && myDelegate == delegate_id) {
 			return slots.getSlotTime(currentSlot);
 		}
 	}
@@ -171,9 +319,7 @@ function loop(cb) {
 		return;
 	}
 
-	var delegateCount = slots.delegates;
-
-	var currentBlockTime = getBlockTime(currentSlot, lastBlock.height + 1, delegateCount);
+	var currentBlockTime = getBlockTime(currentSlot, lastBlock.height + 1);
 
 	if (currentBlockTime === null) {
 		library.logger.log('loop', 'skip slot');
@@ -181,11 +327,10 @@ function loop(cb) {
 	}
 
 	library.sequence.add(function (cb) {
+		// how to detect keypair
 		if (slots.getSlotNumber(currentBlockTime) == slots.getSlotNumber()) {
-			modules.blocks.generateBlock(keypair, currentBlockTime, delegateCount, function (err) {
-				library.logger.log('new block ' + modules.blocks.getLastBlock().id + ' ' + modules.blocks.getLastBlock().height + ' ' + slots.getSlotNumber(currentBlockTime) + ' ' + lastBlock.height, activeDelegates.map(function (id) {
-					return id.substring(0, 4);
-				}))
+			modules.blocks.generateBlock(keypair, currentBlockTime, function (err) {
+				library.logger.log('round: ' + modules.round.calc(modules.blocks.getLastBlock().height) + ' new block id: ' + modules.blocks.getLastBlock().id + ' height:' + modules.blocks.getLastBlock().height + ' slot:' + slots.getSlotNumber(currentBlockTime))
 				cb(err);
 			});
 		} else {
@@ -199,10 +344,6 @@ function loop(cb) {
 	});
 }
 
-function calcRound(height, delegateCount) {
-	return Math.floor(height / delegateCount) + (height % delegateCount > 0 ? 1 : 0);
-}
-
 function loadMyDelegates() {
 	var secret = library.config.forging.secret
 
@@ -210,41 +351,53 @@ function loadMyDelegates() {
 		keypair = ed.MakeKeypair(crypto.createHash('sha256').update(secret, 'utf8').digest());
 		address = modules.accounts.getAddressByPublicKey(keypair.publicKey.toString('hex'));
 		account = modules.accounts.getAccount(address);
-		myDelegate = self.getDelegate(keypair.publicKey.toString('hex'));
+		if (self.existsDelegate(keypair.publicKey.toString('hex'))) {
+			myDelegate = keypair.publicKey.toString('hex');
+		}
 
 		library.logger.info("Forging enabled on account: " + address);
 	}
 }
 
 //public methods
-Delegates.prototype.generateDelegateList = function (roundDelegateList, height, delegateCount) {
-	var seedSource = calcRound(height, delegateCount).toString();
+Delegates.prototype.generateDelegateList = function (sortedDelegateList, height) {
+	var seedSource = modules.round.calc(height).toString();
 
 	var currentSeed = crypto.createHash('sha256').update(seedSource, 'utf8').digest();
-	for (var i = 0, delCount = roundDelegateList.length; i < delCount; i++) {
+	for (var i = 0, delCount = sortedDelegateList.length; i < delCount; i++) {
 		for (var x = 0; x < 4 && i < delCount; i++, x++) {
 			var newIndex = currentSeed[x] % delCount;
-			var b = roundDelegateList[newIndex];
-			roundDelegateList[newIndex] = roundDelegateList[i];
-			roundDelegateList[i] = b;
+			var b = sortedDelegateList[newIndex];
+			sortedDelegateList[newIndex] = sortedDelegateList[i];
+			sortedDelegateList[i] = b;
 		}
 		currentSeed = crypto.createHash('sha256').update(currentSeed).digest();
 	}
 
-	return roundDelegateList;
+	return sortedDelegateList;
 }
 
-Delegates.prototype.checkDelegates = function (votes) {
+Delegates.prototype.checkDelegates = function (publicKey, votes) {
 	if (votes === null) {
 		return true;
 	}
 
 	if (util.isArray(votes)) {
-		votes.forEach(function (publicKey) {
-			if (!delegates[publicKey]) {
+		var account = modules.accounts.getAccountByPublicKey(publicKey);
+		if (!account) {
+			return false;
+		}
+
+		for (var i = 0; i < votes.length; i++) {
+			var math = votes[i][0];
+			var publicKey = votes[i].slice(1);
+			if (math == "+" && (account.delegates !== null && account.delegates.indexOf(publicKey) != -1)) {
 				return false;
 			}
-		});
+			if (math == "-" && (account.delegates === null || account.delegates.indexOf(publicKey) === -1)) {
+				return false;
+			}
+		}
 
 		return true;
 	} else {
@@ -252,66 +405,65 @@ Delegates.prototype.checkDelegates = function (votes) {
 	}
 }
 
-Delegates.prototype.addUnconfirmedDelegate = function (publicKey) {
-	unconfirmedDelegates[publicKey];
+Delegates.prototype.addUnconfirmedDelegate = function (delegate) {
+	unconfirmedDelegates[delegate.publicKey] = true;
+	unconfirmedNames[delegate.publicKey] = true;
 }
 
-Delegates.prototype.getUnconfirmedDelegate = function (publicKey) {
-	return unconfirmedDelegates[publicKey];
+Delegates.prototype.getUnconfirmedDelegate = function (delegate) {
+	return !!unconfirmedDelegates[delegate.publicKey];
 }
 
-Delegates.prototype.removeUnconfirmedDelegate = function (publicKey) {
-	delete unconfirmedDelegates[publicKey];
+Delegates.prototype.getUnconfirmedName = function (delegate) {
+	return !!unconfirmedNames[delegate.username];
 }
 
-Delegates.prototype.getDelegate = function (publicKey) {
-	return delegates[publicKey];
+Delegates.prototype.removeUnconfirmedDelegate = function (delegate) {
+	delete unconfirmedDelegates[delegate.publicKey];
+	delete unconfirmedNames[delegate.publicKey];
 }
 
-Delegates.prototype.getDelegateByName = function (userName) {
-	var delegatesArray = arrayHelper.hash2array(delegates);
-	return delegatesArray.find(function (item) {
-		return item.username === userName;
-	})
+Delegates.prototype.existsDelegate = function (publicKey) {
+	return votes[publicKey] !== undefined;
+}
+
+Delegates.prototype.existsName = function (userName) {
+	return namesIndex[userName] !== undefined;
 }
 
 Delegates.prototype.cache = function (delegate) {
-	delegates[delegate.publicKey] = delegate;
-	slots.delegates = Math.min(101, Object.keys(delegates).length)
+	delegates.push(delegate);
+	var index = delegates.length - 1;
+
+	votes[delegate.publicKey] = 0;
+
+	namesIndex[delegate.username] = index;
+	publicKeyIndex[delegate.publicKey] = index;
+	transactionIdIndex[delegate.transactionId] = index;
 }
 
 Delegates.prototype.uncache = function (delegate) {
-	delete delegates[delegate.publicKey];
-	slots.delegates = Math.min(101, Object.keys(delegates).length)
+	delete votes[delegate.publicKey];
+
+	var index = publicKeyIndex[delegate.publicKey];
+
+	delete publicKeyIndex[delegate.publicKey]
+	delete namesIndex[delegate.username];
+	delete transactionIdIndex[delegate.transactionId];
+	delegates[index] = false;
 }
 
 Delegates.prototype.validateBlockSlot = function (block) {
-	if (!block.delegates) return false;
-
-	var activeDelegates = self.generateDelegateList(getKeysSortByVote(delegates), block.height, block.delegates);
+	var activeDelegates = self.generateDelegateList(getKeysSortByVote(votes), block.height);
 
 	var currentSlot = slots.getSlotNumber(block.timestamp);
-	var delegate_id = activeDelegates[currentSlot % block.delegates];
+	var delegate_id = activeDelegates[currentSlot % slots.delegates];
+
 	if (delegate_id && block.generatorPublicKey == delegate_id) {
-		//library.logger.log('validation pass', activeDelegates.map(function (id) {
-		//	return id.substring(0, 4);
-		//}))
 		return true;
 	}
 
-	library.logger.log('validation fail', activeDelegates.map(function (id) {
-		return id.substring(0, 4);
-	}))
 	return false;
-}
-
-Delegates.prototype.tick = function (block) {
-	var lastRound = calcRound(block.height, block.delegates);
-	var nextRound = calcRound(block.height + 1, slots.delegates);
-
-	if (nextRound !== lastRound) {
-		library.bus.message('finishRound', lastRound);
-	}
 }
 
 //events
@@ -338,48 +490,42 @@ Delegates.prototype.onBlockchainReady = function () {
 }
 
 Delegates.prototype.onNewBlock = function (block, broadcast) {
-	tasks.push(function () {
-		if (keypair) {
-			myDelegate = self.getDelegate(keypair.publicKey.toString('hex'));
-		}
-	});
+	//modules.round.runOnFinish(function () {
+	//	if (keypair && self.existsDelegate(keypair.publicKey.toString('hex'))) {
+	//		myDelegate = keypair.publicKey.toString('hex');
+	//	}
+	//});
 
-	self.tick(block);
+	modules.round.tick(block);
 }
 
-Delegates.prototype.onChangeBalance = function (account, amount) {
-	tasks.push(function () {
-		amount = amount / 1000000000;
-		if (util.isArray(account.delegates)) {
-			account.delegates.forEach(function (publicKey) {
-				delegates[publicKey].vote = (delegates[publicKey].vote || 0) + amount;
+Delegates.prototype.onChangeBalance = function (delegates, amount) {
+	modules.round.runOnFinish(function () {
+		var vote = amount / 100000000;
+
+		if (delegates !== null) {
+			delegates.forEach(function (publicKey) {
+				votes[publicKey] += vote;
 			});
 		}
 	});
 }
 
-Delegates.prototype.onChangeDelegates = function (account, newDelegates) {
-	tasks.push(function () {
-		var balance = account.balance / 1000000000;
-		if (util.isArray(account.delegates)) {
-			account.delegates.forEach(function (publicKey) {
-				delegates[publicKey].vote = (delegates[publicKey].vote || 0) - balance;
-			});
-		}
+Delegates.prototype.onChangeDelegates = function (balance, diff) {
+	modules.round.runOnFinish(function () {
+		var vote = balance / 100000000;
 
-		if (util.isArray(newDelegates)) {
-			newDelegates.forEach(function (publicKey) {
-				delegates[publicKey].vote = (delegates[publicKey].vote || 0) + balance;
-			});
+		for (var i = 0; i < diff.length; i++) {
+			var math = diff[i][0];
+			var publicKey = diff[i].slice(1);
+			if (math == "+") {
+				votes[publicKey] += vote;
+			}
+			if (math == "-") {
+				votes[publicKey] -= vote;
+			}
 		}
 	});
-}
-
-Delegates.prototype.onFinishRound = function (round) {
-	while (tasks.length) {
-		var task = tasks.shift();
-		task();
-	}
 }
 
 //export

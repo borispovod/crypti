@@ -42,37 +42,25 @@ function attachApi() {
 			if (err) return next(err);
 			if (! report.isValid) return res.json({success:false, error:report.issues});
 
-			var state = query.state,
-				os = query.os,
-				version = query.version,
-				limit = query.limit,
-				shared = query.shared,
-				orderBy = query.orderBy,
-				offset = query.offset;
-
-
 			if (limit < 0 || limit > 100) {
 				return res.json({success: false, error: "Max limit is 100"});
 			}
 
-			getByFilter({
-				state: state,
-				os: os,
-				version: version,
-				limit: limit,
-				shared: shared,
-				orderBy: orderBy,
-				offset: offset
-			}, function (err, peers) {
+			getByFilter(query, function (err, peers) {
 				if (err) {
 					return res.json({success: false, error: "Peers not found"});
 				}
+
+				for (var i = 0; i < peers.length; i++) {
+					peers[i].ip = ip.fromLong(peers[i].ip);
+				}
+
 				res.json({success: true, peers: peers});
 			});
 		});
 	});
 
-	router.get('/get', function (req, res) {
+	router.get('/get', function (req, res, next) {
 		req.sanitize("query", {
 			ip : "string",
 			port : "int"
@@ -80,22 +68,23 @@ function attachApi() {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
 
-			var ip = query.ip;
-			var port = query.port;
-
-			getByFilter({
-				ip: ip,
-				port: port
-			}, function (err, peers) {
+			getByFilter(query, function (err, peers) {
 				if (err) {
 					return res.json({success: false, error: "Peers not found"});
 				}
-				res.json({success: true, peer: peers.length ? peers[0] : {}});
+
+				var peer = peers.length ? peers[0] : null;
+
+				if (peer) {
+					peer.ip = ip.fromLong(peer.ip);
+				}
+
+				res.json({success: true, peer: peer || {}});
 			});
 		});
 	});
 
-	router.use(function (req, res, next) {
+	router.use(function (req, res) {
 		res.status(500).send({success: false, error: 'api not found'});
 	});
 
@@ -103,7 +92,7 @@ function attachApi() {
 	library.app.use(function (err, req, res, next) {
 		if (!err) return next();
 		library.logger.error('/api/peers', err)
-		res.status(500).send({success: false, error: err});
+		res.status(500).send({success: false, error: err.toString()});
 	});
 }
 
@@ -128,8 +117,6 @@ function updatePeerList(cb) {
 }
 
 function count(cb) {
-	var params = {};
-
 	library.dbLite.query("select count(rowid) from peers", {"count": Number}, function (err, rows) {
 		if (err) {
 			library.logger.error('Peer#count', err);
@@ -145,22 +132,59 @@ function banManager(cb) {
 }
 
 function getByFilter(filter, cb) {
-	var limit = filter.limit || 100;
+	var limit = filter.limit;
 	var offset = filter.offset;
 	delete filter.limit;
 	delete filter.offset;
 
 	var where = [];
 	var params = {};
-	Object.keys(filter).forEach(function (key) {
-		where.push(key + " = " + '$' + key);
-		params[key] = filter[key];
-	});
 
-	params['limit'] = limit;
-	offset && (params['offset'] = offset);
+	if (limit > 100) {
+		return cb("Maximum limit is 100");
+	}
 
-	library.dbLite.query("select ip, port, state, os, sharePort, version from peers" + (where.length ? (' where ' + where.join(' and ')) : '') + ' limit $limit' + (offset ? ' offset $offset ' : ''), params, {"ip": String, "port": Number, "state": Number, "os": String, "sharePort": Number, "version": String}, function(err, rows){
+	if (filter.state !== null) {
+		where.push("state = $state");
+		params.state = filter.state;
+	}
+
+	if (filter.os !== null) {
+		where.push("os = $os");
+		params.os = filter.os;
+	}
+
+	if (filter.version !== null) {
+		where.push("version = $version");
+		params.version = filter.version;
+	}
+
+	if (filter.shared !== null) {
+		where.push("sharePort = $sharePort");
+		params.sharePort = filter.shared;
+	}
+
+	if (filter.port !== null) {
+		where.push("port = $port");
+		params.port = filter.port;
+	}
+
+	if (limit !== null) {
+		params['limit'] = limit;
+	}
+
+	if (offset !== null) {
+		params['offset'] = offset;
+	}
+
+	library.dbLite.query("select ip, port, state, os, sharePort, version from peers" + (where.length ? (' where ' + where.join(' and ')) : '') + (limit ? ' limit $limit' : '') + (offset ? ' offset $offset ' : ''), params, {
+		"ip": String,
+		"port": Number,
+		"state": Number,
+		"os": String,
+		"sharePort": Number,
+		"version": String
+	}, function (err, rows) {
 		cb(err, rows);
 	});
 }
@@ -170,7 +194,14 @@ Peer.prototype.list = function (limit, cb) {
 	limit = limit || 100;
 	var params = {limit: limit};
 
-	library.dbLite.query("select ip, port, state, os, sharePort, version from peers where state > 0 and sharePort = 1 ORDER BY RANDOM() LIMIT $limit", params, {"ip": String, "port": Number, "state": Number, "os": String, "sharePort": Number, "version": String}, function(err, rows){
+	library.dbLite.query("select ip, port, state, os, sharePort, version from peers where state > 0 and sharePort = 1 ORDER BY RANDOM() LIMIT $limit", params, {
+		"ip": String,
+		"port": Number,
+		"state": Number,
+		"os": String,
+		"sharePort": Number,
+		"version": String
+	}, function (err, rows) {
 		cb(err, rows);
 	});
 }

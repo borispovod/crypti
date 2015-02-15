@@ -76,10 +76,16 @@ RequestSanitizer.addRule("object", {
 });
 
 RequestSanitizer.addRule("array", {
-    filter : function(accept, value, field) {
+    filter: function (accept, value, field) {
         if (field.isEmpty() && field.rules.empty) return null;
 
-        return Array.isArray(value) ? value : [];
+        if (typeof value === "string" && typeof accept === "string") {
+            return value.length ? value.split(accept) : [];
+        } else if (Array.isArray(value)) {
+            return value;
+        } else {
+            return [];
+        }
     }
 });
 

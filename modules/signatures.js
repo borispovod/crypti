@@ -125,7 +125,7 @@ function attachApi() {
 	library.app.use(function (err, req, res, next) {
 		err && library.logger.error('/api/signatures', err)
 		if (!err) return next();
-		res.status(500).send({success: false, error: err});
+		res.status(500).send({success: false, error: err.toString()});
 	});
 }
 

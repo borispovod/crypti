@@ -1,22 +1,24 @@
-var params = require("./params.js");
+var RequestSanitizer = require('./request-sanitizer.js');
 
 function normalizeBlock(block) {
-	block = params.object(block);
-
-	block.id = params.string(block.id);
-	block.delegates = params.int(block.delegates);
-	block.version = params.int(block.version);
-	block.timestamp = params.int(block.timestamp);
-	block.height = params.int(block.height);
-	block.previousBlock = params.string(block.previousBlock, true);
-	block.numberOfTransactions = params.int(block.numberOfTransactions);
-	block.totalAmount = params.int(block.totalAmount);
-	block.totalFee = params.int(block.totalFee);
-	block.payloadLength = params.int(block.payloadLength);
-	block.payloadHash = params.hex(block.payloadHash);
-	block.generatorPublicKey = params.hex(block.generatorPublicKey);
-	block.blockSignature = params.hex(block.blockSignature);
-	block.transactions = params.array(block.transactions);
+	block = RequestSanitizer.validate(block, {
+		object : true,
+		properties: {
+			id : "string",
+			version : "int",
+			timestamp : "int",
+			height : "int",
+			previousBlock : "string?",
+			numberOfTransactions : "int",
+			totalAmount : "int",
+			totalFee : "int",
+			payloadLength : "int",
+			payloadHash : "int",
+			generatorPublicKey:"hex",
+			blockSignature:"hex",
+			transactions:"array"
+		}
+	}).value;
 
 	for (var i = 0; i < block.transactions.length; i++) {
 		block.transactions[i] = normalizeTransaction(block.transactions[i]);
@@ -26,65 +28,74 @@ function normalizeBlock(block) {
 }
 
 function normalizeDelegate(delegate, transaction) {
-	delegate = params.object(delegate);
+	delegate = RequestSanitizer.object(delegate);
 
-	delegate.username = params.string(delegate.username);
-	delegate.publicKey = params.hex(transaction.senderPublicKey);
-	delegate.transactionId = params.string(transaction.id);
+	delegate.username = RequestSanitizer.string(delegate.username);
+	delegate.publicKey = RequestSanitizer.hex(transaction.senderPublicKey);
+	delegate.transactionId = RequestSanitizer.string(transaction.id);
 	return delegate;
 }
 
 function normalizeVotes(votes) {
-	return params.array(votes, true);
+	return RequestSanitizer.array(votes, true);
 }
 
 function normalizePeer(peer) {
-	peer = params.object(peer);
-
-	peer.ip = params.int(peer.ip);
-	peer.port = params.int(peer.port);
-	peer.state = params.int(peer.state);
-	peer.os = params.string(peer.os, true);
-	peer.sharePort = params.bool(peer.sharePort);
-	peer.version = params.string(peer.version, true);
-	return peer;
+	return RequestSanitizer.validate(peer, {
+		object : true,
+		properties : {
+			ip: "int",
+			port : "int",
+			state : "int",
+			os : "string?",
+			sharePort : "string",
+			version : "string?"
+		}
+	}).value;
 }
 
 function normalizeScript(script){
-	script = params.object(script);
-
-	script.parameters = params.string(script.parameters);
-	script.code = params.string(script.code);
-	script.name = params.string(script.name);
-	script.description = params.string(script.description, true);
-	return script;
+	return RequestSanitizer.validate(script, {
+		object : true,
+		properties : {
+			parameters: "string",
+			code : "string",
+			name : "string",
+			description: "string?"
+		}
+	}).value;
 }
 
 function normalizeSignature(signature) {
-	signature = params.object(signature);
-
-	signature.id = params.string(signature.id);
-	signature.transactionId = params.string(signature.transactionId);
-	signature.publicKey = params.hex(signature.publicKey);
-
-	return signature;
+	return RequestSanitizer.validate(signature, {
+		object : true,
+		properties : {
+			id : "string",
+			transactionId : "string",
+			publicKey : "hex"
+		}
+	}).value;
 }
 
 function normalizeTransaction(transaction) {
-	transaction = params.object(transaction);
+	transaction = RequestSanitizer.validate(transaction, {
+		object : true,
+		properties : {
+			id : "string",
+			blockId : "string",
+			type : "int",
+			timestamp : "int",
+			senderPublicKey : "hex",
+			senderId : "string",
+			recipientId : "string?",
+			amount : "int",
+			fee : "int",
+			signature : "hex",
+			signSignature : " hex?",
+			asset : "object"
+		}
+	}).value;
 
-	transaction.id = params.string(transaction.id);
-	transaction.blockId = params.string(transaction.blockId);
-	transaction.type = params.int(transaction.type);
-	transaction.timestamp = params.int(transaction.timestamp);
-	transaction.senderPublicKey = params.hex(transaction.senderPublicKey);
-	transaction.senderId = params.string(transaction.senderId);
-	transaction.recipientId = params.string(transaction.recipientId, true);
-	transaction.amount = params.int(transaction.amount);
-	transaction.fee = params.int(transaction.fee);
-	transaction.signature = params.hex(transaction.signature);
-	transaction.signSignature = params.hex(transaction.signSignature, true);
-	transaction.asset = params.object(transaction.asset);
 
 	switch (transaction.type) {
 		case 1:
