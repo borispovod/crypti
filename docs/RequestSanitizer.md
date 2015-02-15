@@ -88,6 +88,18 @@ attempt to call async rule will throw an Error.
 | `minByteLength` | number, object | Check minimum string length in bytes.   |
 | `maxByteLength` | number, object | Check maximum string length in bytes.   |
 
+### array
+
+Array rule allows to convert input value to Array. If value is mon empty string and accept value is string, then value
+splits with accept as delimiter. Example:
+```javascript
+{
+    ids : {
+        array : ',' // split string into array with delimiter
+    }
+}
+```
+
 ### minByteLength, maxByteLength
 
 This validation is dependant on string encoding. By default strings are utf8 encoded. If you need to change it than
