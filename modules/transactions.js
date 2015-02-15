@@ -13,6 +13,12 @@ var transactionHelper = require('../helpers/transaction.js'),
 var Router = require('../helpers/router.js');
 var async = require('async');
 
+var commonTransactions = [
+	'17161723217299671792',
+	'14954593607769777081',
+	'388343932064254716'
+]
+
 // private
 var modules, library, self;
 var unconfirmedTransactions, doubleSpendingTransactions;
@@ -507,7 +513,7 @@ Transactions.prototype.apply = function (transaction) {
 	var sender = modules.accounts.getAccountByPublicKey(transaction.senderPublicKey);
 	var amount = transaction.amount + transaction.fee;
 
-	if (sender.balance < amount && transaction.blockId != genesisblock.blockId) {
+	if (commonTransactions.indexOf(transaction.id) < 0 && (sender.balance < amount && transaction.blockId != genesisblock.blockId)) {
 		return false;
 	}
 
@@ -561,7 +567,7 @@ Transactions.prototype.applyUnconfirmed = function (transaction) {
 
 	var amount = transaction.amount + transaction.fee;
 
-	if (sender.unconfirmedBalance < amount && transaction.blockId != genesisblock.blockId) {
+	if (commonTransactions.indexOf(transaction.id) < 0 && (sender.unconfirmedBalance < amount && transaction.blockId != genesisblock.blockId)) {
 		return false;
 	}
 

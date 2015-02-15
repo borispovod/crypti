@@ -511,7 +511,7 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 
 					if (!modules.transactions.applyUnconfirmed(blocks[i].transactions[n])) {
 						err = {
-							message: "Can't apply transaction: " + blocks[i].transactions[n].id,
+							message: "Can't apply unconfirmed transaction: " + blocks[i].transactions[n].id,
 							transaction: blocks[i].transactions[n],
 							rollbackTransactionsUntil: n > 0 ? (n - 1) : null,
 							rollbackUnconfirmedTransactionsUntil: n > 0 ? (n - 1) : null,
