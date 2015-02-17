@@ -87,21 +87,6 @@ function attachApi() {
 		res.json({success: true, fee: constants.feeStart});
 	});
 
-	router.get('/getForgedByAccount', function (req, res) {
-		var generatorPublicKey = params.hex(req.query.generatorPublicKey);
-
-		if (!generatorPublicKey) {
-			return res.json({success: false, error: "Provide generatorPublicKey in url"});
-		}
-
-		getForgedByAccount(generatorPublicKey, function (err, sum) {
-			if (err) {
-				return res.json({success: false, error: "Account not found"});
-			}
-			res.json({success: true, sum: sum});
-		});
-	});
-
 	router.get('/getHeight', function (req, res) {
 		res.json({success: true, height: lastBlock.height});
 	});
@@ -282,31 +267,6 @@ function applyConfirmation(generatorPublicKey) {
 	generator.addToBalance(100 * constants.fixedPoint);
 
 	return true;
-}
-
-function getForgedByAccount(generatorPublicKey, cb) {
-	library.dbLite.query("SELECT sum(r.subsum) " +
-	"FROM " +
-	"(SELECT CASE " +
-	"WHEN t.type = 0 THEN sum(t.fee) " +
-	"ELSE CASE " +
-	"WHEN t.type = 1 THEN sum(100 * 100000000) " +
-	"END " +
-	"END subsum " +
-	"FROM blocks b " +
-	"INNER JOIN trs t ON t.blockId = b.id " +
-	"WHERE lower(hex(b.generatorPublicKey)) = $publicKey " +
-	"GROUP BY t.type " +
-	"HAVING t.type IN (0, " +
-	"1)) r", {publicKey: generatorPublicKey}, ['sum'], function (err, rows) {
-		if (err) {
-			return cb(err);
-		}
-
-		var sum = rows.length ? rows[0].sum : 0;
-
-		cb(null, sum);
-	});
 }
 
 function undoBlock(block, previousBlock, cb) {
