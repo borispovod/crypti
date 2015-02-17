@@ -142,7 +142,11 @@ RequestSanitizer.addRule("properties", {
         if (! field.isObject()) return false;
 
         Object.getOwnPropertyNames(accept).forEach(function(name){
-            var child = field.child(name, value[name], accept[name], value);
+            var childAccept = accept[name];
+            if (typeof childAccept === "string") {
+                childAccept = convertStringRule(childAccept);
+            }
+            var child = field.child(name, value[name], childAccept, value);
             child.validate(function(err, report, output){
                 if (err) throw err;
 
@@ -224,20 +228,7 @@ RequestSanitizer.express = function(options) {
             Object.getOwnPropertyNames(properties).forEach(function(name){
                 values[name] = value.hasOwnProperty(name) ? value[name] : undefined;
                 if (typeof properties[name] === "string") {
-                    var rules = properties[name];
-                    properties[name] = {};
-
-                    if (rules.charAt(rules.length-1) === "!") {
-                        properties[name].required = true;
-                        rules = rules.slice(0, -1);
-                    }
-
-                    if (rules.charAt(rules.length-1) === "?") {
-                        properties[name].empty = true;
-                        rules = rules.slice(0, -1);
-                    }
-
-                    properties[name][rules] = true;
+                    properties[name] = convertStringRule(properties[name]);
                 }
             });
 
@@ -347,4 +338,19 @@ function getByPath(target, path) {
     }
 
     return target[path[l]];
+}
+
+function convertStringRule(rule) {
+    var result = {};
+
+    if (rule.charAt(rule.length-1) === "!") {
+        result.required = true;
+        rule = rule.slice(0, -1);
+    } else if (rule.charAt(rule.length-1) === "?") {
+        result.empty = true;
+        rule = rule.slice(0, -1);
+    }
+
+    result[rule] = true;
+    return result;
 }
