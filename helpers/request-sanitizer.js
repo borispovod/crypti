@@ -184,6 +184,7 @@ RequestSanitizer.addRule("maxByteLength", {
     validate : function(accept, value, field) {
         if (field.isEmpty() && field.rules.empty) return null;
 
+		console.log(value);
         return Buffer.byteLength(value, 'utf8') <= accept.length;
     }
 });
