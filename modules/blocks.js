@@ -84,7 +84,7 @@ function attachApi() {
 	});
 
 	router.get('/getFee', function (req, res) {
-		res.json({success: true, fee: constants.feeStart});
+		res.json({success: true, fee: 0.5});
 	});
 
 	router.get('/getHeight', function (req, res) {
@@ -759,7 +759,7 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 }
 
 Blocks.prototype.getFee = function () {
-	return constants.feeStart;
+	return 0.5;
 }
 
 Blocks.prototype.getLastBlock = function () {
