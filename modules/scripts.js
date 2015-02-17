@@ -53,7 +53,6 @@ function attachApi() {
 				maxLength : 140
 			}
 		}, function(err, report, body) {
-			console.log(err.stack);
 			if (err) return next(err);
 			if (! report.isValid) return res.json({success: false, error: report.issues});
 
