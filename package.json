@@ -19,10 +19,12 @@
     "bytebuffer": "*",
     "change-case": "*",
     "colors": "*",
+    "commander": "~2.6.0",
     "cycle": "^1.0.3",
     "dblite": "https://github.com/crypti/dblite/tarball/master",
     "ed25519": "https://github.com/crypti/Ed25519/tarball/master",
     "ejs": "*",
+    "esprima": "~1.2.3",
     "express": "4.x",
     "express-domain-middleware": "*",
     "extend": "^2.0.0",
@@ -41,8 +43,7 @@
     "strftime": "*",
     "toposort": "~0.2.10",
     "underscore": "https://github.com/crypti/underscore/tarball/master",
-    "esprima": "~1.2.3",
-    "commander": "~2.6.0"
+    "usage": "^0.6.0"
   },
   "devDependencies": {
     "grunt-jscrambler": "^0.2.7",
