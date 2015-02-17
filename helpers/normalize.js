@@ -13,7 +13,7 @@ function normalizeBlock(block) {
 			totalAmount : "int",
 			totalFee : "int",
 			payloadLength : "int",
-			payloadHash : "int",
+			payloadHash : "string",
 			generatorPublicKey:"hex",
 			blockSignature:"hex",
 			transactions:"array"
