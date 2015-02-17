@@ -98,7 +98,7 @@ RequestSanitizer.addRule("hex", {
     validate : function(accept, value, field) {
         if (field.isEmpty() && field.rules.empty) return;
 
-        return /^([A-Fa-f0-9]{2})+$/.test(String(value));
+        return /^([A-Fa-f0-9]{2})*$/.test(String(value));
     }
 });
 
