@@ -114,7 +114,7 @@ function attachApi() {
 	library.app.use(function (err, req, res, next) {
 		if (!err) return next();
 		library.logger.error('/api/blocks', err)
-		res.status(500).send({success: false, error: err});
+		res.status(500).send({success: false, error: err.toString()});
 	});
 }
 
@@ -454,24 +454,31 @@ function saveBlock(block, cb) {
 					return cb(err);
 				}
 
-				if (transaction.type == 1) {
-					library.dbLite.query("INSERT INTO signatures(id, transactionId, publicKey) VALUES($id, $transactionId, $publicKey)", {
-						id: transaction.asset.signature.id,
-						transactionId: transaction.id,
-						publicKey: new Buffer(transaction.asset.signature.publicKey, 'hex')
-					}, cb);
-				} else if (transaction.type == 2) {
-					library.dbLite.query("INSERT INTO delegates(username, transactionId) VALUES($username, $transactionId)", {
-						username: transaction.asset.delegate.username,
-						transactionId: transaction.id
-					}, cb);
-				} else if (transaction.type == 3) {
-					library.dbLite.query("INSERT INTO votes(votes, transactionId) VALUES($votes, $transactionId)", {
-						votes: util.isArray(transaction.asset.votes) ? transaction.asset.votes.join(',') : null,
-						transactionId: transaction.id
-					}, cb);
-				} else {
-					cb();
+				switch (transaction.type) {
+					case 1:
+						library.dbLite.query("INSERT INTO signatures(id, transactionId, publicKey) VALUES($id, $transactionId, $publicKey)", {
+							id: transaction.asset.signature.id,
+							transactionId: transaction.id,
+							publicKey: new Buffer(transaction.asset.signature.publicKey, 'hex')
+						}, cb);
+						break;
+
+					case 2:
+						library.dbLite.query("INSERT INTO delegates(username, transactionId) VALUES($username, $transactionId)", {
+							username: transaction.asset.delegate.username,
+							transactionId: transaction.id
+						}, cb);
+						break;
+
+					case 3:
+						library.dbLite.query("INSERT INTO votes(votes, transactionId) VALUES($votes, $transactionId)", {
+							votes: util.isArray(transaction.asset.votes) ? transaction.asset.votes.join(',') : null,
+							transactionId: transaction.id
+						}, cb);
+						break;
+
+					default:
+						cb();
 				}
 			});
 		}, function (err) {
@@ -905,6 +912,10 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 										}
 										break;
 									case 2:
+										if (transaction.senderId != transaction.recipientId) {
+											return cb("Invalid recipient");
+										}
+
 										if (!transaction.asset.delegate.username) {
 											return cb && cb("Empty transaction asset for delegate transaction");
 										}

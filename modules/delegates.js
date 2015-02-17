@@ -20,8 +20,13 @@ var activeDelegates = [];
 var loaded = false;
 var unconfirmedDelegates = [];
 var unconfirmedNames = [];
+
 var votes = {};
-var names = {}
+
+var namesIndex = {};
+var publicKeyIndex = {};
+var transactionIdIndex = {};
+var delegates = [];
 
 //var keypairs;
 
@@ -43,6 +48,92 @@ function attachApi() {
 	router.use(function (req, res, next) {
 		if (modules && loaded) return next();
 		res.status(500).send({success: false, error: 'loading'});
+	});
+
+	router.get('/', function (req, res) {
+		var limit = params.int(req.query.limit),
+			offset = params.int(req.query.offset),
+			orderBy = params.string(req.query.orderBy);
+
+		limit = limit > 100 || limit == 0 ? 100 : limit;
+		var length = Math.min(limit, Object.keys(publicKeyIndex).length);
+		var realLimit = Math.min(offset + limit, length);
+		var result = [];
+		for (var i = offset; i < realLimit; i++) {
+			if (delegates[i] === false) {
+				i--;
+				continue;
+			}
+			result.push(delegates[i]);
+		}
+
+		if (orderBy) {
+			if (orderBy == 'username') {
+				result = result.sort(function compare(a, b) {
+					if (a[orderBy] > b[orderBy])
+						return -1;
+					if (a[orderBy] < b[orderBy])
+						return 1;
+					return 0;
+				});
+			}
+			if (orderBy == 'vote') {
+				result = result.sort(function compare(a, b) {
+					return votes[b.publicKey] - votes[a.publicKey];
+				});
+			}
+		}
+
+		res.json({success: true, delegates: result});
+	});
+
+	router.get('/get', function (req, res) {
+		var transactionId = params.string(req.query.id);
+
+		var index = transactionIdIndex[transactionId];
+		if (index === undefined) {
+			return res.json({success: false, error: "Delagate not found"});
+		}
+
+		res.json({success: true, delegate: delegates[index]});
+	});
+
+	router.post('/forging/enable', function (req, res) {
+		var secret = params.string(req.body.secret);
+
+		if (!secret) {
+			return res.json({success: false, error: "Provide secret in request"});
+		}
+
+		keypair = ed.MakeKeypair(crypto.createHash('sha256').update(secret, 'utf8').digest());
+		address = modules.accounts.getAddressByPublicKey(keypair.publicKey.toString('hex'));
+		account = modules.accounts.getAccount(address);
+		if (account && self.existsDelegate(keypair.publicKey.toString('hex'))) {
+			myDelegate = keypair.publicKey.toString('hex');
+			res.json({success: true, address: address});
+			library.logger.info("Forging enabled on account: " + address);
+		} else {
+			res.json({success: false});
+		}
+	});
+
+	router.post('/forging/disable', function (req, res) {
+		var secret = params.string(req.body.secret);
+
+		if (!secret) {
+			return res.json({success: false, error: "Provide secret in request"});
+		}
+
+		keypair = ed.MakeKeypair(crypto.createHash('sha256').update(secret, 'utf8').digest());
+		address = modules.accounts.getAddressByPublicKey(keypair.publicKey.toString('hex'));
+		account = modules.accounts.getAccount(address);
+		if (account && self.existsDelegate(keypair.publicKey.toString('hex'))) {
+			myDelegate = null;
+			res.json({success: true, address: address});
+			library.logger.info("Forging disabled on account: " + address);
+		} else {
+			res.json({success: false});
+		}
 	});
 
 	/*router.get('/forging/status', function (req, res) {
@@ -153,7 +244,9 @@ function attachApi() {
 			modules.transactions.secondSign(secondSecret, transaction);
 		}
 
-		modules.transactions.processUnconfirmedTransaction(transaction, true, function (err) {
+		library.sequence.add(function (cb) {
+			modules.transactions.processUnconfirmedTransaction(transaction, true, cb);
+		}, function (err) {
 			if (err) {
 				return res.json({success: false, error: err});
 			}
@@ -166,7 +259,7 @@ function attachApi() {
 	library.app.use(function (err, req, res, next) {
 		if (!err) return next();
 		library.logger.error('/api/delegates', err)
-		res.status(500).send({success: false, error: err});
+		res.status(500).send({success: false, error: err.toString()});
 	});
 }
 
@@ -325,17 +418,29 @@ Delegates.prototype.existsDelegate = function (publicKey) {
 }
 
 Delegates.prototype.existsName = function (userName) {
-	return names[userName] !== undefined;
+	return namesIndex[userName] !== undefined;
 }
 
 Delegates.prototype.cache = function (delegate) {
+	delegates.push(delegate);
+	var index = delegates.length - 1;
+
 	votes[delegate.publicKey] = 0;
-	names[delegate.username] = delegate.publicKey;
+
+	namesIndex[delegate.username] = index;
+	publicKeyIndex[delegate.publicKey] = index;
+	transactionIdIndex[delegate.transactionId] = index;
 }
 
 Delegates.prototype.uncache = function (delegate) {
 	delete votes[delegate.publicKey];
-	delete names[delegate.username];
+
+	var index = publicKeyIndex[delegate.publicKey];
+
+	delete publicKeyIndex[delegate.publicKey]
+	delete namesIndex[delegate.username];
+	delete transactionIdIndex[delegate.transactionId];
+	delegates[index] = false;
 }
 
 Delegates.prototype.validateBlockSlot = function (block) {
@@ -375,11 +480,11 @@ Delegates.prototype.onBlockchainReady = function () {
 }
 
 Delegates.prototype.onNewBlock = function (block, broadcast) {
-	modules.round.runOnFinish(function () {
-		if (keypair && self.existsDelegate(keypair.publicKey.toString('hex'))) {
-			myDelegate = keypair.publicKey.toString('hex');
-		}
-	});
+	//modules.round.runOnFinish(function () {
+	//	if (keypair && self.existsDelegate(keypair.publicKey.toString('hex'))) {
+	//		myDelegate = keypair.publicKey.toString('hex');
+	//	}
+	//});
 
 	modules.round.tick(block);
 }

@@ -99,7 +99,7 @@ function attachApi() {
 	library.app.use(function (err, req, res, next) {
 		if (!err) return next();
 		library.logger.error('/api/peers', err)
-		res.status(500).send({success: false, error: err});
+		res.status(500).send({success: false, error: err.toString()});
 	});
 }
 
@@ -153,36 +153,36 @@ function getByFilter(filter, cb) {
 		return cb("Maximum limit is 100");
 	}
 
-	if (filter.state) {
+	if (filter.state !== null) {
 		where.push("state = $state");
 		params.state = filter.state;
 	}
 
-	if (filter.os) {
+	if (filter.os !== null) {
 		where.push("os = $os");
 		params.os = filter.os;
 	}
 
-	if (filter.version) {
+	if (filter.version !== null) {
 		where.push("version = $version");
 		params.version = filter.version;
 	}
 
-	if (filter.shared) {
+	if (filter.shared !== null) {
 		where.push("sharePort = $sharePort");
 		params.sharePort = filter.shared;
 	}
 
-	if (filter.port) {
+	if (filter.port !== null) {
 		where.push("port = $port");
 		params.port = filter.port;
 	}
 
-	if (limit) {
+	if (limit !== null) {
 		params['limit'] = limit;
 	}
 
-	if (offset) {
+	if (offset !== null) {
 		params['offset'] = offset;
 	}
 
