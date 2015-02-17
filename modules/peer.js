@@ -141,44 +141,48 @@ function banManager(cb) {
 }
 
 function getByFilter(filter, cb) {
-	var limit = filter.limit;
-	var offset = filter.offset;
+	var limit = filter.limit || null;
+	var offset = filter.offset || null;
 	delete filter.limit;
 	delete filter.offset;
 
 	var where = [];
 	var params = {};
 
-	if (limit > 100) {
-		return cb("Maximum limit is 100");
-	}
-
-	if (filter.state !== null) {
+	if (filter.hasOwnProperty('state') && filter.state !== null) {
 		where.push("state = $state");
 		params.state = filter.state;
 	}
 
-	if (filter.os !== null) {
+	if (filter.hasOwnProperty('os') && filter.os !== null) {
 		where.push("os = $os");
 		params.os = filter.os;
 	}
 
-	if (filter.version !== null) {
+	if (filter.hasOwnProperty('version') && filter.version !== null) {
 		where.push("version = $version");
 		params.version = filter.version;
 	}
 
-	if (filter.shared !== null) {
+	if (filter.hasOwnProperty('shared') && filter.shared !== null) {
 		where.push("sharePort = $sharePort");
 		params.sharePort = filter.shared;
 	}
 
-	if (filter.port !== null) {
+	if (filter.hasOwnProperty('ip') && filter.ip !== null) {
+		where.push("ip = $ip");
+		params.ip = filter.ip;
+	}
+
+	if (filter.hasOwnProperty('port') && filter.port !== null) {
 		where.push("port = $port");
 		params.port = filter.port;
 	}
 
 	if (limit !== null) {
+		if (limit > 100) {
+			return cb("Maximum limit is 100");
+		}
 		params['limit'] = limit;
 	}
 
