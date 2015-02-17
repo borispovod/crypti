@@ -182,8 +182,11 @@ RequestSanitizer.addRule("maxByteLength", {
         return accept;
     },
     validate : function(accept, value, field) {
-        if (field.isEmpty() && field.rules.empty) return null;
+        if (field.isEmpty() && field.rules.empty) return;
 
+        if (typeof value === 'object' && value !== null) {
+            value = JSON.stringify(value);
+        }
         return Buffer.byteLength(value, 'utf-8') <= accept.length;
     }
 });
@@ -201,8 +204,11 @@ RequestSanitizer.addRule("minByteLength", {
         return accept;
     },
     validate : function(accept, value, field) {
-        if (field.isEmpty() && field.rules.empty) return null;
+        if (field.isEmpty() && field.rules.empty) return;
 
+        if (typeof value === 'object' && value !== null) {
+            value = JSON.stringify(value);
+        }
         return Buffer.byteLength(value, 'utf-8') >= accept.length;
     }
 });
