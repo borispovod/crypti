@@ -167,7 +167,7 @@ function attachApi() {
 	library.app.use(function (err, req, res, next) {
 		library.logger.error('/peer', err)
 		if (!err) return next();
-		res.status(500).send({success: false, error: err});
+		res.status(500).send({success: false, error: err.toString()});
 	});
 }
 

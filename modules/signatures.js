@@ -102,7 +102,9 @@ function attachApi() {
 
 		transaction.id = transactionHelper.getId(transaction);
 
-		modules.transactions.processUnconfirmedTransaction(transaction, true, function (err) {
+		library.sequence.add(function (cb) {
+			modules.transactions.processUnconfirmedTransaction(transaction, true, cb);
+		}, function (err) {
 			if (err) {
 				return res.json({success: false, error: err});
 			}
@@ -118,7 +120,7 @@ function attachApi() {
 	library.app.use(function (err, req, res, next) {
 		err && library.logger.error('/api/signatures', err)
 		if (!err) return next();
-		res.status(500).send({success: false, error: err});
+		res.status(500).send({success: false, error: err.toString()});
 	});
 }
 
