@@ -91,7 +91,7 @@ function normalizeTransaction(transaction) {
 			amount : "int",
 			fee : "int",
 			signature : "hex",
-			signSignature : " hex?",
+			signSignature : "hex?",
 			asset : "object"
 		}
 	}).value;

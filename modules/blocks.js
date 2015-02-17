@@ -929,14 +929,16 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 										setImmediate(cb);
 									}
 
-									if (transaction.type !== 4) return finish();
+									if (transaction.type == 5) {
+										modules.sandboxes.execTransaction(transaction, function(err, result){
+											if (err) return finish(err);
+											if (result !== 'TRUE') return done("Result is FALSE");
 
-									modules.sandboxes.execTransaction(transaction, function(err, result){
-										if (err) return finish(err);
-										if (result !== 'TRUE') return done("Result is FALSE");
-
-										finish(null, transaction);
-									});
+											finish(null, transaction);
+										});
+									} else {
+										return finish();
+									}
 								});
 							}
 						});

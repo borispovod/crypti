@@ -48,7 +48,8 @@ var config = {
 		"peer": "./modules/peer.js",
 		"delegates": "./modules/delegates.js",
 		"scripts": "./modules/scripts.js",
-		"round": "./modules/round.js"
+		"round": "./modules/round.js",
+		"sandboxes" : "./modules/sandboxes.js"
 	}
 }
 
