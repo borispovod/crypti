@@ -15,7 +15,6 @@ require('array.prototype.find'); //old node fix
 //private fields
 var modules, library, self;
 
-var keypair, myDelegate, address, account;
 var activeDelegates = [];
 var loaded = false;
 var unconfirmedDelegates = [];
@@ -28,13 +27,12 @@ var publicKeyIndex = {};
 var transactionIdIndex = {};
 var delegates = [];
 
-//var keypairs;
+var keypairs = {};
 
 //constructor
 function Delegates(cb, scope) {
 	library = scope;
 	self = this;
-	//keypairs = [];
 
 	attachApi();
 
@@ -105,11 +103,16 @@ function attachApi() {
 			return res.json({success: false, error: "Provide secret in request"});
 		}
 
-		keypair = ed.MakeKeypair(crypto.createHash('sha256').update(secret, 'utf8').digest());
-		address = modules.accounts.getAddressByPublicKey(keypair.publicKey.toString('hex'));
-		account = modules.accounts.getAccount(address);
+		var keypair = ed.MakeKeypair(crypto.createHash('sha256').update(secret, 'utf8').digest());
+		var address = modules.accounts.getAddressByPublicKey(keypair.publicKey.toString('hex'));
+		var account = modules.accounts.getAccount(address);
+
+		if (keypairs[keypair.publicKey.toString('hex')]) {
+			return res.json({success: false, error: "Forging on this account already enabled"});
+		}
+
 		if (account && self.existsDelegate(keypair.publicKey.toString('hex'))) {
-			myDelegate = keypair.publicKey.toString('hex');
+			keypairs[keypair.publicKey.toString('hex')] = keypair;
 			res.json({success: true, address: address});
 			library.logger.info("Forging enabled on account: " + address);
 		} else {
@@ -124,11 +127,16 @@ function attachApi() {
 			return res.json({success: false, error: "Provide secret in request"});
 		}
 
-		keypair = ed.MakeKeypair(crypto.createHash('sha256').update(secret, 'utf8').digest());
-		address = modules.accounts.getAddressByPublicKey(keypair.publicKey.toString('hex'));
-		account = modules.accounts.getAccount(address);
+		var keypair = ed.MakeKeypair(crypto.createHash('sha256').update(secret, 'utf8').digest());
+		var address = modules.accounts.getAddressByPublicKey(keypair.publicKey.toString('hex'));
+		var account = modules.accounts.getAccount(address);
+
+		if (!keypairs[keypair.publicKey.toString('hex')]) {
+			return res.json({success: false, error: "Forger with this public key not found"});
+		}
+
 		if (account && self.existsDelegate(keypair.publicKey.toString('hex'))) {
-			myDelegate = null;
+			delete keypairs[keypair.publicKey.toString('hex')];
 			res.json({success: true, address: address});
 			library.logger.info("Forging disabled on account: " + address);
 		} else {
@@ -136,65 +144,15 @@ function attachApi() {
 		}
 	});
 
-	/*router.get('/forging/status', function (req, res) {
+	router.get('/forging/status', function (req, res) {
 		var publicKey = req.query.publicKey;
 
 		if (!publicKey) {
 			return res.json({success: false, error: "Provide public key of account"});
 		}
 
-		var enabled = false;
-		for (var i = 0; i < keypairs.length; i++) {
-			if (keypairs[i].publicKey.toString('hex') == req.query.publicKey) {
-				enabled = true;
-				break;
-			}
-		}
-
-		return res.json({success: true, enabled: enabled});
+		return res.json({success: true, enabled: !!keypairs[publicKey]});
 	});
-
-	router.post('/forging/enable', function (req, res) {
-		var secret = req.query.secret;
-
-		if (!secret) {
-			return res.json({success: false, error: "Provide secret key of account"});
-		}
-
-		var hash = crypto.createHash('sha256').update(secret, 'utf8').digest();
-		var keypair = ed.MakeKeypair(hash);
-		var publicKey = keypair.publicKey.toString('hex')
-
-		for (var i = 0; i < keypairs.length; i++) {
-			if (keypairs[i].publicKey.toString('hex') == publicKey) {
-				return res.json({success: false, error: "Forging on this account already enabled"});
-			}
-		}
-
-		keypairs.push(keypair);
-		return res.json({success: true});
-	});
-
-	router.get('/forging/disable', function (req, res) {
-		var secret = req.queyr.secret;
-
-		if (!secret) {
-			return res.json({success: false, error: "Provide secret key of account"});
-		}
-
-		var hash = crypto.createHash('sha256').update(secret, 'utf8').digest();
-		var keypair = ed.MakeKeypair(hash);
-		var publicKey = keypair.publicKey.toString('hex')
-
-		for (var i = 0; i < keypairs.length; i++) {
-			if (keypairs[i].publicKey.toString('hex') == publicKey) {
-				keypairs.splice(i, 1);
-				return res.json({success: true});
-			}
-		}
-
-		return res.json({success: false, error: "Forger with this public key not found"});
-	});*/
 
 	router.put('/', function (req, res) {
 		var secret = params.string(req.body.secret),
@@ -237,7 +195,7 @@ function attachApi() {
 		modules.transactions.sign(secret, transaction);
 
 		if (account.secondSignature) {
-			if (!secondSecret || secondSecret.length == 0) {
+			if (!secondSecret) {
 				return res.json({success: false, error: "Provide second secret key"});
 			}
 
@@ -271,7 +229,7 @@ function getKeysSortByVote(votes) {
 	return delegates;
 }
 
-function getBlockTime(slot, height) {
+function getBlockSlotData(slot, height) {
 	activeDelegates = self.generateDelegateList(getKeysSortByVote(votes), height);
 
 	var currentSlot = slot;
@@ -281,8 +239,8 @@ function getBlockTime(slot, height) {
 		var delegate_pos = currentSlot % slots.delegates;
 
 		var delegate_id = activeDelegates[delegate_pos];
-		if (delegate_id && myDelegate == delegate_id) {
-			return slots.getSlotTime(currentSlot);
+		if (delegate_id && keypairs[delegate_id]) {
+			return {time: slots.getSlotTime(currentSlot), keypair: keypairs[delegate_id]};
 		}
 	}
 	return null;
@@ -291,8 +249,8 @@ function getBlockTime(slot, height) {
 function loop(cb) {
 	setImmediate(cb);
 
-	if (!myDelegate || !account) {
-		library.logger.log('loop', 'exit: no delegate');
+	if (!Object.keys(keypairs).length) {
+		library.logger.log('loop', 'exit: have no delegates');
 		return;
 	}
 
@@ -309,18 +267,18 @@ function loop(cb) {
 		return;
 	}
 
-	var currentBlockTime = getBlockTime(currentSlot, lastBlock.height + 1);
+	var currentBlockData = getBlockSlotData(currentSlot, lastBlock.height + 1);
 
-	if (currentBlockTime === null) {
+	if (currentBlockData === null) {
 		library.logger.log('loop', 'skip slot');
 		return;
 	}
 
 	library.sequence.add(function (cb) {
 		// how to detect keypair
-		if (slots.getSlotNumber(currentBlockTime) == slots.getSlotNumber()) {
-			modules.blocks.generateBlock(keypair, currentBlockTime, function (err) {
-				library.logger.log('round: ' + modules.round.calc(modules.blocks.getLastBlock().height) + ' new block id: ' + modules.blocks.getLastBlock().id + ' height:' + modules.blocks.getLastBlock().height + ' slot:' + slots.getSlotNumber(currentBlockTime))
+		if (slots.getSlotNumber(currentBlockData.time) == slots.getSlotNumber()) {
+			modules.blocks.generateBlock(currentBlockData.keypair, currentBlockData.time, function (err) {
+				library.logger.log('round: ' + modules.round.calc(modules.blocks.getLastBlock().height) + ' new block id: ' + modules.blocks.getLastBlock().id + ' height:' + modules.blocks.getLastBlock().height + ' slot:' + slots.getSlotNumber(currentBlockData.time))
 				cb(err);
 			});
 		} else {
@@ -335,17 +293,23 @@ function loop(cb) {
 }
 
 function loadMyDelegates() {
-	var secret = library.config.forging.secret
+	var secrets = null;
+	if (library.config.forging.secret) {
+		secrets = util.isArray(library.config.forging.secret) ? library.config.forging.secret : [library.config.forging.secret];
+	}
 
-	if (secret) {
-		keypair = ed.MakeKeypair(crypto.createHash('sha256').update(secret, 'utf8').digest());
-		address = modules.accounts.getAddressByPublicKey(keypair.publicKey.toString('hex'));
-		account = modules.accounts.getAccount(address);
-		if (self.existsDelegate(keypair.publicKey.toString('hex'))) {
-			myDelegate = keypair.publicKey.toString('hex');
-		}
-
-		library.logger.info("Forging enabled on account: " + address);
+	if (secrets) {
+		secrets.forEach(function (secret) {
+			var keypair = ed.MakeKeypair(crypto.createHash('sha256').update(secret, 'utf8').digest());
+			var address = modules.accounts.getAddressByPublicKey(keypair.publicKey.toString('hex'));
+			var account = modules.accounts.getAccount(address);
+			if (self.existsDelegate(keypair.publicKey.toString('hex'))) {
+				keypairs[keypair.publicKey.toString('hex')] = keypair;
+				library.logger.info("Forging enabled on account: " + address);
+			} else {
+				library.logger.info("Forger with this public key not found " + keypair.publicKey.toString('hex'));
+			}
+		});
 	}
 }
 
@@ -480,12 +444,6 @@ Delegates.prototype.onBlockchainReady = function () {
 }
 
 Delegates.prototype.onNewBlock = function (block, broadcast) {
-	//modules.round.runOnFinish(function () {
-	//	if (keypair && self.existsDelegate(keypair.publicKey.toString('hex'))) {
-	//		myDelegate = keypair.publicKey.toString('hex');
-	//	}
-	//});
-
 	modules.round.tick(block);
 }
 
