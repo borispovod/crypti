@@ -60,7 +60,6 @@ Round.prototype.fowardTick = function (block, previousBlock) {
 }
 
 Round.prototype.tick = function (block) {
-	debugger;
 
 	unFeesByRound = {};
 	unDelegatesByRound = {};
