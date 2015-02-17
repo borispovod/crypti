@@ -187,7 +187,7 @@ RequestSanitizer.addRule("maxByteLength", {
         if (typeof value === 'object' && value !== null) {
             value = JSON.stringify(value);
         }
-        return Buffer.byteLength(value, 'utf-8') <= accept.length;
+        return Buffer.byteLength(value, 'utf8') <= accept.length;
     }
 });
 
@@ -209,7 +209,7 @@ RequestSanitizer.addRule("minByteLength", {
         if (typeof value === 'object' && value !== null) {
             value = JSON.stringify(value);
         }
-        return Buffer.byteLength(value, 'utf-8') >= accept.length;
+        return Buffer.byteLength(value, 'utf8') >= accept.length;
     }
 });
 

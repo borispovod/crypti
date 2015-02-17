@@ -31,7 +31,7 @@ function attachApi() {
 	router.put('/', function (req, res, next) {
 		req.sanitize("body", {
 			secret : "string!",
-			publicKey : "string?",
+			publicKey : "hex",
 			code : {
 				required : true,
 				string : true,
@@ -53,6 +53,7 @@ function attachApi() {
 				maxLength : 140
 			}
 		}, function(err, report, body) {
+			console.log(err.stack);
 			if (err) return next(err);
 			if (! report.isValid) return res.json({success: false, error: report.issues});
 
