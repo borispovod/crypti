@@ -872,7 +872,7 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 										}
 										break;
 									case 2:
-										if (transaction.senderId != transaction.recipientId) {
+										if (transaction.recipientId) {
 											return cb("Invalid recipient");
 										}
 
