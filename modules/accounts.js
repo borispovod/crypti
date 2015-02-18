@@ -56,6 +56,22 @@ function Accounts(cb, scope) {
 		res.status(500).send({success: false, error: 'loading'});
 	});
 
+	router.get('/all', function (req, res) {
+		var arr = [];
+
+		for (var id in accounts) {
+			console.log(accounts[id]);
+			arr.push({
+				address: accounts[id].address,
+				publicKey: accounts[id].publicKey? accounts[id].publicKey.toString('hex') : null,
+				balance: accounts[id].balance,
+				secondPublicKey: accounts[id].secondPublicKey? accounts[id].secondPublicKey.toString('hex') : null
+			});
+		}
+
+		return res.json({success: true, accounts: arr});
+	});
+
 	router.post('/open', function (req, res) {
 		var secret = params.string(req.body.secret);
 
