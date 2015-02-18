@@ -47,15 +47,26 @@ module.exports = function (grunt) {
 					{src: ['builded/**'], dest: '/'}
 				]
 			}
+		},
+
+		uglify: {
+			script: {
+				options: {
+					mangle: false
+				},
+				files: {
+					'./script.builded.js': ['./script.js']
+				}
+			}
 		}
 	});
 
 	grunt.loadNpmTasks('grunt-obfuscator');
 	grunt.loadNpmTasks("grunt-jscrambler");
+	grunt.loadNpmTasks('grunt-contrib-uglify');
 	//grunt.loadNpmTasks('grunt-contrib-compress');
 
 	grunt.registerTask("default", ["obfuscator"]);
-
-	//compress removed
 	grunt.registerTask("release", ["default", "jscrambler"]);
+	grunt.registerTask('script', ["uglify:script"]);
 };
