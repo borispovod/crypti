@@ -872,7 +872,7 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 										}
 										break;
 									case 2:
-										if (transaction.senderId != transaction.recipientId) {
+										if (transaction.recipientId) {
 											return cb("Invalid recipient");
 										}
 
@@ -988,12 +988,14 @@ Blocks.prototype.simpleDeleteAfterBlock = function (blockId, cb) {
 
 Blocks.prototype.loadBlocksFromPeer = function (peer, lastCommonBlockId, cb) {
 	var loaded = false;
+	var count = 0;
 
 	async.whilst(
 		function () {
-			return !loaded;
+			return !loaded && count < 30;
 		},
 		function (next) {
+			count++;
 			modules.transport.getFromPeer(peer, '/blocks?lastBlockId=' + lastCommonBlockId, function (err, data) {
 				if (err || data.body.error) {
 					return next(err || params.string(data.body.error));

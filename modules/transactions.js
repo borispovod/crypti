@@ -408,6 +408,10 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 					break;
 
 				case 2:
+					if (transaction.recipientId) {
+						return cb("Invalid recipient");
+					}
+
 					if (!transaction.asset.delegate.username) {
 						return done("Empty transaction asset for delegate transaction");
 					}

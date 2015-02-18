@@ -49,21 +49,20 @@ function attachApi() {
 	});
 
 	router.get('/', function (req, res) {
-		var limit = params.int(req.query.limit),
+		var limit = params.int(req.query.limit) || 100,
 			offset = params.int(req.query.offset),
-			orderBy = params.string(req.query.orderBy);
+			orderBy = params.string(req.query.orderBy, true);
 
-		limit = limit > 100 || limit == 0 ? 100 : limit;
-		var length = Math.min(limit, Object.keys(publicKeyIndex).length);
+		limit = limit > 100 ? 100 : limit;
+		var publicKeys = Object.keys(publicKeyIndex);
+		var length = Math.min(limit, publicKeys.length);
 		var realLimit = Math.min(offset + limit, length);
-		var result = [];
-		for (var i = offset; i < realLimit; i++) {
-			if (delegates[i] === false) {
-				i--;
-				continue;
-			}
-			result.push(delegates[i]);
-		}
+		publicKeys.slice(offset, realLimit);
+
+		var result = publicKeys.map(function(publicKey){
+			var index = publicKeyIndex[publicKey];
+			return delegates[index];
+		})
 
 		if (orderBy) {
 			if (orderBy == 'username') {
@@ -275,7 +274,6 @@ function loop(cb) {
 	}
 
 	library.sequence.add(function (cb) {
-		// how to detect keypair
 		if (slots.getSlotNumber(currentBlockData.time) == slots.getSlotNumber()) {
 			modules.blocks.generateBlock(currentBlockData.keypair, currentBlockData.time, function (err) {
 				library.logger.log('round: ' + modules.round.calc(modules.blocks.getLastBlock().height) + ' new block id: ' + modules.blocks.getLastBlock().id + ' height:' + modules.blocks.getLastBlock().height + ' slot:' + slots.getSlotNumber(currentBlockData.time))
