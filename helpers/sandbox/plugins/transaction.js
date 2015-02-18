@@ -22,7 +22,7 @@ module.exports = function(sandbox, options) {
 
             var args = [
                 script,
-                transaction.asset.input,
+                transaction.asset.input.data,
                 transaction.asset.script.parameters
             ];
 

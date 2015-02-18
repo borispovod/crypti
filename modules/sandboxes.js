@@ -10,7 +10,7 @@ function Sandboxes(cb, scope) {
 }
 
 Sandboxes.prototype.execTransaction = function (transaction, cb) {
-	var sandbox = new Sandbox({
+	var sandbox = new sandboxHelper({
 		plugins : {
 			process : {
 				limitCpu : 25,

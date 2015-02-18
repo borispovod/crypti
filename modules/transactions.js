@@ -47,7 +47,7 @@ function attachApi() {
 			blockId : "string?",
 			limit : "int?",
 			orderBy: "string?",
-			offset : {default:20,int:true},
+			offset : {default:0,int:true},
 			senderPublicKey:"hex?",
 			senderId:"string",
 			recipientId:"string?"
@@ -67,6 +67,7 @@ function attachApi() {
 
 	router.get('/get', function (req, res) {
 		var id = RequestSanitizer.string(req.query.id);
+
 		if (!id) {
 			return res.json({success: false, error: "Provide id in url"});
 		}
@@ -174,10 +175,12 @@ function attachApi() {
 				asset = {};
 
 			if (scriptId) {
-				// set transaction
 				type = 5;
-				asset.input = new Buffer(JSON.stringify(input), 'utf8').toString('hex');
-				asset.scriptId = scriptId;
+
+				asset.input = {
+					data: new Buffer(JSON.stringify(input), 'utf8').toString('hex'),
+					scriptId : scriptId
+				};
 			}
 
 			var transaction = {
@@ -256,6 +259,7 @@ function list(filter, cb) {
 	if (filter.limit > 100) {
 		return cb('Maximum of limit is 100');
 	}
+
 
 	// need to fix 'or' or 'and' in query
 	library.dbLite.query("select t.id, t.blockId, t.type, t.timestamp, lower(hex(t.senderPublicKey)), t.senderId, t.recipientId, t.amount, t.fee, lower(hex(t.signature)), lower(hex(t.signSignature)), (select max(height) + 1 from blocks) - b.height " +
@@ -506,26 +510,30 @@ Transactions.prototype.validateTransaction = function(transaction, done) {
 
 			break;
 		case 5:
+			if (!transaction.asset.input) {
+				return done("Empty asset");
+			}
+
 			// verify input
-			if (!transaction.asset.scriptId) {
+			if (!transaction.asset.input.scriptId) {
 				return done("Empty script id in transaction");
 			}
 
-			if (!transaction.asset.input) {
+			if (!transaction.asset.input.scriptId) {
 				return done("Empty input in transaction");
 			}
 
 			// need to rewrite this part async
-			modules.scripts.getScript(transaction.asset.scriptId, function (err, script) {
+			modules.scripts.getScript(transaction.asset.input.scriptId, function (err, script) {
 				if (err || !script) {
-					return done(err || ("Script not found: " + transaction.asset.scriptId));
+					return done(err || ("Script not found: " + transaction.asset.input.scriptId));
 				}
 
 				self.validateTransactionScript(script, function(err, script){
 					if (err) return done(err);
 
 					try {
-						var input = JSON.parse(transaction.asset.input);
+						var input = JSON.parse(new Buffer(transaction.asset.input.data, 'hex'));
 					} catch (err) {
 						return done(err);
 					}

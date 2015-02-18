@@ -13,8 +13,8 @@ function getBytes(script) {
 }
 
 function getInputBytes(input) {
-	var inputBuffer = new Buffer(input, 'hex');
-	var scriptId = new Buffer(scriptId, 'utf8');
+	var inputBuffer = new Buffer(input.data, 'hex');
+	var scriptId = new Buffer(input.scriptId, 'utf8');
 	return Buffer.concat([inputBuffer, scriptId]);
 }
 
