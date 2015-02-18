@@ -1,22 +1,4 @@
 {
-	"port": 7040,
-	"address": "0.0.0.0",
-	"serveHttpAPI": true,
-	"serveHttpWallet": true,
-	"version": "0.2.0",
-	"fileLogLevel": "info",
-	"consoleLogLevel": "log",
-	"sharePort": true,
-	"adminPanel": {
-		"whiteList": [
-			"127.0.0.1"
-		]
-	},
-	"api": {
-		"access": {
-			"whiteList": []
-		}
-	},
 	"peers": {
 		"list": [
 			{
@@ -25,12 +7,5 @@
 			}
 		],
 		"blackList": []
-	},
-	"forging": {
-		"secret": ""
-	},
-	"loading": {
-		"verifyOnLoading": true,
-		"loadPerIteration": 5000
 	}
 }

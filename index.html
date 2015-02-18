@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script>
+        var gui = require('nw.gui');
+        var win = gui.Window.get();
+
+        var nativeMenuBar = new gui.Menu({ type: "menubar" });
+
+        try {
+            nativeMenuBar.createMacBuiltin("Crypti");
+            win.menu = nativeMenuBar;
+        } catch (ex) {
+            console.log(ex.message);
+        }
+
+        var request = require('request');
+        require('./start.js');
+
+        var interval = setInterval(function () {
+            request.get("http://130.211.54.79:6040", function (err, resp, body) {
+                if (!err && resp.statusCode == 200) {
+                    clearInterval(interval);
+                    window.location.href = "http://130.211.54.79:6040";
+                    win.show();
+                }
+            });
+        }, 10);
+    </script>
+</head>
+<body style="background: #ebeced;">
+</body>
+</html>
