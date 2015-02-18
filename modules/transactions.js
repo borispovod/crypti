@@ -529,6 +529,8 @@ Transactions.prototype.validateTransaction = function(transaction, done) {
 					return done(err || ("Script not found: " + transaction.asset.input.scriptId));
 				}
 
+				transaction.asset.script = script;
+
 				self.validateTransactionScript(script, function(err, script){
 					if (err) return done(err);
 
@@ -537,6 +539,9 @@ Transactions.prototype.validateTransaction = function(transaction, done) {
 					} catch (err) {
 						return done(err);
 					}
+
+					transaction.asset.script.code = new Buffer(transaction.asset.script.code, 'hex').toString('utf8');
+					transaction.asset.script.parameters = new Buffer(transaction.asset.script.parameters, 'hex').toString('utf8');
 
 					JsonSchema.validate(input, script.parameters, function(err, report){
 						if (err) return done(err);

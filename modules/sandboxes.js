@@ -34,6 +34,7 @@ Sandboxes.prototype.execTransaction = function (transaction, cb) {
 		}
 	});
 
+
 	// run script
 	sandbox.transaction.exec(transaction, cb);
 }
