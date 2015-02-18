@@ -937,7 +937,7 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 											finish(null, transaction);
 										});
 									} else {
-										return finish();
+										return finish(null, transaction);
 									}
 								});
 							}
