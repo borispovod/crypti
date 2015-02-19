@@ -62,12 +62,14 @@ Account.prototype.addToUnconfirmedBalance = function (amount) {
 }
 
 Account.prototype.applyDelegateList = function (diff) {
+	if (diff === null) return;
 	accountApplyDiff(this, diff);
 
 	library.bus.message('changeDelegates', this.balance, diff);
 }
 
 Account.prototype.undoDelegateList = function (diff) {
+	if (diff === null) return;
 	var copyDiff = diff.slice();
 	for (var i = 0; i < copyDiff.length; i++) {
 		var math = copyDiff[i][0] == '-' ? '+' : '-';
