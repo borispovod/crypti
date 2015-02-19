@@ -82,14 +82,10 @@ Round.prototype.tick = function (block) {
 			}
 			var roundFee = feesByRound[round] / slots.delegates;
 			if (roundFee) {
-				console.log('round fees ', round + ' = ' + feesByRound[round]);
 				delegatesByRound[round].forEach(function (delegate) {
 					var recipient = modules.accounts.getAccountOrCreateByPublicKey(delegate);
-					console.log('each address', recipient.address + ' = ' + roundFee);
-					console.log('before', recipient.balance);
 					recipient.addToBalance(roundFee);
 					recipient.addToUnconfirmedBalance(roundFee);
-					console.log('before', recipient.balance);
 				});
 			}
 			library.bus.message('finishRound', round);

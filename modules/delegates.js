@@ -15,7 +15,6 @@ require('array.prototype.find'); //old node fix
 //private fields
 var modules, library, self;
 
-var activeDelegates = [];
 var loaded = false;
 var unconfirmedDelegates = [];
 var unconfirmedNames = [];
@@ -59,13 +58,13 @@ function attachApi() {
 		var realLimit = Math.min(offset + limit, length);
 		publicKeys.slice(offset, realLimit);
 
-		var result = publicKeys.map(function(publicKey){
+		var result = publicKeys.map(function (publicKey) {
 			var index = publicKeyIndex[publicKey];
 			return {
 				username: delegates[index].username,
 				publicKey: publicKey,
 				transactionId: delegates[index].transactionId,
-				vote:votes[publicKey]
+				vote: votes[publicKey]
 			};
 		})
 
@@ -234,7 +233,7 @@ function getKeysSortByVote(votes) {
 }
 
 function getBlockSlotData(slot, height) {
-	activeDelegates = self.generateDelegateList(getKeysSortByVote(votes), height);
+	var activeDelegates = self.generateDelegateList(getKeysSortByVote(votes), height);
 
 	var currentSlot = slot;
 	var lastSlot = slots.getLastSlot(currentSlot);
@@ -243,6 +242,7 @@ function getBlockSlotData(slot, height) {
 		var delegate_pos = currentSlot % slots.delegates;
 
 		var delegate_id = activeDelegates[delegate_pos];
+
 		if (delegate_id && keypairs[delegate_id]) {
 			return {time: slots.getSlotTime(currentSlot), keypair: keypairs[delegate_id]};
 		}
@@ -254,7 +254,7 @@ function loop(cb) {
 	setImmediate(cb);
 
 	if (!Object.keys(keypairs).length) {
-		library.logger.log('loop', 'exit: have no delegates');
+		library.logger.debug('loop', 'exit: have no delegates');
 		return;
 	}
 
@@ -318,20 +318,21 @@ function loadMyDelegates() {
 
 //public methods
 Delegates.prototype.generateDelegateList = function (sortedDelegateList, height) {
+	var truncDelegateList = sortedDelegateList.slice(0, slots.delegates);
 	var seedSource = modules.round.calc(height).toString();
 
 	var currentSeed = crypto.createHash('sha256').update(seedSource, 'utf8').digest();
-	for (var i = 0, delCount = sortedDelegateList.length; i < delCount; i++) {
+	for (var i = 0, delCount = truncDelegateList.length; i < delCount; i++) {
 		for (var x = 0; x < 4 && i < delCount; i++, x++) {
 			var newIndex = currentSeed[x] % delCount;
-			var b = sortedDelegateList[newIndex];
-			sortedDelegateList[newIndex] = sortedDelegateList[i];
-			sortedDelegateList[i] = b;
+			var b = truncDelegateList[newIndex];
+			truncDelegateList[newIndex] = truncDelegateList[i];
+			truncDelegateList[i] = b;
 		}
 		currentSeed = crypto.createHash('sha256').update(currentSeed).digest();
 	}
 
-	return sortedDelegateList;
+	return truncDelegateList;
 }
 
 Delegates.prototype.checkDelegates = function (publicKey, votes) {

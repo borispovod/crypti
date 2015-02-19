@@ -972,7 +972,6 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 						library.bus.message('newBlock', block, broadcast)
 
 						lastBlock = block;
-						//console.log('processBlock', 'lastBlock=' + lastBlock.id)
 
 						setImmediate(cb);
 					});
