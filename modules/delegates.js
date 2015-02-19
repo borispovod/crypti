@@ -61,15 +61,20 @@ function attachApi() {
 
 		var result = publicKeys.map(function(publicKey){
 			var index = publicKeyIndex[publicKey];
-			return delegates[index];
+			return {
+				username: delegates[index].username,
+				publicKey: publicKey,
+				transactionId: delegates[index].transactionId,
+				vote:votes[publicKey]
+			};
 		})
 
 		if (orderBy) {
 			if (orderBy == 'username') {
 				result = result.sort(function compare(a, b) {
-					if (a[orderBy] > b[orderBy])
-						return -1;
 					if (a[orderBy] < b[orderBy])
+						return -1;
+					if (a[orderBy] > b[orderBy])
 						return 1;
 					return 0;
 				});
