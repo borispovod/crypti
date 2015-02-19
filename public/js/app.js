@@ -1,4 +1,4 @@
-var webApp = angular.module('webApp', ['ui.router', 'btford.modal']);
+var webApp = angular.module('webApp', ['ui.router', 'btford.modal', 'ngTable']);
 
 webApp.config([
     "$locationProvider",
@@ -19,6 +19,11 @@ webApp.config([
                 url: "/account",
                 templateUrl: "/partials/account.html",
                 controller: "accountController"
+            })
+            .state('main.delegates', {
+                url: "/delegates",
+                templateUrl: "/partials/delegates.html",
+                controller: "delegatesController"
             })
             .state('main.forging', {
                 url: "/forging",

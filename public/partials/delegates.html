@@ -1,0 +1,14 @@
+<div id="account">
+    <div class="row">
+        <h1 class="heading">Delegates</h1>
+        <h2 class="account-id">Your account: {{ address }}</h2>
+    </div>
+    <div class="row">
+    <table ng-table="tableParams" border="0" width="100%" cellpadding="0" cellspacing="0">
+        <tr ng-repeat="user in $data">
+            <td data-title="'Name'">{{user.name}}</td>
+            <td data-title="'Age'">{{user.age}}</td>
+        </tr>
+    </table>
+    </div>
+</div>

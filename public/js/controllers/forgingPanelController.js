@@ -40,7 +40,6 @@ webApp.controller('forgingPanelController', ['$scope', '$http', function ($scope
 			alert("Provide secret passphrase");
 			return;
 		}
-
 		$http.post("/api/forging/disable", {
 			secret: pass
 		}).then(function (resp) {

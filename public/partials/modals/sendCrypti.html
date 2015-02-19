@@ -9,7 +9,7 @@
             <input class="input-text" type="password" ng-model="secondPhrase" placeholder="Your second secretPhrase" ng-show="secondPassphrase" ng-trim="false">
             <p class="error">{{fromServer}}.</p>
             <div class="pull-right">
-                <button type="submit" class="button green small" ng-disabled="!to || !secretPhrase || !amount || !fee || amount < 0 || fee < 0 || !accountValid || (secondPassphrase && !secondPhrase)" ng-click="sendCrypti()">Send</button>
+                <button type="submit" class="button green small" ng-disabled="sending || !to || !secretPhrase || !amount || !fee || amount < 0 || fee < 0 || !accountValid || (secondPassphrase && !secondPhrase)" ng-click="sendCrypti()">Send</button>
                 <button class="button small" ng-click="close()">Close</button>
             </div>
         </form>
