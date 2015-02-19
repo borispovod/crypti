@@ -176,9 +176,12 @@ describe('Sandbox.', function(){
             var transaction = {
                 id : 1,
                 asset : {
+                    input : {
+                        data : {}
+                    },
                     script : {
-                        input : {},
-                        code : "(function(done, input){ done(null, 'TRUE'); })"
+                        parameters : {},
+                        code : "transaction.run = function(done, input) { done(null, this.SUCCESS); };"
                     }
                 }
             };

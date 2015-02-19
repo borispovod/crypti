@@ -327,3 +327,19 @@ This plugin provides API to run crypti transaction script inside VM with `exec` 
 
 Execute transaction script inside sandbox VM. Evaluate transaction script source code and pass transaction values as
 script input.
+
+#### Usage
+
+Transaction should has code to execute. This code executes in closed scope defined for each sandbox instance individually.
+But main object that must exists anyway is `transaction`. This object contains transaction script parameters in `parameters`
+property. Also it has transaction result status codes `SUCCESS` and `FAIL`.
+
+Main transaction method named `run` should be defined in script code. Example:
+
+```javascript
+transaction.run = function(done, input) {
+    // Do calculations...
+    done(null, this.SUCCESS);
+};
+```
+
