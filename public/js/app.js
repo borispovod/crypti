@@ -5,34 +5,34 @@ webApp.config([
     "$stateProvider",
     "$urlRouterProvider",
     function ($locationProvider, $stateProvider, $urlRouterProvider) {
-        $locationProvider.html5Mode(true);
-        $urlRouterProvider.otherwise("/");
+        //$locationProvider.html5Mode(true);
+        //$urlRouterProvider.otherwise("/");
 
         // Now set up the states
         $stateProvider
             .state('main', {
                 abstract: true,
-                templateUrl: "/partials/app-template.html",
+                templateUrl: "partials/app-template.html",
                 controller: "templateController"
             })
             .state('main.account', {
                 url: "/account",
-                templateUrl: "/partials/account.html",
+                templateUrl: "partials/account.html",
                 controller: "accountController"
             })
             .state('main.forging', {
                 url: "/forging",
-                templateUrl: "/partials/forging.html",
+                templateUrl: "partials/forging.html",
                 controller: "forgingController"
             })
             .state('main.blockchain', {
                 url: "/blockchain",
-                templateUrl: "/partials/blockchain.html",
+                templateUrl: "partials/blockchain.html",
                 controller: "blockchainController"
             })
             .state('passphrase', {
-                url: "/",
-                templateUrl: "/partials/passphrase.html",
+                url: "",
+                templateUrl: "partials/passphrase.html",
                 controller: "passphraseController"
             });
     }

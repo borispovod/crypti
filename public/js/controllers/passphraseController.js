@@ -2,6 +2,10 @@ webApp.controller('passphraseController', ['$scope', '$rootScope', '$http', "$st
     function($rootScope, $scope, $http, $state, userService) {
         angular.element(document.getElementById("forgingButton")).show();
 
+
+		var nacl = nacl_factory.instantiate();
+		
+		/*
         $scope.login = function(pass) {
             var data = {secret: pass};
             if (!pass || pass.length > 100){
@@ -23,4 +27,5 @@ webApp.controller('passphraseController', ['$scope', '$rootScope', '$http', "$st
                     });
             }
         }
+        */
 }]);
