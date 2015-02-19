@@ -309,10 +309,8 @@ Accounts.prototype.getAddressByPublicKey = function (publicKey) {
 }
 
 Accounts.prototype.getAccountOrCreateByPublicKey = function (publicKey) {
-	var account, address;
-
-	address = self.getAddressByPublicKey(publicKey);
-	account = self.getAccount(address);
+	var address = self.getAddressByPublicKey(publicKey);
+	var account = self.getAccount(address);
 
 	if (account && !account.publicKey) {
 		account.publicKey = publicKey;
@@ -326,9 +324,7 @@ Accounts.prototype.getAccountOrCreateByPublicKey = function (publicKey) {
 }
 
 Accounts.prototype.getAccountOrCreateByAddress = function (address) {
-	var account;
-
-	account = self.getAccount(address);
+	var account = self.getAccount(address);
 
 	if (!account) {
 		account = new Account(address);
