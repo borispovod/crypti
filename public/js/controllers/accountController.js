@@ -1,4 +1,6 @@
-webApp.controller('accountController', ['$scope', '$rootScope', '$http', "userService", "$interval", "sendCryptiModal", "secondPassphraseModal", function($rootScope, $scope, $http, userService, $interval, sendCryptiModal, secondPassphraseModal) {
+require('angular');
+
+angular.module('webApp').controller('accountController', ['$scope', '$rootScope', '$http', "userService", "$interval", "sendCryptiModal", "secondPassphraseModal", function($rootScope, $scope, $http, userService, $interval, sendCryptiModal, secondPassphraseModal) {
     $scope.address = userService.address;
     $scope.balance = userService.balance;
     $scope.unconfirmedBalance = userService.unconfirmedBalance;

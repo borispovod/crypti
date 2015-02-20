@@ -1,4 +1,6 @@
-webApp.controller('delegatesController', ['$scope', '$rootScope', '$http', "userService", "$interval", "ngTableParams", function($rootScope, $scope, $http, userService, $interval, ngTableParams) {
+require('angular');
+
+angular.module('webApp').controller('delegatesController', ['$scope', '$rootScope', '$http', "userService", "$interval", "ngTableParams", function($rootScope, $scope, $http, userService, $interval, ngTableParams) {
     $scope.address = userService.address;
     var data = [];
 
