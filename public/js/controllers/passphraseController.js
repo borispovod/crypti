@@ -2,6 +2,7 @@ require('angular');
 
 angular.module('webApp').controller('passphraseController', ['$scope', '$rootScope', '$http', "$state", "userService",
     function ($rootScope, $scope, $http, $state, userService) {
+		console.log("here!!!");
 
         angular.element(document.getElementById("forgingButton")).show();
 
@@ -18,7 +19,8 @@ angular.module('webApp').controller('passphraseController', ['$scope', '$rootSco
                             userService.setSecondPassphrase(resp.data.account.secondSignature);
                             userService.unconfirmedPassphrase = resp.data.account.unconfirmedSignature;
 
-                            angular.element(document.getElementById("forgingButton")).hide();
+                            //angular.element(document.getElementById("forgingButton")).hide();
+							console.log("go to main.account");
                             $state.go('main.account');
                         } else {
                             alert("Something wrong. Restart server please.");
