@@ -1,6 +1,6 @@
 require('angular');
 
-angular.module('webApp').controller('companyModalController', ["$scope", "companyModal", "$http", "userService", function ($scope, addressModal, $http, userService) {
+angular.module('webApp').controller('companyModalController', ["$scope", "companyModal", "$http", "userService", "peerFactory", function ($scope, addressModal, $http, userService, peerFactory) {
     $scope.secondPassphrase = userService.secondPassphrase;
     $scope.buttontype = "submit";
 
@@ -54,7 +54,7 @@ angular.module('webApp').controller('companyModalController', ["$scope", "compan
         }
 
         if (!$scope.emailError && !$scope.domainError) {
-            $http.post("/api/createCompany", {
+            $http.post(peerFactory.url + "/api/createCompany", {
                 secret : $scope.secretPhrase,
                 accountAddress : userService.address,
                 companyName : $scope.companyName,
@@ -119,7 +119,7 @@ angular.module('webApp').controller('companyModalController', ["$scope", "compan
         }
 
         if (!$scope.emailError && !$scope.domainError) {
-            $http.post("/api/getToken", {
+            $http.post(peerFactory.url + "/api/getToken", {
                 secret : $scope.secretPhrase,
                 accountAddress : userService.address,
                 companyName : $scope.companyName,

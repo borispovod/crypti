@@ -1,6 +1,6 @@
 require('angular');
 
-angular.module('webApp').controller('secondPassphraseModalController', ["$scope", "secondPassphraseModal", "$http", "userService", function ($scope, secondPassphraseModal, $http, userService) {
+angular.module('webApp').controller('secondPassphraseModalController', ["$scope", "secondPassphraseModal", "$http", "userService", "peerFactory", function ($scope, secondPassphraseModal, $http, userService, peerFactory) {
     $scope.type = "password";
 
     $scope.close = function () {
@@ -20,7 +20,7 @@ angular.module('webApp').controller('secondPassphraseModalController', ["$scope"
     }
 
     $scope.addNewPassphrase = function () {
-        $http.put("/api/signatures", {
+        $http.put(peerFactory.url + "/api/signatures", {
             secret: $scope.secretPhrase,
 			secondSecret: $scope.newSecretPhrase,
             publicKey: userService.publicKey

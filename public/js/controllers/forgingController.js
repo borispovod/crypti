@@ -1,6 +1,6 @@
 require('angular');
 
-angular.module('webApp').controller('forgingController', ['$scope', '$rootScope', '$http', "userService", "$interval", "companyModal", "forgingModal", function($rootScope, $scope, $http, userService, $interval, companyModal, forgingModal) {
+angular.module('webApp').controller('forgingController', ['$scope', '$rootScope', '$http', "userService", "$interval", "companyModal", "forgingModal", "peerFactory", function($rootScope, $scope, $http, userService, $interval, companyModal, forgingModal, peerFactory) {
     $scope.address = userService.address;
     $scope.effectiveBalance = userService.effectiveBalance;
     $scope.totalBalance = userService.balance;
@@ -8,7 +8,7 @@ angular.module('webApp').controller('forgingController', ['$scope', '$rootScope'
 	$scope.loadingBlocks = true;
 
 	$scope.getBlocks = function () {
-		$http.get("/api/blocks", { params : { generatorPublicKey : userService.publicKey, limit : 20, orderBy: "height:desc" }})
+		$http.get(peerFactory.url + "/api/blocks", { params : { generatorPublicKey : userService.publicKey, limit : 20, orderBy: "height:desc" }})
 			.then(function (resp) {
 				$scope.blocks = resp.data.blocks;
 				$scope.loadingBlocks = false;
@@ -16,14 +16,14 @@ angular.module('webApp').controller('forgingController', ['$scope', '$rootScope'
 	}
 
 	$scope.getForgedAmount = function () {
-		$http.get("/api/blocks/getForgedByAccount", { params : { generatorPublicKey : userService.publicKey }})
+		$http.get(peerFactory.url + "/api/blocks/getForgedByAccount", { params : { generatorPublicKey : userService.publicKey }})
 			.then(function (resp) {
 				$scope.totalForged = resp.data.sum;
 			})
 	}
 
 	$scope.getForging = function () {
-		$http.get("/api/forging")
+		$http.get(peerFactory.url + "/api/forging")
 			.then(function (resp) {
 				if (resp.data.enabled) {
 					if (resp.data.address == userService.address) {

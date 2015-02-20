@@ -1,10 +1,10 @@
 require('angular');
 
-angular.module('webApp').controller('blockModalController', ["$scope", "$http", "blockModal", function ($scope, $http, blockModal) {
+angular.module('webApp').controller('blockModalController', ["$scope", "$http", "blockModal", "peerFactory", function ($scope, $http, blockModal, peerFactory) {
 	$scope.loading = true;
 
 	$scope.getTransactionsOfBlock = function (blockId) {
-		$http.get("/api/transactions/", { params : { blockId : blockId }})
+		$http.get(peerFactory.url + "/api/transactions/", { params : { blockId : blockId }})
 			.then(function (resp) {
 				$scope.transactions = resp.data.transactions;
 				$scope.loading = false;
