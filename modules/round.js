@@ -26,11 +26,6 @@ Round.prototype.calc = function (height) {
 }
 
 Round.prototype.fowardTick = function (block, previousBlock) {
-	debugger;
-
-	feesByRound = {};
-	delegatesByRound = {};
-
 	var round = self.calc(block.height);
 	var prevRound = self.calc(previousBlock.height);
 
@@ -46,11 +41,17 @@ Round.prototype.fowardTick = function (block, previousBlock) {
 				var task = tasks.shift();
 				task();
 			}
-			var roundFee = unFeesByRound[round] / slots.delegates;
+			var roundFee = Math.floor(unFeesByRound[round] / slots.delegates * 100) / 100;
+			var leftover = unFeesByRound[round] - (roundFee * slots.delegates);
 			if (roundFee) {
-				unDelegatesByRound[round].forEach(function (delegate) {
-					var recipient = modules.accounts.getAccountOrCreateByAddress(delegate);
+				unDelegatesByRound[round].forEach(function (delegate, index) {
+					var recipient = modules.accounts.getAccountOrCreateByPublicKey(delegate);
 					recipient.addToBalance(-roundFee);
+					recipient.addToUnconfirmedBalance(-roundFee);
+					if (index === 0) {
+						recipient.addToBalance(-leftover);
+						recipient.addToUnconfirmedBalance(-leftover);
+					}
 				});
 			}
 		}
@@ -59,12 +60,14 @@ Round.prototype.fowardTick = function (block, previousBlock) {
 	}
 }
 
-Round.prototype.tick = function (block) {
-	debugger;
-
+Round.prototype.flush = function () {
 	unFeesByRound = {};
 	unDelegatesByRound = {};
+	feesByRound = {};
+	delegatesByRound = {};
+}
 
+Round.prototype.tick = function (block) {
 	var round = self.calc(block.height);
 
 	feesByRound[round] = (feesByRound[round] || 0);
@@ -81,11 +84,17 @@ Round.prototype.tick = function (block) {
 				var task = tasks.shift();
 				task();
 			}
-			var roundFee = feesByRound[round] / slots.delegates;
+			var roundFee = Math.floor(feesByRound[round] / slots.delegates * 100) / 100;
+			var leftover = feesByRound[round] - (roundFee * slots.delegates);
 			if (roundFee) {
-				delegatesByRound[round].forEach(function (delegate) {
-					var recipient = modules.accounts.getAccountOrCreateByAddress(delegate);
+				delegatesByRound[round].forEach(function (delegate, index) {
+					var recipient = modules.accounts.getAccountOrCreateByPublicKey(delegate);
 					recipient.addToBalance(roundFee);
+					recipient.addToUnconfirmedBalance(roundFee);
+					if (index === delegatesByRound[round].length - 1) {
+						recipient.addToBalance(leftover);
+						recipient.addToUnconfirmedBalance(leftover);
+					}
 				});
 			}
 			library.bus.message('finishRound', round);
