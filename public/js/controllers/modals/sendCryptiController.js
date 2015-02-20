@@ -1,6 +1,6 @@
 require('angular');
 
-angular.module('webApp').controller('sendCryptiController', ["$scope", "sendCryptiModal", "$http", "userService", "$timeout", function ($scope, sendCryptiModal, $http, userService, $timeout) {
+angular.module('webApp').controller('sendCryptiController', ["$scope", "sendCryptiModal", "$http", "userService", "$timeout", "peerFactory", function ($scope, sendCryptiModal, $http, userService, $timeout, peerFactory) {
     $scope.sending = false;
     $scope.accountValid = true;
     $scope.fromServer = "";
@@ -132,7 +132,7 @@ angular.module('webApp').controller('sendCryptiController', ["$scope", "sendCryp
     }
 
     $scope.getCurrentFee = function () {
-        $http.get("/api/blocks/getFee")
+        $http.get(peerFactory.url + "/api/blocks/getFee")
             .then(function (resp) {
                 $scope.currentFee = resp.data.fee;
             });
@@ -196,7 +196,7 @@ angular.module('webApp').controller('sendCryptiController', ["$scope", "sendCryp
 
         if (!$scope.amountError && !$scope.sending) {
             $scope.sending = !$scope.sending;
-            $http.put("/api/transactions", data).then(function (resp) {
+            $http.put(peerFactory.url + "/api/transactions", data).then(function (resp) {
                 $scope.sending = !$scope.sending;
                 if (resp.data.error) {
                     $scope.fromServer = resp.data.error;

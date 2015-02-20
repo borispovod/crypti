@@ -1,6 +1,6 @@
 require('angular');
 
-angular.module('webApp').controller('accountController', ['$scope', '$rootScope', '$http', "userService", "$interval", "sendCryptiModal", "secondPassphraseModal", function($rootScope, $scope, $http, userService, $interval, sendCryptiModal, secondPassphraseModal) {
+angular.module('webApp').controller('accountController', ['$scope', '$rootScope', '$http', "userService", "$interval", "sendCryptiModal", "secondPassphraseModal", "peerFactory", function($rootScope, $scope, $http, userService, $interval, sendCryptiModal, secondPassphraseModal, peerFactory) {
     $scope.address = userService.address;
     $scope.balance = userService.balance;
     $scope.unconfirmedBalance = userService.unconfirmedBalance;
@@ -9,11 +9,11 @@ angular.module('webApp').controller('accountController', ['$scope', '$rootScope'
 	$scope.transactionsLoading = true;
 
     $scope.getTransactions = function () {
-        $http.get("/api/transactions", { params : { senderPublicKey : userService.publicKey, recipientId : $scope.address, limit : 20, orderBy : 'timestamp:desc' }})
+        $http.get(peerFactory.url + "/api/transactions", { params : { senderPublicKey : userService.publicKey, recipientId : $scope.address, limit : 20, orderBy : 'timestamp:desc' }})
             .then(function (resp) {
 				var transactions = resp.data.transactions;
 
-				$http.get('/api/transactions/unconfirmed', { params : { senderPublicKey : userService.publicKey, address : userService.address }})
+				$http.get(peerFactory.url + '/api/transactions/unconfirmed', { params : { senderPublicKey : userService.publicKey, address : userService.address }})
 					.then(function (resp) {
 						var unconfirmedTransactions = resp.data.transactions;
 						$scope.transactions = unconfirmedTransactions.concat(transactions);
@@ -22,7 +22,7 @@ angular.module('webApp').controller('accountController', ['$scope', '$rootScope'
     }
 
 	$scope.getAccount = function () {
-		$http.get("/api/accounts", { params : { address : userService.address }})
+		$http.get(peerFactory.url + "/api/accounts", { params : { address : userService.address }})
 			.then(function (resp) {
 				var account = resp.data.account;
 				userService.balance = account.balance / 100000000;

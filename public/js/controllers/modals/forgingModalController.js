@@ -1,6 +1,6 @@
 require('angular');
 
-angular.module('webApp').controller('forgingModalController', ["$scope", "forgingModal", "$http", "userService", function ($scope, forgingModal, $http, userService) {
+angular.module('webApp').controller('forgingModalController', ["$scope", "forgingModal", "$http", "userService", "peerFactory", function ($scope, forgingModal, $http, userService, peerFactory) {
     $scope.close = function () {
         if ($scope.destroy) {
             $scope.destroy();
@@ -10,7 +10,7 @@ angular.module('webApp').controller('forgingModalController', ["$scope", "forgin
     }
 
     $scope.startForging = function () {
-        $http.get("/api/startForging", { params : { secretPharse : $scope.secretPhrase, publicKey : userService.publicKey }})
+        $http.get(peerFactory.url + "/api/startForging", { params : { secretPharse : $scope.secretPhrase, publicKey : userService.publicKey }})
             .then(function (resp) {
                 userService.setForging(resp.data.success);
 

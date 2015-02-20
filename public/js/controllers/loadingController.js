@@ -1,10 +1,10 @@
 require('angular');
 
-angular.module('webApp').controller("loadingController", ["$scope", "$http", "$interval", "$window", function ($scope, $http, $interval, $window) {
+angular.module('webApp').controller("loadingController", ["$scope", "$http", "$interval", "$window", "peerFactory", function ($scope, $http, $interval, $window, peerFactory) {
     $scope.height = null;
 
     $scope.getHeight = function () {
-        $http.get("/api/loader/status")
+        $http.get(peerFactory.url + "/api/loader/status")
             .then(function (resp) {
                 if (resp.data.success) {
                     if (!resp.data.loaded) {
