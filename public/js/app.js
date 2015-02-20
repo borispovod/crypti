@@ -1,10 +1,16 @@
-var webApp = angular.module('webApp', ['ui.router', 'btford.modal', 'ngTable']);
+require('angular');
+require('angular-modal');
+require('angular-ui-router');
+require('angular-resource');
+
+webApp = angular.module('webApp', ['ui.router', 'btford.modal']);
 
 webApp.config([
     "$locationProvider",
     "$stateProvider",
     "$urlRouterProvider",
     function ($locationProvider, $stateProvider, $urlRouterProvider) {
+
         $locationProvider.html5Mode(true);
         $urlRouterProvider.otherwise("/");
 
@@ -42,3 +48,7 @@ webApp.config([
             });
     }
 ]);
+
+
+
+

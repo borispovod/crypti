@@ -1,13 +1,16 @@
-webApp.controller('passphraseController', ['$scope', '$rootScope', '$http', "$state", "userService",
-    function($rootScope, $scope, $http, $state, userService) {
+require('angular');
+
+angular.module('webApp').controller('passphraseController', ['$scope', '$rootScope', '$http', "$state", "userService",
+    function ($rootScope, $scope, $http, $state, userService) {
+
         angular.element(document.getElementById("forgingButton")).show();
 
-        $scope.login = function(pass) {
+        $scope.login = function (pass) {
             var data = {secret: pass};
-            if (!pass || pass.length > 100){
+            if (!pass || pass.length > 100) {
             }
-            else{
-                $http.post("/api/accounts/open/", { secret : pass })
+            else {
+                $http.post("/api/accounts/open/", {secret: pass})
                     .then(function (resp) {
                         if (resp.data.success) {
                             userService.setData(resp.data.account.address, resp.data.account.publicKey, resp.data.account.balance, resp.data.account.unconfirmedBalance, resp.data.account.effectiveBalance);
@@ -23,4 +26,4 @@ webApp.controller('passphraseController', ['$scope', '$rootScope', '$http', "$st
                     });
             }
         }
-}]);
+    }]);
