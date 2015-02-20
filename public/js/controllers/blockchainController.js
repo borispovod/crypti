@@ -1,4 +1,6 @@
-webApp.controller('blockchainController', ['$scope', '$rootScope', '$http', "userService", "$interval", 'blockService', 'blockModal', function($rootScope, $scope, $http, userService, $interval, blockService, blockModal) {
+require('angular');
+
+angular.module('webApp').controller('blockchainController', ['$scope', '$rootScope', '$http', "userService", "$interval", 'blockService', 'blockModal', function($rootScope, $scope, $http, userService, $interval, blockService, blockModal) {
     $scope.address = userService.address;
     $scope.getBlocks = function () {
         var params = {};

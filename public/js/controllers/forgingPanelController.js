@@ -1,4 +1,6 @@
-webApp.controller('forgingPanelController', ['$scope', '$http', function ($scope, $http) {
+require('angular');
+
+angular.module('webApp').controller('forgingPanelController', ['$scope', '$http', function ($scope, $http) {
 	$scope.buttonType = "submit";
 
 	$scope.getForgingInfo = function () {

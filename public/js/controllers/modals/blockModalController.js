@@ -1,4 +1,6 @@
-webApp.controller('blockModalController', ["$scope", "$http", "blockModal", function ($scope, $http, blockModal) {
+require('angular');
+
+angular.module('webApp').controller('blockModalController', ["$scope", "$http", "blockModal", function ($scope, $http, blockModal) {
 	$scope.loading = true;
 
 	$scope.getTransactionsOfBlock = function (blockId) {

@@ -1,4 +1,6 @@
-webApp.controller('sendCryptiController', ["$scope", "sendCryptiModal", "$http", "userService", "$timeout", function ($scope, sendCryptiModal, $http, userService, $timeout) {
+require('angular');
+
+angular.module('webApp').controller('sendCryptiController', ["$scope", "sendCryptiModal", "$http", "userService", "$timeout", function ($scope, sendCryptiModal, $http, userService, $timeout) {
     $scope.sending = false;
     $scope.accountValid = true;
     $scope.fromServer = "";
