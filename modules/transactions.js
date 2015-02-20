@@ -455,31 +455,25 @@ Transactions.prototype.apply = function (transaction) {
 		return false;
 	}
 
+	sender.addToBalance(-amount);
+
 	// process only two types of transactions
 	switch (transaction.type) {
 		case 0:
-			sender.addToBalance(-amount);
-
 			var recipient = modules.accounts.getAccountOrCreateByAddress(transaction.recipientId);
 			recipient.addToUnconfirmedBalance(transaction.amount);
 			recipient.addToBalance(transaction.amount);
 			break;
 		case 1:
-			sender.addToBalance(-amount);
-
 			sender.unconfirmedSignature = false;
 			sender.secondSignature = true;
 			sender.secondPublicKey = transaction.asset.signature.publicKey;
 			break;
 		case 2:
-			sender.addToBalance(-amount);
-
 			modules.delegates.removeUnconfirmedDelegate(transaction.asset.delegate);
 			modules.delegates.cache(transaction.asset.delegate);
 			break;
 		case 3:
-			sender.addToBalance(-amount);
-
 			sender.applyDelegateList(transaction.asset.votes);
 			break;
 	}

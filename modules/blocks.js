@@ -256,19 +256,6 @@ function verifySignature(block) {
 	return res;
 }
 
-function applyConfirmation(generatorPublicKey) {
-	var generator = modules.accounts.getAccountByPublicKey(generatorPublicKey);
-
-	if (!generator) {
-		return false;
-	}
-
-	generator.addToUnconfirmedBalance(100 * constants.fixedPoint);
-	generator.addToBalance(100 * constants.fixedPoint);
-
-	return true;
-}
-
 function undoBlock(block, previousBlock, cb) {
 	async.parallel([
 		function (done) {
@@ -972,7 +959,6 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 						library.bus.message('newBlock', block, broadcast)
 
 						lastBlock = block;
-						//console.log('processBlock', 'lastBlock=' + lastBlock.id)
 
 						setImmediate(cb);
 					});
