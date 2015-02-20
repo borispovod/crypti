@@ -225,11 +225,13 @@ function attachApi() {
 }
 
 function getKeysSortByVote(votes) {
-	var delegates = Object.keys(votes);
-	delegates = delegates.sort(function compare(a, b) {
-		return votes[b] - votes[a];
+	return Object.keys(votes).sort(function compare(a, b) {
+		if (votes[a] > votes[b]) return -1;
+		if (votes[a] < votes[b]) return 1;
+		if (a < b) return -1;
+		if (a > b) return 1;
+		return 0;
 	});
-	return delegates;
 }
 
 function getBlockSlotData(slot, height) {
@@ -318,6 +320,9 @@ function loadMyDelegates() {
 
 //public methods
 Delegates.prototype.generateDelegateList = function (sortedDelegateList, height) {
+	//console.log(sortedDelegateList.map(function (item) {
+	//	return item.slice(0, 4);
+	//}))
 	var truncDelegateList = sortedDelegateList.slice(0, slots.delegates);
 	var seedSource = modules.round.calc(height).toString();
 
