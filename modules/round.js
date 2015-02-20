@@ -26,11 +26,6 @@ Round.prototype.calc = function (height) {
 }
 
 Round.prototype.fowardTick = function (block, previousBlock) {
-	debugger;
-
-	feesByRound = {};
-	delegatesByRound = {};
-
 	var round = self.calc(block.height);
 	var prevRound = self.calc(previousBlock.height);
 
@@ -60,10 +55,14 @@ Round.prototype.fowardTick = function (block, previousBlock) {
 	}
 }
 
-Round.prototype.tick = function (block) {
+Round.prototype.flush = function(){
 	unFeesByRound = {};
 	unDelegatesByRound = {};
+	feesByRound = {};
+	delegatesByRound = {};
+}
 
+Round.prototype.tick = function (block) {
 	var round = self.calc(block.height);
 
 	feesByRound[round] = (feesByRound[round] || 0);

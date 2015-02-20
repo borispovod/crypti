@@ -1,4 +1,6 @@
-webApp.controller('forgingModalController', ["$scope", "forgingModal", "$http", "userService", function ($scope, forgingModal, $http, userService) {
+require('angular');
+
+angular.module('webApp').controller('forgingModalController', ["$scope", "forgingModal", "$http", "userService", function ($scope, forgingModal, $http, userService) {
     $scope.close = function () {
         if ($scope.destroy) {
             $scope.destroy();

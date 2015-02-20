@@ -70,7 +70,7 @@ function loadBlocks(lastBlock, cb) {
 			blocksToSync = params.int(data.body.height);
 
 			if (lastBlock.id != genesisBlock.blockId) { //have to found common block
-				library.logger.info("Find common block from " + peerStr);
+				library.logger.info("Looking for common block with " + peerStr);
 				modules.blocks.getCommonBlock(data.peer, lastBlock.height, function (err, commonBlock) {
 					if (err) {
 						return cb(err);
@@ -80,11 +80,12 @@ function loadBlocks(lastBlock, cb) {
 						return cb();
 					}
 
-					debugger;
+					modules.round.flush();
 
-					library.logger.info("Resolve fork before " + commonBlock.id + " from " + peerStr);
+					library.logger.info("Found common block " + commonBlock.id + " (at " + commonBlock.height + ")" + " with peer " + peerStr);
 					modules.blocks.deleteBlocksBefore(commonBlock, function (err, backupBlocks) {
 						if (err) {
+							modules.round.flush();
 							return setImmediate(cb, err);
 						}
 						library.logger.debug("Load blocks from peer " + peerStr);
@@ -94,18 +95,26 @@ function loadBlocks(lastBlock, cb) {
 								library.logger.log('ban 60 min', peerStr);
 								modules.peer.state(data.peer.ip, data.peer.port, 0, 3600);
 
+								library.logger.info("Remove blocks again until " + commonBlock.id + " (at " + commonBlock.height + ")");
 								modules.blocks.deleteBlocksBefore(commonBlock, function (err) {
 									if (err) {
 										library.logger.error(err);
+										modules.round.flush();
 										return setImmediate(cb);
 									}
 
-									library.logger.info("First last block already: " + modules.blocks.getLastBlock().height + ", first block in backup: " + backupBlocks[0].height);
+									if (backupBlocks) {
+										library.logger.info("Restore stored blocks until " + backupBlocks[backupBlocks.length - 1].height);
+									}
 									async.eachSeries(backupBlocks, function (block, cb) {
 										modules.blocks.processBlock(block, false, cb);
-									}, cb);
+									}, function (err) {
+										modules.round.flush();
+										cb(err);
+									});
 								});
 							} else {
+								modules.round.flush();
 								setImmediate(cb);
 							}
 						});

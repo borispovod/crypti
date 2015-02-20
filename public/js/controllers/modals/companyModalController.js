@@ -1,4 +1,6 @@
-webApp.controller('companyModalController', ["$scope", "companyModal", "$http", "userService", function ($scope, addressModal, $http, userService) {
+require('angular');
+
+angular.module('webApp').controller('companyModalController', ["$scope", "companyModal", "$http", "userService", function ($scope, addressModal, $http, userService) {
     $scope.secondPassphrase = userService.secondPassphrase;
     $scope.buttontype = "submit";
 

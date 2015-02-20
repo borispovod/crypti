@@ -1,6 +1,7 @@
+
 require('angular');
-require('angular-modal');
 require('angular-ui-router');
+require('angular-modal');
 require('angular-resource');
 
 webApp = angular.module('webApp', ['ui.router', 'btford.modal']);
