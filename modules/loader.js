@@ -71,11 +71,11 @@ function test(lable) {
 			.reduce(function (previousValue, currentValue, index, array) {
 				return previousValue + currentValue;
 			});
-	/*console.log(lable.yellow, {
+	console.log(lable.yellow, {
 		balance: b.balance,
 		unconfirmedBalance: b.unconfirmedBalance,
 		unconfirmedTransactionsAmount: sum
-	});*/
+	});
 }
 
 function loadBlocks(lastBlock, cb) {
@@ -102,7 +102,7 @@ function loadBlocks(lastBlock, cb) {
 						return cb();
 					}
 
-					test('w/o change');
+					//test('w/o change');
 
 					modules.round.flush();
 
@@ -112,7 +112,7 @@ function loadBlocks(lastBlock, cb) {
 								modules.round.flush();
 							}
 							setImmediate(cb, err);
-							test('after clean load');
+							//test('after clean load');
 						});
 					} else {
 						library.logger.info("Found common block " + commonBlock.id + " (at " + commonBlock.height + ")" + " with peer " + peerStr);
@@ -122,13 +122,13 @@ function loadBlocks(lastBlock, cb) {
 								return setImmediate(cb, err);
 							}
 
-							test('after delete until common');
+							//test('after delete until common');
 
 							library.logger.debug("Load blocks from peer " + peerStr);
 
 							modules.blocks.loadBlocksFromPeer(data.peer, commonBlock.id, function (err) {
 
-								test('after load');
+								//test('after load');
 
 								if (err) {
 									library.logger.error(err);
@@ -138,7 +138,7 @@ function loadBlocks(lastBlock, cb) {
 									library.logger.info("Remove blocks again until " + commonBlock.id + " (at " + commonBlock.height + ")");
 									modules.blocks.deleteBlocksBefore(commonBlock, function (err) {
 
-										test('after delete until common #2');
+										//test('after delete until common #2');
 
 										if (err) {
 											library.logger.error(err);
@@ -151,7 +151,7 @@ function loadBlocks(lastBlock, cb) {
 											modules.blocks.processBlock(block, false, cb);
 										}, function (err) {
 
-											test('after restore');
+											//test('after restore');
 
 											modules.round.flush();
 											cb(err);
