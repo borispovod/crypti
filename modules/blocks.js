@@ -878,42 +878,47 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 	block.height = lastBlock.height + 1;
 	var unconfirmedTransactions = modules.transactions.undoAllUnconfirmed();
 
+	function done(err, list) {
+		modules.transactions.applyUnconfirmedList(list);
+		setImmediate(cb, err);
+	}
+
 	library.dbLite.query("SELECT id FROM blocks WHERE id=$id", {id: block.id}, ['id'], function (err, rows) {
 		if (err) {
-			return cb(err);
+			return done(err, unconfirmedTransactions);
 		}
 
 		var bId = rows.length && rows[0].id;
 
 		if (bId) {
-			cb("Block already exists: " + block.id);
+			done("Block already exists: " + block.id, unconfirmedTransactions);
 		} else {
 			if (!self.verifySignature(block)) {
-				return cb("Can't verify signature: " + block.id);
+				return done("Can't verify signature: " + block.id, unconfirmedTransactions);
 			}
 
 			if (block.previousBlock != lastBlock.id) {
-				return cb("Can't verify previous block: " + block.id);
+				return done("Can't verify previous block: " + block.id, unconfirmedTransactions);
 			}
 
 			if (!self.verifyGenerationSignature(block, lastBlock)) {
-				return cb("Can't verify generator signature: " + block.id);
+				return done("Can't verify generator signature: " + block.id, unconfirmedTransactions);
 			}
 
 			if (block.version > 2 || block.version <= 0) {
-				return cb("Invalid version of block: " + block.id)
+				return done("Invalid version of block: " + block.id, unconfirmedTransactions)
 			}
 
 			var now = timeHelper.getNow();
 
 			if (block.timestamp > now + 15 || block.timestamp < lastBlock.timestamp || block.timestamp - lastBlock.timestamp < 60) {
-				return cb("Can't verify block timestamp: " + block.id);
+				return done("Can't verify block timestamp: " + block.id, unconfirmedTransactions);
 			}
 
 			if (block.payloadLength > constants.maxPayloadLength
 				|| block.requestsLength > constants.maxRequestsLength
 				|| block.confirmationsLength > constants.maxConfirmations) {
-				return cb("Can't verify payload length of block: " + block.id);
+				return done("Can't verify payload length of block: " + block.id, unconfirmedTransactions);
 			}
 
 			if (block.transactions.length != block.numberOfTransactions
@@ -922,7 +927,7 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 				|| block.transactions.length > 100
 				|| block.requests.length > 1000
 				|| block.companyconfirmations.length > 1000) {
-				return cb("Invalid amount of block assets: " + block.id);
+				return done("Invalid amount of block assets: " + block.id, unconfirmedTransactions);
 			}
 
 			// check payload hash, transaction, number of confirmations
