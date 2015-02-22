@@ -71,11 +71,11 @@ function test(lable) {
 			.reduce(function (previousValue, currentValue, index, array) {
 				return previousValue + currentValue;
 			});
-	console.log(lable.yellow, {
+	/*console.log(lable.yellow, {
 		balance: b.balance,
 		unconfirmedBalance: b.unconfirmedBalance,
 		unconfirmedTransactionsAmount: sum
-	});
+	});*/
 }
 
 function loadBlocks(lastBlock, cb) {
