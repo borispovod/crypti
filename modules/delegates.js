@@ -458,7 +458,7 @@ Delegates.prototype.onNewBlock = function (block, broadcast) {
 
 Delegates.prototype.onChangeBalance = function (delegates, amount) {
 	modules.round.runOnFinish(function () {
-		var vote = amount / 100000000;
+		var vote = amount;
 
 		if (delegates !== null) {
 			delegates.forEach(function (publicKey) {
@@ -470,7 +470,7 @@ Delegates.prototype.onChangeBalance = function (delegates, amount) {
 
 Delegates.prototype.onChangeDelegates = function (balance, diff) {
 	modules.round.runOnFinish(function () {
-		var vote = balance / 100000000;
+		var vote = balance;
 
 		for (var i = 0; i < diff.length; i++) {
 			var math = diff[i][0];

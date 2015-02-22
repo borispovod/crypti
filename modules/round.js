@@ -41,7 +41,7 @@ Round.prototype.fowardTick = function (block, previousBlock) {
 				var task = tasks.shift();
 				task();
 			}
-			var roundFee = Math.floor(unFeesByRound[round] / slots.delegates * 100) / 100;
+			var roundFee = Math.floor(unFeesByRound[round] / slots.delegates);
 			var leftover = unFeesByRound[round] - (roundFee * slots.delegates);
 			if (roundFee) {
 				unDelegatesByRound[round].forEach(function (delegate, index) {
@@ -84,7 +84,7 @@ Round.prototype.tick = function (block) {
 				var task = tasks.shift();
 				task();
 			}
-			var roundFee = Math.floor(feesByRound[round] / slots.delegates * 100) / 100;
+			var roundFee = Math.floor(feesByRound[round] / slots.delegates);
 			var leftover = feesByRound[round] - (roundFee * slots.delegates);
 			if (roundFee) {
 				delegatesByRound[round].forEach(function (delegate, index) {
