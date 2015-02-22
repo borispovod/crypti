@@ -1,6 +1,6 @@
 {
   "name": "Crypti",
-  "version": "0.1.9a",
+  "version": "0.1.9c",
   "private": true,
   "scripts": {
     "start": "node app.js",
