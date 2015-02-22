@@ -40,7 +40,11 @@ module.exports = function (config) {
 				log_file.write(JSON.stringify(log) + '\n');
 			}
 			if (config.echo && config.levels[config.echo] <= config.levels[log.level]) {
-				console.log(log.level.bgYellow.black, log.timestamp.grey, log.message, log.data ? log.data : '');
+				try {
+					console.log(log.level.bgYellow.black, log.timestamp.grey, log.message, log.data ? log.data : '');
+				}catch (e){
+					console.log(e)
+				}
 			}
 		}
 
