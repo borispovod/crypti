@@ -452,7 +452,6 @@ function popLastBlock(oldLastBlock, cb) {
 			if (err) {
 				return cb(err);
 			}
-
 			modules.round.fowardTick(oldLastBlock, previousBlock);
 
 			deleteBlock(oldLastBlock.id, function (err) {
@@ -758,213 +757,210 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 	block.height = lastBlock.height + 1;
 	var unconfirmedTransactions = modules.transactions.undoAllUnconfirmed();
 
+	function done(err) {
+		modules.transactions.applyUnconfirmedList(unconfirmedTransactions);
+		setImmediate(cb, err);
+	}
+
 	library.dbLite.query("SELECT id FROM blocks WHERE id=$id", {id: block.id}, ['id'], function (err, rows) {
 		if (err) {
-			return cb(err);
+			return done(err);
 		}
 
 		var bId = rows.length && rows[0].id;
 
 		if (bId) {
-			cb("Block already exists: " + block.id);
-		} else {
-			if (!verifySignature(block)) {
-				return cb("Can't verify signature: " + block.id);
-			}
+			return done("Block already exists: " + block.id);
+		}
+		if (!verifySignature(block)) {
+			return done("Can't verify signature: " + block.id);
+		}
 
-			if (block.previousBlock != lastBlock.id) {
-				return cb("Can't verify previous block: " + block.id);
-			}
+		if (block.previousBlock != lastBlock.id) {
+			return done("Can't verify previous block: " + block.id);
+		}
 
-			if (block.version > 2 || block.version <= 0) {
-				return cb("Invalid version of block: " + block.id)
-			}
+		if (block.version > 2 || block.version <= 0) {
+			return done("Invalid version of block: " + block.id)
+		}
 
-			var blockSlotNumber = slots.getSlotNumber(block.timestamp);
-			var lastBlockSlotNumber = slots.getSlotNumber(lastBlock.timestamp);
+		var blockSlotNumber = slots.getSlotNumber(block.timestamp);
+		var lastBlockSlotNumber = slots.getSlotNumber(lastBlock.timestamp);
 
-			if (blockSlotNumber > slots.getSlotNumber() || blockSlotNumber <= lastBlockSlotNumber) {
-				return cb("Can't verify block timestamp: " + block.id);
-			}
+		if (blockSlotNumber > slots.getSlotNumber() || blockSlotNumber <= lastBlockSlotNumber) {
+			return done("Can't verify block timestamp: " + block.id);
+		}
 
-			if (!modules.delegates.validateBlockSlot(block)) {
-				return cb("Can't verify slot: " + block.id);
-			}
+		if (!modules.delegates.validateBlockSlot(block)) {
+			return done("Can't verify slot: " + block.id);
+		}
 
-			if (block.payloadLength > constants.maxPayloadLength) {
-				return cb("Can't verify payload length of block: " + block.id);
-			}
+		if (block.payloadLength > constants.maxPayloadLength) {
+			return done("Can't verify payload length of block: " + block.id);
+		}
 
-			if (block.transactions.length != block.numberOfTransactions || block.transactions.length > 100) {
-				return cb("Invalid amount of block assets: " + block.id);
-			}
+		if (block.transactions.length != block.numberOfTransactions || block.transactions.length > 100) {
+			return done("Invalid amount of block assets: " + block.id);
+		}
 
-			// check payload hash, transaction, number of confirmations
+		// check payload hash, transaction, number of confirmations
 
-			var totalAmount = 0, totalFee = 0, payloadHash = crypto.createHash('sha256'), appliedTransactions = {}, acceptedRequests = {}, acceptedConfirmations = {};
+		var totalAmount = 0, totalFee = 0, payloadHash = crypto.createHash('sha256'), appliedTransactions = {}, acceptedRequests = {}, acceptedConfirmations = {};
 
-			async.series([
-				function (done) {
-					async.eachSeries(block.transactions, function (transaction, cb) {
-						transaction.id = transactionHelper.getId(transaction);
+		async.series([
+			function (done) {
+				async.eachSeries(block.transactions, function (transaction, cb) {
+					transaction.id = transactionHelper.getId(transaction);
 
-						library.dbLite.query("SELECT id FROM trs WHERE id=$id", {id: transaction.id}, ['id'], function (err, rows) {
-							if (err) {
-								return cb(err);
-							}
-
-							var tId = rows.length && rows[0].id;
-
-							if (tId) {
-								cb("Transaction already exists: " + transaction.id);
-							} else {
-								if (appliedTransactions[transaction.id]) {
-									return cb("Dublicated transaction in block: " + transaction.id);
-								}
-
-								var sender = modules.accounts.getAccountByPublicKey(transaction.senderPublicKey);
-
-								if (transaction.senderId != sender.address) {
-									return cb("Invalid sender id: " + transaction.id);
-								}
-
-								if (!modules.transactions.verifySignature(transaction)) {
-									return cb("Can't verify transaction signature: " + transaction.id);
-								}
-
-								if (sender.secondSignature) {
-									if (!modules.transactions.verifySecondSignature(transaction, sender.secondPublicKey)) {
-										return cb("Can't verify second signature: " + transaction.id);
-									}
-								}
-
-								if (slots.getSlotNumber(transaction.timestamp) > slots.getSlotNumber() || slots.getSlotNumber(transaction.timestamp) > slots.getSlotNumber(block.timestamp)) {
-									return cb("Can't accept transaction timestamp: " + transaction.id);
-								}
-
-								transaction.fee = transactionHelper.getTransactionFee(transaction);
-
-								if (transaction.fee === false) {
-									return cb("Invalid transaction type/fee: " + transaction.id);
-								}
-
-								if (transaction.amount < 0) {
-									return cb("Invalid transaction amount: " + transaction.id);
-								}
-
-								switch (transaction.type) {
-									case 1:
-										if (!transaction.asset.signature) {
-											return cb("Transaction must have signature");
-										}
-										break;
-									case 2:
-										if (transaction.recipientId) {
-											return cb("Invalid recipient");
-										}
-
-										if (!transaction.asset.delegate.username) {
-											return cb && cb("Empty transaction asset for delegate transaction");
-										}
-
-										if (transaction.asset.delegate.username.length == 0 || transaction.asset.delegate.username.length > 20) {
-											return cb && cb("Incorrect delegate username length");
-										}
-
-										if (modules.delegates.existsName(transaction.asset.delegate.username)) {
-											return cb && cb("Delegate with this name is already exists");
-										}
-
-										if (modules.delegates.existsDelegate(transaction.senderPublicKey)) {
-											return cb && cb("This account already delegate");
-										}
-										break;
-									case 3:
-										if (transaction.recipientId != transaction.senderId) {
-											return cb && cb("Incorrect recipient");
-										}
-
-										if (!modules.delegates.checkDelegates(transaction.senderPublicKey, transaction.asset.votes)) {
-											return cb && cb("Can't verify votes, vote for not exists delegate found: " + transaction.id);
-										}
-										break;
-								}
-
-								if (!modules.transactions.applyUnconfirmed(transaction)) {
-									return cb("Can't apply transaction: " + transaction.id);
-								}
-
-								appliedTransactions[transaction.id] = transaction;
-
-								var index = unconfirmedTransactions.indexOf(transaction.id);
-								if (index >= 0) {
-									unconfirmedTransactions.splice(index, 1);
-								}
-
-								payloadHash.update(transactionHelper.getBytes(transaction));
-								totalAmount += transaction.amount;
-								totalFee += transaction.fee;
-
-								setImmediate(cb);
-							}
-						});
-					}, done);
-				}
-			], function (err) {
-				var errors = [];
-
-				if (err) {
-					errors.push(err);
-				}
-
-				if (payloadHash.digest().toString('hex') !== block.payloadHash) {
-					errors.push("Invalid payload hash: " + block.id);
-				}
-
-				if (totalAmount != block.totalAmount) {
-					errors.push("Invalid total amount: " + block.id);
-				}
-
-				if (totalFee != block.totalFee) {
-					errors.push("Invalid total fee: " + block.id);
-				}
-
-				if (errors.length > 0) {
-					for (var i = 0; i < block.transactions.length; i++) {
-						var transaction = block.transactions[i];
-
-						if (appliedTransactions[transaction.id]) {
-							modules.transactions.undoUnconfirmed(transaction);
-						}
-					}
-
-					modules.transactions.applyUnconfirmedList(unconfirmedTransactions);
-
-					setImmediate(cb, errors[0]);
-				} else {
-					modules.transactions.applyUnconfirmedList(unconfirmedTransactions);
-
-					for (var i = 0; i < block.transactions.length; i++) {
-						var transaction = block.transactions[i];
-
-						modules.transactions.apply(transaction);
-						modules.transactions.removeUnconfirmedTransaction(transaction.id);
-					}
-
-					saveBlock(block, function (err) {
+					library.dbLite.query("SELECT id FROM trs WHERE id=$id", {id: transaction.id}, ['id'], function (err, rows) {
 						if (err) {
 							return cb(err);
 						}
 
-						library.bus.message('newBlock', block, broadcast)
+						var tId = rows.length && rows[0].id;
 
-						lastBlock = block;
+						if (tId) {
+							cb("Transaction already exists: " + transaction.id);
+						} else {
+							if (appliedTransactions[transaction.id]) {
+								return cb("Dublicated transaction in block: " + transaction.id);
+							}
 
-						setImmediate(cb);
+							var sender = modules.accounts.getAccountByPublicKey(transaction.senderPublicKey);
+
+							if (transaction.senderId != sender.address) {
+								return cb("Invalid sender id: " + transaction.id);
+							}
+
+							if (!modules.transactions.verifySignature(transaction)) {
+								return cb("Can't verify transaction signature: " + transaction.id);
+							}
+
+							if (sender.secondSignature) {
+								if (!modules.transactions.verifySecondSignature(transaction, sender.secondPublicKey)) {
+									return cb("Can't verify second signature: " + transaction.id);
+								}
+							}
+
+							if (slots.getSlotNumber(transaction.timestamp) > slots.getSlotNumber() || slots.getSlotNumber(transaction.timestamp) > slots.getSlotNumber(block.timestamp)) {
+								return cb("Can't accept transaction timestamp: " + transaction.id);
+							}
+
+							transaction.fee = transactionHelper.getTransactionFee(transaction);
+
+							if (transaction.fee === false) {
+								return cb("Invalid transaction type/fee: " + transaction.id);
+							}
+
+							if (transaction.amount < 0) {
+								return cb("Invalid transaction amount: " + transaction.id);
+							}
+
+							switch (transaction.type) {
+								case 1:
+									if (!transaction.asset.signature) {
+										return cb("Transaction must have signature");
+									}
+									break;
+								case 2:
+									if (transaction.recipientId) {
+										return cb("Invalid recipient");
+									}
+
+									if (!transaction.asset.delegate.username) {
+										return cb && cb("Empty transaction asset for delegate transaction");
+									}
+
+									if (transaction.asset.delegate.username.length == 0 || transaction.asset.delegate.username.length > 20) {
+										return cb && cb("Incorrect delegate username length");
+									}
+
+									if (modules.delegates.existsName(transaction.asset.delegate.username)) {
+										return cb && cb("Delegate with this name is already exists");
+									}
+
+									if (modules.delegates.existsDelegate(transaction.senderPublicKey)) {
+										return cb && cb("This account already delegate");
+									}
+									break;
+								case 3:
+									if (transaction.recipientId != transaction.senderId) {
+										return cb && cb("Incorrect recipient");
+									}
+
+									if (!modules.delegates.checkDelegates(transaction.senderPublicKey, transaction.asset.votes)) {
+										return cb && cb("Can't verify votes, vote for not exists delegate found: " + transaction.id);
+									}
+									break;
+							}
+
+							if (!modules.transactions.applyUnconfirmed(transaction)) {
+								return cb("Can't apply transaction: " + transaction.id);
+							}
+
+							appliedTransactions[transaction.id] = transaction;
+
+							var index = unconfirmedTransactions.indexOf(transaction.id);
+							if (index >= 0) {
+								unconfirmedTransactions.splice(index, 1);
+							}
+
+							payloadHash.update(transactionHelper.getBytes(transaction));
+							totalAmount += transaction.amount;
+							totalFee += transaction.fee;
+
+							setImmediate(cb);
+						}
 					});
+				}, done);
+			}
+		], function (err) {
+			var errors = [];
+
+			if (err) {
+				errors.push(err);
+			}
+
+			if (payloadHash.digest().toString('hex') !== block.payloadHash) {
+				errors.push("Invalid payload hash: " + block.id);
+			}
+
+			if (totalAmount != block.totalAmount) {
+				errors.push("Invalid total amount: " + block.id);
+			}
+
+			if (totalFee != block.totalFee) {
+				errors.push("Invalid total fee: " + block.id);
+			}
+
+			if (errors.length > 0) {
+				for (var i = 0; i < block.transactions.length; i++) {
+					var transaction = block.transactions[i];
+
+					if (appliedTransactions[transaction.id]) {
+						modules.transactions.undoUnconfirmed(transaction);
+					}
 				}
-			});
-		}
+
+				setImmediate(done, errors[0]);
+			} else {
+				for (var i = 0; i < block.transactions.length; i++) {
+					var transaction = block.transactions[i];
+
+					modules.transactions.apply(transaction);
+					modules.transactions.removeUnconfirmedTransaction(transaction.id);
+				}
+
+				saveBlock(block, function (err) {
+					if (!err) {
+						library.bus.message('newBlock', block, broadcast)
+						lastBlock = block;
+					}
+
+					setImmediate(done, err);
+				});
+			}
+		});
 	})
 }
 
