@@ -80,6 +80,10 @@ Round.prototype.tick = function (block) {
 
 	if (round !== nextRound) {
 		if (delegatesByRound[round].length == slots.delegates) {
+			if (delegatesByRound[round].indexOf('808c2a6e3bf0a8a6edd64356e98c8aab4daeacb4dc177a8a20a6442b40d1f0e0') !== -1) {
+				var b = modules.accounts.getAccountOrCreateByPublicKey('808c2a6e3bf0a8a6edd64356e98c8aab4daeacb4dc177a8a20a6442b40d1f0e0')
+				console.log('before', round, b.balance);
+			}
 			while (tasks.length) {
 				var task = tasks.shift();
 				task();
@@ -91,11 +95,21 @@ Round.prototype.tick = function (block) {
 					var recipient = modules.accounts.getAccountOrCreateByPublicKey(delegate);
 					recipient.addToBalance(roundFee);
 					recipient.addToUnconfirmedBalance(roundFee);
+					if (recipient.publicKey == '808c2a6e3bf0a8a6edd64356e98c8aab4daeacb4dc177a8a20a6442b40d1f0e0') {
+						console.log('+' + roundFee);
+					}
 					if (index === delegatesByRound[round].length - 1) {
 						recipient.addToBalance(leftover);
 						recipient.addToUnconfirmedBalance(leftover);
+						if (recipient.publicKey == '808c2a6e3bf0a8a6edd64356e98c8aab4daeacb4dc177a8a20a6442b40d1f0e0') {
+						console.log('+' + leftover);
+					}
 					}
 				});
+			}
+			if (delegatesByRound[round].indexOf('808c2a6e3bf0a8a6edd64356e98c8aab4daeacb4dc177a8a20a6442b40d1f0e0') !== -1) {
+				var b = modules.accounts.getAccountOrCreateByPublicKey('808c2a6e3bf0a8a6edd64356e98c8aab4daeacb4dc177a8a20a6442b40d1f0e0')
+				console.log('after', round, b.balance);
 			}
 			library.bus.message('finishRound', round);
 		}

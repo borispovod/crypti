@@ -481,7 +481,6 @@ Transactions.prototype.apply = function (transaction) {
 }
 
 Transactions.prototype.applyUnconfirmedList = function (ids) {
-
 	for (var i = 0; i < ids.length; i++) {
 		var transaction = unconfirmedTransactions[ids[i]];
 		if (!this.applyUnconfirmed(transaction)) {
@@ -531,7 +530,6 @@ Transactions.prototype.applyUnconfirmed = function (transaction) {
 	}
 
 	var amount = transaction.amount + transaction.fee;
-
 
 	if (sender.unconfirmedBalance < amount && transaction.blockId != genesisblock.blockId) {
 		return false;
