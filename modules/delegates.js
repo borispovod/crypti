@@ -56,7 +56,26 @@ function attachApi() {
 		var publicKeys = Object.keys(publicKeyIndex);
 		var length = Math.min(limit, publicKeys.length);
 		var realLimit = Math.min(offset + limit, length);
-		publicKeys.slice(offset, realLimit);
+
+		if (orderBy) {
+			if (orderBy == 'username') {
+				publicKeys = publicKeys.sort(function compare(a, b) {
+					if (a[orderBy] < b[orderBy])
+						return -1;
+					if (a[orderBy] > b[orderBy])
+						return 1;
+					return 0;
+				});
+			}
+			if (orderBy == 'vote') {
+				publicKeys = publicKeys.sort(function compare(a, b) {
+					return votes[b.publicKey] - votes[a.publicKey];
+				});
+			}
+		}
+
+		publicKeys = publicKeys.slice(offset, realLimit);
+
 
 		var result = publicKeys.map(function (publicKey) {
 			var index = publicKeyIndex[publicKey];
@@ -67,23 +86,6 @@ function attachApi() {
 				vote: votes[publicKey]
 			};
 		})
-
-		if (orderBy) {
-			if (orderBy == 'username') {
-				result = result.sort(function compare(a, b) {
-					if (a[orderBy] < b[orderBy])
-						return -1;
-					if (a[orderBy] > b[orderBy])
-						return 1;
-					return 0;
-				});
-			}
-			if (orderBy == 'vote') {
-				result = result.sort(function compare(a, b) {
-					return votes[b.publicKey] - votes[a.publicKey];
-				});
-			}
-		}
 
 		res.json({success: true, delegates: result});
 	});
