@@ -19,6 +19,7 @@
     "angular-route": "latest",
     "angular-resource": "latest",
     "jquery": "~2.1.1",
-    "angular-modal": "~0.4.0"
+    "angular-modal": "~0.4.0",
+    "ng-table": "latest"
   }
 }

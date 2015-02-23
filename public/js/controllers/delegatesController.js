@@ -1,16 +1,27 @@
 require('angular');
 
-angular.module('webApp').controller('delegatesController', ['$scope', '$rootScope', '$http', "userService", "$interval", "ngTableParams", function($rootScope, $scope, $http, userService, $interval, ngTableParams) {
+angular.module('webApp').controller('delegatesController', ['$scope', '$rootScope', '$http', "userService", "$interval", "$filter", "ngTableParams", function ($rootScope, $scope, $http, userService, $interval, $filter, ngTableParams) {
     $scope.address = userService.address;
     var data = [];
+    $scope.getDelegates = function () {
+        $http.get("/api/delegates/", {params: {orderBy: "vote:desc", limit: 10, offset:0}})
+            .then(function (resp) {
+                var data = resp.data.delegates;
+                $scope.tableTopDelegates = new ngTableParams({
+                    page: 1,            // show first page
+                    count: 101           // count per page
 
-    $scope.tableParams = new ngTableParams({
-        page: 1,            // show first page
-        count: 10           // count per page
-    }, {
-        total: data.length, // length of data
-        getData: function ($defer, params) {
-            $defer.resolve(data.slice((params.page() - 1) * params.count(), params.page() * params.count()));
-        }
-    });
+                }, {
+                    counts: [], // hide page counts control
+                    total: data.length, // length of data
+
+                    getData: function ($defer, params) {
+
+                        $defer.resolve(data);
+                    }
+                });
+            });
+    }();
+
+
 }]);

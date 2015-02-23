@@ -4,10 +4,17 @@
         <h2 class="account-id">Your account: {{ address }}</h2>
     </div>
     <div class="row">
-    <table ng-table="tableParams" border="0" width="100%" cellpadding="0" cellspacing="0">
-        <tr ng-repeat="user in $data">
-            <td data-title="'Name'">{{user.name}}</td>
-            <td data-title="'Age'">{{user.age}}</td>
+    <table ng-table="tableTopDelegates" border="0" width="100%" cellpadding="0" cellspacing="0">
+        <tr ng-repeat="delegate in $data">
+            <td data-title="'Rank'" sortable="'vote'">{{delegate.vote}}</td>
+            <td data-title="'Name'">{{delegate.username}}</td>
+            <td data-title="'Crypti Address'">{{delegate.publicKey}}</td>
+            <td data-title="'Approval'"></td>
+            <td data-title="'Vote'">
+                <button class="button green small"
+                     >Vote
+                </button>
+            </td>
         </tr>
     </table>
     </div>
