@@ -54,24 +54,24 @@ function attachApi() {
 
 		orderField = orderField ? orderField.split(':') : null;
 		limit = limit > 100 ? 100 : limit;
-		var orderBy = orderField ? orderField[1] : null;
-		var sortMode = orderField ? orderField[2] : 'asc';
+		var orderBy = orderField ? orderField[0] : null;
+		var sortMode = orderField ? orderField[1] : 'asc';
 		var publicKeys = Object.keys(publicKeyIndex);
 		var length = Math.min(limit, publicKeys.length);
-		var realLimit = Math.min(offset + limit, length);
+		var realLimit = Math.min(offset + limit, publicKeys.length);
 
 		if (orderBy) {
 			if (orderBy == 'username') {
 				publicKeys = publicKeys.sort(function compare(a, b) {
 					if (sortMode == 'asc') {
-						if (a[orderBy] < b[orderBy])
+						if (delegates[publicKeyIndex[a]][orderBy] < delegates[publicKeyIndex[b]][orderBy])
 							return -1;
-						if (a[orderBy] > b[orderBy])
+						if (delegates[publicKeyIndex[a]][orderBy] > delegates[publicKeyIndex[b]][orderBy])
 							return 1;
 					} else if (sortMode == 'desc') {
-						if (a[orderBy] > b[orderBy])
+						if (delegates[publicKeyIndex[a]][orderBy] > delegates[publicKeyIndex[b]][orderBy])
 							return -1;
-						if (a[orderBy] < b[orderBy])
+						if (delegates[publicKeyIndex[a]][orderBy] < delegates[publicKeyIndex[b]][orderBy])
 							return 1;
 					}
 					return 0;
@@ -79,11 +79,19 @@ function attachApi() {
 			}
 			if (orderBy == 'vote') {
 				publicKeys = publicKeys.sort(function compare(a, b) {
+
 					if (sortMode == 'asc') {
-						return votes[b.publicKey] - votes[a.publicKey];
+						if (votes[a] < votes[b])
+							return -1;
+						if (votes[a] > votes[b])
+							return 1;
 					}else if (sortMode == 'desc') {
-						return votes[a.publicKey] - votes[b.publicKey];
+						if (votes[a]> votes[b])
+							return -1;
+						if (votes[a] < votes[b])
+							return 1;
 					}
+					return 0;
 				});
 			}
 		}
