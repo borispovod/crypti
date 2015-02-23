@@ -20,14 +20,14 @@
 	"peers": {
 		"list": [
 			{
-				"ip": "130.211.72.188",
-				"port": 7040
+				"ip": "130.211.104.33",
+				"port": 5040
 			}
 		],
 		"blackList": []
 	},
 	"forging": {
-		"secret": "4AMbeHpDvmtcHnCu5AWjbgzT4psH8RVMgjPnRNBbYUZxStBMSqGE"
+		"secret": "genesisDelegate2"
 	},
 	"loading": {
 		"verifyOnLoading": true,
