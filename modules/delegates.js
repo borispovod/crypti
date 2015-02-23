@@ -50,9 +50,12 @@ function attachApi() {
 	router.get('/', function (req, res) {
 		var limit = params.int(req.query.limit) || 100,
 			offset = params.int(req.query.offset),
-			orderBy = params.string(req.query.orderBy, true);
+			orderField = params.string(req.query.orderBy, true);
 
+		orderField = orderField ? orderField.split(':') : null;
 		limit = limit > 100 ? 100 : limit;
+		var orderBy = orderField ? orderField[1] : null;
+		var sortMode = orderField ? orderField[2] : 'asc';
 		var publicKeys = Object.keys(publicKeyIndex);
 		var length = Math.min(limit, publicKeys.length);
 		var realLimit = Math.min(offset + limit, length);
@@ -60,22 +63,32 @@ function attachApi() {
 		if (orderBy) {
 			if (orderBy == 'username') {
 				publicKeys = publicKeys.sort(function compare(a, b) {
-					if (a[orderBy] < b[orderBy])
-						return -1;
-					if (a[orderBy] > b[orderBy])
-						return 1;
+					if (sortMode == 'asc') {
+						if (a[orderBy] < b[orderBy])
+							return -1;
+						if (a[orderBy] > b[orderBy])
+							return 1;
+					} else if (sortMode == 'desc') {
+						if (a[orderBy] > b[orderBy])
+							return -1;
+						if (a[orderBy] < b[orderBy])
+							return 1;
+					}
 					return 0;
 				});
 			}
 			if (orderBy == 'vote') {
 				publicKeys = publicKeys.sort(function compare(a, b) {
-					return votes[b.publicKey] - votes[a.publicKey];
+					if (sortMode == 'asc') {
+						return votes[b.publicKey] - votes[a.publicKey];
+					}else if (sortMode == 'desc') {
+						return votes[a.publicKey] - votes[b.publicKey];
+					}
 				});
 			}
 		}
 
 		publicKeys = publicKeys.slice(offset, realLimit);
-
 
 		var result = publicKeys.map(function (publicKey) {
 			var index = publicKeyIndex[publicKey];
