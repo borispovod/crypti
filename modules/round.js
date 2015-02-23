@@ -41,12 +41,17 @@ Round.prototype.fowardTick = function (block, previousBlock) {
 				var task = tasks.shift();
 				task();
 			}
-			var roundFee = unFeesByRound[round] / slots.delegates;
+			var roundFee = Math.floor(unFeesByRound[round] / slots.delegates);
+			var leftover = unFeesByRound[round] - (roundFee * slots.delegates);
 			if (roundFee) {
-				unDelegatesByRound[round].forEach(function (delegate) {
+				unDelegatesByRound[round].forEach(function (delegate, index) {
 					var recipient = modules.accounts.getAccountOrCreateByPublicKey(delegate);
 					recipient.addToBalance(-roundFee);
 					recipient.addToUnconfirmedBalance(-roundFee);
+					if (index === 0) {
+						recipient.addToBalance(-leftover);
+						recipient.addToUnconfirmedBalance(-leftover);
+					}
 				});
 			}
 		}
@@ -55,7 +60,7 @@ Round.prototype.fowardTick = function (block, previousBlock) {
 	}
 }
 
-Round.prototype.flush = function(){
+Round.prototype.flush = function () {
 	unFeesByRound = {};
 	unDelegatesByRound = {};
 	feesByRound = {};
@@ -79,12 +84,17 @@ Round.prototype.tick = function (block) {
 				var task = tasks.shift();
 				task();
 			}
-			var roundFee = feesByRound[round] / slots.delegates;
+			var roundFee = Math.floor(feesByRound[round] / slots.delegates);
+			var leftover = feesByRound[round] - (roundFee * slots.delegates);
 			if (roundFee) {
-				delegatesByRound[round].forEach(function (delegate) {
+				delegatesByRound[round].forEach(function (delegate, index) {
 					var recipient = modules.accounts.getAccountOrCreateByPublicKey(delegate);
 					recipient.addToBalance(roundFee);
 					recipient.addToUnconfirmedBalance(roundFee);
+					if (index === delegatesByRound[round].length - 1) {
+						recipient.addToBalance(leftover);
+						recipient.addToUnconfirmedBalance(leftover);
+					}
 				});
 			}
 			library.bus.message('finishRound', round);

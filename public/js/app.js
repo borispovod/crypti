@@ -1,10 +1,10 @@
-
 require('angular');
 require('angular-ui-router');
 require('angular-modal');
 require('angular-resource');
+require('../node_modules/ng-table/ng-table.js');
 
-webApp = angular.module('webApp', ['ui.router', 'btford.modal']);
+webApp = angular.module('webApp', ['ui.router', 'btford.modal', 'ngTable']);
 
 webApp.config([
     "$locationProvider",

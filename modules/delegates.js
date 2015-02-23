@@ -50,13 +50,54 @@ function attachApi() {
 	router.get('/', function (req, res) {
 		var limit = params.int(req.query.limit) || 100,
 			offset = params.int(req.query.offset),
-			orderBy = params.string(req.query.orderBy, true);
+			orderField = params.string(req.query.orderBy, true);
 
+		orderField = orderField ? orderField.split(':') : null;
 		limit = limit > 100 ? 100 : limit;
+		var orderBy = orderField ? orderField[0] : null;
+		var sortMode = orderField ? orderField[1] : 'asc';
 		var publicKeys = Object.keys(publicKeyIndex);
 		var length = Math.min(limit, publicKeys.length);
-		var realLimit = Math.min(offset + limit, length);
-		publicKeys.slice(offset, realLimit);
+		var realLimit = Math.min(offset + limit, publicKeys.length);
+
+		if (orderBy) {
+			if (orderBy == 'username') {
+				publicKeys = publicKeys.sort(function compare(a, b) {
+					if (sortMode == 'asc') {
+						if (delegates[publicKeyIndex[a]][orderBy] < delegates[publicKeyIndex[b]][orderBy])
+							return -1;
+						if (delegates[publicKeyIndex[a]][orderBy] > delegates[publicKeyIndex[b]][orderBy])
+							return 1;
+					} else if (sortMode == 'desc') {
+						if (delegates[publicKeyIndex[a]][orderBy] > delegates[publicKeyIndex[b]][orderBy])
+							return -1;
+						if (delegates[publicKeyIndex[a]][orderBy] < delegates[publicKeyIndex[b]][orderBy])
+							return 1;
+					}
+					return 0;
+				});
+			}
+			if (orderBy == 'vote') {
+				publicKeys = publicKeys.sort(function compare(a, b) {
+
+					if (sortMode == 'asc') {
+						if (votes[a] < votes[b])
+							return -1;
+						if (votes[a] > votes[b])
+							return 1;
+					} else if (sortMode == 'desc') {
+						if (votes[a]> votes[b])
+							return -1;
+						if (votes[a] < votes[b])
+							return 1;
+					}
+					return 0;
+				});
+			}
+		}
+		console.log(orderBy, sortMode, publicKeys);
+
+		publicKeys = publicKeys.slice(offset, realLimit);
 
 		var result = publicKeys.map(function (publicKey) {
 			var index = publicKeyIndex[publicKey];
@@ -67,23 +108,6 @@ function attachApi() {
 				vote: votes[publicKey]
 			};
 		})
-
-		if (orderBy) {
-			if (orderBy == 'username') {
-				result = result.sort(function compare(a, b) {
-					if (a[orderBy] < b[orderBy])
-						return -1;
-					if (a[orderBy] > b[orderBy])
-						return 1;
-					return 0;
-				});
-			}
-			if (orderBy == 'vote') {
-				result = result.sort(function compare(a, b) {
-					return votes[b.publicKey] - votes[a.publicKey];
-				});
-			}
-		}
 
 		res.json({success: true, delegates: result});
 	});
@@ -225,11 +249,13 @@ function attachApi() {
 }
 
 function getKeysSortByVote(votes) {
-	var delegates = Object.keys(votes);
-	delegates = delegates.sort(function compare(a, b) {
-		return votes[b] - votes[a];
+	return Object.keys(votes).sort(function compare(a, b) {
+		if (votes[a] > votes[b]) return -1;
+		if (votes[a] < votes[b]) return 1;
+		if (a < b) return -1;
+		if (a > b) return 1;
+		return 0;
 	});
-	return delegates;
 }
 
 function getBlockSlotData(slot, height) {
@@ -318,6 +344,9 @@ function loadMyDelegates() {
 
 //public methods
 Delegates.prototype.generateDelegateList = function (sortedDelegateList, height) {
+	//console.log(sortedDelegateList.map(function (item) {
+	//	return item.slice(0, 4);
+	//}))
 	var truncDelegateList = sortedDelegateList.slice(0, slots.delegates);
 	var seedSource = modules.round.calc(height).toString();
 
@@ -453,7 +482,7 @@ Delegates.prototype.onNewBlock = function (block, broadcast) {
 
 Delegates.prototype.onChangeBalance = function (delegates, amount) {
 	modules.round.runOnFinish(function () {
-		var vote = amount / 100000000;
+		var vote = amount;
 
 		if (delegates !== null) {
 			delegates.forEach(function (publicKey) {
@@ -465,7 +494,7 @@ Delegates.prototype.onChangeBalance = function (delegates, amount) {
 
 Delegates.prototype.onChangeDelegates = function (balance, diff) {
 	modules.round.runOnFinish(function () {
-		var vote = balance / 100000000;
+		var vote = balance;
 
 		for (var i = 0; i < diff.length; i++) {
 			var math = diff[i][0];
