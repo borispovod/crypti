@@ -87,6 +87,7 @@ Round.prototype.tick = function (block) {
 			var roundFee = Math.floor(feesByRound[round] / slots.delegates);
 			var leftover = feesByRound[round] - (roundFee * slots.delegates);
 			if (roundFee) {
+				console.log(delegatesByRound);
 				delegatesByRound[round].forEach(function (delegate, index) {
 					var recipient = modules.accounts.getAccountOrCreateByPublicKey(delegate);
 					recipient.addToBalance(roundFee);
