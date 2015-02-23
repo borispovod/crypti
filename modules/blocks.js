@@ -177,6 +177,7 @@ function getId(block) {
 	return id;
 }
 
+
 function saveGenesisBlock(cb) {
 	library.dbLite.query("SELECT id FROM blocks WHERE id=$id", {id: genesisblock.blockId}, ['id'], function (err, rows) {
 		if (err) {
@@ -195,8 +196,8 @@ function saveGenesisBlock(cb) {
 					fee: 0,
 					timestamp: 0,
 					recipientId: genesisTransaction.recipientId,
-					senderId: genesisblock.generatorId,
-					senderPublicKey: genesisblock.generatorPublicKey,
+					senderId: genesisTransaction.senderId || genesisblock.generatorId,
+					senderPublicKey: genesisTransaction.publicKey || genesisblock.generatorPublicKey,
 					signature: genesisTransaction.signature,
 					asset: {
 						delegate: genesisTransaction.asset.delegate

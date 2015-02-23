@@ -57,27 +57,6 @@ function attachApi() {
 	});
 }
 
-function test(lable) {
-	var b = modules.accounts.getAccountOrCreateByPublicKey('667e390ba5dcb5b79e371654027807459b1ab7becb4e778f73e9eec090205b10')
-	var t = modules.transactions.getUnconfirmedTransactions(true);
-	var sum = t.length && t
-			.map(function (t) {
-				if (t.senderPublicKey == '667e390ba5dcb5b79e371654027807459b1ab7becb4e778f73e9eec090205b10') {
-					return t.amount + t.fee
-				} else {
-					return 0;
-				}
-			})
-			.reduce(function (previousValue, currentValue, index, array) {
-				return previousValue + currentValue;
-			});
-	console.log(lable.yellow, {
-		balance: b.balance,
-		unconfirmedBalance: b.unconfirmedBalance,
-		unconfirmedTransactionsAmount: sum
-	});
-}
-
 function loadBlocks(lastBlock, cb) {
 	modules.transport.getFromRandomPeer('/height', function (err, data) {
 		if (err || !data.body) {
