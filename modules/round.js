@@ -44,14 +44,10 @@ Round.prototype.directionSwap = function (direction) {
 			}
 			break;
 	}
-	var round = self.calc(modules.blocks.getLastBlock().height);
-	console.log('directionSwap round', round)
 }
 
 Round.prototype.backwardTick = function (block, previousBlock) {
 	var round = self.calc(block.height);
-
-	console.log('backwardTick round', round)
 
 	var prevRound = self.calc(previousBlock.height);
 
@@ -98,8 +94,6 @@ Round.prototype.backwardTick = function (block, previousBlock) {
 Round.prototype.tick = function (block) {
 	var round = self.calc(block.height);
 
-	console.log('tick round', round)
-
 	feesByRound[round] = (feesByRound[round] || 0);
 	feesByRound[round] += block.totalFee;
 
@@ -110,10 +104,6 @@ Round.prototype.tick = function (block) {
 
 	if (round !== nextRound) {
 		if (delegatesByRound[round].length == slots.delegates) {
-			//if (delegatesByRound[round].indexOf('808c2a6e3bf0a8a6edd64356e98c8aab4daeacb4dc177a8a20a6442b40d1f0e0') !== -1) {
-			//	var b = modules.accounts.getAccountOrCreateByPublicKey('808c2a6e3bf0a8a6edd64356e98c8aab4daeacb4dc177a8a20a6442b40d1f0e0')
-			//	console.log('before', round, b.balance);
-			//}
 			while (tasks.length) {
 				var task = tasks.shift();
 				task();
@@ -133,22 +123,12 @@ Round.prototype.tick = function (block) {
 					var recipient = modules.accounts.getAccountOrCreateByPublicKey(delegate);
 					recipient.addToBalance(delegatesFee);
 					recipient.addToUnconfirmedBalance(delegatesFee);
-					//if (recipient.publicKey == '808c2a6e3bf0a8a6edd64356e98c8aab4daeacb4dc177a8a20a6442b40d1f0e0') {
-					//	console.log('+' + delegatesFee);
-					//}
 					if (index === delegatesByRound[round].length - 1) {
 						recipient.addToBalance(leftover);
 						recipient.addToUnconfirmedBalance(leftover);
-						//if (recipient.publicKey == '808c2a6e3bf0a8a6edd64356e98c8aab4daeacb4dc177a8a20a6442b40d1f0e0') {
-						//	console.log('+' + leftover);
-						//}
 					}
 				});
 			}
-			//if (delegatesByRound[round].indexOf('808c2a6e3bf0a8a6edd64356e98c8aab4daeacb4dc177a8a20a6442b40d1f0e0') !== -1) {
-			//	var b = modules.accounts.getAccountOrCreateByPublicKey('808c2a6e3bf0a8a6edd64356e98c8aab4daeacb4dc177a8a20a6442b40d1f0e0')
-			//	console.log('after', round, b.balance);
-			//}
 			library.bus.message('finishRound', round);
 		}
 

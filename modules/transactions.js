@@ -511,19 +511,16 @@ Transactions.prototype.applyUnconfirmed = function (transaction) {
 
 	if (transaction.type == 1) {
 		if (sender.unconfirmedSignature || sender.secondSignature) {
-			debugger;
 			return false;
 		}
 
 		sender.unconfirmedSignature = true;
 	} else if (transaction.type == 2) {
 		if (modules.delegates.getUnconfirmedDelegate(transaction.asset.delegate)) {
-			debugger;
 			return false;
 		}
 
 		if (modules.delegates.getUnconfirmedName(transaction.asset.delegate)) {
-			debugger;
 			return false;
 		}
 
@@ -535,7 +532,12 @@ Transactions.prototype.applyUnconfirmed = function (transaction) {
 	var amount = transaction.amount + transaction.fee;
 
 	if (sender.unconfirmedBalance < amount && transaction.blockId != genesisblock.blockId) {
-		debugger;
+		if (transaction.type == 1) {
+            sender.unconfirmedSignature = false;
+        } else if (transaction.type == 2) {
+            modules.delegates.removeUnconfirmedDelegate(transaction.asset.delegate);
+        }
+
 		return false;
 	}
 
