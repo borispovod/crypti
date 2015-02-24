@@ -25,8 +25,34 @@ Round.prototype.calc = function (height) {
 	return Math.floor(height / slots.delegates) + (height % slots.delegates > 0 ? 1 : 0);
 }
 
-Round.prototype.fowardTick = function (block, previousBlock) {
+Round.prototype.directionSwap = function (direction) {
+	switch (direction) {
+		case 'backward':
+			feesByRound = {};
+			delegatesByRound = {};
+			while (tasks.length) {
+				var task = tasks.shift();
+				task();
+			}
+			break;
+		case 'forward':
+			unFeesByRound = {};
+			unDelegatesByRound = {};
+			while (tasks.length) {
+				var task = tasks.shift();
+				task();
+			}
+			break;
+	}
+	var round = self.calc(modules.blocks.getLastBlock().height);
+	console.log('directionSwap round', round)
+}
+
+Round.prototype.backwardTick = function (block, previousBlock) {
 	var round = self.calc(block.height);
+
+	console.log('backwardTick round', round)
+
 	var prevRound = self.calc(previousBlock.height);
 
 	unFeesByRound[round] = (unFeesByRound[round] || 0);
@@ -41,13 +67,22 @@ Round.prototype.fowardTick = function (block, previousBlock) {
 				var task = tasks.shift();
 				task();
 			}
-			var roundFee = Math.floor(unFeesByRound[round] / slots.delegates);
-			var leftover = unFeesByRound[round] - (roundFee * slots.delegates);
-			if (roundFee) {
+
+			var fondationFee = Math.floor(unFeesByRound[round] / 10);
+			var diffFee = unFeesByRound[round] - fondationFee;
+
+			if (fondationFee) {
+				var recipient = modules.accounts.getAccountOrCreateByAddress("14225995638226006440C");
+				recipient.addToBalance(-fondationFee);
+				recipient.addToUnconfirmedBalance(-fondationFee);
+
+				var delegatesFee = Math.floor(diffFee / slots.delegates);
+				var leftover = unFeesByRound[round] - (delegatesFee * slots.delegates);
+
 				unDelegatesByRound[round].forEach(function (delegate, index) {
 					var recipient = modules.accounts.getAccountOrCreateByPublicKey(delegate);
-					recipient.addToBalance(-roundFee);
-					recipient.addToUnconfirmedBalance(-roundFee);
+					recipient.addToBalance(-delegatesFee);
+					recipient.addToUnconfirmedBalance(-delegatesFee);
 					if (index === 0) {
 						recipient.addToBalance(-leftover);
 						recipient.addToUnconfirmedBalance(-leftover);
@@ -60,15 +95,10 @@ Round.prototype.fowardTick = function (block, previousBlock) {
 	}
 }
 
-Round.prototype.flush = function () {
-	unFeesByRound = {};
-	unDelegatesByRound = {};
-	feesByRound = {};
-	delegatesByRound = {};
-}
-
 Round.prototype.tick = function (block) {
 	var round = self.calc(block.height);
+
+	console.log('tick round', round)
 
 	feesByRound[round] = (feesByRound[round] || 0);
 	feesByRound[round] += block.totalFee;
@@ -89,13 +119,15 @@ Round.prototype.tick = function (block) {
 				task();
 			}
 			var fondationFee = Math.floor(feesByRound[round] / 10);
+			var diffFee = feesByRound[round] - fondationFee;
+
 			if (fondationFee) {
 				var recipient = modules.accounts.getAccountOrCreateByAddress("14225995638226006440C");
 				recipient.addToBalance(fondationFee);
 				recipient.addToUnconfirmedBalance(fondationFee);
 
-				var delegatesFee = Math.floor(fondationFee / slots.delegates);
-				var leftover = feesByRound[round] - ((delegatesFee * slots.delegates) + fondationFee);
+				var delegatesFee = Math.floor(diffFee / slots.delegates);
+				var leftover = feesByRound[round] - (delegatesFee * slots.delegates);
 
 				delegatesByRound[round].forEach(function (delegate, index) {
 					var recipient = modules.accounts.getAccountOrCreateByPublicKey(delegate);
@@ -123,23 +155,6 @@ Round.prototype.tick = function (block) {
 		delete feesByRound[round];
 		delete delegatesByRound[round];
 	}
-}
-
-Round.prototype.getRoundData = function (round, cb) {
-	library.dbLite.query("SELECT sum(totalFee), group_concat(lower(hex(generatorPublicKey))) FROM blocks where (cast(height / $delegates as integer) + (case when height % $delegates > 0 then 1 else 0 end)) = $round", {
-		round: round,
-		delegates: slots.delegates
-	}, {
-		'fees': Number,
-		'delegateList': String
-	}, function (err, rows) {
-		if (err || !rows.length) {
-			cb(err ? err.toString() : "Can't find round: " + round);
-			return;
-		}
-
-		cb(null, rows[0]);
-	});
 }
 
 Round.prototype.runOnFinish = function (task) {

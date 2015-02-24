@@ -52,12 +52,25 @@ Account.prototype.setSecondSignature = function (secondSignature) {
 }
 
 Account.prototype.addToBalance = function (amount) {
+	if (this.address == "5507528978847206288C") {
+		var round = modules.round.calc(modules.blocks.getLastBlock().height);
+
+		console.log('addToBalance', amount, 'round', round)
+	}
+
 	this.balance += amount;
 	var delegate = this.delegates ? this.delegates.slice() : null
 	library.bus.message('changeBalance', delegate, amount);
 }
 
 Account.prototype.addToUnconfirmedBalance = function (amount) {
+	if (this.address == "5507528978847206288C") {
+		debugger;
+		var round = modules.round.calc(modules.blocks.getLastBlock().height);
+
+		console.log('addToUnconfirmedBalance', amount, 'round', round)
+	}
+
 	this.unconfirmedBalance += amount;
 }
 
