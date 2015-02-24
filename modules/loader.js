@@ -81,68 +81,47 @@ function loadBlocks(lastBlock, cb) {
 						return cb();
 					}
 
-					//test('w/o change');
+					library.logger.info("Found common block " + commonBlock.id + " (at " + commonBlock.height + ")" + " with peer " + peerStr);
 
-					modules.round.flush();
+					modules.round.directionSwap('backward');
+					modules.blocks.deleteBlocksBefore(commonBlock, function (err, backupBlocks) {
+						modules.round.directionSwap('forward');
+						if (err) {
+							library.logger.fatal('delete blocks before', err);
+							return setImmediate(cb, err);
+						}
 
-					if (commonBlock.id == lastBlock.id) {
+						library.logger.debug("Load blocks from peer " + peerStr);
+
 						modules.blocks.loadBlocksFromPeer(data.peer, commonBlock.id, function (err) {
 							if (err) {
-								modules.round.flush();
-							}
-							setImmediate(cb, err);
-							//test('after clean load');
-						});
-					} else {
-						library.logger.info("Found common block " + commonBlock.id + " (at " + commonBlock.height + ")" + " with peer " + peerStr);
-						modules.blocks.deleteBlocksBefore(commonBlock, function (err, backupBlocks) {
-							if (err) {
-								modules.round.flush();
-								return setImmediate(cb, err);
-							}
+								debugger;
+								library.logger.error(err);
+								library.logger.log('ban 60 min', peerStr);
+								modules.peer.state(data.peer.ip, data.peer.port, 0, 3600);
 
-							//test('after delete until common');
+								library.logger.info("Remove blocks again until " + commonBlock.id + " (at " + commonBlock.height + ")");
+								modules.round.directionSwap('backward');
+								modules.blocks.deleteBlocksBefore(commonBlock, function (err) {
+									modules.round.directionSwap('forward');
+									if (err) {
+										library.logger.fatal('delete blocks before', err);
+										return setImmediate(cb);
+									}
 
-							library.logger.debug("Load blocks from peer " + peerStr);
-
-							modules.blocks.loadBlocksFromPeer(data.peer, commonBlock.id, function (err) {
-
-								//test('after load');
-
-								if (err) {
-									library.logger.error(err);
-									library.logger.log('ban 60 min', peerStr);
-									modules.peer.state(data.peer.ip, data.peer.port, 0, 3600);
-
-									library.logger.info("Remove blocks again until " + commonBlock.id + " (at " + commonBlock.height + ")");
-									modules.blocks.deleteBlocksBefore(commonBlock, function (err) {
-
-										//test('after delete until common #2');
-
-										if (err) {
-											library.logger.error(err);
-											modules.round.flush();
-											return setImmediate(cb);
-										}
-
+									if (backupBlocks.length) {
 										library.logger.info("Restore stored blocks until " + backupBlocks[backupBlocks.length - 1].height);
 										async.eachSeries(backupBlocks, function (block, cb) {
 											modules.blocks.processBlock(block, false, cb);
-										}, function (err) {
-
-											//test('after restore');
-
-											modules.round.flush();
-											cb(err);
-										});
-									});
-
-								} else {
-									setImmediate(cb);
-								}
-							});
+										}, cb);
+									}
+								});
+							} else {
+								setImmediate(cb);
+							}
 						});
-					}
+					});
+
 				});
 			} else { //have to load full db
 				var commonBlockId = genesisBlock.blockId;
