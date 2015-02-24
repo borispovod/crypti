@@ -755,6 +755,7 @@ Blocks.prototype.getLastBlock = function () {
 }
 
 Blocks.prototype.processBlock = function (block, broadcast, cb) {
+	console.log("Process block");
 	block.id = getId(block);
 	block.height = lastBlock.height + 1;
 
@@ -956,6 +957,8 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 					modules.transactions.apply(transaction);
 					modules.transactions.removeUnconfirmedTransaction(transaction.id);
 				}
+
+
 
 				saveBlock(block, function (err) {
 					if (!err) {

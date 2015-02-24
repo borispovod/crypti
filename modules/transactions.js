@@ -482,9 +482,12 @@ Transactions.prototype.apply = function (transaction) {
 }
 
 Transactions.prototype.applyUnconfirmedList = function (ids) {
+	console.log(ids);
 	for (var i = 0; i < ids.length; i++) {
 		var transaction = unconfirmedTransactions[ids[i]];
 		if (!this.applyUnconfirmed(transaction)) {
+			console.log("Olololololo");
+			console.log(transaction);
 			delete unconfirmedTransactions[ids[i]];
 			doubleSpendingTransactions[ids[i]] = transaction;
 		}
@@ -492,16 +495,24 @@ Transactions.prototype.applyUnconfirmedList = function (ids) {
 }
 
 Transactions.prototype.undoAllUnconfirmed = function () {
+	//console.log("Undo all unconfirmed: ");
 	var ids = Object.keys(unconfirmedTransactions);
 	for (var i = 0; i < ids.length; i++) {
 		var transaction = unconfirmedTransactions[ids[i]];
+		//console.log(transaction);
 		this.undoUnconfirmed(transaction);
 	}
 
+	//console.log(modules.delegates.getUnconfirmedDelegates());
 	return ids;
 }
 
 Transactions.prototype.applyUnconfirmed = function (transaction) {
+	if (transaction.id == "11030508932278898203") {
+		console.log(unconfirmedTransactions);
+		console.log(modules.delegates.getUnconfirmedDelegates());
+	}
+
 	var sender = modules.accounts.getAccountByPublicKey(transaction.senderPublicKey);
 
 	if (!sender && transaction.blockId != genesisblock.blockId) {
@@ -536,7 +547,12 @@ Transactions.prototype.applyUnconfirmed = function (transaction) {
 	var amount = transaction.amount + transaction.fee;
 
 	if (sender.unconfirmedBalance < amount && transaction.blockId != genesisblock.blockId) {
-		debugger;
+		if (transaction.type == 1) {
+			sender.unconfirmedSignature = false;
+		} else if (transaction.type == 2) {
+			modules.delegates.removeUnconfirmedDelegate(transaction.asset.delegate);
+		}
+
 		return false;
 	}
 

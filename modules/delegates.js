@@ -391,6 +391,11 @@ Delegates.prototype.checkDelegates = function (publicKey, votes) {
 	}
 }
 
+// to remove
+Delegates.prototype.getUnconfirmedDelegates = function () {
+	return unconfirmedDelegates;
+}
+
 Delegates.prototype.addUnconfirmedDelegate = function (delegate) {
 	unconfirmedDelegates[delegate.publicKey] = true;
 	unconfirmedNames[delegate.publicKey] = true;
@@ -405,8 +410,11 @@ Delegates.prototype.getUnconfirmedName = function (delegate) {
 }
 
 Delegates.prototype.removeUnconfirmedDelegate = function (delegate) {
+	console.log("Delete: " + delegate.publicKey);
 	delete unconfirmedDelegates[delegate.publicKey];
 	delete unconfirmedNames[delegate.publicKey];
+	console.log("Result: ");
+	console.log(unconfirmedDelegates);
 }
 
 Delegates.prototype.existsDelegate = function (publicKey) {
