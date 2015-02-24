@@ -1,5 +1,5 @@
 {
-	"port": 7040,
+	"port": 4061,
 	"address": "0.0.0.0",
 	"serveHttpAPI": true,
 	"serveHttpWallet": true,
@@ -21,13 +21,14 @@
 		"list": [
 			{
 				"ip": "130.211.104.33",
-				"port": 5040
+				"port": 4061
 			}
 		],
+		"list": [],
 		"blackList": []
 	},
 	"forging": {
-		"secret": "genesisDelegate2"
+		"-secret": "genesisDelegate3"
 	},
 	"loading": {
 		"verifyOnLoading": true,
