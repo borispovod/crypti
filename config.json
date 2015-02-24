@@ -19,12 +19,15 @@
 	},
 	"peers": {
 		"list": [
-
+			{
+				"ip": "130.211.104.33",
+				"port": 4061
+			}
 		],
 		"blackList": []
 	},
 	"forging": {
-		"secret": "genesisDelegate2"
+		"secret": ""
 	},
 	"loading": {
 		"verifyOnLoading": true,
