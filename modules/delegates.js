@@ -85,8 +85,8 @@ function attachApi() {
 							return -1;
 						if (votes[a] > votes[b])
 							return 1;
-					}else if (sortMode == 'desc') {
-						if (votes[a]> votes[b])
+					} else if (sortMode == 'desc') {
+						if (votes[a] > votes[b])
 							return -1;
 						if (votes[a] < votes[b])
 							return 1;
@@ -429,14 +429,14 @@ Delegates.prototype.cache = function (delegate) {
 }
 
 Delegates.prototype.uncache = function (delegate) {
-	delete votes[delegate.publicKey];
+		delete votes[delegate.publicKey];
 
-	var index = publicKeyIndex[delegate.publicKey];
+		var index = publicKeyIndex[delegate.publicKey];
 
-	delete publicKeyIndex[delegate.publicKey]
-	delete namesIndex[delegate.username];
-	delete transactionIdIndex[delegate.transactionId];
-	delegates[index] = false;
+		delete publicKeyIndex[delegate.publicKey]
+		delete namesIndex[delegate.username];
+		delete transactionIdIndex[delegate.transactionId];
+		delegates[index] = false;
 }
 
 Delegates.prototype.validateBlockSlot = function (block) {
@@ -485,7 +485,7 @@ Delegates.prototype.onChangeBalance = function (delegates, amount) {
 
 		if (delegates !== null) {
 			delegates.forEach(function (publicKey) {
-				votes[publicKey] += vote;
+				votes[publicKey] !== undefined && (votes[publicKey] += vote);
 			});
 		}
 	});
@@ -499,10 +499,10 @@ Delegates.prototype.onChangeDelegates = function (balance, diff) {
 			var math = diff[i][0];
 			var publicKey = diff[i].slice(1);
 			if (math == "+") {
-				votes[publicKey] += vote;
+				votes[publicKey] !== undefined && (votes[publicKey] += vote);
 			}
 			if (math == "-") {
-				votes[publicKey] -= vote;
+				votes[publicKey] !== undefined && (votes[publicKey] -= vote);
 			}
 		}
 	});
