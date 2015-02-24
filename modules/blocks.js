@@ -463,7 +463,6 @@ function popLastBlock(oldLastBlock, cb) {
 				var transactions = oldLastBlock.transactions;
 
 				async.eachSeries(transactions, function (transaction, cb) {
-					debugger;
 					modules.transactions.processUnconfirmedTransaction(transaction, false, cb);
 				}, function (err) {
 					if (err) {
@@ -757,9 +756,6 @@ Blocks.prototype.getLastBlock = function () {
 Blocks.prototype.processBlock = function (block, broadcast, cb) {
 	block.id = getId(block);
 	block.height = lastBlock.height + 1;
-
-	var sender = modules.accounts.getAccountByPublicKey("667e390ba5dcb5b79e371654027807459b1ab7becb4e778f73e9eec090205b10");
-	console.log(block.height, sender.unconfirmedBalance, sender.balance)
 
 	var unconfirmedTransactions = modules.transactions.undoAllUnconfirmed();
 
