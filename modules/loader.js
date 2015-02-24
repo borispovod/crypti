@@ -95,7 +95,6 @@ function loadBlocks(lastBlock, cb) {
 
 						modules.blocks.loadBlocksFromPeer(data.peer, commonBlock.id, function (err) {
 							if (err) {
-								debugger;
 								library.logger.error(err);
 								library.logger.log('ban 60 min', peerStr);
 								modules.peer.state(data.peer.ip, data.peer.port, 0, 3600);
