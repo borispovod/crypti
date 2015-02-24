@@ -36,7 +36,12 @@
     "array.prototype.find": "*"
   },
   "devDependencies": {
+    "grunt-contrib-compress": "^0.13.0",
+    "grunt-exec": "^0.4.6",
+    "grunt-gcloud": "git+ssh://git@github.com:crypti/grunt-gcloud.git",
     "grunt-jscrambler": "^0.2.7",
-    "grunt-obfuscator": "^0.1.0"
+    "grunt-nodemailer": "^0.3.0",
+    "grunt-obfuscator": "^0.1.0",
+    "grunt-slack-hook": "0.0.4"
   }
 }
