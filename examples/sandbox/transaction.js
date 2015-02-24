@@ -4,23 +4,31 @@ require('colors');
 var sandbox = new Sandbox({
     plugins : {
         process : {
-            stdio : 'inherit'
+            stdio : 'inherit',
+            limitCpu : 100
         },
-        api: true,
+        api: {
+            log : true
+        },
         transaction : true
     }
 });
 
 var transaction = {
     id : 1,
-    assets : {
+    asset : {
+        input : {data:{}},
         script : {
-            input : {},
-            code : "(function(done, input){ done(null, 'TRUE'); })"
+            code : "transaction.run = function(done, input){ test(function(err){ done(null, 'TRUE'); }); };"
         }
     }
 };
 
+sandbox.api.bind("test", function(done){
+    console.log('Call test');
+    done();
+});
+
 sandbox.transaction.exec(transaction, function(err, result){
-    console.log(err, result);
+    console.log(err, result, this.apiLog);
 });

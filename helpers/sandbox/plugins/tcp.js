@@ -72,7 +72,7 @@ module.exports = function(sandbox, options) {
          * @private
          */
         _gotMessage : function(message) {
-            sandbox.emit('tcp.message', message);
+            sandbox.emit('message', message, this);
 
             if (message.type === "result") {
                 var id = message.id;

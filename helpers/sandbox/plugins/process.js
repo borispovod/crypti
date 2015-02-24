@@ -136,6 +136,8 @@ module.exports = function(sandbox, options) {
 
             this.setInterval(function() {
                 usage.lookup(pid, function(err, stat){
+                    if (err) return; // TODO (rumkin) Process error
+
                     stats.push(stat);
 
                     if (stats.length < 10) return;
@@ -166,7 +168,7 @@ module.exports = function(sandbox, options) {
          * @private
          */
         _gotMessage : function(message) {
-            sandbox.emit('process.message', message);
+            sandbox.emit('message', message, this);
 
             switch (message.type) {
                 // Exec result

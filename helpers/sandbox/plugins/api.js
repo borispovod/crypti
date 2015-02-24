@@ -11,12 +11,16 @@ module.exports = function(sandbox, options) {
          * Sandbox vm bindings
          * @type {object}
          */
-        bindings : {}
+        bindings : {},
+        /**
+         * Log all api calls in session
+         */
+        log : false
     }, options);
 
     // Listen custom transport event
     var events = {};
-    events[options.transport +'.message'] = '_gotMessage';
+    events['message'] = '_gotMessage';
 
     var bindings = extend({}, options.bindings);
 
@@ -36,6 +40,10 @@ module.exports = function(sandbox, options) {
                 transport : options.transport,
                 bindings : prepareBindings(this._bindings)
             }], done);
+
+            if (options.log) {
+                this.session.apiLog = [];
+            }
         },
         onStop : function(){
             this.transport = null;
@@ -91,6 +99,16 @@ module.exports = function(sandbox, options) {
                     message : "Method '" + message.method.join('.') + "' not found."
                 });
                 return;
+            }
+
+            var call = {
+                method: message.method,
+                args: message.args
+            };
+
+            sandbox.emit('api.call', call);
+            if (options.log) {
+                this.session.apiLog.push(call);
             }
 
             try {

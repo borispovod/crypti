@@ -51,7 +51,7 @@ describe('Sandbox.', function(){
 
             sandbox.eval('setTimeout(done, 1000)', function(err){
                 sandbox.process.options.limitTime = 1000;
-                should(err).not.equal(null, '`err` not empty');
+                should(err).not.equal(null);
 
                 done();
             });
@@ -59,7 +59,7 @@ describe('Sandbox.', function(){
 
         it('Should not reach CPU limit 25%', function(done){
             sandbox.eval('setTimeout(done, 500);', function(err){
-                should(err).equal(null, '`err` is empty');
+                should(err).equal(null);
 
                 done();
             });
@@ -68,7 +68,7 @@ describe('Sandbox.', function(){
         it('Should reach sandbox.cpuLimit 1%', function(done){
             sandbox.cpuLimit = 1;
             sandbox.eval('setTimeout(done, 1000)', function(err){
-                should(err).not.equal(null, '`err` is not null');
+                should(err).not.equal(null);
                 sandbox.cpuLimit = 25;
                 done();
             });
@@ -89,7 +89,7 @@ describe('Sandbox.', function(){
                     return done(err);
                 }
 
-                should(err).equal(null, '`err` should be empty');
+                should(err).equal(null);
                 done();
             });
         });
@@ -110,7 +110,7 @@ describe('Sandbox.', function(){
             });
 
             sandbox.eval('done(null, typeof api.method1, typeof api.method2)', function(err, method1, method2){
-                should(err).equal(null, '`err` is null');
+                should(err).equal(null);
                 should(method1).equal('function', 'api.method1 should be a function');
                 should(method2).equal('function', 'api.method2 should be a function');
                 done();
@@ -123,7 +123,7 @@ describe('Sandbox.', function(){
             });
 
             sandbox.eval('done(null, typeof bindMethod)', function(err, type){
-                should(err).equal(null, '`err` is null');
+                should(err).equal(null);
                 should(type).equal('function', 'bindMethod should be function');
                 done();
             });
@@ -131,7 +131,7 @@ describe('Sandbox.', function(){
 
         it('Should call api method', function(done){
             sandbox.eval('api.method1(done)', function(err, result){
-                should(err).equal(null, '`err` is null');
+                should(err).equal(null);
                 should(result).equal(true, 'Result is `true`');
 
                 done();
@@ -142,7 +142,7 @@ describe('Sandbox.', function(){
             sandbox.api.bind("api", {name:"test"});
 
             sandbox.eval("done(null, api.name)", function(err, apiName){
-                should(err).equal(null, '`err` is null');
+                should(err).equal(null);
                 should(apiName).type("string").and.equal("test");
                 done();
             });
@@ -187,7 +187,7 @@ describe('Sandbox.', function(){
             };
 
             sandbox.transaction.exec(transaction, function(err, result){
-                should(err).equal(null, '`err` is empty');
+                should(err).equal(null);
                 should(result).type('string').and.equal('TRUE', 'Result value is "TRUE"');
                 done();
             });
@@ -207,7 +207,7 @@ describe('Sandbox.', function(){
             });
 
             sandbox.eval('done(null, typeof async !== "undefined" && typeof jsonschema !== "undefined");', function(err, result){
-                should(err).equal(null, '`err` is empty');
+                should(err).equal(null);
                 should(result).type('boolean').and.equal(true, '`async` and `jsonschema` modules are required');
                 done();
             });
