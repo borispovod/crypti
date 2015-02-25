@@ -323,7 +323,6 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 		if (err) return cb && cb(err);
 
 		if (!self.applyUnconfirmed(transaction)) {
-			console.log("Double spending!!!");
 			doubleSpendingTransactions[transaction.id] = transaction;
 			return cb && cb("Can't apply transaction: " + transaction.id);
 		}
@@ -482,12 +481,9 @@ Transactions.prototype.apply = function (transaction) {
 }
 
 Transactions.prototype.applyUnconfirmedList = function (ids) {
-	console.log(ids);
 	for (var i = 0; i < ids.length; i++) {
 		var transaction = unconfirmedTransactions[ids[i]];
 		if (!this.applyUnconfirmed(transaction)) {
-			console.log("Olololololo");
-			console.log(transaction);
 			delete unconfirmedTransactions[ids[i]];
 			doubleSpendingTransactions[ids[i]] = transaction;
 		}
@@ -508,11 +504,6 @@ Transactions.prototype.undoAllUnconfirmed = function () {
 }
 
 Transactions.prototype.applyUnconfirmed = function (transaction) {
-	if (transaction.id == "11030508932278898203") {
-		console.log(unconfirmedTransactions);
-		console.log(modules.delegates.getUnconfirmedDelegates());
-	}
-
 	var sender = modules.accounts.getAccountByPublicKey(transaction.senderPublicKey);
 
 	if (!sender && transaction.blockId != genesisblock.blockId) {

@@ -754,7 +754,6 @@ Blocks.prototype.getLastBlock = function () {
 }
 
 Blocks.prototype.processBlock = function (block, broadcast, cb) {
-	console.log("Process block");
 	block.id = getId(block);
 	block.height = lastBlock.height + 1;
 
