@@ -154,7 +154,7 @@ function attachApi() {
 	router.get('/height', function (req, res) {
 		res.set(headers);
 		res.status(200).json({
-			height: modules.blocks.getLastBlock().height
+			height: modules.blocks.getLastBlock().height + 1
 		});
 	});
 
