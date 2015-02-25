@@ -52,6 +52,7 @@ module.exports = function (grunt) {
 		},
 
 		exec: {
+			builded_dir: "mkdir -p ./builded",
 			dir : "mkdir  -p  ./builded/" + config.version,
 			public_dir: "mkdir  -p  ./builded/" + config.version + "/public",
 			app: "cp ./builded/app.js ./builded/" + config.version,
