@@ -48,12 +48,12 @@ function attachApi() {
 	});
 
 	router.get('/', function (req, res) {
-		var limit = params.int(req.query.limit) || 100,
+		var limit = params.int(req.query.limit) || 101,
 			offset = params.int(req.query.offset),
 			orderField = params.string(req.query.orderBy, true);
 
 		orderField = orderField ? orderField.split(':') : null;
-		limit = limit > 100 ? 100 : limit;
+		limit = limit > 101 ? 101 : limit;
 		var orderBy = orderField ? orderField[0] : null;
 		var sortMode = orderField.length == 2 ? orderField[1] : 'asc';
 		var publicKeys = Object.keys(publicKeyIndex);
