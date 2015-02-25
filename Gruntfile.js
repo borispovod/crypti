@@ -59,8 +59,12 @@ module.exports = function (grunt) {
 						"cp ./builded/app.js ./builded/" + config.version + "&&" +
 						"cp ./config.json ./builded/" + config.version + "/config.json" + "&&" +
 						"cp ./package.json ./builded/" + config.version + "/package.json" + "&&" +
-						"cp ./public/{forging.html,loading.html,wallet.html} ./builded/" + config.version + "/public/" + "&&" +
-						"cp -rf ./public/{images,partials,static} ./builded/" + config.version + "/public/"
+						"cp ./public/forging.html ./builded/" + config.version + "/public/" + "&&" +
+						"cp ./public/wallet.html ./builded/" + config.version + "/public/" + "&&" +
+						"cp ./public/loading.html ./builded/" + config.version + "/public/" + "&&" +
+						"cp -rf ./public/images ./builded/" + config.version + "/public/" + "&&" +
+						"cp -rf ./public/partials ./builded/" + config.version + "/public/" + "&&" +
+						"cp -rf ./public/static ./builded/" + config.version + "/public/"
 				}
 			},
 			folder: {
