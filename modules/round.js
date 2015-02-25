@@ -64,16 +64,16 @@ Round.prototype.backwardTick = function (block, previousBlock) {
 				task();
 			}
 
-			var fondationFee = Math.floor(unFeesByRound[round] / 10);
+			var foundationFee = Math.floor(unFeesByRound[round] / 10);
 			var diffFee = unFeesByRound[round] - fondationFee;
 
-			if (fondationFee) {
+			if (foundationFee || diffFee) {
 				var recipient = modules.accounts.getAccountOrCreateByAddress("14225995638226006440C");
-				recipient.addToBalance(-fondationFee);
-				recipient.addToUnconfirmedBalance(-fondationFee);
+				recipient.addToBalance(-foundationFee);
+				recipient.addToUnconfirmedBalance(-foundationFee);
 
 				var delegatesFee = Math.floor(diffFee / slots.delegates);
-				var leftover = unFeesByRound[round] - (delegatesFee * slots.delegates);
+				var leftover = diffFee - (delegatesFee * slots.delegates);
 
 				unDelegatesByRound[round].forEach(function (delegate, index) {
 					var recipient = modules.accounts.getAccountOrCreateByPublicKey(delegate);
@@ -108,24 +108,25 @@ Round.prototype.tick = function (block) {
 				var task = tasks.shift();
 				task();
 			}
-			var fondationFee = Math.floor(feesByRound[round] / 10);
+			var foundationFee = Math.floor(feesByRound[round] / 10);
 			var diffFee = feesByRound[round] - fondationFee;
 
-			if (fondationFee) {
+			if (foundationFee || diffFee) {
 				var recipient = modules.accounts.getAccountOrCreateByAddress("14225995638226006440C");
-				recipient.addToBalance(fondationFee);
-				recipient.addToUnconfirmedBalance(fondationFee);
+				recipient.addToUnconfirmedBalance(foundationFee);
+				recipient.addToBalance(foundationFee);
 
 				var delegatesFee = Math.floor(diffFee / slots.delegates);
-				var leftover = feesByRound[round] - (delegatesFee * slots.delegates);
+				var leftover = diffFee - (delegatesFee * slots.delegates);
 
 				delegatesByRound[round].forEach(function (delegate, index) {
 					var recipient = modules.accounts.getAccountOrCreateByPublicKey(delegate);
-					recipient.addToBalance(delegatesFee);
 					recipient.addToUnconfirmedBalance(delegatesFee);
+					recipient.addToBalance(delegatesFee);
+
 					if (index === delegatesByRound[round].length - 1) {
-						recipient.addToBalance(leftover);
 						recipient.addToUnconfirmedBalance(leftover);
+						recipient.addToBalance(leftover);
 					}
 				});
 			}
