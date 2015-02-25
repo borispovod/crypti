@@ -2,7 +2,7 @@ var should = require('should');
 
 describe("Validator.", function(){
     var Validator;
-    Validator = require("../helpers/validator");
+    Validator = require("../../helpers/validator");
 
     describe("Constructor object.", function(){
         it("Should be a function", function(){

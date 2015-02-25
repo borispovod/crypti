@@ -1,7 +1,7 @@
 var should = require('should');
 
 describe('Validator.', function(){
-    var JsonSchema = require('../helpers/json-schema');
+    var JsonSchema = require('../../helpers/json-schema');
 
     describe("Module.", function() {
         it('Should be a function', function(){

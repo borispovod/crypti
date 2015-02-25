@@ -9,7 +9,7 @@ describe('Sandbox.', function(){
     var sandbox;
 
     it('Module exports a function', function(){
-        Sandbox = require('../helpers/sandbox/sandbox.js');
+        Sandbox = require('../../helpers/sandbox/sandbox.js');
         should(Sandbox).type('function', 'Sandbox is a function');
     });
 
@@ -17,7 +17,8 @@ describe('Sandbox.', function(){
         sandbox = new Sandbox({
             plugins : {
                 process : {
-                    stdio : 'inherit'
+                    stdio : 'inherit',
+                    limitCpu : 50
                 },
                 tcp : true,
                 api : {

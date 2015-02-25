@@ -1,7 +1,7 @@
 var express = require('express');
 var should = require('should');
 var http = require('http');
-var validation = require('../helpers/request-sanitizer.js');
+var validation = require('../../helpers/request-sanitizer.js');
 
 
 var server;
