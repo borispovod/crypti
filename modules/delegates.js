@@ -55,10 +55,23 @@ function attachApi() {
 		orderField = orderField ? orderField.split(':') : null;
 		limit = limit > 100 ? 100 : limit;
 		var orderBy = orderField ? orderField[0] : null;
-		var sortMode = orderField ? orderField[1] : 'asc';
+		var sortMode = orderField.length == 2 ? orderField[1] : 'asc';
 		var publicKeys = Object.keys(publicKeyIndex);
 		var length = Math.min(limit, publicKeys.length);
 		var realLimit = Math.min(offset + limit, publicKeys.length);
+
+		console.log(orderBy, sortMode)
+
+		var rateSort = {};
+		publicKeys.sort(function compare(a, b) {
+			if (votes[a] > votes[b])
+				return -1;
+			if (votes[a] < votes[b])
+				return 1;
+			return 0;
+		}).forEach(function (item, index) {
+			rateSort[item] = index + 1;
+		});
 
 		if (orderBy) {
 			if (orderBy == 'username') {
@@ -94,6 +107,23 @@ function attachApi() {
 					return 0;
 				});
 			}
+			if (orderBy == 'rate') {
+				publicKeys = publicKeys.sort(function compare(a, b) {
+
+					if (sortMode == 'asc') {
+						if (rateSort[a] < rateSort[b])
+							return -1;
+						if (rateSort[a] > rateSort[b])
+							return 1;
+					} else if (sortMode == 'desc') {
+						if (rateSort[a] > rateSort[b])
+							return -1;
+						if (rateSort[a] < rateSort[b])
+							return 1;
+					}
+					return 0;
+				});
+			}
 		}
 
 		publicKeys = publicKeys.slice(offset, realLimit);
@@ -104,7 +134,8 @@ function attachApi() {
 				username: delegates[index].username,
 				publicKey: publicKey,
 				transactionId: delegates[index].transactionId,
-				vote: votes[publicKey]
+				vote: votes[publicKey],
+				rate: rateSort[publicKey]
 			};
 		})
 
@@ -343,9 +374,6 @@ function loadMyDelegates() {
 
 //public methods
 Delegates.prototype.generateDelegateList = function (sortedDelegateList, height) {
-	//console.log(sortedDelegateList.map(function (item) {
-	//	return item.slice(0, 4);
-	//}))
 	var truncDelegateList = sortedDelegateList.slice(0, slots.delegates);
 	var seedSource = modules.round.calc(height).toString();
 
@@ -411,7 +439,8 @@ Delegates.prototype.getUnconfirmedName = function (delegate) {
 
 Delegates.prototype.removeUnconfirmedDelegate = function (delegate) {
 	delete unconfirmedDelegates[delegate.publicKey];
-	delete unconfirmedNames[delegate.publicKey];;
+	delete unconfirmedNames[delegate.publicKey];
+	;
 }
 
 Delegates.prototype.existsDelegate = function (publicKey) {
@@ -434,14 +463,14 @@ Delegates.prototype.cache = function (delegate) {
 }
 
 Delegates.prototype.uncache = function (delegate) {
-		delete votes[delegate.publicKey];
+	delete votes[delegate.publicKey];
 
-		var index = publicKeyIndex[delegate.publicKey];
+	var index = publicKeyIndex[delegate.publicKey];
 
-		delete publicKeyIndex[delegate.publicKey]
-		delete namesIndex[delegate.username];
-		delete transactionIdIndex[delegate.transactionId];
-		delegates[index] = false;
+	delete publicKeyIndex[delegate.publicKey]
+	delete namesIndex[delegate.username];
+	delete transactionIdIndex[delegate.transactionId];
+	delegates[index] = false;
 }
 
 Delegates.prototype.validateBlockSlot = function (block) {
