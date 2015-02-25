@@ -10,11 +10,11 @@ module.exports = function (grunt) {
 		{
 			email: 'boris@crypti.me',
 			name: 'Boris Povod'
-		},
-		{
+		}
+		/*{
 			email: 'sebastian@crypti.me',
 			name: "Sebastian"
-		}
+		}*/
 	];
 
 	var config = require("./config.json");
@@ -125,14 +125,14 @@ module.exports = function (grunt) {
 		},
 		slack: {
 			options: {
-				endpoint: 'https://hooks.slack.com/services/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',
-				channel: '#testing',
+				endpoint: 'https://hooks.slack.com/services/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',
+				channel: '@slackbot',
 				username: 'Crypti',
 				icon_emoji: ":ghost:",
 				icon_url: 'http://vermilion1.github.io/presentations/grunt/images/grunt-logo.png' // if icon_emoji not specified
 			},
 			notify: {
-				text: '@boris: @sebastian: @eric: @stas: @landgraf_paul: New version (' + config.version + ') of Crypti available: http://storage.googleapis.com/crypti-testing/nodes/' + config.version + '.zip'
+				text: '@boris: New version (' + config.version + ') of Crypti available: http://storage.googleapis.com/crypti-testing/nodes/' + config.version + '.zip'
 			}
 		}
 	});
@@ -149,6 +149,5 @@ module.exports = function (grunt) {
 
 	grunt.registerTask("default", ["obfuscator"]);
 	grunt.registerTask("release", ["default", "jscrambler"]);
-	//"nodemailer:message", "slack"
-	grunt.registerTask("package", ["exec:folder", "release", "exec:package", "compress","gcloud:project"]);
+	grunt.registerTask("package", ["exec:folder", "release", "exec:package", "compress","gcloud:project", "nodemailer:message", "slack"]);
 };
