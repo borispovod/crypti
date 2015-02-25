@@ -410,11 +410,8 @@ Delegates.prototype.getUnconfirmedName = function (delegate) {
 }
 
 Delegates.prototype.removeUnconfirmedDelegate = function (delegate) {
-	console.log("Delete: " + delegate.publicKey);
 	delete unconfirmedDelegates[delegate.publicKey];
-	delete unconfirmedNames[delegate.publicKey];
-	console.log("Result: ");
-	console.log(unconfirmedDelegates);
+	delete unconfirmedNames[delegate.publicKey];;
 }
 
 Delegates.prototype.existsDelegate = function (publicKey) {
