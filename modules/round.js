@@ -65,7 +65,7 @@ Round.prototype.backwardTick = function (block, previousBlock) {
 			}
 
 			var foundationFee = Math.floor(unFeesByRound[round] / 10);
-			var diffFee = unFeesByRound[round] - fondationFee;
+			var diffFee = unFeesByRound[round] - foundationFee;
 
 			if (foundationFee || diffFee) {
 				var recipient = modules.accounts.getAccountOrCreateByAddress("14225995638226006440C");
@@ -109,7 +109,7 @@ Round.prototype.tick = function (block) {
 				task();
 			}
 			var foundationFee = Math.floor(feesByRound[round] / 10);
-			var diffFee = feesByRound[round] - fondationFee;
+			var diffFee = feesByRound[round] - foundationFee;
 
 			if (foundationFee || diffFee) {
 				var recipient = modules.accounts.getAccountOrCreateByAddress("14225995638226006440C");
