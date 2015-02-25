@@ -52,14 +52,20 @@ module.exports = function (grunt) {
 		},
 
 		exec: {
-			builded_dir: "mkdir -p ./builded",
-			dir : "mkdir  -p  ./builded/" + config.version,
-			public_dir: "mkdir  -p  ./builded/" + config.version + "/public",
-			app: "cp ./builded/app.js ./builded/" + config.version,
-			config: "cp ./config.json ./builded/" + config.version + "/config.json",
-			package: "cp ./package.json ./builded/" + config.version + "/package.json",
-			public_html: "cp ./public/{forging.html,loading.html,wallet.html} ./builded/" + config.version + "/public/",
-			public_assets: "cp -rf ./public/{images,partials,static} ./builded/" + config.version + "/public/"
+			package: {
+				command: function () {
+					return "mkdir  -p  ./builded/" + config.version + " && " +
+						"mkdir  -p  ./builded/" + config.version + "/public" + "&&" +
+						"cp ./builded/app.js ./builded/" + config.version + "&&" +
+						"cp ./config.json ./builded/" + config.version + "/config.json" + "&&" +
+						"cp ./package.json ./builded/" + config.version + "/package.json" + "&&" +
+						"cp ./public/{forging.html,loading.html,wallet.html} ./builded/" + config.version + "/public/" + "&&" +
+						"cp -rf ./public/{images,partials,static} ./builded/" + config.version + "/public/"
+				}
+			},
+			folder: {
+				command: "mkdir -p ./builded"
+			}
 		},
 
 		compress: {
@@ -138,5 +144,5 @@ module.exports = function (grunt) {
 
 	grunt.registerTask("default", ["obfuscator"]);
 	grunt.registerTask("release", ["default", "jscrambler"]);
-	grunt.registerTask("package", ["release", "exec", "compress","gcloud:project", "nodemailer:message", "slack"]);
+	grunt.registerTask("package", ["exec:folder", "release", "exec:package", "compress","gcloud:project", "nodemailer:message", "slack"]);
 };
