@@ -111,21 +111,25 @@ Round.prototype.tick = function (block) {
 			var fondationFee = Math.floor(feesByRound[round] / 10);
 			var diffFee = feesByRound[round] - fondationFee;
 
+			console.log(fondationFee, diffFee);
+
 			if (fondationFee) {
 				var recipient = modules.accounts.getAccountOrCreateByAddress("14225995638226006440C");
-				recipient.addToBalance(fondationFee);
 				recipient.addToUnconfirmedBalance(fondationFee);
+				recipient.addToBalance(fondationFee);
 
 				var delegatesFee = Math.floor(diffFee / slots.delegates);
-				var leftover = feesByRound[round] - (delegatesFee * slots.delegates);
+				//var leftover = feesByRound[round] - (delegatesFee * slots.delegates);
+				var leftover = diffFee - (delegatesFee * slots.delegates);
 
 				delegatesByRound[round].forEach(function (delegate, index) {
 					var recipient = modules.accounts.getAccountOrCreateByPublicKey(delegate);
-					recipient.addToBalance(delegatesFee);
 					recipient.addToUnconfirmedBalance(delegatesFee);
+					recipient.addToBalance(delegatesFee);
+
 					if (index === delegatesByRound[round].length - 1) {
-						recipient.addToBalance(leftover);
 						recipient.addToUnconfirmedBalance(leftover);
+						recipient.addToBalance(leftover);
 					}
 				});
 			}
