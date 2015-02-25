@@ -60,7 +60,6 @@ module.exports = function (grunt) {
 						"cp ./config.json ./builded/" + config.version + "/config.json" + "&&" +
 						"cp ./package.json ./builded/" + config.version + "/package.json" + "&&" +
 						"cd public && mkdir -p ./static && npm install &&  bower install && grunt release && cd ../ &&" +
-						"cp ./public/forging.html ./builded/" + config.version + "/public/" + "&&" +
 						"cp ./public/wallet.html ./builded/" + config.version + "/public/" + "&&" +
 						"cp ./public/loading.html ./builded/" + config.version + "/public/" + "&&" +
 						"cp -rf ./public/images ./builded/" + config.version + "/public/" + "&&" +
