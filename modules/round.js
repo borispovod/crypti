@@ -111,8 +111,6 @@ Round.prototype.tick = function (block) {
 			var fondationFee = Math.floor(feesByRound[round] / 10);
 			var diffFee = feesByRound[round] - fondationFee;
 
-			console.log(fondationFee, diffFee);
-
 			if (fondationFee) {
 				var recipient = modules.accounts.getAccountOrCreateByAddress("14225995638226006440C");
 				recipient.addToUnconfirmedBalance(fondationFee);
