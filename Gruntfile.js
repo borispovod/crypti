@@ -10,11 +10,11 @@ module.exports = function (grunt) {
 		{
 			email: 'boris@crypti.me',
 			name: 'Boris Povod'
-		}
-		/*{
+		},
+		{
 			email: 'sebastian@crypti.me',
 			name: "Sebastian"
-		}*/
+		}
 	];
 
 	var config = require("./config.json");
@@ -125,14 +125,14 @@ module.exports = function (grunt) {
 		},
 		slack: {
 			options: {
-				endpoint: 'https://hooks.slack.com/services/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',
-				channel: '@slackbot',
+				endpoint: 'https://hooks.slack.com/services/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',
+				channel: '#testing',
 				username: 'Crypti',
-				icon_emoji: ":ghost:",
+				icon_emoji: ":thumbsup:",
 				icon_url: 'http://vermilion1.github.io/presentations/grunt/images/grunt-logo.png' // if icon_emoji not specified
 			},
 			notify: {
-				text: '@boris: New version (' + config.version + ') of Crypti available: http://storage.googleapis.com/crypti-testing/nodes/' + config.version + '.zip'
+				text: '@sebastian @eric @boris @landgraf_paul New version (' + config.version + ') of Crypti available: http://storage.googleapis.com/crypti-testing/nodes/' + config.version + '.zip'
 			}
 		}
 	});
