@@ -7,11 +7,6 @@
 	"fileLogLevel": "info",
 	"consoleLogLevel": "log",
 	"sharePort": true,
-	"adminPanel": {
-		"whiteList": [
-			"127.0.0.1"
-		]
-	},
 	"api": {
 		"access": {
 			"whiteList": []
@@ -19,6 +14,10 @@
 	},
 	"peers": {
 		"list": [
+			{
+				"ip" : "130.211.104.33",
+				"port" : 4061
+			}
 		],
 		"blackList": []
 	},

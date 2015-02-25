@@ -516,6 +516,7 @@ Blocks.prototype.getCommonBlock = function (peer, height, cb) {
 					if (err || data.body.error) {
 						return next(err || params.string(data.body.error));
 					}
+
 					if (!data.body.common) {
 						return next();
 					}
