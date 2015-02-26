@@ -140,6 +140,7 @@ function attachApi() {
 			var index = publicKeyIndex[publicKey];
 			return {
 				username: delegates[index].username,
+				address: delegates[index].address,
 				publicKey: publicKey,
 				transactionId: delegates[index].transactionId,
 				vote: votes[publicKey],
