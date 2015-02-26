@@ -1,22 +1,41 @@
 <div id="account">
-    <div class="row">
+    <div class="clearfix">
         <h1 class="heading">Forging</h1>
 
         <div class="vote-delegates"><h2>{{ voteList.list.length }} Delegates selected</h2>
             <button class="button green">View Selection</button>
-            <button class="button green">Vote</button>
+            <button class="button green" ng-click="vote()" ng-disabled="voteList.list.length==0">Vote</button>
         </div>
     </div>
-
-    <div class="row">
-
+    <div class="clearfix">
         <h2>Top Delegates</h2>
         <table ng-table="tableTopDelegates" border="0" width="100%" cellpadding="0" cellspacing="0">
             <tr ng-repeat="delegate in $data">
                 <td data-title="'Vote'" sortable="'rate'">{{delegate.rate}}</td>
                 <td data-title="'Name'" sortable="'username'">{{delegate.username}}</td>
                 <td data-title="'Crypti Address'">{{delegate.publicKey}}</td>
-                <td data-title="'Approval'"></td>
+                <td data-title="'Approval'">{{getApproval(delegate.vote) | number: 2}}%</td>
+                <td data-title="'Vote'">
+                    <button class="button button-vote small green" ng-if="!voteList.inList(delegate.publicKey)"
+                            ng-click="voteList.vote(delegate.publicKey)">
+                        Select
+                    </button>
+                    <button class="button button-vote small red" ng-if="voteList.inList(delegate.publicKey)"
+                            ng-click="voteList.vote(delegate.publicKey)">
+                        Selected
+                    </button>
+                </td>
+            </tr>
+        </table>
+    </div>
+    <div class="clearfix">
+        <h2>Standby Delegates</h2>
+        <table ng-table="tableStandbyDelegates" border="0" width="100%" cellpadding="0" cellspacing="0">
+            <tr ng-repeat="delegate in $data">
+                <td data-title="'Vote'" sortable="'rate'">{{delegate.rate}}</td>
+                <td data-title="'Name'" sortable="'username'">{{delegate.username}}</td>
+                <td data-title="'Crypti Address'">{{delegate.publicKey}}</td>
+                <td data-title="'Approval'">{{getApproval(delegate.vote) | number: 2}}%</td>
                 <td data-title="'Vote'">
                     <button class="button button-vote small green" ng-if="!voteList.inList(delegate.publicKey)"
                             ng-click="voteList.vote(delegate.publicKey)">
