@@ -7,6 +7,7 @@ angular.module('webApp').controller('delegatesController', ['$scope', '$rootScop
 
         $scope.address = userService.address;
 
+
         $scope.getApproval = function (vote) {
             return (vote / $scope.allVotes ) * 100;
         };
@@ -31,12 +32,45 @@ angular.module('webApp').controller('delegatesController', ['$scope', '$rootScop
                 totalBalance: $scope.unconfirmedBalance,
                 voteList: $scope.voteList.list,
                 destroy: function () {
-                    $scope.voteList = [];
+                    $scope.voteList.list = [];
+                    $scope.unconfirmedTransactions.getList();
+                    $scope.delegates.getList();
                 }
             });
         };
 
         $scope.balance = userService._unconfirmedBalance;
+
+        //Unconfirmed transactions
+        $scope.unconfirmedTransactions = {
+            list: [],
+            getList: function () {
+                $http.get("/api/transactions/unconfirmed/", {params: {senderPublicKey: userService.publicKey}})
+                    .then(function (response) {
+                        $scope.unconfirmedTransactions.list = response.data.transactions;
+                        console.log($scope.unconfirmedTransactions.list, response);
+                    });
+            }
+        };
+        $scope.unconfirmedTransactions.getList();
+        //end Unconfirmed transactions
+
+        //Delegates exist
+        $scope.delegates = {
+            list: [],
+            getList: function () {
+                $http.get("/api/accounts/delegates/", {params: {address: userService.address}})
+                    .then(function (response) {
+                        $scope.delegates.list = response.data.delegates;
+                        console.log($scope.delegates.list);
+                    });
+            },
+            voted: function(publicKey) {
+                return this.list.indexOf(publicKey) != -1;
+            }
+        };
+        $scope.delegates.getList();
+        //end Delegates exist
 
         //Top deletates
         $scope.tableTopDelegates = new ngTableParams({
@@ -58,11 +92,11 @@ angular.module('webApp').controller('delegatesController', ['$scope', '$rootScop
             $scope.tableTopDelegates.reload();
         });
 
-        $scope.updateTop = $interval(function () {
+        $scope.updateTop = function () {
             if (new Date() - delegateService.cachedTOP.time >= 1000 * 10) {
                 $scope.tableTopDelegates.reload();
             }
-        }, 1000 * 1);
+        };
         //end Top delegates
 
         //Standby deletates
@@ -85,11 +119,18 @@ angular.module('webApp').controller('delegatesController', ['$scope', '$rootScop
             $scope.tableStandbyDelegates.reload();
         });
 
-        $scope.updateStandby = $interval(function () {
+        $scope.updateStandby = function () {
             if (new Date() - delegateService.cachedStundby.time >= 1000 * 10) {
                 $scope.tableStandbyDelegates.reload();
             }
-        }, 1000 * 1);
+        };
         //end Standby delegates
+
+        $scope.updateView = $interval(function () {
+            $scope.updateStandby();
+            $scope.updateTop();
+            $scope.unconfirmedTransactions.getList();
+            $scope.delegates.getList();
+        }, 10000 * 1);
 
     }]);

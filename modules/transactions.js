@@ -496,7 +496,6 @@ Transactions.prototype.undoAllUnconfirmed = function () {
 		var transaction = unconfirmedTransactions[ids[i]];
 		this.undoUnconfirmed(transaction);
 	}
-
 	return ids;
 }
 
@@ -532,6 +531,12 @@ Transactions.prototype.applyUnconfirmed = function (transaction) {
 	var amount = transaction.amount + transaction.fee;
 
 	if (sender.unconfirmedBalance < amount && transaction.blockId != genesisblock.blockId) {
+		if (transaction.type == 1) {
+            sender.unconfirmedSignature = false;
+        } else if (transaction.type == 2) {
+            modules.delegates.removeUnconfirmedDelegate(transaction.asset.delegate);
+        }
+
 		return false;
 	}
 

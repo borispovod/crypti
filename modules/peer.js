@@ -62,10 +62,16 @@ function attachApi() {
 	});
 
 	router.get('/get', function (req, res) {
-		var ip = params.string(req.query.ip);
+		var ip_str = params.string(req.query.ip);
 		var port = params.int(req.query.port);
 
-		if (!ip) {
+		try {
+			ip_str = ip.toLong(ip_str);
+		} catch (e) {
+			return res.json({success: false, error: "Provide valid ip"});
+		}
+
+		if (!ip_str) {
 			return res.json({success: false, error: "Provide ip in url"});
 		}
 
@@ -74,7 +80,7 @@ function attachApi() {
 		}
 
 		getByFilter({
-			ip: ip,
+			ip: ip_str,
 			port: port
 		}, function (err, peers) {
 			if (err) {
