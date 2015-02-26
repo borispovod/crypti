@@ -55,7 +55,7 @@ function attachApi() {
 		orderField = orderField ? orderField.split(':') : null;
 		limit = limit > 101 ? 101 : limit;
 		var orderBy = orderField ? orderField[0] : null;
-		var sortMode = orderField.length == 2 ? orderField[1] : 'asc';
+		var sortMode = orderField && orderField.length == 2 ? orderField[1] : 'asc';
 		var publicKeys = Object.keys(publicKeyIndex);
 		var length = Math.min(limit, publicKeys.length);
 		var realLimit = Math.min(offset + limit, publicKeys.length);
