@@ -2,12 +2,15 @@
     <div class="row">
         <h1 class="heading">Forging</h1>
 
-        <h2 class="account-id">Your account: {{ address }}</h2>
+        <div class="vote-delegates"><h2>{{ voteList.list.length }} Delegates selected</h2>
+            <button class="button green">View Selection</button>
+            <button class="button green">Vote</button>
+        </div>
     </div>
+
     <div class="row">
-        <h1 class="heading">Top Delegates</h1>
-    </div>
-    <div class="row">
+
+        <h2>Top Delegates</h2>
         <table ng-table="tableTopDelegates" border="0" width="100%" cellpadding="0" cellspacing="0">
             <tr ng-repeat="delegate in $data">
                 <td data-title="'Vote'" sortable="'rate'">{{delegate.rate}}</td>
