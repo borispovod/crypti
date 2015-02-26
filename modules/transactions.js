@@ -107,20 +107,12 @@ function attachApi() {
 		if (senderPublicKey || address) {
 			for (var i = 0; i < transactions.length; i++) {
 				if (transactions[i].senderPublicKey == senderPublicKey || transactions[i].recipientId == address) {
-					var transaction = extend(true, {}, transactions[i]);
-
-					delete transaction.asset;
-
-					toSend.push(transaction);
+					toSend.push(transactions[i]);
 				}
 			}
 		} else {
 			for (var i = 0; i < transactions.length; i++) {
-				var transaction = extend(true, {}, transactions[i]);
-
-				delete transaction.asset;
-
-				toSend.push(transaction);
+				toSend.push(transactions[i]);
 			}
 		}
 
