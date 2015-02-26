@@ -323,6 +323,7 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 		if (err) return cb && cb(err);
 
 		if (!self.applyUnconfirmed(transaction)) {
+			console.log("Double spending: " + transaction.id);
 			doubleSpendingTransactions[transaction.id] = transaction;
 			return cb && cb("Can't apply transaction: " + transaction.id);
 		}
@@ -486,6 +487,7 @@ Transactions.prototype.applyUnconfirmedList = function (ids) {
 		if (!this.applyUnconfirmed(transaction)) {
 			delete unconfirmedTransactions[ids[i]];
 			doubleSpendingTransactions[ids[i]] = transaction;
+			console.log("Double spending: " + transaction.id);
 		}
 	}
 }
