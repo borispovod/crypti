@@ -14,4 +14,3 @@ require('../../js/controllers/modals/freeModalController');
 require('../../js/controllers/modals/secondPassphraseController');
 require('../../js/controllers/modals/sendCryptiController');
 
-
