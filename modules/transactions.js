@@ -491,15 +491,11 @@ Transactions.prototype.applyUnconfirmedList = function (ids) {
 }
 
 Transactions.prototype.undoAllUnconfirmed = function () {
-	//console.log("Undo all unconfirmed: ");
 	var ids = Object.keys(unconfirmedTransactions);
 	for (var i = 0; i < ids.length; i++) {
 		var transaction = unconfirmedTransactions[ids[i]];
-		//console.log(transaction);
 		this.undoUnconfirmed(transaction);
 	}
-
-	//console.log(modules.delegates.getUnconfirmedDelegates());
 	return ids;
 }
 
