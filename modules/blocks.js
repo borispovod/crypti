@@ -478,9 +478,12 @@ function popLastBlock(oldLastBlock, cb) {
 
 function getIdSequence(height, cb) {
 	library.dbLite.query("SELECT s.height, group_concat(s.id) from ( " +
-	'SELECT id, min(height) as height ' +
+	'SELECT id, max(height) as height ' +
 	'FROM blocks ' +
 	'group by (cast(height / $delegates as integer) + (case when height % $delegates > 0 then 1 else 0 end)) having height <= $height ' +
+	'union ' +
+	'select id, 1 as height ' +
+	'from blocks where height = 1 ' +
 	'order by height desc ' +
 	'limit $limit ' +
 	') s', {
@@ -953,7 +956,6 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 					modules.transactions.apply(transaction);
 					modules.transactions.removeUnconfirmedTransaction(transaction.id);
 				}
-
 
 
 				saveBlock(block, function (err) {
