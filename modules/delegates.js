@@ -151,14 +151,32 @@ function attachApi() {
 	});
 
 	router.get('/get', function (req, res) {
-		var transactionId = params.string(req.query.id);
+		var transactionId = params.string(req.query.transactionId, true);
+		var publicKey = params.string(req.query.publicKey, true);
+		var username = params.string(req.query.username, true);
 
-		var index = transactionIdIndex[transactionId];
-		if (index === undefined) {
-			return res.json({success: false, error: "Delagate not found"});
+		if (transactionId !== null) {
+			var index = transactionIdIndex[transactionId];
+			if (index === undefined) {
+				return res.json({success: false, error: "Delagate not found"});
+			}
+			return res.json({success: true, delegate: delegates[index]});
+		}
+		if (publicKey !== null) {
+			var index = publicKeyIndex[publicKey];
+			if (index === undefined) {
+				return res.json({success: false, error: "Delagate not found"});
+			}
+			return res.json({success: true, delegate: delegates[index]});
+		}
+		if (username !== null) {
+			var index = namesIndex[username];
+			if (index === undefined) {
+				return res.json({success: false, error: "Delagate not found"});
+			}
+			return res.json({success: true, delegate: delegates[index]});
 		}
 
-		res.json({success: true, delegate: delegates[index]});
 	});
 
 	router.get('/forging/getForgedByAccount', function (req, res) {
