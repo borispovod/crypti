@@ -177,6 +177,7 @@ function getId(block) {
 	return id;
 }
 
+
 function saveGenesisBlock(cb) {
 	library.dbLite.query("SELECT id FROM blocks WHERE id=$id", {id: genesisblock.blockId}, ['id'], function (err, rows) {
 		if (err) {
@@ -195,8 +196,8 @@ function saveGenesisBlock(cb) {
 					fee: 0,
 					timestamp: 0,
 					recipientId: genesisTransaction.recipientId,
-					senderId: genesisblock.generatorId,
-					senderPublicKey: genesisblock.generatorPublicKey,
+					senderId: genesisTransaction.senderId || genesisblock.generatorId,
+					senderPublicKey: genesisTransaction.publicKey || genesisblock.generatorPublicKey,
 					signature: genesisTransaction.signature,
 					asset: {
 						delegate: genesisTransaction.asset.delegate
@@ -452,7 +453,7 @@ function popLastBlock(oldLastBlock, cb) {
 			if (err) {
 				return cb(err);
 			}
-			modules.round.fowardTick(oldLastBlock, previousBlock);
+			modules.round.backwardTick(oldLastBlock, previousBlock);
 
 			deleteBlock(oldLastBlock.id, function (err) {
 				if (err) {
@@ -477,9 +478,12 @@ function popLastBlock(oldLastBlock, cb) {
 
 function getIdSequence(height, cb) {
 	library.dbLite.query("SELECT s.height, group_concat(s.id) from ( " +
-	'SELECT id, min(height) as height ' +
+	'SELECT id, max(height) as height ' +
 	'FROM blocks ' +
 	'group by (cast(height / $delegates as integer) + (case when height % $delegates > 0 then 1 else 0 end)) having height <= $height ' +
+	'union ' +
+	'select id, 1 as height ' +
+	'from blocks where height = 1 ' +
 	'order by height desc ' +
 	'limit $limit ' +
 	') s', {
@@ -515,6 +519,7 @@ Blocks.prototype.getCommonBlock = function (peer, height, cb) {
 					if (err || data.body.error) {
 						return next(err || params.string(data.body.error));
 					}
+
 					if (!data.body.common) {
 						return next();
 					}
@@ -755,6 +760,7 @@ Blocks.prototype.getLastBlock = function () {
 Blocks.prototype.processBlock = function (block, broadcast, cb) {
 	block.id = getId(block);
 	block.height = lastBlock.height + 1;
+
 	var unconfirmedTransactions = modules.transactions.undoAllUnconfirmed();
 
 	function done(err) {
@@ -950,6 +956,7 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 					modules.transactions.apply(transaction);
 					modules.transactions.removeUnconfirmedTransaction(transaction.id);
 				}
+
 
 				saveBlock(block, function (err) {
 					if (!err) {

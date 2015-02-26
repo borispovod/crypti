@@ -28,12 +28,8 @@ function attachApi() {
 	});
 
 	router.get('/', function (req, res) {
-		var ip = req.connection.remoteAddress;
-
-		var showLinkToAdminPanel = library.config.adminPanel.whiteList.length && library.config.adminPanel.whiteList.indexOf(ip) >= 0;
-
 		if (loaded) {
-			res.render('wallet.html', {showAdmin: showLinkToAdminPanel, layout: false});
+			res.render('wallet.html', {layout: false});
 		} else {
 			res.render('loading.html');
 		}

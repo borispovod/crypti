@@ -32,6 +32,11 @@ webApp.config([
                 templateUrl: "/partials/delegates.html",
                 controller: "delegatesController"
             })
+            .state('main.delegates.votes', {
+                url: "/delegates/votes",
+                templateUrl: "/partials/votes.html",
+                controller: "votesController"
+            })
             .state('main.forging', {
                 url: "/forging",
                 templateUrl: "/partials/forging.html",
