@@ -20,6 +20,7 @@ angular.module('webApp').service('delegateService', function ($http, $filter) {
 
     var delegates = {
         cachedTOP: {data: [], time: new Date()},
+        cachedStundby: {data: [], time: new Date()},
         getTopList: function ($defer, params, filter) {
             if (delegates.cachedTOP.data.length > 0 && new Date() - delegates.cachedTOP.time < 1000 * 10) {
                 var filteredData = filterData(delegates.cachedTOP.data, filter);
@@ -28,7 +29,7 @@ angular.module('webApp').service('delegateService', function ($http, $filter) {
                 $defer.resolve(transformedData);
             }
             else {
-                $http.get("/api/delegates/", {params: {orderBy: "rate:asc", limit: 101, offset: 0}})
+                $http.get("/api/delegates/", {params: {orderBy: "rate:asc", limit: 3, offset: 0}})
                     .then(function (response) {
                         angular.copy(response.data.delegates, delegates.cachedTOP.data);
                         delegates.cachedTOP.time = new Date();
@@ -40,24 +41,23 @@ angular.module('webApp').service('delegateService', function ($http, $filter) {
             }
         },
         getStandbyList: function ($defer, params, filter) {
-            if (service.cachedData.length > 0) {
-                console.log("using cached data")
-                var filteredData = filterData(service.cachedData, filter);
+            if (delegates.cachedStundby.data.length > 0 && new Date() - delegates.cachedStundby.time < 1000 * 10) {
+                var filteredData = filterData(delegates.cachedStundby.data, filter);
                 var transformedData = sliceData(orderData(filteredData, params), params);
                 params.total(filteredData.length)
                 $defer.resolve(transformedData);
             }
             else {
-                console.log("fetching data")
-                $http.get("http://www.json-generator.com/api/json/get/bUAZFEHxCG").success(function (resp) {
-                    angular.copy(resp, service.cachedData)
-                    params.total(resp.length)
-                    var filteredData = $filter('filter')(resp, filter);
-                    var transformedData = transformData(resp, filter, params)
-                    $defer.resolve(transformedData);
-                });
+                $http.get("/api/delegates/", {params: {orderBy: "rate:asc", limit: 101, offset: 3}})
+                    .then(function (response) {
+                        angular.copy(response.data.delegates, delegates.cachedStundby.data);
+                        delegates.cachedStundby.time = new Date();
+                        params.total(response.data.delegates.length);
+                        var filteredData = $filter('filter')(response.data.delegates, filter);
+                        var transformedData = transformData(response.data.delegates, filter, params)
+                        $defer.resolve(transformedData);
+                    });
             }
-
         }
     };
     return delegates;
