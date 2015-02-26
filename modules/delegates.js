@@ -8,7 +8,8 @@ var crypto = require('crypto'),
 	slots = require('../helpers/slots.js'),
 	schedule = require('node-schedule'),
 	util = require('util'),
-	genesisblock = require("../helpers/genesisblock.js");
+	genesisblock = require("../helpers/genesisblock.js"),
+	constants = require('../helpers/constants.js');
 
 require('array.prototype.find'); //old node fix
 
@@ -25,6 +26,7 @@ var namesIndex = {};
 var publicKeyIndex = {};
 var transactionIdIndex = {};
 var delegates = [];
+var fees = {};
 
 var keypairs = {};
 
@@ -50,17 +52,23 @@ function attachApi() {
 	router.get('/', function (req, res) {
 		var limit = params.int(req.query.limit) || 101,
 			offset = params.int(req.query.offset),
-			orderField = params.string(req.query.orderBy, true);
+			orderField = params.string(req.query.orderBy, true),
+			active = params.bool(req.query.active, true);
 
 		orderField = orderField ? orderField.split(':') : null;
 		limit = limit > 101 ? 101 : limit;
 		var orderBy = orderField ? orderField[0] : null;
 		var sortMode = orderField && orderField.length == 2 ? orderField[1] : 'asc';
 		var publicKeys = Object.keys(publicKeyIndex);
-		var length = Math.min(limit, publicKeys.length);
-		var realLimit = Math.min(offset + limit, publicKeys.length);
+		var count = publicKeys.length;
+		var length = Math.min(limit, count);
+		var realLimit = Math.min(offset + limit, count);
 
-		console.log(orderBy, sortMode)
+		if (active === true) {
+			publicKeys = publicKeys.slice(0, 101);
+		} else if (active === false) {
+			publicKeys = publicKeys.slice(101, publicKeys.length);
+		}
 
 		var rateSort = {};
 		publicKeys.sort(function compare(a, b) {
@@ -139,7 +147,7 @@ function attachApi() {
 			};
 		})
 
-		res.json({success: true, delegates: result});
+		res.json({success: true, delegates: result, totalCount: count});
 	});
 
 	router.get('/get', function (req, res) {
@@ -151,6 +159,22 @@ function attachApi() {
 		}
 
 		res.json({success: true, delegate: delegates[index]});
+	});
+
+	router.get('/forging/getForgedByAccount', function (req, res) {
+		var secret = params.string(req.query.secret);
+
+		if (!secret) {
+			return res.json({success: false, error: "Provide secret in request"});
+		}
+
+		var keypair = ed.MakeKeypair(crypto.createHash('sha256').update(secret, 'utf8').digest());
+
+		if (fees[keypair.publicKey.toString('hex')] === undefined) {
+			return res.json({success: false, error: "Fees not found"});
+		}
+
+		res.json({success: true, fees: fees[keypair.publicKey.toString('hex')]});
 	});
 
 	router.post('/forging/enable', function (req, res) {
@@ -440,7 +464,10 @@ Delegates.prototype.getUnconfirmedName = function (delegate) {
 Delegates.prototype.removeUnconfirmedDelegate = function (delegate) {
 	delete unconfirmedDelegates[delegate.publicKey];
 	delete unconfirmedNames[delegate.publicKey];
-	;
+}
+
+Delegates.prototype.addFee = function (publicKey, value) {
+	fees[publicKey] = (fees[publicKey] || 0) + value;
 }
 
 Delegates.prototype.existsDelegate = function (publicKey) {

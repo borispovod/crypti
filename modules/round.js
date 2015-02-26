@@ -80,9 +80,11 @@ Round.prototype.backwardTick = function (block, previousBlock) {
 					var recipient = modules.accounts.getAccountOrCreateByPublicKey(delegate);
 					recipient.addToBalance(-delegatesFee);
 					recipient.addToUnconfirmedBalance(-delegatesFee);
+					modules.delegates.addFee(delegate, -delegatesFee);
 					if (index === 0) {
 						recipient.addToBalance(-leftover);
 						recipient.addToUnconfirmedBalance(-leftover);
+						modules.delegates.addFee(delegate, -leftover);
 					}
 				});
 			}
@@ -124,11 +126,12 @@ Round.prototype.tick = function (block) {
 					var recipient = modules.accounts.getAccountOrCreateByPublicKey(delegate);
 					recipient.addToUnconfirmedBalance(delegatesFee);
 					recipient.addToBalance(delegatesFee);
-
+					modules.delegates.addFee(delegate, delegatesFee);
 
 					if (index === delegatesByRound[round].length - 1) {
 						recipient.addToUnconfirmedBalance(leftover);
 						recipient.addToBalance(leftover);
+						modules.delegates.addFee(delegate, leftover);
 					}
 				});
 			}
