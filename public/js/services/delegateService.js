@@ -1,6 +1,6 @@
 require('angular');
 
-angular.module('webApp').service('delegateService', function ($http, $filter) {
+angular.module('webApp').service('delegateService', function ($http, $filter, userService) {
 
     function filterData(data, filter) {
         return $filter('filter')(data, filter)
@@ -91,25 +91,17 @@ angular.module('webApp').service('delegateService', function ($http, $filter) {
                     $defer.resolve(transformedData);
                 }
                 else {
-                    this.cachedVotedDelegates.data = [];
-                    var getPart = function (limit, offset) {
-                        $http.get("/api/delegates/", {params: {orderBy: "rate:asc", limit: limit, offset: offset}})
-                            .then(function (response) {
-                                if (response.data.delegates.length > 0) {
-                                    delegates.cachedStundby.data = delegates.cachedStundby.data.concat(response.data.delegates);
-                                    getPart(limit, limit + offset);
-                                }
-                                else {
-                                    delegates.cachedStundby.time = new Date();
-                                    params.total(delegates.cachedStundby.data.length);
-                                    var filteredData = $filter('filter')(delegates.cachedStundby.data, filter);
-                                    var transformedData = transformData(delegates.cachedStundby.data, filter, params)
-                                    delegates.gettingVoted = !delegates.gettingVoted;
-                                    $defer.resolve(transformedData);
-                                }
-                            });
-                    };
-                    getPart(1, 3);
+                    $http.get("/api/accounts/delegates/", {params: {address: userService.address}})
+                        .then(function (response) {
+                            angular.copy(response.data.delegates ? response.data.delegates : [], delegates.cachedVotedDelegates.data);
+                            delegates.cachedVotedDelegates.time = new Date();
+                            params.total(response.data.delegates ? response.data.delegates.length : 0);
+                            var filteredData = $filter('filter')(delegates.cachedVotedDelegates.data, filter);
+                            var transformedData = transformData(delegates.cachedVotedDelegates.data, filter, params);
+                            delegates.gettingVoted = !delegates.gettingVoted;
+                            $defer.resolve(transformedData);
+                        });
+
                 }
             }
         }

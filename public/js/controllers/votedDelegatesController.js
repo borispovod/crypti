@@ -15,14 +15,14 @@ angular.module('webApp').controller('votedDelegatesController', ['$scope', '$roo
         $scope.voteList = {
             list: [],
             inList: function (publicKey) {
-                return this.list.indexOf('+' + publicKey) != -1;
+                return this.list.indexOf('-' + publicKey) != -1;
             },
             vote: function (publicKey) {
                 if (this.inList(publicKey)) {
-                    this.list.splice('+' + this.list.indexOf(publicKey), 1);
+                    this.list.splice('-' + this.list.indexOf(publicKey), 1);
                 }
                 else {
-                    this.list.push('+' + publicKey);
+                    this.list.push('-' + publicKey);
                 }
             }
         };
@@ -34,7 +34,6 @@ angular.module('webApp').controller('votedDelegatesController', ['$scope', '$roo
                 destroy: function () {
                     $scope.voteList.list = [];
                     $scope.unconfirmedTransactions.getList();
-                    $scope.delegates.getList();
                 }
             });
         };
@@ -47,64 +46,55 @@ angular.module('webApp').controller('votedDelegatesController', ['$scope', '$roo
             getList: function () {
                 $http.get("/api/transactions/unconfirmed/", {params: {senderPublicKey: userService.publicKey}})
                     .then(function (response) {
-                        $scope.unconfirmedTransactions.list = response.data.transactions;
-                        console.log($scope.unconfirmedTransactions.list, response);
+                        $scope.unconfirmedTransactions.list = [];
+                        response.data.transactions.forEach(function (transaction) {
+                            $scope.unconfirmedTransactions.list = $scope.unconfirmedTransactions.list.concat(transaction.asset.votes);
+                        });
                     });
+
+            },
+            inList: function (publicKey) {
+                return this.list.indexOf('-' + publicKey) != -1;
             }
         };
         $scope.unconfirmedTransactions.getList();
         //end Unconfirmed transactions
 
-        //Delegates exist
-        $scope.delegates = {
-            list: [],
-            getList: function () {
-                $http.get("/api/accounts/delegates/", {params: {address: userService.address}})
-                    .then(function (response) {
-                        $scope.delegates.list = response.data.delegates;
-                        console.log($scope.delegates.list);
-                    });
-            },
-            voted: function(publicKey) {
-                return this.list.indexOf(publicKey) != -1;
-            }
-        };
-        $scope.delegates.getList();
-        //end Delegates exist
 
-        //Top deletates
-        $scope.tableTopDelegates = new ngTableParams({
+        //My deletates
+        $scope.tableMyDelegates = new ngTableParams({
             page: 1,            // show first page
-            count: 101,
+            count: 5,
             sorting: {
                 rate: 'asc'     // initial sorting
             }
         }, {
-            counts: [], // hide page counts control
+            counts: [5, 10, 25],
+            total: 0,
             getData: function ($defer, params) {
-                delegateService.getTopList($defer, params, $scope.filter);
+                delegateService.getMyDelegates($defer, params, $scope.filter);
             }
         });
 
-        $scope.tableTopDelegates.settings().$scope = $scope;
+        $scope.tableMyDelegates.settings().$scope = $scope;
 
         $scope.$watch("filter.$", function () {
-            $scope.tableTopDelegates.reload();
+            $scope.tableMyDelegates.reload();
         });
 
-        $scope.updateTop = function () {
-            if (new Date() - delegateService.cachedTOP.time >= 1000 * 10) {
-                $scope.tableTopDelegates.reload();
-            }
+        $scope.updateMyDelegates = function () {
+            $scope.tableMyDelegates.reload();
         };
-        //end Top delegates
+        //end My delegates
 
 
         $scope.updateView = $interval(function () {
-            $scope.updateStandby();
-            $scope.updateTop();
+
+            delegateService.cachedStundby.time = delegateService.cachedStundby.time - 20000;
+
+            $scope.updateMyDelegates();
             $scope.unconfirmedTransactions.getList();
-            $scope.delegates.getList();
-        }, 10000 * 1);
+
+        }, 1000 * 10);
 
     }]);

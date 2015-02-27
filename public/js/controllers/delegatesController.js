@@ -47,8 +47,15 @@ angular.module('webApp').controller('delegatesController', ['$scope', '$rootScop
             getList: function () {
                 $http.get("/api/transactions/unconfirmed/", {params: {senderPublicKey: userService.publicKey}})
                     .then(function (response) {
-                        $scope.unconfirmedTransactions.list = response.data.transactions;
+                        $scope.unconfirmedTransactions.list = [];
+                        response.data.transactions.forEach(function (transaction) {
+                            $scope.unconfirmedTransactions.list = $scope.unconfirmedTransactions.list.concat(transaction.asset.votes);
+                        });
                     });
+
+            },
+            inList: function (publicKey) {
+                return this.list.indexOf('+' + publicKey) != -1;
             }
         };
         $scope.unconfirmedTransactions.getList();
@@ -60,7 +67,12 @@ angular.module('webApp').controller('delegatesController', ['$scope', '$rootScop
             getList: function () {
                 $http.get("/api/accounts/delegates/", {params: {address: userService.address}})
                     .then(function (response) {
-                        $scope.delegates.list = response.data.delegates;
+                        if (response.data.delegates == null) {
+                            return [];
+                        }
+                        $scope.delegates.list = response.data.delegates.map(function (delegate) {
+                            return delegate.publicKey;
+                        });
                     });
             },
             voted: function (publicKey) {
@@ -101,13 +113,13 @@ angular.module('webApp').controller('delegatesController', ['$scope', '$rootScop
         //Standby delegates
         $scope.tableStandbyDelegates = new ngTableParams({
             page: 1,            // show first page
-            count: 1,
+            count: 3,
             sorting: {
                 rate: 'asc'     // initial sorting
             }
         }, {
             total: 0,
-            counts: [1, 2, 5],
+            counts: [1, 3, 25],
             getData: function ($defer, params) {
                 delegateService.getStandbyList($defer, params, $scope.filter);
             }
