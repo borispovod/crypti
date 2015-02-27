@@ -1,6 +1,6 @@
 require('angular');
 
-angular.module('webApp').controller('delegatesController', ['$scope', '$rootScope', '$http', "userService", "$interval", "$filter", "ngTableParams", "delegateService", "voteModal",
+angular.module('webApp').controller('votedDelegatesController', ['$scope', '$rootScope', '$http', "userService", "$interval", "$filter", "ngTableParams", "delegateService", "voteModal",
     function ($rootScope, $scope, $http, userService, $interval, $filter, ngTableParams, delegateService, voteModal) {
 
         $scope.allVotes = 100 * 1000 * 1000;
@@ -48,6 +48,7 @@ angular.module('webApp').controller('delegatesController', ['$scope', '$rootScop
                 $http.get("/api/transactions/unconfirmed/", {params: {senderPublicKey: userService.publicKey}})
                     .then(function (response) {
                         $scope.unconfirmedTransactions.list = response.data.transactions;
+                        console.log($scope.unconfirmedTransactions.list, response);
                     });
             }
         };
@@ -61,9 +62,10 @@ angular.module('webApp').controller('delegatesController', ['$scope', '$rootScop
                 $http.get("/api/accounts/delegates/", {params: {address: userService.address}})
                     .then(function (response) {
                         $scope.delegates.list = response.data.delegates;
+                        console.log($scope.delegates.list);
                     });
             },
-            voted: function (publicKey) {
+            voted: function(publicKey) {
                 return this.list.indexOf(publicKey) != -1;
             }
         };
@@ -73,13 +75,12 @@ angular.module('webApp').controller('delegatesController', ['$scope', '$rootScop
         //Top deletates
         $scope.tableTopDelegates = new ngTableParams({
             page: 1,            // show first page
-            count: 3,
+            count: 101,
             sorting: {
                 rate: 'asc'     // initial sorting
             }
         }, {
-            counts: [],
-            total: 3,
+            counts: [], // hide page counts control
             getData: function ($defer, params) {
                 delegateService.getTopList($defer, params, $scope.filter);
             }
@@ -98,33 +99,6 @@ angular.module('webApp').controller('delegatesController', ['$scope', '$rootScop
         };
         //end Top delegates
 
-        //Standby delegates
-        $scope.tableStandbyDelegates = new ngTableParams({
-            page: 1,            // show first page
-            count: 1,
-            sorting: {
-                rate: 'asc'     // initial sorting
-            }
-        }, {
-            total: 0,
-            counts: [1, 2, 5],
-            getData: function ($defer, params) {
-                delegateService.getStandbyList($defer, params, $scope.filter);
-            }
-        });
-
-        $scope.tableStandbyDelegates.settings().$scope = $scope;
-
-        $scope.$watch("filter.$", function () {
-            $scope.tableStandbyDelegates.reload();
-        });
-
-        $scope.updateStandby = function () {
-            if (new Date() - delegateService.cachedStundby.time >= 1000 * 10) {
-                $scope.tableStandbyDelegates.reload();
-            }
-        };
-        //end Standby delegates
 
         $scope.updateView = $interval(function () {
             $scope.updateStandby();
