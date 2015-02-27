@@ -107,20 +107,12 @@ function attachApi() {
 		if (senderPublicKey || address) {
 			for (var i = 0; i < transactions.length; i++) {
 				if (transactions[i].senderPublicKey == senderPublicKey || transactions[i].recipientId == address) {
-					var transaction = extend(true, {}, transactions[i]);
-
-					delete transaction.asset;
-
-					toSend.push(transaction);
+					toSend.push(transactions[i]);
 				}
 			}
 		} else {
 			for (var i = 0; i < transactions.length; i++) {
-				var transaction = extend(true, {}, transactions[i]);
-
-				delete transaction.asset;
-
-				toSend.push(transaction);
+				toSend.push(transactions[i]);
 			}
 		}
 
@@ -323,6 +315,7 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 		if (err) return cb && cb(err);
 
 		if (!self.applyUnconfirmed(transaction)) {
+			console.log("Double spending: " + transaction.id);
 			doubleSpendingTransactions[transaction.id] = transaction;
 			return cb && cb("Can't apply transaction: " + transaction.id);
 		}
@@ -366,6 +359,10 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 				if (!self.verifySecondSignature(transaction, sender.secondPublicKey)) {
 					return done("Can't verify second signature");
 				}
+			}
+
+			if (sender.secondSignature && transaction.signSignature) {
+				return done("Can't process transaction with second signature, sender didn't has second signature");
 			}
 
 			// check if transaction is not float and great then 0
@@ -486,20 +483,17 @@ Transactions.prototype.applyUnconfirmedList = function (ids) {
 		if (!this.applyUnconfirmed(transaction)) {
 			delete unconfirmedTransactions[ids[i]];
 			doubleSpendingTransactions[ids[i]] = transaction;
+			console.log("Double spending: " + transaction.id);
 		}
 	}
 }
 
 Transactions.prototype.undoAllUnconfirmed = function () {
-	//console.log("Undo all unconfirmed: ");
 	var ids = Object.keys(unconfirmedTransactions);
 	for (var i = 0; i < ids.length; i++) {
 		var transaction = unconfirmedTransactions[ids[i]];
-		//console.log(transaction);
 		this.undoUnconfirmed(transaction);
 	}
-
-	//console.log(modules.delegates.getUnconfirmedDelegates());
 	return ids;
 }
 
@@ -510,6 +504,10 @@ Transactions.prototype.applyUnconfirmed = function (transaction) {
 		return false;
 	} else {
 		sender = modules.accounts.getAccountOrCreateByPublicKey(transaction.senderPublicKey);
+	}
+
+	if (sender.secondSignature && !transaction.signSignature) {
+		return false;
 	}
 
 	if (transaction.type == 1) {

@@ -4,7 +4,8 @@ webApp.controller('passphraseController', ['$scope', '$rootScope', '$http', "$st
 
         $scope.login = function(pass) {
             var data = {secret: pass};
-            if (!pass || pass.length > 100){
+            //if (!pass || pass.length > 100){
+			if (false) {
             }
             else{
                 $http.post("/api/accounts/open/", { secret : pass })
