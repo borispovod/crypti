@@ -1,38 +1,49 @@
 require('angular');
 
-angular.module('webApp').controller('votedDelegatesController', ['$scope', '$rootScope', '$http', "userService", "$interval", "$filter", "ngTableParams", "delegateService", "voteModal",
-    function ($rootScope, $scope, $http, userService, $interval, $filter, ngTableParams, delegateService, voteModal) {
+angular.module('webApp').controller('votedDelegatesController', ['$scope', '$rootScope', '$http', "userService", "$interval", "$timeout", "$filter", "ngTableParams", "delegateService", "voteModal",
+    function ($rootScope, $scope, $http, userService, $interval, $timeout, $filter, ngTableParams, delegateService, voteModal) {
 
         $scope.allVotes = 100 * 1000 * 1000;
 
         $scope.address = userService.address;
 
+        $scope.showVotes = false;
 
         $scope.getApproval = function (vote) {
             return (vote / $scope.allVotes ) * 100;
         };
 
         $scope.voteList = {
-            list: [],
+            list: {toServer: [], toShow: []},
             inList: function (publicKey) {
-                return this.list.indexOf('-' + publicKey) != -1;
+                return this.list.toServer.indexOf('-' + publicKey) != -1;
             },
-            vote: function (publicKey) {
+            vote: function (publicKey, username) {
                 if (this.inList(publicKey)) {
-                    this.list.splice('-' + this.list.indexOf(publicKey), 1);
+                    this.list.toServer.splice(this.list.toServer.indexOf('-' + publicKey), 1);
+                    this.list.toShow.splice(this.list.toShow.indexOf(username), 1);
+
                 }
                 else {
-                    this.list.push('-' + publicKey);
+                    this.list.toServer.push('-' + publicKey);
+                    this.list.toShow.push(username);
                 }
+                if (this.list.toServer.length == 0) {
+                    $scope.showVotes = false;
+                }
+            },
+            toggle: function () {
+                $scope.showVotes = !$scope.showVotes;
             }
         };
 
         $scope.vote = function (publicKey) {
+            $scope.showVotes = false;
             $scope.voteModal = voteModal.activate({
                 totalBalance: $scope.unconfirmedBalance,
-                voteList: $scope.voteList.list,
+                voteList: $scope.voteList.list.toServer,
                 destroy: function () {
-                    $scope.voteList.list = [];
+                    $scope.voteList.list = {toServer: [], toShow: []};
                     $scope.unconfirmedTransactions.getList();
                 }
             });
@@ -72,7 +83,11 @@ angular.module('webApp').controller('votedDelegatesController', ['$scope', '$roo
             counts: [5, 10, 25],
             total: 0,
             getData: function ($defer, params) {
-                delegateService.getMyDelegates($defer, params, $scope.filter);
+                delegateService.getMyDelegates($defer, params, $scope.filter, userService.address, function () {
+                    $timeout(function () {
+                        $scope.unconfirmedTransactions.getList();
+                    }, 1000);
+                });
             }
         });
 
@@ -89,12 +104,8 @@ angular.module('webApp').controller('votedDelegatesController', ['$scope', '$roo
 
 
         $scope.updateView = $interval(function () {
-
-            delegateService.cachedStundby.time = delegateService.cachedStundby.time - 20000;
-
+            delegateService.cachedVotedDelegates.time = delegateService.cachedVotedDelegates.time - 20000;
             $scope.updateMyDelegates();
-            $scope.unconfirmedTransactions.getList();
-
         }, 1000 * 10);
 
     }]);

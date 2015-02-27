@@ -156,28 +156,67 @@ function attachApi() {
         var publicKey = params.string(req.query.publicKey, true);
         var username = params.string(req.query.username, true);
 
+        var rateSort = {};
+        Object.keys(publicKeyIndex).sort(function compare(a, b) {
+            if (votes[a] > votes[b])
+                return -1;
+            if (votes[a] < votes[b])
+                return 1;
+            return 0;
+        }).forEach(function (item, index) {
+            rateSort[item] = index + 1;
+        });
+
+
         if (transactionId !== null) {
             var index = transactionIdIndex[transactionId];
             if (index === undefined) {
                 return res.json({success: false, error: "Delagate not found"});
             }
-            return res.json({success: true, delegate: delegates[index]});
+            return res.json({
+                success: true, delegate: {
+                    username: delegates[index].username,
+                    address: delegates[index].address,
+                    publicKey: delegates[index].publicKey,
+                    transactionId: delegates[index].transactionId,
+                    vote: votes[delegates[index].publicKey],
+                    rate: rateSort[delegates[index].publicKey]
+                }
+            });
         }
         if (publicKey !== null) {
             var index = publicKeyIndex[publicKey];
             if (index === undefined) {
                 return res.json({success: false, error: "Delagate not found"});
             }
-            return res.json({success: true, delegate: delegates[index]});
+            return res.json({
+                success: true, delegate: {
+                    username: delegates[index].username,
+                    address: delegates[index].address,
+                    publicKey: publicKey,
+                    transactionId: delegates[index].transactionId,
+                    vote: votes[publicKey],
+                    rate: rateSort[publicKey]
+                }
+            });
         }
         if (username !== null) {
             var index = namesIndex[username];
             if (index === undefined) {
                 return res.json({success: false, error: "Delagate not found"});
             }
-            return res.json({success: true, delegate: delegates[index]});
+            return res.json({
+                success: true, delegate: {
+                    username: delegates[index].username,
+                    address: delegates[index].address,
+                    publicKey: delegates[index].publicKey,
+                    transactionId: delegates[index].transactionId,
+                    vote: votes[delegates[index].publicKey],
+                    rate: rateSort[delegates[index].publicKey]
+                }
+            });
         }
-
+        res.json({success: false});
     });
 
     router.get('/forging/getForgedByAccount', function (req, res) {
