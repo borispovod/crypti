@@ -20,3 +20,29 @@
 .button-vote {
   width: 70px;
 }
+
+#delegates-list {
+  position: relative;
+  &.active ul {
+    display: block;
+    z-index: 99999;
+  }
+  ul {
+    position: absolute;
+    display: none;
+    top: 60px;
+    right: 0;
+    min-width: 132px;
+    background-color: #ffffff;
+    list-style-type: none;
+    border-radius: 3px;
+    -webkit-box-shadow: 0 3px 0 #50955c;
+    -moz-box-shadow: 0 3px 0 #50955c;
+    box-shadow: 0 3px 0 #50955c;
+    li {
+      padding: 15px 16px;
+      color: #50955c;
+    }
+
+  }
+}

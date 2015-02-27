@@ -1,40 +1,52 @@
 require('angular');
 
-angular.module('webApp').controller('delegatesController', ['$scope', '$rootScope', '$http', "userService", "$interval", "$filter", "ngTableParams", "delegateService", "voteModal",
-    function ($rootScope, $scope, $http, userService, $interval, $filter, ngTableParams, delegateService, voteModal) {
+angular.module('webApp').controller('delegatesController', ['$scope', '$rootScope', '$http', "userService", "$interval", "$timeout", "$filter", "ngTableParams", "delegateService", "voteModal",
+    function ($rootScope, $scope, $http, userService, $interval, $timeout, $filter, ngTableParams, delegateService, voteModal) {
 
         $scope.allVotes = 100 * 1000 * 1000;
 
         $scope.address = userService.address;
 
+        $scope.showVotes = false;
 
         $scope.getApproval = function (vote) {
             return (vote / $scope.allVotes ) * 100;
         };
 
         $scope.voteList = {
-            list: [],
+            list: {toServer: [], toShow: []},
             inList: function (publicKey) {
-                return this.list.indexOf('+' + publicKey) != -1;
+                return this.list.toServer.indexOf('+' + publicKey) != -1;
             },
-            vote: function (publicKey) {
+            vote: function (publicKey, username) {
                 if (this.inList(publicKey)) {
-                    this.list.splice('+' + this.list.indexOf(publicKey), 1);
+                    this.list.toServer.splice(this.list.toServer.indexOf('+' + publicKey), 1);
+                    this.list.toShow.splice(this.list.toShow.indexOf(username), 1);
+
                 }
                 else {
-                    this.list.push('+' + publicKey);
+                    this.list.toServer.push('+' + publicKey);
+                    this.list.toShow.push(username);
                 }
+                if (this.list.toServer.length==0){
+                    $scope.showVotes = false;
+                }
+            },
+            toggle: function () {
+                $scope.showVotes = !$scope.showVotes;
             }
         };
 
         $scope.vote = function (publicKey) {
+            $scope.showVotes = false;
             $scope.voteModal = voteModal.activate({
                 totalBalance: $scope.unconfirmedBalance,
-                voteList: $scope.voteList.list,
+                voteList: $scope.voteList.list.toServer,
                 destroy: function () {
-                    $scope.voteList.list = [];
-                    $scope.unconfirmedTransactions.getList();
-                    $scope.delegates.getList();
+                    $scope.voteList.list = {toServer: [], toShow: []};
+                    $scope.delegates.getList(function () {
+                        $scope.unconfirmedTransactions.getList();
+                    });
                 }
             });
         };
@@ -64,7 +76,7 @@ angular.module('webApp').controller('delegatesController', ['$scope', '$rootScop
         //Delegates exist
         $scope.delegates = {
             list: [],
-            getList: function () {
+            getList: function (cb) {
                 $http.get("/api/accounts/delegates/", {params: {address: userService.address}})
                     .then(function (response) {
                         if (response.data.delegates == null) {
@@ -73,27 +85,35 @@ angular.module('webApp').controller('delegatesController', ['$scope', '$rootScop
                         $scope.delegates.list = response.data.delegates.map(function (delegate) {
                             return delegate.publicKey;
                         });
+                        cb();
                     });
             },
             voted: function (publicKey) {
                 return this.list.indexOf(publicKey) != -1;
             }
         };
-        $scope.delegates.getList();
+        $scope.delegates.getList(function () {
+        });
         //end Delegates exist
 
         //Top deletates
         $scope.tableTopDelegates = new ngTableParams({
             page: 1,            // show first page
-            count: 3,
+            count: delegateService.topRate,
             sorting: {
                 rate: 'asc'     // initial sorting
             }
         }, {
             counts: [],
-            total: 3,
+            total: delegateService.topRate,
             getData: function ($defer, params) {
-                delegateService.getTopList($defer, params, $scope.filter);
+                delegateService.getTopList($defer, params, $scope.filter, function () {
+                    $timeout(function () {
+                        $scope.delegates.getList(function () {
+                            $scope.unconfirmedTransactions.getList();
+                        });
+                    }, 1);
+                });
             }
         });
 
@@ -104,24 +124,28 @@ angular.module('webApp').controller('delegatesController', ['$scope', '$rootScop
         });
 
         $scope.updateTop = function () {
-            if (new Date() - delegateService.cachedTOP.time >= 1000 * 10) {
-                $scope.tableTopDelegates.reload();
-            }
+            $scope.tableTopDelegates.reload();
         };
         //end Top delegates
 
         //Standby delegates
         $scope.tableStandbyDelegates = new ngTableParams({
             page: 1,            // show first page
-            count: 3,
+            count: 10,
             sorting: {
                 rate: 'asc'     // initial sorting
             }
         }, {
             total: 0,
-            counts: [1, 3, 25],
+            counts: [1, 10, 25],
             getData: function ($defer, params) {
-                delegateService.getStandbyList($defer, params, $scope.filter);
+                delegateService.getStandbyList($defer, params, $scope.filter, function () {
+                    $timeout(function () {
+                        $scope.unconfirmedTransactions.getList(function () {
+                            $scope.delegates.getList();
+                        });
+                    }, 1);
+                });
             }
         });
 
@@ -131,18 +155,17 @@ angular.module('webApp').controller('delegatesController', ['$scope', '$rootScop
             $scope.tableStandbyDelegates.reload();
         });
 
+
         $scope.updateStandby = function () {
-            if (new Date() - delegateService.cachedStundby.time >= 1000 * 10) {
-                $scope.tableStandbyDelegates.reload();
-            }
+            $scope.tableStandbyDelegates.reload();
         };
         //end Standby delegates
 
         $scope.updateView = $interval(function () {
+            delegateService.cachedStundby.time = delegateService.cachedStundby.time - 20000;
+            delegateService.cachedTOP.time = delegateService.cachedTOP.time - 20000;
             $scope.updateStandby();
             $scope.updateTop();
-            $scope.unconfirmedTransactions.getList();
-            $scope.delegates.getList();
         }, 10000 * 1);
 
     }]);
