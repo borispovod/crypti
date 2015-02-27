@@ -485,6 +485,11 @@ Delegates.prototype.removeUnconfirmedDelegate = function (delegate) {
 	delete unconfirmedNames[delegate.publicKey];
 }
 
+Delegates.prototype.getDelegateByPublicKey = function(publicKey){
+	var index = publicKeyIndex[publicKey];
+	return delegates[index] || null;
+}
+
 Delegates.prototype.addFee = function (publicKey, value) {
 	fees[publicKey] = (fees[publicKey] || 0) + value;
 }
