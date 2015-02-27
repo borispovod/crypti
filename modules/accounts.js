@@ -173,6 +173,10 @@ function attachApi() {
 
 		var account = self.getAccount(address);
 
+		if (!account) {
+			return res.json({success: false, error: "Account doesn't found"});
+		}
+
 		return res.json({success: true, delegates: account.delegates});
 	});
 
