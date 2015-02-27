@@ -81,6 +81,17 @@ function attachApi() {
 			rateSort[item] = index + 1;
 		});
 
+		var rateSort = {};
+		publicKeys.sort(function compare(a, b) {
+			if (votes[a] > votes[b])
+				return -1;
+			if (votes[a] < votes[b])
+				return 1;
+			return 0;
+		}).forEach(function (item, index) {
+			rateSort[item] = index + 1;
+		});
+
 		if (orderBy) {
 			if (orderBy == 'username') {
 				publicKeys = publicKeys.sort(function compare(a, b) {
@@ -483,10 +494,6 @@ Delegates.prototype.getUnconfirmedName = function (delegate) {
 Delegates.prototype.removeUnconfirmedDelegate = function (delegate) {
 	delete unconfirmedDelegates[delegate.publicKey];
 	delete unconfirmedNames[delegate.publicKey];
-}
-
-Delegates.prototype.addFee = function (publicKey, value) {
-	fees[publicKey] = (fees[publicKey] || 0) + value;
 }
 
 Delegates.prototype.existsDelegate = function (publicKey) {
