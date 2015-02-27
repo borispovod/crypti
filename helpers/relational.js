@@ -99,7 +99,8 @@ function getDelegate(raw) {
 		var d = {
 			username: raw.d_username,
 			publicKey: raw.t_senderPublicKey,
-			transactionId: raw.t_id
+			transactionId: raw.t_id,
+			address: raw.t_senderId
 		}
 
 		return d;

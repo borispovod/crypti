@@ -12,7 +12,7 @@
     </div>
     <table ng-table="tableTopDelegates" border="0" width="100%" cellpadding="0" cellspacing="0">
         <tr ng-repeat="delegate in $data">
-            <td data-title="'Vote'" sortable="'rate'">{{delegate.rate}}</td>
+            <td data-title="'Rate'" sortable="'rate'">{{delegate.rate}}</td>
             <td data-title="'Name'" sortable="'username'">{{delegate.username}}</td>
             <td data-title="'Crypti Address'">{{delegate.address}}</td>
             <td data-title="'Approval'">{{getApproval(delegate.vote) | number: 2}}%</td>
@@ -34,7 +34,7 @@
     </div>
         <table ng-table="tableStandbyDelegates" border="0" width="100%" cellpadding="0" cellspacing="0">
             <tr ng-repeat="delegate in $data">
-                <td data-title="'Vote'" sortable="'rate'">{{delegate.rate}}</td>
+                <td data-title="'Rate'" sortable="'rate'">{{delegate.rate}}</td>
                 <td data-title="'Name'" sortable="'username'">{{delegate.username}}</td>
                 <td data-title="'Crypti Address'">{{delegate.address}}</td>
                 <td data-title="'Approval'">{{getApproval(delegate.vote) | number: 2}}%</td>
