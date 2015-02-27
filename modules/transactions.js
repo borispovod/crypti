@@ -361,6 +361,10 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 				}
 			}
 
+			if (sender.secondSignature && transaction.signSignature) {
+				return done("Can't process transaction with second signature, sender didn't has second signature");
+			}
+
 			// check if transaction is not float and great then 0
 			if (transaction.amount < 0 || transaction.amount.toString().indexOf('.') >= 0) {
 				return done("Invalid transaction amount");
@@ -500,6 +504,10 @@ Transactions.prototype.applyUnconfirmed = function (transaction) {
 		return false;
 	} else {
 		sender = modules.accounts.getAccountOrCreateByPublicKey(transaction.senderPublicKey);
+	}
+
+	if (sender.secondSignature && !transaction.signSignature) {
+		return false;
 	}
 
 	if (transaction.type == 1) {
