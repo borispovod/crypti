@@ -216,7 +216,11 @@ function attachApi() {
 			res.json({success: true, address: address});
 			library.logger.info("Forging enabled on account: " + address);
 		} else {
-			res.json({success: false});
+			if (account) {
+				res.json({success: false, error: "Account for this secret " + secret + " not found"});
+			} else {
+				res.json({success: false, error: "Delegate for this secrect " + secret + " not found"});
+			}
 		}
 	});
 
