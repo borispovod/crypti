@@ -177,7 +177,15 @@ function attachApi() {
 			return res.json({success: false, error: "Account doesn't found"});
 		}
 
-		return res.json({success: true, delegates: account.delegates});
+		var delegates = null;
+
+		if (account.delegates) {
+			delegates = account.delegates.map(function(publicKey){
+				return modules.delegates.getDelegateByPublicKey(publicKey);
+			});
+		}
+
+		return res.json({success: true, delegates: delegates});
 	});
 
 	router.put("/delegates", function (req, res) {
