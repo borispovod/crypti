@@ -227,7 +227,11 @@ function attachApi() {
 			res.json({success: true, address: address});
 			library.logger.info("Forging enabled on account: " + address);
 		} else {
-			res.json({success: false});
+			if (account) {
+				res.json({success: false, error: "Account for this secret " + secret + " not found"});
+			} else {
+				res.json({success: false, error: "Delegate for this secrect " + secret + " not found"});
+			}
 		}
 	});
 
@@ -494,6 +498,16 @@ Delegates.prototype.getUnconfirmedName = function (delegate) {
 Delegates.prototype.removeUnconfirmedDelegate = function (delegate) {
 	delete unconfirmedDelegates[delegate.publicKey];
 	delete unconfirmedNames[delegate.publicKey];
+}
+
+
+Delegates.prototype.getDelegateByPublicKey = function(publicKey){
+	var index = publicKeyIndex[publicKey];
+	return delegates[index] || null;
+}
+
+Delegates.prototype.addFee = function (publicKey, value) {
+	fees[publicKey] = (fees[publicKey] || 0) + value;
 }
 
 Delegates.prototype.existsDelegate = function (publicKey) {
