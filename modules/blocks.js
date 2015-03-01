@@ -703,7 +703,7 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 					}
 					if (!modules.delegates.checkDelegates(blocks[i].transactions[n].senderPublicKey, blocks[i].transactions[n].asset.votes)) {
 						err = {
-							message: "Can't verify votes, vote for not exists delegate found: " + blocks[i].transactions[n].id,
+							message: "Can't verify votes, you already voted for this delegate: " + blocks[i].transactions[n].id,
 							transaction: blocks[i].transactions[n],
 							rollbackTransactionsUntil: n > 0 ? (n - 1) : null,
 							block: blocks[i]
@@ -895,7 +895,7 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 									}
 
 									if (!modules.delegates.checkDelegates(transaction.senderPublicKey, transaction.asset.votes)) {
-										return cb && cb("Can't verify votes, vote for not exists delegate found: " + transaction.id);
+										return cb && cb("Can't verify votes, you already voted for this delegate: " + transaction.id);
 									}
 									break;
 							}
