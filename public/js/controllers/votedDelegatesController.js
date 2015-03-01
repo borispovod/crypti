@@ -113,4 +113,8 @@ angular.module('webApp').controller('votedDelegatesController', ['$scope', '$roo
             $scope.updateMyDelegates();
         }, 1000 * 10);
 
+        $scope.$on('$destroy', function () {
+            $interval.cancel($scope.updateView);
+            $scope.updateView = null;
+        });
     }]);
