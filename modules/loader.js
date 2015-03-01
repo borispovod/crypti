@@ -113,6 +113,8 @@ function loadBlocks(lastBlock, cb) {
 										async.eachSeries(backupBlocks, function (block, cb) {
 											modules.blocks.processBlock(block, false, cb);
 										}, cb);
+									} else {
+										setImmediate(cb);
 									}
 								});
 							} else {
