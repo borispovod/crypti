@@ -431,7 +431,7 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 					}
 
 					if (!modules.delegates.checkDelegates(transaction.senderPublicKey, transaction.asset.votes)) {
-						return done("Can't verify votes, vote for not exists delegate found: " + transaction.id);
+						return done("Can't verify votes, you already voted for this delegate: " + transaction.id);
 					}
 					break;
 				default:
