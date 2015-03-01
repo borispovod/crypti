@@ -231,19 +231,17 @@ function attachApi() {
     });
 
 	router.get('/forging/getForgedByAccount', function (req, res) {
-		var secret = params.string(req.query.secret);
+		var publicKey = params.string(req.query.generatorPublicKey);
 
-		if (!secret) {
-			return res.json({success: false, error: "Provide secret in request"});
+		if (!publicKey) {
+			return res.json({success: false, error: "Provide generatorPublicKey in request"});
 		}
 
-		var keypair = ed.MakeKeypair(crypto.createHash('sha256').update(secret, 'utf8').digest());
-
-		if (fees[keypair.publicKey.toString('hex')] === undefined) {
+		if (fees[publicKey] === undefined) {
 			return res.json({success: false, error: "Fees not found"});
 		}
 
-		res.json({success: true, fees: fees[keypair.publicKey.toString('hex')]});
+		res.json({success: true, fees: fees[publicKey]});
 	});
 
 	router.post('/forging/enable', function (req, res) {
