@@ -1,10 +1,18 @@
-var webApp = angular.module('webApp', ['ui.router', 'btford.modal']);
+
+require('angular');
+require('angular-ui-router');
+require('angular-modal');
+require('angular-resource');
+require('../node_modules/ng-table/ng-table.js');
+
+webApp = angular.module('webApp', ['ui.router', 'btford.modal', 'ngTable']);
 
 webApp.config([
     "$locationProvider",
     "$stateProvider",
     "$urlRouterProvider",
     function ($locationProvider, $stateProvider, $urlRouterProvider) {
+
         $locationProvider.html5Mode(true);
         $urlRouterProvider.otherwise("/");
 
@@ -19,6 +27,16 @@ webApp.config([
                 url: "/account",
                 templateUrl: "/partials/account.html",
                 controller: "accountController"
+            })
+            .state('main.delegates', {
+                url: "/delegates",
+                templateUrl: "/partials/delegates.html",
+                controller: "delegatesController"
+            })
+            .state('main.votes', {
+                url: "/delegates/votes",
+                templateUrl: "/partials/votes.html",
+                controller: "votedDelegatesController"
             })
             .state('main.forging', {
                 url: "/forging",
@@ -37,3 +55,7 @@ webApp.config([
             });
     }
 ]);
+
+
+
+

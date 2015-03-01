@@ -1,4 +1,7 @@
-webApp.controller('sendCryptiController', ["$scope", "sendCryptiModal", "$http", "userService", function ($scope, sendCryptiModal, $http, userService) {
+require('angular');
+
+angular.module('webApp').controller('sendCryptiController', ["$scope", "sendCryptiModal", "$http", "userService", "$timeout", function ($scope, sendCryptiModal, $http, userService, $timeout) {
+    $scope.sending = false;
     $scope.accountValid = true;
     $scope.fromServer = "";
     $scope.maxlength = 8;
@@ -6,7 +9,7 @@ webApp.controller('sendCryptiController', ["$scope", "sendCryptiModal", "$http",
     $scope.secondPassphrase = userService.secondPassphrase;
 
 
-    Number.prototype.roundTo = function( digitsCount ){
+    Number.prototype.roundTo = function (digitsCount) {
         var digitsCount = typeof digitsCount !== 'undefined' ? digitsCount : 2;
         var s = String(this);
         if (s.indexOf('e') < 0) {
@@ -24,7 +27,7 @@ webApp.controller('sendCryptiController', ["$scope", "sendCryptiModal", "$http",
         }
     }
 
-    Math.roundTo = function( number ,digitsCount){
+    Math.roundTo = function (number, digitsCount) {
         number = Number(number);
         return number.roundTo(digitsCount).valueOf();
     }
@@ -37,15 +40,15 @@ webApp.controller('sendCryptiController', ["$scope", "sendCryptiModal", "$http",
         sendCryptiModal.deactivate();
     }
 
-    $scope.moreThanEightDigits = function(number) {
+    $scope.moreThanEightDigits = function (number) {
         if (number.indexOf(".") < 0) {
             return false;
         }
-        else{
-            if(number.split('.')[1].length > 8){
+        else {
+            if (number.split('.')[1].length > 8) {
                 return true;
             }
-            else{
+            else {
                 return false;
             }
         }
@@ -73,23 +76,23 @@ webApp.controller('sendCryptiController', ["$scope", "sendCryptiModal", "$http",
         }
 
         /*
-        if (!$scope.amount) {
-            $scope.fee = "";
-            return;
-        }
+         if (!$scope.amount) {
+         $scope.fee = "";
+         return;
+         }
 
-        if($scope.moreThanEightDigits(parseFloat($scope.amount))){
-            console.log('fee');
-            $scope.amount = parseFloat($scope.amount).roundTo(8).toString();
-            console.log($scope.amount);
-        }
-        if($scope.currentFee){
-            var fee = $scope.amount * $scope.currentFee * 0.01;
-        }
+         if($scope.moreThanEightDigits(parseFloat($scope.amount))){
+         console.log('fee');
+         $scope.amount = parseFloat($scope.amount).roundTo(8).toString();
+         console.log($scope.amount);
+         }
+         if($scope.currentFee){
+         var fee = $scope.amount * $scope.currentFee * 0.01;
+         }
 
 
-        $scope.fee = fee.roundTo(8);
-        */
+         $scope.fee = fee.roundTo(8);
+         */
     }
 
 
@@ -100,16 +103,16 @@ webApp.controller('sendCryptiController', ["$scope", "sendCryptiModal", "$http",
             return;
         }
 
-        if(string[string.length - 1] == "D" || string[string.length - 1] == "C"){
-            var isnum = /^\d+$/.test(string.substring(0,string.length-1));
-            if(isnum && string.length-1>=1 && string.length-1<=20){
+        if (string[string.length - 1] == "D" || string[string.length - 1] == "C") {
+            var isnum = /^\d+$/.test(string.substring(0, string.length - 1));
+            if (isnum && string.length - 1 >= 1 && string.length - 1 <= 20) {
                 $scope.accountValid = true;
             }
-            else{
+            else {
                 $scope.accountValid = false;
             }
         }
-        else{
+        else {
             $scope.accountValid = false;
         }
     }
@@ -118,11 +121,11 @@ webApp.controller('sendCryptiController', ["$scope", "sendCryptiModal", "$http",
         if (number.toString().indexOf(".") < 0) {
             return false;
         }
-        else{
-            if(number.toString().split('.')[1].length>8){
+        else {
+            if (number.toString().split('.')[1].length > 8) {
                 return true;
             }
-            else{
+            else {
                 return false;
             }
         }
@@ -177,6 +180,7 @@ webApp.controller('sendCryptiController', ["$scope", "sendCryptiModal", "$http",
     }
 
     $scope.sendCrypti = function () {
+
         $scope.amountError = $scope.convertXCR($scope.fee) + $scope.convertXCR($scope.amount) > userService._unconfirmedBalance;
 
         var data = {
@@ -190,8 +194,10 @@ webApp.controller('sendCryptiController', ["$scope", "sendCryptiModal", "$http",
             data.secondSecret = $scope.secondPhrase;
         }
 
-        if (!$scope.amountError) {
+        if (!$scope.amountError && !$scope.sending) {
+            $scope.sending = !$scope.sending;
             $http.put("/api/transactions", data).then(function (resp) {
+                $scope.sending = !$scope.sending;
                 if (resp.data.error) {
                     $scope.fromServer = resp.data.error;
                 }
@@ -199,10 +205,10 @@ webApp.controller('sendCryptiController', ["$scope", "sendCryptiModal", "$http",
                     if ($scope.destroy) {
                         $scope.destroy();
                     }
-
                     sendCryptiModal.deactivate();
                 }
             });
+
         }
     }
     $scope.getCurrentFee();
