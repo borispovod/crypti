@@ -30,6 +30,8 @@ function normalizeDelegate(delegate, transaction) {
 	delegate.username = params.string(delegate.username);
 	delegate.publicKey = params.hex(transaction.senderPublicKey);
 	delegate.transactionId = params.string(transaction.id);
+	delegate.address = params.string(transaction.senderId);
+
 	return delegate;
 }
 
