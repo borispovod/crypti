@@ -361,7 +361,7 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 				}
 			}
 
-			if (sender.secondSignature && transaction.signSignature) {
+			if (!sender.secondSignature && transaction.signSignature) {
 				return done("Can't process transaction with second signature, sender didn't has second signature");
 			}
 
