@@ -160,7 +160,6 @@ angular.module('webApp').controller('delegatesController', ['$scope', '$rootScop
             $scope.tableStandbyDelegates.reload();
         });
 
-
         $scope.updateStandby = function () {
             $scope.tableStandbyDelegates.reload();
         };
@@ -173,4 +172,9 @@ angular.module('webApp').controller('delegatesController', ['$scope', '$rootScop
             $scope.updateTop();
         }, 10000 * 1);
 
+
+        $scope.$on('$destroy', function () {
+            $interval.cancel($scope.updateView);
+            $scope.updateView = null;
+        });
     }]);
