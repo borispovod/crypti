@@ -231,7 +231,7 @@ function attachApi() {
 		modules.transactions.sign(secret, transaction);
 
 		if (account.secondSignature) {
-			if (!secondSecret || secondSecret.length == 0) {
+			if (!secondSecret) {
 				return res.json({success: false, error: "Provide second secret key"});
 			}
 
