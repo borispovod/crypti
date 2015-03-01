@@ -6,6 +6,5 @@ require('../../js/factories/modals/companyModal');
 require('../../js/factories/modals/forgingModal');
 require('../../js/factories/modals/secondPassphraseModal');
 require('../../js/factories/modals/sendCryptiModal');
-
-
+require('../../js/factories/modals/voteModal');
 

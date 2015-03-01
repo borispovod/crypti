@@ -6,6 +6,7 @@ var async = require('async'),
 	bignum = require('bignum'),
 	params = require('../helpers/params.js'),
 	normalize = require('../helpers/normalize.js');
+require('colors');
 
 //private fields
 var modules, library, self;
@@ -80,15 +81,18 @@ function loadBlocks(lastBlock, cb) {
 						return cb();
 					}
 
-					modules.round.flush();
-
 					library.logger.info("Found common block " + commonBlock.id + " (at " + commonBlock.height + ")" + " with peer " + peerStr);
+
+					modules.round.directionSwap('backward');
 					modules.blocks.deleteBlocksBefore(commonBlock, function (err, backupBlocks) {
+						modules.round.directionSwap('forward');
 						if (err) {
-							modules.round.flush();
+							library.logger.fatal('delete blocks before', err);
 							return setImmediate(cb, err);
 						}
+
 						library.logger.debug("Load blocks from peer " + peerStr);
+
 						modules.blocks.loadBlocksFromPeer(data.peer, commonBlock.id, function (err) {
 							if (err) {
 								library.logger.error(err);
@@ -96,29 +100,27 @@ function loadBlocks(lastBlock, cb) {
 								modules.peer.state(data.peer.ip, data.peer.port, 0, 3600);
 
 								library.logger.info("Remove blocks again until " + commonBlock.id + " (at " + commonBlock.height + ")");
+								modules.round.directionSwap('backward');
 								modules.blocks.deleteBlocksBefore(commonBlock, function (err) {
+									modules.round.directionSwap('forward');
 									if (err) {
-										library.logger.error(err);
-										modules.round.flush();
+										library.logger.fatal('delete blocks before', err);
 										return setImmediate(cb);
 									}
 
-									if (backupBlocks) {
+									if (backupBlocks.length) {
 										library.logger.info("Restore stored blocks until " + backupBlocks[backupBlocks.length - 1].height);
+										async.eachSeries(backupBlocks, function (block, cb) {
+											modules.blocks.processBlock(block, false, cb);
+										}, cb);
 									}
-									async.eachSeries(backupBlocks, function (block, cb) {
-										modules.blocks.processBlock(block, false, cb);
-									}, function (err) {
-										modules.round.flush();
-										cb(err);
-									});
 								});
 							} else {
-								modules.round.flush();
 								setImmediate(cb);
 							}
 						});
-					})
+					});
+
 				});
 			} else { //have to load full db
 				var commonBlockId = genesisBlock.blockId;

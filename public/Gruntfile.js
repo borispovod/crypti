@@ -16,6 +16,7 @@ module.exports = function (grunt) {
 				files: {
 					"static/css/app.css": [
 						"bower_components/angular-modal/modal.css",
+						"node_modules/ng-table/ng-table.css",
 						"tmp/app.css"
 					]
 				}
