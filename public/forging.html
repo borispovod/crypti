@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html ng-app="webApp">
+<head>
+    <meta charset="UTF-8">
+    <title>Crypti - Forging panel</title>
+    <link rel="shortcut icon" href="/images/favicon.ico">
+    <link rel="stylesheet" href="/static/css/app.css">
+    <script src="/static/js/app.js"></script>
+</head>
+<body>
+<div id="pass">
+    <div id="center">
+        <div id="logo-grey"><sup>adminpanel</sup></div>
+        <div class="forging" ng-controller="forgingPanelController">
+            <div class="admin-form clearfix ng-binding" ng-show="loaded">
+                <form>
+                    <input type="password" id="enter" class="fix" placeholder="Your secret passphrase here" ng-model="pass" ng-trim="false">
+                    <input ng-show="forgingEnabled == false" id="saveToFile" name="saveToConfig" ng-model="saveToConfig" type="checkbox"> <label ng-show="forgingEnabled == false" class="checkbox-label">Save passphrase to config?</label><br>
+                    <p id="message"><span ng-show="forgingEnabled == false" class="red ng-binding">Forging disabled</span><span ng-show="forgingEnabled == true" class="green ng-binding">Forging enabled</span> now, to start forging provide your secret phrase of your account. You need 1000 XCR to forge block.</p>
+                    <button type="{{ buttonType }}" class="button green" id="forgingSettings" ng-click="startForging(pass)" ng-show="forgingEnabled == false">Start forging</button>
+                    <button type="submit" class="button red" id="forgingSettings" ng-click="stopForging(pass)" ng-show="forgingEnabled == true">Stop forging</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

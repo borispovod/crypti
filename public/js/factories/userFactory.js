@@ -1,3 +1,5 @@
-webApp.factory('userFactory',["userService", function (userService) {
+require('angular');
+
+angular.module('webApp').factory('userFactory',["userService", function (userService) {
     return {};
 }]);

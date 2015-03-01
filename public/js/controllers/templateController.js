@@ -1,4 +1,6 @@
-webApp.controller('templateController', ['$scope', '$rootScope', '$http', 'userService', "$interval", function($rootScope, $scope, $http, userService, $interval) {
+require('angular');
+
+angular.module('webApp').controller('templateController', ['$scope', '$rootScope', '$http', 'userService', "$interval", function($rootScope, $scope, $http, userService, $interval) {
     $scope.getSync = function () {
         $http.get("/api/loader/status/sync").then(function (resp) {
             if (resp.data.success) {

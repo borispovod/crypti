@@ -1,11 +1,29 @@
 <div id="left-nav">
-    <a  ui-sref="main.account"><div id="logo"></div></a>
+    <a ui-sref="main.account">
+        <div id="logo"></div>
+    </a>
     <ul id="menu">
-        <li ui-sref-active="active"><a ui-sref="main.account"><div id="account-icon"></div><span class="menu-text">Account</span></a></li>
-        <li ui-sref-active="active"><a ui-sref="main.forging"><div id="forging-icon"></div><span class="menu-text">Forging</span></a></li>
-        <li ui-sref-active="active"><a ui-sref="main.blockchain"><div id="blockchain-icon"></div><span class="menu-text">Blockchain</span></a></li>
+        <li ui-sref-active="active"><a ui-sref="main.account">
+            <div id="account-icon"></div>
+            <span class="menu-text">Account</span></a></li>
+        <li ui-sref-active="active"><a ui-sref="main.delegates">
+            <div id="delegates-icon"></div>
+            <span class="menu-text">Delegates</span></a></li>
+        <li ui-sref-active="active">
+            <div id="myvotes-icon"></div>
+            <a ui-sref="main.votes">
+                <span class="menu-text">My Votes</span></a>
+        </li>
+        <li ui-sref-active="active"><a ui-sref="main.forging">
+            <div id="forging-icon"></div>
+            <span class="menu-text">Forging</span></a></li>
+        <li ui-sref-active="active"><a ui-sref="main.blockchain">
+            <div id="blockchain-icon"></div>
+            <span class="menu-text">Blockchain</span></a></li>
     </ul>
-    <li id="logout-item"><a href="/" id="logout"><div id="logout-icon"></div><span class="menu-text">Logout</span></a></li>
+    <li id="logout-item"><a href="/" id="logout">
+        <div id="logout-icon"></div>
+        <span class="menu-text">Logout</span></a></li>
     <div id="inc"></div>
 </div>
 <div id="right-part">
@@ -13,5 +31,6 @@
 </div>
 <div ng-show="sync == true" class="syncLabel" title="Synchronization running...">
     <p ng-show="heightToSync > 0">Synchronization: {{ height }}/{{ heightToSync }}, wait please...</p>
+
     <p ng-show="heightToSync <= 0">Synchronization: {{ height }}, wait please...</p>
 </div>

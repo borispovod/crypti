@@ -1,0 +1,48 @@
+.vote-delegates {
+  float: right;
+  h2 {
+    font-size: 15px;
+    font-weight: bold;
+    color: #9b9d9e;
+    margin-top: 8px;
+    margin-right: 20px;
+    display: inline-block;
+  }
+  button {
+    margin: 0;
+  }
+}
+
+.lead {
+  margin-top: 50px;
+}
+
+.button-vote {
+  width: 70px;
+}
+
+#delegates-list {
+  position: relative;
+  &.active ul {
+    display: block;
+    z-index: 99999;
+  }
+  ul {
+    position: absolute;
+    display: none;
+    top: 60px;
+    right: 0;
+    min-width: 132px;
+    background-color: #ffffff;
+    list-style-type: none;
+    border-radius: 3px;
+    -webkit-box-shadow: 0 3px 0 #50955c;
+    -moz-box-shadow: 0 3px 0 #50955c;
+    box-shadow: 0 3px 0 #50955c;
+    li {
+      padding: 15px 16px;
+      color: #50955c;
+    }
+
+  }
+}

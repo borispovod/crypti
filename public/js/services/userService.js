@@ -1,4 +1,6 @@
-webApp.service('userService', function () {
+require('angular');
+
+angular.module('webApp').service('userService', function () {
 	this.setData = function (address, publicKey, balance, unconfirmedBalance, effectiveBalance) {
 		this.address = address;
 		this.publicKey = publicKey;

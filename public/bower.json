@@ -2,9 +2,7 @@
   "name": "web-app",
   "version": "0.0.1",
   "dependencies": {
-    "angular": "~1.2.13",
-    "angular-ui-router": "~0.2.10",
     "jquery": "~2.1.1",
-    "angular-modal": "~0.4.0"
+    "ng-table": "latest"
   }
 }
