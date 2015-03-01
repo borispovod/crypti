@@ -1,7 +1,8 @@
 require('angular');
 
-angular.module('webApp').controller('blockchainController', ['$scope', '$rootScope', '$http', "userService", "$interval", 'blockService', 'blockModal', function($rootScope, $scope, $http, userService, $interval, blockService, blockModal) {
+angular.module('webApp').controller('blockchainController', ['$scope', '$rootScope', '$http', "userService", "$interval", 'blockService', 'blockModal', function ($rootScope, $scope, $http, userService, $interval, blockService, blockModal) {
     $scope.address = userService.address;
+ 
     $scope.getBlocks = function () {
         var params = {};
 
@@ -9,7 +10,7 @@ angular.module('webApp').controller('blockchainController', ['$scope', '$rootSco
             params.blockId = blockService.lastBlockId;
         }
 
-        $http.get("/api/blocks/", { params : { orderBy : "height:desc", limit : 20 }})
+        $http.get("/api/blocks/", {params: {orderBy: "height:desc", limit: 20}})
             .then(function (resp) {
                 $scope.blockchain = resp.data.blocks;
                 blockService.lastBlockId = resp.data.blocks[resp.data.blocks.length - 1].id;
@@ -17,7 +18,7 @@ angular.module('webApp').controller('blockchainController', ['$scope', '$rootSco
     }
 
     $scope.getFirstBlocks = function () {
-        $http.get("/api/blocks/", { params : { orderBy : "height:desc", limit : 20 }})
+        $http.get("/api/blocks/", {params: {orderBy: "height:desc", limit: 20}})
             .then(function (resp) {
                 $scope.blockchain = resp.data.blocks;
                 blockService.lastBlockId = resp.data.blocks[resp.data.blocks.length - 1].id;
@@ -28,13 +29,13 @@ angular.module('webApp').controller('blockchainController', ['$scope', '$rootSco
         $scope.getBlocks();
     }, 1000 * 60);
 
-    $scope.$on('$destroy', function() {
+    $scope.$on('$destroy', function () {
         $interval.cancel($scope.blocksInterval);
         $scope.blocksInterval = null;
     });
 
     $scope.showBlock = function (block) {
-        $scope.modal = blockModal.activate({ block : block });
+        $scope.modal = blockModal.activate({block: block});
     }
 
     $scope.getFirstBlocks();

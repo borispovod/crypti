@@ -1,6 +1,7 @@
 <div id="blockchain">
     <div class="row">
         <h1 class="heading">Blockchain</h1>
+
         <h2 class="account-id">Your account: {{ address }}</h2>
     </div>
     <table border="0" width="100%" cellpadding="0" cellspacing="0" id="blocks">
@@ -12,7 +13,7 @@
             <th>Generator</th>
             <th>Transactions</th>
         </tr>
-        <tr ng-repeat="item in blockchain">
+        <tr ng-repeat="item in blockchain" ng-class="{'green': address == item.generatorId}">
             <td>{{item.id}}</td>
             <td ng-show="item.timestamp > 0">{{item.timestamp | timestampFilter}}</td>
             <td ng-show="item.timestamp == 0">-</td>

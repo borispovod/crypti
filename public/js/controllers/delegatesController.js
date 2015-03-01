@@ -3,7 +3,12 @@ require('angular');
 angular.module('webApp').controller('delegatesController', ['$scope', '$rootScope', '$http', "userService", "$interval", "$timeout", "$filter", "ngTableParams", "delegateService", "voteModal",
     function ($rootScope, $scope, $http, userService, $interval, $timeout, $filter, ngTableParams, delegateService, voteModal) {
 
-        $scope.allVotes = 100 * 1000 * 1000;
+        $scope.allVotes = 100
+        * 1000
+        * 1000
+        * 1000
+        * 1000
+        * 100;
 
         $scope.address = userService.address;
 
