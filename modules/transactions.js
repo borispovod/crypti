@@ -4,7 +4,7 @@ var transactionHelper = require('../helpers/transaction.js'),
 	util = require('util'),
 	ByteBuffer = require("bytebuffer"),
 	crypto = require('crypto'),
-	genesisblock = require('../helpers/genesisblock.js'),
+	genesisblock = require('../helpers/genesisblock.json'),
 	constants = require("../helpers/constants.js"),
 	relational = require("../helpers/relational.js"),
 	slots = require('../helpers/slots.js'),
@@ -448,7 +448,7 @@ Transactions.prototype.apply = function (transaction) {
 	var sender = modules.accounts.getAccountByPublicKey(transaction.senderPublicKey);
 	var amount = transaction.amount + transaction.fee;
 
-	if (sender.balance < amount && transaction.blockId != genesisblock.blockId) {
+	if (sender.balance < amount && transaction.blockId != genesisblock.block.id) {
 		return false;
 	}
 
@@ -500,7 +500,7 @@ Transactions.prototype.undoAllUnconfirmed = function () {
 Transactions.prototype.applyUnconfirmed = function (transaction) {
 	var sender = modules.accounts.getAccountByPublicKey(transaction.senderPublicKey);
 
-	if (!sender && transaction.blockId != genesisblock.blockId) {
+	if (!sender && transaction.blockId != genesisblock.block.id) {
 		return false;
 	} else {
 		sender = modules.accounts.getAccountOrCreateByPublicKey(transaction.senderPublicKey);
@@ -532,7 +532,7 @@ Transactions.prototype.applyUnconfirmed = function (transaction) {
 
 	var amount = transaction.amount + transaction.fee;
 
-	if (sender.unconfirmedBalance < amount && transaction.blockId != genesisblock.blockId) {
+	if (sender.unconfirmedBalance < amount && transaction.blockId != genesisblock.block.id) {
 		if (transaction.type == 1) {
             sender.unconfirmedSignature = false;
         } else if (transaction.type == 2) {

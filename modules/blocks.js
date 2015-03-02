@@ -4,7 +4,7 @@ var crypto = require('crypto'),
 	bignum = require('bignum'),
 	ByteBuffer = require("bytebuffer"),
 	constants = require("../helpers/constants.js"),
-	genesisblock = require("../helpers/genesisblock.js"),
+	genesisblock = require("../helpers/genesisblock.json"),
 	transactionHelper = require("../helpers/transaction.js"),
 	constants = require('../helpers/constants.js'),
 	params = require('../helpers/params.js'),
@@ -179,52 +179,14 @@ function getId(block) {
 
 
 function saveGenesisBlock(cb) {
-	library.dbLite.query("SELECT id FROM blocks WHERE id=$id", {id: genesisblock.blockId}, ['id'], function (err, rows) {
+	library.dbLite.query("SELECT id FROM blocks WHERE id=$id", {id: genesisblock.block.id}, ['id'], function (err, rows) {
 		if (err) {
 			return cb(err)
 		}
 		var blockId = rows.length && rows[0].id;
 
 		if (!blockId) {
-			var blockTransactions = [];
-
-			for (var i = 0; i < genesisblock.transactions.length; i++) {
-				var genesisTransaction = genesisblock.transactions[i];
-				var transaction = {
-					type: genesisTransaction.type,
-					amount: genesisTransaction.amount * constants.fixedPoint,
-					fee: 0,
-					timestamp: 0,
-					recipientId: genesisTransaction.recipientId,
-					senderId: genesisTransaction.senderId || genesisblock.generatorId,
-					senderPublicKey: genesisTransaction.publicKey || genesisblock.generatorPublicKey,
-					signature: genesisTransaction.signature,
-					asset: {
-						delegate: genesisTransaction.asset.delegate
-					}
-				};
-
-				transaction.id = transactionHelper.getId(transaction);
-				blockTransactions.push(transaction);
-			}
-
-			var block = {
-				id: genesisblock.blockId,
-				version: 0,
-				totalAmount: 100000000 * constants.fixedPoint,
-				totalFee: 0,
-				payloadHash: genesisblock.payloadHash,
-				timestamp: 0,
-				numberOfTransactions: blockTransactions.length,
-				payloadLength: genesisblock.payloadLength,
-				previousBlock: null,
-				generatorPublicKey: genesisblock.generatorPublicKey,
-				transactions: blockTransactions,
-				blockSignature: genesisblock.blockSignature,
-				height: 1
-			};
-
-			saveBlock(block, function (err) {
+			saveBlock(genesisblock.block, function (err) {
 				if (err) {
 					library.logger.error('saveBlock', err);
 				}
@@ -635,7 +597,7 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 		var blocks = relational.blockChainRelational2ObjectModel(rows);
 
 		for (var i = 0, i_length = blocks.length; i < i_length; i++) {
-			if (blocks[i].id != genesisblock.blockId) {
+			if (blocks[i].id != genesisblock.block.id) {
 				if (blocks[i].previousBlock != lastBlock.id) {
 					err = {
 						message: "Can't verify previous block",
@@ -665,7 +627,7 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 			//verify block's transactions
 			for (var n = 0, n_length = blocks[i].transactions.length; n < n_length; n++) {
 
-				if (blocks[i].id != genesisblock.blockId) {
+				if (blocks[i].id != genesisblock.block.id) {
 					if (verify && !modules.transactions.verifySignature(blocks[i].transactions[n])) {
 						err = {
 							message: "Can't verify transaction: " + blocks[i].transactions[n].id,
