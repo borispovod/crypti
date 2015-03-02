@@ -10,7 +10,7 @@ angular.module('webApp').controller('forgingModalController', ["$scope", "forgin
     }
 
     $scope.startForging = function () {
-        $http.get("/api/startForging", { params : { secretPharse : $scope.secretPhrase, publicKey : userService.publicKey }})
+        $http.get("/api/delegates/", { params : { secretPharse : $scope.secretPhrase, publicKey : userService.publicKey }})
             .then(function (resp) {
                 userService.setForging(resp.data.success);
 
