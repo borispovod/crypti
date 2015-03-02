@@ -246,12 +246,12 @@ var block = {
 	version: 0,
 	totalAmount: totalAmount,
 	totalFee: 0,
-	payloadHash: payloadHash,
+	payloadHash: payloadHash.toString('hex'),
 	timestamp: 0,
 	numberOfTransactions: transactions.length,
 	payloadLength: payloadLength,
 	previousBlock: null,
-	generatorPublicKey: keypair.publicKey,
+	generatorPublicKey: keypair.publicKey.toString('hex'),
 	transactions: transactions,
 	height: 1
 };
