@@ -81,17 +81,6 @@ function attachApi() {
 			rateSort[item] = index + 1;
 		});
 
-		var rateSort = {};
-		publicKeys.sort(function compare(a, b) {
-			if (votes[a] > votes[b])
-				return -1;
-			if (votes[a] < votes[b])
-				return 1;
-			return 0;
-		}).forEach(function (item, index) {
-			rateSort[item] = index + 1;
-		});
-
 		if (orderBy) {
 			if (orderBy == 'username') {
 				publicKeys = publicKeys.sort(function compare(a, b) {
