@@ -47,7 +47,6 @@ angular.module('webApp').controller('voteController', ["$scope", "voteModal", "$
         if ($scope.secondPassphrase) {
             data.secondSecret = $scope.secondPhrase;
         }
-
             $scope.voting = !$scope.voting;
             $http.put("/api/accounts/delegates", data).then(function (resp) {
                 $scope.sending = !$scope.sending;
