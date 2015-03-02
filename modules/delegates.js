@@ -241,6 +241,7 @@ function attachApi() {
 		}
 
 		var secret = params.string(req.body.secret);
+		var publicKey = params.string(req.body.publicKey);
 
 		if (!secret) {
 			return res.json({success: false, error: "Provide secret in request"});
@@ -249,6 +250,12 @@ function attachApi() {
 		var keypair = ed.MakeKeypair(crypto.createHash('sha256').update(secret, 'utf8').digest());
 		var address = modules.accounts.getAddressByPublicKey(keypair.publicKey.toString('hex'));
 		var account = modules.accounts.getAccount(address);
+
+		if (publicKey) {
+			if (keypair.publicKey.toString('hex') != publicKey) {
+				return res.json({success: false, error: "Wrong secret key"});
+			}
+		}
 
 		if (keypairs[keypair.publicKey.toString('hex')]) {
 			return res.json({success: false, error: "Forging on this account already enabled"});
@@ -275,6 +282,7 @@ function attachApi() {
 		}
 
 		var secret = params.string(req.body.secret);
+		var publicKey = params.string(req.body.publicKey);
 
 		if (!secret) {
 			return res.json({success: false, error: "Provide secret in request"});
@@ -283,6 +291,12 @@ function attachApi() {
 		var keypair = ed.MakeKeypair(crypto.createHash('sha256').update(secret, 'utf8').digest());
 		var address = modules.accounts.getAddressByPublicKey(keypair.publicKey.toString('hex'));
 		var account = modules.accounts.getAccount(address);
+
+		if (publicKey) {
+			if (keypair.publicKey.toString('hex') != publicKey) {
+				return res.json({success: false, error: "Wrong secret key"});
+			}
+		}
 
 		if (!keypairs[keypair.publicKey.toString('hex')]) {
 			return res.json({success: false, error: "Forger with this public key not found"});
