@@ -433,6 +433,10 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 					if (!modules.delegates.checkDelegates(transaction.senderPublicKey, transaction.asset.votes)) {
 						return done("Can't verify votes, you already voted for this delegate: " + transaction.id);
 					}
+
+					if (transaction.asset.votes.length > 33) {
+						return done("Can't verify votes, most be less then 33 delegates");
+					}
 					break;
 				default:
 					return done("Unknown transaction type");
