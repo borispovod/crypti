@@ -262,8 +262,7 @@ block.id = getId(block);
 console.log("Save result...");
 
 var json = {
-	block : block,
-	transactions : transactions
+	block : block
 };
 
 var fs = require('fs');
