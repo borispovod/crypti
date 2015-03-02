@@ -136,7 +136,7 @@ for (var i = 0; i < file.accounts.length; i++) {
 			fee : 0,
 			timestamp: 0,
 			recipientId: account.address,
-			senderId: account.address,
+			senderId: address,
 			senderPublicKey : keypair.publicKey.toString('hex')
 		};
 
