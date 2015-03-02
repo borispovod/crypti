@@ -259,12 +259,7 @@ block.id = getId(block);
 console.log("Save result...");
 
 var json = {
-	payloadLength : payloadLength,
-	payloadHash : payloadHash.toString('hex'),
-	generatorId : address,
-	generatorPublicKey : keypair.publicKey.toString('hex'),
-	blockId : block.id,
-	blockSignature : block.blockSignature.toString('hex'),
+	block : block,
 	transactions : transactions
 };
 
