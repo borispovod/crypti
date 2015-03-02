@@ -859,6 +859,10 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 									if (!modules.delegates.checkDelegates(transaction.senderPublicKey, transaction.asset.votes)) {
 										return cb && cb("Can't verify votes, you already voted for this delegate: " + transaction.id);
 									}
+
+									if (transaction.asset.votes.length > 33) {
+										return cb && cb("Can't verify votes, provide less then 33 delegate");
+									}
 									break;
 							}
 
