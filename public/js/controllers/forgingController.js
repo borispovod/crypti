@@ -16,24 +16,16 @@ angular.module('webApp').controller('forgingController', ['$scope', '$rootScope'
 	}
 
 	$scope.getForgedAmount = function () {
-		$http.get("/api/blocks/getForgedByAccount", { params : { generatorPublicKey : userService.publicKey }})
+		$http.get("/api/delegates/forging/getForgedByAccount", { params : { generatorPublicKey : userService.publicKey }})
 			.then(function (resp) {
-				$scope.totalForged = resp.data.sum;
+				$scope.totalForged = resp.data.fees;
 			})
 	}
 
 	$scope.getForging = function () {
-		$http.get("/api/forging")
+		$http.get("/api/delegates/forging/status", { params : { publicKey : userService.publicKey }})
 			.then(function (resp) {
-				if (resp.data.enabled) {
-					if (resp.data.address == userService.address) {
-						$scope.forging = true;
-					} else {
-						$scope.forging = false;
-					}
-				} else {
-					$scope.forging = false;
-				}
+				$scope.forging = resp.data.enabled;
 			});
 	}
 
@@ -46,6 +38,17 @@ angular.module('webApp').controller('forgingController', ['$scope', '$rootScope'
     $scope.getBlocks();
 	$scope.getForgedAmount();
 	$scope.getForging();
+
+
+	$scope.enableForging = function () {
+		$scope.forgingModal = forgingModal.activate({
+			totalBalance: userService.unconfirmedBalance,
+			destroy : function () {
+				$scope.forging = userService.forging;
+				$scope.getForging();
+			}
+		})
+	}
 
     $scope.newCompany = function () {
         $scope.companyModal = companyModal.activate({
