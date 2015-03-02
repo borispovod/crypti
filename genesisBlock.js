@@ -6,7 +6,8 @@ var crypto = require('crypto'),
 	ed = require('ed25519'),
 	transactionHelper = require('./helpers/transaction.js'),
 	constants = require('./helpers/constants.js'),
-	bignum = require('bignum');
+	bignum = require('bignum'),
+	ByteBuffer = require('bytebuffer');
 
 
 var signTransaction = function (secret, transaction) {
@@ -15,6 +16,83 @@ var signTransaction = function (secret, transaction) {
 	var keypair = ed.MakeKeypair(passHash);
 	transaction.signature = ed.Sign(hash, keypair).toString('hex');
 }
+
+
+function getBytes(block) {
+	var size = 4 + 4 + 8 + 4 + 4 + 8 + 8 + 4 + 4 + 4 + 32 + 32 + 64;
+
+	try {
+		var bb = new ByteBuffer(size, true);
+		bb.writeInt(block.version);
+		bb.writeInt(block.timestamp);
+
+		if (block.previousBlock) {
+			var pb = bignum(block.previousBlock).toBuffer({size: '8'});
+
+			for (var i = 0; i < 8; i++) {
+				bb.writeByte(pb[i]);
+			}
+		} else {
+			for (var i = 0; i < 8; i++) {
+				bb.writeByte(0);
+			}
+		}
+
+		bb.writeInt(block.numberOfTransactions);
+		bb.writeLong(block.totalAmount);
+		bb.writeLong(block.totalFee);
+
+		bb.writeInt(block.payloadLength);
+
+		var payloadHashBuffer = new Buffer(block.payloadHash, 'hex');
+		for (var i = 0; i < payloadHashBuffer.length; i++) {
+			bb.writeByte(payloadHashBuffer[i]);
+		}
+
+		var generatorPublicKeyBuffer = new Buffer(block.generatorPublicKey, 'hex');
+		for (var i = 0; i < generatorPublicKeyBuffer.length; i++) {
+			bb.writeByte(generatorPublicKeyBuffer[i]);
+		}
+
+		if (block.blockSignature) {
+			var blockSignatureBuffer = new Buffer(block.blockSignature, 'hex');
+			for (var i = 0; i < blockSignatureBuffer.length; i++) {
+				bb.writeByte(blockSignatureBuffer[i]);
+			}
+		}
+
+		bb.flip();
+		var b = bb.toBuffer();
+	} catch (e) {
+		throw e.toString();
+	}
+
+	return b;
+}
+
+function getHash(block) {
+	return crypto.createHash('sha256').update(getBytes(block)).digest();
+}
+
+function sign(secret, block) {
+	var keypair = secret;
+	var hash = getHash(block);
+
+	return ed.Sign(hash, keypair).toString('hex');
+}
+
+
+function getId(block) {
+	var hash = crypto.createHash('sha256').update(getBytes(block)).digest();
+	var temp = new Buffer(8);
+	for (var i = 0; i < 8; i++) {
+		temp[i] = hash[7 - i];
+	}
+
+	var id = bignum.fromBuffer(temp).toString();
+	return id;
+}
+
 
 var file = require(process.env.FILE || "./scheme.json"),
 	output = process.env.OUTPUT || "./genesisblock.json",
@@ -39,7 +117,8 @@ console.log("Address: " + address + ", pubic key: " + keypair.publicKey.toString
 
 var payloadLength = 0,
 	payloadHash = crypto.createHash('sha256'),
-	transactions = [];
+	transactions = [],
+	totalAmount = 0;
 
 console.log("Make accounts transactions....");
 
@@ -58,6 +137,8 @@ for (var i = 0; i < file.accounts.length; i++) {
 			senderPublicKey : keypair.publicKey.toString('hex')
 		};
 
+		totalAmount += transaction.amount;
+
 		signTransaction(secret, transaction);
 		transaction.id = transactionHelper.getId(transaction);
 
@@ -72,11 +153,16 @@ for (var i = 0; i < file.accounts.length; i++) {
 		var transaction = {
 			type : 1,
 			amount: 0,
-			fee : 100 * constants.fixedPoint,
+			fee : 0,
 			timestamp : 0,
 			recipientId : null,
 			senderId : account.address,
-			senderPublicKey : account.publicKey
+			senderPublicKey : account.publicKey,
+			asset : {
+				signature : {
+					publicKey : account.secondPublicKey
+				}
+			}
 		}
 
 		signTransaction(secret, transaction);
@@ -92,13 +178,104 @@ for (var i = 0; i < file.accounts.length; i++) {
 
 console.log("Make delegates...");
 
+for (var i = 0; i < file.delegates.length; i++) {
+	var account = file.delegates[i];
+
+	var transaction = {
+		type : 2,
+		amount: 0,
+		fee : 0,
+		timestamp : 0,
+		recipientId : null,
+		senderId : account.address,
+		senderPublicKey : account.publicKey,
+		asset : {
+			delegate : {
+				username : account.username
+			}
+		}
+	}
+
+	signTransaction(secret, transaction);
+	transaction.id = transactionHelper.getId(transaction);
+
+	var bytes = transactionHelper.getBytes(transaction);
+	payloadLength += bytes.length;
+	payloadHash.update(bytes);
+
+	transactions.push(transaction);
+}
+
 console.log("Make votes...");
 
+
+for (var i = 0; i < file.votes.length; i++) {
+	var account = file.votes[i];
+
+	var transaction = {
+		type : 3,
+		amount: 0,
+		fee : 0,
+		timestamp : 0,
+		recipientId : null,
+		senderId : account.address,
+		senderPublicKey : account.publicKey,
+		asset : {
+			votes : account.votes
+		}
+	}
+
+	signTransaction(secret, transaction);
+	transaction.id = transactionHelper.getId(transaction);
+
+	var bytes = transactionHelper.getBytes(transaction);
+	payloadLength += bytes.length;
+	payloadHash.update(bytes);
+
+	transactions.push(transaction);
+}
+
+payloadHash = payloadHash.digest();
+
 console.log("Make block...");
+
+var block = {
+	version: 0,
+	totalAmount: totalAmount,
+	totalFee: 0,
+	payloadHash: payloadHash,
+	timestamp: 0,
+	numberOfTransactions: transactions.length,
+	payloadLength: payloadLength,
+	previousBlock: null,
+	generatorPublicKey: keypair.publicKey,
+	transactions: transactions,
+	height: 1
+};
+
+block.blockSignature = sign(keypair, block);
+block.id = getId(block);
 
 console.log("Save result...");
 
 var json = {
+	payloadLength : payloadLength,
+	payloadHash : payloadHash.toString('hex'),
+	generatorId : address,
+	generatorPublicKey : keypair.publicKey.toString('hex'),
+	blockId : block.id,
+	blockSignature : block.blockSignature.toString('hex'),
+	transactions : transactions
 };
 
-console.log("Done...");
+var fs = require('fs');
+json = JSON.stringify(json, null, 4);
+
+fs.writeFile(output, json, "utf8", function (err) {
+	if (err) {
+		console.log(err);
+	}
+
+	console.log("Done...");
+})
+
