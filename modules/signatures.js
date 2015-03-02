@@ -58,11 +58,11 @@ function attachApi() {
 		var hash = crypto.createHash('sha256').update(secret, 'utf8').digest();
 		var keypair = ed.MakeKeypair(hash);
 
-		if (secret.length == 0) {
+		if (!secret) {
 			return res.json({success: false, error: "Provide secret key"});
 		}
 
-		if (secondSecret.length == 0) {
+		if (!secondSecret) {
 			return res.json({success: false, error: "Provide second secret key"});
 		}
 

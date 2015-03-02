@@ -361,6 +361,10 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 				}
 			}
 
+			if (!sender.secondSignature && transaction.signSignature) {
+				return done("Can't process transaction with second signature, sender didn't has second signature");
+			}
+
 			// check if transaction is not float and great then 0
 			if (transaction.amount < 0 || transaction.amount.toString().indexOf('.') >= 0) {
 				return done("Invalid transaction amount");
@@ -427,7 +431,7 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 					}
 
 					if (!modules.delegates.checkDelegates(transaction.senderPublicKey, transaction.asset.votes)) {
-						return done("Can't verify votes, vote for not exists delegate found: " + transaction.id);
+						return done("Can't verify votes, you already voted for this delegate: " + transaction.id);
 					}
 					break;
 				default:
@@ -479,6 +483,7 @@ Transactions.prototype.applyUnconfirmedList = function (ids) {
 		if (!this.applyUnconfirmed(transaction)) {
 			delete unconfirmedTransactions[ids[i]];
 			doubleSpendingTransactions[ids[i]] = transaction;
+			console.log("Double spending: " + transaction.id);
 		}
 	}
 }
@@ -499,6 +504,10 @@ Transactions.prototype.applyUnconfirmed = function (transaction) {
 		return false;
 	} else {
 		sender = modules.accounts.getAccountOrCreateByPublicKey(transaction.senderPublicKey);
+	}
+
+	if (sender.secondSignature && !transaction.signSignature) {
+		return false;
 	}
 
 	if (transaction.type == 1) {
