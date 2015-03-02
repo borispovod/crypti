@@ -1,41 +1,43 @@
 require('angular');
 
-angular.module('webApp').controller('blockchainController', ['$scope', '$rootScope', '$http', "userService", "$interval", 'blockService', 'blockModal', function($rootScope, $scope, $http, userService, $interval, blockService, blockModal) {
+angular.module('webApp').controller('blockchainController', ['$scope', '$rootScope', '$http', "userService", "$interval", 'blockService', 'blockModal', 'ngTableParams', function ($rootScope, $scope, $http, userService, $interval, blockService, blockModal, ngTableParams) {
     $scope.address = userService.address;
-    $scope.getBlocks = function () {
-        var params = {};
 
-        if (blockService.lastBlockId) {
-            params.blockId = blockService.lastBlockId;
+    //Blocks
+    $scope.tableBlocks = new ngTableParams({
+        page: 1,
+        count: 20
+    }, {
+        total: 0,
+        counts: [],
+        getData: function ($defer, params) {
+            blockService.getBlocks($defer, params, $scope.filter);
         }
+    });
 
-        $http.get("/api/blocks/", { params : { orderBy : "height:desc", limit : 20 }})
-            .then(function (resp) {
-                $scope.blockchain = resp.data.blocks;
-                blockService.lastBlockId = resp.data.blocks[resp.data.blocks.length - 1].id;
-            });
-    }
+    $scope.tableBlocks.settings().$scope = $scope;
 
-    $scope.getFirstBlocks = function () {
-        $http.get("/api/blocks/", { params : { orderBy : "height:desc", limit : 20 }})
-            .then(function (resp) {
-                $scope.blockchain = resp.data.blocks;
-                blockService.lastBlockId = resp.data.blocks[resp.data.blocks.length - 1].id;
-            });
-    }
+    $scope.$watch("filter.$", function () {
+        $scope.tableBlocks.reload();
+    });
+
+    $scope.updateBlocks = function () {
+        $scope.tableBlocks.reload();
+    };
+    //end Blocks
+
 
     $scope.blocksInterval = $interval(function () {
-        $scope.getBlocks();
+        $scope.updateBlocks();
     }, 1000 * 60);
 
-    $scope.$on('$destroy', function() {
+    $scope.$on('$destroy', function () {
         $interval.cancel($scope.blocksInterval);
         $scope.blocksInterval = null;
     });
 
     $scope.showBlock = function (block) {
-        $scope.modal = blockModal.activate({ block : block });
+        $scope.modal = blockModal.activate({block: block});
     }
 
-    $scope.getFirstBlocks();
 }]);
