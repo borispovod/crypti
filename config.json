@@ -12,11 +12,6 @@
 			"whiteList": []
 		}
 	},
-	"forging": {
-		"access": {
-			"whiteList": ["127.0.0.1"]
-		}
-	},
 	"peers": {
 		"list": [
 			{
@@ -27,7 +22,10 @@
 		"blackList": []
 	},
 	"forging": {
-		"secret": ""
+		"secret": "",
+		"access": {
+			"whiteList": ["127.0.0.1"]
+		}
 	},
 	"loading": {
 		"verifyOnLoading": true,
