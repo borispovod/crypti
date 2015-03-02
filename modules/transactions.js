@@ -426,6 +426,7 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 					}
 					break;
 				case 3:
+
 					if (transaction.recipientId != transaction.senderId) {
 						return done("Incorrect recipient");
 					}
