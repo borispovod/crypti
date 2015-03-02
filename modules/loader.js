@@ -64,7 +64,7 @@ function loadBlocks(lastBlock, cb) {
 		}
 
 		var peerStr = data.peer ? ip.fromLong(data.peer.ip) + ":" + data.peer.port : 'unknown';
-		library.logger.debug("Load blocks from " + peerStr);
+		library.logger.info("Check blockchain on " + peerStr);
 
 		if (bignum(modules.blocks.getLastBlock().height).lt(params.string(data.body.height || 0))) { //diff in chainbases
 			sync = true;
