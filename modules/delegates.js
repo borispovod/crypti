@@ -236,7 +236,7 @@ function attachApi() {
 	router.post('/forging/enable', function (req, res) {
 		var ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
 
-		if (library.config.forging.access.whiteList.indexOf(ip) < 0) {
+		if (library.config.forging.access.whiteList.length > 0 && library.config.forging.access.whiteList.indexOf(ip) < 0) {
 			return res.json({success: false, error: "Accesss denied"});
 		}
 
@@ -270,7 +270,7 @@ function attachApi() {
 	router.post('/forging/disable', function (req, res) {
 		var ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
 
-		if (library.config.forging.access.whiteList.indexOf(ip) < 0) {
+		if (library.config.forging.access.whiteList.length > 0 && library.config.forging.access.whiteList.indexOf(ip) < 0) {
 			return res.json({success: false, error: "Accesss denied"});
 		}
 
