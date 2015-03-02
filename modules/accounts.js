@@ -137,6 +137,13 @@ function attachApi() {
 		return res.json({success: true, balance: balance, unconfirmedBalance: unconfirmedBalance});
 	});
 
+	if (process.env.DEBUG) {
+		// for sebastian
+		router.get('/getAllAccounts', function (req, res) {
+			return res.json({success: true, accounts: accounts});
+		});
+	}
+
 	router.get('/getPublicKey', function (req, res) {
 		var address = params.string(req.query.address);
 

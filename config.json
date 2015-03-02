@@ -12,6 +12,11 @@
 			"whiteList": []
 		}
 	},
+	"forging": {
+		"access": {
+			"whiteList": ["127.0.0.1"]
+		}
+	},
 	"peers": {
 		"list": [
 			{
