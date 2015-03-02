@@ -1,7 +1,7 @@
 var async = require('async'),
 	Router = require('../helpers/router.js'),
 	util = require('util'),
-	genesisBlock = require("../helpers/genesisblock.js"),
+	genesisBlock = require("../helpers/genesisblock.json"),
 	ip = require("ip"),
 	bignum = require('bignum'),
 	params = require('../helpers/params.js'),
@@ -64,13 +64,13 @@ function loadBlocks(lastBlock, cb) {
 		}
 
 		var peerStr = data.peer ? ip.fromLong(data.peer.ip) + ":" + data.peer.port : 'unknown';
-		library.logger.debug("Load blocks from " + peerStr);
+		library.logger.info("Check blockchain on " + peerStr);
 
 		if (bignum(modules.blocks.getLastBlock().height).lt(params.string(data.body.height || 0))) { //diff in chainbases
 			sync = true;
 			blocksToSync = params.int(data.body.height);
 
-			if (lastBlock.id != genesisBlock.blockId) { //have to found common block
+			if (lastBlock.id != genesisBlock.block.id) { //have to found common block
 				library.logger.info("Looking for common block with " + peerStr);
 				modules.blocks.getCommonBlock(data.peer, lastBlock.height, function (err, commonBlock) {
 					if (err) {
@@ -125,7 +125,7 @@ function loadBlocks(lastBlock, cb) {
 
 				});
 			} else { //have to load full db
-				var commonBlockId = genesisBlock.blockId;
+				var commonBlockId = genesisBlock.block.id;
 				library.logger.debug("Load blocks from genesis from " + peerStr);
 				modules.blocks.loadBlocksFromPeer(data.peer, commonBlockId, cb);
 			}

@@ -3,7 +3,7 @@ var crypto = require('crypto'),
 	bignum = require('bignum'),
 	ByteBuffer = require("bytebuffer"),
 	arrayHelper = require('./array.js'),
-	genesisblock = require("./genesisblock.js");
+	genesisblock = require("./genesisblock.json");
 
 function relational2object(rows) {
 	var blocks = {};
@@ -12,7 +12,7 @@ function relational2object(rows) {
 		var __block = getBlock(rows[i]);
 		if (__block) {
 			if (!blocks[__block.id]) {
-				if (__block.id == genesisblock.blockId) {
+				if (__block.id == genesisblock.block.id) {
 					__block.generationSignature = (new Array(65)).join('0');
 				}
 

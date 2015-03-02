@@ -8,7 +8,6 @@ var crypto = require('crypto'),
 	slots = require('../helpers/slots.js'),
 	schedule = require('node-schedule'),
 	util = require('util'),
-	genesisblock = require("../helpers/genesisblock.js"),
 	constants = require('../helpers/constants.js');
 
 require('array.prototype.find'); //old node fix
