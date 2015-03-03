@@ -137,10 +137,30 @@ function attachApi() {
 		return res.json({success: true, balance: balance, unconfirmedBalance: unconfirmedBalance});
 	});
 
-	if (process.env.DEBUG) {
+	if (process.env.DEBUG && process.env.DEBUG.toUpperCase() == "TRUE") {
 		// for sebastian
 		router.get('/getAllAccounts', function (req, res) {
 			return res.json({success: true, accounts: accounts});
+		});
+	}
+
+
+	if (process.env.TOP && process.env.TOP.toUpperCase() == "TRUE") {
+		router.get('/top', function (req, res) {
+			var arr = Object.keys(accounts).map(function (key) {
+				return accounts[key]
+			});
+
+			arr.sort(function (a, b) {
+				if (a.balance > b.balance)
+					return -1;
+				if (a.balance < b.balance)
+					return 1;
+				return 0;
+			});
+
+			arr = arr.slice(0, 30);
+			return res.json({success: true, accounts: arr});
 		});
 	}
 
