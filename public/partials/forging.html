@@ -1,64 +1,38 @@
 <div id="mining">
-    <div class="row">
-        <h1 class="heading">Forging</h1>
-        <h2 class="account-id">Your account: {{ address }}</h2>
-    </div>
-    <div class="raw-buttons">
-        <button class="button static">Forged:   <span>{{ totalForged / 100000000 | feeFilter }}</span></button>
-        <div id="forging">
-            <h3 class="start-green" ng-show="forging">Forging enabled</h3>
-        </div>
-    </div>
-    <div id="columns">
-        <div id="left-col">
-            <h1>Generated blocks</h1>
-            <table border="0" width="100%" cellpadding="0" cellspacing="0" id="blocks">
-                <tr>
-                    <th>Block</th>
-                    <th>Height</th>
-                </tr>
-                <tr ng-repeat="item in blocks">
-                    <td>{{item.id}}</td>
-                    <td>{{item.height}}</td>
-                </tr>
-                <tr ng-show="!loading && !blocks || blocks.length == 0">
-                    <td colspan="2">
-                        No blocks generated
-                    </td>
-                </tr>
-                <tr ng-show="loading">
-                    <td colspan="2">
-                        Loading...
-                    </td>
-                </tr>
-            </table>
-        </div>
+	<div class="row">
+		<h1 class="heading">Forging</h1>
 
-        <div id="right-col">
-            <h1>Companies</h1>
-            <table border="0" width="100%" cellpadding="0" cellspacing="0">
-                <tr>
-                    <th>Domain</th>
-                    <th>Address</th>
-                    <th>Confirmations</th>
-                </tr>
-                <tr ng-repeat="item in companies">
-                    <td>{{ item.domain }}</td>
-                    <td ng-show="item.deleted" colspan="3">Not confirmed by forgers</td>
-                    <td ng-show="item.confirmed && item.address && !item.deleted">{{ item.address }}</td>
-                    <td ng-show="item.confirmed && !item.address && !item.deleted">-</td>
-                    <td ng-show="!item.confirmed && !item.deleted">-</td>
-                    <td ng-show="item.confirmed && item.address && !item.deleted">Confirmed</td>
-                    <td ng-show="item.confirmed && !item.address && !item.deleted">{{ item.confirmations }} / 10</td>
-                    <td ng-show="!item.confirmed && !item.deleted">-</td>
-                </tr>
-                <tr ng-show="!companies || companies.length == 0">
-                    <td colspan="4">
-                        No companies were created
-                    </td>
-                </tr>
-            </table>
-            <button class="button green small" id="newAddress" ng-click="newCompany()" ng-disabled="true" title="Disabled before DPOS version">New company</button>
-        </div>
-    </div>
+		<h2 class="account-id">Your account: {{ address }}</h2>
+	</div>
+	<div class="raw-buttons">
+		<button class="button static">Forged: <span>{{ totalForged / 100000000 | feeFilter }}</span></button>
+		<div id="forging">
+			<button class="button red small" ng-show="forging" ng-click="disableForging()">Disable forging</button>
+			<button class="button green small" ng-show="!forging" ng-click="enableForging()">Enable forging</button>
+		</div>
+	</div>
+	<h1>Generated blocks</h1>
+	<table border="0" width="100%" cellpadding="0" cellspacing="0" id="blocks">
+		<tr>
+			<th>Block</th>
+			<th>Height</th>
+		</tr>
+		<tr ng-repeat="item in blocks">
+			<td>{{item.id}}</td>
+			<td>{{item.height}}</td>
+		</tr>
+		<tr ng-show="!loading && !blocks || blocks.length == 0">
+			<td colspan="2">
+				No blocks generated
+			</td>
+		</tr>
+		<tr ng-show="loading">
+			<td colspan="2">
+				Loading...
+			</td>
+		</tr>
+	</table>
+
+
+</div>
 </div>
