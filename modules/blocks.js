@@ -860,7 +860,7 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 										return cb && cb("Can't verify votes, you already voted for this delegate: " + transaction.id);
 									}
 
-									if (transaction.asset.votes.length > 33) {
+									if (transaction.asset.votes !== null && transaction.asset.votes.length > 33) {
 										return cb && cb("Can't verify votes, provide less then 33 delegate");
 									}
 									break;
