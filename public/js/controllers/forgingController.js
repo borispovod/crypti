@@ -25,7 +25,7 @@ angular.module('webApp').controller('forgingController', ['$scope', '$rootScope'
 		$http.get("/api/delegates/forging/getForgedByAccount", {params: {generatorPublicKey: userService.publicKey}})
 			.then(function (resp) {
 				$scope.totalForged = resp.data.fees;
-			})
+			});
 	}
 
 	$scope.getForging = function () {

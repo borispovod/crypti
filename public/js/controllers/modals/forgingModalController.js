@@ -1,6 +1,9 @@
 require('angular');
 
 angular.module('webApp').controller('forgingModalController', ["$scope", "forgingModal", "$http", "userService", function ($scope, forgingModal, $http, userService) {
+	$scope.error = null;
+	$scope.forging = userService.forging;
+
     $scope.close = function () {
         if ($scope.destroy) {
             $scope.destroy();
@@ -10,28 +13,45 @@ angular.module('webApp').controller('forgingModalController', ["$scope", "forgin
     }
 
     $scope.startForging = function () {
-        $http.post("/api/delegates/forging/enable", { secret : $scope.secretPhrase})
+		$scope.error = null;
+
+		// drity hack
+		if ($scope.forging) {
+			return $scope.stopForging();
+		}
+
+        $http.post("/api/delegates/forging/enable", { secret : $scope.secretPhrase, publicKey : userService.publicKey })
             .then(function (resp) {
-                userService.setForging(resp.data.success && resp.data.address);
+                userService.setForging(resp.data.success);
 
-                if ($scope.destroy) {
-                    $scope.destroy();
-                }
+				if (resp.data.success) {
+					if ($scope.destroy) {
+						$scope.destroy();
+					}
 
-                forgingModal.deactivate();
+					forgingModal.deactivate();
+				} else {
+					$scope.error = resp.data.error;
+				}
             });
     }
 
 	$scope.stopForging = function () {
-  $http.post("/api/delegates/forging/disable", { secret : $scope.secretPhrase})
+		$scope.error = null;
+
+  		$http.post("/api/delegates/forging/disable", { secret : $scope.secretPhrase, publicKey : userService.publicKey })
             .then(function (resp) {
-                userService.setForging(resp.data.success && resp.data.address);
+                userService.setForging(resp.data.success);
 
-                if ($scope.destroy) {
-                    $scope.destroy();
-                }
+		 		if (resp.data.success) {
+					if ($scope.destroy) {
+						$scope.destroy();
+					}
 
-                forgingModal.deactivate();
+					forgingModal.deactivate();
+				} else {
+					$scope.error = resp.data.error;
+				}
             });
 	}
 }]);

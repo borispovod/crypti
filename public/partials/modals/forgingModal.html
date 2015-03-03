@@ -4,10 +4,10 @@
         <h1 class="heading" ng-show="forging">Stop forging</h1>
 		<form class="form" autocomplete="off">
             <input class="input-text" type="password" ng-model="secretPhrase" placeholder="Your SecretPhrase" autofocus>
+            <p class="red" ng-show="error">{{error}}</p>
             <div class="pull-right">
 				<button type="submit"  ng-show="!forging" class="button green small" ng-disabled="!secretPhrase" ng-click="startForging()">Start</button>
-
-                <button type="submit"  ng-show="forging" class="button green small" ng-disabled="!secretPhrase" ng-click="stopForging()">Start</button>
+                <button type="submit"  ng-show="forging" class="button green small" ng-disabled="!secretPhrase" ng-click="stopForging()">Stop</button>
                 <button class="button small" ng-click="close()">Close</button>
             </div>
         </form>
