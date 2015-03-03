@@ -120,8 +120,8 @@ module.exports = function (grunt) {
 				options: {
 					from: "Crypti Versions <helpdesk@crypti.me>",
 					subject: 'Version ' + config.version + ' available now',
-					text: 'New version is avaliable now: http://storage.googleapis.com/crypti-testing/nodes/' + config.version + '.zip',
-					html: 'New version is avaliable now: http://storage.googleapis.com/crypti-testing/nodes/' + config.version + '.zip'
+					text: 'New version is avaliable now: http://storage.googleapis.com/crypti-testing/nodes/' + config.version + '.zip (v' + timestamp + ')',
+					html: 'New version is avaliable now: http://storage.googleapis.com/crypti-testing/nodes/' + config.version + '.zip (v' + timestamp + ')'
 				}
 			}
 		},
