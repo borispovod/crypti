@@ -98,7 +98,7 @@ function getId(block) {
 
 
 var file = require(process.env.FILE || "./scheme.json"),
-	output = process.env.OUTPUT || "./genesisblock.json",
+	output = process.env.OUTPUT || "./genesisblock.js",
 	secret = process.env.SECRET;
 
 if (!secret) {
@@ -268,11 +268,11 @@ var json = {
 var fs = require('fs');
 json = JSON.stringify(json, null, 4);
 
-fs.writeFile(output, json, "utf8", function (err) {
-	if (err) {
-		console.log(err);
-	}
+try {
+	fs.writeFileSync(output, 'module.exports = ', "utf8");
+	fs.appendFileSync(output, json, "utf8");
+}catch (e){
+	return console.log(err);
+}
 
-	console.log("Done...");
-})
-
+console.log("Done...");

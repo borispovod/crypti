@@ -3,7 +3,7 @@ var crypto = require('crypto'),
 	bignum = require('bignum'),
 	ByteBuffer = require("bytebuffer"),
 	arrayHelper = require('./array.js'),
-	genesisblock = require("./genesisblock.json");
+	genesisblock = require("./genesisblock.js");
 
 function relational2object(rows) {
 	var blocks = {};
