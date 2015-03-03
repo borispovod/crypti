@@ -57,21 +57,23 @@ module.exports = function (grunt) {
 			package: {
 				command: function () {
 					return "mkdir  -p  ./builded/" + config.version + " && " +
-						"mkdir  -p  ./builded/" + config.version + "/public" + " && " +
-						"cp ./builded/app.js ./builded/" + config.version + " && " +
-						"cp ./config.json ./builded/" + config.version + "/config.json" + " && " +
-						"cp ./package.json ./builded/" + config.version + "/package.json" + " && " +
-						"cd public && mkdir -p ./static && npm install &&  bower install && grunt release && cd ../ && " +
-						"cp ./public/wallet.html ./builded/" + config.version + "/public/" + " && " +
-						"cp ./public/loading.html ./builded/" + config.version + "/public/" + " && " +
-						"cp -rf ./public/images ./builded/" + config.version + "/public/" + " && " +
-						"cp -rf ./public/partials ./builded/" + config.version + "/public/" + " && " +
-						"cp -rf ./public/static ./builded/" + config.version + " /public/ " + " && " +
-						"cd ./builded/" + config.version + "/ && touch build && echo 'v" + timestamp + "' > build"
+						"mkdir  -p  ./builded/" + config.version + "/public" + "&&" +
+						"cp ./builded/app.js ./builded/" + config.version + "&&" +
+						"cp ./config.json ./builded/" + config.version + "/config.json" + "&&" +
+						"cp ./package.json ./builded/" + config.version + "/package.json" + "&&" +
+						"cd public && mkdir -p ./static && npm install &&  bower install && grunt release && cd ../ &&" +
+						"cp ./public/wallet.html ./builded/" + config.version + "/public/" + "&&" +
+						"cp ./public/loading.html ./builded/" + config.version + "/public/" + "&&" +
+						"cp -rf ./public/images ./builded/" + config.version + "/public/" + "&&" +
+						"cp -rf ./public/partials ./builded/" + config.version + "/public/" + "&&" +
+						"cp -rf ./public/static ./builded/" + config.version + "/public/"
 				}
 			},
 			folder: {
 				command: "mkdir -p ./builded"
+			},
+			build: {
+				command: "cd ./builded/" + config.version + "/ && touch build && echo 'v" + timestamp + "' > build"
 			}
 		},
 
@@ -151,5 +153,5 @@ module.exports = function (grunt) {
 
 	grunt.registerTask("default", ["obfuscator"]);
 	grunt.registerTask("release", ["default", "jscrambler"]);
-	grunt.registerTask("package", ["exec:folder", "release", "exec:package", "compress","gcloud:project", "nodemailer:message", "slack"]);
+	grunt.registerTask("package", ["exec:folder", "release", "exec:package", "exec:build", "compress","gcloud:project", "nodemailer:message", "slack"]);
 };
