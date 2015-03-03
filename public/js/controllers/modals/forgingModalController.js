@@ -4,25 +4,26 @@ angular.module('webApp').controller('forgingModalController', ["$scope", "forgin
 	$scope.error = null;
 	$scope.forging = userService.forging;
 
-    $scope.close = function () {
-        if ($scope.destroy) {
-            $scope.destroy();
-        }
+	$scope.close = function () {
+		if ($scope.destroy) {
+			$scope.destroy();
+		}
 
-        forgingModal.deactivate();
-    }
+		forgingModal.deactivate();
+	}
 
-    $scope.startForging = function () {
+	$scope.startForging = function () {
 		$scope.error = null;
 
-		// drity hack
+		// dirty hack
 		if ($scope.forging) {
 			return $scope.stopForging();
 		}
 
-        $http.post("/api/delegates/forging/enable", { secret : $scope.secretPhrase, publicKey : userService.publicKey })
-            .then(function (resp) {
-                userService.setForging(resp.data.success);
+		$http.post("/api/delegates/forging/enable", { secret : $scope.secretPhrase, publicKey : userService.publicKey })
+			.then(function (resp) {
+				userService.setForging(resp.data.success);
+				$scope.forging = resp.data.success;
 
 				if (resp.data.success) {
 					if ($scope.destroy) {
@@ -33,25 +34,27 @@ angular.module('webApp').controller('forgingModalController', ["$scope", "forgin
 				} else {
 					$scope.error = resp.data.error;
 				}
-            });
-    }
+			});
+	}
 
 	$scope.stopForging = function () {
 		$scope.error = null;
 
-  		$http.post("/api/delegates/forging/disable", { secret : $scope.secretPhrase, publicKey : userService.publicKey })
-            .then(function (resp) {
-                userService.setForging(resp.data.success);
+		$http.post("/api/delegates/forging/disable", { secret : $scope.secretPhrase, publicKey : userService.publicKey })
+			.then(function (resp) {
+				userService.setForging(resp.data.success);
+				$scope.forging = resp.data.success;
 
-		 		if (resp.data.success) {
+				if (resp.data.success) {
 					if ($scope.destroy) {
 						$scope.destroy();
 					}
 
+					$scope.forging = resp.data.success;
 					forgingModal.deactivate();
 				} else {
 					$scope.error = resp.data.error;
 				}
-            });
+			});
 	}
 }]);
