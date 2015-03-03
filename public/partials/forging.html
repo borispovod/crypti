@@ -16,18 +16,20 @@
 		<tr>
 			<th>Block</th>
 			<th>Height</th>
+            <th>Total fee</th>
 		</tr>
 		<tr ng-repeat="item in blocks">
 			<td>{{item.id}}</td>
 			<td>{{item.height}}</td>
+            <td>{{item.totalFee | feeFilter}}</td>
 		</tr>
 		<tr ng-show="!loading && !blocks || blocks.length == 0">
-			<td colspan="2">
+			<td colspan="3">
 				No blocks generated
 			</td>
 		</tr>
 		<tr ng-show="loading">
-			<td colspan="2">
+			<td colspan="3">
 				Loading...
 			</td>
 		</tr>
