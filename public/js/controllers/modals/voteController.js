@@ -49,7 +49,7 @@ angular.module('webApp').controller('voteController', ["$scope", "voteModal", "$
         }
             $scope.voting = !$scope.voting;
             $http.put("/api/accounts/delegates", data).then(function (resp) {
-                $scope.sending = !$scope.sending;
+                $scope.voting = !$scope.voting;
                 if (resp.data.error) {
                     $scope.fromServer = resp.data.error;
                 }

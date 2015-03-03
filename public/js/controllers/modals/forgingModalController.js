@@ -15,11 +15,6 @@ angular.module('webApp').controller('forgingModalController', ["$scope", "forgin
 	$scope.startForging = function () {
 		$scope.error = null;
 
-		// dirty hack
-		if ($scope.forging) {
-			return $scope.stopForging();
-		}
-
 		$http.post("/api/delegates/forging/enable", { secret : $scope.secretPhrase, publicKey : userService.publicKey })
 			.then(function (resp) {
 				userService.setForging(resp.data.success);
@@ -42,15 +37,15 @@ angular.module('webApp').controller('forgingModalController', ["$scope", "forgin
 
 		$http.post("/api/delegates/forging/disable", { secret : $scope.secretPhrase, publicKey : userService.publicKey })
 			.then(function (resp) {
-				userService.setForging(resp.data.success);
-				$scope.forging = resp.data.success;
+				userService.setForging(!resp.data.success);
+				$scope.forging = !resp.data.success;
 
 				if (resp.data.success) {
 					if ($scope.destroy) {
 						$scope.destroy();
 					}
 
-					$scope.forging = resp.data.success;
+					$scope.forging = !resp.data.success;
 					forgingModal.deactivate();
 				} else {
 					$scope.error = resp.data.error;
