@@ -6,6 +6,8 @@ module.exports = function (grunt) {
 		'app.js'
 	];
 
+	var timestamp = Math.floor(Date.now() / 1000);
+
 	var recipients = [
 		{
 			email: 'boris@crypti.me',
@@ -55,16 +57,17 @@ module.exports = function (grunt) {
 			package: {
 				command: function () {
 					return "mkdir  -p  ./builded/" + config.version + " && " +
-						"mkdir  -p  ./builded/" + config.version + "/public" + "&&" +
-						"cp ./builded/app.js ./builded/" + config.version + "&&" +
-						"cp ./config.json ./builded/" + config.version + "/config.json" + "&&" +
-						"cp ./package.json ./builded/" + config.version + "/package.json" + "&&" +
-						"cd public && mkdir -p ./static && npm install &&  bower install && grunt release && cd ../ &&" +
-						"cp ./public/wallet.html ./builded/" + config.version + "/public/" + "&&" +
-						"cp ./public/loading.html ./builded/" + config.version + "/public/" + "&&" +
-						"cp -rf ./public/images ./builded/" + config.version + "/public/" + "&&" +
-						"cp -rf ./public/partials ./builded/" + config.version + "/public/" + "&&" +
-						"cp -rf ./public/static ./builded/" + config.version + "/public/"
+						"mkdir  -p  ./builded/" + config.version + "/public" + " && " +
+						"cp ./builded/app.js ./builded/" + config.version + " && " +
+						"cp ./config.json ./builded/" + config.version + "/config.json" + " && " +
+						"cp ./package.json ./builded/" + config.version + "/package.json" + " && " +
+						"cd public && mkdir -p ./static && npm install &&  bower install && grunt release && cd ../ && " +
+						"cp ./public/wallet.html ./builded/" + config.version + "/public/" + " && " +
+						"cp ./public/loading.html ./builded/" + config.version + "/public/" + " && " +
+						"cp -rf ./public/images ./builded/" + config.version + "/public/" + " && " +
+						"cp -rf ./public/partials ./builded/" + config.version + "/public/" + " && " +
+						"cp -rf ./public/static ./builded/" + config.version + " /public/ " + " && " +
+						"cd ./builded/" + config.version + "/ && touch build && echo 'v" + timestamp + "' > build"
 				}
 			},
 			folder: {
@@ -131,7 +134,7 @@ module.exports = function (grunt) {
 				icon_url: 'http://vermilion1.github.io/presentations/grunt/images/grunt-logo.png' // if icon_emoji not specified
 			},
 			notify: {
-				text: '@sebastian @eric @boris @landgraf_paul New version (' + config.version + ') of Crypti available: http://storage.googleapis.com/crypti-testing/nodes/' + config.version + '.zip'
+				text: '@sebastian @eric @boris @landgraf_paul New version (' + config.version + ') of Crypti available: http://storage.googleapis.com/crypti-testing/nodes/' + config.version + '.zip (v' + timestamp + ')'
 			}
 		}
 	});
