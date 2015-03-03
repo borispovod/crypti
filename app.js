@@ -119,16 +119,6 @@ d.run(function () {
 						} else {
 							next();
 						}
-					} else if (parts[1] == 'forging' || parts[1] == 'panel') {
-						if (scope.config.adminPanel.whiteList.length > 0) {
-							if (scope.config.adminPanel.whiteList.indexOf(ip) < 0) {
-								res.sendStatus(403);
-							} else {
-								next();
-							}
-						} else {
-							next();
-						}
 					} else {
 						next();
 					}
