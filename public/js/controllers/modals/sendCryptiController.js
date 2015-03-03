@@ -62,6 +62,7 @@ angular.module('webApp').controller('sendCryptiController', ["$scope", "sendCryp
 				$scope.maxlength = strs[0].length + 9;
 			}
 			// calculate fee.
+
 			var fee = parseInt($scope.amount * 100000000 / 100 * $scope.currentFee) / 100000000; //($scope.amount / 100 * $scope.currentFee).roundTo(8);
 
 			if ($scope.amount == 0) {
@@ -181,7 +182,7 @@ angular.module('webApp').controller('sendCryptiController', ["$scope", "sendCryp
 	$scope.sendCrypti = function () {
 
 		$scope.amountError = $scope.convertXCR($scope.fee) + $scope.convertXCR($scope.amount) > userService._unconfirmedBalance;
-		$scope.errorMessage = $scope.amountError ? "Not enough XCR"  : "";
+		$scope.errorMessage = $scope.amountError ? "Not enough XCR" : "";
 
 		var data = {
 			secret: $scope.secretPhrase,

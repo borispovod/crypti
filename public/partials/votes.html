@@ -29,5 +29,15 @@
                 </button>
             </td>
         </tr>
+		<tr ng-show="!loading && (!$data || $data.length == 0)">
+                <td colspan="5">
+                    No delegates
+                </td>
+        </tr>
+		<tr ng-show="loading">
+                <td colspan="5">
+                    Loading...
+                </td>
+        </tr>
     </table>
 
