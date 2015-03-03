@@ -43,6 +43,7 @@
     "grunt-jscrambler": "^0.2.7",
     "grunt-nodemailer": "^0.3.0",
     "grunt-obfuscator": "^0.1.0",
-    "grunt-slack-hook": "0.0.4"
+    "grunt-slack-hook": "0.0.4",
+    "moment": "^2.9.0"
   }
 }
