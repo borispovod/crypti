@@ -6,7 +6,20 @@ module.exports = function (grunt) {
 		'app.js'
 	];
 
-	var timestamp = Math.floor(Date.now() / 1000);
+	var today = new Date();
+	var dd = today.getDate();
+	var mm = today.getMonth()+1; //January is 0!
+	var yyyy = today.getFullYear();
+
+	if(dd<10) {
+		dd='0'+dd
+	}
+
+	if(mm<10) {
+		mm='0'+mm
+	}
+
+	today = mm+'/'+dd+'/'+yyyy;
 
 	var recipients = [
 		{
@@ -73,7 +86,7 @@ module.exports = function (grunt) {
 				command: "mkdir -p ./builded"
 			},
 			build: {
-				command: "cd ./builded/" + config.version + "/ && touch build && echo 'v" + timestamp + "' > build"
+				command: "cd ./builded/" + config.version + "/ && touch build && echo 'v" + today + "' > build"
 			}
 		},
 
@@ -122,8 +135,8 @@ module.exports = function (grunt) {
 				options: {
 					from: "Crypti Versions <helpdesk@crypti.me>",
 					subject: 'Version ' + config.version + ' available now',
-					text: 'New version is avaliable now: http://storage.googleapis.com/crypti-testing/nodes/' + config.version + '.zip (v' + timestamp + ')',
-					html: 'New version is avaliable now: http://storage.googleapis.com/crypti-testing/nodes/' + config.version + '.zip (v' + timestamp + ')'
+					text: 'New version is avaliable now: http://storage.googleapis.com/crypti-testing/nodes/' + config.version + '.zip (v' + today + ')',
+					html: 'New version is avaliable now: http://storage.googleapis.com/crypti-testing/nodes/' + config.version + '.zip (v' + today + ')'
 				}
 			}
 		},
@@ -136,7 +149,7 @@ module.exports = function (grunt) {
 				icon_url: 'http://vermilion1.github.io/presentations/grunt/images/grunt-logo.png' // if icon_emoji not specified
 			},
 			notify: {
-				text: '@sebastian @eric @boris @landgraf_paul New version (' + config.version + ') of Crypti available: http://storage.googleapis.com/crypti-testing/nodes/' + config.version + '.zip (v' + timestamp + ')'
+				text: '@sebastian @eric @boris @landgraf_paul New version (' + config.version + ') of Crypti available: http://storage.googleapis.com/crypti-testing/nodes/' + config.version + '.zip (v' + today + ')'
 			}
 		}
 	});
