@@ -35,10 +35,6 @@ function attachApi() {
 		}
 	});
 
-	router.get("/panel/forging", function (req, res) {
-		res.render('forging.html');
-	});
-
 	router.use(function (req, res, next) {
 		if (req.url.indexOf('/api/') == -1 && req.url.indexOf('/peer/') == -1) {
 			return res.redirect('/');
