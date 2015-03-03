@@ -63,7 +63,9 @@ angular.module('webApp').controller('sendCryptiController', ["$scope", "sendCryp
 			}
 			// calculate fee.
 
-			var fee = parseInt($scope.amount * 100000000 / 100 * $scope.currentFee) / 100000000; //($scope.amount / 100 * $scope.currentFee).roundTo(8);
+
+			var fee = parseInt($scope.amount * 100000000 / 100 * $scope.currentFee) / 100000000;
+			//($scope.amount / 100 * $scope.currentFee).roundTo(8);
 
 			if ($scope.amount == 0) {
 				fee = 0;
@@ -184,6 +186,16 @@ angular.module('webApp').controller('sendCryptiController', ["$scope", "sendCryp
 		$scope.amountError = $scope.convertXCR($scope.fee) + $scope.convertXCR($scope.amount) > userService._unconfirmedBalance;
 		$scope.errorMessage = $scope.amountError ? "Not enough XCR" : "";
 
+		if ($scope.errorMessage) {
+			return;
+		}
+
+		if (($scope.amount + '').indexOf('.') != -1) {
+			$scope.lengthError = $scope.amount.split('.')[1].length > 8;
+			$scope.errorMessage = "More than 8 numbers in decimal part";
+			}
+
+
 		var data = {
 			secret: $scope.secretPhrase,
 			amount: $scope.convertXCR($scope.amount),
@@ -195,7 +207,7 @@ angular.module('webApp').controller('sendCryptiController', ["$scope", "sendCryp
 			data.secondSecret = $scope.secondPhrase;
 		}
 
-		if (!$scope.amountError && !$scope.sending) {
+		if (!$scope.lengthError && !$scope.sending) {
 			$scope.sending = !$scope.sending;
 			$http.put("/api/transactions", data).then(function (resp) {
 				$scope.sending = !$scope.sending;
