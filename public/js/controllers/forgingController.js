@@ -32,6 +32,7 @@ angular.module('webApp').controller('forgingController', ['$scope', '$rootScope'
 		$http.get("/api/delegates/forging/status", {params: {publicKey: userService.publicKey}})
 			.then(function (resp) {
 				$scope.forging = resp.data.enabled;
+				userService.setForging($scope.forging);
 			});
 	}
 
