@@ -7,7 +7,7 @@
 	<div class="raw-buttons">
 		<button class="button static">Forged: <span>{{ totalForged / 100000000 | feeFilter }}</span></button>
 		<div id="forging">
-			<h3 class="start-green" ng-show="forging">Forging enabled</h3>
+			<button class="button red small" ng-show="forging" ng-click="disableForging()">Disable forging</button>
 			<button class="button green small" ng-show="!forging" ng-click="enableForging()">Enable forging</button>
 		</div>
 	</div>

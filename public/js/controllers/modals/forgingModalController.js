@@ -10,10 +10,9 @@ angular.module('webApp').controller('forgingModalController', ["$scope", "forgin
     }
 
     $scope.startForging = function () {
-        $http.get("/api/delegates/enable", { params : { secret : $scope.secretPhrase, publicKey : userService.publicKey }})
+        $http.post("/api/delegates/forging/enable", { secret : $scope.secretPhrase})
             .then(function (resp) {
-				console.log(resp);
-                userService.setForging(resp.data.success);
+                userService.setForging(resp.data.success && resp.data.address);
 
                 if ($scope.destroy) {
                     $scope.destroy();
@@ -24,6 +23,15 @@ angular.module('webApp').controller('forgingModalController', ["$scope", "forgin
     }
 
 	$scope.stopForging = function () {
+  $http.post("/api/delegates/forging/disable", { secret : $scope.secretPhrase})
+            .then(function (resp) {
+                userService.setForging(resp.data.success && resp.data.address);
 
+                if ($scope.destroy) {
+                    $scope.destroy();
+                }
+
+                forgingModal.deactivate();
+            });
 	}
 }]);
