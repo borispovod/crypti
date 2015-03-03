@@ -1,7 +1,7 @@
 var async = require('async'),
 	Router = require('../helpers/router.js'),
 	util = require('util'),
-	genesisBlock = require("../helpers/genesisblock.json"),
+	genesisBlock = require("../helpers/genesisblock.js"),
 	ip = require("ip"),
 	bignum = require('bignum'),
 	params = require('../helpers/params.js'),
