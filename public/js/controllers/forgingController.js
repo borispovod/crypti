@@ -42,6 +42,7 @@ angular.module('webApp').controller('forgingController', ['$scope', '$rootScope'
 		$scope.getForging();
 	}, 1000 * 30);
 
+
 	$scope.getBlocks();
 	$scope.getForgedAmount();
 	$scope.getForging();
