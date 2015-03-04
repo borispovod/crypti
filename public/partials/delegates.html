@@ -34,6 +34,16 @@
                 </button>
             </td>
         </tr>
+		<tr ng-show="!loadingTop && (!$data || $data.length == 0)">
+                <td colspan="5">
+                    No delegates
+                </td>
+        </tr>
+		<tr ng-show="loadingTop">
+                <td colspan="5">
+                    Loading...
+                </td>
+        </tr>
     </table>
 
     <div class="ng-table-label">
@@ -56,6 +66,16 @@
                     Selected
                 </button>
             </td>
+        </tr>
+		<tr ng-show="!loadingStandby && (!$data || $data.length == 0)">
+                <td colspan="5">
+                    No delegates
+                </td>
+        </tr>
+		<tr ng-show="loadingStandby">
+                <td colspan="5">
+                    Loading...
+                </td>
         </tr>
     </table>
 </div>
