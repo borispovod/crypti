@@ -15,6 +15,10 @@ angular.module('webApp').controller('forgingModalController', ["$scope", "forgin
 	$scope.startForging = function () {
 		$scope.error = null;
 
+		if ($scope.forging) {
+			return $scope.stopForging();
+		}
+
 		$http.post("/api/delegates/forging/enable", { secret : $scope.secretPhrase, publicKey : userService.publicKey })
 			.then(function (resp) {
 				userService.setForging(resp.data.success);
