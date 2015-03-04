@@ -5,33 +5,6 @@ var crypto = require('crypto'),
 	constants = require("./constants.js"),
 	signatureHelper = require("./signature.js");
 
-// get valid transaction fee, if we need to get fee for block generator, use isGenerator = true
-function getTransactionFee(transaction, isGenerator) {
-	var fee = -1;
-
-	switch (transaction.type) {
-		case 0:
-			fee = transaction.fee;
-			break;
-		case 1:
-			fee = 100 * constants.fixedPoint;
-			break;
-		case 2:
-			// delegate registration
-			fee = 50 * constants.fixedPoint;
-			break;
-		case 3:
-			fee = 1 * constants.fixedPoint;
-			break;
-	}
-
-	if (fee == -1) {
-		return false;
-	}
-
-	return fee;
-}
-
 function getLastChar(transaction) {
 	return transaction.recipientId[transaction.recipientId.length - 1];
 }
@@ -127,23 +100,58 @@ function getHash(transaction) {
 }
 
 function getFee(transaction, percent) {
+	var fee = 0;
+
 	switch (transaction.type) {
 		case 0:
-			return parseInt(transaction.amount / 100 * percent);
+			fee = parseInt(transaction.amount / 100 * percent);
 			break;
 
 		case 1:
-			return 100 * constants.fixedPoint;
+			fee = 100 * constants.fixedPoint;
 			break;
 
 		case 2:
-			return 50 * constants.fixedPoint;
+			fee = 10000 * constants.fixedPoint;
 			break;
 
 		case 3:
-			return 1 * constants.fixedPoint;
+			fee = 1 * constants.fixedPoint;
 			break;
 	}
+
+	if (fee <= 0) {
+		fee = 1;
+	}
+
+	return fee;
+}
+
+// get valid transaction fee, if we need to get fee for block generator, use isGenerator = true
+function getTransactionFee(transaction) {
+	var fee = -1;
+
+	switch (transaction.type) {
+		case 0:
+			fee = transaction.fee;
+			break;
+		case 1:
+			fee = 100 * constants.fixedPoint;
+			break;
+		case 2:
+			// delegate registration
+			fee = 10000 * constants.fixedPoint;
+			break;
+		case 3:
+			fee = 1 * constants.fixedPoint;
+			break;
+	}
+
+	if (fee == -1) {
+		return false;
+	}
+
+	return fee;
 }
 
 module.exports = {

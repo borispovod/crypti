@@ -376,10 +376,6 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 
 			var fee = transactionHelper.getFee(transaction, modules.blocks.getFee());
 
-			if (fee <= 0) {
-				fee = 1;
-			}
-
 			transaction.fee = fee;
 
 			switch (transaction.type) {
