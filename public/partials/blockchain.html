@@ -8,12 +8,22 @@
         <tr ng-repeat="block in $data" ng-class="{'green': address == block.generatorId}">
             <td data-title="'ID'">{{block.id}}</td>
             <td data-title="'Date & Time'"><span
-                    ng-show="block.timestamp > 0">{{block.timestamp | timestampFilter}}</span>
-                <span ng-show="block.timestamp == 0">-</span></td>
+					ng-show="block.timestamp > 0">{{block.timestamp | timestampFilter}}</span>
+				<span ng-show="block.timestamp == 0">-</span></td>
             <td data-title="'Amount'">{{block.totalAmount / 100000000 | feeFilter}}</td>
             <td data-title="'Fee'">{{block.totalFee / 100000000 | feeFilter}}</td>
             <td data-title="'Generator'">{{block.generatorId}}</td>
             <td data-title="'Transactions'" ng-click="showBlock(block)" class="pointer">Click to see</td>
+        </tr>
+		<tr ng-show="!loading && (!$data || $data.length == 0)">
+                <td colspan="6">
+                    No blockchain
+                </td>
+        </tr>
+		<tr ng-show="loading">
+                <td colspan="6">
+                    Loading...
+                </td>
         </tr>
     </table>
 </div>

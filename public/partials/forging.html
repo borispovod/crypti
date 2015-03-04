@@ -7,8 +7,9 @@
 	<div class="raw-buttons">
 		<button class="button static">Forged: <span>{{ totalForged / 100000000 | feeFilter }}</span></button>
 		<div id="forging">
+			<h2 class="account-id" ng-show="forging===undefined">Loading forging status...</h2>
 			<button class="button red small" ng-show="forging" ng-click="disableForging()">Disable forging</button>
-			<button class="button green small" ng-show="!forging" ng-click="enableForging()">Enable forging</button>
+			<button class="button green small" ng-show="!forging && forging!=undefined" ng-click="enableForging()">Enable forging</button>
 		</div>
 	</div>
 	<h1>Generated blocks</h1>
@@ -21,7 +22,7 @@
 		<tr ng-repeat="item in blocks">
 			<td>{{item.id}}</td>
 			<td>{{item.height}}</td>
-            <td>{{item.totalFee | feeFilter}}</td>
+            <td>{{item.totalFee/100000000 | feeFilter}}</td>
 		</tr>
 		<tr ng-show="!loading && !blocks || blocks.length == 0">
 			<td colspan="3">
