@@ -3,13 +3,19 @@ require('angular');
 angular.module('webApp').controller('accountController', ['$scope', '$rootScope', '$http', "userService", "$interval", "sendCryptiModal", "secondPassphraseModal", "delegateService",
     function ($rootScope, $scope, $http, userService, $interval, sendCryptiModal, secondPassphraseModal, delegateService) {
         $scope.address = userService.address;
+        $scope.publicKey = userService.publicKey;
         $scope.balance = userService.balance;
         $scope.unconfirmedBalance = userService.unconfirmedBalance;
         $scope.secondPassphrase = userService.secondPassphrase;
         $scope.unconfirmedPassphrase = userService.unconfirmedPassphrase;
         $scope.transactionsLoading = true;
-        $scope.allVotes = 100 * 1000 * 1000;
-        delegateService.getDelegate(userService.senderPublicKey, function (response) {
+        $scope.allVotes = 100
+        * 1000
+        * 1000
+        * 1000
+        * 1000
+        * 100;
+        delegateService.getDelegate($scope.publicKey, function (response) {
             $scope.delegate = response;
         });
 
@@ -54,7 +60,7 @@ angular.module('webApp').controller('accountController', ['$scope', '$rootScope'
         }
 
         $scope.delegateInterval = $interval(function () {
-            delegateService.getDelegate(userService.senderPublicKey, function (response) {
+            delegateService.getDelegate($scope.publicKey, function (response) {
                 $scope.delegate = response;
             });
         }, 1000 * 10);

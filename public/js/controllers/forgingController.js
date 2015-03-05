@@ -30,7 +30,7 @@ angular.module('webApp').controller('forgingController', ['$scope', '$rootScope'
         }
 
         $scope.getDelegate = function () {
-            delegateService.getDelegate(userService.senderPublicKey, function (response) {
+            delegateService.getDelegate(userService.publicKey, function (response) {
                 $scope.delegate = response;
                 userService.setDelegate($scope.delegate);
             });

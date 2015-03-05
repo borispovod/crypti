@@ -18,7 +18,8 @@
             </div>
             <div class="container" ng-show="delegate">
                 <button class="button static label forging" title=" Delegate Status: {{delegate.active?'Active':'Standby'}} as {{delegate.username}}, with {{(delegate.vote/allVotes)*100}}% approval">
-                    Delegate Status: {{delegate.active?'Active':'Standby'}} as {{delegate.username}}, with {{(delegate.vote/allVotes)*100}}% approval</span>
+                    Delegate Status: {{delegate.active?'Active':'Standby'}} as {{delegate.username}}, with {{(delegate.vote/allVotes)*100
+                    | number: 2}}% approval</span>
                 </button>
             </div>
         </div>
