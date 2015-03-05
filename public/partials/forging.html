@@ -7,9 +7,12 @@
 	<div class="raw-buttons">
 		<button class="button static">Forged: <span>{{ totalForged / 100000000 | feeFilter }}</span></button>
 		<div id="forging">
-			<h2 class="account-id" ng-show="forging===undefined">Loading forging status...</h2>
-			<button class="button red small" ng-show="forging" ng-click="disableForging()">Disable forging</button>
-			<button class="button green small" ng-show="!forging && forging!=undefined" ng-click="enableForging()">Enable forging</button>
+			<h2 class="account-id" ng-show="forging===undefined && delegate===undefined">Loading forging status...</h2>
+			<button class="button green small" ng-show="!delegate  && forging!=undefined" ng-click="registrationDelegate()">
+				Delegate Registration
+			</button>
+			<button class="button red small" ng-show="delegate && forging  && delegate!=undefined" ng-click="disableForging()">Disable Forging</button>
+			<button class="button green small" ng-show="delegate && !forging && forging!=undefined && delegate!=undefined" ng-click="enableForging()">Enable Forging</button>
 		</div>
 	</div>
 	<h1>Generated blocks</h1>
