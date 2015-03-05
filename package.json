@@ -51,6 +51,8 @@
     "grunt-jscrambler": "^0.2.7",
     "grunt-obfuscator": "^0.1.0",
     "mocha": "~2.1.0",
-    "should": "~4.6.0"
+    "should": "~4.6.0",
+    "grunt-jsdox": "~0.1.7",
+    "jsdox": "~0.4.9"
   }
 }

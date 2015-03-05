@@ -58,12 +58,26 @@ module.exports = function (grunt) {
 					'./script.builded.js': ['./script.js']
 				}
 			}
+		},
+
+		jsdox: {
+			generate: {
+				src : [
+					'helpers/*.js'
+					//'./modules/*.js'
+				],
+				dest : 'tmp/docs',
+				options : {
+					templateDir : 'var/jsdox'
+				}
+			}
 		}
 	});
 
 	grunt.loadNpmTasks('grunt-obfuscator');
 	grunt.loadNpmTasks("grunt-jscrambler");
 	grunt.loadNpmTasks('grunt-contrib-uglify');
+	grunt.loadNpmTasks('grunt-jsdox');
 	//grunt.loadNpmTasks('grunt-contrib-compress');
 
 	grunt.registerTask("default", ["obfuscator"]);
