@@ -183,17 +183,17 @@ angular.module('webApp').controller('sendCryptiController', ["$scope", "sendCryp
 
 	$scope.sendCrypti = function () {
 
-		$scope.amountError = $scope.convertXCR($scope.fee) + $scope.convertXCR($scope.amount) > userService._unconfirmedBalance;
-		$scope.errorMessage = $scope.amountError ? "Not enough XCR" : "";
-
-		if ($scope.errorMessage) {
-			return;
-		}
-
 		if (($scope.amount + '').indexOf('.') != -1) {
 			$scope.lengthError = $scope.amount.split('.')[1].length > 8;
 			$scope.errorMessage = "More than 8 numbers in decimal part";
-			}
+		}
+
+		if ($scope.lengthError) {
+			return;
+		}
+
+		$scope.amountError = $scope.convertXCR($scope.fee) + $scope.convertXCR($scope.amount) > userService._unconfirmedBalance;
+		$scope.errorMessage = $scope.amountError ? "Not enough XCR" : "";
 
 
 		var data = {
