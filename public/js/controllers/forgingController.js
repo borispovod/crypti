@@ -7,6 +7,7 @@ angular.module('webApp').controller('forgingController', ['$scope', '$rootScope'
         $scope.totalBalance = userService.balance;
         $scope.unconfirmedBalance = userService.unconfirmedBalance;
         $scope.loadingBlocks = true;
+        $scope.delegateInRegistration = false;
 
         $scope.getBlocks = function () {
             $http.get("/api/blocks", {
@@ -31,8 +32,13 @@ angular.module('webApp').controller('forgingController', ['$scope', '$rootScope'
 
         $scope.getDelegate = function () {
             delegateService.getDelegate(userService.publicKey, function (response) {
+                if ($scope.delegateInRegistration) {
+                    $scope.delegateInRegistration = !(!!response);
+                    userService.setDelegateProcess($scope.delegateInRegistration);
+                }
                 $scope.delegate = response;
                 userService.setDelegate($scope.delegate);
+
             });
         }
 
@@ -84,7 +90,7 @@ angular.module('webApp').controller('forgingController', ['$scope', '$rootScope'
             $scope.registrationDelegateModal = registrationDelegateModal.activate({
                 totalBalance: userService.unconfirmedBalance,
                 destroy: function () {
-                    $scope.delegate = userService.delegate;
+                    $scope.delegateInRegistration = userService.delegateInRegistration;
                     $scope.getDelegate();
                 }
             })

@@ -22,8 +22,7 @@ angular.module('webApp').controller('registrationDelegateModalController', ["$sc
 
                 .then(function (resp) {
                     $scope.action = false;
-                    userService.setDelegate(resp.data.success);
-                    $scope.delegate = resp.data.success;
+                    userService.setDelegateProcess(resp.data.success);
 
                     if (resp.data.success) {
                         if ($scope.destroy) {
