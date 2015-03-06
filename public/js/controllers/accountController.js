@@ -2,6 +2,7 @@ require('angular');
 
 angular.module('webApp').controller('accountController', ['$scope', '$rootScope', '$http', "userService", "$interval", "sendCryptiModal", "secondPassphraseModal", "delegateService",
     function ($rootScope, $scope, $http, userService, $interval, sendCryptiModal, secondPassphraseModal, delegateService) {
+        $scope.delegate = undefined;
         $scope.address = userService.address;
         $scope.publicKey = userService.publicKey;
         $scope.balance = userService.balance;
@@ -15,9 +16,6 @@ angular.module('webApp').controller('accountController', ['$scope', '$rootScope'
         * 1000
         * 1000
         * 100;
-        delegateService.getDelegate($scope.publicKey, function (response) {
-            $scope.delegate = response;
-        });
 
         $scope.getTransactions = function () {
             $http.get("/api/transactions", {
@@ -107,4 +105,7 @@ angular.module('webApp').controller('accountController', ['$scope', '$rootScope'
 
         $scope.getAccount();
         $scope.getTransactions();
+        delegateService.getDelegate($scope.publicKey, function (response) {
+            $scope.delegate = response;
+        });
     }]);
