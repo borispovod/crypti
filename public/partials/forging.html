@@ -1,43 +1,55 @@
 <div id="mining">
-	<div class="row">
-		<h1 class="heading">Forging</h1>
+    <div class="row">
+        <h1 class="heading">Forging</h1>
 
-		<h2 class="account-id">Your account: {{ address }}</h2>
-	</div>
-	<div class="raw-buttons">
-		<button class="button static">Forged: <span>{{ totalForged / 100000000 | feeFilter }}</span></button>
-		<div id="forging">
-			<h2 class="account-id" ng-show="forging===undefined && delegate===undefined">Loading forging status...</h2>
-			<button class="button green small" ng-show="!delegate  && forging!=undefined" ng-click="registrationDelegate()">
-				Delegate Registration
-			</button>
-			<button class="button red small" ng-show="delegate && forging  && delegate!=undefined" ng-click="disableForging()">Disable Forging</button>
-			<button class="button green small" ng-show="delegate && !forging && forging!=undefined && delegate!=undefined" ng-click="enableForging()">Enable Forging</button>
-		</div>
-	</div>
-	<h1>Generated blocks</h1>
-	<table border="0" width="100%" cellpadding="0" cellspacing="0" id="blocks">
-		<tr>
-			<th>Block</th>
-			<th>Height</th>
-            <th>Total fee</th>
-		</tr>
-		<tr ng-repeat="item in blocks">
-			<td>{{item.id}}</td>
-			<td>{{item.height}}</td>
+        <h2 class="account-id">Your account: {{ address }}</h2>
+    </div>
+    <div class="raw-buttons" style="min-width: initial;">
+        <button class="button static">Forged: <span>{{ totalForged / 100000000 | feeFilter }}</span></button>
+        <div id="forging">
+            <button class="button static" ng-show="delegateInRegistration">
+                <div id="spinn"></div>
+                Your account is being registered to be a delegate.
+            </button>
+
+            <h2 class="account-id" ng-show="delegate===undefined && forging===undefined">Loading forging status...</h2>
+
+            <button class="button green small" ng-show="!delegate && forging!=undefined  && !delegateInRegistration"
+                    ng-click="registrationDelegate()">
+                Delegate Registration
+            </button>
+            <button class="button red small" ng-show="delegate && forging  && delegate!=undefined"
+                    ng-click="disableForging()">Disable Forging
+            </button>
+            <button class="button green small"
+                    ng-show="delegate && !forging && forging!=undefined && delegate!=undefined"
+                    ng-click="enableForging()">Enable Forging
+            </button>
+        </div>
+    </div>
+    <h1>Generated blocks</h1>
+    <table border="0" width="100%" cellpadding="0" cellspacing="0" id="blocks">
+        <tr>
+            <th>Block</th>
+            <th>Height</th>
+            <th>Total earned fee</th>
+        </tr>
+        <tr ng-repeat="item in blocks">
+            <td>{{item.id}}</td>
+            <td>{{item.height}}</td>
             <td>{{item.totalFee/100000000 | feeFilter}}</td>
-		</tr>
-		<tr ng-show="!loading && !blocks || blocks.length == 0">
-			<td colspan="3">
-				No blocks generated
-			</td>
-		</tr>
-		<tr ng-show="loading">
-			<td colspan="3">
-				Loading...
-			</td>
-		</tr>
-	</table>
+        </tr>
+        <tr ng-show="!loading && !blocks || blocks.length == 0">
+            <td colspan="3">
+                No blocks generated
+            </td>
+        </tr>
+        <tr ng-show="loading">
+            <td colspan="3">
+                Loading...
+            </td>
+        </tr>
+    </table>
 
 
 </div>
