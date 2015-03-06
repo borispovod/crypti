@@ -1,0 +1,20 @@
+<div class="modal">
+    <div class="modal-content">
+        <h1 class="heading">Delegate Registration</h1>
+
+        <div class="clearfix">
+            <p class="lead">
+                Your can register to be a delegate. For this purpose you can choose your own name, which can be used to promote your delegate to get votes by other users.
+            </p>
+        </div>
+		<form class="form" autocomplete="off">
+            <input class="input-text" type="text" ng-model="username" placeholder="Your delegate name" autofocus>
+            <input class="input-text" type="password" ng-model="secretPhrase" placeholder="Your SecretPhrase">
+            <p class="red" ng-show="error">{{error}}.</p>
+            <div class="pull-right">
+				<button type="submit" class="button green small" ng-disabled="!secretPhrase || !username || action"  ng-click="registrationDelegate()">Start</button>
+                <button class="button small" ng-disabled="action" ng-click="close()">Close</button>
+            </div>
+        </form>
+    </div>
+</div>
