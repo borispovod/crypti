@@ -1,144 +1,146 @@
 
-#left-nav{
-    min-height: 486px;
-    width: 224px;
-    height: 100%;
-    position:relative;
-    background-color: #35393b;
-    float: left;
+#left-nav {
+  min-height: 486px;
+  width: 224px;
+  height: 100%;
+  position: relative;
+  background-color: #35393b;
+  float: left;
 }
 
-#logo{
-    margin: 26px 0 0 26px;
-    background-image: url('@{images}/logo.png');
-    background-repeat: no-repeat;
+#logo {
+  margin: 26px auto 0;
+  background-image: url('@{images}/logo.png');
+  background-repeat: no-repeat;
+  height: 56px;
+  width: 70px;
+}
+
+#menu {
+  padding-top: 62px;
+
+  li {
+    position: relative;
     height: 30px;
-    width: 86px;
-}
-
-#menu{
-    padding-top: 62px;
-
-    li{
-        position: relative;
-        height: 30px;
-        margin-bottom: 26px;
-        list-style: none;
-        padding-left: 26px;
-        color: #fff;
-        opacity: 0.2;
-
-        &.active{
-            opacity: 1;
-        }
-        &.active:before{
-            content: "";
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 4px;
-            height: 30px;
-            background-color: #62b670;
-        }
-        a{
-            color: #fff;
-        }
-    }
-}
-
-span.menu-text{
-    display: inline-block;
-    padding-top: 6px;
-    padding-left: 16px;
-    font-weight: bold;
-    font-size: 15px;
-}
-
-
-
-#account-icon{
-    background-image: url('@{images}/account.png');
-    background-repeat: no-repeat;
-    height: 30px;
-    width: 38px;
-    float: left;
-}
-
-#forging-icon{
-    background-image: url('@{images}/forging.png');
-    background-repeat: no-repeat;
-    height: 30px;
-    width: 38px;
-    float: left;
-}
-
-#blockchain-icon{
-    background-image: url('@{images}/blockchain.png');
-    background-repeat: no-repeat;
-    height: 30px;
-    width: 38px;
-    float: left;
-}
-
-#logout-icon{
-    background-image: url('@{images}/logout.png');
-    background-repeat: no-repeat;
-    height: 30px;
-    width: 38px;
-    float: left;
-}
-
-#delegates-icon {
-    background-image: url('@{images}/delegates.png');
-    background-repeat: no-repeat;
-    height: 30px;
-    width: 38px;
-    float: left;
-}
-
-#votes-icon {
-    background-image: url('@{images}/votes.png');
-    background-repeat: no-repeat;
-    height: 30px;
-    width: 38px;
-    float: left;
-}
-
-#logout-item{
-    width: 198px;
-    position: absolute;
-    bottom: 102px;
-    left: 0px;
-    height: 30px;
+    margin-bottom: 26px;
     list-style: none;
     padding-left: 26px;
     color: #fff;
-    opacity: .2;
+    opacity: 0.2;
 
-    &:hover{
-        color: #fff;
-        opacity: 1;
+    &.active {
+      opacity: 1;
     }
-
-    a{
-        color: #fff;
+    &.active:before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 4px;
+      height: 30px;
+      background-color: #62b670;
     }
+    a {
+      color: #fff;
+    }
+  }
+  #submenu {
+    li {
+      padding-left: 52px;
+    }
+  }
 }
 
-
-#inc{
-    font-size: 14px;
-    width: 198px;
-    position: absolute;
-    bottom: 30px;
-    left: 0px;
-    padding-left: 26px;
-    color: #606365;
+span.menu-text {
+  display: inline-block;
+  padding-top: 6px;
+  padding-left: 16px;
+  font-weight: bold;
+  font-size: 15px;
 }
 
-#right-part{
-    background-color: #ebeced;
-    height: 100%;
-    overflow-y: scroll;
+#account-icon {
+  background-image: url('@{images}/account.png');
+  background-repeat: no-repeat;
+  height: 30px;
+  width: 38px;
+  float: left;
+}
+
+#forging-icon {
+  background-image: url('@{images}/forging.png');
+  background-repeat: no-repeat;
+  height: 30px;
+  width: 38px;
+  float: left;
+}
+
+#blockchain-icon {
+  background-image: url('@{images}/blockchain.png');
+  background-repeat: no-repeat;
+  height: 30px;
+  width: 38px;
+  float: left;
+}
+
+#logout-icon {
+  background-image: url('@{images}/logout.png');
+  background-repeat: no-repeat;
+  height: 30px;
+  width: 38px;
+  float: left;
+}
+
+#delegates-icon {
+  background-image: url('@{images}/delegates.png');
+  background-repeat: no-repeat;
+  height: 30px;
+  width: 38px;
+  float: left;
+}
+
+#votes-icon {
+  background-image: url('@{images}/votes.png');
+  background-repeat: no-repeat;
+  height: 30px;
+  width: 38px;
+  float: left;
+}
+
+#logout-item {
+  width: 198px;
+  position: absolute;
+  bottom: 102px;
+  left: 0px;
+  height: 30px;
+  list-style: none;
+  padding-left: 26px;
+  color: #fff;
+  opacity: .2;
+
+  &:hover {
+    color: #fff;
+    opacity: 1;
+  }
+
+  a {
+    color: #fff;
+  }
+}
+
+#inc {
+  font-size: 14px;
+  width: 198px;
+  position: absolute;
+  bottom: 30px;
+  left: 0px;
+  padding-left: 26px;
+  color: #606365;
+}
+
+#right-part {
+  background-color: #ebeced;
+  height: 100%;
+  overflow-y: scroll;
 }
 
