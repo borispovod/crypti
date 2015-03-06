@@ -12,7 +12,7 @@ function relational2object(rows) {
 		var __block = getBlock(rows[i]);
 		if (__block) {
 			if (!blocks[__block.id]) {
-				if (__block.id == genesisblock.blockId) {
+				if (__block.id == genesisblock.block.id) {
 					__block.generationSignature = (new Array(65)).join('0');
 				}
 
@@ -100,7 +100,8 @@ function getDelegate(raw) {
 			username: raw.d_username,
 			publicKey: raw.t_senderPublicKey,
 			transactionId: raw.t_id,
-			address: raw.t_senderId
+			address: raw.t_senderId,
+			created: parseInt(raw.t_timestamp)
 		}
 
 		return d;

@@ -8,7 +8,6 @@ var crypto = require('crypto'),
 	slots = require('../helpers/slots.js'),
 	schedule = require('node-schedule'),
 	util = require('util'),
-	genesisblock = require("../helpers/genesisblock.js"),
 	constants = require('../helpers/constants.js');
 
 require('array.prototype.find'); //old node fix
@@ -137,15 +136,7 @@ function attachApi() {
 		publicKeys = publicKeys.slice(offset, realLimit);
 
 		var result = publicKeys.map(function (publicKey) {
-			var index = publicKeyIndex[publicKey];
-			return {
-				username: delegates[index].username,
-				address: delegates[index].address,
-				publicKey: publicKey,
-				transactionId: delegates[index].transactionId,
-				vote: votes[publicKey],
-				rate: rateSort[publicKey]
-			};
+			return getDelegate({publicKey: publicKey}, rateSort);
 		})
 
 		res.json({success: true, delegates: result, totalCount: count});
@@ -156,67 +147,12 @@ function attachApi() {
 		var publicKey = params.string(req.query.publicKey, true);
 		var username = params.string(req.query.username, true);
 
-		var rateSort = {};
-		Object.keys(publicKeyIndex).sort(function compare(a, b) {
-			if (votes[a] > votes[b])
-				return -1;
-			if (votes[a] < votes[b])
-				return 1;
-			return 0;
-		}).forEach(function (item, index) {
-			rateSort[item] = index + 1;
-		});
-
-
-		if (transactionId !== null) {
-			var index = transactionIdIndex[transactionId];
-			if (index === undefined) {
-				return res.json({success: false, error: "Delagate not found"});
-			}
-			return res.json({
-				success: true, delegate: {
-					username: delegates[index].username,
-					address: delegates[index].address,
-					publicKey: delegates[index].publicKey,
-					transactionId: delegates[index].transactionId,
-					vote: votes[delegates[index].publicKey],
-					rate: rateSort[delegates[index].publicKey]
-				}
-			});
+		var delegate = getDelegate({publicKey: publicKey, username: username, transactionId: transactionId});
+		if (delegate) {
+			res.json({success: true, delegate: delegate});
+		} else {
+			res.json({success: false, error: 'Delegate not found'});
 		}
-		if (publicKey !== null) {
-			var index = publicKeyIndex[publicKey];
-			if (index === undefined) {
-				return res.json({success: false, error: "Delagate not found"});
-			}
-			return res.json({
-				success: true, delegate: {
-					username: delegates[index].username,
-					address: delegates[index].address,
-					publicKey: publicKey,
-					transactionId: delegates[index].transactionId,
-					vote: votes[publicKey],
-					rate: rateSort[publicKey]
-				}
-			});
-		}
-		if (username !== null) {
-			var index = namesIndex[username];
-			if (index === undefined) {
-				return res.json({success: false, error: "Delagate not found"});
-			}
-			return res.json({
-				success: true, delegate: {
-					username: delegates[index].username,
-					address: delegates[index].address,
-					publicKey: delegates[index].publicKey,
-					transactionId: delegates[index].transactionId,
-					vote: votes[delegates[index].publicKey],
-					rate: rateSort[delegates[index].publicKey]
-				}
-			});
-		}
-		res.json({success: false});
 	});
 
 	router.get('/forging/getForgedByAccount', function (req, res) {
@@ -234,7 +170,14 @@ function attachApi() {
 	});
 
 	router.post('/forging/enable', function (req, res) {
+		var ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+
+		if (library.config.forging.access.whiteList.length > 0 && library.config.forging.access.whiteList.indexOf(ip) < 0) {
+			return res.json({success: false, error: "Accesss denied"});
+		}
+
 		var secret = params.string(req.body.secret);
+		var publicKey = params.string(req.body.publicKey);
 
 		if (!secret) {
 			return res.json({success: false, error: "Provide secret in request"});
@@ -243,6 +186,12 @@ function attachApi() {
 		var keypair = ed.MakeKeypair(crypto.createHash('sha256').update(secret, 'utf8').digest());
 		var address = modules.accounts.getAddressByPublicKey(keypair.publicKey.toString('hex'));
 		var account = modules.accounts.getAccount(address);
+
+		if (publicKey) {
+			if (keypair.publicKey.toString('hex') != publicKey) {
+				return res.json({success: false, error: "Wrong secret key"});
+			}
+		}
 
 		if (keypairs[keypair.publicKey.toString('hex')]) {
 			return res.json({success: false, error: "Forging on this account already enabled"});
@@ -262,7 +211,14 @@ function attachApi() {
 	});
 
 	router.post('/forging/disable', function (req, res) {
+		var ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+
+		if (library.config.forging.access.whiteList.length > 0 && library.config.forging.access.whiteList.indexOf(ip) < 0) {
+			return res.json({success: false, error: "Accesss denied"});
+		}
+
 		var secret = params.string(req.body.secret);
+		var publicKey = params.string(req.body.publicKey);
 
 		if (!secret) {
 			return res.json({success: false, error: "Provide secret in request"});
@@ -271,6 +227,12 @@ function attachApi() {
 		var keypair = ed.MakeKeypair(crypto.createHash('sha256').update(secret, 'utf8').digest());
 		var address = modules.accounts.getAddressByPublicKey(keypair.publicKey.toString('hex'));
 		var account = modules.accounts.getAccount(address);
+
+		if (publicKey) {
+			if (keypair.publicKey.toString('hex') != publicKey) {
+				return res.json({success: false, error: "Wrong secret key"});
+			}
+		}
 
 		if (!keypairs[keypair.publicKey.toString('hex')]) {
 			return res.json({success: false, error: "Forger with this public key not found"});
@@ -362,6 +324,51 @@ function attachApi() {
 	});
 }
 
+function getDelegate(filter, rateSort) {
+	var index;
+
+	if (filter.transactionId) {
+		index = transactionIdIndex[filter.transactionId];
+	}
+	if (filter.publicKey) {
+		index = publicKeyIndex[filter.publicKey];
+	}
+	if (filter.username) {
+		index = namesIndex[filter.username];
+	}
+
+	if (index === undefined) {
+		return false;
+	}
+
+	if (!rateSort) {
+		rateSort = {};
+		Object.keys(publicKeyIndex).sort(function compare(a, b) {
+			if (votes[a] > votes[b])
+				return -1;
+			if (votes[a] < votes[b])
+				return 1;
+			return 0;
+		}).forEach(function (item, index) {
+			rateSort[item] = index + 1;
+		});
+	}
+
+	var delegate = delegates[index];
+	var delegateFirstSlot = slots.getSlotNumber(delegate.created);
+	var passTours = Math.floor((slots.getSlotNumber() - delegateFirstSlot) / slots.delegates);
+
+	return {
+		username: delegate.username,
+		address: delegate.address,
+		publicKey: delegate.publicKey,
+		transactionId: delegate.transactionId,
+		vote: votes[delegate.publicKey],
+		rate: rateSort[delegate.publicKey],
+		productivity: (Math.round(((passTours - modules.round.missedTours(delegate.publicKey)) * 100 / passTours) * 10) / 10) || 0
+	};
+}
+
 function getKeysSortByVote(votes) {
 	return Object.keys(votes).sort(function compare(a, b) {
 		if (votes[a] > votes[b]) return -1;
@@ -373,7 +380,7 @@ function getKeysSortByVote(votes) {
 }
 
 function getBlockSlotData(slot, height) {
-	var activeDelegates = self.generateDelegateList(getKeysSortByVote(votes), height);
+	var activeDelegates = self.generateDelegateList(height);
 
 	var currentSlot = slot;
 	var lastSlot = slots.getLastSlot(currentSlot);
@@ -457,7 +464,8 @@ function loadMyDelegates() {
 }
 
 //public methods
-Delegates.prototype.generateDelegateList = function (sortedDelegateList, height) {
+Delegates.prototype.generateDelegateList = function (height) {
+	var sortedDelegateList = getKeysSortByVote(votes);
 	var truncDelegateList = sortedDelegateList.slice(0, slots.delegates);
 	var seedSource = modules.round.calc(height).toString();
 
@@ -526,26 +534,25 @@ Delegates.prototype.removeUnconfirmedDelegate = function (delegate) {
 	delete unconfirmedNames[delegate.publicKey];
 }
 
-Delegates.prototype.getDelegateByPublicKey = function (publicKey) {
-	var rateSort = {};
-	Object.keys(publicKeyIndex).sort(function compare(a, b) {
-		if (votes[a] > votes[b])
-			return -1;
-		if (votes[a] < votes[b])
-			return 1;
-		return 0;
-	}).forEach(function (item, index) {
-		rateSort[item] = index + 1;
+Delegates.prototype.fork = function (block, cause) {
+	library.logger.info('fork', {
+		delegate: getDelegate({publicKey: block.generatorPublicKey}),
+		block: {id: block.id, timestamp: block.timestamp, height: block.height, previousBlock: block.previousBlock},
+		cause: cause
 	});
-	var index = publicKeyIndex[publicKey];
-	return {
-		username: delegates[index].username,
-		publicKey: delegates[index].publicKey,
-		address: delegates[index].address,
-		transactionId: delegates[index].transactionId,
-		vote: votes[publicKey],
-		rate: rateSort[publicKey]
-	};
+	library.dbLite.query("INSERT INTO forks_stat (delegatePublicKey, blockTimestamp, blockId, blockHeight, previousBlock, cause) " +
+	"VALUES ($delegatePublicKey, $blockTimestamp, $blockId, $blockHeight, $previousBlock, $cause);", {
+		delegatePublicKey: block.generatorPublicKey,
+		blockTimestamp: block.timestamp,
+		blockId: block.id,
+		blockHeight: block.height,
+		previousBlock: block.previousBlock,
+		cause: cause
+	});
+}
+
+Delegates.prototype.getDelegateByPublicKey = function (publicKey) {
+	return getDelegate({publicKey: publicKey});
 }
 
 Delegates.prototype.addFee = function (publicKey, value) {
@@ -583,7 +590,7 @@ Delegates.prototype.uncache = function (delegate) {
 }
 
 Delegates.prototype.validateBlockSlot = function (block) {
-	var activeDelegates = self.generateDelegateList(getKeysSortByVote(votes), block.height);
+	var activeDelegates = self.generateDelegateList(block.height);
 
 	var currentSlot = slots.getSlotNumber(block.timestamp);
 	var delegate_id = activeDelegates[currentSlot % slots.delegates];

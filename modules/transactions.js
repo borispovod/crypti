@@ -426,12 +426,17 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 					}
 					break;
 				case 3:
+
 					if (transaction.recipientId != transaction.senderId) {
 						return done("Incorrect recipient");
 					}
 
 					if (!modules.delegates.checkDelegates(transaction.senderPublicKey, transaction.asset.votes)) {
 						return done("Can't verify votes, you already voted for this delegate: " + transaction.id);
+					}
+
+					if (transaction.asset.votes !== null && transaction.asset.votes.length > 33) {
+						return done("Can't verify votes, most be less then 33 delegates");
 					}
 					break;
 				default:
@@ -448,7 +453,7 @@ Transactions.prototype.apply = function (transaction) {
 	var sender = modules.accounts.getAccountByPublicKey(transaction.senderPublicKey);
 	var amount = transaction.amount + transaction.fee;
 
-	if (sender.balance < amount && transaction.blockId != genesisblock.blockId) {
+	if (sender.balance < amount && transaction.blockId != genesisblock.block.id) {
 		return false;
 	}
 
@@ -500,7 +505,7 @@ Transactions.prototype.undoAllUnconfirmed = function () {
 Transactions.prototype.applyUnconfirmed = function (transaction) {
 	var sender = modules.accounts.getAccountByPublicKey(transaction.senderPublicKey);
 
-	if (!sender && transaction.blockId != genesisblock.blockId) {
+	if (!sender && transaction.blockId != genesisblock.block.id) {
 		return false;
 	} else {
 		sender = modules.accounts.getAccountOrCreateByPublicKey(transaction.senderPublicKey);
@@ -532,7 +537,7 @@ Transactions.prototype.applyUnconfirmed = function (transaction) {
 
 	var amount = transaction.amount + transaction.fee;
 
-	if (sender.unconfirmedBalance < amount && transaction.blockId != genesisblock.blockId) {
+	if (sender.unconfirmedBalance < amount && transaction.blockId != genesisblock.block.id) {
 		if (transaction.type == 1) {
             sender.unconfirmedSignature = false;
         } else if (transaction.type == 2) {
