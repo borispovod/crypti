@@ -1,8 +1,8 @@
 <div id="account">
     <div class="clearfix">
-        <h1 class="heading">Forging</h1>
+        <h1 class="heading">Forging > Delegates</h1>
 
-        <div class="vote-delegates"><h2>{{voteList.list.toServer.length }} Delegates selected</h2>
+        <div class="vote-delegates"><h2>{{voteList.list.toServer.length }}/{{countStandby + countTop}} Delegates selected</h2>
             <button class="button green" id="delegates-list" ng-disabled="voteList.list.toServer.length==0"
                     ng-click="voteList.toggle()" ng-class="{'active': showVotes}">View Selection
                 <ul>
@@ -18,7 +18,7 @@
     </div>
     <table ng-table="tableTopDelegates" border="0" width="100%" cellpadding="0" cellspacing="0">
         <tr ng-repeat="delegate in $data">
-            <td data-title="'Rate'" sortable="'rate'">{{delegate.rate}}</td>
+            <td data-title="'Rank'" sortable="'rate'">{{delegate.rate}}</td>
             <td data-title="'Name'" sortable="'username'">{{delegate.username}}</td>
             <td data-title="'Crypti Address'">{{delegate.address}}</td>
             <td data-title="'Approval'">{{getApproval(delegate.vote) | number: 2}}%</td>
@@ -51,7 +51,7 @@
     </div>
     <table ng-table="tableStandbyDelegates" border="0" width="100%" cellpadding="0" cellspacing="0">
         <tr ng-repeat="delegate in $data">
-            <td data-title="'Rate'" sortable="'rate'">{{delegate.rate}}</td>
+            <td data-title="'Rank'" sortable="'rate'">{{delegate.rate}}</td>
             <td data-title="'Name'" sortable="'username'">{{delegate.username}}</td>
             <td data-title="'Crypti Address'">{{delegate.address}}</td>
             <td data-title="'Approval'">{{getApproval(delegate.vote) | number: 2}}%</td>
