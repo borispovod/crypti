@@ -7,6 +7,7 @@
     <table ng-table="tableBlocks" border="0" width="100%" cellpadding="0" cellspacing="0">
         <tr ng-repeat="block in $data" ng-class="{'green': address == block.generatorId}">
             <td data-title="'ID'">{{block.id}}</td>
+            <td data-title="'Height'">{{block.height}}</td>
             <td data-title="'Date & Time'"><span
 					ng-show="block.timestamp > 0">{{block.timestamp | timestampFilter}}</span>
 				<span ng-show="block.timestamp == 0">-</span></td>
