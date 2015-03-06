@@ -9,11 +9,11 @@
 }
 
 #logo {
-  margin: 26px auto 0;
+  margin: 26px auto 26px;
   background-image: url('@{images}/logo.png');
   background-repeat: no-repeat;
-  height: 56px;
-  width: 70px;
+  height: 33px;
+  width: 94px;
 }
 
 #menu {
@@ -27,7 +27,9 @@
     padding-left: 26px;
     color: #fff;
     opacity: 0.2;
-
+    &:hover {
+      opacity: 0.5;
+    }
     &.active {
       opacity: 1;
     }
@@ -110,6 +112,10 @@ span.menu-text {
 #logout-item {
   width: 198px;
   position: absolute;
+  @media (max-height: 560px) {
+    position: relative;
+    bottom: 0;
+  }
   bottom: 102px;
   left: 0px;
   height: 30px;
