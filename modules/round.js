@@ -11,7 +11,7 @@ var feesByRound = {};
 var delegatesByRound = {};
 var unFeesByRound = {};
 var unDelegatesByRound = {};
-var skipStat = {};
+var forgedBlocks = {};
 
 //constructor
 function Round(cb, scope) {
@@ -62,8 +62,8 @@ Round.prototype.backwardTick = function (block, previousBlock) {
 		if (unDelegatesByRound[round].length == slots.delegates) {
 			var roundDelegates = modules.delegates.generateDelegateList(block.height);
 			roundDelegates.forEach(function(delegate){
-				if (unDelegatesByRound[round].indexOf(delegate) == -1) {
-					skipStat[delegate] = (skipStat[delegate] || 0) - 1;
+				if (unDelegatesByRound[round].indexOf(delegate) !== -1) {
+					forgedBlocks[delegate] = (forgedBlocks[delegate] || 0) - 1;
 				}
 			});
 
@@ -102,8 +102,8 @@ Round.prototype.backwardTick = function (block, previousBlock) {
 	}
 }
 
-Round.prototype.missedTours = function(publicKey){
-	return skipStat[publicKey] || 0
+Round.prototype.passedTours = function(publicKey){
+	return forgedBlocks[publicKey] || 0
 }
 
 Round.prototype.tick = function (block) {
@@ -121,8 +121,8 @@ Round.prototype.tick = function (block) {
 		if (delegatesByRound[round].length == slots.delegates) {
 			var roundDelegates = modules.delegates.generateDelegateList(block.height);
 			roundDelegates.forEach(function(delegate){
-				if (delegatesByRound[round].indexOf(delegate) == -1) {
-					skipStat[delegate] = (skipStat[delegate] || 0) + 1;
+				if (delegatesByRound[round].indexOf(delegate) !== -1) {
+					forgedBlocks[delegate] = (forgedBlocks[delegate] || 0) + 1;
 				}
 			});
 
