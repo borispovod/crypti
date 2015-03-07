@@ -10,8 +10,10 @@ angular.module('webApp').controller('votedDelegatesController', ['$scope', '$roo
         * 1000
         * 100;
 
+        $scope.count = 0;
+
         $scope.address = userService.address;
-		$scope.loading = true;
+        $scope.loading = true;
         $scope.showVotes = false;
 
         $scope.getApproval = function (vote) {
@@ -90,7 +92,8 @@ angular.module('webApp').controller('votedDelegatesController', ['$scope', '$roo
             total: 0,
             getData: function ($defer, params) {
                 delegateService.getMyDelegates($defer, params, $scope.filter, userService.address, function () {
-				$scope.loading = false;
+                    $scope.count = params.total();
+                    $scope.loading = false;
                     $timeout(function () {
                         $scope.unconfirmedTransactions.getList();
                     }, 1000);
