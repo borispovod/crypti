@@ -6,17 +6,19 @@
         <li ui-sref-active="active"><a ui-sref="main.account">
             <div id="account-icon"></div>
             <span class="menu-text">Account</span></a></li>
-        <li ui-sref-active="active"><a ui-sref="main.delegates">
-            <div id="delegates-icon"></div>
-            <span class="menu-text">Delegates</span></a></li>
-        <li ui-sref-active="active">
-            <div id="votes-icon"></div>
-            <a ui-sref="main.votes">
-                <span class="menu-text">My Votes</span></a>
-        </li>
         <li ui-sref-active="active"><a ui-sref="main.forging">
             <div id="forging-icon"></div>
             <span class="menu-text">Forging</span></a></li>
+        <ul id="submenu">
+            <li ui-sref-active="active"><a ui-sref="main.delegates">
+                <div id="delegates-icon"></div>
+                <span class="menu-text">Delegates</span></a></li>
+            <li ui-sref-active="active">
+                <div id="votes-icon"></div>
+                <a ui-sref="main.votes">
+                    <span class="menu-text">My Votes</span></a>
+            </li>
+        </ul>
         <li ui-sref-active="active"><a ui-sref="main.blockchain">
             <div id="blockchain-icon"></div>
             <span class="menu-text">Blockchain</span></a></li>

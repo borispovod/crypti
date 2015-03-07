@@ -260,7 +260,7 @@ Peer.prototype.update = function (peer, cb) {
 			if (peer.state !== undefined) {
 				params.state = peer.state;
 			}
-			library.dbLite.query("UPDATE peers SET os = $os, sharePort = $sharePort, version = $version" + (peer.state !== undefined ? ", state = $state " : "") + " WHERE ip = $ip and port = $port;", params, cb);
+			library.dbLite.query("UPDATE peers SET os = $os, sharePort = $sharePort, version = $version" + (peer.state !== undefined ? ", state = CASE WHEN state = 0 THEN state ELSE $state END " : "") + " WHERE ip = $ip and port = $port;", params, cb);
 		}
 	], function (err) {
 		err && library.logger.error('Peer#update', err);

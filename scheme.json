@@ -9,20 +9,78 @@
 	],
 	"delegates": [
 		{
-			"publicKey": "e3d269067ba5f135e0bc4a7e8049aac0d3e9f3e99adc146112a1148dc5756b38",
-			"address": "809937722284725764C",
+			"publicKey": "2f27f2371b87e0314589fe688f177d99998284a7480f52920ce6d8287889cb92",
+			"address": "6722732051431648150C",
 			"username": "genesisDelegate1"
 		},
 		{
-			"publicKey": "fac964e0fa9ecced32abbbc121610f434ed0a6cb9d431ee2f97cb89438cd961e",
-			"address": "14667136987565903073C",
+			"publicKey": "909fe16895ad938f93ba4a6b389a7b342a356bd1812be164e7f5f59342477639",
+			"address": "14669905870264041156C",
 			"username": "genesisDelegate2"
 		},
 		{
-			"publicKey": "5377d8debc81e2c4260109bc8361390672282cc013a3e60d4bf50c5f0b7534bb",
-			"address": "12781904428616091771C",
+			"publicKey": "528cf0e83a8dc87540a191c90b2e45fb0c706dee60ea46aeabc7a4b5ae605896",
+			"address": "7987634526727059308C",
 			"username": "genesisDelegate3"
+		},
+		{
+			"publicKey": "936e4460b88f5c47ed4d9f70e6fb87553981810c1c5c1d3df76caa30397b23a5",
+			"address": "3572662744243556299C",
+			"username": "genesisDelegate4"
+		},
+		{
+			"publicKey": "1c4c2314aef1fd9f7c87acffa52057c12547e1b64d717fb2a4d12116831e7d03",
+			"address": "3791329734340670627C",
+			"username": "genesisDelegate5"
+		},
+		{
+			"publicKey": "26faf297388c66101e2367e6fc7d49aa4e6e77deb2336c004fe207a43fcf0453",
+			"address": "13664373864975696643C",
+			"username": "genesisDelegate6"
+		},
+		{
+			"publicKey": "78fdcae88bb690a9b256e8311e9ef24b54e16a55052d5f929de7c02e2ee36099",
+			"address": "14752425904649575882C",
+			"username": "genesisDelegate7"
+		},
+		{
+			"publicKey": "f9532daae55589bdff4a2806da1fba0df2b80fd1031ca4e5d8043e5c2fc57e7d",
+			"address": "2025123698032318871C",
+			"username": "genesisDelegate8"
+		},
+		{
+			"publicKey": "b39e2d37f0cdea7775c944b9735ccbd50cd20ea664fa9ce2dadcb16c60dc96bd",
+			"address": "65541670470231702C",
+			"username": "genesisDelegate9"
+		},
+		{
+			"publicKey": "4d67c2a79ef5025fcaa19ffda23f7f0cfe6b8aaadeb82f6df5c3180ec6628bbf",
+			"address": "15075028029853211004C",
+			"username": "genesisDelegate10"
+		},
+		{
+			"publicKey": "cce8f14546f31fa4b8bf7ea661602d28a027a756886cf7833b9301223d8712fb",
+			"address": "16354452705254315666C",
+			"username": "genesisDelegate11"
 		}
 	],
-	"votes": []
+	"votes": [
+		{
+			"publicKey": "631b91fa537f74e23addccd30555fbc7729ea267c7e0517cbf1bfcc46354abc3",
+			"address": "",
+			"votes": [
+				"+2f27f2371b87e0314589fe688f177d99998284a7480f52920ce6d8287889cb92",
+				"+909fe16895ad938f93ba4a6b389a7b342a356bd1812be164e7f5f59342477639",
+				"+528cf0e83a8dc87540a191c90b2e45fb0c706dee60ea46aeabc7a4b5ae605896",
+				"+936e4460b88f5c47ed4d9f70e6fb87553981810c1c5c1d3df76caa30397b23a5",
+				"+1c4c2314aef1fd9f7c87acffa52057c12547e1b64d717fb2a4d12116831e7d03",
+				"+26faf297388c66101e2367e6fc7d49aa4e6e77deb2336c004fe207a43fcf0453",
+				"+78fdcae88bb690a9b256e8311e9ef24b54e16a55052d5f929de7c02e2ee36099",
+				"+f9532daae55589bdff4a2806da1fba0df2b80fd1031ca4e5d8043e5c2fc57e7d",
+				"+b39e2d37f0cdea7775c944b9735ccbd50cd20ea664fa9ce2dadcb16c60dc96bd",
+				"+4d67c2a79ef5025fcaa19ffda23f7f0cfe6b8aaadeb82f6df5c3180ec6628bbf",
+				"+cce8f14546f31fa4b8bf7ea661602d28a027a756886cf7833b9301223d8712fb"
+			]
+		}
+	]
 }
