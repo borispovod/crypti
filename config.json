@@ -22,11 +22,7 @@
 		"blackList": []
 	},
 	"forging": {
-<<<<<<< HEAD
 		"secret": "",
-=======
-		"secret" : "",
->>>>>>> 0.2.0
 		"access": {
 			"whiteList": []
 		}
