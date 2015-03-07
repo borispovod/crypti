@@ -745,6 +745,8 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 		}
 
 		if (block.previousBlock != lastBlock.id) {
+			//fork same height and different previous block
+			modules.delegates.fork(block, 1);
 			return done("Can't verify previous block: " + block.id);
 		}
 
@@ -760,6 +762,8 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 		}
 
 		if (!modules.delegates.validateBlockSlot(block)) {
+			//fork another delegate's slot
+			modules.delegates.fork(block, 3);
 			return done("Can't verify slot: " + block.id);
 		}
 
@@ -788,6 +792,8 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 						var tId = rows.length && rows[0].id;
 
 						if (tId) {
+							//fork transactions already exist
+							modules.delegates.fork(block, 2);
 							cb("Transaction already exists: " + transaction.id);
 						} else {
 							if (appliedTransactions[transaction.id]) {
@@ -1068,11 +1074,15 @@ Blocks.prototype.generateBlock = function (keypair, timestamp, cb) {
 //events
 Blocks.prototype.onReceiveBlock = function (block) {
 	library.sequence.add(function (cb) {
-		if (block.previousBlock == lastBlock.id) {
+		if (block.previousBlock == lastBlock.id && lastBlock.height === block.height + 1) {
 			library.logger.log('recieved new block id:' + block.id + ' height:' + block.height + ' slot:' + slots.getSlotNumber(block.timestamp))
 			self.processBlock(block, true, cb);
+		} else if (lastBlock.height === block.height + 1) {
+			//fork same height and different previous block
+			modules.delegates.fork(block, 1);
+			cb('fork');
 		} else {
-			cb('fork')
+			cb();
 		}
 	});
 }

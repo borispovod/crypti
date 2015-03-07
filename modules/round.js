@@ -11,6 +11,7 @@ var feesByRound = {};
 var delegatesByRound = {};
 var unFeesByRound = {};
 var unDelegatesByRound = {};
+var skipStat = {};
 
 //constructor
 function Round(cb, scope) {
@@ -59,6 +60,13 @@ Round.prototype.backwardTick = function (block, previousBlock) {
 
 	if (prevRound !== round) {
 		if (unDelegatesByRound[round].length == slots.delegates) {
+			var roundDelegates = modules.delegates.generateDelegateList(block.height);
+			roundDelegates.forEach(function(delegate){
+				if (unDelegatesByRound[round].indexOf(delegate) == -1) {
+					skipStat[delegate] = (skipStat[delegate] || 0) - 1;
+				}
+			});
+
 			while (tasks.length) {
 				var task = tasks.shift();
 				task();
@@ -94,6 +102,10 @@ Round.prototype.backwardTick = function (block, previousBlock) {
 	}
 }
 
+Round.prototype.missedTours = function(publicKey){
+	return skipStat[publicKey] || 0
+}
+
 Round.prototype.tick = function (block) {
 	var round = self.calc(block.height);
 
@@ -107,6 +119,13 @@ Round.prototype.tick = function (block) {
 
 	if (round !== nextRound) {
 		if (delegatesByRound[round].length == slots.delegates) {
+			var roundDelegates = modules.delegates.generateDelegateList(block.height);
+			roundDelegates.forEach(function(delegate){
+				if (delegatesByRound[round].indexOf(delegate) == -1) {
+					skipStat[delegate] = (skipStat[delegate] || 0) + 1;
+				}
+			});
+
 			while (tasks.length) {
 				var task = tasks.shift();
 				task();
@@ -150,10 +169,6 @@ Round.prototype.runOnFinish = function (task) {
 //events
 Round.prototype.onBind = function (scope) {
 	modules = scope;
-}
-
-Round.prototype.onFinishRound = function (round) {
-
 }
 
 //export
