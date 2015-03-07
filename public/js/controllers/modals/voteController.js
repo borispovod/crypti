@@ -37,7 +37,6 @@ angular.module('webApp').controller('voteController', ["$scope", "voteModal", "$
 
 
     $scope.vote = function () {
-
         var data = {
             secret: $scope.secretPhrase,
             delegates: $scope.voteList,
