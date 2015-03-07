@@ -2,7 +2,7 @@
     <div class="modal-content">
         <h1 class="heading">Send Crypti</h1>
         <form class="form" autocomplete="off">
-            <input class="input-text" ng-class="{err: !accountValid || (address == to)}" type="text" ng-model="to" placeholder="To" ng-blur="accountChanged($event)">
+            <input class="input-text" ng-class="{err: !accountValid}" type="text" ng-model="to" placeholder="To" ng-blur="accountChanged($event)">
             <input class="input-text" ng-class="{err: amount < 0 || amountError || lengthError}" type="text" ng-model="amount" placeholder="Amount" ng-change="recalculateFee($event)" ng-pattern="onlyNumbers">
             <input class="input-text" ng-class="{err: fee < 0 || amountError }" type="text" ng-model="fee" placeholder="Network fee percent: {{currentFee}}%" readonly>
             <input class="input-text" type="password" ng-model="secretPhrase" placeholder="Your secretPhrase" ng-trim="false">
@@ -10,7 +10,7 @@
             <p class="error" ng-show="(address == to)">Self sending.</p>
             <p class="error">{{errorMessage}}.</p>
             <div class="pull-right">
-                <button type="submit" class="button green small" ng-disabled="(address == to) || sending || !to || !secretPhrase || !amount || !fee || amount < 0 || fee < 0 || !accountValid || (secondPassphrase && !secondPhrase)" ng-click="sendCrypti()">Send</button>
+                <button type="submit" class="button green small" ng-disabled="sending || !to || !secretPhrase || !amount || !fee || amount < 0 || fee < 0 || !accountValid || (secondPassphrase && !secondPhrase)" ng-click="sendCrypti()">Send</button>
                 <button class="button small" ng-click="close()">Close</button>
             </div>
         </form>
