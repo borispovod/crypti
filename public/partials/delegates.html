@@ -2,18 +2,21 @@
     <div class="clearfix">
         <h1 class="heading">Forging > Delegates</h1>
 
-        <div class="vote-delegates" ng-class="{'active': showVotes}"><h2>{{voteList.list.toServer.length
+        <div class="vote-delegates"><h2>{{voteList.list.toServer.length
             }}/{{countStandby + countTop}} Delegates
             selected</h2>
-            <button class="button green" id="delegates-list" ng-disabled="voteList.list.toServer.length==0"
-                    ng-click="voteList.toggle()">View Selection
-            </button>
-            <button class="button green" ng-click="vote()" ng-disabled="voteList.list.toServer.length==0">Vote</button>
-            <div class="overlay" ng-click="voteList.toggle()">
+            <div class="vote-navigation" ng-class="{'active': showVotes}">
+                <button class="button green" id="delegates-list" ng-disabled="voteList.list.toServer.length==0"
+                        ng-click="voteList.toggle()">View Selection
+                </button>
+                <button class="button green" ng-click="vote()" ng-disabled="voteList.list.toServer.length==0">Vote
+                </button>
+                <div class="overlay" ng-click="voteList.toggle()">
+                </div>
+                <ul>
+                    <li ng-repeat="vote in voteList.list.toShow">{{vote}}</li>
+                </ul>
             </div>
-            <ul>
-                <li ng-repeat="vote in voteList.list.toShow">{{vote}}</li>
-            </ul>
         </div>
     </div>
 

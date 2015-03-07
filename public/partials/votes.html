@@ -2,17 +2,21 @@
     <div class="clearfix">
         <h1 class="heading">Forging > My Votes</h1>
 
-        <div class="vote-delegates" ng-class="{'active': showVotes}">
-            <h2>{{ voteList.list.toServer.length }} Delegates selected</h2>
-            <button class="button green" id="delegates-list" ng-disabled="voteList.list.toServer.length==0"
-                    ng-click="voteList.toggle()">View Selection
-            </button>
-            <button class="button green" ng-click="vote()" ng-disabled="voteList.list.toServer.length==0">Remove Votes</button>
-            <div class="overlay" ng-click="voteList.toggle()">
+        <div class="vote-delegates">
+            <h2>{{voteList.list.toServer.length}}/{{count}} Delegates selected</h2>
+            <div class="vote-navigation" ng-class="{'active': showVotes}">
+                <button class="button green" id="delegates-list" ng-disabled="voteList.list.toServer.length==0"
+                        ng-click="voteList.toggle()">View Selection
+                </button>
+                <button class="button green" ng-click="vote()" ng-disabled="voteList.list.toServer.length==0">Remove
+                    Votes
+                </button>
+                <div class="overlay" ng-click="voteList.toggle()">
+                </div>
+                <ul>
+                    <li ng-repeat="vote in voteList.list.toShow">{{vote}}</li>
+                </ul>
             </div>
-            <ul>
-                <li ng-repeat="vote in voteList.list.toShow">{{vote}}</li>
-            </ul>
         </div>
     </div>
     <table ng-table="tableMyDelegates" border="0" width="100%" cellpadding="0" cellspacing="0">
@@ -24,7 +28,8 @@
             <td data-title="'Approval'">{{getApproval(delegate.vote) | number: 2}}%</td>
             <td data-title="'Vote'">
                 <button class="button button-vote small green" ng-if="!voteList.inList(delegate.publicKey)"
-                        ng-click="voteList.vote(delegate.publicKey, delegate.username)" ng-disabled="unconfirmedTransactions.inList(delegate.publicKey)">
+                        ng-click="voteList.vote(delegate.publicKey, delegate.username)"
+                        ng-disabled="unconfirmedTransactions.inList(delegate.publicKey)">
                     Select
                 </button>
                 <button class="button button-vote small red" ng-if="voteList.inList(delegate.publicKey)"
@@ -33,15 +38,15 @@
                 </button>
             </td>
         </tr>
-		<tr ng-show="!loading && (!$data || $data.length == 0)">
-                <td colspan="6">
-                    No delegates
-                </td>
+        <tr ng-show="!loading && (!$data || $data.length == 0)">
+            <td colspan="6">
+                No delegates
+            </td>
         </tr>
-		<tr ng-show="loading">
-                <td colspan="6">
-                    Loading...
-                </td>
+        <tr ng-show="loading">
+            <td colspan="6">
+                Loading...
+            </td>
         </tr>
     </table>
 
