@@ -47,6 +47,7 @@ angular.module('webApp').controller('votedDelegatesController', ['$scope', '$roo
             $scope.voteModal = voteModal.activate({
                 totalBalance: $scope.unconfirmedBalance,
                 voteList: $scope.voteList.list.toServer,
+                adding: false,
                 destroy: function () {
                     $scope.voteList.list = {toServer: [], toShow: []};
                     $scope.unconfirmedTransactions.getList();
