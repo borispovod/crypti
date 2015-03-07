@@ -345,6 +345,7 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 
 			var sender = modules.accounts.getAccountByPublicKey(transaction.senderPublicKey);
 
+
 			if (!sender) {
 				return done("Can't process transaction, sender not found");
 			}
@@ -381,6 +382,12 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 			}
 
 			transaction.fee = fee;
+
+			if (sender.unconfirmedBalance < transaction.amount + transaction.fee) {
+				var missed = (transaction.amount + transaction.fee) - sender.unconfirmedBalance;
+				missed = missed / constants.fixedPoint
+				return done("You are missing " + missed + " XCR");
+			}
 
 			switch (transaction.type) {
 				case 0:
