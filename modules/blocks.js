@@ -1081,6 +1081,9 @@ Blocks.prototype.onReceiveBlock = function (block) {
 			//fork same height and different previous block
 			modules.delegates.fork(block, 1);
 			cb('fork');
+		} else if (block.previousBlock == lastBlock.previousBlock && block.height == lastBlock.height && block.id != lastBlock.id) {
+			//fork same height and same previous block, but different block id
+			modules.delegates.fork(block, 5);
 		} else {
 			cb();
 		}
