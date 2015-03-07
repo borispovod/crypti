@@ -63,18 +63,23 @@
   }
 }
 
-#delegates-list {
+.vote-navigation {
   position: relative;
-  &.active ul {
-    display: block;
-    z-index: 99999;
+  display: inline-block;
+  .overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
   }
   ul {
-    position: absolute;
     display: none;
+    position: absolute;
     top: 60px;
     right: 0;
-    min-width: 132px;
+    width: 100%;
     background-color: #ffffff;
     list-style-type: none;
     -webkit-border-radius: 3px;
@@ -87,6 +92,14 @@
       padding: 15px 16px;
       color: #50955c;
     }
-
   }
+  &.active .overlay {
+    display: block;
+    z-index: 99998;
+  }
+  &.active ul {
+    display: block;
+    z-index: 99999;
+  }
+
 }

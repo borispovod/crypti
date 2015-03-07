@@ -10,7 +10,6 @@ angular.module('webApp').controller('delegatesController', ['$scope', '$rootScop
 		* 1000
 		* 100;
 
-
 		$scope.countTop = 0;
 		$scope.countStandby = 0;
 
@@ -53,6 +52,7 @@ angular.module('webApp').controller('delegatesController', ['$scope', '$rootScop
 			$scope.voteModal = voteModal.activate({
 				totalBalance: $scope.unconfirmedBalance,
 				voteList: $scope.voteList.list.toServer,
+				adding: true,
 				destroy: function () {
 					$scope.voteList.list = {toServer: [], toShow: []};
 					$scope.delegates.getList(function () {
