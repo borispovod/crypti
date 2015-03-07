@@ -10,7 +10,6 @@
             </button>
             <button class="button green" ng-click="vote()" ng-disabled="voteList.list.toServer.length==0">Vote</button>
             <div class="overlay" ng-click="voteList.toggle()">
-
             </div>
             <ul>
                 <li ng-repeat="vote in voteList.list.toShow">{{vote}}</li>
