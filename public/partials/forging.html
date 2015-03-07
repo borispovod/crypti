@@ -5,7 +5,7 @@
         <h2 class="account-id">Your account: {{ address }}</h2>
     </div>
     <div class="raw-buttons" style="min-width: initial;">
-        <button class="button static">Forged: <span>{{ totalForged / 100000000 | feeFilter }}</span></button>
+        <button class="button static">Fee Earned: <span>{{ totalForged / 100000000 | feeFilter }}</span></button>
         <div id="forging">
             <button class="button static" ng-show="delegateInRegistration">
                 <div id="spinn"></div>
@@ -32,7 +32,7 @@
         <tr>
             <th>Block</th>
             <th>Height</th>
-            <th>Total earned fee</th>
+            <th>Fee</th>
         </tr>
         <tr ng-repeat="item in blocks">
             <td>{{item.id}}</td>
