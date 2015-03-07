@@ -64,7 +64,7 @@
             <td data-title="'Rank'" sortable="'rate'">{{delegate.rate}}</td>
             <td data-title="'Name'" sortable="'username'">{{delegate.username}}</td>
             <td data-title="'Crypti Address'">{{delegate.address}}</td>
-            <td data-title="'Uptime'">{{(delegate.productivity)}}%</td>
+            <td data-title="'Uptime'">-</td>
             <td data-title="'Approval'">{{getApproval(delegate.vote) | number: 2}}%</td>
             <td data-title="'Vote'">
                 <button class="button button-vote small green" ng-if="!voteList.inList(delegate.publicKey)"
