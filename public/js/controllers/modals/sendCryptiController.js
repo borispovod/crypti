@@ -6,6 +6,7 @@ angular.module('webApp').controller('sendCryptiController', ["$scope", "sendCryp
 	$scope.errorMessage = "";
 	$scope.onlyNumbers = /^-?\d*(\.\d+)?$/;
 	$scope.secondPassphrase = userService.secondPassphrase;
+	$scope.address = userService.address;
 
 
 	Number.prototype.roundTo = function (digitsCount) {
