@@ -7,7 +7,7 @@ angular.module('webApp').controller('forgingController', ['$scope', '$rootScope'
         $scope.totalBalance = userService.balance;
         $scope.unconfirmedBalance = userService.unconfirmedBalance;
         $scope.loadingBlocks = true;
-        $scope.delegateInRegistration = false;
+        $scope.delegateInRegistration = userService.delegateInRegistration;
 
         $scope.getBlocks = function () {
             $http.get("/api/blocks", {

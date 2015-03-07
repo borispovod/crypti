@@ -2,23 +2,22 @@ function getEpochTime(time) {
 	if (time === undefined) {
 		time = (new Date()).getTime();
 	}
-	var d = new Date(Date.UTC(2014, 4, 2, 0, 0, 0, 0));
+	var d = beginEpochTime();
 	var t = d.getTime();
 	return Math.floor((time - t) / 1000);
 }
 
-//function epochTime() {
-//	var d = new Date(Date.UTC(2014, 4, 2, 0, 0, 0, 0));
-//	var t = Math.floor(d.getTime() / 1000);
-//
-//	return t;
-//}
+function beginEpochTime() {
+	var d = new Date(Date.UTC(2015, 2, 6, 0, 0, 0, 0));
+
+	return d;
+}
 
 module.exports = {
 
 	interval: 10,
 
-	delegates: 3,
+	delegates: 11,
 
 	getTime: function (time) {
 		return getEpochTime(time);
@@ -28,7 +27,7 @@ module.exports = {
 		if (epochTime === undefined) {
 			epochTime = this.getTime()
 		}
-		var d = new Date(Date.UTC(2014, 4, 2, 0, 0, 0, 0));
+		var d = beginEpochTime();
 		var t = Math.floor(d.getTime() / 1000) * 1000;
 		return t + epochTime * 1000;
 	},
