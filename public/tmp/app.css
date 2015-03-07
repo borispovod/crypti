@@ -468,11 +468,11 @@ p.description {
   float: left;
 }
 #logo {
-  margin: 26px auto 26px;
+  margin: 26px 0 0 26px;
   background-image: url('/images/logo.png');
   background-repeat: no-repeat;
-  height: 33px;
-  width: 94px;
+  height: 30px;
+  width: 86px;
 }
 #menu {
   padding-top: 62px;
@@ -485,9 +485,6 @@ p.description {
   padding-left: 26px;
   color: #fff;
   opacity: 0.2;
-}
-#menu li:hover {
-  opacity: 0.5;
 }
 #menu li.active {
   opacity: 1;
@@ -503,9 +500,6 @@ p.description {
 }
 #menu li a {
   color: #fff;
-}
-#menu #submenu li {
-  padding-left: 52px;
 }
 span.menu-text {
   display: inline-block;
@@ -566,12 +560,6 @@ span.menu-text {
   padding-left: 26px;
   color: #fff;
   opacity: .2;
-}
-@media (max-height: 560px) {
-  #logout-item {
-    position: relative;
-    bottom: 0;
-  }
 }
 #logout-item:hover {
   color: #fff;
@@ -663,8 +651,8 @@ span.menu-text {
 }
 #logo-grey sup {
   margin-left: 100px;
-  font-weight: 700;
-  opacity: .5;
+  font-weight: bold;
+  opacity: 0.5;
   font-size: 13px;
   vertical-align: top;
   text-transform: uppercase;
@@ -809,15 +797,6 @@ span.menu-text {
 .admin-form .fix {
   margin-bottom: 16px !important;
 }
-#spinn {
-  background-image: url(/images/spinn.gif);
-  background-repeat: no-repeat;
-  height: 15px;
-  width: 15px;
-  background-size: 15px 15px;
-  float: left;
-  margin-right: 10px;
-}
 .vote-delegates {
   float: right;
 }
@@ -838,40 +817,6 @@ span.menu-text {
 .button-vote {
   width: 70px;
 }
-.ng-table tr.voted button {
-  position: relative;
-}
-.ng-table tr.voted button .tollip {
-  min-width: 120px;
-  padding: 15px 16px;
-  display: none;
-  position: absolute;
-  z-index: 999;
-  top: 45px;
-  right: -50px;
-  background-color: #ffffff;
-  list-style-type: none;
-  color: #9b9d9e;
-  -webkit-border-radius: 3px;
-  -moz-border-radius: 3px;
-  border-radius: 3px;
-  border: 1px solid #d4d5d6;
-}
-.ng-table tr.voted button .tollip:before {
-  content: '';
-  display: block;
-  width: 0;
-  height: 0;
-  position: absolute;
-  border-bottom: 8px solid #d4d5d6;
-  border-left: 8px solid transparent;
-  border-right: 8px solid transparent;
-  right: 76px;
-  top: -8px;
-}
-.ng-table tr.voted button:hover .tollip {
-  display: inline-block;
-}
 #delegates-list {
   position: relative;
 }
@@ -887,8 +832,6 @@ span.menu-text {
   min-width: 132px;
   background-color: #ffffff;
   list-style-type: none;
-  -webkit-border-radius: 3px;
-  -moz-border-radius: 3px;
   border-radius: 3px;
   -webkit-box-shadow: 0 3px 0 #50955c;
   -moz-box-shadow: 0 3px 0 #50955c;
@@ -924,9 +867,6 @@ span.menu-text {
 }
 .ng-table th.sortable.sort-desc div:after {
   border-top: 4px solid #50955c;
-}
-.ng-table tr.voted {
-  background-color: rgba(97, 178, 110, 0.02);
 }
 .ng-table-pager {
   margin-top: 15px;
@@ -1045,11 +985,9 @@ span.menu-text {
 .pagination > .disabled > span:focus,
 .pagination > .disabled > span:hover {
   top: 0px;
-  color: #9b9d9e;
-  text-decoration: none;
-  background-color: #e4e5e6;
-  border: none;
-  -webkit-box-shadow: 0px 3px 0px #d4d5d6;
-  -moz-box-shadow: 0px 3px 0px #d4d5d6;
-  box-shadow: 0px 3px 0px #d4d5d6;
+  color: #fff;
+  background-color: rgba(97, 178, 110, 0.3);
+  -webkit-box-shadow: 0px 3px 0px rgba(80, 149, 92, 0.3);
+  -moz-box-shadow: 0px 3px 0px rgba(80, 149, 92, 0.3);
+  box-shadow: 0px 3px 0px rgba(80, 149, 92, 0.3);
 }
