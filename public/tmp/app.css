@@ -797,15 +797,6 @@ span.menu-text {
 .admin-form .fix {
   margin-bottom: 16px !important;
 }
-#spinn {
-  background-image: url(/images/spinn.gif);
-  background-repeat: no-repeat;
-  height: 15px;
-  width: 15px;
-  background-size: 15px 15px;
-  float: left;
-  margin-right: 10px;
-}
 .vote-delegates {
   float: right;
 }

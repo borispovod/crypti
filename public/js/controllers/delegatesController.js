@@ -10,6 +10,10 @@ angular.module('webApp').controller('delegatesController', ['$scope', '$rootScop
 		* 1000
 		* 100;
 
+
+		$scope.countTop = 0;
+		$scope.countStandby = 0;
+
 		$scope.address = userService.address;
 
 		$scope.showVotes = false;
@@ -115,6 +119,7 @@ angular.module('webApp').controller('delegatesController', ['$scope', '$rootScop
 			total: delegateService.topRate,
 			getData: function ($defer, params) {
 				delegateService.getTopList($defer, params, $scope.filter, function () {
+					$scope.countTop = params.total();
 					$scope.loadingTop = false;
 					$timeout(function () {
 						$scope.delegates.getList(function () {
@@ -148,6 +153,7 @@ angular.module('webApp').controller('delegatesController', ['$scope', '$rootScop
 			counts: [1, 10, 25],
 			getData: function ($defer, params) {
 				delegateService.getStandbyList($defer, params, $scope.filter, function () {
+					$scope.countStandby = params.total();
 					$scope.loadingStandby = false;
 					$timeout(function () {
 						$scope.delegates.getList(function () {
