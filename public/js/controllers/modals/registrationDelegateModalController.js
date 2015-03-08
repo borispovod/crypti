@@ -19,7 +19,7 @@ angular.module('webApp').controller('registrationDelegateModalController', ["$sc
             $scope.action = true;
             $scope.error = null;
 
-            $http.put("/api/delegates/", {secret: $scope.secretPhrase, secondSecret : $scope.secondPassphrase, username: $scope.username, publicKey : userService.publicKey})
+            $http.put("/api/delegates/", {secret: $scope.secretPhrase, secondSecret : $scope.secondPass, username: $scope.username, publicKey : userService.publicKey})
                 .then(function (resp) {
                     $scope.action = false;
                     userService.setDelegateProcess(resp.data.success);
