@@ -58,8 +58,8 @@ Round.prototype.backwardTick = function (block, previousBlock) {
 	unDelegatesByRound[round] = unDelegatesByRound[round] || [];
 	unDelegatesByRound[round].push(block.generatorPublicKey);
 
-	if (prevRound !== round) {
-		if (unDelegatesByRound[round].length == slots.delegates) {
+	if (prevRound !== round || previousBlock.height == 1) {
+		if (unDelegatesByRound[round].length == slots.delegates || previousBlock.height == 1) {
 			var roundDelegates = modules.delegates.generateDelegateList(block.height);
 			roundDelegates.forEach(function(delegate){
 				if (unDelegatesByRound[round].indexOf(delegate) !== -1) {
@@ -117,8 +117,8 @@ Round.prototype.tick = function (block) {
 
 	var nextRound = self.calc(block.height + 1);
 
-	if (round !== nextRound) {
-		if (delegatesByRound[round].length == slots.delegates) {
+	if (round !== nextRound || block.height == 1) {
+		if (delegatesByRound[round].length == slots.delegates || block.height == 1) {
 			var roundDelegates = modules.delegates.generateDelegateList(block.height);
 			roundDelegates.forEach(function(delegate){
 				if (delegatesByRound[round].indexOf(delegate) !== -1) {
