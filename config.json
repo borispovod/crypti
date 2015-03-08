@@ -6,7 +6,7 @@
 	"version": "0.2.0",
 	"fileLogLevel": "info",
 	"consoleLogLevel": "log",
-	"sharePort": false,
+	"sharePort": true,
 	"api": {
 		"access": {
 			"whiteList": []
