@@ -59,11 +59,12 @@ function attachApi() {
 
 function loadBlocks(lastBlock, cb) {
 	modules.transport.getFromRandomPeer('/height', function (err, data) {
+		var peerStr = data && data.peer ? ip.fromLong(data.peer.ip) + ":" + data.peer.port : 'unknown';
 		if (err || !data.body) {
+			library.logger.log("Fail request at " + peerStr);
 			return cb();
 		}
 
-		var peerStr = data.peer ? ip.fromLong(data.peer.ip) + ":" + data.peer.port : 'unknown';
 		library.logger.info("Check blockchain on " + peerStr);
 
 		if (bignum(modules.blocks.getLastBlock().height).lt(params.string(data.body.height || 0))) { //diff in chainbases
