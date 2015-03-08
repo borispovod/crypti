@@ -107,20 +107,12 @@ function attachApi() {
 		if (senderPublicKey || address) {
 			for (var i = 0; i < transactions.length; i++) {
 				if (transactions[i].senderPublicKey == senderPublicKey || transactions[i].recipientId == address) {
-					var transaction = extend(true, {}, transactions[i]);
-
-					delete transaction.asset;
-
-					toSend.push(transaction);
+					toSend.push(transactions[i]);
 				}
 			}
 		} else {
 			for (var i = 0; i < transactions.length; i++) {
-				var transaction = extend(true, {}, transactions[i]);
-
-				delete transaction.asset;
-
-				toSend.push(transaction);
+				toSend.push(transactions[i]);
 			}
 		}
 
@@ -323,6 +315,7 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 		if (err) return cb && cb(err);
 
 		if (!self.applyUnconfirmed(transaction)) {
+			console.log("Double spending: " + transaction.id);
 			doubleSpendingTransactions[transaction.id] = transaction;
 			return cb && cb("Can't apply transaction: " + transaction.id);
 		}
@@ -352,6 +345,7 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 
 			var sender = modules.accounts.getAccountByPublicKey(transaction.senderPublicKey);
 
+
 			if (!sender) {
 				return done("Can't process transaction, sender not found");
 			}
@@ -366,6 +360,10 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 				if (!self.verifySecondSignature(transaction, sender.secondPublicKey)) {
 					return done("Can't verify second signature");
 				}
+			}
+
+			if (!sender.secondSignature && transaction.signSignature) {
+				return done("Can't process transaction with second signature, sender didn't has second signature");
 			}
 
 			// check if transaction is not float and great then 0
@@ -384,6 +382,12 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 			}
 
 			transaction.fee = fee;
+
+			if (sender.unconfirmedBalance < transaction.amount + transaction.fee) {
+				var missed = (transaction.amount + transaction.fee) - sender.unconfirmedBalance;
+				missed = missed / constants.fixedPoint
+				return done("You are missing " + missed + " XCR");
+			}
 
 			switch (transaction.type) {
 				case 0:
@@ -429,12 +433,17 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 					}
 					break;
 				case 3:
+
 					if (transaction.recipientId != transaction.senderId) {
 						return done("Incorrect recipient");
 					}
 
 					if (!modules.delegates.checkDelegates(transaction.senderPublicKey, transaction.asset.votes)) {
-						return done("Can't verify votes, vote for not exists delegate found: " + transaction.id);
+						return done("Can't verify votes, you already voted for this delegate: " + transaction.id);
+					}
+
+					if (transaction.asset.votes !== null && transaction.asset.votes.length > 33) {
+						return done("Can't verify votes, most be less then 33 delegates");
 					}
 					break;
 				default:
@@ -451,7 +460,7 @@ Transactions.prototype.apply = function (transaction) {
 	var sender = modules.accounts.getAccountByPublicKey(transaction.senderPublicKey);
 	var amount = transaction.amount + transaction.fee;
 
-	if (sender.balance < amount && transaction.blockId != genesisblock.blockId) {
+	if (sender.balance < amount && transaction.blockId != genesisblock.block.id) {
 		return false;
 	}
 
@@ -486,6 +495,7 @@ Transactions.prototype.applyUnconfirmedList = function (ids) {
 		if (!this.applyUnconfirmed(transaction)) {
 			delete unconfirmedTransactions[ids[i]];
 			doubleSpendingTransactions[ids[i]] = transaction;
+			console.log("Double spending: " + transaction.id);
 		}
 	}
 }
@@ -496,17 +506,20 @@ Transactions.prototype.undoAllUnconfirmed = function () {
 		var transaction = unconfirmedTransactions[ids[i]];
 		this.undoUnconfirmed(transaction);
 	}
-
 	return ids;
 }
 
 Transactions.prototype.applyUnconfirmed = function (transaction) {
 	var sender = modules.accounts.getAccountByPublicKey(transaction.senderPublicKey);
 
-	if (!sender && transaction.blockId != genesisblock.blockId) {
+	if (!sender && transaction.blockId != genesisblock.block.id) {
 		return false;
 	} else {
 		sender = modules.accounts.getAccountOrCreateByPublicKey(transaction.senderPublicKey);
+	}
+
+	if (sender.secondSignature && !transaction.signSignature) {
+		return false;
 	}
 
 	if (transaction.type == 1) {
@@ -531,7 +544,13 @@ Transactions.prototype.applyUnconfirmed = function (transaction) {
 
 	var amount = transaction.amount + transaction.fee;
 
-	if (sender.unconfirmedBalance < amount && transaction.blockId != genesisblock.blockId) {
+	if (sender.unconfirmedBalance < amount && transaction.blockId != genesisblock.block.id) {
+		if (transaction.type == 1) {
+            sender.unconfirmedSignature = false;
+        } else if (transaction.type == 2) {
+            modules.delegates.removeUnconfirmedDelegate(transaction.asset.delegate);
+        }
+
 		return false;
 	}
 

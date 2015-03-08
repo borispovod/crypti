@@ -1,28 +1,30 @@
 <div id="blockchain">
     <div class="row">
         <h1 class="heading">Blockchain</h1>
+
         <h2 class="account-id">Your account: {{ address }}</h2>
     </div>
-    <table border="0" width="100%" cellpadding="0" cellspacing="0" id="blocks">
-        <tr>
-            <th>ID</th>
-            <th>Date & Time</th>
-            <th>Amount</th>
-            <th>Fee</th>
-            <th>Generator</th>
-            <th>Transactions</th>
+    <table ng-table="tableBlocks" border="0" width="100%" cellpadding="0" cellspacing="0">
+        <tr ng-repeat="block in $data" ng-class="{'green': address == block.generatorId}">
+            <td data-title="'ID'">{{block.id}}</td>
+            <td data-title="'Height'">{{block.height}}</td>
+            <td data-title="'Date & Time'"><span
+					ng-show="block.timestamp > 0">{{block.timestamp | timestampFilter}}</span>
+				<span ng-show="block.timestamp == 0">-</span></td>
+            <td data-title="'Amount'">{{block.totalAmount / 100000000 | feeFilter}}</td>
+            <td data-title="'Fee'">{{block.totalFee / 100000000 | feeFilter}}</td>
+            <td data-title="'Generator'">{{block.generatorId}}</td>
+            <td data-title="'Transactions'" ng-click="showBlock(block)" class="pointer">Click to see</td>
         </tr>
-        <tr ng-repeat="item in blockchain">
-            <td>{{item.id}}</td>
-            <td ng-show="item.timestamp > 0">{{item.timestamp | timestampFilter}}</td>
-            <td ng-show="item.timestamp == 0">-</td>
-            <td>{{item.totalAmount / 100000000 | feeFilter}}</td>
-            <td>{{item.totalFee / 100000000 | feeFilter}}</td>
-            <td>{{item.generatorId}}</td>
-            <td ng-click="showBlock(item)" class="pointer">Click to see</td>
+		<tr ng-show="!loading && (!$data || $data.length == 0)">
+                <td colspan="6">
+                    No blockchain
+                </td>
         </tr>
-        <tr ng-show="blockchain.length == 0">
-            <td colspan="6">No blocks yet</td>
+		<tr ng-show="loading">
+                <td colspan="6">
+                    Loading...
+                </td>
         </tr>
     </table>
 </div>

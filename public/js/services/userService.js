@@ -16,6 +16,14 @@ angular.module('webApp').service('userService', function () {
 		this.forging = forging;
 	}
 
+	this.setDelegate = function (delegate) {
+		this.delegate = delegate;
+	}
+
+	this.setDelegateProcess = function (delegate) {
+		this.delegateInRegistration = delegate;
+	}
+
 	this.setSecondPassphrase = function (secondPassPhrase) {
 		this.secondPassphrase = secondPassPhrase;
 	}

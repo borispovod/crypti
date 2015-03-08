@@ -1,41 +1,46 @@
 require('angular');
 
-angular.module('webApp').controller('blockchainController', ['$scope', '$rootScope', '$http', "userService", "$interval", 'blockService', 'blockModal', 'peerFactory', function($rootScope, $scope, $http, userService, $interval, blockService, blockModal, peerFactory) {
-    $scope.address = userService.address;
-    $scope.getBlocks = function () {
-        var params = {};
+angular.module('webApp').controller('blockchainController', ['$scope', '$rootScope', '$http', "userService", "$interval", 'blockService', 'blockModal', 'ngTableParams', function ($rootScope, $scope, $http, userService, $interval, blockService, blockModal, ngTableParams) {
+	$scope.address = userService.address;
+	$scope.loading = true;
 
-        if (blockService.lastBlockId) {
-            params.blockId = blockService.lastBlockId;
-        }
+	//Blocks
+	$scope.tableBlocks = new ngTableParams({
+		page: 1,
+		count: 20
+	}, {
+		total: 0,
+		counts: [],
+		getData: function ($defer, params) {
+			$scope.loading = true;
+			blockService.getBlocks($defer, params, $scope.filter, function () {
+				$scope.loading = false;
+			});
+		}
+	});
 
-        $http.get(peerFactory.url + "/api/blocks/", { params : { orderBy : "height:desc", limit : 20 }})
-            .then(function (resp) {
-                $scope.blockchain = resp.data.blocks;
-                blockService.lastBlockId = resp.data.blocks[resp.data.blocks.length - 1].id;
-            });
-    }
+	$scope.tableBlocks.settings().$scope = $scope;
 
-    $scope.getFirstBlocks = function () {
-        $http.get(peerFactory.url + "/api/blocks/", { params : { orderBy : "height:desc", limit : 20 }})
-            .then(function (resp) {
-                $scope.blockchain = resp.data.blocks;
-                blockService.lastBlockId = resp.data.blocks[resp.data.blocks.length - 1].id;
-            });
-    }
+	$scope.$watch("filter.$", function () {
+		$scope.tableBlocks.reload();
+	});
 
-    $scope.blocksInterval = $interval(function () {
-        $scope.getBlocks();
-    }, 1000 * 60);
+	$scope.updateBlocks = function () {
+		$scope.tableBlocks.reload();
+	};
+	//end Blocks
 
-    $scope.$on('$destroy', function() {
-        $interval.cancel($scope.blocksInterval);
-        $scope.blocksInterval = null;
-    });
 
-    $scope.showBlock = function (block) {
-        $scope.modal = blockModal.activate({ block : block });
-    }
+	$scope.blocksInterval = $interval(function () {
+		$scope.updateBlocks();
+	}, 1000 * 60);
 
-    $scope.getFirstBlocks();
+	$scope.$on('$destroy', function () {
+		$interval.cancel($scope.blocksInterval);
+		$scope.blocksInterval = null;
+	});
+
+	$scope.showBlock = function (block) {
+		$scope.modal = blockModal.activate({block: block});
+	}
 }]);
