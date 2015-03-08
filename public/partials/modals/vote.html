@@ -18,8 +18,13 @@
 
 			<div class="pull-right">
 				<button type="submit" class="button green small"
-						ng-disabled="voting  || !secretPhrase || (secondPassphrase && !secondPhrase)" ng-click="vote()">
+						ng-show="adding" ng-disabled="voting  || !secretPhrase || (secondPassphrase && !secondPhrase)" ng-click="vote()">
 					Vote
+				</button>
+				<button type="submit" class="button green small"
+						ng-show="!adding" ng-disabled="voting  || !secretPhrase || (secondPassphrase && !secondPhrase)"
+						ng-click="vote()">
+					Remove vote
 				</button>
 				<button class="button small" ng-click="close()">Close</button>
 			</div>
