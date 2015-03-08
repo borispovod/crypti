@@ -981,6 +981,9 @@ Blocks.prototype.loadBlocksFromPeer = function (peer, lastCommonBlockId, cb) {
 						self.processBlock(block, false, function (err) {
 							if (!err) {
 								lastCommonBlockId = block.id;
+							} else {
+								library.logger.log('ban 60 min', peerStr);
+								modules.peer.state(peer.ip, peer.port, 0, 3600);
 							}
 
 							setImmediate(cb, err);
