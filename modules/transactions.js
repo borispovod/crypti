@@ -357,7 +357,7 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 
 			if (sender.secondSignature) {
 				if (!self.verifySecondSignature(transaction, sender.secondPublicKey)) {
-					return done("Can't verify second signature");
+					return done("Second secretpharse is incorrect.");
 				}
 			}
 

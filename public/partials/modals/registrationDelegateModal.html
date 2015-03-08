@@ -13,7 +13,7 @@
 		<form class="form" autocomplete="off">
             <input class="input-text" type="text" ng-model="username" placeholder="Your delegate name" autofocus>
             <input class="input-text" type="password" ng-model="secretPhrase" placeholder="Your SecretPhrase">
-            <input class="input-text" type="password" ng-model="secondPassphrase" ng-show="isSecondPassphrase" placeholder="Your Second SecretPhrase">
+            <input class="input-text" type="password" ng-model="secondPass" ng-show="isSecondPassphrase" placeholder="Your Second SecretPhrase">
             <p class="red" ng-show="error">{{error}}.</p>
             <div class="pull-right">
 				<button type="submit" class="button green small" ng-disabled="!secretPhrase || !username || action"  ng-click="registrationDelegate()">Start</button>
