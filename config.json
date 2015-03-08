@@ -6,12 +6,7 @@
 	"version": "0.2.0",
 	"fileLogLevel": "info",
 	"consoleLogLevel": "log",
-	"sharePort": true,
-	"adminPanel": {
-		"whiteList": [
-			"127.0.0.1"
-		]
-	},
+	"sharePort": false,
 	"api": {
 		"access": {
 			"whiteList": []
@@ -20,14 +15,17 @@
 	"peers": {
 		"list": [
 			{
-				"ip": "130.211.72.188",
+				"ip": "130.211.104.33",
 				"port": 7040
 			}
 		],
 		"blackList": []
 	},
 	"forging": {
-		"secret": ""
+		"secret": "",
+		"access": {
+			"whiteList": []
+		}
 	},
 	"loading": {
 		"verifyOnLoading": true,

@@ -197,8 +197,8 @@ function _request(peer, api, method, data, cb) {
 				err: err
 			});
 
-			modules.peer.state(peer.ip, peer.port, 0, 60);
-			library.logger.debug('ban 60 sec ' + req.method + ' ' + req.url)
+			modules.peer.state(peer.ip, peer.port, 0, 600);
+			library.logger.info('ban 10 min ' + req.method + ' ' + req.url)
 			cb && cb(err || ('request status code' + response.statusCode));
 			return;
 		}
@@ -242,15 +242,19 @@ Transport.prototype.broadcast = function (peersCount, method, data, cb) {
 }
 
 Transport.prototype.getFromRandomPeer = function (method, cb) {
-	modules.peer.list(1, function (err, peers) {
-		if (!err && peers.length) {
-			var peer = peers[0];
-			_request(peer, method, "GET", undefined, function (err, body) {
-				cb(err, {body: body, peer: peer});
-			});
-		} else {
-			return cb(err || "Nothing peers in db");
-		}
+	async.retry(20, function (cb) {
+		modules.peer.list(1, function (err, peers) {
+			if (!err && peers.length) {
+				var peer = peers[0];
+				_request(peer, method, "GET", undefined, function (err, body) {
+					cb(err, {body: body, peer: peer});
+				});
+			} else {
+				return cb(err || "Nothing peers in db");
+			}
+		});
+	}, function(err, results){
+		cb(err, results)
 	});
 }
 

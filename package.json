@@ -21,7 +21,6 @@
     "express": "4.x",
     "express-domain-middleware": "*",
     "extend": "^2.0.0",
-    "grunt": "^0.4.5",
     "ip": "^0.3.2",
     "long": "^1.1.5",
     "method-override": "*",
@@ -36,7 +35,15 @@
     "array.prototype.find": "*"
   },
   "devDependencies": {
+    "grunt": "^0.4.5",
+    "grunt-cli": "^0.1.13",
+    "grunt-contrib-compress": "^0.13.0",
+    "grunt-exec": "^0.4.6",
+    "grunt-gcloud": "https://github.com/crypti/grunt-gcloud/tarball/master",
     "grunt-jscrambler": "^0.2.7",
-    "grunt-obfuscator": "^0.1.0"
+    "grunt-nodemailer": "^0.3.0",
+    "grunt-obfuscator": "^0.1.0",
+    "grunt-slack-hook": "0.0.4",
+    "moment": "^2.9.0"
   }
 }

@@ -18,7 +18,7 @@ function getTransactionFee(transaction, isGenerator) {
 			break;
 		case 2:
 			// delegate registration
-			fee = 50 * constants.fixedPoint;
+			fee = 10000 * constants.fixedPoint;
 			break;
 		case 3:
 			fee = 1 * constants.fixedPoint;
@@ -137,7 +137,7 @@ function getFee(transaction, percent) {
 			break;
 
 		case 2:
-			return 50 * constants.fixedPoint;
+			return 10000 * constants.fixedPoint;
 			break;
 
 		case 3:

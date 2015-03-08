@@ -196,6 +196,20 @@ angular.module('webApp').controller('sendCryptiController', ["$scope", "sendCryp
 		$scope.amountError = $scope.convertXCR($scope.fee) + $scope.convertXCR($scope.amount) > userService._unconfirmedBalance;
 		$scope.errorMessage = $scope.amountError ? "Not enough XCR" : "";
 
+		var address = $scope.to;
+
+		if (address.length == 1 || address[address.length - 1] != "C") {
+			$scope.errorMessage = "Please enter a valid Crypti address";
+			return;
+		}
+
+		address = address.substring(0, address.length - 2);
+
+		var reg = /^\d+$/;
+		if (reg.test(address)) {
+			$scope.errorMessage = "Please enter a valid Crypti address";
+			return;
+		}
 
 		var data = {
 			secret: $scope.secretPhrase,
