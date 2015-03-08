@@ -62,10 +62,16 @@ function attachApi() {
 	});
 
 	router.get('/get', function (req, res) {
-		var ip = params.string(req.query.ip);
+		var ip_str = params.string(req.query.ip);
 		var port = params.int(req.query.port);
 
-		if (!ip) {
+		try {
+			ip_str = ip.toLong(ip_str);
+		} catch (e) {
+			return res.json({success: false, error: "Provide valid ip"});
+		}
+
+		if (!ip_str) {
 			return res.json({success: false, error: "Provide ip in url"});
 		}
 
@@ -74,7 +80,7 @@ function attachApi() {
 		}
 
 		getByFilter({
-			ip: ip,
+			ip: ip_str,
 			port: port
 		}, function (err, peers) {
 			if (err) {
@@ -254,7 +260,7 @@ Peer.prototype.update = function (peer, cb) {
 			if (peer.state !== undefined) {
 				params.state = peer.state;
 			}
-			library.dbLite.query("UPDATE peers SET os = $os, sharePort = $sharePort, version = $version" + (peer.state !== undefined ? ", state = $state " : "") + " WHERE ip = $ip and port = $port;", params, cb);
+			library.dbLite.query("UPDATE peers SET os = $os, sharePort = $sharePort, version = $version" + (peer.state !== undefined ? ", state = CASE WHEN state = 0 THEN state ELSE $state END " : "") + " WHERE ip = $ip and port = $port;", params, cb);
 		}
 	], function (err) {
 		err && library.logger.error('Peer#update', err);

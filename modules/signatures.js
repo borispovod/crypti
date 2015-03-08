@@ -2,7 +2,6 @@ var ed = require('ed25519'),
 	bignum = require('bignum'),
 	ByteBuffer = require("bytebuffer"),
 	crypto = require('crypto'),
-	genesisblock = require('../helpers/genesisblock.js'),
 	constants = require("../helpers/constants.js"),
 	relational = require("../helpers/relational.js"),
 	slots = require('../helpers/slots.js'),
@@ -58,11 +57,11 @@ function attachApi() {
 		var hash = crypto.createHash('sha256').update(secret, 'utf8').digest();
 		var keypair = ed.MakeKeypair(hash);
 
-		if (secret.length == 0) {
+		if (!secret) {
 			return res.json({success: false, error: "Provide secret key"});
 		}
 
-		if (secondSecret.length == 0) {
+		if (!secondSecret) {
 			return res.json({success: false, error: "Provide second secret key"});
 		}
 

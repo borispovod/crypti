@@ -137,6 +137,33 @@ function attachApi() {
 		return res.json({success: true, balance: balance, unconfirmedBalance: unconfirmedBalance});
 	});
 
+	if (process.env.DEBUG && process.env.DEBUG.toUpperCase() == "TRUE") {
+		// for sebastian
+		router.get('/getAllAccounts', function (req, res) {
+			return res.json({success: true, accounts: accounts});
+		});
+	}
+
+
+	if (process.env.TOP && process.env.TOP.toUpperCase() == "TRUE") {
+		router.get('/top', function (req, res) {
+			var arr = Object.keys(accounts).map(function (key) {
+				return accounts[key]
+			});
+
+			arr.sort(function (a, b) {
+				if (a.balance > b.balance)
+					return -1;
+				if (a.balance < b.balance)
+					return 1;
+				return 0;
+			});
+
+			arr = arr.slice(0, 30);
+			return res.json({success: true, accounts: arr});
+		});
+	}
+
 	router.get('/getPublicKey', function (req, res) {
 		var address = params.string(req.query.address);
 
@@ -173,7 +200,19 @@ function attachApi() {
 
 		var account = self.getAccount(address);
 
-		return res.json({success: true, delegates: account.delegates});
+		if (!account) {
+			return res.json({success: false, error: "Account doesn't found"});
+		}
+
+		var delegates = null;
+
+		if (account.delegates) {
+			delegates = account.delegates.map(function(publicKey){
+				return modules.delegates.getDelegateByPublicKey(publicKey);
+			});
+		}
+
+		return res.json({success: true, delegates: delegates});
 	});
 
 	router.put("/delegates", function (req, res) {
@@ -219,7 +258,7 @@ function attachApi() {
 		modules.transactions.sign(secret, transaction);
 
 		if (account.secondSignature) {
-			if (!secondSecret || secondSecret.length == 0) {
+			if (!secondSecret) {
 				return res.json({success: false, error: "Provide second secret key"});
 			}
 
