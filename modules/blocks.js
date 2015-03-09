@@ -1080,7 +1080,7 @@ Blocks.prototype.onReceiveBlock = function (block) {
 		if (block.previousBlock == lastBlock.id && lastBlock.height + 1 === block.height) {
 			library.logger.log('recieved new block id:' + block.id + ' height:' + block.height + ' slot:' + slots.getSlotNumber(block.timestamp))
 			self.processBlock(block, true, cb);
-		} else if (lastBlock.height === block.height + 1) {
+		} else if (lastBlock.height + 1 === block.height) {
 			//fork same height and different previous block
 			modules.delegates.fork(block, 1);
 			cb('fork');
