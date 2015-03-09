@@ -48,6 +48,12 @@ To run tests use standard npm test method:
 npm test
 ```
 
+or
+
+```
+test/test.sh
+```
+
 Crypti uses mocha so it possible to run test manually from cli:
 ```
 mocha test/test.js
@@ -55,6 +61,8 @@ mocha test/sandbox/index.js
 ```
 
 #### Own tests ####
+
+Main test file is test/test.sh is used for different 
 
 To add custom test add test file into test dir and then require it in `test.js` file in the right place:
 ```
