@@ -31,7 +31,6 @@ Round.prototype.directionSwap = function (direction) {
 		case 'backward':
 			feesByRound = {};
 			delegatesByRound = {};
-			console.log('backward', tasks.length)
 			tasks = [];
 			//while (tasks.length) {
 			//	var task = tasks.shift();
@@ -41,7 +40,6 @@ Round.prototype.directionSwap = function (direction) {
 		case 'forward':
 			unFeesByRound = {};
 			unDelegatesByRound = {};
-			console.log('forward', tasks.length)
 			tasks = [];
 			//while (tasks.length) {
 			//	var task = tasks.shift();
