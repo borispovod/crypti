@@ -39,8 +39,8 @@
         <tr ng-repeat="transaction in transactions">
             <td>{{transaction.id}}</td>
             <td>{{transaction.senderId}}</td>
-            <td ng-show="transaction.type <= 1">{{ transaction.recipientId }}</td>
-            <td ng-show="transaction.type == 2  || transaction.type == 3 ">
+            <td ng-show="transaction.type < 1">{{ transaction.recipientId }}</td>
+            <td ng-show="transaction.type > 0">
                 -
             </td>
             <td>{{transaction.timestamp | timestampFilter}}</td>
