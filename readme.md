@@ -62,13 +62,23 @@ mocha test/sandbox/index.js
 
 #### Own tests ####
 
-Main test file is test/test.sh is used for different 
+Main test file is test/test.sh is used for separate test suites and to run tests with settings. Each test should
+return exit code on failure:
 
-To add custom test add test file into test dir and then require it in `test.js` file in the right place:
+```
+# Bash test
+./run-some-test.sh || exit 1;
+# JS test file
+$NODE test-file.js || exit 1;
+```
+
+**Note**. Use $NODE variable instead of `node` to use npm-defined node.js version.
+
+To add custom mocha test add test file into test dir and then require it in `test.js` file in the appropriate place:
 ```
 // test.js
-require('./sandbox');
-require('./custom-test');
+require('./helpers/sandbox.js');
+require('./ui/login.js');
 ```
 
 Note to use semantic names to avoid mess of files. Try to name it similarly to testing module or functionality name.
