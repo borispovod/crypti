@@ -982,6 +982,7 @@ Blocks.prototype.loadBlocksFromPeer = function (peer, lastCommonBlockId, cb) {
 							if (!err) {
 								lastCommonBlockId = block.id;
 							} else {
+								var peerStr = data.peer ? ip.fromLong(data.peer.ip) + ":" + data.peer.port : 'unknown';
 								library.logger.log('ban 60 min', peerStr);
 								modules.peer.state(peer.ip, peer.port, 0, 3600);
 							}
@@ -1076,12 +1077,13 @@ Blocks.prototype.generateBlock = function (keypair, timestamp, cb) {
 
 //events
 Blocks.prototype.onReceiveBlock = function (block) {
+	console.log('onReceiveBlock', block.height)
 	library.sequence.add(function (cb) {
-		if (block.previousBlock == lastBlock.id && lastBlock.height + 1 === block.height) {
+		if (block.previousBlock == lastBlock.id && lastBlock.height + 1 == block.height) {
 			library.logger.log('recieved new block id:' + block.id + ' height:' + block.height + ' slot:' + slots.getSlotNumber(block.timestamp))
 			self.processBlock(block, true, cb);
-		} else if (lastBlock.height + 1 === block.height) {
-			//fork same height and different previous block
+		} else if (block.previousBlock != lastBlock.id && lastBlock.height + 1 == block.height) {
+			//fork right height and different previous block
 			modules.delegates.fork(block, 1);
 			cb('fork');
 		} else if (block.previousBlock == lastBlock.previousBlock && block.height == lastBlock.height && block.id != lastBlock.id) {

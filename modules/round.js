@@ -98,6 +98,11 @@ Round.prototype.backwardTick = function (block, previousBlock) {
 					}
 				});
 			}
+
+			while (tasks.length) {
+				var task = tasks.shift();
+				task();
+			}
 		}
 		delete unFeesByRound[round];
 		delete unDelegatesByRound[round];
@@ -155,6 +160,10 @@ Round.prototype.tick = function (block) {
 						modules.delegates.addFee(delegate, leftover);
 					}
 				});
+			}
+			while (tasks.length) {
+				var task = tasks.shift();
+				task();
 			}
 			library.bus.message('finishRound', round);
 		}
