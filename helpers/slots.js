@@ -29,7 +29,7 @@ module.exports = {
 		if (typeof epochTime === 'undefined') {
 			epochTime = this.getTime()
 		}
-		var d = cryptiEpoch.getTime();
+		var d = (new Date(cryptiEpoch)).getTime();
 		var t = Math.floor(d / 1000) * 1000;
 		return t + epochTime * 1000;
 	},
