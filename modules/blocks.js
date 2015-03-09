@@ -1074,7 +1074,7 @@ Blocks.prototype.generateBlock = function (keypair, timestamp, cb) {
 //events
 Blocks.prototype.onReceiveBlock = function (block) {
 	library.sequence.add(function (cb) {
-		if (block.previousBlock == lastBlock.id && lastBlock.height === block.height + 1) {
+		if (block.previousBlock == lastBlock.id && lastBlock.height + 1 === block.height) {
 			library.logger.log('recieved new block id:' + block.id + ' height:' + block.height + ' slot:' + slots.getSlotNumber(block.timestamp))
 			self.processBlock(block, true, cb);
 		} else if (lastBlock.height === block.height + 1) {
@@ -1084,6 +1084,7 @@ Blocks.prototype.onReceiveBlock = function (block) {
 		} else if (block.previousBlock == lastBlock.previousBlock && block.height == lastBlock.height && block.id != lastBlock.id) {
 			//fork same height and same previous block, but different block id
 			modules.delegates.fork(block, 5);
+			cb('fork');
 		} else {
 			cb();
 		}
