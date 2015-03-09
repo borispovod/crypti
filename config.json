@@ -22,7 +22,7 @@
 		"blackList": []
 	},
 	"forging": {
-		"secret": "sebastian",
+		"secret": "",
 		"access": {
 			"whiteList": []
 		}
