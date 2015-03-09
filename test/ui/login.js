@@ -16,7 +16,7 @@ describe('Login screen.', function(){
         crypti = spawn('nodejs', ['app.js','-b','tmp/blockchain.db', '-p', 7000], {stdio:'pipe'});
 
 
-        browser.setMacros("login", function(browser, password){
+        browser.addMacros("login", function(browser, password){
             browser.eval(function(){
                     return document.querySelector('#enter') != null;
                 })
@@ -53,14 +53,14 @@ describe('Login screen.', function(){
         fs.unlinkSync(blockchainPath);
     });
 
-    it('Should open', function(done){
+    it('Should open and login', function(done){
         should(crypti).not.equal(null);
         should(crypti.killed).equal(false);
 
         browser.openTab()
             .resize({width:800, height:600})
-            .wait(5000)
-            .load('http://localhost:7000')
+            .wait(2000)
+            .goto('http://localhost:7000')
             .render('tmp/login.png')
             .macros("login", "testPass")
             .run(function(err, result){

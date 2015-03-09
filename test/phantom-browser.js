@@ -202,7 +202,8 @@ Browser.prototype.closeTab = function() {
     return this;
 };
 
-Browser.prototype.load = function(url) {
+Browser.prototype.goto =
+    function(url) {
     var tab = this.currentTab();
     this.addAction(function(self){
         tab.loaded = false;
@@ -456,7 +457,7 @@ Browser.prototype.getMacros = function(name) {
     return macros;
 };
 
-Browser.prototype.setMacros = function (name, macros) {
+Browser.prototype.addMacros = function (name, macros) {
     this._macros[name] = macros;
 };
 
