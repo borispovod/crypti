@@ -315,7 +315,6 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 		if (err) return cb && cb(err);
 
 		if (!self.applyUnconfirmed(transaction)) {
-			console.log("Double spending: " + transaction.id);
 			doubleSpendingTransactions[transaction.id] = transaction;
 			return cb && cb("Can't apply transaction: " + transaction.id);
 		}
@@ -358,7 +357,7 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 
 			if (sender.secondSignature) {
 				if (!self.verifySecondSignature(transaction, sender.secondPublicKey)) {
-					return done("Can't verify second signature");
+					return done("Second secretpharse is incorrect.");
 				}
 			}
 
@@ -425,15 +424,14 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 					}
 
 					if (modules.delegates.existsName(transaction.asset.delegate.username)) {
-						return done("Delegate with this name is already exists");
+						return done("The delegate name you entered is already in use. Please try a different name.");
 					}
 
 					if (modules.delegates.existsDelegate(transaction.senderPublicKey)) {
-						return done("This account already delegate");
+						return done("Your account are delegate already");
 					}
 					break;
 				case 3:
-
 					if (transaction.recipientId != transaction.senderId) {
 						return done("Incorrect recipient");
 					}
@@ -495,7 +493,6 @@ Transactions.prototype.applyUnconfirmedList = function (ids) {
 		if (!this.applyUnconfirmed(transaction)) {
 			delete unconfirmedTransactions[ids[i]];
 			doubleSpendingTransactions[ids[i]] = transaction;
-			console.log("Double spending: " + transaction.id);
 		}
 	}
 }
