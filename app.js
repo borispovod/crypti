@@ -13,6 +13,8 @@ program
 	.option('-c, --config <path>', 'Config file path')
 	.option('-p, --port <port>', 'Listening port number')
 	.option('-a, --address <ip>', 'Listening host name or ip')
+	.option('-b, --blockchain <path>', 'Blockchain db path')
+	.option('-l, --peers <peers>', 'Peers list')
 	.parse(process.argv);
 
 if (program.config) {
@@ -20,11 +22,21 @@ if (program.config) {
 }
 
 if (program.port) {
-	appConfig[port] = program.port;
+	appConfig.port = program.port;
 }
 
 if (program.address) {
-	appConfig[port] = program.address;
+	appConfig.address = program.address;
+}
+
+if (program.peers) {
+	appConfig.peers.list = program.peers.split(',').map(function(peer){
+		peer = peer.split(":");
+		return {
+			ip : peer.shift(),
+			port : peer.shift() || appConfig.port
+		};
+	});
 }
 
 SegfaultHandler.registerHandler();
@@ -35,7 +47,7 @@ process.on('uncaughtException', function (err) {
 });
 
 var config = {
-	"db": "./blockchain.db",
+	"db": program.blockchain || "./blockchain.db",
 	"modules": {
 		"server": "./modules/server.js",
 		"accounts": "./modules/accounts.js",
