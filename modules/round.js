@@ -31,18 +31,22 @@ Round.prototype.directionSwap = function (direction) {
 		case 'backward':
 			feesByRound = {};
 			delegatesByRound = {};
-			while (tasks.length) {
-				var task = tasks.shift();
-				task();
-			}
+			console.log('backward', tasks.length)
+			tasks = [];
+			//while (tasks.length) {
+			//	var task = tasks.shift();
+			//	task();
+			//}
 			break;
 		case 'forward':
 			unFeesByRound = {};
 			unDelegatesByRound = {};
-			while (tasks.length) {
-				var task = tasks.shift();
-				task();
-			}
+			console.log('forward', tasks.length)
+			tasks = [];
+			//while (tasks.length) {
+			//	var task = tasks.shift();
+			//	task();
+			//}
 			break;
 	}
 }
@@ -61,7 +65,7 @@ Round.prototype.backwardTick = function (block, previousBlock) {
 	if (prevRound !== round || previousBlock.height == 1) {
 		if (unDelegatesByRound[round].length == slots.delegates || previousBlock.height == 1) {
 			var roundDelegates = modules.delegates.generateDelegateList(block.height);
-			roundDelegates.forEach(function(delegate){
+			roundDelegates.forEach(function (delegate) {
 				if (unDelegatesByRound[round].indexOf(delegate) !== -1) {
 					forgedBlocks[delegate] = (forgedBlocks[delegate] || 0) - 1;
 				}
@@ -102,7 +106,7 @@ Round.prototype.backwardTick = function (block, previousBlock) {
 	}
 }
 
-Round.prototype.passedTours = function(publicKey){
+Round.prototype.passedTours = function (publicKey) {
 	return forgedBlocks[publicKey] || 0
 }
 
@@ -120,7 +124,7 @@ Round.prototype.tick = function (block) {
 	if (round !== nextRound || block.height == 1) {
 		if (delegatesByRound[round].length == slots.delegates || block.height == 1) {
 			var roundDelegates = modules.delegates.generateDelegateList(block.height);
-			roundDelegates.forEach(function(delegate){
+			roundDelegates.forEach(function (delegate) {
 				if (delegatesByRound[round].indexOf(delegate) !== -1) {
 					forgedBlocks[delegate] = (forgedBlocks[delegate] || 0) + 1;
 				}
