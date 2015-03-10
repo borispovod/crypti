@@ -663,6 +663,15 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 						};
 						break;
 					}
+					if (!modules.delegates.checkUnconfirmedDelegates(blocks[i].transactions[n].senderPublicKey, blocks[i].transactions[n].asset.votes)) {
+						err = {
+							message: "Can't verify votes, you already voted for this delegate: " + blocks[i].transactions[n].id,
+							transaction: blocks[i].transactions[n],
+							rollbackTransactionsUntil: n > 0 ? (n - 1) : null,
+							block: blocks[i]
+						};
+						break;
+					}
 					if (!modules.delegates.checkDelegates(blocks[i].transactions[n].senderPublicKey, blocks[i].transactions[n].asset.votes)) {
 						err = {
 							message: "Can't verify votes, you already voted for this delegate: " + blocks[i].transactions[n].id,
@@ -842,32 +851,36 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 									}
 
 									if (!transaction.asset.delegate.username) {
-										return cb && cb("Empty transaction asset for delegate transaction");
+										return cb("Empty transaction asset for delegate transaction");
 									}
 
 									if (transaction.asset.delegate.username.length == 0 || transaction.asset.delegate.username.length > 20) {
-										return cb && cb("Incorrect delegate username length");
+										return cb("Incorrect delegate username length");
 									}
 
 									if (modules.delegates.existsName(transaction.asset.delegate.username)) {
-										return cb && cb("Delegate with this name is already exists");
+										return cb("Delegate with this name is already exists");
 									}
 
 									if (modules.delegates.existsDelegate(transaction.senderPublicKey)) {
-										return cb && cb("This account already delegate");
+										return cb("This account already delegate");
 									}
 									break;
 								case 3:
 									if (transaction.recipientId != transaction.senderId) {
-										return cb && cb("Incorrect recipient");
+										return cb("Incorrect recipient");
+									}
+
+									if (!modules.delegates.checkUnconfirmedDelegates(transaction.senderPublicKey, transaction.asset.votes)) {
+										return cb("Can't verify votes, you already voted for this delegate: " + transaction.id);
 									}
 
 									if (!modules.delegates.checkDelegates(transaction.senderPublicKey, transaction.asset.votes)) {
-										return cb && cb("Can't verify votes, you already voted for this delegate: " + transaction.id);
+										return cb("Can't verify votes, you already voted for this delegate: " + transaction.id);
 									}
 
 									if (transaction.asset.votes !== null && transaction.asset.votes.length > 33) {
-										return cb && cb("Can't verify votes, provide less then 33 delegate");
+										return cb("Can't verify votes, provide less then 33 delegate");
 									}
 									break;
 							}

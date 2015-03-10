@@ -20,6 +20,7 @@ var unconfirmedDelegates = [];
 var unconfirmedNames = [];
 
 var votes = {};
+var unconfirmedVotes = {};
 
 var namesIndex = {};
 var publicKeyIndex = {};
@@ -511,6 +512,34 @@ Delegates.prototype.checkDelegates = function (publicKey, votes) {
 	}
 }
 
+Delegates.prototype.checkUnconfirmedDelegates = function (publicKey, votes) {
+	if (votes === null) {
+		return true;
+	}
+
+	if (util.isArray(votes)) {
+		var account = modules.accounts.getAccountByPublicKey(publicKey);
+		if (!account) {
+			return false;
+		}
+
+		for (var i = 0; i < votes.length; i++) {
+			var math = votes[i][0];
+			var publicKey = votes[i].slice(1);
+			if (math == "+" && (account.unconfirmedDelegates !== null && account.unconfirmedDelegates.indexOf(publicKey) != -1)) {
+				return false;
+			}
+			if (math == "-" && (account.unconfirmedDelegates === null || account.unconfirmedDelegates.indexOf(publicKey) === -1)) {
+				return false;
+			}
+		}
+
+		return true;
+	} else {
+		return false;
+	}
+}
+
 // to remove
 Delegates.prototype.getUnconfirmedDelegates = function () {
 	return unconfirmedDelegates;
@@ -573,6 +602,8 @@ Delegates.prototype.cache = function (delegate) {
 
 	votes[delegate.publicKey] = 0;
 
+	unconfirmedDelegates[delegate.publicKey] = 0;
+
 	namesIndex[delegate.username] = index;
 	publicKeyIndex[delegate.publicKey] = index;
 	transactionIdIndex[delegate.transactionId] = index;
@@ -580,6 +611,8 @@ Delegates.prototype.cache = function (delegate) {
 
 Delegates.prototype.uncache = function (delegate) {
 	delete votes[delegate.publicKey];
+
+	delete unconfirmedDelegates[delegate.publicKey];
 
 	var index = publicKeyIndex[delegate.publicKey];
 
@@ -641,6 +674,16 @@ Delegates.prototype.onChangeBalance = function (delegates, amount) {
 	});
 }
 
+Delegates.prototype.onChangeUnconfirmedBalance = function (unconfirmedDelegates, amount) {
+	var vote = amount;
+
+	if (unconfirmedDelegates !== null) {
+		unconfirmedDelegates.forEach(function (publicKey) {
+			unconfirmedVotes[publicKey] !== undefined && (unconfirmedVotes[publicKey] += vote);
+		});
+	}
+}
+
 Delegates.prototype.onChangeDelegates = function (balance, diff) {
 	modules.round.runOnFinish(function () {
 		var vote = balance;
@@ -656,6 +699,21 @@ Delegates.prototype.onChangeDelegates = function (balance, diff) {
 			}
 		}
 	});
+}
+
+Delegates.prototype.onChangeUnconfirmedDelegates = function (balance, diff) {
+	var vote = balance;
+
+	for (var i = 0; i < diff.length; i++) {
+		var math = diff[i][0];
+		var publicKey = diff[i].slice(1);
+		if (math == "+") {
+			unconfirmedVotes[publicKey] !== undefined && (unconfirmedVotes[publicKey] += vote);
+		}
+		if (math == "-") {
+			unconfirmedVotes[publicKey] !== undefined && (unconfirmedVotes[publicKey] -= vote);
+		}
+	}
 }
 
 //export

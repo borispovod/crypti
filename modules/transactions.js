@@ -436,6 +436,10 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 						return done("Incorrect recipient");
 					}
 
+					if (!modules.delegates.checkUnconfirmedDelegates(transaction.senderPublicKey, transaction.asset.votes)) {
+						return done("Can't verify votes, you already voted for this delegate: " + transaction.id);
+					}
+
 					if (!modules.delegates.checkDelegates(transaction.senderPublicKey, transaction.asset.votes)) {
 						return done("Can't verify votes, you already voted for this delegate: " + transaction.id);
 					}
@@ -536,7 +540,7 @@ Transactions.prototype.applyUnconfirmed = function (transaction) {
 
 		modules.delegates.addUnconfirmedDelegate(transaction.asset.delegate);
 	} else if (transaction.type == 3) {
-
+		sender.applyUnconfirmedDelegateList(transaction.asset.votes);
 	}
 
 	var amount = transaction.amount + transaction.fee;
@@ -546,7 +550,9 @@ Transactions.prototype.applyUnconfirmed = function (transaction) {
             sender.unconfirmedSignature = false;
         } else if (transaction.type == 2) {
             modules.delegates.removeUnconfirmedDelegate(transaction.asset.delegate);
-        }
+        } else if (transaction.type == 3) {
+			sender.undoUnconfirmedDelegateList(transaction.asset.votes);
+		}
 
 		return false;
 	}
@@ -562,10 +568,16 @@ Transactions.prototype.undoUnconfirmed = function (transaction) {
 
 	sender.addToUnconfirmedBalance(amount);
 
-	if (transaction.type == 1) {
-		sender.unconfirmedSignature = false;
-	} else if (transaction.type == 2) {
-		modules.delegates.removeUnconfirmedDelegate(transaction.asset.delegate);
+	switch (transaction.type) {
+		case 1:
+			sender.unconfirmedSignature = false;
+			break;
+		case 2:
+			modules.delegates.removeUnconfirmedDelegate(transaction.asset.delegate);
+			break;
+		case 3:
+			sender.undoUnconfirmedDelegateList(transaction.asset.votes);
+			break;
 	}
 
 	return true;
