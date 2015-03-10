@@ -19,9 +19,10 @@ function Account(address, publicKey, balance, unconfirmedBalance) {
 	this.secondSignature = false;
 	this.secondPublicKey = null;
 	this.delegates = null;
+	this.unconfirmedDelegates = null;
 }
 
-function accountApplyDiff(account, diff) {
+function accountApplyUnconfirmedDelegates(account, diff) {
 	for (var i = 0; i < diff.length; i++) {
 		var math = diff[i][0];
 		var publicKey = diff[i].slice(1);
@@ -43,6 +44,28 @@ function accountApplyDiff(account, diff) {
 	}
 }
 
+function accountApplyUnconfirmedDiff(account, diff) {
+	for (var i = 0; i < diff.length; i++) {
+		var math = diff[i][0];
+		var publicKey = diff[i].slice(1);
+
+		if (math == "+") {
+			account.unconfirmedDelegates = account.unconfirmedDelegates || [];
+			account.unconfirmedDelegates.push(publicKey);
+		}
+		if (math == "-") {
+			var index = account.unconfirmedDelegates.indexOf(publicKey);
+			if (index == -1) {
+				throw "delegate not found";
+			}
+			account.unconfirmedDelegates.splice(index, 1);
+			if (!account.unconfirmedDelegates.length) {
+				account.unconfirmedDelegates = null;
+			}
+		}
+	}
+}
+
 Account.prototype.setUnconfirmedSignature = function (unconfirmedSignature) {
 	this.unconfirmedSignature = unconfirmedSignature;
 }
@@ -59,6 +82,28 @@ Account.prototype.addToBalance = function (amount) {
 
 Account.prototype.addToUnconfirmedBalance = function (amount) {
 	this.unconfirmedBalance += amount;
+}
+
+Account.prototype.applyUnconfirmedDelegateList = function (diff) {
+	if (diff === null) return;
+	accountApplyUnconfirmedDiff(this, diff);
+
+	// what we most do here?
+	library.bus.message('changeUnconfirmedDelegates', this.balance, diff);
+}
+
+Account.prototype.undoDelegateList = function (diff) {
+	if (diff === null) return;
+	var copyDiff = diff.slice();
+	for (var i = 0; i < copyDiff.length; i++) {
+		var math = copyDiff[i][0] == '-' ? '+' : '-';
+		copyDiff[i] = math + copyDiff[i].slice(1);
+	}
+
+	accountApplyUnconfirmedDiff(this, copyDiff);
+
+	// and here?
+	library.bus.message('changeUnconfirmedDelegates', this.balance, copyDiff);
 }
 
 Account.prototype.applyDelegateList = function (diff) {

@@ -440,6 +440,10 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 						return done("Can't verify votes, you already voted for this delegate: " + transaction.id);
 					}
 
+					if (!modules.delegates.checkDelegates(transaction.senderPublicKey, transaction.asset.votes)) {
+						return cb && cb("Can't verify votes, you already voted for this delegate: " + transaction.id);
+					}
+
 					if (transaction.asset.votes !== null && transaction.asset.votes.length > 33) {
 						return done("Can't verify votes, most be less then 33 delegates");
 					}
@@ -536,7 +540,7 @@ Transactions.prototype.applyUnconfirmed = function (transaction) {
 
 		modules.delegates.addUnconfirmedDelegate(transaction.asset.delegate);
 	} else if (transaction.type == 3) {
-
+		// apply unconfirmed votes for delegates
 	}
 
 	var amount = transaction.amount + transaction.fee;
@@ -566,6 +570,8 @@ Transactions.prototype.undoUnconfirmed = function (transaction) {
 		sender.unconfirmedSignature = false;
 	} else if (transaction.type == 2) {
 		modules.delegates.removeUnconfirmedDelegate(transaction.asset.delegate);
+	} else if (transaction.type == 3) {
+		// undo unconfirmed delegates list
 	}
 
 	return true;
