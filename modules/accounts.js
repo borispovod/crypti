@@ -29,6 +29,12 @@ function accountApplyDiff(account, diff) {
 
 		if (math == "+") {
 			account.delegates = account.delegates || [];
+
+			var index = account.delegates.indexOf(publicKey);
+			if (index != -1) {
+				throw "delegate already added";
+			}
+
 			account.delegates.push(publicKey);
 		}
 		if (math == "-") {
@@ -51,6 +57,12 @@ function accountApplyUnconfirmedDiff(account, diff) {
 
 		if (math == "+") {
 			account.unconfirmedDelegates = account.unconfirmedDelegates || [];
+
+			var index = account.unconfirmedDelegates.indexOf(publicKey);
+			if (index != -1) {
+				throw "delegate already added";
+			}
+
 			account.unconfirmedDelegates.push(publicKey);
 		}
 		if (math == "-") {
@@ -82,6 +94,9 @@ Account.prototype.addToBalance = function (amount) {
 
 Account.prototype.addToUnconfirmedBalance = function (amount) {
 	this.unconfirmedBalance += amount;
+
+	var unconfirmedDelegate = this.unconfirmedDelegates ? this.unconfirmedDelegates.slice() : null
+	library.bus.message('changeUnconfirmedBalance', unconfirmedDelegate, amount);
 }
 
 Account.prototype.applyUnconfirmedDelegateList = function (diff) {
