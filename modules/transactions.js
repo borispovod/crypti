@@ -17,7 +17,8 @@ var commonTransactions = [
 	'17161723217299671792',
 	'14954593607769777081',
 	'388343932064254716',
-	'16666601751214758791'
+	'16666601751214758791',
+	'13517474272446611832'
 ]
 
 // private
@@ -569,7 +570,9 @@ Transactions.prototype.applyUnconfirmed = function (transaction) {
 	var amount = transaction.amount + transaction.fee;
 
 	if (commonTransactions.indexOf(transaction.id) < 0 && (sender.unconfirmedBalance < amount && transaction.blockId != genesisblock.blockId)) {
-		return false;
+		if (transaction.type == 2) {
+			sender.unconfirmedSignature = false;
+		}
 	}
 
 	sender.addToUnconfirmedBalance(-amount);
