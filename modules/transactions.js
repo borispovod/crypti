@@ -540,7 +540,7 @@ Transactions.prototype.applyUnconfirmed = function (transaction) {
 
 		modules.delegates.addUnconfirmedDelegate(transaction.asset.delegate);
 	} else if (transaction.type == 3) {
-		// apply unconfirmed votes for delegates
+		sender.applyUnconfirmedDelegateList(transaction.asset.votes);
 	}
 
 	var amount = transaction.amount + transaction.fee;
@@ -550,7 +550,9 @@ Transactions.prototype.applyUnconfirmed = function (transaction) {
             sender.unconfirmedSignature = false;
         } else if (transaction.type == 2) {
             modules.delegates.removeUnconfirmedDelegate(transaction.asset.delegate);
-        }
+        } else if (transaction.type == 3) {
+			sender.undoUnconfirmedDelegateList(transaction.asset.votes);
+		}
 
 		return false;
 	}
@@ -571,7 +573,7 @@ Transactions.prototype.undoUnconfirmed = function (transaction) {
 	} else if (transaction.type == 2) {
 		modules.delegates.removeUnconfirmedDelegate(transaction.asset.delegate);
 	} else if (transaction.type == 3) {
-		// undo unconfirmed delegates list
+		sender.undoUnconfirmedDelegateList(transaction.asset.votes);
 	}
 
 	return true;
