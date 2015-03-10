@@ -1,3 +1,12 @@
+/**
+ *
+ @overview Helpers array tool
+ * @author Crypti
+ * @license BSD
+ * @module PhantomBrowser
+ * @title Phantom Browser
+ */
+
 var Promise = require('promise');
 var phantom = require('phantom');
 var chalk = require('chalk');
@@ -10,9 +19,26 @@ module.exports = Browser;
 
 /**
  * Phantom browser-like wrapper
- * @param {} plugins Hash of plugin factories.
+ * @param {{}.<string,function>} plugins Hash of plugin factories.
  * @extends EventEmitter
  * @constructor
+ * @example
+ *
+ * var plugins = {
+ *  google : function(search){
+ *      browser.googleSearch = function(selector) {
+ *          // Download link or img by element selector
+ *      };
+ *
+ *      browser.on('init', function(){
+ *          // Do something on browser initialization
+ *      });
+ *  }
+ * };
+ * var browser = new Browser(plugins);
+ *
+ * browser.googleSearch("bitcoin").render().run();
+ *
  */
 function Browser(plugins) {
     EventEmitter.call(this);
@@ -151,8 +177,37 @@ Browser.prototype._finalizeActions = function() {
 };
 
 /**
- * Run sequence
- * @param {function(Error|null, *|undefined)} callback Result callback
+ * Complete sequence and run it actions.
+ * @param {function(this:Browser, Error|null, *|undefined)=} callback Result callback. Optional
+ * @example
+ * // Make site screenshot every 10 seconds.
+ *
+ * // Open page
+ * browser
+ *  .openTab()
+ *  .goto("page")
+ *  .wait()
+ *  .run(function(err){
+ *      if (err) return console.error(err);
+ *
+ *      var i = 0;
+ *      setInterval(function(){
+ *          i++;
+ *          browser.render('snapshot-' + i + '.png).run();
+ *      }, 10000);
+ *  });
+ *
+ *  // Grab content of the same tab in second sequence
+ *  browser
+ *      .eval(function(){
+ *          return document.innerHTML
+ *      })
+ *      .run(function(err, content){
+ *          if (err) return console.error(err);
+ *
+ *          console.log(content);
+ *      });
+ *
  */
 Browser.prototype.run = function(callback) {
 
@@ -181,7 +236,8 @@ Browser.prototype._runQueue = function() {
         self.activeQueue = null;
 
         setImmediate(function(){
-            callback(err, result);
+            if (err) self.emit('error', err);
+            callback && callback.call(self, err, result);
         });
 
         if (self._queue.length) {
@@ -578,11 +634,44 @@ Browser.prototype.dump = function(format) {
 
 /**
  * Resize action.
- * @param {{width:Number,height:Number}} size Viewport size.
+ * @param {string|number|{width:Number,height:Number}} width Viewport width.
+ * @param {number} height Viewport height.
  * @returns {Browser}
  */
-Browser.prototype.resize = function(size){
+Browser.prototype.resize = function(width, height){
     var tab = this.currentTab();
+    var size;
+    if (arguments.length < 2) {
+        if (typeof width === "string") {
+            if (! /^\d+(x\d+)?$/.test(width)) {
+                throw new Error("Size format is")
+            }
+            var parts = size.split('x');
+            if (parts.length < 2) {
+                parts[1] = parts[0];
+            }
+
+            size = {
+                width : parts[0],
+                width : parts[1]
+            }
+        } else if (typeof width === "object"){
+            size = width;
+        } else {
+            size = {
+                width : width,
+                height : width
+            };
+        }
+    } else {
+        size = {
+            width : width,
+            height : height
+        };
+    }
+
+
+
     this.addAction(function(self){
         return new Promise(function(resolve, reject){
             tab.page.set('viewportSize', size, function(){
