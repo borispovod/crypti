@@ -7,7 +7,8 @@ var crypto = require('crypto'),
 	slots = require('../helpers/slots.js'),
 	schedule = require('node-schedule'),
 	util = require('util'),
-	constants = require('../helpers/constants.js');
+	constants = require('../helpers/constants.js'),
+	RequestSanitizer = require('../helpers/request-sanitizer');
 
 require('array.prototype.find'); //old node fix
 
@@ -49,114 +50,132 @@ function attachApi() {
 	});
 
 	router.get('/', function (req, res) {
-		var limit = params.int(req.query.limit) || 101,
-			offset = params.int(req.query.offset),
-			orderField = params.string(req.query.orderBy, true),
-			active = params.bool(req.query.active, true);
+		req.sanitize("query", {
+			limit : {
+				default : 101,
+				int : true
+			},
+			offset : "int",
+			orderBy : "string?",
+			active : "boolean?"
+		}, function(err, report, query){
+			if (err) return next(err);
+			if (! report.isValid) return res.json({success: false, error: report.issues});
 
-		orderField = orderField ? orderField.split(':') : null;
-		limit = limit > 101 ? 101 : limit;
-		var orderBy = orderField ? orderField[0] : null;
-		var sortMode = orderField && orderField.length == 2 ? orderField[1] : 'asc';
-		var publicKeys = Object.keys(publicKeyIndex);
-		var count = publicKeys.length;
-		var length = Math.min(limit, count);
-		var realLimit = Math.min(offset + limit, count);
+			var limit = query.limit,
+				offset = query.offset,
+				orderField = query.orderBy,
+				active = query.active;
 
-		if (active === true) {
-			publicKeys = publicKeys.slice(0, 101);
-		} else if (active === false) {
-			publicKeys = publicKeys.slice(101, publicKeys.length);
-		}
+			orderField = orderField ? orderField.split(':') : null;
+			limit = limit > 101 ? 101 : limit;
+			var orderBy = orderField ? orderField[0] : null;
+			var sortMode = orderField && orderField.length == 2 ? orderField[1] : 'asc';
+			var publicKeys = Object.keys(publicKeyIndex);
+			var count = publicKeys.length;
+			var length = Math.min(limit, count);
+			var realLimit = Math.min(offset + limit, count);
 
-		var rateSort = {};
-		publicKeys.sort(function compare(a, b) {
-			if (votes[a] > votes[b])
-				return -1;
-			if (votes[a] < votes[b])
-				return 1;
-			return 0;
-		}).forEach(function (item, index) {
-			rateSort[item] = index + 1;
+			if (active === true) {
+				publicKeys = publicKeys.slice(0, 101);
+			} else if (active === false) {
+				publicKeys = publicKeys.slice(101, publicKeys.length);
+			}
+
+			var rateSort = {};
+			publicKeys.sort(function compare(a, b) {
+				if (votes[a] > votes[b])
+					return -1;
+				if (votes[a] < votes[b])
+					return 1;
+				return 0;
+			}).forEach(function (item, index) {
+				rateSort[item] = index + 1;
+			});
+
+			if (orderBy) {
+				if (orderBy == 'username') {
+					publicKeys = publicKeys.sort(function compare(a, b) {
+						if (sortMode == 'asc') {
+							if (delegates[publicKeyIndex[a]][orderBy] < delegates[publicKeyIndex[b]][orderBy])
+								return -1;
+							if (delegates[publicKeyIndex[a]][orderBy] > delegates[publicKeyIndex[b]][orderBy])
+								return 1;
+						} else if (sortMode == 'desc') {
+							if (delegates[publicKeyIndex[a]][orderBy] > delegates[publicKeyIndex[b]][orderBy])
+								return -1;
+							if (delegates[publicKeyIndex[a]][orderBy] < delegates[publicKeyIndex[b]][orderBy])
+								return 1;
+						}
+						return 0;
+					});
+				}
+				if (orderBy == 'vote') {
+					publicKeys = publicKeys.sort(function compare(a, b) {
+
+						if (sortMode == 'asc') {
+							if (votes[a] < votes[b])
+								return -1;
+							if (votes[a] > votes[b])
+								return 1;
+						} else if (sortMode == 'desc') {
+							if (votes[a] > votes[b])
+								return -1;
+							if (votes[a] < votes[b])
+								return 1;
+						}
+						return 0;
+					});
+				}
+				if (orderBy == 'rate') {
+					publicKeys = publicKeys.sort(function compare(a, b) {
+
+						if (sortMode == 'asc') {
+							if (rateSort[a] < rateSort[b])
+								return -1;
+							if (rateSort[a] > rateSort[b])
+								return 1;
+						} else if (sortMode == 'desc') {
+							if (rateSort[a] > rateSort[b])
+								return -1;
+							if (rateSort[a] < rateSort[b])
+								return 1;
+						}
+						return 0;
+					});
+				}
+			}
+
+			publicKeys = publicKeys.slice(offset, realLimit);
+
+			var result = publicKeys.map(function (publicKey) {
+				return getDelegate({publicKey: publicKey}, rateSort);
+			});
+
+			res.json({success: true, delegates: result, totalCount: count});
 		});
-
-		if (orderBy) {
-			if (orderBy == 'username') {
-				publicKeys = publicKeys.sort(function compare(a, b) {
-					if (sortMode == 'asc') {
-						if (delegates[publicKeyIndex[a]][orderBy] < delegates[publicKeyIndex[b]][orderBy])
-							return -1;
-						if (delegates[publicKeyIndex[a]][orderBy] > delegates[publicKeyIndex[b]][orderBy])
-							return 1;
-					} else if (sortMode == 'desc') {
-						if (delegates[publicKeyIndex[a]][orderBy] > delegates[publicKeyIndex[b]][orderBy])
-							return -1;
-						if (delegates[publicKeyIndex[a]][orderBy] < delegates[publicKeyIndex[b]][orderBy])
-							return 1;
-					}
-					return 0;
-				});
-			}
-			if (orderBy == 'vote') {
-				publicKeys = publicKeys.sort(function compare(a, b) {
-
-					if (sortMode == 'asc') {
-						if (votes[a] < votes[b])
-							return -1;
-						if (votes[a] > votes[b])
-							return 1;
-					} else if (sortMode == 'desc') {
-						if (votes[a] > votes[b])
-							return -1;
-						if (votes[a] < votes[b])
-							return 1;
-					}
-					return 0;
-				});
-			}
-			if (orderBy == 'rate') {
-				publicKeys = publicKeys.sort(function compare(a, b) {
-
-					if (sortMode == 'asc') {
-						if (rateSort[a] < rateSort[b])
-							return -1;
-						if (rateSort[a] > rateSort[b])
-							return 1;
-					} else if (sortMode == 'desc') {
-						if (rateSort[a] > rateSort[b])
-							return -1;
-						if (rateSort[a] < rateSort[b])
-							return 1;
-					}
-					return 0;
-				});
-			}
-		}
-
-		publicKeys = publicKeys.slice(offset, realLimit);
-
-		var result = publicKeys.map(function (publicKey) {
-			return getDelegate({publicKey: publicKey}, rateSort);
-		})
-
-		res.json({success: true, delegates: result, totalCount: count});
 	});
 
-	router.get('/get', function (req, res) {
-		var transactionId = params.string(req.query.transactionId, true);
-		var publicKey = params.string(req.query.publicKey, true);
-		var username = params.string(req.query.username, true);
+	router.get('/get', function (req, res, next) {
+		req.sanitize("query", {
+			transactionId : "string",
+			publicKey : "string",
+			username : "string"
+		}, function(err, report, query){
+			if (err) return next(err);
+			if (! report.isValid) return res.json({success: false, error: report.issues});
 
-		var delegate = getDelegate({publicKey: publicKey, username: username, transactionId: transactionId});
-		if (delegate) {
-			res.json({success: true, delegate: delegate});
-		} else {
-			res.json({success: false, error: 'Delegate not found'});
-		}
+			var delegate = getDelegate(query);
+			if (delegate) {
+				res.json({success: true, delegate: delegate});
+			} else {
+				res.json({success: false, error: 'Delegate not found'});
+			}
+		});
 	});
 
 	router.get('/forging/getForgedByAccount', function (req, res) {
-		var publicKey = params.string(req.query.generatorPublicKey);
+		var publicKey = RequestSanitizer.string(req.query.generatorPublicKey);
 
 		if (!publicKey) {
 			return res.json({success: false, error: "Provide generatorPublicKey in request"});
@@ -176,8 +195,8 @@ function attachApi() {
 			return res.json({success: false, error: "Accesss denied"});
 		}
 
-		var secret = params.string(req.body.secret);
-		var publicKey = params.string(req.body.publicKey);
+		var secret = RequestSanitizer.string(req.body.secret);
+		var publicKey = RequestSanitizer.string(req.body.publicKey);
 
 		if (!secret) {
 			return res.json({success: false, error: "Provide secret in request"});
@@ -217,8 +236,8 @@ function attachApi() {
 			return res.json({success: false, error: "Accesss denied"});
 		}
 
-		var secret = params.string(req.body.secret);
-		var publicKey = params.string(req.body.publicKey);
+		var secret = RequestSanitizer.string(req.body.secret);
+		var publicKey = RequestSanitizer.string(req.body.publicKey);
 
 		if (!secret) {
 			return res.json({success: false, error: "Provide secret in request"});
@@ -257,63 +276,74 @@ function attachApi() {
 		return res.json({success: true, enabled: !!keypairs[publicKey]});
 	});
 
-	router.put('/', function (req, res) {
-		var secret = params.string(req.body.secret),
-			publicKey = params.hex(req.body.publicKey || null, true),
-			secondSecret = params.string(req.body.secondSecret, true),
-			username = params.string(req.body.username);
+	router.put('/', function (req, res, next) {
+		req.sanitize("body", {
+			secret : "string!",
+			publicKey : "string?",
+			secondSecret : "string?",
+			username : "string!"
+		}, function(err, report, body){
+			if (err) return next(err);
+			if (! report.isValid) return res.json({success: false, error: report.issues});
 
-		var hash = crypto.createHash('sha256').update(secret, 'utf8').digest();
-		var keypair = ed.MakeKeypair(hash);
+			var secret = body.secret,
+				publicKey = body.publicKey,
+				secondSecret = body.secondSecret,
+				username = body.username;
 
-		if (publicKey) {
-			if (keypair.publicKey.toString('hex') != publicKey) {
-				return res.json({success: false, error: "Please, provide valid secret key of your account"});
-			}
-		}
+			var hash = crypto.createHash('sha256').update(secret, 'utf8').digest();
+			var keypair = ed.MakeKeypair(hash);
 
-		var account = modules.accounts.getAccountByPublicKey(keypair.publicKey.toString('hex'));
-
-		if (!account) {
-			return res.json({success: false, error: "Account doesn't has balance"});
-		}
-
-		if (!account.publicKey) {
-			return res.json({success: false, error: "Open account to make transaction"});
-		}
-
-		var transaction = {
-			type: 2,
-			amount: 0,
-			recipientId: null,
-			senderPublicKey: account.publicKey,
-			timestamp: slots.getTime(),
-			asset: {
-				delegate: {
-					username: username
+			if (publicKey) {
+				if (keypair.publicKey.toString('hex') != publicKey) {
+					return res.json({success: false, error: "Please, provide valid secret key of your account"});
 				}
 			}
-		};
 
-		modules.transactions.sign(secret, transaction);
+			var account = modules.accounts.getAccountByPublicKey(keypair.publicKey.toString('hex'));
 
-		if (account.secondSignature) {
-			if (!secondSecret) {
-				return res.json({success: false, error: "Provide second secret key"});
+			if (!account) {
+				return res.json({success: false, error: "Account doesn't has balance"});
 			}
 
-			modules.transactions.secondSign(secondSecret, transaction);
-		}
-
-		library.sequence.add(function (cb) {
-			modules.transactions.processUnconfirmedTransaction(transaction, true, cb);
-		}, function (err) {
-			if (err) {
-				return res.json({success: false, error: err});
+			if (!account.publicKey) {
+				return res.json({success: false, error: "Open account to make transaction"});
 			}
 
-			res.json({success: true, transaction: transaction});
+			var transaction = {
+				type: 2,
+				amount: 0,
+				recipientId: null,
+				senderPublicKey: account.publicKey,
+				timestamp: slots.getTime(),
+				asset: {
+					delegate: {
+						username: username
+					}
+				}
+			};
+
+			modules.transactions.sign(secret, transaction);
+
+			if (account.secondSignature) {
+				if (!secondSecret) {
+					return res.json({success: false, error: "Provide second secret key"});
+				}
+
+				modules.transactions.secondSign(secondSecret, transaction);
+			}
+
+			library.sequence.add(function (cb) {
+				modules.transactions.processUnconfirmedTransaction(transaction, true, cb);
+			}, function (err) {
+				if (err) {
+					return res.json({success: false, error: err});
+				}
+
+				res.json({success: true, transaction: transaction});
+			});
 		});
+
 	});
 
 	library.app.use('/api/delegates', router);
