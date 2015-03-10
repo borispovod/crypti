@@ -22,7 +22,7 @@ function Account(address, publicKey, balance, unconfirmedBalance) {
 	this.unconfirmedDelegates = null;
 }
 
-function accountApplyUnconfirmedDelegates(account, diff) {
+function accountApplyDiff(account, diff) {
 	for (var i = 0; i < diff.length; i++) {
 		var math = diff[i][0];
 		var publicKey = diff[i].slice(1);
