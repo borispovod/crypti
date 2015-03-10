@@ -92,7 +92,7 @@ Account.prototype.applyUnconfirmedDelegateList = function (diff) {
 	library.bus.message('changeUnconfirmedDelegates', this.balance, diff);
 }
 
-Account.prototype.undoDelegateList = function (diff) {
+Account.prototype.undoUnconfirmedDelegateList = function (diff) {
 	if (diff === null) return;
 	var copyDiff = diff.slice();
 	for (var i = 0; i < copyDiff.length; i++) {
