@@ -47,7 +47,7 @@ module.exports = {
 		if (res && res.length && (res.length % 2 == 0) && (/^[a-f0-9]+$/i.exec(res))) {
 			return res;
 		} else {
-			throw "can't valid hex " + val;
+			throw Error("can't valid hex " + val);
 			return null; //not valid hex
 		}
 	},
