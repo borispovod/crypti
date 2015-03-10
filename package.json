@@ -2,6 +2,7 @@
   "name": "Crypti",
   "version": "0.1.9",
   "private": true,
+  "main": "public/index.html",
   "scripts": {
     "start": "node app.js"
   },
