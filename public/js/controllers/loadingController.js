@@ -1,4 +1,6 @@
-webApp.controller("loadingController", ["$scope", "$http", "$interval", "$window", function ($scope, $http, $interval, $window) {
+require('angular');
+
+angular.module('webApp').controller("loadingController", ["$scope", "$http", "$interval", "$window", function ($scope, $http, $interval, $window) {
     $scope.height = null;
 
     $scope.getHeight = function () {

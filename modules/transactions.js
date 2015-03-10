@@ -44,18 +44,18 @@ function attachApi() {
 
 	router.get('/', function (req, res) {
 		req.sanitize("query", {
-			blockId : "string?",
-			limit : "int?",
+			blockId: "string?",
+			limit: "int?",
 			orderBy: "string?",
-			offset : {default:0,int:true},
-			senderPublicKey:"hex?",
-			senderId:"string",
-			recipientId:"string?"
-		}, function(err, report, query){
+			offset: {default: 0, int: true},
+			senderPublicKey: "hex?",
+			senderId: "string",
+			recipientId: "string?"
+		}, function (err, report, query) {
 			if (err) return next(err);
-			if (! report.isValid) return res.json({success:false, error:report.issues});
+			if (!report.isValid) return res.json({success: false, error: report.issues});
 
-			list(query, function(err, transactions){
+			list(query, function (err, transactions) {
 				if (err) {
 					return res.json({success: false, error: "Transactions not found"});
 				}
@@ -108,20 +108,12 @@ function attachApi() {
 		if (senderPublicKey || address) {
 			for (var i = 0; i < transactions.length; i++) {
 				if (transactions[i].senderPublicKey == senderPublicKey || transactions[i].recipientId == address) {
-					var transaction = extend(true, {}, transactions[i]);
-
-					delete transaction.asset;
-
-					toSend.push(transaction);
+					toSend.push(transactions[i]);
 				}
 			}
 		} else {
 			for (var i = 0; i < transactions.length; i++) {
-				var transaction = extend(true, {}, transactions[i]);
-
-				delete transaction.asset;
-
-				toSend.push(transaction);
+				toSend.push(transactions[i]);
 			}
 		}
 
@@ -130,19 +122,19 @@ function attachApi() {
 
 	router.put('/', function (req, res) {
 		req.sanitize("body", {
-			secret : {
-				string:true,
-				minLength : 1
+			secret: {
+				string: true,
+				minLength: 1
 			},
-			amount : "int",
-			recipientId : "string?",
-			publicKey : "hex?",
-			secondSecret : "string?",
-			scriptId : "string?",
-			input : "object?"
-		}, function(err, report, body) {
+			amount: "int",
+			recipientId: "string?",
+			publicKey: "hex?",
+			secondSecret: "string?",
+			scriptId: "string?",
+			input: "object?"
+		}, function (err, report, body) {
 			if (err) return next(err);
-			if (! report.isValid) return res.json({success: false, error: report.issues});
+			if (!report.isValid) return res.json({success: false, error: report.issues});
 
 			var secret = body.secret,
 				amount = body.amount,
@@ -171,25 +163,13 @@ function attachApi() {
 				return res.json({success: false, error: "Open account to make transaction"});
 			}
 
-			var type = 0,
-				asset = {};
-
-			if (scriptId) {
-				type = 5;
-
-				asset.input = {
-					data: new Buffer(JSON.stringify(input), 'utf8').toString('hex'),
-					scriptId : scriptId
-				};
-			}
-
 			var transaction = {
-				type: type,
+				type: 0,
 				amount: amount,
 				recipientId: recipientId,
 				senderPublicKey: account.publicKey,
 				timestamp: slots.getTime(),
-				asset: asset
+				asset: {}
 			};
 
 			self.sign(secret, transaction);
@@ -202,8 +182,12 @@ function attachApi() {
 				self.secondSign(secondSecret, transaction);
 			}
 
-			self.processUnconfirmedTransaction(transaction, true, function (err) {
-				if (err) return res.json({success: false, error: err});
+			library.sequence.add(function (cb) {
+				self.processUnconfirmedTransaction(transaction, true, cb);
+			}, function (err) {
+				if (err) {
+					return res.json({success: false, error: err});
+				}
 
 				res.json({success: true, transactionId: transaction.id});
 			});
@@ -263,12 +247,12 @@ function list(filter, cb) {
 
 	// need to fix 'or' or 'and' in query
 	library.dbLite.query("select t.id, t.blockId, t.type, t.timestamp, lower(hex(t.senderPublicKey)), t.senderId, t.recipientId, t.amount, t.fee, lower(hex(t.signature)), lower(hex(t.signSignature)), (select max(height) + 1 from blocks) - b.height " +
-	"from trs t " +
-	"inner join blocks b on t.blockId = b.id " +
-	(fields.length ? "where " + fields.join(' or ') : '') + " " +
-	(filter.orderBy ? 'order by ' + sortBy + ' ' + sortMethod : '') + " " +
-	(filter.limit ? 'limit $limit' : '') + " " +
-	(filter.offset ? 'offset $offset' : ''), params, ['t_id', 't_blockId', 't_type', 't_timestamp', 't_senderPublicKey', 't_senderId', 't_recipientId', 't_amount', 't_fee', 't_signature', 't_signSignature', 'confirmations'], function (err, rows) {
+		"from trs t " +
+		"inner join blocks b on t.blockId = b.id " +
+		(fields.length ? "where " + fields.join(' or ') : '') + " " +
+		(filter.orderBy ? 'order by ' + sortBy + ' ' + sortMethod : '') + " " +
+		(filter.limit ? 'limit $limit' : '') + " " +
+		(filter.offset ? 'offset $offset' : ''), params, ['t_id', 't_blockId', 't_type', 't_timestamp', 't_senderPublicKey', 't_senderId', 't_recipientId', 't_amount', 't_fee', 't_signature', 't_signSignature', 'confirmations'], function (err, rows) {
 		if (err) {
 			return cb(err)
 		}
@@ -280,9 +264,9 @@ function list(filter, cb) {
 
 function getById(id, cb) {
 	library.dbLite.query("select t.id, t.blockId, t.type, t.timestamp, lower(hex(t.senderPublicKey)), t.senderId, t.recipientId, t.amount, t.fee, lower(hex(t.signature)), lower(hex(t.signSignature)), (select max(height) + 1 from blocks) - b.height " +
-	"from trs t " +
-	"inner join blocks b on t.blockId = b.id " +
-	"where t.id = $id", {id: id}, ['t_id', 't_blockId', 't_type', 't_timestamp', 't_senderPublicKey', 't_senderId', 't_recipientId', 't_amount', 't_fee', 't_signature', 't_signSignature', 'confirmations'], function (err, rows) {
+		"from trs t " +
+		"inner join blocks b on t.blockId = b.id " +
+		"where t.id = $id", {id: id}, ['t_id', 't_blockId', 't_type', 't_timestamp', 't_senderPublicKey', 't_senderId', 't_recipientId', 't_amount', 't_fee', 't_signature', 't_signSignature', 'confirmations'], function (err, rows) {
 		if (err || !rows.length) {
 			return cb(err || "Can't find transaction: " + id);
 		}
@@ -386,6 +370,7 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 
 			var sender = modules.accounts.getAccountByPublicKey(transaction.senderPublicKey);
 
+
 			if (!sender) {
 				return done("Can't process transaction, sender not found");
 			}
@@ -408,7 +393,7 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
  * @param {function(err:Error|string,transaction:object=)} done Result callback
  * @returns {*}
  */
-Transactions.prototype.validateTransaction = function(transaction, done) {
+Transactions.prototype.validateTransaction = function (transaction, done) {
 	var sender = modules.accounts.getAccountByPublicKey(transaction.senderPublicKey);
 
 	if (!modules.transactions.verifySignature(transaction)) {
@@ -438,13 +423,6 @@ Transactions.prototype.validateTransaction = function(transaction, done) {
 
 	switch (transaction.type) {
 
-		case 0:
-			if (transactionHelper.getLastChar(transaction) != "C") {
-				return done("Invalid transaction recipient id");
-			}
-			break;
-
-
 		case 1:
 			if (!transaction.asset.signature) {
 				return done("Empty transaction asset for signature transaction")
@@ -460,6 +438,10 @@ Transactions.prototype.validateTransaction = function(transaction, done) {
 			break;
 
 		case 2:
+			if (transaction.recipientId) {
+				return cb("Invalid recipient");
+			}
+
 			if (!transaction.asset.delegate.username) {
 				return done("Empty transaction asset for delegate transaction");
 			}
@@ -469,11 +451,11 @@ Transactions.prototype.validateTransaction = function(transaction, done) {
 			}
 
 			if (modules.delegates.existsName(transaction.asset.delegate.username)) {
-				return done("Delegate with this name is already exists");
+				return done("The delegate name you entered is already in use. Please try a different name.");
 			}
 
 			if (modules.delegates.existsDelegate(transaction.senderPublicKey)) {
-				return done("This account already delegate");
+				return done("Your account are delegate already");
 			}
 			break;
 		case 3:
@@ -481,8 +463,16 @@ Transactions.prototype.validateTransaction = function(transaction, done) {
 				return done("Incorrect recipient");
 			}
 
+			if (!modules.delegates.checkUnconfirmedDelegates(transaction.senderPublicKey, transaction.asset.votes)) {
+				return done("Can't verify votes, you already voted for this delegate: " + transaction.id);
+			}
+
 			if (!modules.delegates.checkDelegates(transaction.senderPublicKey, transaction.asset.votes)) {
-				return done("Can't verify votes, vote for not exists delegate found: " + transaction.id);
+				return done("Can't verify votes, you already voted for this delegate: " + transaction.id);
+			}
+
+			if (transaction.asset.votes !== null && transaction.asset.votes.length > 33) {
+				return done("Can't verify votes, most be less then 33 delegates");
 			}
 			break;
 		case 4:
@@ -494,7 +484,7 @@ Transactions.prototype.validateTransaction = function(transaction, done) {
 				return done("Transaction script not set");
 			}
 
-			self.validateTransactionScript(transaction.asset.script, function(err){
+			self.validateTransactionScript(transaction.asset.script, function (err) {
 				if (err) return done(err);
 
 				if (!transaction.asset.script.name || transaction.asset.script.name.length == 0 || transaction.asset.script.name.length > 16) {
@@ -531,7 +521,7 @@ Transactions.prototype.validateTransaction = function(transaction, done) {
 
 				transaction.asset.script = script;
 
-				self.validateTransactionScript(script, function(err, script){
+				self.validateTransactionScript(script, function (err, script) {
 					if (err) return done(err);
 
 					try {
@@ -543,9 +533,9 @@ Transactions.prototype.validateTransaction = function(transaction, done) {
 					transaction.asset.script.code = new Buffer(transaction.asset.script.code, 'hex').toString('utf8');
 					transaction.asset.script.parameters = new Buffer(transaction.asset.script.parameters, 'hex').toString('utf8');
 
-					JsonSchema.validate(input, script.parameters, function(err, report){
+					JsonSchema.validate(input, script.parameters, function (err, report) {
 						if (err) return done(err);
-						if (! report.isValid) return done(report.issues);
+						if (!report.isValid) return done(report.issues);
 
 						done(null, transaction);
 					});
@@ -602,8 +592,8 @@ Transactions.prototype.validateTransactionScript = function (script, cb) {
 	}
 
 	cb(null, {
-		code : code,
-		parameters : parameters
+		code: code,
+		parameters: parameters
 	});
 }
 
@@ -611,35 +601,29 @@ Transactions.prototype.apply = function (transaction) {
 	var sender = modules.accounts.getAccountByPublicKey(transaction.senderPublicKey);
 	var amount = transaction.amount + transaction.fee;
 
-	if (sender.balance < amount && transaction.blockId != genesisblock.blockId) {
+	if (sender.balance < amount && transaction.blockId != genesisblock.block.id) {
 		return false;
 	}
+
+	sender.addToBalance(-amount);
 
 	// process only two types of transactions
 	switch (transaction.type) {
 		case 0:
-			sender.addToBalance(-amount);
-
 			var recipient = modules.accounts.getAccountOrCreateByAddress(transaction.recipientId);
 			recipient.addToUnconfirmedBalance(transaction.amount);
 			recipient.addToBalance(transaction.amount);
 			break;
 		case 1:
-			sender.addToBalance(-amount);
-
 			sender.unconfirmedSignature = false;
 			sender.secondSignature = true;
 			sender.secondPublicKey = transaction.asset.signature.publicKey;
 			break;
 		case 2:
-			sender.addToBalance(-amount);
-
 			modules.delegates.removeUnconfirmedDelegate(transaction.asset.delegate);
 			modules.delegates.cache(transaction.asset.delegate);
 			break;
 		case 3:
-			sender.addToBalance(-amount);
-
 			sender.applyDelegateList(transaction.asset.votes);
 			break;
 	}
@@ -662,17 +646,20 @@ Transactions.prototype.undoAllUnconfirmed = function () {
 		var transaction = unconfirmedTransactions[ids[i]];
 		this.undoUnconfirmed(transaction);
 	}
-
 	return ids;
 }
 
 Transactions.prototype.applyUnconfirmed = function (transaction) {
 	var sender = modules.accounts.getAccountByPublicKey(transaction.senderPublicKey);
 
-	if (!sender && transaction.blockId != genesisblock.blockId) {
+	if (!sender && transaction.blockId != genesisblock.block.id) {
 		return false;
 	} else {
 		sender = modules.accounts.getAccountOrCreateByPublicKey(transaction.senderPublicKey);
+	}
+
+	if (sender.secondSignature && !transaction.signSignature) {
+		return false;
 	}
 
 	if (transaction.type == 1) {
@@ -692,12 +679,20 @@ Transactions.prototype.applyUnconfirmed = function (transaction) {
 
 		modules.delegates.addUnconfirmedDelegate(transaction.asset.delegate);
 	} else if (transaction.type == 3) {
-
+		sender.applyUnconfirmedDelegateList(transaction.asset.votes);
 	}
 
 	var amount = transaction.amount + transaction.fee;
 
-	if (sender.unconfirmedBalance < amount && transaction.blockId != genesisblock.blockId) {
+	if (sender.unconfirmedBalance < amount && transaction.blockId != genesisblock.block.id) {
+		if (transaction.type == 1) {
+			sender.unconfirmedSignature = false;
+		} else if (transaction.type == 2) {
+			modules.delegates.removeUnconfirmedDelegate(transaction.asset.delegate);
+		} else if (transaction.type == 3) {
+			sender.undoUnconfirmedDelegateList(transaction.asset.votes);
+		}
+
 		return false;
 	}
 
@@ -712,10 +707,16 @@ Transactions.prototype.undoUnconfirmed = function (transaction) {
 
 	sender.addToUnconfirmedBalance(amount);
 
-	if (transaction.type == 1) {
-		sender.unconfirmedSignature = false;
-	} else if (transaction.type == 2) {
-		modules.delegates.removeUnconfirmedDelegate(transaction.asset.delegate);
+	switch (transaction.type) {
+		case 1:
+			sender.unconfirmedSignature = false;
+			break;
+		case 2:
+			modules.delegates.removeUnconfirmedDelegate(transaction.asset.delegate);
+			break;
+		case 3:
+			sender.undoUnconfirmedDelegateList(transaction.asset.votes);
+			break;
 	}
 
 	return true;
@@ -805,8 +806,10 @@ Transactions.prototype.onReceiveTransaction = function (transactions) {
 		transactions = [transactions];
 	}
 
-	async.forEach(transactions, function (transaction, cb) {
-		self.processUnconfirmedTransaction(transaction, true, cb);
+	library.sequence.add(function (cb) {
+		async.forEach(transactions, function (transaction, cb) {
+			self.processUnconfirmedTransaction(transaction, true, cb);
+		}, cb);
 	});
 }
 

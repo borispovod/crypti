@@ -6,6 +6,7 @@ var async = require('async'),
 	bignum = require('bignum'),
 	RequestSanitizer = require('../helpers/request-sanitizer'),
 	normalize = require('../helpers/normalize.js');
+require('colors');
 
 //private fields
 var modules, library, self;
@@ -58,19 +59,20 @@ function attachApi() {
 
 function loadBlocks(lastBlock, cb) {
 	modules.transport.getFromRandomPeer('/height', function (err, data) {
+		var peerStr = data && data.peer ? ip.fromLong(data.peer.ip) + ":" + data.peer.port : 'unknown';
 		if (err || !data.body) {
+			library.logger.log("Fail request at " + peerStr);
 			return cb();
 		}
 
-		var peerStr = data.peer ? ip.fromLong(data.peer.ip) + ":" + data.peer.port : 'unknown';
-		library.logger.debug("Load blocks from " + peerStr);
+		library.logger.info("Check blockchain on " + peerStr);
 
 		if (bignum(modules.blocks.getLastBlock().height).lt(RequestSanitizer.string(data.body.height))) {
 			sync = true;
 			blocksToSync = RequestSanitizer.int(data.body.height);
 
-			if (lastBlock.id != genesisBlock.blockId) { //have to found common block
-				library.logger.info("Find common block from " + peerStr);
+			if (lastBlock.id != genesisBlock.block.id) { //have to found common block
+				library.logger.info("Looking for common block with " + peerStr);
 				modules.blocks.getCommonBlock(data.peer, lastBlock.height, function (err, commonBlock) {
 					if (err) {
 						return cb(err);
@@ -80,39 +82,51 @@ function loadBlocks(lastBlock, cb) {
 						return cb();
 					}
 
-					debugger;
+					library.logger.info("Found common block " + commonBlock.id + " (at " + commonBlock.height + ")" + " with peer " + peerStr);
 
-					library.logger.info("Resolve fork before " + commonBlock.id + " from " + peerStr);
+					modules.round.directionSwap('backward');
 					modules.blocks.deleteBlocksBefore(commonBlock, function (err, backupBlocks) {
+						modules.round.directionSwap('forward');
 						if (err) {
+							library.logger.fatal('delete blocks before', err);
 							return setImmediate(cb, err);
 						}
+
 						library.logger.debug("Load blocks from peer " + peerStr);
+
 						modules.blocks.loadBlocksFromPeer(data.peer, commonBlock.id, function (err) {
 							if (err) {
 								library.logger.error(err);
 								library.logger.log('ban 60 min', peerStr);
 								modules.peer.state(data.peer.ip, data.peer.port, 0, 3600);
 
+								library.logger.info("Remove blocks again until " + commonBlock.id + " (at " + commonBlock.height + ")");
+								modules.round.directionSwap('backward');
 								modules.blocks.deleteBlocksBefore(commonBlock, function (err) {
+									modules.round.directionSwap('forward');
 									if (err) {
-										library.logger.error(err);
+										library.logger.fatal('delete blocks before', err);
 										return setImmediate(cb);
 									}
 
-									library.logger.info("First last block already: " + modules.blocks.getLastBlock().height + ", first block in backup: " + backupBlocks[0].height);
-									async.eachSeries(backupBlocks, function (block, cb) {
-										modules.blocks.processBlock(block, false, cb);
-									}, cb);
+									if (backupBlocks.length) {
+										library.logger.info("Restore stored blocks until " + backupBlocks[backupBlocks.length - 1].height);
+										async.eachSeries(backupBlocks, function (block, cb) {
+											modules.blocks.processBlock(block, false, cb);
+										}, cb);
+									} else {
+										setImmediate(cb);
+									}
 								});
 							} else {
 								setImmediate(cb);
 							}
 						});
-					})
+					});
+
 				});
 			} else { //have to load full db
-				var commonBlockId = genesisBlock.blockId;
+				var commonBlockId = genesisBlock.block.id;
 				library.logger.debug("Load blocks from genesis from " + peerStr);
 				modules.blocks.loadBlocksFromPeer(data.peer, commonBlockId, cb);
 			}

@@ -1,3 +1,5 @@
+var moment = require('moment');
+
 module.exports = function (grunt) {
 	var files = [
 		'logger.js',
@@ -5,6 +7,21 @@ module.exports = function (grunt) {
 		'modules/*.js',
 		'app.js'
 	];
+
+	var today = moment().format("HH:mm:ss DD/MM/YYYY");
+
+	var recipients = [
+		{
+			email: 'boris@crypti.me',
+			name: 'Boris Povod'
+		},
+		{
+			email: 'sebastian@crypti.me',
+			name: "Sebastian"
+		}
+	];
+
+	var config = require("./config.json");
 
 	grunt.initConfig({
 		obfuscator: {
@@ -38,13 +55,53 @@ module.exports = function (grunt) {
 			}
 		},
 
+		exec: {
+			package: {
+				command: function () {
+					return "mkdir  -p  ./builded/" + config.version + " && " +
+						"mkdir  -p  ./builded/" + config.version + "/public" + "&&" +
+						"cp ./builded/app.js ./builded/" + config.version + "&&" +
+						"cp ./config.json ./builded/" + config.version + "/config.json" + "&&" +
+						"cp ./package.json ./builded/" + config.version + "/package.json" + "&&" +
+						"cd public && mkdir -p ./static && npm install &&  bower install && grunt release && cd ../ &&" +
+						"cp ./public/wallet.html ./builded/" + config.version + "/public/" + "&&" +
+						"cp ./public/loading.html ./builded/" + config.version + "/public/" + "&&" +
+						"cp -rf ./public/images ./builded/" + config.version + "/public/" + "&&" +
+						"cp -rf ./public/partials ./builded/" + config.version + "/public/" + "&&" +
+						"cp -rf ./public/static ./builded/" + config.version + "/public/"
+				}
+			},
+			folder: {
+				command: "mkdir -p ./builded"
+			},
+			build: {
+				command: "cd ./builded/" + config.version + "/ && touch build && echo 'v" + today + "' > build"
+			}
+		},
+
 		compress: {
 			main: {
 				options: {
-					archive: 'crypti.zip'
+					archive: config.version + '.zip'
 				},
 				files: [
-					{src: ['builded/**'], dest: '/'}
+					{expand: true, cwd: __dirname + '/builded', src: [config.version + '/**'], dest: './'}
+				]
+			}
+		},
+
+		gcloud: {
+			project: {
+				options: {
+					projectId: 'crypti-cloud',
+					bucket: 'crypti-testing',
+					keyFilename: '.gcloud.json'
+				},
+				files: [
+					{
+						src: config.version + ".zip",
+						dest: 'nodes'
+					}
 				]
 			}
 		},
@@ -62,25 +119,67 @@ module.exports = function (grunt) {
 
 		jsdox: {
 			generate: {
-				src : [
+				src: [
 					'helpers/*.js'
 					//'./modules/*.js'
 				],
-				dest : 'tmp/docs',
-				options : {
-					templateDir : 'var/jsdox'
+				dest: 'tmp/docs',
+				options: {
+					templateDir: 'var/jsdox'
 				}
+			}
+		},
+
+		nodemailer: {
+			options: {
+				transport: {
+					type: 'SMTP',
+					options: {
+						service: 'Gmail',
+						auth: {
+							user: 'helpdesk@crypti.me',
+							pass: 'U6XzQPM45MLJyk8'
+						}
+					}
+				},
+				recipients: recipients
+			},
+			message: {
+				options: {
+					from: "Crypti Versions <helpdesk@crypti.me>",
+					subject: 'Version ' + config.version + ' available now',
+					text: 'New version is avaliable now: http://storage.googleapis.com/crypti-testing/nodes/' + config.version + '.zip (v' + today + ')',
+					html: 'New version is avaliable now: http://storage.googleapis.com/crypti-testing/nodes/' + config.version + '.zip (v' + today + ')'
+				}
+			}
+		},
+		slack: {
+			options: {
+				endpoint: 'https://hooks.slack.com/services/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',
+				channel: '#testing',
+				username: 'Crypti',
+				icon_emoji: ":thumbsup:",
+				icon_url: 'http://vermilion1.github.io/presentations/grunt/images/grunt-logo.png' // if icon_emoji not specified
+			},
+			notify: {
+				text: '@sebastian @eric @boris @landgraf_paul New version (' + config.version + ') of Crypti available: http://storage.googleapis.com/crypti-testing/nodes/' + config.version + '.zip (v' + today + ')'
 			}
 		}
 	});
+
 
 	grunt.loadNpmTasks('grunt-obfuscator');
 	grunt.loadNpmTasks("grunt-jscrambler");
 	grunt.loadNpmTasks('grunt-contrib-uglify');
 	grunt.loadNpmTasks('grunt-jsdox');
-	//grunt.loadNpmTasks('grunt-contrib-compress');
+	grunt.loadNpmTasks('grunt-exec');
+	grunt.loadNpmTasks('grunt-contrib-compress');
+	grunt.loadNpmTasks('grunt-gcloud');
+	grunt.loadNpmTasks('grunt-nodemailer');
+	grunt.loadNpmTasks('grunt-slack-hook');
 
 	grunt.registerTask("default", ["obfuscator"]);
 	grunt.registerTask("release", ["default", "jscrambler"]);
 	grunt.registerTask('script', ["uglify:script"]);
+	grunt.registerTask("package", ["exec:folder", "release", "exec:package", "exec:build", "compress", "gcloud:project", "nodemailer:message", "slack"]);
 };

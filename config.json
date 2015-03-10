@@ -1,32 +1,34 @@
 {
-    "port": 7040,
-    "address": "0.0.0.0",
-    "serveHttpAPI": true,
-    "serveHttpWallet": true,
-    "version": "0.2.0",
-    "fileLogLevel": "info",
-    "consoleLogLevel": "log",
-    "sharePort": true,
-    "adminPanel": {
-        "whiteList": [
-            "127.0.0.1"
-        ]
-    },
-    "api": {
-        "access": {
-            "whiteList": []
-        }
-    },
-    "peers": {
-        "list": [
-        ],
-        "blackList": []
-    },
-    "forging": {
-		"secret": "4AMbeHpDvmtcHnCu5AWjbgzT4psH8RVMgjPnRNBbYUZxStBMSqGE"
-    },
-	"loading" : {
-		"verifyOnLoading" : true,
-		"loadPerIteration" : 5000
-    }
+	"port": 7040,
+	"address": "0.0.0.0",
+	"serveHttpAPI": true,
+	"serveHttpWallet": true,
+	"version": "0.2.0",
+	"fileLogLevel": "info",
+	"consoleLogLevel": "log",
+	"sharePort": true,
+	"api": {
+		"access": {
+			"whiteList": []
+		}
+	},
+	"peers": {
+		"list": [
+			{
+				"ip": "130.211.104.33",
+				"port": 7040
+			}
+		],
+		"blackList": []
+	},
+	"forging": {
+		"secret": "",
+		"access": {
+			"whiteList": []
+		}
+	},
+	"loading": {
+		"verifyOnLoading": true,
+		"loadPerIteration": 5000
+	}
 }

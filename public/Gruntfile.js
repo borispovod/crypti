@@ -1,12 +1,8 @@
 module.exports = function (grunt) {
 	var files = [
 		"bower_components/jquery/dist/jquery.js",
-		"bower_components/angular/angular.js",
-		"bower_components/angular-ui-router/release/angular-ui-router.js",
-		"bower_components/angular-resource/angular-resource.js",
-		"js/app.js",
-		"js/modal.js",
-		"js/**/*.js"
+		"js/main.js",
+		"js/modal.js"
 	];
 
 	// Project configuration.
@@ -20,6 +16,7 @@ module.exports = function (grunt) {
 				files: {
 					"static/css/app.css": [
 						"bower_components/angular-modal/modal.css",
+						"node_modules/ng-table/ng-table.css",
 						"tmp/app.css"
 					]
 				}
@@ -41,6 +38,12 @@ module.exports = function (grunt) {
 				}
 			}
 		},
+		browserify: {
+			main: {
+				src: 'static/js/app.js',
+				dest: 'static/js/br_app.js'
+			}
+		},
 		uglify: {
 			release: {
 				options: {
@@ -59,9 +62,13 @@ module.exports = function (grunt) {
 	grunt.loadNpmTasks("grunt-contrib-cssmin");
 	grunt.loadNpmTasks("grunt-contrib-less");
 	grunt.loadNpmTasks("grunt-contrib-uglify");
+	grunt.loadNpmTasks('grunt-browserify');
+
+
 
 	// Default task.
-	grunt.registerTask("default", ["less", "cssmin", "concat"]);
+	grunt.registerTask("default", ["less", "cssmin", "concat", 'browserify']);
 	// Release task
 	grunt.registerTask("release", ["default", "uglify:release"]);
+
 };

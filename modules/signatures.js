@@ -2,7 +2,6 @@ var ed = require('ed25519'),
 	bignum = require('bignum'),
 	ByteBuffer = require("bytebuffer"),
 	crypto = require('crypto'),
-	genesisblock = require('../helpers/genesisblock.js'),
 	constants = require("../helpers/constants.js"),
 	relational = require("../helpers/relational.js"),
 	slots = require('../helpers/slots.js'),
@@ -108,7 +107,9 @@ function attachApi() {
 
 			transaction.id = transactionHelper.getId(transaction);
 
-			modules.transactions.processUnconfirmedTransaction(transaction, true, function (err) {
+			library.sequence.add(function (cb) {
+				modules.transactions.processUnconfirmedTransaction(transaction, true, cb);
+			}, function (err) {
 				if (err) {
 					return res.json({success: false, error: err});
 				}
