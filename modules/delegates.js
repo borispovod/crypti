@@ -547,7 +547,7 @@ Delegates.prototype.getUnconfirmedDelegates = function () {
 
 Delegates.prototype.addUnconfirmedDelegate = function (delegate) {
 	unconfirmedDelegates[delegate.publicKey] = true;
-	unconfirmedNames[delegate.publicKey] = true;
+	unconfirmedNames[delegate.username] = true;
 }
 
 Delegates.prototype.getUnconfirmedDelegate = function (delegate) {
