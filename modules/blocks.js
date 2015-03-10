@@ -921,6 +921,10 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 				return done("Can't verify payload length of block: " + block.id, unconfirmedTransactions);
 			}
 
+			if (!block.requests || !block.transactions || !block.companyconfirmations) {
+				return done("Invalid block assets");
+			}
+
 			if (block.transactions.length != block.numberOfTransactions
 				|| block.requests.length != block.numberOfRequests
 				|| block.companyconfirmations.length != block.numberOfConfirmations
