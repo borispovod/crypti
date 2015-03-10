@@ -498,6 +498,11 @@ Delegates.prototype.checkDelegates = function (publicKey, votes) {
 		for (var i = 0; i < votes.length; i++) {
 			var math = votes[i][0];
 			var publicKey = votes[i].slice(1);
+
+			if (!self.existsDelegate(publicKey)){
+				return false;
+			}
+
 			if (math == "+" && (account.delegates !== null && account.delegates.indexOf(publicKey) != -1)) {
 				return false;
 			}
@@ -526,6 +531,11 @@ Delegates.prototype.checkUnconfirmedDelegates = function (publicKey, votes) {
 		for (var i = 0; i < votes.length; i++) {
 			var math = votes[i][0];
 			var publicKey = votes[i].slice(1);
+
+			if (unconfirmedVotes[publicKey] === undefined){
+				return false;
+			}
+
 			if (math == "+" && (account.unconfirmedDelegates !== null && account.unconfirmedDelegates.indexOf(publicKey) != -1)) {
 				return false;
 			}
@@ -600,9 +610,8 @@ Delegates.prototype.cache = function (delegate) {
 	delegates.push(delegate);
 	var index = delegates.length - 1;
 
+	unconfirmedVotes[delegate.publicKey] = 0;
 	votes[delegate.publicKey] = 0;
-
-	unconfirmedDelegates[delegate.publicKey] = 0;
 
 	namesIndex[delegate.username] = index;
 	publicKeyIndex[delegate.publicKey] = index;
@@ -611,8 +620,7 @@ Delegates.prototype.cache = function (delegate) {
 
 Delegates.prototype.uncache = function (delegate) {
 	delete votes[delegate.publicKey];
-
-	delete unconfirmedDelegates[delegate.publicKey];
+	delete unconfirmedVotes[delegate.publicKey];
 
 	var index = publicKeyIndex[delegate.publicKey];
 
