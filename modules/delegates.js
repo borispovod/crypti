@@ -16,8 +16,8 @@ require('array.prototype.find'); //old node fix
 var modules, library, self;
 
 var loaded = false;
-var unconfirmedDelegates = [];
-var unconfirmedNames = [];
+var unconfirmedDelegates = {};
+var unconfirmedNames = {};
 
 var votes = {};
 var unconfirmedVotes = {};
@@ -560,7 +560,7 @@ Delegates.prototype.getUnconfirmedName = function (delegate) {
 
 Delegates.prototype.removeUnconfirmedDelegate = function (delegate) {
 	delete unconfirmedDelegates[delegate.publicKey];
-	delete unconfirmedNames[delegate.publicKey];
+	delete unconfirmedNames[delegate.username];
 }
 
 Delegates.prototype.fork = function (block, cause) {
