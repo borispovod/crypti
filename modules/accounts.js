@@ -32,7 +32,7 @@ function accountApplyDiff(account, diff) {
 
 			var index = account.delegates.indexOf(publicKey);
 			if (index != -1) {
-				throw "delegate already added";
+				throw Error("delegate already added");
 			}
 
 			account.delegates.push(publicKey);
@@ -40,7 +40,7 @@ function accountApplyDiff(account, diff) {
 		if (math == "-") {
 			var index = account.delegates.indexOf(publicKey);
 			if (index == -1) {
-				throw "delegate not found";
+				throw Error("delegate not found");
 			}
 			account.delegates.splice(index, 1);
 			if (!account.delegates.length) {
@@ -60,7 +60,7 @@ function accountApplyUnconfirmedDiff(account, diff) {
 
 			var index = account.unconfirmedDelegates.indexOf(publicKey);
 			if (index != -1) {
-				throw "delegate already added";
+				throw Error("delegate already added");
 			}
 
 			account.unconfirmedDelegates.push(publicKey);
@@ -68,7 +68,7 @@ function accountApplyUnconfirmedDiff(account, diff) {
 		if (math == "-") {
 			var index = account.unconfirmedDelegates.indexOf(publicKey);
 			if (index == -1) {
-				throw "delegate not found";
+				throw Error("delegate not found");
 			}
 			account.unconfirmedDelegates.splice(index, 1);
 			if (!account.unconfirmedDelegates.length) {
@@ -203,7 +203,6 @@ function attachApi() {
 			return res.json({success: true, accounts: accounts});
 		});
 	}
-
 
 	if (process.env.TOP && process.env.TOP.toUpperCase() == "TRUE") {
 		router.get('/top', function (req, res) {
