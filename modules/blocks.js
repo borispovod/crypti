@@ -149,7 +149,7 @@ function getBytes(block) {
 		bb.flip();
 		var b = bb.toBuffer();
 	} catch (e) {
-		throw e.toString();
+		throw Error(e.toString());
 	}
 
 	return b;
