@@ -935,6 +935,12 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 
 				setImmediate(done, errors[0]);
 			} else {
+				try {
+					block = normalize.block(block);
+				} catch (e) {
+					return setImmediate(done, e);
+				}
+
 				for (var i = 0; i < block.transactions.length; i++) {
 					var transaction = block.transactions[i];
 
