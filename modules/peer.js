@@ -5,7 +5,9 @@ var async = require('async'),
 	RequestSanitizer = require('../helpers/request-sanitizer'),
 	arrayHelper = require('../helpers/array.js'),
 	normalize = require('../helpers/normalize.js'),
-	extend = require('extend');
+	extend = require('extend'),
+	fs = require('fs'),
+	path = require('path');
 
 //private fields
 var modules, library, self;
@@ -42,7 +44,7 @@ function attachApi() {
 			if (err) return next(err);
 			if (! report.isValid) return res.json({success:false, error:report.issues});
 
-			if (limit < 0 || limit > 100) {
+			if (query.limit < 0 || query.limit > 100) {
 				return res.json({success: false, error: "Max limit is 100"});
 			}
 
@@ -60,15 +62,32 @@ function attachApi() {
 		});
 	});
 
-	router.get('/get', function (req, res, next) {
-		req.sanitize("query", {
-			ip : "string",
-			port : "int"
-		}, function(err, report, query) {
-			if (err) return next(err);
-			if (!report.isValid) return res.json({success: false, error: report.issues});
+	router.get('/version', function (req, res) {
+		fs.readFile(path.join(__dirname, '..', 'build'), 'utf8', function (err, data) {
+			if (err) {
+				library.logger.error("Can't read build file: " + err);
+				return res.json({success: false, error : "Can't read 'build' file, see logs"});
+			}
 
-			getByFilter(query, function (err, peers) {
+			return res.json({success: true, version: library.config.version, build: data.trim()});
+		});
+	})
+
+	router.get('/get', function (req, res) {
+		req.sanitize("query", {
+			ip_str: "string",
+			port: "int"
+		}, function (err, report, query) {
+			try {
+				var ip_str = ip.toLong(query.ip_str);
+			} catch (e) {
+				return res.json({success: false, error: "Provide valid ip"});
+			}
+
+			getByFilter({
+				ip: ip_str,
+				port: port
+			}, function (err, peers) {
 				if (err) {
 					return res.json({success: false, error: "Peers not found"});
 				}
@@ -132,44 +151,48 @@ function banManager(cb) {
 }
 
 function getByFilter(filter, cb) {
-	var limit = filter.limit;
-	var offset = filter.offset;
+	var limit = filter.limit || null;
+	var offset = filter.offset || null;
 	delete filter.limit;
 	delete filter.offset;
 
 	var where = [];
 	var params = {};
 
-	if (limit > 100) {
-		return cb("Maximum limit is 100");
-	}
-
-	if (filter.state !== null) {
+	if (filter.hasOwnProperty('state') && filter.state !== null) {
 		where.push("state = $state");
 		params.state = filter.state;
 	}
 
-	if (filter.os !== null) {
+	if (filter.hasOwnProperty('os') && filter.os !== null) {
 		where.push("os = $os");
 		params.os = filter.os;
 	}
 
-	if (filter.version !== null) {
+	if (filter.hasOwnProperty('version') && filter.version !== null) {
 		where.push("version = $version");
 		params.version = filter.version;
 	}
 
-	if (filter.shared !== null) {
+	if (filter.hasOwnProperty('shared') && filter.shared !== null) {
 		where.push("sharePort = $sharePort");
 		params.sharePort = filter.shared;
 	}
 
-	if (filter.port !== null) {
+	if (filter.hasOwnProperty('ip') && filter.ip !== null) {
+		where.push("ip = $ip");
+		params.ip = filter.ip;
+	}
+
+	if (filter.hasOwnProperty('port') && filter.port !== null) {
 		where.push("port = $port");
 		params.port = filter.port;
 	}
 
 	if (limit !== null) {
+		if (limit > 100) {
+			return cb("Maximum limit is 100");
+		}
 		params['limit'] = limit;
 	}
 
@@ -241,7 +264,7 @@ Peer.prototype.update = function (peer, cb) {
 			if (peer.state !== undefined) {
 				params.state = peer.state;
 			}
-			library.dbLite.query("UPDATE peers SET os = $os, sharePort = $sharePort, version = $version" + (peer.state !== undefined ? ", state = $state " : "") + " WHERE ip = $ip and port = $port;", params, cb);
+			library.dbLite.query("UPDATE peers SET os = $os, sharePort = $sharePort, version = $version" + (peer.state !== undefined ? ", state = CASE WHEN state = 0 THEN state ELSE $state END " : "") + " WHERE ip = $ip and port = $port;", params, cb);
 		}
 	], function (err) {
 		err && library.logger.error('Peer#update', err);

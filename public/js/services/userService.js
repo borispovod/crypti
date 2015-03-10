@@ -1,4 +1,6 @@
-webApp.service('userService', function () {
+require('angular');
+
+angular.module('webApp').service('userService', function () {
 	this.setData = function (address, publicKey, balance, unconfirmedBalance, effectiveBalance) {
 		this.address = address;
 		this.publicKey = publicKey;
@@ -12,6 +14,14 @@ webApp.service('userService', function () {
 
 	this.setForging = function (forging) {
 		this.forging = forging;
+	}
+
+	this.setDelegate = function (delegate) {
+		this.delegate = delegate;
+	}
+
+	this.setDelegateProcess = function (delegate) {
+		this.delegateInRegistration = delegate;
 	}
 
 	this.setSecondPassphrase = function (secondPassPhrase) {

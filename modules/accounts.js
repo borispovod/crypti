@@ -18,6 +18,7 @@ function Account(address, publicKey, balance, unconfirmedBalance) {
 	this.secondSignature = false;
 	this.secondPublicKey = null;
 	this.delegates = null;
+	this.unconfirmedDelegates = null;
 }
 
 function accountApplyDiff(account, diff) {
@@ -27,6 +28,12 @@ function accountApplyDiff(account, diff) {
 
 		if (math == "+") {
 			account.delegates = account.delegates || [];
+
+			var index = account.delegates.indexOf(publicKey);
+			if (index != -1) {
+				throw "delegate already added";
+			}
+
 			account.delegates.push(publicKey);
 		}
 		if (math == "-") {
@@ -37,6 +44,34 @@ function accountApplyDiff(account, diff) {
 			account.delegates.splice(index, 1);
 			if (!account.delegates.length) {
 				account.delegates = null;
+			}
+		}
+	}
+}
+
+function accountApplyUnconfirmedDiff(account, diff) {
+	for (var i = 0; i < diff.length; i++) {
+		var math = diff[i][0];
+		var publicKey = diff[i].slice(1);
+
+		if (math == "+") {
+			account.unconfirmedDelegates = account.unconfirmedDelegates || [];
+
+			var index = account.unconfirmedDelegates.indexOf(publicKey);
+			if (index != -1) {
+				throw "delegate already added";
+			}
+
+			account.unconfirmedDelegates.push(publicKey);
+		}
+		if (math == "-") {
+			var index = account.unconfirmedDelegates.indexOf(publicKey);
+			if (index == -1) {
+				throw "delegate not found";
+			}
+			account.unconfirmedDelegates.splice(index, 1);
+			if (!account.unconfirmedDelegates.length) {
+				account.unconfirmedDelegates = null;
 			}
 		}
 	}
@@ -58,15 +93,42 @@ Account.prototype.addToBalance = function (amount) {
 
 Account.prototype.addToUnconfirmedBalance = function (amount) {
 	this.unconfirmedBalance += amount;
+
+	var unconfirmedDelegate = this.unconfirmedDelegates ? this.unconfirmedDelegates.slice() : null
+	library.bus.message('changeUnconfirmedBalance', unconfirmedDelegate, amount);
+}
+
+Account.prototype.applyUnconfirmedDelegateList = function (diff) {
+	if (diff === null) return;
+	accountApplyUnconfirmedDiff(this, diff);
+
+	// what we most do here?
+	library.bus.message('changeUnconfirmedDelegates', this.balance, diff);
+}
+
+Account.prototype.undoUnconfirmedDelegateList = function (diff) {
+	if (diff === null) return;
+	var copyDiff = diff.slice();
+	for (var i = 0; i < copyDiff.length; i++) {
+		var math = copyDiff[i][0] == '-' ? '+' : '-';
+		copyDiff[i] = math + copyDiff[i].slice(1);
+	}
+
+	accountApplyUnconfirmedDiff(this, copyDiff);
+
+	// and here?
+	library.bus.message('changeUnconfirmedDelegates', this.balance, copyDiff);
 }
 
 Account.prototype.applyDelegateList = function (diff) {
+	if (diff === null) return;
 	accountApplyDiff(this, diff);
 
 	library.bus.message('changeDelegates', this.balance, diff);
 }
 
 Account.prototype.undoDelegateList = function (diff) {
+	if (diff === null) return;
 	var copyDiff = diff.slice();
 	for (var i = 0; i < copyDiff.length; i++) {
 		var math = copyDiff[i][0] == '-' ? '+' : '-';
@@ -99,10 +161,10 @@ function attachApi() {
 
 	router.post('/open', function (req, res, next) {
 		req.sanitize(req.body, {
-			secret : "string"
-		}, function(err, report, body){
+			secret: "string"
+		}, function (err, report, body) {
 			if (err) return next(err);
-			if (! report.isValid) return res.json({success: false, error: report.issues});
+			if (!report.isValid) return res.json({success: false, error: report.issues});
 
 			var account = openAccount(body.secret);
 
@@ -123,11 +185,10 @@ function attachApi() {
 
 	router.get('/getBalance', function (req, res) {
 		req.sanitize("query", {
-			address : "string!"
-		}, function(err, report, query){
+			address: "string!"
+		}, function (err, report, query) {
 			if (err) return next(err);
-			if (! report.isValid) return res.json({success: false, error: report.issues});
-
+			if (!report.isValid) return res.json({success: false, error: report.issues});
 
 
 			var account = self.getAccount(query.address);
@@ -138,12 +199,39 @@ function attachApi() {
 		});
 	});
 
+	if (process.env.DEBUG && process.env.DEBUG.toUpperCase() == "TRUE") {
+		// for sebastian
+		router.get('/getAllAccounts', function (req, res) {
+			return res.json({success: true, accounts: accounts});
+		});
+	}
+
+
+	if (process.env.TOP && process.env.TOP.toUpperCase() == "TRUE") {
+		router.get('/top', function (req, res) {
+			var arr = Object.keys(accounts).map(function (key) {
+				return accounts[key]
+			});
+
+			arr.sort(function (a, b) {
+				if (a.balance > b.balance)
+					return -1;
+				if (a.balance < b.balance)
+					return 1;
+				return 0;
+			});
+
+			arr = arr.slice(0, 30);
+			return res.json({success: true, accounts: arr});
+		});
+	}
+
 	router.get('/getPublicKey', function (req, res) {
 		req.sanitize("query", {
-			address : "string!"
-		}, function(err, report, query) {
+			address: "string!"
+		}, function (err, report, query) {
 			if (err) return next(err);
-			if (! report.isValid) return res.json({success: false, error: report.issues});
+			if (!report.isValid) return res.json({success: false, error: report.issues});
 
 			var account = self.getAccount(query.address);
 
@@ -157,10 +245,10 @@ function attachApi() {
 
 	router.post("/generatePublicKey", function (req, res, next) {
 		req.sanitize("query", {
-			secret : "string!"
-		}, function(err, report, query) {
+			secret: "string!"
+		}, function (err, report, query) {
 			if (err) return next(err);
-			if (! report.isValid) return res.json({success: false, error: report.issues});
+			if (!report.isValid) return res.json({success: false, error: report.issues});
 
 			var account = openAccount(query.secret);
 			return res.json({success: true, publicKey: account.publicKey});
@@ -170,27 +258,39 @@ function attachApi() {
 
 	router.get("/delegates", function (req, res, next) {
 		req.sanitize("query", {
-			address : "string!"
-		}, function(err, report, query) {
+			address: "string!"
+		}, function (err, report, query) {
 			if (err) return next(err);
-			if (! report.isValid) return res.json({success: false, error: report.issues});
+			if (!report.isValid) return res.json({success: false, error: report.issues});
 
 
 			var account = self.getAccount(query.address);
 
-			return res.json({success: true, delegates: account.delegates});
+			if (!account) {
+				return res.json({success: false, error: "Account doesn't found"});
+			}
+
+			var delegates = null;
+
+			if (account.delegates) {
+				delegates = account.delegates.map(function (publicKey) {
+					return modules.delegates.getDelegateByPublicKey(publicKey);
+				});
+			}
+
+			return res.json({success: true, delegates: delegates});
 		});
 	});
 
 	router.put("/delegates", function (req, res, next) {
 		req.sanitize("body", {
-			secret : "string!",
-			publicKey : "hex?",
-			secondSecret : "string?",
-			delegates : "array?"
-		}, function(err, report, body) {
+			secret: "string!",
+			publicKey: "hex?",
+			secondSecret: "string?",
+			delegates: "array?"
+		}, function (err, report, body) {
 			if (err) return next(err);
-			if (! report.isValid) return res.json({success: false, error: report.issues});
+			if (!report.isValid) return res.json({success: false, error: report.issues});
 
 			var secret = body.secret,
 				publicKey = body.publicKey,
@@ -206,7 +306,7 @@ function attachApi() {
 				}
 			}
 
-			if (delegates && delegates.length > 33){
+			if (delegates && delegates.length > 33) {
 				return res.json({success: false, error: "Please, provide less 33 delegates"});
 			}
 
@@ -234,14 +334,16 @@ function attachApi() {
 			modules.transactions.sign(secret, transaction);
 
 			if (account.secondSignature) {
-				if (!secondSecret || secondSecret.length == 0) {
+				if (!secondSecret) {
 					return res.json({success: false, error: "Provide second secret key"});
 				}
 
 				modules.transactions.secondSign(secondSecret, transaction);
 			}
 
-			modules.transactions.processUnconfirmedTransaction(transaction, true, function (err) {
+			library.sequence.add(function (cb) {
+				modules.transactions.processUnconfirmedTransaction(transaction, true, cb);
+			}, function (err) {
 				if (err) {
 					return res.json({success: false, error: err});
 				}
@@ -253,10 +355,10 @@ function attachApi() {
 
 	router.get("/", function (req, res, next) {
 		req.sanitize("query", {
-			address : "string!"
-		}, function(err, report, query) {
+			address: "string!"
+		}, function (err, report, query) {
 			if (err) return next(err);
-			if (! report.isValid) return res.json({success: false, error: report.issues});
+			if (!report.isValid) return res.json({success: false, error: report.issues});
 
 
 			var account = self.getAccount(query.address);
@@ -327,10 +429,8 @@ Accounts.prototype.getAddressByPublicKey = function (publicKey) {
 }
 
 Accounts.prototype.getAccountOrCreateByPublicKey = function (publicKey) {
-	var account, address;
-
-	address = self.getAddressByPublicKey(publicKey);
-	account = self.getAccount(address);
+	var address = self.getAddressByPublicKey(publicKey);
+	var account = self.getAccount(address);
 
 	if (account && !account.publicKey) {
 		account.publicKey = publicKey;
@@ -344,9 +444,7 @@ Accounts.prototype.getAccountOrCreateByPublicKey = function (publicKey) {
 }
 
 Accounts.prototype.getAccountOrCreateByAddress = function (address) {
-	var account;
-
-	account = self.getAccount(address);
+	var account = self.getAccount(address);
 
 	if (!account) {
 		account = new Account(address);

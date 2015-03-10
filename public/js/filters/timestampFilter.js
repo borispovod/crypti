@@ -1,7 +1,9 @@
-webApp.filter('timestampFilter', function () {
+require('angular');
+
+angular.module('webApp').filter('timestampFilter', function () {
     return function (timestamp) {
 		// epoch time
-		var d = new Date(Date.UTC(2014, 4, 2, 0, 0, 0, 0));
+		var d = new Date(Date.UTC(2015, 2, 6, 0, 0, 0, 0));
 		var t = parseInt(d.getTime() / 1000);
 
         var d = new Date((timestamp + t) * 1000);

@@ -1,16 +1,20 @@
-
-var cryptiEpoch = Date.UTC(2014, 4, 2, 0, 0, 0, 0);
-
 /**
  * Get time from Crypti epoch.
  * @param {number|undefined} time Time in unix seconds
  * @returns {number}
  */
+
+function beginEpochTime() {
+	var d = new Date(Date.UTC(2015, 2, 6, 0, 0, 0, 0));
+
+	return d;
+}
+
 function getEpochTime(time) {
 	if (typeof time === 'undefined') {
 		time = Date.now();
 	}
-	var d = new Date(cryptiEpoch);
+	var d = beginEpochTime();
 	var t = d.getTime();
 	return Math.floor((time - t) / 1000);
 }
@@ -19,7 +23,7 @@ module.exports = {
 
 	interval: 10,
 
-	delegates: 3,
+	delegates: 11,
 
 	getTime: function (time) {
 		return getEpochTime(time);
@@ -29,8 +33,8 @@ module.exports = {
 		if (typeof epochTime === 'undefined') {
 			epochTime = this.getTime()
 		}
-		var d = (new Date(cryptiEpoch)).getTime();
-		var t = Math.floor(d / 1000) * 1000;
+		var d = beginEpochTime();
+		var t = Math.floor(d.getTime() / 1000) * 1000;
 		return t + epochTime * 1000;
 	},
 
