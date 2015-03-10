@@ -3,13 +3,23 @@ var phantom = require('phantom');
 var chalk = require('chalk');
 var EventEmitter = require("events").EventEmitter;
 var extend = require('util')._extend;
-
+var inherits = require('util').inherits;
+var Url = require('url');
 
 module.exports = Browser;
 
+/**
+ * Phantom browser-like wrapper
+ * @param {} plugins Hash of plugin factories.
+ * @extends EventEmitter
+ * @constructor
+ */
 function Browser(plugins) {
+    EventEmitter.call(this);
+
     this._queue = [];
     this._tabs = {};
+    this._tabSwitches = [];
     this._tabId = 0;
     this.plugins = plugins || {};
     this._actions = [];
@@ -17,10 +27,23 @@ function Browser(plugins) {
     this.settings = {};
     this.phantom = null;
     this._macros = {};
+
+    var self = this;
+    plugins && Object.keys(plugins).forEach(function(key){
+        plugins[key](self);
+    });
 }
 
+inherits(Browser, EventEmitter);
+
+/**
+ * Create new tab
+ * @param {string=} id Tab id. If empty then browser will set id like tab1, tab2, etc.
+ * @returns {{id, id, page: null, loaded: boolean, scope: {}}} Tab object.
+ * @private
+ */
 Browser.prototype._createTab = function(id) {
-    id = id || ++ this._tabId;
+    id = id || ('tab' + ++ this._tabId);
     var self = this;
     var tab = {
         set id (newId) {
@@ -46,6 +69,12 @@ Browser.prototype._createTab = function(id) {
     return tab;
 };
 
+/**
+ * Add phantom page instance when tab is ready.
+ * @param {string} tabId
+ * @param {Object} page Phantom page instance
+ * @private
+ */
 Browser.prototype._initializeTab = function(tabId, page) {
     var tab = this._tabs[tabId];
     tab.page = page;
@@ -87,12 +116,22 @@ Browser.prototype._initializeTab = function(tabId, page) {
         });
 };
 
+/**
+ * Add action in queue
+ * @param {function(Browser, *)} action Action callback. Should return promise instance.
+ * @returns {Browser}
+ */
 Browser.prototype.addAction = function(action) {
     this._actions.push(action);
 
     return this;
 };
 
+/**
+ * Finalize action sequence in queue object.
+ * @returns {Array.<function>}
+ * @private
+ */
 Browser.prototype._finalizeActions = function() {
     var actions = this._actions.slice();
     if (! this.phantom) {
@@ -101,6 +140,7 @@ Browser.prototype._finalizeActions = function() {
             return new Promise(function(resolve, reject){
                 phantom.create(function(phantom){
                     self.phantom = phantom;
+                    self.emit('init', phantom);
                     resolve();
                 });
             });
@@ -110,6 +150,10 @@ Browser.prototype._finalizeActions = function() {
     return actions;
 };
 
+/**
+ * Run sequence
+ * @param {function(Error|null, *|undefined)} callback Result callback
+ */
 Browser.prototype.run = function(callback) {
 
     var actions = this._finalizeActions();
@@ -119,10 +163,14 @@ Browser.prototype.run = function(callback) {
 
     if (this.busy) return;
 
-    this.runQueue();
+    this._runQueue();
 };
 
-Browser.prototype.runQueue = function() {
+/**
+ * Iterate over async queue.
+ * @private
+ */
+Browser.prototype._runQueue = function() {
     var queue = this._queue.shift();
     var actions = queue.actions;
     var callback = queue.callback;
@@ -137,7 +185,7 @@ Browser.prototype.runQueue = function() {
         });
 
         if (self._queue.length) {
-            setImmediate(self.runQueue.bind(self));
+            setImmediate(self._runQueue.bind(self));
         } else {
             self.busy = false;
         }
@@ -152,7 +200,6 @@ Browser.prototype.runQueue = function() {
             action(self, result).then(loop.bind(null, null), loop).catch(finish);
         } catch (err){
             finish(err);
-            return;
         }
     }
 
@@ -160,27 +207,91 @@ Browser.prototype.runQueue = function() {
     loop();
 };
 
+/**
+ * Add macros call to action sequence.
+ *
+ * @param {string} name Macros name
+ * @param {*} arg Argument(s) to pass into macros
+ * @returns {Browser}
+ */
+Browser.prototype.macros = function(name, arg) {
+    var args = Array.prototype.slice.call(arguments, 1);
+    this.exec(function(v, done){
+        var macros = this.getMacros(name);
+        args.unshift(this);
+        macros.apply(this, args);
+        done();
+    });
+
+    return this;
+};
+
+/**
+ * Get macros by name.
+ * @param {string} name Macros name
+ * @returns {*}
+ */
+Browser.prototype.getMacros = function(name) {
+    var macros = this._macros[name];
+    if (! macros) throw new Error("Macros \"" + name + "\" not found");
+
+    return macros;
+};
+
+/**
+ * Add new macros to browser instance.
+ * @param {string} name Macros name
+ * @param {function(this:Browser, Browser, *)} macros Macros function
+ * @example
+ *
+ * browser.addMacros("login-in", function(browser, login, password){
+ *  browser
+ *      .select("#sign-in .login")
+ *      .fill(login)
+ *      .select("#sign-in .password)
+ *      .fill(password)
+ *      .click("#sign-in .success")
+ * });
+ */
+Browser.prototype.addMacros = function (name, macros) {
+    this._macros[name] = macros;
+};
+
+/**
+ * Close browser and phantom session
+ */
+Browser.prototype.exit = function() {
+    this.phantom.exit();
+    this._actions = [];
+    this._queue = [];
+};
 
 // ----------------------------------------------------------------------------------------
 
+/**
+ * Return active tab
+ * @returns {*} Tab object
+ */
 Browser.prototype.currentTab = function() {
     return this._tabs[this._currentTabId];
 };
 
-Browser.prototype.openTab = function(url) {
-    var tab = this._createTab();
+/**
+ * Open new tab action.
+ * @param {string=} id New tab id. Optional. Default is `tab1`, `tab2`, etc.
+ * @returns {Browser}
+ */
+Browser.prototype.openTab = function(id) {
+    var tab = this._createTab(id);
     this._currentTabId = tab.id;
 
     this.addAction(function(self){
         return new Promise(function(resolve, reject){
             self.phantom.createPage(function(page){
                 self._initializeTab(tab.id, page);
+                self.emit('tabReady', tab);
 
-                if (! url) return resolve();
-
-                page.open(url, function(status){
-                    status !== "failed" ? resolve() : reject("Page not loaded");
-                })
+                resolve();
             });
         });
     });
@@ -188,6 +299,10 @@ Browser.prototype.openTab = function(url) {
     return this;
 };
 
+/**
+ * Close tab action.
+ * @returns {Browser}
+ */
 Browser.prototype.closeTab = function() {
     var  tab = this.currentTab();
 
@@ -202,27 +317,135 @@ Browser.prototype.closeTab = function() {
     return this;
 };
 
-Browser.prototype.goto =
-    function(url) {
+/**
+ * Switch current tab.
+ * @param {string} tabId Tab id.
+ * @returns {Browser}
+ */
+Browser.prototype.switchTab = function(tabId) {
+    if (tabId === this._currentTabId) return this;
+
+    if (tabId in this._tabs === false) {
+        throw new Error("Unknown tab '" + tabId + "'.");
+    }
+
+    this._tabSwitches.push(this._currentTabId);
+    this._currentTabId = tabId;
+    return this;
+};
+
+/**
+ * Repeat actions till get the True.
+ * @param {number} repeat Max repeat count
+ * @param {function} callback
+ * @returns {Browser}
+ */
+Browser.prototype.until = function(repeat, callback) {
+    this
+        .actions(callback)
+        .exec(function(value, done){
+            if (! value) {
+                if (--repeat) {
+                    this.until(repeat, callback);
+                } else {
+                    done(null, false);
+                }
+            } else {
+                done(null, true);
+            }
+        });
+    return this;
+};
+
+/**
+ * Wait for event or timeout.
+ * @param {string|Number=} await Timeout delay or event name. Optional. Default is `onLoadFinished`
+ * @returns {Browser}
+ */
+Browser.prototype.wait = function(await) {
     var tab = this.currentTab();
-    this.addAction(function(self){
-        tab.loaded = false;
+    this.addAction(function(){
         return new Promise(function(resolve, reject){
-            tab.page.open(url, function(status){
-                if (status === "failed") return reject("Page not loaded");
+            if (typeof await === "number") {
+                return setTimeout(resolve, await);
+            }
 
-                tab.onReady = resolve;
-
-                setTimeout(function(){
-                    reject();
-                }, 1000);
-            });
+            tab.once(await || 'onLoadFinished', resolve);
+            // Reject after 20 seconds
+            setTimeout(reject, 20000);
         });
     });
     return this;
 };
 
-Browser.prototype.eval = function(code) {
+/**
+ * Execute function in actions sequence.
+ * @param {function(this:Browser, *, function())} callback Custom async callback to execute in actions sequence.
+ * @returns {Browser}
+ */
+Browser.prototype.exec = function(callback){
+    var tab = this.currentTab();
+
+    this.addAction(function(self, value){
+        return new Promise(function(resolve, reject){
+            var B = Object.create(self);
+
+            B._currentTabId = tab.id;
+            B._actions = [];
+
+            callback.call(B, value, function(err, value){
+                err ? reject(err) : resolve(value);
+            });
+
+            if (B._actions.length) {
+                B._actions.reverse().forEach(function(fn){
+                    self.activeQueue.actions.unshift(fn);
+                });
+                // Pass value to next promise
+                resolve(value);
+            }
+        });
+    });
+    return this;
+};
+
+/**
+ * Action to add actions to sequence.
+ * @param {function(this:Browser, *)} callback Actions sequence creator function.
+ * @returns {Browser}
+ * @example
+ * browser.actions(function(value){
+ *  value ? this.submit() : this.render('./invalid-form.png').goBack();
+ * });
+ */
+Browser.prototype.actions = function(callback) {
+    var tab = this.currentTab();
+    this.addAction(function(self, value){
+        return new Promise(function(resolve, reject){
+            var B = Object.create(self);
+
+            B._currentTabId = tab.id;
+            B._actions = [];
+
+            callback.call(B, value);
+
+            B._actions.reverse().forEach(function(fn){
+                self.activeQueue.actions.unshift(fn);
+            });
+
+            resolve(value);
+        });
+    });
+    return this;
+};
+
+/**
+ * Evaluate code action.
+ * @param {*=} arg Argument to pass into browser.
+ * @param {function|string} code Code to run in active tab.
+ * @returns {Browser}
+ */
+Browser.prototype.eval = function(arg, code) {
     var tab = this.currentTab();
     var args = Array.prototype.slice.call(arguments);
     code = args.pop();
@@ -236,6 +459,11 @@ Browser.prototype.eval = function(code) {
     return this;
 };
 
+/**
+ * Async function evaluation
+ * @param {function|string} code Code to run in active tab.
+ * @returns {Browser}
+ */
 Browser.prototype.evalAsync = function(code) {
     var tab = this.currentTab();
     this.addAction(function(self){
@@ -255,16 +483,60 @@ Browser.prototype.evalAsync = function(code) {
                     resolve(result.args[1]);
                 }
             });
+        });
+    });
+    return this;
+};
 
-            tab.page.evaluate(async, function(){
-                // DONE
-                console.log("DONE");
+/**
+ * Load url action.
+ * @param {string|object} url Location url or path. Could `url.format` object.
+ * @returns {Browser}
+ */
+Browser.prototype.goto = function(url) {
+    var tab = this.currentTab();
+    this.addAction(function(self){
+        tab.loaded = false;
+        return new Promise(function(resolve, reject){
+            if (typeof url === "object") {
+                url = Url.format(url);
+            }
+            tab.page.open(url, function(status){
+                if (status === "failed") return reject("Page not loaded");
+
+                tab.onReady = resolve;
+
+                setTimeout(function(){
+                    reject();
+                }, 1000);
             });
         });
     });
     return this;
 };
 
+/**
+ * Reload current tab action.
+ * @returns {Browser}
+ */
+Browser.prototype.reload = function() {
+    var tab = this.currentTab();
+    this.addAction(function(self, value){
+        return new Promise(function(resolve, reject){
+            tab.page.reload();
+            resolve(value);
+        });
+    });
+    return this;
+};
+
+
+/**
+ * Define internal variable action. This value will be passed to each tab page. All values accessible from window.PHSESSION.
+ * @param {string} name Internal variable name.
+ * @param {*|!function} value Any value to pass into the browser scope.
+ * @returns {Browser}
+ */
 Browser.prototype.set = function(name, value) {
     var tab = this.currentTab();
 
@@ -278,6 +550,11 @@ Browser.prototype.set = function(name, value) {
     return this;
 };
 
+/**
+ * Get internal variable action. Get value from tab scope.
+ * @param {string} name Variable name.
+ * @returns {Browser}
+ */
 Browser.prototype.get = function(name) {
     this.eval(name, function(name){
         return window.PHSESSION[name];
@@ -285,41 +562,25 @@ Browser.prototype.get = function(name) {
     return this;
 };
 
-Browser.prototype.dump = function(prefix) {
+/**
+ * Dump previous action value to console.
+ * @param {string=} format Format/prefix string.
+ * @returns {Browser}
+ */
+Browser.prototype.dump = function(format) {
     this.addAction(function(self, value){
-        console.log(prefix||"", require('util').inspect(value));
+        console.log(format||"", require('util').inspect(value));
         return Promise.resolve(value);
     });
     return this;
 };
 
 
-
-Browser.prototype.exec = function(callback){
-    var tab = this.currentTab();
-
-    this.addAction(function(self, value){
-        return new Promise(function(resolve, reject){
-            var B = Object.create(self);
-
-            B._currentTabId = tab.id;
-            B._actions = [];
-
-            callback.call(B, value, function(err, value){
-                err ? reject(err) : resolve(value);
-            });
-
-            if (B._actions.length) {
-                B._actions.reverse().forEach(function(fn){
-                    self.activeQueue.actions.unshift(fn);
-                });
-                resolve();
-            }
-        });
-    });
-    return this;
-};
-
+/**
+ * Resize action.
+ * @param {{width:Number,height:Number}} size Viewport size.
+ * @returns {Browser}
+ */
 Browser.prototype.resize = function(size){
     var tab = this.currentTab();
     this.addAction(function(self){
@@ -332,6 +593,11 @@ Browser.prototype.resize = function(size){
     return this;
 };
 
+/**
+ * Render action. Make tab screenshot.
+ * @param {string} file Screenshot filename.
+ * @returns {Browser}
+ */
 Browser.prototype.render = function(file) {
     var tab = this.currentTab();
     this.addAction(function(self, value){
@@ -348,15 +614,34 @@ Browser.prototype.render = function(file) {
 
 // UI Interactions
 
+/**
+ * Select HTML element and trigger focus event.
+ * @param {string} query CSS selector of target element
+ * @returns {Browser}
+ */
 Browser.prototype.select = function(query) {
     this.eval(query, function(query){
         var target = document.querySelector(query);
-        if (target) target.focus();
+        if (! target) return false;
+
+        target.focus();
         PHSESSION.$target = target;
+        return true;
     });
     return this;
 };
 
+/**
+ * Fill form or input with values.
+ * @param {string=} query CSS selector of target element.
+ * @param {*} values Value to set.
+ * @returns {Browser}
+ * @example
+ *
+ * browser
+ *  .select("#login-input")
+ *  .fill("admin");
+ */
 Browser.prototype.fill = function(query, values) {
     if (arguments.length === 1) {
         values = query;
@@ -373,13 +658,9 @@ Browser.prototype.fill = function(query, values) {
 
         if (! target) return false;
         var fireEvent = function() {
-            if ("createEvent" in document) {
-                var evt = document.createEvent("HTMLEvents");
-                evt.initEvent("change", false, true);
-                target.dispatchEvent(evt);
-            }
-            else
-                target.fireEvent("onchange");
+            var evt = document.createEvent("HTMLEvents");
+            evt.initEvent("change", false, true);
+            target.dispatchEvent(evt);
         };
 
         if (target.tagName === 'INPUT') {
@@ -404,31 +685,32 @@ Browser.prototype.fill = function(query, values) {
     return this;
 };
 
-
-
-Browser.prototype.wait = function(timeout) {
-    var tab = this.currentTab();
-    this.addAction(function(){
-        return new Promise(function(resolve, reject){
-            if (timeout) {
-                setTimeout(resolve, timeout);
-            } else {
-                tab.once('onLoadFinished', resolve);
-            }
-        });
-    });
-    return this;
-};
-
+/**
+ * Emit click event on element
+ * @param {string=} query CSS selector of target element. Optional. If not set use current selected element.
+ * @returns {Browser}
+ */
 Browser.prototype.click = function(query) {
     this.eval(query, function(query){
+
         var target = query ? document.querySelector(query) : PHSESSION.$target;
 
-        target.click();
+        if (! target) return false;
+
+        var evt = document.createEvent("HTMLEvents");
+        evt.initEvent("click", false, true);
+        target.dispatchEvent(evt);
+
+        return true;
     });
     return this;
 };
 
+/**
+ * Submit action.
+ * @param {string=} query CSS selector of target element. Optional. If not set use current select element.
+ * @returns {Browser}
+ */
 Browser.prototype.submit = function(query) {
     this.eval(query, function(query){
         var form = query ? document.querySelector(query) : PHSESSION.$target;
@@ -436,31 +718,4 @@ Browser.prototype.submit = function(query) {
         form.submit();
     });
     return this;
-};
-
-Browser.prototype.macros = function(name, arg) {
-    var args = Array.prototype.slice.call(arguments, 1);
-    this.exec(function(v, done){
-        var macros = this.getMacros(name);
-        args.unshift(this);
-        macros.apply(this, args);
-        done();
-    });
-
-    return this;
-};
-
-Browser.prototype.getMacros = function(name) {
-    var macros = this._macros[name];
-    if (! macros) throw new Error("Macros \"name\" not found");
-
-    return macros;
-};
-
-Browser.prototype.addMacros = function (name, macros) {
-    this._macros[name] = macros;
-};
-
-Browser.prototype.exit = function() {
-    this.phantom.exit();
 };
