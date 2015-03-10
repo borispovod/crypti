@@ -291,7 +291,8 @@ function attachApi() {
 			timestamp: slots.getTime(),
 			asset: {
 				delegate: {
-					username: username
+					username: username,
+					publicKey: account.publicKey
 				}
 			}
 		};
@@ -499,7 +500,7 @@ Delegates.prototype.checkDelegates = function (publicKey, votes) {
 			var math = votes[i][0];
 			var publicKey = votes[i].slice(1);
 
-			if (!self.existsDelegate(publicKey)){
+			if (!self.existsDelegate(publicKey)) {
 				return false;
 			}
 
@@ -532,7 +533,7 @@ Delegates.prototype.checkUnconfirmedDelegates = function (publicKey, votes) {
 			var math = votes[i][0];
 			var publicKey = votes[i].slice(1);
 
-			if (unconfirmedVotes[publicKey] === undefined){
+			if (unconfirmedVotes[publicKey] === undefined) {
 				return false;
 			}
 
