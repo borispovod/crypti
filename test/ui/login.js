@@ -55,7 +55,7 @@ describe("Web interface.", function(){
                 this
                     .hasElement('#enter')
                     .actions(function(value){
-                        if (! value) return this.reload().wait(2000);
+                        if (! value) return this.reload().dump("reloaded").wait(2000);
                     });
             })
             .render('./tmp/login.png')
@@ -74,8 +74,6 @@ describe("Web interface.", function(){
             .wait()
             .macros("passphrase.viewCheck")
             .run(function(err, result){
-                if (err) console.error(err.stack || err);
-
                 should(err).equal(null);
                 should(result).equal(true);
                 done();
