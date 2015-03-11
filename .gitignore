@@ -9,6 +9,5 @@ npm-debug.log
 blockchain.*
 addresses.txt
 public/bower_components/
-public/static/
 public/node_modules/
 builded
