@@ -2,7 +2,12 @@
   "name": "Crypti",
   "version": "0.1.9",
   "private": true,
-  "main": "public/index.html",
+  "main": "public/wallet.html",
+  "window": {
+    "title": "crypti",
+    "width": 1200,
+    "height": 800
+  },
   "scripts": {
     "start": "node app.js"
   },

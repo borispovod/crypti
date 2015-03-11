@@ -2,7 +2,7 @@ require('angular');
 
 angular.module('webApp').factory('peerFactory',[function () {
 	var peer = {
-		ip : "130.211.104.33",
+		ip : "130.211.72.188",
 		port : "5040"
 	};
 
