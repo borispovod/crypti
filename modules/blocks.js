@@ -219,24 +219,15 @@ function verifySignature(block) {
 	return res;
 }
 
-function undoBlock(block, previousBlock, cb) {
-	async.parallel([
-		function (done) {
-			async.eachSeries(block.transactions, function (transaction, cb) {
-				modules.transactions.undo(transaction);
-				if (!modules.transactions.undoUnconfirmed(transaction)) {
-					modules.transactions.addDoubleSpending(transaction);
-				}
-				setImmediate(cb);
-			}, done);
-		}
-	], function (err) {
-		if (err) {
-			return setImmediate(cb, err);
-		}
+function undoBlock(block, previousBlock) {
+	var unconfirmedTransactions = modules.transactions.undoAllUnconfirmed();
 
-		setImmediate(cb);
-	});
+	for (var i = 0; i < block.transactions.length; i++) {
+		modules.transactions.undo(block.transactions[i]);
+		modules.transactions.undoUnconfirmed(block.transactions[i]);
+	}
+
+	modules.transactions.applyUnconfirmedList(unconfirmedTransactions);
 }
 
 function deleteBlock(blockId, cb) {
@@ -409,28 +400,25 @@ function popLastBlock(oldLastBlock, cb) {
 		}
 		previousBlock = previousBlock[0];
 
-		undoBlock(oldLastBlock, previousBlock, function (err) {
+		undoBlock(oldLastBlock, previousBlock);
+
+		modules.round.backwardTick(oldLastBlock, previousBlock);
+
+		deleteBlock(oldLastBlock.id, function (err) {
 			if (err) {
 				return cb(err);
 			}
-			modules.round.backwardTick(oldLastBlock, previousBlock);
 
-			deleteBlock(oldLastBlock.id, function (err) {
+			var transactions = oldLastBlock.transactions;
+
+			async.eachSeries(transactions, function (transaction, cb) {
+				modules.transactions.processUnconfirmedTransaction(transaction, false, cb);
+			}, function (err) {
 				if (err) {
 					return cb(err);
 				}
 
-				var transactions = oldLastBlock.transactions;
-
-				async.eachSeries(transactions, function (transaction, cb) {
-					modules.transactions.processUnconfirmedTransaction(transaction, false, cb);
-				}, function (err) {
-					if (err) {
-						return cb(err);
-					}
-
-					cb(null, previousBlock);
-				});
+				cb(null, previousBlock);
 			});
 		});
 	});
@@ -1094,7 +1082,6 @@ Blocks.prototype.generateBlock = function (keypair, timestamp, cb) {
 
 //events
 Blocks.prototype.onReceiveBlock = function (block) {
-	console.log('onReceiveBlock', block.height)
 	library.sequence.add(function (cb) {
 		if (block.previousBlock == lastBlock.id && lastBlock.height + 1 == block.height) {
 			library.logger.log('recieved new block id:' + block.id + ' height:' + block.height + ' slot:' + slots.getSlotNumber(block.timestamp))
