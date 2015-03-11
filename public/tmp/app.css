@@ -292,7 +292,7 @@ h3.start-green {
 .button div.coin {
   display: inline-block;
   margin-left: 5px;
-  background-image: url('/images/coin.png');
+  background-image: url('../../images/coin.png');
   background-repeat: no-repeat;
   height: 15px;
   width: 10px;
@@ -469,7 +469,7 @@ p.description {
 }
 #logo {
   margin: 26px auto 26px;
-  background-image: url('/images/logo.png');
+  background-image: url('../../images/logo.png');
   background-repeat: no-repeat;
   height: 33px;
   width: 94px;
@@ -515,42 +515,42 @@ span.menu-text {
   font-size: 15px;
 }
 #account-icon {
-  background-image: url('/images/account.png');
+  background-image: url('../../images/account.png');
   background-repeat: no-repeat;
   height: 30px;
   width: 38px;
   float: left;
 }
 #forging-icon {
-  background-image: url('/images/forging.png');
+  background-image: url('../../images/forging.png');
   background-repeat: no-repeat;
   height: 30px;
   width: 38px;
   float: left;
 }
 #blockchain-icon {
-  background-image: url('/images/blockchain.png');
+  background-image: url('../../images/blockchain.png');
   background-repeat: no-repeat;
   height: 30px;
   width: 38px;
   float: left;
 }
 #logout-icon {
-  background-image: url('/images/logout.png');
+  background-image: url('../../images/logout.png');
   background-repeat: no-repeat;
   height: 30px;
   width: 38px;
   float: left;
 }
 #delegates-icon {
-  background-image: url('/images/delegates.png');
+  background-image: url('../../images/delegates.png');
   background-repeat: no-repeat;
   height: 30px;
   width: 38px;
   float: left;
 }
 #votes-icon {
-  background-image: url('/images/votes.png');
+  background-image: url('../../images/votes.png');
   background-repeat: no-repeat;
   height: 30px;
   width: 38px;
@@ -655,7 +655,7 @@ span.menu-text {
   height: 100%;
 }
 #logo-grey {
-  background-image: url('/images/logo_grey.png');
+  background-image: url('../../images/logo_grey.png');
   background-repeat: no-repeat;
   height: 33px;
   width: 94px;
@@ -810,7 +810,7 @@ span.menu-text {
   margin-bottom: 16px !important;
 }
 #spinn {
-  background-image: url(/images/spinn.gif);
+  background-image: url('../../images/spinn.gif');
   background-repeat: no-repeat;
   height: 15px;
   width: 15px;
