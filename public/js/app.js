@@ -12,45 +12,44 @@ webApp.config([
     "$stateProvider",
     "$urlRouterProvider",
     function ($locationProvider, $stateProvider, $urlRouterProvider) {
-
-        $locationProvider.html5Mode(true);
+        //$locationProvider.html5Mode(true);
         $urlRouterProvider.otherwise("/");
 
         // Now set up the states
         $stateProvider
             .state('main', {
                 abstract: true,
-                templateUrl: "public/partials/app-template.html",
+                templateUrl: "partials/app-template.html",
                 controller: "templateController"
             })
             .state('main.account', {
                 url: "/account",
-                templateUrl: "public/partials/account.html",
+                templateUrl: "partials/account.html",
                 controller: "accountController"
             })
             .state('main.delegates', {
                 url: "/delegates",
-                templateUrl: "public/partials/delegates.html",
+                templateUrl: "partials/delegates.html",
                 controller: "delegatesController"
             })
             .state('main.votes', {
                 url: "/delegates/votes",
-                templateUrl: "public/partials/votes.html",
+                templateUrl: "partials/votes.html",
                 controller: "votedDelegatesController"
             })
             .state('main.forging', {
                 url: "/forging",
-                templateUrl: "public/partials/forging.html",
+                templateUrl: "partials/forging.html",
                 controller: "forgingController"
             })
             .state('main.blockchain', {
                 url: "/blockchain",
-                templateUrl: "public/partials/blockchain.html",
+                templateUrl: "partials/blockchain.html",
                 controller: "blockchainController"
             })
             .state('passphrase', {
                 url: "/",
-                templateUrl: "public/partials/passphrase.html",
+                templateUrl: "partials/passphrase.html",
                 controller: "passphraseController"
             });
     }

@@ -197,10 +197,11 @@ angular.module('webApp').controller('sendCryptiController', ["$scope", "sendCryp
             $scope.amountError = $scope.convertXCR($scope.fee) + $scope.convertXCR($scope.amount) > userService._unconfirmedBalance;
             $scope.errorMessage = $scope.amountError ? "Not enough XCR" : "";
 
-            debugger;
             var sendTransaction;
             var crypti = require('crypti-js-master');
-            if ($scope.secondPassphrase) {
+			console.log($scope.to, $scope.convertXCR($scope.amount), $scope.secretPhrase, $scope.secondPhrase);
+
+			if ($scope.secondPassphrase) {
                 sendTransaction = crypti.transaction.createTransaction($scope.to, $scope.convertXCR($scope.amount), $scope.secretPhrase, $scope.secondPhrase);
             }
             else {
