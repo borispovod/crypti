@@ -569,9 +569,13 @@ Transactions.prototype.applyUnconfirmed = function (transaction) {
 
 	var amount = transaction.amount + transaction.fee;
 
-	if (commonTransactions.indexOf(transaction.id) < 0 && (sender.unconfirmedBalance < amount && transaction.blockId != genesisblock.blockId)) {
-		if (transaction.type == 2) {
-			sender.unconfirmedSignature = false;
+	if (sender.unconfirmedBalance < amount && transaction.blockId != genesisblock.blockId) {
+		if (commonTransactions.indexOf(transaction.id) < 0) {
+			if (transaction.type == 2) {
+				sender.unconfirmedSignature = false;
+			}
+
+			return false;
 		}
 	}
 
