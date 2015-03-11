@@ -548,7 +548,7 @@ Transactions.prototype.applyUnconfirmed = function (transaction) {
 
 		modules.delegates.addUnconfirmedDelegate(transaction.asset.delegate);
 	} else if (transaction.type == 3) {
-		if (!sender.applyUnconfirmedDelegateList(transaction.asset.votes)){
+		if (!sender.applyUnconfirmedDelegateList(transaction.asset.votes)) {
 			return false;
 		}
 	}

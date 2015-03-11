@@ -125,8 +125,6 @@ Account.prototype.applyUnconfirmedDelegateList = function (diff) {
 	if (diff === null) return;
 	var isValid = accountApplyUnconfirmedDiff(this, diff);
 
-	if (!isValid) debugger;
-
 	isValid && library.bus.message('changeUnconfirmedDelegates', this.balance, diff);
 
 	return isValid;
@@ -141,8 +139,6 @@ Account.prototype.undoUnconfirmedDelegateList = function (diff) {
 	}
 
 	var isValid = accountApplyUnconfirmedDiff(this, copyDiff);
-
-	if (!isValid) debugger;
 
 	isValid && library.bus.message('changeUnconfirmedDelegates', this.balance, copyDiff);
 
