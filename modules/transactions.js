@@ -247,6 +247,10 @@ function list(filter, cb) {
 }
 
 function getById(id, cb) {
+	console.log("select t.id, t.blockId, t.type, t.timestamp, lower(hex(t.senderPublicKey)), t.senderId, t.recipientId, t.amount, t.fee, lower(hex(t.signature)), lower(hex(t.signSignature)), (select max(height) + 1 from blocks) - b.height " +
+		"from trs t " +
+		"inner join blocks b on t.blockId = b.id " +
+		"where t.id = $id");
 	library.dbLite.query("select t.id, t.blockId, t.type, t.timestamp, lower(hex(t.senderPublicKey)), t.senderId, t.recipientId, t.amount, t.fee, lower(hex(t.signature)), lower(hex(t.signSignature)), (select max(height) + 1 from blocks) - b.height " +
 	"from trs t " +
 	"inner join blocks b on t.blockId = b.id " +
@@ -277,6 +281,10 @@ Transactions.prototype.secondSign = function (secret, transaction) {
 
 Transactions.prototype.getUnconfirmedTransaction = function (id) {
 	return unconfirmedTransactions[id];
+}
+
+Transactions.prototype.addDoubleSpending = function (transaction) {
+	doubleSpendingTransactions[transaction.id] = transaction;
 }
 
 Transactions.prototype.getUnconfirmedTransactions = function (sort) {
@@ -540,18 +548,24 @@ Transactions.prototype.applyUnconfirmed = function (transaction) {
 
 		modules.delegates.addUnconfirmedDelegate(transaction.asset.delegate);
 	} else if (transaction.type == 3) {
-		sender.applyUnconfirmedDelegateList(transaction.asset.votes);
+		if (!sender.applyUnconfirmedDelegateList(transaction.asset.votes)){
+			return false;
+		}
 	}
 
 	var amount = transaction.amount + transaction.fee;
 
 	if (sender.unconfirmedBalance < amount && transaction.blockId != genesisblock.block.id) {
-		if (transaction.type == 1) {
-            sender.unconfirmedSignature = false;
-        } else if (transaction.type == 2) {
-            modules.delegates.removeUnconfirmedDelegate(transaction.asset.delegate);
-        } else if (transaction.type == 3) {
-			sender.undoUnconfirmedDelegateList(transaction.asset.votes);
+		switch (transaction.type) {
+			case 1:
+				sender.unconfirmedSignature = false;
+				break;
+			case 2:
+				modules.delegates.removeUnconfirmedDelegate(transaction.asset.delegate);
+				break;
+			case 3:
+				sender.undoUnconfirmedDelegateList(transaction.asset.votes);
+				break;
 		}
 
 		return false;
