@@ -224,13 +224,11 @@ function undoBlock(block, previousBlock, cb) {
 		function (done) {
 			async.eachSeries(block.transactions, function (transaction, cb) {
 				modules.transactions.undo(transaction);
-				modules.transactions.undoUnconfirmed(transaction);
+				if (!modules.transactions.undoUnconfirmed(transaction)) {
+					modules.transactions.addDoubleSpending(transaction);
+				}
 				setImmediate(cb);
 			}, done);
-		},
-		function (done) {
-			// companiesconfirmations
-			done();
 		}
 	], function (err) {
 		if (err) {
