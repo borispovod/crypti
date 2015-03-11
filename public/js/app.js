@@ -2,6 +2,7 @@ require('angular');
 require('angular-ui-router');
 require('angular-modal');
 require('angular-resource');
+require('crypti-js-master');
 require('../node_modules/ng-table/ng-table.js');
 
 webApp = angular.module('webApp', ['ui.router', 'btford.modal', 'ngTable']);
@@ -19,37 +20,37 @@ webApp.config([
         $stateProvider
             .state('main', {
                 abstract: true,
-                templateUrl: "/partials/app-template.html",
+                templateUrl: "public/partials/app-template.html",
                 controller: "templateController"
             })
             .state('main.account', {
                 url: "/account",
-                templateUrl: "/partials/account.html",
+                templateUrl: "public/partials/account.html",
                 controller: "accountController"
             })
             .state('main.delegates', {
                 url: "/delegates",
-                templateUrl: "/partials/delegates.html",
+                templateUrl: "public/partials/delegates.html",
                 controller: "delegatesController"
             })
             .state('main.votes', {
                 url: "/delegates/votes",
-                templateUrl: "/partials/votes.html",
+                templateUrl: "public/partials/votes.html",
                 controller: "votedDelegatesController"
             })
             .state('main.forging', {
                 url: "/forging",
-                templateUrl: "/partials/forging.html",
+                templateUrl: "public/partials/forging.html",
                 controller: "forgingController"
             })
             .state('main.blockchain', {
                 url: "/blockchain",
-                templateUrl: "/partials/blockchain.html",
+                templateUrl: "public/partials/blockchain.html",
                 controller: "blockchainController"
             })
             .state('passphrase', {
                 url: "/",
-                templateUrl: "/partials/passphrase.html",
+                templateUrl: "public/partials/passphrase.html",
                 controller: "passphraseController"
             });
     }

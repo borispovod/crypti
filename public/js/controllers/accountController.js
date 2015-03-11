@@ -1,7 +1,7 @@
 require('angular');
 
-angular.module('webApp').controller('accountController', ['$scope', '$rootScope', '$http', "userService", "$interval", "sendCryptiModal", "secondPassphraseModal", "delegateService",
-    function ($rootScope, $scope, $http, userService, $interval, sendCryptiModal, secondPassphraseModal, delegateService) {
+angular.module('webApp').controller('accountController', ['$scope', '$rootScope', '$http', "userService", "$interval", "sendCryptiModal", "secondPassphraseModal", "delegateService", 'peerFactory',
+    function ($rootScope, $scope, $http, userService, $interval, sendCryptiModal, secondPassphraseModal, delegateService, peerFactory) {
         $scope.delegate = undefined;
         $scope.address = userService.address;
         $scope.publicKey = userService.publicKey;
@@ -18,7 +18,7 @@ angular.module('webApp').controller('accountController', ['$scope', '$rootScope'
         * 100;
 
         $scope.getTransactions = function () {
-            $http.get("/api/transactions", {
+            $http.get(peerFactory.url +"/api/transactions", {
                 params: {
                     senderPublicKey: userService.publicKey,
                     recipientId: $scope.address,
@@ -29,7 +29,7 @@ angular.module('webApp').controller('accountController', ['$scope', '$rootScope'
                 .then(function (resp) {
                     var transactions = resp.data.transactions;
 
-                    $http.get('/api/transactions/unconfirmed', {
+                    $http.get(peerFactory.url + '/api/transactions/unconfirmed', {
                         params: {
                             senderPublicKey: userService.publicKey,
                             address: userService.address
@@ -43,17 +43,19 @@ angular.module('webApp').controller('accountController', ['$scope', '$rootScope'
         }
 
         $scope.getAccount = function () {
-            $http.get("/api/accounts", {params: {address: userService.address}})
+            $http.get(peerFactory.url + "/api/accounts", {params: {address: userService.address}})
                 .then(function (resp) {
-                    var account = resp.data.account;
-                    userService.balance = account.balance / 100000000;
-                    userService.unconfirmedBalance = account.unconfirmedBalance / 100000000;
-                    userService.secondPassphrase = account.secondSignature;
-                    userService.unconfirmedPassphrase = account.unconfirmedSignature;
-                    $scope.balance = userService.balance;
-                    $scope.unconfirmedBalance = userService.unconfirmedBalance;
-                    $scope.secondPassphrase = userService.secondPassphrase;
-                    $scope.unconfirmedPassphrase = userService.unconfirmedPassphrase;
+                    if (resp.data.success) {
+                        var account = resp.data.account;
+                        userService.balance = account.balance / 100000000;
+                        userService.unconfirmedBalance = account.unconfirmedBalance / 100000000;
+                        userService.secondPassphrase = account.secondSignature;
+                        userService.unconfirmedPassphrase = account.unconfirmedSignature;
+                        $scope.balance = userService.balance;
+                        $scope.unconfirmedBalance = userService.unconfirmedBalance;
+                        $scope.secondPassphrase = userService.secondPassphrase;
+                        $scope.unconfirmedPassphrase = userService.unconfirmedPassphrase;
+                    }
                 });
         }
 
