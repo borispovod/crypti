@@ -1,6 +1,7 @@
 var Validator = require('./validator');
 var extend = require('extend');
 var inherits = require('util').inherits;
+var url = require("url");
 
 module.exports = RequestSanitizer;
 
@@ -153,6 +154,47 @@ RequestSanitizer.addRule("properties", {
                 value[name] = output;
             });
         });
+    }
+});
+
+RequestSanitizer.addRule("url", {
+    accept : function(accept) {
+        if (accept && typeof accept !== "object") {
+            accept = {
+                protocol : ["http", "https"],
+                host : true,
+                pathname : true
+            };
+        }
+        return accept;
+    },
+    validate : function(accept, value){
+        var parsed = url.parse(value);
+        // Remove trailing slash
+        parsed.pathname = parsed.pathname.slice(1);
+
+        var keys = ["protocol", "hostname", "port", "pathname", "hash"];
+        var i = -1;
+        var l = keys.length;
+        var key, acceptValue;
+        while(++i < l) {
+            key = keys[i];
+
+            if (! accept.hasOwnProperty(key)) continue;
+
+            acceptValue = accept[key];
+
+            if (acceptValue === true) {
+                if (!parsed[key]) return false;
+            } else if (acceptValue instanceof RegExp) {
+                if (! acceptValue.test(parsed[key]+'')) return false;
+            } else if (Array.isArray(acceptValue)){
+                if (acceptValue.indexOf(parsed[key]) < 0) return false;
+            } else {
+                if (acceptValue !== parsed[key]) return false;
+            }
+        }
+        return true;
     }
 });
 

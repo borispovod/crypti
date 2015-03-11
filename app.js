@@ -14,7 +14,7 @@ program
 	.option('-p, --port <port>', 'Listening port number')
 	.option('-a, --address <ip>', 'Listening host name or ip')
 	.option('-b, --blockchain <path>', 'Blockchain db path')
-	.option('-l, --peers <peers>', 'Peers list')
+	.option('-l, --peers [peers]', 'Peers list')
 	.parse(process.argv);
 
 if (program.config) {
@@ -30,13 +30,18 @@ if (program.address) {
 }
 
 if (program.peers) {
-	appConfig.peers.list = program.peers.split(',').map(function(peer){
-		peer = peer.split(":");
-		return {
-			ip : peer.shift(),
-			port : peer.shift() || appConfig.port
-		};
-	});
+	var peers = program.peers;
+	if (typeof peers === "string") {
+		appConfig.peers.list = peers.split(',').map(function(peer){
+			peer = peer.split(":");
+			return {
+				ip : peer.shift(),
+				port : peer.shift() || appConfig.port
+			};
+		});
+	} else {
+		appConfig.peers.list = [];
+	}
 }
 
 SegfaultHandler.registerHandler();
@@ -59,6 +64,7 @@ var config = {
 		"system": "./modules/system.js",
 		"peer": "./modules/peer.js",
 		"delegates": "./modules/delegates.js",
+		"dapps": "./modules/dapps.js",
 		"scripts": "./modules/scripts.js",
 		"round": "./modules/round.js",
 		"sandboxes" : "./modules/sandboxes.js"

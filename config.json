@@ -7,6 +7,7 @@
 	"fileLogLevel": "info",
 	"consoleLogLevel": "log",
 	"sharePort": true,
+	"dappsDir" : "tmp/dapps",
 	"api": {
 		"access": {
 			"whiteList": []
