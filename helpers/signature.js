@@ -18,7 +18,7 @@ function getBytes(signature) {
 
 		bb.flip();
 	} catch (e) {
-		throw e.toString();
+		throw Error(e.toString());
 	}
 	return bb.toBuffer();
 }

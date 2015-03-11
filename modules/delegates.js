@@ -15,8 +15,8 @@ require('array.prototype.find'); //old node fix
 var modules, library, self;
 
 var loaded = false;
-var unconfirmedDelegates = [];
-var unconfirmedNames = [];
+var unconfirmedDelegates = {};
+var unconfirmedNames = {};
 
 var votes = {};
 var unconfirmedVotes = {};
@@ -290,7 +290,8 @@ function attachApi() {
 			timestamp: slots.getTime(),
 			asset: {
 				delegate: {
-					username: username
+					username: username,
+					publicKey: account.publicKey
 				}
 			}
 		};
@@ -497,6 +498,11 @@ Delegates.prototype.checkDelegates = function (publicKey, votes) {
 		for (var i = 0; i < votes.length; i++) {
 			var math = votes[i][0];
 			var publicKey = votes[i].slice(1);
+
+			if (!self.existsDelegate(publicKey)) {
+				return false;
+			}
+
 			if (math == "+" && (account.delegates !== null && account.delegates.indexOf(publicKey) != -1)) {
 				return false;
 			}
@@ -525,6 +531,11 @@ Delegates.prototype.checkUnconfirmedDelegates = function (publicKey, votes) {
 		for (var i = 0; i < votes.length; i++) {
 			var math = votes[i][0];
 			var publicKey = votes[i].slice(1);
+
+			if (unconfirmedVotes[publicKey] === undefined) {
+				return false;
+			}
+
 			if (math == "+" && (account.unconfirmedDelegates !== null && account.unconfirmedDelegates.indexOf(publicKey) != -1)) {
 				return false;
 			}
@@ -546,7 +557,7 @@ Delegates.prototype.getUnconfirmedDelegates = function () {
 
 Delegates.prototype.addUnconfirmedDelegate = function (delegate) {
 	unconfirmedDelegates[delegate.publicKey] = true;
-	unconfirmedNames[delegate.publicKey] = true;
+	unconfirmedNames[delegate.username] = true;
 }
 
 Delegates.prototype.getUnconfirmedDelegate = function (delegate) {
@@ -559,7 +570,7 @@ Delegates.prototype.getUnconfirmedName = function (delegate) {
 
 Delegates.prototype.removeUnconfirmedDelegate = function (delegate) {
 	delete unconfirmedDelegates[delegate.publicKey];
-	delete unconfirmedNames[delegate.publicKey];
+	delete unconfirmedNames[delegate.username];
 }
 
 Delegates.prototype.fork = function (block, cause) {
@@ -599,9 +610,8 @@ Delegates.prototype.cache = function (delegate) {
 	delegates.push(delegate);
 	var index = delegates.length - 1;
 
+	unconfirmedVotes[delegate.publicKey] = 0;
 	votes[delegate.publicKey] = 0;
-
-	unconfirmedDelegates[delegate.publicKey] = 0;
 
 	namesIndex[delegate.username] = index;
 	publicKeyIndex[delegate.publicKey] = index;
@@ -610,8 +620,7 @@ Delegates.prototype.cache = function (delegate) {
 
 Delegates.prototype.uncache = function (delegate) {
 	delete votes[delegate.publicKey];
-
-	delete unconfirmedDelegates[delegate.publicKey];
+	delete unconfirmedVotes[delegate.publicKey];
 
 	var index = publicKeyIndex[delegate.publicKey];
 
