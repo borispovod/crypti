@@ -23,6 +23,8 @@ function Account(address, publicKey, balance, unconfirmedBalance) {
 }
 
 function accountApplyDiff(account, diff) {
+	var tmp = account.delegates ? account.delegates.slice() : null
+
 	for (var i = 0; i < diff.length; i++) {
 		var math = diff[i][0];
 		var publicKey = diff[i].slice(1);
@@ -30,17 +32,25 @@ function accountApplyDiff(account, diff) {
 		if (math == "+") {
 			account.delegates = account.delegates || [];
 
-			var index = account.delegates.indexOf(publicKey);
+			var index = -1;
+			if (account.delegates) {
+				index = account.delegates.indexOf(publicKey);
+			}
 			if (index != -1) {
-				throw Error("delegate already added");
+				account.delegates = tmp;
+				return false;
 			}
 
 			account.delegates.push(publicKey);
 		}
 		if (math == "-") {
-			var index = account.delegates.indexOf(publicKey);
+			var index = -1;
+			if (account.delegates) {
+				index = account.delegates.indexOf(publicKey);
+			}
 			if (index == -1) {
-				throw Error("delegate not found");
+				account.delegates = tmp;
+				return false;
 			}
 			account.delegates.splice(index, 1);
 			if (!account.delegates.length) {
@@ -48,9 +58,12 @@ function accountApplyDiff(account, diff) {
 			}
 		}
 	}
+	return true;
 }
 
 function accountApplyUnconfirmedDiff(account, diff) {
+	var tmp = account.unconfirmedDelegates ? account.unconfirmedDelegates.slice() : null
+
 	for (var i = 0; i < diff.length; i++) {
 		var math = diff[i][0];
 		var publicKey = diff[i].slice(1);
@@ -58,17 +71,25 @@ function accountApplyUnconfirmedDiff(account, diff) {
 		if (math == "+") {
 			account.unconfirmedDelegates = account.unconfirmedDelegates || [];
 
-			var index = account.unconfirmedDelegates.indexOf(publicKey);
+			var index = -1;
+			if (account.unconfirmedDelegates) {
+				index = account.unconfirmedDelegates.indexOf(publicKey);
+			}
 			if (index != -1) {
-				throw Error("delegate already added");
+				account.unconfirmedDelegates = tmp;
+				return false;
 			}
 
 			account.unconfirmedDelegates.push(publicKey);
 		}
 		if (math == "-") {
-			var index = account.unconfirmedDelegates.indexOf(publicKey);
+			var index = -1;
+			if (account.unconfirmedDelegates) {
+				index = account.unconfirmedDelegates.indexOf(publicKey);
+			}
 			if (index == -1) {
-				throw Error("delegate not found");
+				account.unconfirmedDelegates = tmp;
+				return false;
 			}
 			account.unconfirmedDelegates.splice(index, 1);
 			if (!account.unconfirmedDelegates.length) {
@@ -76,6 +97,7 @@ function accountApplyUnconfirmedDiff(account, diff) {
 			}
 		}
 	}
+	return true;
 }
 
 Account.prototype.setUnconfirmedSignature = function (unconfirmedSignature) {
@@ -101,10 +123,13 @@ Account.prototype.addToUnconfirmedBalance = function (amount) {
 
 Account.prototype.applyUnconfirmedDelegateList = function (diff) {
 	if (diff === null) return;
-	accountApplyUnconfirmedDiff(this, diff);
+	var isValid = accountApplyUnconfirmedDiff(this, diff);
 
-	// what we most do here?
-	library.bus.message('changeUnconfirmedDelegates', this.balance, diff);
+	if (!isValid) debugger;
+
+	isValid && library.bus.message('changeUnconfirmedDelegates', this.balance, diff);
+
+	return isValid;
 }
 
 Account.prototype.undoUnconfirmedDelegateList = function (diff) {
@@ -115,17 +140,22 @@ Account.prototype.undoUnconfirmedDelegateList = function (diff) {
 		copyDiff[i] = math + copyDiff[i].slice(1);
 	}
 
-	accountApplyUnconfirmedDiff(this, copyDiff);
+	var isValid = accountApplyUnconfirmedDiff(this, copyDiff);
 
-	// and here?
-	library.bus.message('changeUnconfirmedDelegates', this.balance, copyDiff);
+	if (!isValid) debugger;
+
+	isValid && library.bus.message('changeUnconfirmedDelegates', this.balance, copyDiff);
+
+	return isValid;
 }
 
 Account.prototype.applyDelegateList = function (diff) {
 	if (diff === null) return;
-	accountApplyDiff(this, diff);
+	var isValid = accountApplyDiff(this, diff);
 
-	library.bus.message('changeDelegates', this.balance, diff);
+	isValid && library.bus.message('changeDelegates', this.balance, diff);
+
+	return isValid;
 }
 
 Account.prototype.undoDelegateList = function (diff) {
@@ -136,9 +166,11 @@ Account.prototype.undoDelegateList = function (diff) {
 		copyDiff[i] = math + copyDiff[i].slice(1);
 	}
 
-	accountApplyDiff(this, copyDiff);
+	var isValid = accountApplyDiff(this, copyDiff);
 
-	library.bus.message('changeDelegates', this.balance, copyDiff);
+	isValid && library.bus.message('changeDelegates', this.balance, copyDiff);
+
+	return isValid;
 }
 
 //constructor
@@ -266,7 +298,7 @@ function attachApi() {
 		var delegates = null;
 
 		if (account.delegates) {
-			delegates = account.delegates.map(function(publicKey){
+			delegates = account.delegates.map(function (publicKey) {
 				return modules.delegates.getDelegateByPublicKey(publicKey);
 			});
 		}
