@@ -25,7 +25,9 @@ describe("Web interface.", function(){
             "passphrase",
             "account",
             "forging",
-            "blockchain"
+            "blockchain",
+            "delegates",
+            "votes"
         ].forEach(function(section){
             var macros = require("./macros/" + section + ".js");
             Object.keys(macros).forEach(function(name){
@@ -55,7 +57,7 @@ describe("Web interface.", function(){
                 this
                     .hasElement('#enter')
                     .actions(function(value){
-                        if (! value) return this.reload().dump("reloaded").wait(2000);
+                        if (! value) return this.reload().wait(2000);
                     });
             })
             .render('./tmp/login.png')
@@ -70,6 +72,15 @@ describe("Web interface.", function(){
             .macros("forging.gotoFromMenu")
             .render("tmp/forging.png")
             .macros("forging.viewCheck")
+            // Check foring/delegates
+            .macros("delegates.gotoFromMenu")
+            .macros("delegates.viewCheck")
+            .render("tmp/forging-delegates.png")
+            // Check forging/votes
+            .macros("delegates.gotoFromMenu")
+            .macros("delegates.viewCheck")
+            .render("tmp/forging-votes.png")
+            // Logout
             .click("#logout")
             .wait()
             .macros("passphrase.viewCheck")

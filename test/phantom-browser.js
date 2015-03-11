@@ -247,15 +247,24 @@ Browser.prototype._runQueue = function() {
         }
     }
 
-    function loop(err, result) {
+    function loop(err, value) {
         if (err) return finish(err);
-        if (! actions.length) return finish(null, result);
+        if (! actions.length) return finish(null, value);
 
+        var result;
         try {
             var action = actions.shift();
-            action(self, result).then(loop.bind(null, null), loop).catch(finish);
+            result = action(self, value);
         } catch (err){
             finish(err);
+        }
+
+        if (result instanceof Promise) {
+            result
+                .then(loop.bind(null, null), loop)
+                .catch(finish);
+        } else {
+            setImmediate(loop, null, result);
         }
     }
 
@@ -806,5 +815,39 @@ Browser.prototype.submit = function(query) {
 
         form.submit();
     });
+    return this;
+};
+
+/**
+ * Get element text content action. Get text content of node matched css selector.
+ * @param {string=} query CSS selector of target element. Optional. If not set use current select elemnet.
+ * @returns {Browser}
+ */
+Browser.prototype.text = function(query) {
+    this.eval(query, function(query){
+        var target = query ? document.querySelector(query) : PHSESSION.$target;
+
+        if (! target) return null;
+
+        return target.textContent;
+    });
+
+    return this;
+};
+
+/**
+ * Get element html action. Get html of node matched css selector.
+ * @param {string=} query CSS selector of target element. Optional. If not set use current select elemnet.
+ * @returns {Browser}
+ */
+Browser.prototype.html = function(query) {
+    this.eval(query, function(query){
+        var target = query ? document.querySelector(query) : PHSESSION.$target;
+
+        if (! target) return null;
+
+        return target.innerHTML;
+    });
+
     return this;
 };
