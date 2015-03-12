@@ -227,7 +227,8 @@ function undoBlock(block, previousBlock) {
 		modules.transactions.undoUnconfirmed(block.transactions[i]);
 	}
 
-	modules.transactions.applyUnconfirmedList(unconfirmedTransactions);
+	modules.transactions.deleteUnconfirmedList(unconfirmedTransactions);
+	//modules.transactions.applyUnconfirmedList(unconfirmedTransactions);
 }
 
 function deleteBlock(blockId, cb) {
