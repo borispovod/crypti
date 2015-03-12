@@ -10,11 +10,9 @@ require('../../js/controllers/votedDelegatesController');
 //modals
 require('../../js/controllers/modals/blockModalController');
 require('../../js/controllers/modals/companyModalController');
-require('../../js/controllers/modals/forgingModalController');
 require('../../js/controllers/modals/freeModalController');
 require('../../js/controllers/modals/secondPassphraseController');
 require('../../js/controllers/modals/sendCryptiController');
 require('../../js/controllers/modals/voteController');
-require('../../js/controllers/modals/registrationDelegateModalController');
 
 

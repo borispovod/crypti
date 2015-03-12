@@ -1,7 +1,7 @@
 require('angular');
 
-angular.module('webApp').controller('votedDelegatesController', ['$scope', '$rootScope', '$http', "userService", "$interval", "$timeout", "$filter", "ngTableParams", "delegateService", "voteModal",
-    function ($rootScope, $scope, $http, userService, $interval, $timeout, $filter, ngTableParams, delegateService, voteModal) {
+angular.module('webApp').controller('votedDelegatesController', ['$scope', '$rootScope', '$http','peerFactory', "userService", "$interval", "$timeout", "$filter", "ngTableParams", "delegateService", "voteModal",
+    function ($rootScope, $scope, $http, peerFactory, userService, $interval, $timeout, $filter, ngTableParams, delegateService, voteModal) {
 
         $scope.allVotes = 100
         * 1000
@@ -63,7 +63,7 @@ angular.module('webApp').controller('votedDelegatesController', ['$scope', '$roo
         $scope.unconfirmedTransactions = {
             list: [],
             getList: function () {
-                $http.get("/api/transactions/unconfirmed/", {params: {senderPublicKey: userService.publicKey}})
+                $http.get(peerFactory.url + "/api/transactions/unconfirmed/", {params: {senderPublicKey: userService.publicKey}})
                     .then(function (response) {
                         $scope.unconfirmedTransactions.list = [];
                         response.data.transactions.forEach(function (transaction) {

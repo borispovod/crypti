@@ -198,8 +198,7 @@ angular.module('webApp').controller('sendCryptiController', ["$scope", "sendCryp
             $scope.errorMessage = $scope.amountError ? "Not enough XCR" : "";
 
             var sendTransaction;
-            var crypti = require('crypti-js-master');
-			console.log($scope.to, $scope.convertXCR($scope.amount), $scope.secretPhrase, $scope.secondPhrase);
+            var crypti = require('crypti-js');
 
 			if ($scope.secondPassphrase) {
                 sendTransaction = crypti.transaction.createTransaction($scope.to, $scope.convertXCR($scope.amount), $scope.secretPhrase, $scope.secondPhrase);
@@ -210,7 +209,33 @@ angular.module('webApp').controller('sendCryptiController', ["$scope", "sendCryp
 
             if (!$scope.lengthError && !$scope.sending) {
                 $scope.sending = !$scope.sending;
-                $http.put(peerFactory.url + "/api/transactions", data).then(function (resp) {
+
+                var keys = crypti.crypto.getKeys($scope.secretPhrase);
+                var address = crypti.crypto.getAddress(keys.publicKey);
+
+                if ($scope.secretPhrase.length == 0) {
+                    $scope.amountError = true;
+                    $scope.errorMessage = "Provide secret key";
+                }
+
+                if (keys.publicKey) {
+                    if (keys.publicKey != sendTransaction.senderPublicKey) {
+                        $scope.amountError = true;
+                        $scope.errorMessage = "Please, provide valid secret key of your account";
+                    }
+                }
+
+                if (!userService.balance) {
+                    $scope.amountError = true;
+                    $scope.errorMessage = "Account doesn't has balance";
+                }
+
+                if (!userService.publicKey) {
+                    $scope.amountError = true;
+                    $scope.errorMessage = "Open account to make transaction";
+                }
+
+                $http.post(peerFactory.url + "/peer/transactions", {transaction: sendTransaction}).then(function (resp) {
                     $scope.sending = !$scope.sending;
                     if (resp.data.error) {
                         $scope.errorMessage = resp.data.error;
