@@ -59,15 +59,15 @@ function attachApi() {
 
 function loadBlocks(lastBlock, cb) {
 	modules.transport.getFromRandomPeer('/height', function (err, data) {
+		var peerStr = data && data.peer ? ip.fromLong(data.peer.ip) + ":" + data.peer.port : 'unknown';
 		if (err || !data.body) {
+			library.logger.log("Fail request at " + peerStr);
 			return cb();
 		}
 
-		var peerStr = data.peer ? ip.fromLong(data.peer.ip) + ":" + data.peer.port : 'unknown';
 		library.logger.info("Check blockchain on " + peerStr);
 
 		if (bignum(modules.blocks.getLastBlock().height).lt(params.string(data.body.height || 0))) { //diff in chainbases
-			sync = true;
 			blocksToSync = params.int(data.body.height);
 
 			if (lastBlock.id != genesisBlock.block.id) { //have to found common block
@@ -153,8 +153,7 @@ function loadUnconfirmedTransactions(cb) {
 				return setImmediate(cb);
 			}
 		}
-		library.bus.message('receiveTransaction', transactions);
-		cb();
+		modules.transactions.receiveTransactions(transactions, cb);
 	});
 }
 
@@ -213,6 +212,7 @@ Loader.prototype.syncing = function () {
 Loader.prototype.onPeerReady = function () {
 	process.nextTick(function nextLoadBlock() {
 		library.sequence.add(function (cb) {
+			sync = true;
 			var lastBlock = modules.blocks.getLastBlock();
 			loadBlocks(lastBlock, cb);
 		}, function (err) {
@@ -225,8 +225,11 @@ Loader.prototype.onPeerReady = function () {
 	});
 
 	process.nextTick(function nextLoadUnconfirmedTransactions() {
-		loadUnconfirmedTransactions(function (err) {
+		library.sequence.add(function (cb) {
+			loadUnconfirmedTransactions(cb);
+		}, function (err) {
 			err && library.logger.error('loadUnconfirmedTransactions timer', err);
+
 			setTimeout(nextLoadUnconfirmedTransactions, 15 * 1000)
 		})
 	});

@@ -19,21 +19,38 @@ function Account(address, publicKey, balance, unconfirmedBalance) {
 	this.secondSignature = false;
 	this.secondPublicKey = null;
 	this.delegates = null;
+	this.unconfirmedDelegates = null;
 }
 
 function accountApplyDiff(account, diff) {
+	var tmp = account.delegates ? account.delegates.slice() : null
+
 	for (var i = 0; i < diff.length; i++) {
 		var math = diff[i][0];
 		var publicKey = diff[i].slice(1);
 
 		if (math == "+") {
 			account.delegates = account.delegates || [];
+
+			var index = -1;
+			if (account.delegates) {
+				index = account.delegates.indexOf(publicKey);
+			}
+			if (index != -1) {
+				account.delegates = tmp;
+				return false;
+			}
+
 			account.delegates.push(publicKey);
 		}
 		if (math == "-") {
-			var index = account.delegates.indexOf(publicKey);
+			var index = -1;
+			if (account.delegates) {
+				index = account.delegates.indexOf(publicKey);
+			}
 			if (index == -1) {
-				throw "delegate not found";
+				account.delegates = tmp;
+				return false;
 			}
 			account.delegates.splice(index, 1);
 			if (!account.delegates.length) {
@@ -41,6 +58,46 @@ function accountApplyDiff(account, diff) {
 			}
 		}
 	}
+	return true;
+}
+
+function accountApplyUnconfirmedDiff(account, diff) {
+	var tmp = account.unconfirmedDelegates ? account.unconfirmedDelegates.slice() : null
+
+	for (var i = 0; i < diff.length; i++) {
+		var math = diff[i][0];
+		var publicKey = diff[i].slice(1);
+
+		if (math == "+") {
+			account.unconfirmedDelegates = account.unconfirmedDelegates || [];
+
+			var index = -1;
+			if (account.unconfirmedDelegates) {
+				index = account.unconfirmedDelegates.indexOf(publicKey);
+			}
+			if (index != -1) {
+				account.unconfirmedDelegates = tmp;
+				return false;
+			}
+
+			account.unconfirmedDelegates.push(publicKey);
+		}
+		if (math == "-") {
+			var index = -1;
+			if (account.unconfirmedDelegates) {
+				index = account.unconfirmedDelegates.indexOf(publicKey);
+			}
+			if (index == -1) {
+				account.unconfirmedDelegates = tmp;
+				return false;
+			}
+			account.unconfirmedDelegates.splice(index, 1);
+			if (!account.unconfirmedDelegates.length) {
+				account.unconfirmedDelegates = null;
+			}
+		}
+	}
+	return true;
 }
 
 Account.prototype.setUnconfirmedSignature = function (unconfirmedSignature) {
@@ -59,13 +116,42 @@ Account.prototype.addToBalance = function (amount) {
 
 Account.prototype.addToUnconfirmedBalance = function (amount) {
 	this.unconfirmedBalance += amount;
+
+	var unconfirmedDelegate = this.unconfirmedDelegates ? this.unconfirmedDelegates.slice() : null
+	library.bus.message('changeUnconfirmedBalance', unconfirmedDelegate, amount);
+}
+
+Account.prototype.applyUnconfirmedDelegateList = function (diff) {
+	if (diff === null) return;
+	var isValid = accountApplyUnconfirmedDiff(this, diff);
+
+	isValid && library.bus.message('changeUnconfirmedDelegates', this.balance, diff);
+
+	return isValid;
+}
+
+Account.prototype.undoUnconfirmedDelegateList = function (diff) {
+	if (diff === null) return;
+	var copyDiff = diff.slice();
+	for (var i = 0; i < copyDiff.length; i++) {
+		var math = copyDiff[i][0] == '-' ? '+' : '-';
+		copyDiff[i] = math + copyDiff[i].slice(1);
+	}
+
+	var isValid = accountApplyUnconfirmedDiff(this, copyDiff);
+
+	isValid && library.bus.message('changeUnconfirmedDelegates', this.balance, copyDiff);
+
+	return isValid;
 }
 
 Account.prototype.applyDelegateList = function (diff) {
 	if (diff === null) return;
-	accountApplyDiff(this, diff);
+	var isValid = accountApplyDiff(this, diff);
 
-	library.bus.message('changeDelegates', this.balance, diff);
+	isValid && library.bus.message('changeDelegates', this.balance, diff);
+
+	return isValid;
 }
 
 Account.prototype.undoDelegateList = function (diff) {
@@ -76,9 +162,11 @@ Account.prototype.undoDelegateList = function (diff) {
 		copyDiff[i] = math + copyDiff[i].slice(1);
 	}
 
-	accountApplyDiff(this, copyDiff);
+	var isValid = accountApplyDiff(this, copyDiff);
 
-	library.bus.message('changeDelegates', this.balance, copyDiff);
+	isValid && library.bus.message('changeDelegates', this.balance, copyDiff);
+
+	return isValid;
 }
 
 //constructor
@@ -144,7 +232,6 @@ function attachApi() {
 		});
 	}
 
-
 	if (process.env.TOP && process.env.TOP.toUpperCase() == "TRUE") {
 		router.get('/top', function (req, res) {
 			var arr = Object.keys(accounts).map(function (key) {
@@ -207,7 +294,7 @@ function attachApi() {
 		var delegates = null;
 
 		if (account.delegates) {
-			delegates = account.delegates.map(function(publicKey){
+			delegates = account.delegates.map(function (publicKey) {
 				return modules.delegates.getDelegateByPublicKey(publicKey);
 			});
 		}

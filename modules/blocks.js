@@ -149,7 +149,7 @@ function getBytes(block) {
 		bb.flip();
 		var b = bb.toBuffer();
 	} catch (e) {
-		throw e.toString();
+		throw Error(e.toString());
 	}
 
 	return b;
@@ -219,26 +219,15 @@ function verifySignature(block) {
 	return res;
 }
 
-function undoBlock(block, previousBlock, cb) {
-	async.parallel([
-		function (done) {
-			async.eachSeries(block.transactions, function (transaction, cb) {
-				modules.transactions.undo(transaction);
-				modules.transactions.undoUnconfirmed(transaction);
-				setImmediate(cb);
-			}, done);
-		},
-		function (done) {
-			// companiesconfirmations
-			done();
-		}
-	], function (err) {
-		if (err) {
-			return setImmediate(cb, err);
-		}
+function undoBlock(block, previousBlock) {
+	var unconfirmedTransactions = modules.transactions.undoAllUnconfirmed();
 
-		setImmediate(cb);
-	});
+	for (var i = 0; i < block.transactions.length; i++) {
+		modules.transactions.undo(block.transactions[i]);
+		modules.transactions.undoUnconfirmed(block.transactions[i]);
+	}
+
+	modules.transactions.applyUnconfirmedList(unconfirmedTransactions);
 }
 
 function deleteBlock(blockId, cb) {
@@ -411,28 +400,25 @@ function popLastBlock(oldLastBlock, cb) {
 		}
 		previousBlock = previousBlock[0];
 
-		undoBlock(oldLastBlock, previousBlock, function (err) {
+		undoBlock(oldLastBlock, previousBlock);
+
+		modules.round.backwardTick(oldLastBlock, previousBlock);
+
+		deleteBlock(oldLastBlock.id, function (err) {
 			if (err) {
 				return cb(err);
 			}
-			modules.round.backwardTick(oldLastBlock, previousBlock);
 
-			deleteBlock(oldLastBlock.id, function (err) {
+			var transactions = oldLastBlock.transactions;
+
+			async.eachSeries(transactions, function (transaction, cb) {
+				modules.transactions.processUnconfirmedTransaction(transaction, false, cb);
+			}, function (err) {
 				if (err) {
 					return cb(err);
 				}
 
-				var transactions = oldLastBlock.transactions;
-
-				async.eachSeries(transactions, function (transaction, cb) {
-					modules.transactions.processUnconfirmedTransaction(transaction, false, cb);
-				}, function (err) {
-					if (err) {
-						return cb(err);
-					}
-
-					cb(null, previousBlock);
-				});
+				cb(null, previousBlock);
 			});
 		});
 	});
@@ -663,6 +649,15 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 						};
 						break;
 					}
+					if (!modules.delegates.checkUnconfirmedDelegates(blocks[i].transactions[n].senderPublicKey, blocks[i].transactions[n].asset.votes)) {
+						err = {
+							message: "Can't verify votes, you already voted for this delegate: " + blocks[i].transactions[n].id,
+							transaction: blocks[i].transactions[n],
+							rollbackTransactionsUntil: n > 0 ? (n - 1) : null,
+							block: blocks[i]
+						};
+						break;
+					}
 					if (!modules.delegates.checkDelegates(blocks[i].transactions[n].senderPublicKey, blocks[i].transactions[n].asset.votes)) {
 						err = {
 							message: "Can't verify votes, you already voted for this delegate: " + blocks[i].transactions[n].id,
@@ -842,32 +837,36 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 									}
 
 									if (!transaction.asset.delegate.username) {
-										return cb && cb("Empty transaction asset for delegate transaction");
+										return cb("Empty transaction asset for delegate transaction");
 									}
 
 									if (transaction.asset.delegate.username.length == 0 || transaction.asset.delegate.username.length > 20) {
-										return cb && cb("Incorrect delegate username length");
+										return cb("Incorrect delegate username length");
 									}
 
 									if (modules.delegates.existsName(transaction.asset.delegate.username)) {
-										return cb && cb("Delegate with this name is already exists");
+										return cb("Delegate with this name is already exists");
 									}
 
 									if (modules.delegates.existsDelegate(transaction.senderPublicKey)) {
-										return cb && cb("This account already delegate");
+										return cb("This account already delegate");
 									}
 									break;
 								case 3:
 									if (transaction.recipientId != transaction.senderId) {
-										return cb && cb("Incorrect recipient");
+										return cb("Incorrect recipient");
+									}
+
+									if (!modules.delegates.checkUnconfirmedDelegates(transaction.senderPublicKey, transaction.asset.votes)) {
+										return cb("Can't verify votes, you already voted for this delegate: " + transaction.id);
 									}
 
 									if (!modules.delegates.checkDelegates(transaction.senderPublicKey, transaction.asset.votes)) {
-										return cb && cb("Can't verify votes, you already voted for this delegate: " + transaction.id);
+										return cb("Can't verify votes, you already voted for this delegate: " + transaction.id);
 									}
 
 									if (transaction.asset.votes !== null && transaction.asset.votes.length > 33) {
-										return cb && cb("Can't verify votes, provide less then 33 delegate");
+										return cb("Can't verify votes, provide less then 33 delegate");
 									}
 									break;
 							}
@@ -922,6 +921,12 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 
 				setImmediate(done, errors[0]);
 			} else {
+				try {
+					block = normalize.block(block);
+				} catch (e) {
+					return setImmediate(done, e);
+				}
+
 				for (var i = 0; i < block.transactions.length; i++) {
 					var transaction = block.transactions[i];
 
@@ -981,6 +986,10 @@ Blocks.prototype.loadBlocksFromPeer = function (peer, lastCommonBlockId, cb) {
 						self.processBlock(block, false, function (err) {
 							if (!err) {
 								lastCommonBlockId = block.id;
+							} else {
+								var peerStr = data.peer ? ip.fromLong(data.peer.ip) + ":" + data.peer.port : 'unknown';
+								library.logger.log('ban 60 min', peerStr);
+								modules.peer.state(peer.ip, peer.port, 0, 3600);
 							}
 
 							setImmediate(cb, err);
@@ -1074,12 +1083,16 @@ Blocks.prototype.generateBlock = function (keypair, timestamp, cb) {
 //events
 Blocks.prototype.onReceiveBlock = function (block) {
 	library.sequence.add(function (cb) {
-		if (block.previousBlock == lastBlock.id && lastBlock.height === block.height + 1) {
+		if (block.previousBlock == lastBlock.id && lastBlock.height + 1 == block.height) {
 			library.logger.log('recieved new block id:' + block.id + ' height:' + block.height + ' slot:' + slots.getSlotNumber(block.timestamp))
 			self.processBlock(block, true, cb);
-		} else if (lastBlock.height === block.height + 1) {
-			//fork same height and different previous block
+		} else if (block.previousBlock != lastBlock.id && lastBlock.height + 1 == block.height) {
+			//fork right height and different previous block
 			modules.delegates.fork(block, 1);
+			cb('fork');
+		} else if (block.previousBlock == lastBlock.previousBlock && block.height == lastBlock.height && block.id != lastBlock.id) {
+			//fork same height and same previous block, but different block id
+			modules.delegates.fork(block, 5);
 			cb('fork');
 		} else {
 			cb();
