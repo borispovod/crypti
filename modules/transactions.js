@@ -509,6 +509,12 @@ Transactions.prototype.applyUnconfirmedList = function (ids) {
 	}
 }
 
+Transactions.prototype.deleteUnconfirmedList = function (ids) {
+	for (var i = 0; i < ids.length; i++) {
+		delete unconfirmedTransactions[ids[i]];
+	}
+}
+
 Transactions.prototype.undoAllUnconfirmed = function () {
 	var ids = Object.keys(unconfirmedTransactions);
 	for (var i = 0; i < ids.length; i++) {
