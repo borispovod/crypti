@@ -68,7 +68,6 @@ function loadBlocks(lastBlock, cb) {
 		library.logger.info("Check blockchain on " + peerStr);
 
 		if (bignum(modules.blocks.getLastBlock().height).lt(params.string(data.body.height || 0))) { //diff in chainbases
-			sync = true;
 			blocksToSync = params.int(data.body.height);
 
 			if (lastBlock.id != genesisBlock.block.id) { //have to found common block
@@ -214,6 +213,7 @@ Loader.prototype.syncing = function () {
 Loader.prototype.onPeerReady = function () {
 	process.nextTick(function nextLoadBlock() {
 		library.sequence.add(function (cb) {
+			sync = true;
 			var lastBlock = modules.blocks.getLastBlock();
 			loadBlocks(lastBlock, cb);
 		}, function (err) {
@@ -226,8 +226,11 @@ Loader.prototype.onPeerReady = function () {
 	});
 
 	process.nextTick(function nextLoadUnconfirmedTransactions() {
-		loadUnconfirmedTransactions(function (err) {
+		library.sequence.add(function (cb) {
+			loadUnconfirmedTransactions(cb);
+		}, function (err) {
 			err && library.logger.error('loadUnconfirmedTransactions timer', err);
+
 			setTimeout(nextLoadUnconfirmedTransactions, 15 * 1000)
 		})
 	});
