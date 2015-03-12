@@ -10,10 +10,10 @@ angular.module('webApp').controller('passphraseController', ['$scope', '$rootSco
 			if (!pass || pass.length > 100) {
 			}
 			else {
-				var crypti = require('crypti-js-master');
+				var crypti = require('crypti-js');
 				var keys = crypti.crypto.getKeys(pass);
 				var address = crypti.crypto.getAddress(keys.publicKey);
-				userService.setData(address);
+				userService.setData(address, keys.publicKey);
 				$state.go('main.account');
 			}
 		}
