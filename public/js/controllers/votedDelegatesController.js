@@ -83,12 +83,12 @@ angular.module('webApp').controller('votedDelegatesController', ['$scope', '$roo
         //My deletates
         $scope.tableMyDelegates = new ngTableParams({
             page: 1,            // show first page
-            count: 5,
+            count: 20,
             sorting: {
                 rate: 'asc'     // initial sorting
             }
         }, {
-            counts: [5, 10, 25],
+            counts: [20, 50, 100],
             total: 0,
             getData: function ($defer, params) {
                 delegateService.getMyDelegates($defer, params, $scope.filter, userService.address, function () {
