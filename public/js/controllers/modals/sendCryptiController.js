@@ -202,10 +202,10 @@ angular.module('webApp').controller('sendCryptiController', ["$scope", "sendCryp
 
             if ($scope.secondPassphrase) {
                 sendTransaction = crypti.transaction.createTransaction($scope.to, $scope.convertXCR($scope.amount), $scope.secretPhrase, $scope.secondPhrase);
-            }
-            else {
+            } else {
                 sendTransaction = crypti.transaction.createTransaction($scope.to, $scope.convertXCR($scope.amount), $scope.secretPhrase);
             }
+
             console.log(sendTransaction.id);
             if (!$scope.lengthError && !$scope.sending) {
                 $scope.sending = !$scope.sending;
