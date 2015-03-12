@@ -16,10 +16,11 @@ require('array.prototype.find'); //old node fix
 var modules, library, self;
 
 var loaded = false;
-var unconfirmedDelegates = [];
-var unconfirmedNames = [];
+var unconfirmedDelegates = {};
+var unconfirmedNames = {};
 
 var votes = {};
+var unconfirmedVotes = {};
 
 var namesIndex = {};
 var publicKeyIndex = {};
@@ -290,7 +291,8 @@ function attachApi() {
 			timestamp: slots.getTime(),
 			asset: {
 				delegate: {
-					username: username
+					username: username,
+					publicKey: account.publicKey
 				}
 			}
 		};
@@ -356,7 +358,7 @@ function getDelegate(filter, rateSort) {
 
 	var delegate = delegates[index];
 	var delegateFirstSlot = slots.getSlotNumber(delegate.created);
-	var passTours = Math.floor((slots.getSlotNumber() - delegateFirstSlot) / slots.delegates);
+	var allTours = Math.floor((slots.getSlotNumber() - delegateFirstSlot) / slots.delegates);
 
 	return {
 		username: delegate.username,
@@ -365,7 +367,7 @@ function getDelegate(filter, rateSort) {
 		transactionId: delegate.transactionId,
 		vote: votes[delegate.publicKey],
 		rate: rateSort[delegate.publicKey],
-		productivity: (Math.round(((passTours - modules.round.missedTours(delegate.publicKey)) * 100 / passTours) * 10) / 10) || 0
+		productivity: (Math.round((modules.round.passedTours(delegate.publicKey) * 100 / allTours ) * 10) / 10) || 0
 	};
 }
 
@@ -497,10 +499,48 @@ Delegates.prototype.checkDelegates = function (publicKey, votes) {
 		for (var i = 0; i < votes.length; i++) {
 			var math = votes[i][0];
 			var publicKey = votes[i].slice(1);
+
+			if (!self.existsDelegate(publicKey)) {
+				return false;
+			}
+
 			if (math == "+" && (account.delegates !== null && account.delegates.indexOf(publicKey) != -1)) {
 				return false;
 			}
 			if (math == "-" && (account.delegates === null || account.delegates.indexOf(publicKey) === -1)) {
+				return false;
+			}
+		}
+
+		return true;
+	} else {
+		return false;
+	}
+}
+
+Delegates.prototype.checkUnconfirmedDelegates = function (publicKey, votes) {
+	if (votes === null) {
+		return true;
+	}
+
+	if (util.isArray(votes)) {
+		var account = modules.accounts.getAccountByPublicKey(publicKey);
+		if (!account) {
+			return false;
+		}
+
+		for (var i = 0; i < votes.length; i++) {
+			var math = votes[i][0];
+			var publicKey = votes[i].slice(1);
+
+			if (unconfirmedVotes[publicKey] === undefined) {
+				return false;
+			}
+
+			if (math == "+" && (account.unconfirmedDelegates !== null && account.unconfirmedDelegates.indexOf(publicKey) != -1)) {
+				return false;
+			}
+			if (math == "-" && (account.unconfirmedDelegates === null || account.unconfirmedDelegates.indexOf(publicKey) === -1)) {
 				return false;
 			}
 		}
@@ -518,7 +558,7 @@ Delegates.prototype.getUnconfirmedDelegates = function () {
 
 Delegates.prototype.addUnconfirmedDelegate = function (delegate) {
 	unconfirmedDelegates[delegate.publicKey] = true;
-	unconfirmedNames[delegate.publicKey] = true;
+	unconfirmedNames[delegate.username] = true;
 }
 
 Delegates.prototype.getUnconfirmedDelegate = function (delegate) {
@@ -531,7 +571,7 @@ Delegates.prototype.getUnconfirmedName = function (delegate) {
 
 Delegates.prototype.removeUnconfirmedDelegate = function (delegate) {
 	delete unconfirmedDelegates[delegate.publicKey];
-	delete unconfirmedNames[delegate.publicKey];
+	delete unconfirmedNames[delegate.username];
 }
 
 Delegates.prototype.fork = function (block, cause) {
@@ -571,6 +611,7 @@ Delegates.prototype.cache = function (delegate) {
 	delegates.push(delegate);
 	var index = delegates.length - 1;
 
+	unconfirmedVotes[delegate.publicKey] = 0;
 	votes[delegate.publicKey] = 0;
 
 	namesIndex[delegate.username] = index;
@@ -580,6 +621,7 @@ Delegates.prototype.cache = function (delegate) {
 
 Delegates.prototype.uncache = function (delegate) {
 	delete votes[delegate.publicKey];
+	delete unconfirmedVotes[delegate.publicKey];
 
 	var index = publicKeyIndex[delegate.publicKey];
 
@@ -641,6 +683,16 @@ Delegates.prototype.onChangeBalance = function (delegates, amount) {
 	});
 }
 
+Delegates.prototype.onChangeUnconfirmedBalance = function (unconfirmedDelegates, amount) {
+	var vote = amount;
+
+	if (unconfirmedDelegates !== null) {
+		unconfirmedDelegates.forEach(function (publicKey) {
+			unconfirmedVotes[publicKey] !== undefined && (unconfirmedVotes[publicKey] += vote);
+		});
+	}
+}
+
 Delegates.prototype.onChangeDelegates = function (balance, diff) {
 	modules.round.runOnFinish(function () {
 		var vote = balance;
@@ -656,6 +708,21 @@ Delegates.prototype.onChangeDelegates = function (balance, diff) {
 			}
 		}
 	});
+}
+
+Delegates.prototype.onChangeUnconfirmedDelegates = function (balance, diff) {
+	var vote = balance;
+
+	for (var i = 0; i < diff.length; i++) {
+		var math = diff[i][0];
+		var publicKey = diff[i].slice(1);
+		if (math == "+") {
+			unconfirmedVotes[publicKey] !== undefined && (unconfirmedVotes[publicKey] += vote);
+		}
+		if (math == "-") {
+			unconfirmedVotes[publicKey] !== undefined && (unconfirmedVotes[publicKey] -= vote);
+		}
+	}
 }
 
 //export

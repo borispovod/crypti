@@ -200,13 +200,13 @@ angular.module('webApp').controller('sendCryptiController', ["$scope", "sendCryp
             var sendTransaction;
             var crypti = require('crypti-js');
 
-			if ($scope.secondPassphrase) {
+            if ($scope.secondPassphrase) {
                 sendTransaction = crypti.transaction.createTransaction($scope.to, $scope.convertXCR($scope.amount), $scope.secretPhrase, $scope.secondPhrase);
             }
             else {
                 sendTransaction = crypti.transaction.createTransaction($scope.to, $scope.convertXCR($scope.amount), $scope.secretPhrase);
             }
-
+            console.log(sendTransaction.id);
             if (!$scope.lengthError && !$scope.sending) {
                 $scope.sending = !$scope.sending;
 
@@ -235,18 +235,28 @@ angular.module('webApp').controller('sendCryptiController', ["$scope", "sendCryp
                     $scope.errorMessage = "Open account to make transaction";
                 }
 
-                $http.post(peerFactory.url + "/peer/transactions", {transaction: sendTransaction}).then(function (resp) {
-                    $scope.sending = !$scope.sending;
-                    if (resp.data.error) {
-                        $scope.errorMessage = resp.data.error;
-                    }
-                    else {
-                        if ($scope.destroy) {
-                            $scope.destroy();
+                $http.post(peerFactory.url + "/peer/transactions",
+                    {transaction: sendTransaction},
+                    {
+                        "headers": {
+                            "os": "",
+                            "version": "0.2.0light",
+                            "port": 0,
+                            "share-port": false
                         }
-                        sendCryptiModal.deactivate();
-                    }
-                });
+                    }).then(function (resp) {
+                        $scope.sending = !$scope.sending;
+
+                        if (resp.data.error) {
+                            $scope.errorMessage = resp.data.error;
+                        }
+                        else {
+                            if ($scope.destroy) {
+                                $scope.destroy();
+                            }
+                            sendCryptiModal.deactivate();
+                        }
+                    });
 
             }
         }
