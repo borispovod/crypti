@@ -675,19 +675,15 @@ Transactions.prototype.verifySecondSignature = function (transaction, publicKey)
 	return res;
 }
 
-//events
-Transactions.prototype.onReceiveTransaction = function (transactions) {
-	if (!util.isArray(transactions)) {
-		transactions = [transactions];
-	}
-
+Transactions.prototype.receiveTransactions = function (transactions, cb) {
 	library.sequence.add(function (cb) {
-		async.forEach(transactions, function (transaction, cb) {
+		async.eachSeries(transactions, function (transaction, cb) {
 			self.processUnconfirmedTransaction(transaction, true, cb);
 		}, cb);
-	});
+	}, cb);
 }
 
+//events
 Transactions.prototype.onBind = function (scope) {
 	modules = scope;
 }

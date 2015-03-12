@@ -153,8 +153,7 @@ function loadUnconfirmedTransactions(cb) {
 				return setImmediate(cb);
 			}
 		}
-		library.bus.message('receiveTransaction', transactions);
-		cb();
+		modules.transactions.receiveTransactions(transactions, cb);
 	});
 }
 
