@@ -146,9 +146,9 @@ function attachApi() {
 			return res.sendStatus(200);
 		}
 
-		library.bus.message('receiveTransaction', transaction);
-
-		res.sendStatus(200);
+		modules.transactions.receiveTransactions([transaction], function (err) {
+			res.sendStatus(200).json({success: !!err});
+		});
 	});
 
 	router.get('/height', function (req, res) {
@@ -253,7 +253,7 @@ Transport.prototype.getFromRandomPeer = function (method, cb) {
 				return cb(err || "Nothing peers in db");
 			}
 		});
-	}, function(err, results){
+	}, function (err, results) {
 		cb(err, results)
 	});
 }
