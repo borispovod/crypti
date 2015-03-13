@@ -6,6 +6,7 @@
     "start": "node app.js"
   },
   "dependencies": {
+    "array.prototype.find": "*",
     "async": "*",
     "basic-auth": "*",
     "basic-auth-connect": "^1.0.0",
@@ -21,18 +22,18 @@
     "express": "4.x",
     "express-domain-middleware": "*",
     "extend": "^2.0.0",
+    "hashtable": "^0.5.3",
     "ip": "^0.3.2",
+    "knuth-shuffle": "*",
     "long": "^1.1.5",
     "method-override": "*",
-    "knuth-shuffle": "*",
+    "node-schedule": "*",
     "pkginfo": "^0.3.0",
     "request": "*",
+    "segfault-handler": "*",
     "stack-trace": "0.0.9",
     "strftime": "*",
-    "underscore": "https://github.com/crypti/underscore/tarball/master",
-    "segfault-handler": "*",
-    "node-schedule": "*",
-    "array.prototype.find": "*"
+    "underscore": "https://github.com/crypti/underscore/tarball/master"
   },
   "devDependencies": {
     "grunt": "^0.4.5",
