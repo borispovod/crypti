@@ -310,7 +310,9 @@ Transactions.prototype.deleteHiddenTransaction = function() {
 
 Transactions.prototype.getUnconfirmedTransactionList = function (reverse) {
 	var a = unconfirmedTransactions.map(function (item) {
-		if (item !== false) return item;
+		if (!item) {
+			return item;
+		}
 	});
 
 	return reverse ? a.reverse() : a;
