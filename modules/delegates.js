@@ -417,16 +417,17 @@ function loop(cb) {
 		return;
 	}
 
-	console.log(self.getDelegateByPublicKey(currentBlockData.keypair.publicKey.toString('hex')).username, slots.getSlotNumber(currentBlockData.time));
-
 	library.sequence.add(function (cb) {
+		var _activeDelegates = self.generateDelegateList(lastBlock.height + 1);
+
 		if (slots.getSlotNumber(currentBlockData.time) == slots.getSlotNumber()) {
 			modules.blocks.generateBlock(currentBlockData.keypair, currentBlockData.time, function (err) {
-				library.logger.log('round: ' + modules.round.calc(modules.blocks.getLastBlock().height) + ' new block id: ' + modules.blocks.getLastBlock().id + ' height:' + modules.blocks.getLastBlock().height + ' slot:' + slots.getSlotNumber(currentBlockData.time))
+				library.logger.log('round ' + self.getDelegateByPublicKey(_activeDelegates[slots.getSlotNumber(currentBlockData.time) % slots.delegates]).username + ': ' + modules.round.calc(modules.blocks.getLastBlock().height) + ' new block id: ' + modules.blocks.getLastBlock().id + ' height:' + modules.blocks.getLastBlock().height + ' slot:' + slots.getSlotNumber(currentBlockData.time))
 				cb(err);
 			});
 		} else {
-			library.logger.log('loop', 'exit: another delegate slot');
+			library.logger.log('loop', 'exit: ' + self.getDelegateByPublicKey(_activeDelegates[slots.getSlotNumber() % slots.delegates]).username + ' delegate slot');
+
 			setImmediate(cb);
 		}
 	}, function (err) {
