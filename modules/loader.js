@@ -105,9 +105,13 @@ function loadBlocks(lastBlock, cb) {
 								modules.peer.state(data.peer.ip, data.peer.port, 0, 3600);
 
 								library.logger.info("Remove blocks again until " + commonBlock.id + " (at " + commonBlock.height + ")");
-								modules.round.directionSwap('backward');
+								if (commonBlock.id != lastBlock.id) {
+									modules.round.directionSwap('backward');
+								}
 								modules.blocks.deleteBlocksBefore(commonBlock, function (err) {
-									modules.round.directionSwap('forward');
+									if (commonBlock.id != lastBlock.id) {
+										modules.round.directionSwap('forward');
+									}
 									if (err) {
 										library.logger.fatal('delete blocks before', err);
 										process.exit(1);
