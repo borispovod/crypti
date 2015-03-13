@@ -1,7 +1,8 @@
 require('angular');
+var crypti = require('crypti-js');
 
-angular.module('webApp').controller('voteController', ["$scope", "voteModal", "$http", "userService", "$timeout", 'peerFactory',
-    function ($scope, voteModal, $http, userService, $timeout, peerFactory) {
+angular.module('webApp').controller('voteController', ["$scope", "voteModal", "$http", "userService", "$timeout", 'peerFactory', "transactionService",
+    function ($scope, voteModal, $http, userService, $timeout, peerFactory, transactionService) {
         $scope.voting = false;
         $scope.fromServer = '';
         $scope.secondPassphrase = userService.secondPassphrase;
@@ -40,8 +41,7 @@ angular.module('webApp').controller('voteController', ["$scope", "voteModal", "$
         $scope.vote = function () {
 
             var voteTransaction;
-            var crypti = require('crypti-js');
-            debugger;
+
             if ($scope.secondPassphrase) {
                 voteTransaction = crypti.vote.createVote($scope.secretPhrase, $scope.voteList, $scope.secondPhrase);
             }
@@ -49,11 +49,18 @@ angular.module('webApp').controller('voteController', ["$scope", "voteModal", "$
                 voteTransaction = crypti.vote.createVote($scope.secretPhrase, $scope.voteList);
             }
 
+            var checkBeforSending = transactionService.checkTransaction(voteTransaction, $scope.secretPhrase);
+
+            if (checkBeforSending.err) {
+                $scope.fromServer = checkBeforSending.err.message;
+                return;
+            };
+
             $scope.voting = !$scope.voting;
-            $http.post(peerFactory.url + "/peer/transactions", {transaction: voteTransaction}).then(function (resp) {
+            $http.post(peerFactory.url + "/peer/transactions", {transaction: voteTransaction}, transactionService.createHeaders()).then(function (resp) {
                 $scope.voting = !$scope.voting;
-                if (resp.data.error) {
-                    $scope.fromServer = resp.data.error;
+                if (!resp.data.success) {
+                    $scope.fromServer = resp.data.message;
                 }
                 else {
                     if ($scope.destroy) {

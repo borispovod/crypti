@@ -1,7 +1,8 @@
 require('angular');
+var crypti = require('crypti-js');
 
-angular.module('webApp').controller('sendCryptiController', ["$scope", "sendCryptiModal", "$http", "userService", "$timeout", "peerFactory",
-    function ($scope, sendCryptiModal, $http, userService, $timeout, peerFactory) {
+angular.module('webApp').controller('sendCryptiController', ["$scope", "sendCryptiModal", "$http", "userService", "$timeout", "peerFactory", "transactionService",
+    function ($scope, sendCryptiModal, $http, userService, $timeout, peerFactory, transactionService) {
         $scope.sending = false;
         $scope.accountValid = true;
         $scope.errorMessage = "";
@@ -198,7 +199,6 @@ angular.module('webApp').controller('sendCryptiController', ["$scope", "sendCryp
             $scope.errorMessage = $scope.amountError ? "Not enough XCR" : "";
 
             var sendTransaction;
-            var crypti = require('crypti-js');
 
             if ($scope.secondPassphrase) {
                 sendTransaction = crypti.transaction.createTransaction($scope.to, $scope.convertXCR($scope.amount), $scope.secretPhrase, $scope.secondPhrase);
@@ -206,49 +206,24 @@ angular.module('webApp').controller('sendCryptiController', ["$scope", "sendCryp
                 sendTransaction = crypti.transaction.createTransaction($scope.to, $scope.convertXCR($scope.amount), $scope.secretPhrase);
             }
 
-            console.log(sendTransaction.id);
+            var checkBeforSending = transactionService.checkTransaction(sendTransaction, $scope.secretPhrase);
+
+            if (checkBeforSending.err) {
+                $scope.amountError = checkBeforSending.err;
+                $scope.errorMessage = checkBeforSending.err.message;
+                return;
+            }
+            ;
+
             if (!$scope.lengthError && !$scope.sending) {
                 $scope.sending = !$scope.sending;
 
-                var keys = crypti.crypto.getKeys($scope.secretPhrase);
-                var address = crypti.crypto.getAddress(keys.publicKey);
-
-                if ($scope.secretPhrase.length == 0) {
-                    $scope.amountError = true;
-                    $scope.errorMessage = "Provide secret key";
-                }
-
-                if (keys.publicKey) {
-                    if (keys.publicKey != sendTransaction.senderPublicKey) {
-                        $scope.amountError = true;
-                        $scope.errorMessage = "Please, provide valid secret key of your account";
-                    }
-                }
-
-                if (!userService.balance) {
-                    $scope.amountError = true;
-                    $scope.errorMessage = "Account doesn't has balance";
-                }
-
-                if (!userService.publicKey) {
-                    $scope.amountError = true;
-                    $scope.errorMessage = "Open account to make transaction";
-                }
-
                 $http.post(peerFactory.url + "/peer/transactions",
                     {transaction: sendTransaction},
-                    {
-                        "headers": {
-                            "os": "",
-                            "version": "0.2.0light",
-                            "port": 0,
-                            "share-port": false
-                        }
-                    }).then(function (resp) {
+                    transactionService.createHeaders()).then(function (resp) {
                         $scope.sending = !$scope.sending;
-
-                        if (resp.data.error) {
-                            $scope.errorMessage = resp.data.error;
+                        if (!resp.data.success) {
+                            $scope.errorMessage = resp.data.message;
                         }
                         else {
                             if ($scope.destroy) {

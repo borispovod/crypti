@@ -11,7 +11,7 @@
             <p class="error">{{errorMessage}}.</p>
             <div class="pull-right">
                 <button type="submit" class="button green small" ng-disabled="sending || !to || !secretPhrase || !amount || !fee || amount < 0 || fee < 0 || !accountValid || (secondPassphrase && !secondPhrase)" ng-click="sendCrypti()">Send</button>
-                <button class="button small" ng-click="close()">Close</button>
+                <button class="button small" ng-click="close()" ng-disabled="sending">Close</button>
             </div>
         </form>
     </div>

@@ -12,8 +12,8 @@
             <input type="checkbox" ng-model="showPassphrase" ng-change="changeType()"> <label>Show secretphrases?</label>
             <p class="error" style="margin-top: 10px;">{{fromServer}}.</p>
             <div class="pull-right">
-                <button type="submit" class="button green small" ng-disabled="!repeatSecretPhrase || !newSecretPhrase || !secretPhrase || repeatSecretPhrase != newSecretPhrase || totalBalance < 100" ng-click="addNewPassphrase()">Generate</button>
-                <button class="button small" ng-click="close()">Close</button>
+                <button type="submit" class="button green small" ng-disabled="sending || !repeatSecretPhrase || !newSecretPhrase || !secretPhrase || repeatSecretPhrase != newSecretPhrase || totalBalance < 100" ng-click="addNewPassphrase()">Generate</button>
+                <button class="button small" ng-click="close()" ng-disabled="sending">Close</button>
             </div>
         </form>
     </div>

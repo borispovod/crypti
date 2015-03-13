@@ -144,13 +144,13 @@ angular.module('webApp').controller('delegatesController', ['$scope', '$rootScop
 		//Standby delegates
 		$scope.tableStandbyDelegates = new ngTableParams({
 			page: 1,            // show first page
-			count: 10,
+			count: 20,
 			sorting: {
 				rate: 'asc'     // initial sorting
 			}
 		}, {
 			total: 0,
-			counts: [1, 10, 25],
+			counts: [20, 50, 100],
 			getData: function ($defer, params) {
 				delegateService.getStandbyList($defer, params, $scope.filter, function () {
 					$scope.countStandby = params.total();
