@@ -219,6 +219,7 @@ function verifySignature(block) {
 	return res;
 }
 
+
 function deleteBlock(blockId, cb) {
 	library.dbLite.query("DELETE FROM blocks WHERE id = $id", {id: blockId}, function (err, res) {
 		cb(err, res)
