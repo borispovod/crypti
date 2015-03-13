@@ -422,6 +422,8 @@ function loop(cb) {
 
 	var currentBlockData = getBlockSlotData(currentSlot, lastBlock.height + 1);
 
+	console.log(self.getDelegateByPublicKey(currentBlockData.keypair.publicKey).username, slots.getSlotNumber(currentBlockData.time));
+
 	if (currentBlockData === null) {
 		library.logger.log('loop', 'skip slot');
 		return;
