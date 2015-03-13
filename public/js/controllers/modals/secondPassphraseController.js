@@ -32,7 +32,8 @@ angular.module('webApp').controller('secondPassphraseModalController', ["$scope"
                 return;
             };
             $scope.sending = true;
-            $http.post(peerFactory.url + "/peer/transactions", {transaction: voteTransaction}, transactionService.createHeaders()).then(function (resp) {
+            debugger;
+            $http.post(peerFactory.url + "/peer/transactions", {transaction: transaction}, transactionService.createHeaders()).then(function (resp) {
                 $scope.sending = false;
                 if (!resp.data.success) {
                     $scope.fromServer = resp.data.message;

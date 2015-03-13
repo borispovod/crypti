@@ -14,6 +14,7 @@ angular.module('webApp').controller('delegatesController', ['$scope', '$rootScop
 		$scope.countStandby = 0;
 
 		$scope.address = userService.address;
+		$scope.unconfirmedPassphrase = userService.unconfirmedPassphrase;
 
 		$scope.showVotes = false;
 

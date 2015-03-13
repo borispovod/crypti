@@ -6,7 +6,7 @@
     "title": "Crypti light",
     "toolbar": true,
     "icon": "images/favicon.ico",
-    "width": 1200,
+    "width": 1400,
     "height": 800
   },
   "devDependencies": {

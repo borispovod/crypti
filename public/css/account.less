@@ -26,6 +26,41 @@
     }
     .send, .free {
       width: 141px;
+      position: relative;
+      .tollip {
+        min-width: 216px;
+        padding: 15px 16px;
+        display: none;
+        position: absolute;
+        z-index: 999;
+        top: 54px;
+        right: -152px;
+        background-color: #fff;
+        list-style-type: none;
+        color: #9b9d9e;
+        -webkit-border-radius: 3px;
+        -moz-border-radius: 3px;
+        border-radius: 3px;
+        border: 1px solid #d4d5d6;
+
+        &:before {
+          content: '';
+          display: block;
+          width: 0;
+          height: 0;
+          position: absolute;
+          border-bottom: 8px solid #d4d5d6;
+          border-left: 8px solid transparent;
+          border-right: 8px solid transparent;
+          right: 215px;
+          top: -8px;
+        }
+      }
+      &:hover {
+        .tollip {
+          display: inline-block;
+        }
+      }
     }
   }
 
