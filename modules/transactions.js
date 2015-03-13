@@ -17,7 +17,9 @@ var transactionHelper = require('../helpers/transaction.js'),
 // private fields
 var modules, library, self;
 
-var unconfirmedTransactions = {};
+var hiddenTransactions = [];
+var unconfirmedTransactions = [];
+var unconfirmedTransactionsIdIndex = {};
 var doubleSpendingTransactions = {};
 
 //constructor
@@ -98,7 +100,7 @@ function attachApi() {
 	});
 
 	router.get('/unconfirmed/', function (req, res) {
-		var transactions = self.getUnconfirmedTransactions(true),
+		var transactions = self.getUnconfirmedTransactionList(true),
 			toSend = [];
 
 		var senderPublicKey = params.hex(req.query.senderPublicKey || null, true),
@@ -248,9 +250,9 @@ function list(filter, cb) {
 
 function getById(id, cb) {
 	console.log("select t.id, t.blockId, t.type, t.timestamp, lower(hex(t.senderPublicKey)), t.senderId, t.recipientId, t.amount, t.fee, lower(hex(t.signature)), lower(hex(t.signSignature)), (select max(height) + 1 from blocks) - b.height " +
-		"from trs t " +
-		"inner join blocks b on t.blockId = b.id " +
-		"where t.id = $id");
+	"from trs t " +
+	"inner join blocks b on t.blockId = b.id " +
+	"where t.id = $id");
 	library.dbLite.query("select t.id, t.blockId, t.type, t.timestamp, lower(hex(t.senderPublicKey)), t.senderId, t.recipientId, t.amount, t.fee, lower(hex(t.signature)), lower(hex(t.signSignature)), (select max(height) + 1 from blocks) - b.height " +
 	"from trs t " +
 	"inner join blocks b on t.blockId = b.id " +
@@ -262,6 +264,12 @@ function getById(id, cb) {
 		var transacton = relational.getTransaction(rows[0]);
 		cb(null, transacton);
 	});
+}
+
+function addUnconfirmedTransaction(transaction) {
+	unconfirmedTransactions.push(transaction);
+	var index = unconfirmedTransactions.length - 1;
+	unconfirmedTransactionsIdIndex[transaction.id] = index;
 }
 
 //public methods
@@ -280,33 +288,38 @@ Transactions.prototype.secondSign = function (secret, transaction) {
 }
 
 Transactions.prototype.getUnconfirmedTransaction = function (id) {
-	return unconfirmedTransactions[id];
+	var index = unconfirmedTransactionsIdIndex[id];
+	return unconfirmedTransactions[index];
 }
 
 Transactions.prototype.addDoubleSpending = function (transaction) {
 	doubleSpendingTransactions[transaction.id] = transaction;
 }
 
-Transactions.prototype.getUnconfirmedTransactions = function (sort) {
-	var a = arrayHelper.hash2array(unconfirmedTransactions);
+Transactions.prototype.pushHiddenTransaction = function(transaction) {
+	hiddenTransactions.push(transaction);
+}
 
-	if (sort) {
-		a.sort(function compare(a, b) {
-			if (a.timestamp > b.timestamp)
-				return -1;
-			if (a.timestamp < b.timestamp)
-				return 1;
-			return 0;
-		});
-	}
+Transactions.prototype.shiftHiddenTransaction = function() {
+	return hiddenTransactions.shift();
+}
 
-	return a;
+Transactions.prototype.deleteHiddenTransaction = function() {
+	hiddenTransactions = [];
+}
+
+Transactions.prototype.getUnconfirmedTransactionList = function (reverse) {
+	var a = unconfirmedTransactions.map(function (item) {
+		if (item !== false) return item;
+	});
+
+	return reverse ? a.reverse() : a;
 }
 
 Transactions.prototype.removeUnconfirmedTransaction = function (id) {
-	if (unconfirmedTransactions[id]) {
-		delete unconfirmedTransactions[id];
-	}
+	var index = unconfirmedTransactionsIdIndex[id];
+	delete unconfirmedTransactionsIdIndex[id];
+	unconfirmedTransactions[index] = false;
 }
 
 Transactions.prototype.processUnconfirmedTransaction = function (transaction, broadcast, cb) {
@@ -323,11 +336,11 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 		if (err) return cb && cb(err);
 
 		if (!self.applyUnconfirmed(transaction)) {
-			doubleSpendingTransactions[transaction.id] = transaction;
+			self.addDoubleSpending(transaction);
 			return cb && cb("Can't apply transaction: " + transaction.id);
 		}
 
-		unconfirmedTransactions[transaction.id] = transaction;
+		addUnconfirmedTransaction(transaction)
 
 		library.bus.message('unconfirmedTransaction', transaction, broadcast)
 
@@ -346,7 +359,7 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 			return done("Can't process transaction, transaction already confirmed");
 		} else {
 			// check in confirmed transactions
-			if (unconfirmedTransactions[transaction.id] || doubleSpendingTransactions[transaction.id]) {
+			if (unconfirmedTransactionsIdIndex[transaction.id] !== undefined || doubleSpendingTransactions[transaction.id]) {
 				return done("This transaction already exists");
 			}
 
@@ -501,19 +514,21 @@ Transactions.prototype.apply = function (transaction) {
 
 Transactions.prototype.applyUnconfirmedList = function (ids) {
 	for (var i = 0; i < ids.length; i++) {
-		var transaction = unconfirmedTransactions[ids[i]];
-		if (!this.applyUnconfirmed(transaction)) {
-			delete unconfirmedTransactions[ids[i]];
-			doubleSpendingTransactions[ids[i]] = transaction;
+		var transaction = self.getUnconfirmedTransaction(ids[i])
+		if (!self.applyUnconfirmed(transaction)) {
+			self.removeUnconfirmedTransaction(ids[i]);
+			self.addDoubleSpending(transaction);
 		}
 	}
 }
 
-Transactions.prototype.undoAllUnconfirmed = function () {
-	var ids = Object.keys(unconfirmedTransactions);
-	for (var i = 0; i < ids.length; i++) {
-		var transaction = unconfirmedTransactions[ids[i]];
-		this.undoUnconfirmed(transaction);
+Transactions.prototype.undoUnconfirmedList = function () {
+	var ids = [];
+	for (var i = 0; i < unconfirmedTransactions.length; i++) {
+		if (unconfirmedTransactions[i] !== false) {
+			ids.push(unconfirmedTransactions[i].id);
+			self.undoUnconfirmed(unconfirmedTransactions[i]);
+		}
 	}
 	return ids;
 }
@@ -676,10 +691,8 @@ Transactions.prototype.verifySecondSignature = function (transaction, publicKey)
 }
 
 Transactions.prototype.receiveTransactions = function (transactions, cb) {
-	library.sequence.add(function (cb) {
-		async.eachSeries(transactions, function (transaction, cb) {
-			self.processUnconfirmedTransaction(transaction, true, cb);
-		}, cb);
+	async.eachSeries(transactions, function (transaction, cb) {
+		self.processUnconfirmedTransaction(transaction, true, cb);
 	}, cb);
 }
 
