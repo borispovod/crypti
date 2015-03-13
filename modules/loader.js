@@ -67,7 +67,7 @@ function loadfullDb(peer, cb) {
 	modules.blocks.loadBlocksFromPeer(peer, commonBlockId, cb);
 }
 
-function findUpdate(peer, cb) {
+function findUpdate(lastBlock, peer, cb) {
 	var peerStr = peer ? ip.fromLong(peer.ip) + ":" + peer.port : 'unknown';
 
 	library.logger.info("Looking for common block with " + peerStr);
@@ -180,7 +180,7 @@ function loadBlocks(lastBlock, cb) {
 			blocksToSync = params.int(data.body.height);
 
 			if (lastBlock.id != genesisBlock.block.id) { //have to found common block
-				findUpdate(data.peer, cb);
+				findUpdate(lastBlock, data.peer, cb);
 			} else { //have to load full db
 				loadfullDb(data.peer, cb);
 			}
