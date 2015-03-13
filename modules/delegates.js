@@ -410,7 +410,6 @@ function loop(cb) {
 		return;
 	}
 
-	debugger;
 	var currentBlockData = getBlockSlotData(currentSlot, lastBlock.height + 1);
 
 	if (currentBlockData === null) {
@@ -418,8 +417,7 @@ function loop(cb) {
 		return;
 	}
 
-	debugger;
-	console.log(self.getDelegateByPublicKey(currentBlockData.keypair.publicKey).username, slots.getSlotNumber(currentBlockData.time));
+	console.log(self.getDelegateByPublicKey(currentBlockData.keypair.publicKey.toString('hex')).username, slots.getSlotNumber(currentBlockData.time));
 
 	library.sequence.add(function (cb) {
 		if (slots.getSlotNumber(currentBlockData.time) == slots.getSlotNumber()) {
