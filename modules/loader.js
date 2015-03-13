@@ -106,7 +106,7 @@ function findUpdate(peer, cb) {
 				if (err) {
 					modules.transactions.deleteHiddenTransaction();
 					library.logger.error(err);
-					library.logger.log('ban 60 min', peerStr);
+					library.logger.log("can't load blocks, ban 60 min", peerStr);
 					modules.peer.state(peer.ip, peer.port, 0, 3600);
 
 					library.logger.info("Remove blocks again until " + commonBlock.id + " (at " + commonBlock.height + ")");
@@ -203,7 +203,7 @@ function loadUnconfirmedTransactions(cb) {
 				transactions[i] = normalize.transaction(transactions[i]);
 			} catch (e) {
 				var peerStr = data.peer ? ip.fromLong(data.peer.ip) + ":" + data.peer.port : 'unknown';
-				library.logger.log('ban 60 min', peerStr);
+				library.logger.log('transaction ' + (transactions[i] ? transactions[i].id : 'null') + ' is not valid, ban 60 min', peerStr);
 				modules.peer.state(data.peer.ip, data.peer.port, 0, 3600);
 				return setImmediate(cb);
 			}

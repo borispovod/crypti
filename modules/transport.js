@@ -117,7 +117,7 @@ function attachApi() {
 		} catch (e) {
 			var peerIp = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
 			var peerStr = peerIp ? peerIp + ":" + params.int(req.headers['port']) : 'unknown';
-			library.logger.log('ban 60 min', peerStr);
+			library.logger.log('transaction ' + (block ? block.id : 'null') + ' is not valid, ban 60 min', peerStr);
 			modules.peer.state(ip.toLong(peerIp), params.int(req.headers['port']), 0, 3600);
 			return res.sendStatus(200);
 		}
@@ -141,7 +141,7 @@ function attachApi() {
 		} catch (e) {
 			var peerIp = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
 			var peerStr = peerIp ? peerIp + ":" + params.int(req.headers['port']) : 'unknown';
-			library.logger.log('ban 60 min', peerStr);
+			library.logger.log('transaction ' + (transaction ? transaction.id : 'null') + ' is not valid, ban 60 min', peerStr);
 			modules.peer.state(ip.toLong(peerIp), params.int(req.headers['port']), 0, 3600);
 			return res.status(200).json({success: false, message: "Invalid transaction body"});
 		}
@@ -151,7 +151,7 @@ function attachApi() {
 		}, function (err) {
 			if (err) {
 				res.status(200).json({success: false, message: err});
-			}else{
+			} else {
 				res.status(200).json({success: true});
 			}
 		});
