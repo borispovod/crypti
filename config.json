@@ -14,23 +14,15 @@
 	},
 	"peers": {
 		"list": [
+			{
+				"ip": "130.211.104.33",
+				"port": 7040
+			}
 		],
 		"blackList": []
 	},
 	"forging": {
-		"secret": [
-			"21MiMW*TGlUs*E$9&HpZM$kz83BPnnZm!HLN!^tVmsaijKBs@8",
-			"%VFKALWXv1rjHNYoR9q*tDPJRxN$myy1Aivyp8Xj0%2i&#AxOd",
-			"oHs1RaB9w&X7@Vm4RmvyPp70rZfuhb@oU7QE*gSWpF3HfXNckA",
-			"#XQagwaS3Gb&Lcb^hO!1FZC8UWK0So3uYwh6FQTWZ1iH*WKHi@",
-			"p3cMjVju4GuuY$zu&#^gPLr@%I4umuuOK1Y$DjZ63#wLpJmkI9",
-			"*R#BWK1kY*dYazp&xD8U18u9b%x8hup9Ps9dYo&%SXYae5P3rw",
-			"@gY@T&pMq*$sepfclyRSsm#Otaa8w3Wa*DkwzwKX%w@#Z2F&PQ",
-			"FP!zqnIg$jlOJ$H#ZalUzDMHbaCGdnK$8Jt4F%ThTW0LL2D5Cn",
-			"9Hq0AiVdoAhS*30LSNMbgFEhZGTdxJm!fluuiPx*3DXkhlHPQE",
-			"oR&6vR#vY3sMMjH&gjEzI^j%xPrThovZnzqsn!hPv%y@fgUE0x",
-			"YBRq!Ppzs*$#qqNp%W9Qn&5$0y%0&TBOUkdeZkRCy3UcT95lWX"
-		],
+		"secret": "",
 		"access": {
 			"whiteList": []
 		}
