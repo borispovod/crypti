@@ -3,11 +3,11 @@
         <h1 class="heading">Account</h1>
 
         <h2 class="account-id">Your account: {{ address }}<span
-                ng-hide="secondPassphrase || unconfirmedPassphrase"> / </span><a href="#"
+                ng-hide="secondPassphrase || unconfirmedPassphrase"> / </span><span class="secondPassphrase"
                                                                                  ng-hide="secondPassphrase || unconfirmedPassphrase"
                                                                                  ng-click="addSecondPassphrase()"
                                                                                  title="Increase your account security!">Add
-            second passphrase</a></h2>
+            second passphrase</span></h2>
     </div>
     <div class="raw-buttons" id="paddingFix">
         <button class="button green send" ng-click="sendCrypti()">Send Crypti</button>
