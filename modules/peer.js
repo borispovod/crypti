@@ -257,6 +257,17 @@ Peer.prototype.state = function (ip, port, state, timeoutSeconds, cb) {
 	});
 }
 
+Peer.prototype.remove = function (ip, port, cb) {
+		library.dbLite.query("DELETE FROM peers WHERE ip = $ip and port = $port;", {
+		ip: ip,
+		port: port
+	}, function (err) {
+		err && library.logger.error('Peer#delete', err);
+
+		cb && cb()
+	});
+}
+
 Peer.prototype.update = function (peer, cb) {
 	var params = {
 		ip: peer.ip,
