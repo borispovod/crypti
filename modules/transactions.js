@@ -365,7 +365,6 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 
 			var sender = modules.accounts.getAccountByPublicKey(transaction.senderPublicKey);
 
-
 			if (!sender) {
 				return done("Can't process transaction, sender not found");
 			}
