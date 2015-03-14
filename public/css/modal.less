@@ -16,7 +16,19 @@
     background: #ffffff;
     padding: 25px;
     border-radius: 8px;
-
+    .modal-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      height: 100%;
+      width: 100%;
+      border-radius: 8px;
+      background-color: white;
+      background-image: url('../..@{images}/spinn.gif');
+      background-repeat: no-repeat;
+      background-position: center center;
+      opacity: 0.6;
+    }
     .close-modal {
       margin-top: 20px;
       float: right;
@@ -29,14 +41,14 @@
       text-align: center;
     }
   }
-    .err{
-        border: 1px solid red;
-    }
-    p.fee{
-        margin: 0 0 10px 5px;
-    }
-    p.error{
-        color: #ed4a4a;
-        font-size: 13px;
-    }
+  .err {
+    border: 1px solid red;
+  }
+  p.fee {
+    margin: 0 0 10px 5px;
+  }
+  p.error {
+    color: #ed4a4a;
+    font-size: 13px;
+  }
 }
