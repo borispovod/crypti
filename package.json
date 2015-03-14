@@ -43,7 +43,9 @@
     "toposort": "~0.2.10",
     "underscore": "https://github.com/crypti/underscore/tarball/master",
     "usage": "^0.6.0",
-    "download": "~4.0.1"
+    "download": "~4.0.1",
+    "unzip": "~0.1.11",
+    "squel": "~3.10.0"
   },
   "devDependencies": {
     "cli-table": "~0.3.1",
