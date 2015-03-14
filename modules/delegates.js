@@ -71,15 +71,10 @@ function attachApi() {
 		}
 
 		var rateSort = {};
-		publicKeys.sort(function compare(a, b) {
-			if (votes[a] > votes[b])
-				return -1;
-			if (votes[a] < votes[b])
-				return 1;
-			return 0;
-		}).forEach(function (item, index) {
-			rateSort[item] = index + 1;
-		});
+		getKeysSortByVote(publicKeys, votes)
+			.forEach(function (item, index) {
+				rateSort[item] = index + 1;
+			});
 
 		if (orderBy) {
 			if (orderBy == 'username') {
@@ -345,15 +340,10 @@ function getDelegate(filter, rateSort) {
 
 	if (!rateSort) {
 		rateSort = {};
-		Object.keys(publicKeyIndex).sort(function compare(a, b) {
-			if (votes[a] > votes[b])
-				return -1;
-			if (votes[a] < votes[b])
-				return 1;
-			return 0;
-		}).forEach(function (item, index) {
-			rateSort[item] = index + 1;
-		});
+		getKeysSortByVote(Object.keys(publicKeyIndex), votes)
+			.forEach(function (item, index) {
+				rateSort[item] = index + 1;
+			});
 	}
 
 	var delegate = delegates[index];
@@ -371,8 +361,8 @@ function getDelegate(filter, rateSort) {
 	};
 }
 
-function getKeysSortByVote(votes) {
-	return Object.keys(votes).sort(function compare(a, b) {
+function getKeysSortByVote(keys, votes) {
+	return keys.sort(function compare(a, b) {
 		if (votes[a] > votes[b]) return -1;
 		if (votes[a] < votes[b]) return 1;
 		if (a < b) return -1;
@@ -428,13 +418,16 @@ function loop(cb) {
 	}
 
 	library.sequence.add(function (cb) {
+		var _activeDelegates = self.generateDelegateList(lastBlock.height + 1);
+
 		if (slots.getSlotNumber(currentBlockData.time) == slots.getSlotNumber()) {
 			modules.blocks.generateBlock(currentBlockData.keypair, currentBlockData.time, function (err) {
-				library.logger.log('round: ' + modules.round.calc(modules.blocks.getLastBlock().height) + ' new block id: ' + modules.blocks.getLastBlock().id + ' height:' + modules.blocks.getLastBlock().height + ' slot:' + slots.getSlotNumber(currentBlockData.time))
+				library.logger.log('round ' + self.getDelegateByPublicKey(_activeDelegates[slots.getSlotNumber(currentBlockData.time) % slots.delegates]).username + ': ' + modules.round.calc(modules.blocks.getLastBlock().height) + ' new block id: ' + modules.blocks.getLastBlock().id + ' height:' + modules.blocks.getLastBlock().height + ' slot:' + slots.getSlotNumber(currentBlockData.time))
 				cb(err);
 			});
 		} else {
-			library.logger.log('loop', 'exit: another delegate slot');
+			library.logger.log('loop', 'exit: ' + self.getDelegateByPublicKey(_activeDelegates[slots.getSlotNumber() % slots.delegates]).username + ' delegate slot');
+
 			setImmediate(cb);
 		}
 	}, function (err) {
@@ -467,7 +460,7 @@ function loadMyDelegates() {
 
 //public methods
 Delegates.prototype.generateDelegateList = function (height) {
-	var sortedDelegateList = getKeysSortByVote(votes);
+	var sortedDelegateList = getKeysSortByVote(Object.keys(votes), votes);
 	var truncDelegateList = sortedDelegateList.slice(0, slots.delegates);
 	var seedSource = modules.round.calc(height).toString();
 

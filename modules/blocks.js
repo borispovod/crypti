@@ -219,16 +219,6 @@ function verifySignature(block) {
 	return res;
 }
 
-function undoBlock(block, previousBlock) {
-	var unconfirmedTransactions = modules.transactions.undoAllUnconfirmed();
-
-	for (var i = 0; i < block.transactions.length; i++) {
-		modules.transactions.undo(block.transactions[i]);
-		modules.transactions.undoUnconfirmed(block.transactions[i]);
-	}
-
-	modules.transactions.applyUnconfirmedList(unconfirmedTransactions);
-}
 
 function deleteBlock(blockId, cb) {
 	library.dbLite.query("DELETE FROM blocks WHERE id = $id", {id: blockId}, function (err, res) {
@@ -400,7 +390,11 @@ function popLastBlock(oldLastBlock, cb) {
 		}
 		previousBlock = previousBlock[0];
 
-		undoBlock(oldLastBlock, previousBlock);
+		for (var i = oldLastBlock.transactions.length - 1; i > -1; i--) {
+			modules.transactions.undo(oldLastBlock.transactions[i]);
+			modules.transactions.undoUnconfirmed(oldLastBlock.transactions[i]);
+			modules.transactions.pushHiddenTransaction(oldLastBlock.transactions[i]);
+		}
 
 		modules.round.backwardTick(oldLastBlock, previousBlock);
 
@@ -409,17 +403,7 @@ function popLastBlock(oldLastBlock, cb) {
 				return cb(err);
 			}
 
-			var transactions = oldLastBlock.transactions;
-
-			async.eachSeries(transactions, function (transaction, cb) {
-				modules.transactions.processUnconfirmedTransaction(transaction, false, cb);
-			}, function (err) {
-				if (err) {
-					return cb(err);
-				}
-
-				cb(null, previousBlock);
-			});
+			cb(null, previousBlock);
 		});
 	});
 }
@@ -718,7 +702,7 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 	block.id = getId(block);
 	block.height = lastBlock.height + 1;
 
-	var unconfirmedTransactions = modules.transactions.undoAllUnconfirmed();
+	var unconfirmedTransactions = modules.transactions.undoUnconfirmedList();
 
 	function done(err) {
 		modules.transactions.applyUnconfirmedList(unconfirmedTransactions);
@@ -979,7 +963,7 @@ Blocks.prototype.loadBlocksFromPeer = function (peer, lastCommonBlockId, cb) {
 							block = normalize.block(block);
 						} catch (e) {
 							var peerStr = data.peer ? ip.fromLong(data.peer.ip) + ":" + data.peer.port : 'unknown';
-							library.logger.log('ban 60 min', peerStr);
+							library.logger.log('block ' + (block ? block.id : 'null') + ' is not valid, ban 60 min', peerStr);
 							modules.peer.state(peer.ip, peer.port, 0, 3600);
 							return setImmediate(cb, e);
 						}
@@ -988,7 +972,7 @@ Blocks.prototype.loadBlocksFromPeer = function (peer, lastCommonBlockId, cb) {
 								lastCommonBlockId = block.id;
 							} else {
 								var peerStr = data.peer ? ip.fromLong(data.peer.ip) + ":" + data.peer.port : 'unknown';
-								library.logger.log('ban 60 min', peerStr);
+								library.logger.log('block ' + (block ? block.id : 'null') + ' is not valid, ban 60 min', peerStr);
 								modules.peer.state(peer.ip, peer.port, 0, 3600);
 							}
 
@@ -1027,12 +1011,11 @@ Blocks.prototype.deleteBlocksBefore = function (block, cb) {
 }
 
 Blocks.prototype.generateBlock = function (keypair, timestamp, cb) {
-	var transactions = modules.transactions.getUnconfirmedTransactions();
-	transactions.sort(function compare(a, b) {
-		if (a.timestamp > b.timestamp)
-			return -1;
-		if (a.timestamp < b.timestamp)
-			return 1;
+	var transactions = modules.transactions.getUnconfirmedTransactionList().sort(function compare(a, b) {
+		if (a.type < b.type) return -1;
+		if (a.type > b.type) return 1;
+		if (a.amount < b.amount) return -1;
+		if (a.amount > b.amount) return 1;
 		return 0;
 	});
 

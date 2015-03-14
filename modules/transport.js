@@ -117,20 +117,20 @@ function attachApi() {
 		} catch (e) {
 			var peerIp = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
 			var peerStr = peerIp ? peerIp + ":" + params.int(req.headers['port']) : 'unknown';
-			library.logger.log('ban 60 min', peerStr);
+			library.logger.log('transaction ' + (block ? block.id : 'null') + ' is not valid, ban 60 min', peerStr);
 			modules.peer.state(ip.toLong(peerIp), params.int(req.headers['port']), 0, 3600);
-			return res;
+			return res.sendStatus(200);
 		}
 
 		library.bus.message('receiveBlock', block);
 
-		res;
+		res.sendStatus(200);
 	});
 
 	router.get("/transactions", function (req, res) {
 		res.set(headers);
 		// need to process headers from peer
-		res.status(200).json({transactions: modules.transactions.getUnconfirmedTransactions()});
+		res.status(200).json({transactions: modules.transactions.getUnconfirmedTransactionList()});
 	});
 
 	router.post("/transactions", function (req, res) {
@@ -141,18 +141,18 @@ function attachApi() {
 		} catch (e) {
 			var peerIp = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
 			var peerStr = peerIp ? peerIp + ":" + params.int(req.headers['port']) : 'unknown';
-			library.logger.log('ban 60 min', peerStr);
+			library.logger.log('transaction ' + (transaction ? transaction.id : 'null') + ' is not valid, ban 60 min', peerStr);
 			modules.peer.state(ip.toLong(peerIp), params.int(req.headers['port']), 0, 3600);
-			return res.json({success: false, message: "Invalid transaction body"});
+			return res.status(200).json({success: false, message: "Invalid transaction body"});
 		}
 
 		library.sequence.add(function (cb) {
 			modules.transactions.receiveTransactions([transaction], cb);
 		}, function (err) {
 			if (err) {
-				res.json({success: false, message: err});
+				res.status(200).json({success: false, message: err});
 			} else {
-				res.json({success: true});
+				res.status(200).json({success: true});
 			}
 		});
 	});
@@ -203,8 +203,15 @@ function _request(peer, api, method, data, cb) {
 				err: err
 			});
 
-			modules.peer.state(peer.ip, peer.port, 0, 600);
-			library.logger.info('ban 10 min ' + req.method + ' ' + req.url)
+			if (peer) {
+				if (err && (err.code == "ETIMEDOUT" || err.code == "ESOCKETTIMEDOUT" || err.code == "ECONNREFUSED")) {
+					library.logger.info('remove peer ' + req.method + ' ' + req.url)
+					modules.peer.remove(peer.ip, peer.port);
+				} else {
+					library.logger.info('ban 10 min ' + req.method + ' ' + req.url)
+					modules.peer.state(peer.ip, peer.port, 0, 600);
+				}
+			}
 			cb && cb(err || ('request status code' + response.statusCode));
 			return;
 		}
