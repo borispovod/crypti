@@ -5,6 +5,7 @@ module.exports = {
 		if (nullable === true && (val === null || val === undefined)) {
 			return null;
 		}
+
 		var res = parseInt(val, 10);
 		return isNaN(res) ? 0 : res;
 	},
