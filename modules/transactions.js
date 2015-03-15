@@ -88,7 +88,14 @@ function attachApi() {
 			return res.json({success: false, error: "Provide id in url"});
 		}
 
-		var transaction = extend(true, {}, self.getUnconfirmedTransaction(id));
+		var unconfirmedTransaction = self.getUnconfirmedTransaction(id);
+
+		if (!unconfirmedTransaction) {
+			return res.json({success: false, error : "Transaction not found"});
+		}
+
+
+		var transaction = extend(true, {}, unconfirmedTransaction);
 
 		if (!transaction) {
 			return res.json({success: false, error: "Transaction not found"});
@@ -123,7 +130,7 @@ function attachApi() {
 
 	router.put('/', function (req, res) {
 		var secret = params.string(req.body.secret),
-			amount = params.int(req.body.amount),
+			amount = req.body.amount,
 			recipientId = params.string(req.body.recipientId || null, true),
 			publicKey = params.hex(req.body.publicKey || null, true),
 			secondSecret = params.string(req.body.secondSecret || null, true);
@@ -150,6 +157,13 @@ function attachApi() {
 		if (!account.publicKey) {
 			return res.json({success: false, error: "Open account to make transaction"});
 		}
+
+
+		if (amount.toString().indexOf('e') >= 0) {
+			return res.json({success: false, error: "Incorrect amount, please, correct it"});
+		}
+
+		amount = params.int(amount);
 
 		var transaction = {
 			type: 0,
@@ -194,6 +208,7 @@ function attachApi() {
 }
 
 function list(filter, cb) {
+	var sortFields = ['t.id', 't.blockId', 't.type', 't.timestamp', 't.senderPublicKey', 't.senderId', 't.recipientId', 't.amount', 't.fee', 't.signature', 't.signSignature', 't.confirmations'];
 	var params = {}, fields = [];
 	if (filter.blockId) {
 		fields.push('blockId = $blockId')
@@ -224,6 +239,14 @@ function list(filter, cb) {
 		sortBy = "t." + sortBy;
 		if (sort.length == 2) {
 			var sortMethod = sort[1] == 'desc' ? 'desc' : 'asc'
+		} else {
+			sortMethod = "desc";
+		}
+	}
+
+	if (sortBy) {
+		if (sortFields.indexOf(sortBy) < 0) {
+			return cb("Invalid field to sort");
 		}
 	}
 
@@ -249,10 +272,6 @@ function list(filter, cb) {
 }
 
 function getById(id, cb) {
-	console.log("select t.id, t.blockId, t.type, t.timestamp, lower(hex(t.senderPublicKey)), t.senderId, t.recipientId, t.amount, t.fee, lower(hex(t.signature)), lower(hex(t.signSignature)), (select max(height) + 1 from blocks) - b.height " +
-	"from trs t " +
-	"inner join blocks b on t.blockId = b.id " +
-	"where t.id = $id");
 	library.dbLite.query("select t.id, t.blockId, t.type, t.timestamp, lower(hex(t.senderPublicKey)), t.senderId, t.recipientId, t.amount, t.fee, lower(hex(t.signature)), lower(hex(t.signSignature)), (select max(height) + 1 from blocks) - b.height " +
 	"from trs t " +
 	"inner join blocks b on t.blockId = b.id " +
@@ -267,7 +286,6 @@ function getById(id, cb) {
 }
 
 function addUnconfirmedTransaction(transaction) {
-	debugger;
 	unconfirmedTransactions.push(transaction);
 	var index = unconfirmedTransactions.length - 1;
 	unconfirmedTransactionsIdIndex[transaction.id] = index;
@@ -289,7 +307,6 @@ Transactions.prototype.secondSign = function (secret, transaction) {
 }
 
 Transactions.prototype.getUnconfirmedTransaction = function (id) {
-	debugger;
 	var index = unconfirmedTransactionsIdIndex[id];
 	return unconfirmedTransactions[index];
 }
@@ -322,7 +339,6 @@ Transactions.prototype.getUnconfirmedTransactionList = function (reverse) {
 }
 
 Transactions.prototype.removeUnconfirmedTransaction = function (id) {
-	debugger;
 	var index = unconfirmedTransactionsIdIndex[id];
 	delete unconfirmedTransactionsIdIndex[id];
 	unconfirmedTransactions[index] = false;
@@ -392,7 +408,7 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 			}
 
 			// check if transaction is not float and great then 0
-			if (transaction.amount < 0 || transaction.amount.toString().indexOf('.') >= 0) {
+			if (transaction.amount < 0 || transaction.amount > 100000000 * constants.fixedPoint || transaction.amount.toString().indexOf('.') >= 0 || transaction.amount.toString().indexOf('e') >= 0) {
 				return done("Invalid transaction amount");
 			}
 
@@ -416,6 +432,10 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 
 			switch (transaction.type) {
 				case 0:
+					if (!transaction.recipientId) {
+						return done("Invalid transaction recipient id");
+					}
+
 					if (transactionHelper.getLastChar(transaction) != "C") {
 						return done("Invalid transaction recipient id");
 					}
