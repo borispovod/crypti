@@ -315,10 +315,19 @@ Dapps.prototype.searchDapps = function(search, options, cb) {
         options = defaultOptions;
     }
 
-    console.log(search);
+    var query = squel.select().from('dapps');
+    var expr = squel.expr();
 
-    search = '%' + search + '%';
-    var query = squel.select().from('dapps').where('name LIKE ? OR description LIKE ?', search, search);
+    // Split search term on words
+    search.split(/\s+/).forEach(function(term){
+        term = '%' + term + '%';
+        expr.and_begin()
+            .or('name LIKE ?', term)
+            .or('description LIKE ?', term)
+            .end();
+    });
+
+    query.where(expr);
 
     squelQuery(query, options, dappFields, function(err, dapps){
         if (err) return cb(err);
