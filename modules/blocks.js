@@ -604,8 +604,13 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 			}
 
 			//verify block's transactions
-			for (var n = 0, n_length = blocks[i].transactions.length; n < n_length; n++) {
+			blocks[i].transactions = blocks[i].transactions.sort(function(a, b){
+				if (a.type == 1)
+					return 1;
+				return 0;
+			})
 
+			for (var n = 0, n_length = blocks[i].transactions.length; n < n_length; n++) {
 				if (blocks[i].id != genesisblock.block.id) {
 					if (verify && !modules.transactions.verifySignature(blocks[i].transactions[n])) {
 						err = {
@@ -644,7 +649,7 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 					}
 					if (!modules.delegates.checkUnconfirmedDelegates(blocks[i].transactions[n].senderPublicKey, blocks[i].transactions[n].asset.votes)) {
 						err = {
-							message: "Can't verify votes, you already voted for this delegate: " + blocks[i].transactions[n].id,
+							message: "Can't verify unconfirmed votes, you already voted for this delegate: " + blocks[i].transactions[n].id,
 							transaction: blocks[i].transactions[n],
 							rollbackTransactionsUntil: n > 0 ? (n - 1) : null,
 							block: blocks[i]
@@ -682,8 +687,9 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 					break;
 				}
 			}
+
 			if (err) {
-				for (var n = err.rollbackTransactionsUntil - 1; n > -1; n--) {
+				for (var n = err.rollbackTransactionsUntil; n > -1; n--) {
 					modules.transactions.undo(blocks[i].transactions[n]);
 					modules.transactions.undoUnconfirmed(blocks[i].transactions[n])
 				}
