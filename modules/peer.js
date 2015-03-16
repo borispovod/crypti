@@ -259,13 +259,13 @@ Peer.prototype.state = function (ip, port, state, timeoutSeconds, cb) {
 	});
 }
 
-Peer.prototype.remove = function (ip, port, cb) {
+Peer.prototype.remove = function (pip, port, cb) {
 	var isFrozenList = library.config.peers.list.find(function (peer) {
-		return peer.ip == ip && peer.port == port;
+		return peer.ip == ip.fromLong(pip) && peer.port == port;
 	});
 	if (isFrozenList !== undefined) return cb && cb();
 	library.dbLite.query("DELETE FROM peers WHERE ip = $ip and port = $port;", {
-		ip: ip,
+		ip: pip,
 		port: port
 	}, function (err) {
 		err && library.logger.error('Peer#delete', err);
