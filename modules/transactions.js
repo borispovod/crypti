@@ -267,7 +267,6 @@ function getById(id, cb) {
 }
 
 function addUnconfirmedTransaction(transaction) {
-	debugger;
 	unconfirmedTransactions.push(transaction);
 	var index = unconfirmedTransactions.length - 1;
 	unconfirmedTransactionsIdIndex[transaction.id] = index;
@@ -289,7 +288,6 @@ Transactions.prototype.secondSign = function (secret, transaction) {
 }
 
 Transactions.prototype.getUnconfirmedTransaction = function (id) {
-	debugger;
 	var index = unconfirmedTransactionsIdIndex[id];
 	return unconfirmedTransactions[index];
 }
@@ -322,7 +320,6 @@ Transactions.prototype.getUnconfirmedTransactionList = function (reverse) {
 }
 
 Transactions.prototype.removeUnconfirmedTransaction = function (id) {
-	debugger;
 	var index = unconfirmedTransactionsIdIndex[id];
 	delete unconfirmedTransactionsIdIndex[id];
 	unconfirmedTransactions[index] = false;
