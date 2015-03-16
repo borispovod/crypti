@@ -347,13 +347,14 @@ function getDelegate(filter, rateSort) {
 	}
 
 	var delegate = delegates[index];
-	var delegateFirstSlot = slots.getSlotNumber(delegate.created);
-	var allTours = Math.floor((slots.getSlotNumber() - delegateFirstSlot) / slots.delegates);
-	var passedTours = modules.round.passedTours(delegate.publicKey);
 
-	var diff = allTours - passedTours;
-	var productivity = 100 - (diff / allTours / 100);
-	var outsider = rateSort[delegate.publicKey] > slots.delegates && passedTours == 0;
+	var stat = modules.round.blocksStat(delegate.publicKey);
+
+	var diff = stat.forged - stat.missed;
+	var percent = 100 - (diff / stat.forged / 100);
+	var novice = stat.missed === null && stat.forged === null;
+	var outsider = rateSort[delegate.publicKey] > slots.delegates;
+	var productivity = novice ? 100 : Math.round(percent * 100) / 100;
 
 	return {
 		username: delegate.username,
@@ -362,7 +363,7 @@ function getDelegate(filter, rateSort) {
 		transactionId: delegate.transactionId,
 		vote: votes[delegate.publicKey],
 		rate: rateSort[delegate.publicKey],
-		productivity: outsider ? null : Math.round(productivity * 100) / 100
+		productivity: outsider ? null : productivity
 	};
 }
 
