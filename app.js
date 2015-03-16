@@ -7,6 +7,7 @@ var SegfaultHandler = require('segfault-handler');
 SegfaultHandler.registerHandler();
 
 
+
 process.on('uncaughtException', function (err) {
 	// handle the error safely
 	logger.fatal('system error', {message: err.message, stack: err.stack});

@@ -119,6 +119,9 @@ function findUpdate(lastBlock, peer, cb) {
 					if (commonBlock.id != lastBlock.id) {
 						modules.round.directionSwap('backward');
 					}
+
+					// fix 1000 blocks and check, if you need to remove more 1000 blocks - ban node
+
 					modules.blocks.deleteBlocksBefore(commonBlock, function (err) {
 						if (commonBlock.id != lastBlock.id) {
 							modules.round.directionSwap('forward');
