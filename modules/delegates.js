@@ -350,11 +350,10 @@ function getDelegate(filter, rateSort) {
 
 	var stat = modules.round.blocksStat(delegate.publicKey);
 
-	var diff = stat.forged - stat.missed;
-	var percent = 100 - (diff / stat.forged / 100);
+	var percent = 100 - (stat.missed / (stat.forged + stat.missed) / 100);
 	var novice = stat.missed === null && stat.forged === null;
 	var outsider = rateSort[delegate.publicKey] > slots.delegates;
-	var productivity = novice ? 100 : Math.round(percent * 100) / 100;
+	var productivity = novice ? 0 : Math.round(percent * 100) / 100;
 
 	return {
 		username: delegate.username,
