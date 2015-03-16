@@ -1,9 +1,11 @@
 require('angular');
 
-angular.module('webApp').controller('passphraseController', ['$scope', '$rootScope', '$http', "$state", '$location', "userService",
-	function ($rootScope, $scope, $http, $state, $location, userService) {
+angular.module('webApp').controller('passphraseController', ['$scope', '$rootScope', '$http', "$state", '$location', "userService", "dbFactory",
+	function ($rootScope, $scope, $http, $state, $location, userService, dbFactory) {
 
 		// angular.element(document.getElementById("forgingButton")).show();
+		debugger;
+		dbFactory.createdb();
 
 		$scope.login = function (pass) {
 			var data = {secret: pass};
