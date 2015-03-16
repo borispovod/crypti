@@ -9,6 +9,8 @@ var async = require('async'),
 	fs = require('fs'),
 	path = require('path');
 
+require('array.prototype.find'); //old node fix
+
 //private fields
 var modules, library, self;
 
@@ -67,7 +69,7 @@ function attachApi() {
 		fs.readFile(path.join(__dirname, '..', 'build'), 'utf8', function (err, data) {
 			if (err) {
 				library.logger.error("Can't read build file: " + err);
-				return res.json({success: false, error : "Can't read 'build' file, see logs"});
+				return res.json({success: false, error: "Can't read 'build' file, see logs"});
 			}
 
 			return res.json({success: true, version: library.config.version, build: data.trim()});
@@ -258,7 +260,11 @@ Peer.prototype.state = function (ip, port, state, timeoutSeconds, cb) {
 }
 
 Peer.prototype.remove = function (ip, port, cb) {
-		library.dbLite.query("DELETE FROM peers WHERE ip = $ip and port = $port;", {
+	var isFrozenList = library.config.peers.list.find(function (peer) {
+		return peer.ip == ip && peer.port == port;
+	});
+	if (isFrozenList) return cb && cb();
+	library.dbLite.query("DELETE FROM peers WHERE ip = $ip and port = $port;", {
 		ip: ip,
 		port: port
 	}, function (err) {

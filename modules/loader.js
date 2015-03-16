@@ -79,6 +79,12 @@ function findUpdate(lastBlock, peer, cb) {
 
 		library.logger.info("Found common block " + commonBlock.id + " (at " + commonBlock.height + ")" + " with peer " + peerStr);
 
+		if (lastBlock.height - commonBlock.height > 1440) {
+			library.logger.log("long fork, ban 60 min", peerStr);
+			modules.peer.state(peer.ip, peer.port, 0, 3600);
+			return cb();
+		}
+
 		var overTransactionList = [];
 		var unconfirmedList = modules.transactions.undoUnconfirmedList();
 		for (var i = 0; i < unconfirmedList.length; i++) {
