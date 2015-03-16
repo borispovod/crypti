@@ -26,6 +26,14 @@ RequestSanitizer.addRule("empty", {
     }
 });
 
+RequestSanitizer.addRule("filter", {
+    filter : function(accept, value, field) {
+        if (field.isEmpty() && field.rules.empty) return null;
+
+        return accept(value);
+    }
+});
+
 RequestSanitizer.addRule("string", {
     filter : function(accept, value, field){
         if (field.isEmpty() && field.rules.empty) return null;

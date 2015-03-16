@@ -146,6 +146,7 @@ function attachApi() {
     router.get('/search', function(req, res, next){
         req.sanitize("query", {
             q : {
+                empty : true,
                 string : true
             },
             size : {
@@ -158,7 +159,11 @@ function attachApi() {
             },
             order : {
                 empty : true,
-                string : true
+                default : ['name'],
+                filter : function(){
+                    return self.convertQueryOrder;
+                },
+                array : true
             }
         }, function(err, report, query){
             if (err) return next(err);
@@ -315,25 +320,21 @@ Dapps.prototype.searchDapps = function(search, options, cb) {
         options = defaultOptions;
     }
 
-    var query = squel.select().from('dapps');
+    var query = squel.select().field('docid', 'id').from('dapps_search');
     var expr = squel.expr();
 
     // Split search term on words
     search.split(/\s+/).forEach(function(term){
-        term = '%' + term + '%';
-        expr.and_begin()
-            .or('name LIKE ?', term)
-            .or('description LIKE ?', term)
-            .end();
+        expr.and('dapps_search MATCH ?', term);
     });
 
     query.where(expr);
 
-    squelQuery(query, options, dappFields, function(err, dapps){
+    squelQuery(query, options, {id:Number}, function(err, dappIds){
         if (err) return cb(err);
-        if (! dapps) return cb(null, []);
+        if (! dappIds.length) return cb(null, []);
 
-        self.populateTags(dapps, cb);
+        self.getDapps(underscore.pluck(dappIds, 'id'), {order:options.order}, cb);
     });
 };
 
@@ -393,11 +394,29 @@ Dapps.prototype.getDappsByTagsValues = function(tags, cb) {
  * @param cb Result callback
  */
 Dapps.prototype.addDapp = function(dapp, cb){
-    dbLite.query('INSERT INTO dapps(name, description, url) VALUES(?,?,?);', [dapp.name, dapp.description, dapp.url], function(err){
+    var query = squel.insert()
+        .into('dapps')
+        .set('name', dapp.name)
+        .set('description', dapp.description)
+        .set('url', dapp.url);
+
+    squelQuery(query, function(err){
         if (err) return cb(err);
 
         dbLite.lastRowID('dapps', function(id){
             dapp.id = id;
+
+            // Add search table item
+            // TODO Replace with event listener
+            var query = squel.insert()
+                .into('dapps_search')
+                .set('name', dapp.name)
+                .set('description', dapp.description)
+                .set('tags', dapp.tags.join(','));
+
+            squelQuery(query, function(err){
+                if (err) console.error('Search table insert failed');
+            });
 
             dapp.tags = dapp.tags || [];
             if (! dapp.tags.length) return cb(null, dapp);
@@ -439,15 +458,16 @@ Dapps.prototype.removeDapp = function(id, options, cb) {
         arguments[0] = null;
     }
 
-    var query = squel.delete().from('dapps');
+    // TODO Remove with flag `delete` set to `true`?
+    var query = squel.delete().from('dapps').where('id = ?', id);
 
-    if (id) {
-        query.where('id = ?', id);
-    }
 
-    squelQuery(query, options, function(err) {
-        console.log('REMOVE');
-        cb(err);
+    squelQuery(query, options, cb);
+    // Remove from search table
+    // TODO Replace with event listener
+    var searchQuery = squel.delete().from('dapps_search').where('docid = ?', id);
+    squelQuery(searchQuery, options, function(err){
+        if (err) console.error('Search table remove failed.');
     });
 };
 
@@ -782,11 +802,48 @@ Dapps.prototype.normalizeTag = function(tag) {
 };
 
 /**
- * Send query to sqlite with Squel query.
+ * Convert query order value to squelQuery function format
+ * @param {string} value
+ * @returns {string|string[]}
+ */
+Dapps.prototype.convertQueryOrder = function(value) {
+    if (typeof value === 'undefined') return value;
+    if (Array.isArray(value)) return value;
+
+    return value.split('|').map(function(item){
+        var match = item.match(/^([^:]+):(.*)$/);
+        if (match) {
+            return (match[2] === 'desc' ? '-' : '') + match[1];
+        } else {
+            return item;
+        }
+    });
+};
+
+/**
+ * Send query to sqlite with Squel query. Options could have query modificator rules to change limit, offset or order of
+ * query. Order could be string, array of strings or sort object. If it is a string it will splited by comma, vertical bar or space.
+ * To specify descending order use "-" before field name, for example `order: '-year title'` will sort rows in descending
+ * order by years and in ascending order by title.
  * @param {{}} query Squel query instance
  * @param {{}=} options Query options object
  * @param {string[]|{}=}fields Fields object for `dblite` module. **Note!** Neccessary only for select query.
  * @param {function} cb Result callback
+ * @example
+ * // Create Squel select query
+ * var query = squel.select().field('name').from('table');
+ *
+ * // Define result callback
+ * function callback(err, rows) {
+ *  if (err) return console.error(err);
+ *
+ *  console.log(rows);
+ * }
+ *
+ * // Make query ordered by names and limited in 1- items
+ * squelQuery(query, {limit:10, order: {name:-1}}, callback);
+ * // Make query ordered by several fields with sort order as string
+ * squelQuery(query, {order: '-name rank'}, callback);
  */
 function squelQuery(query, options, fields, cb) {
     if (arguments.length === 2) {
@@ -811,10 +868,10 @@ function squelQuery(query, options, fields, cb) {
             options.order.forEach(setStringOrder);
         } else if (typeof options.order === "object") {
             Object.keys(options.order).forEach(function(field){
-                query.order(field, options.order[field] > 0);
+                query.order(field, options.order[field] > 0 || options.order[field] === true);
             });
         } else {
-            options.order.split(/\s*,\s*|\s+/).forEach(setStringOrder);
+            options.order.split(/\s*,\s*|\s*\|\s*|\s+/).forEach(setStringOrder);
         }
     }
 
@@ -833,5 +890,4 @@ function squelQuery(query, options, fields, cb) {
     } else {
         dbLite.query(params.text, params.values, cb);
     }
-
 }
