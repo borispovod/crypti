@@ -357,7 +357,7 @@ function getDelegate(filter, rateSort) {
 		transactionId: delegate.transactionId,
 		vote: votes[delegate.publicKey],
 		rate: rateSort[delegate.publicKey],
-		productivity: (Math.round((modules.round.passedTours(delegate.publicKey) * 100 / allTours ) * 10) / 10) || 0
+		productivity: rateSort[delegate.publicKey] <= slots.delegates ? ((Math.round((modules.round.passedTours(delegate.publicKey) * 100 / allTours ) * 10) / 10) || 0) : 0
 	};
 }
 
