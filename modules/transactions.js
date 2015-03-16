@@ -373,7 +373,7 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 			}
 
 			// check if transaction is not float and great then 0
-			if (transaction.amount < 0 || transaction.amount.toString().indexOf('.') >= 0) {
+			if (transaction.amount < 0 || transaction.amount.toString().indexOf('.') >= 0 || transaction.amount.indexOf("e") >= 0) {
 				cb && cb("Invalid transaction amount");
 				return;
 			}
@@ -395,6 +395,11 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 				case 0:
 					switch (transaction.subtype) {
 						case 0:
+							if (!transaction.recipientId) {
+								cb && cb("Invalid recipient id");
+								return;
+							}
+
 							if (transactionHelper.getLastChar(transaction) != "C") {
 								cb && cb("Invalid transaction recipient id");
 								return;
@@ -423,7 +428,17 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 					switch (transaction.subtype) {
 						case 0:
 							if (!transaction.asset.signature) {
-								cb && cb("Empty transaction asset for company transaction")
+								cb && cb("Empty transaction asset for company transaction");
+								return;
+							}
+
+							if (!transaction.asset.signature.publicKey) {
+								cb && cb("Invalid public key");
+								return;
+							}
+
+							if (transaction.recipientId) {
+								cb && cb("Invalid recipientId");
 								return;
 							}
 							break;
