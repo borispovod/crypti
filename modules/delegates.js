@@ -353,7 +353,7 @@ function getDelegate(filter, rateSort) {
 	var percent = 100 - (stat.missed / (stat.forged + stat.missed) / 100);
 	var novice = stat.missed ===  null&& stat.forged === null;
 	var outsider = rateSort[delegate.publicKey] > slots.delegates && novice;
-	var productivity = novice ? 0 : Math.floor(percent);
+	var productivity = novice ? 0 : percent.toFixed(2);
 
 	return {
 		username: delegate.username,
