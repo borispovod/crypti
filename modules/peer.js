@@ -263,7 +263,7 @@ Peer.prototype.remove = function (ip, port, cb) {
 	var isFrozenList = library.config.peers.list.find(function (peer) {
 		return peer.ip == ip && peer.port == port;
 	});
-	if (isFrozenList) return cb && cb();
+	if (isFrozenList !== undefined) return cb && cb();
 	library.dbLite.query("DELETE FROM peers WHERE ip = $ip and port = $port;", {
 		ip: ip,
 		port: port
