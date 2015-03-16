@@ -227,6 +227,7 @@ function deleteBlock(blockId, cb) {
 }
 
 function list(filter, cb) {
+	var sortFields = ['b.id', 'b.version', 'b.timestamp', 'b.height', 'b.previousBlock', 'b.numberOfTransactions', 'b.totalAmount', 'b.totalFee', 'b.payloadLength', 'b.payloadHash', 'b.generatorPublicKey', 'b.blockSignature'];
 	var params = {}, fields = [], sortMethod = '', sortBy = '';
 	if (filter.generatorPublicKey) {
 		fields.push('lower(hex(generatorPublicKey)) = $generatorPublicKey')
@@ -262,6 +263,14 @@ function list(filter, cb) {
 		sortBy = "b." + sortBy;
 		if (sort.length == 2) {
 			sortMethod = sort[1] == 'desc' ? 'desc' : 'asc'
+		} else {
+			sortMethod = 'desc';
+		}
+	}
+
+	if (sortBy) {
+		if (sortFields.indexOf(sortBy) < 0) {
+			return cb("Invalid field to sort");
 		}
 	}
 
@@ -618,7 +627,7 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 					if (sender.secondSignature) {
 						if (verify && !modules.transactions.verifySecondSignature(blocks[i].transactions[n], sender.secondPublicKey)) {
 							err = {
-								message: "Can't verify second transaction: " + blocks[i].transactions[n].id,
+								message: "Can't verify second signature transaction: " + blocks[i].transactions[n].id,
 								transaction: blocks[i].transactions[n],
 								rollbackTransactionsUntil: n > 0 ? (n - 1) : null,
 								block: blocks[i]
@@ -787,6 +796,10 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 
 							var sender = modules.accounts.getAccountByPublicKey(transaction.senderPublicKey);
 
+							if (!sender) {
+								return cb("Sender not found");
+							}
+
 							if (transaction.senderId != sender.address) {
 								return cb("Invalid sender id: " + transaction.id);
 							}
@@ -811,11 +824,20 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 								return cb("Invalid transaction type/fee: " + transaction.id);
 							}
 
-							if (transaction.amount < 0) {
-								return cb("Invalid transaction amount: " + transaction.id);
+							if (transaction.amount < 0 || transaction.amount > 100000000 * constants.fixedPoint || transaction.amount.toString().indexOf('.') >= 0 || transaction.amount.toString().indexOf('e') >= 0) {
+								return cb("Invalid transaction amount");
 							}
 
 							switch (transaction.type) {
+								case 0:
+									if (!transaction.recipientId) {
+										return done("Invalid transaction recipient id");
+									}
+
+									if (transactionHelper.getLastChar(transaction) != "C") {
+										return cb("Invalid transaction recipient id");
+									}
+									break;
 								case 1:
 									if (!transaction.asset.signature) {
 										return cb("Transaction must have signature");
