@@ -606,6 +606,10 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 			//verify block's transactions
 			for (var n = 0, n_length = blocks[i].transactions.length; n < n_length; n++) {
 
+				if (blocks[i].id == "6219325343712685530") {
+					console.log(blocks[i].transactions[n].type);
+				}
+
 				if (blocks[i].id != genesisblock.block.id) {
 					if (verify && !modules.transactions.verifySignature(blocks[i].transactions[n])) {
 						err = {
