@@ -8,9 +8,11 @@ var crypto = require('crypto'),
 	slots = require('../helpers/slots.js'),
 	schedule = require('node-schedule'),
 	util = require('util'),
-	constants = require('../helpers/constants.js');
+	constants = require('../helpers/constants.js'),
+	floatHelper = require('../helpers/float.js');
 
 require('array.prototype.find'); //old node fix
+
 
 //private fields
 var modules, library, self;
@@ -353,7 +355,7 @@ function getDelegate(filter, rateSort) {
 	var percent = 100 - (stat.missed / (stat.forged + stat.missed) / 100);
 	var novice = stat.missed ===  null&& stat.forged === null;
 	var outsider = rateSort[delegate.publicKey] > slots.delegates && novice;
-	var productivity = novice ? 0 : percent.toFixed(2);
+	var productivity = novice ? 0 : floatHelper.toFixed(percent, 2);
 
 	return {
 		username: delegate.username,
