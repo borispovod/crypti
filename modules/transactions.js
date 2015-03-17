@@ -18,7 +18,15 @@ var commonTransactions = [
 	'14954593607769777081',
 	'388343932064254716',
 	'16666601751214758791',
-	'13517474272446611832'
+	'13517474272446611832',
+	'16361023175826014146',
+	'5762858625501160608',
+	'6580641196386813279',
+	'2570871179450701270',
+	'18161712215732841469',
+	'1288601880448653652',
+	'1592885482599800278',
+	'6496770978185889128'
 ]
 
 // private
@@ -382,9 +390,15 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 			}
 
 			// check if transaction is not float and great then 0
-			if (transaction.amount < 0 || transaction.amount.toString().indexOf('.') >= 0 || transaction.amount.indexOf("e") >= 0) {
+			if (transaction.amount < 0) {
 				cb && cb("Invalid transaction amount");
 				return;
+			}
+
+			if (transaction.amount) {
+				if (transaction.amount.toString().indexOf("e") >= 0 || transaction.amount.toString().indexOf(".") >= 0) {
+					return cb("Invalid transaction amount: " + transaction.id);
+				}
 			}
 
 			if (transaction.timestamp > timeHelper.getNow() + 15) {
