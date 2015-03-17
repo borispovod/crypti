@@ -842,6 +842,14 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 									if (!transaction.asset.signature) {
 										return cb("Transaction must have signature");
 									}
+
+									try {
+										if (new Buffer(transaction.asset.signature.publicKey, 'hex').length != 32) {
+											return cb("Invalid length for signature public key");
+										}
+									} catch (e) {
+										return cb("Invalid hex in signature public key");
+									}
 									break;
 								case 2:
 									if (transaction.recipientId) {
