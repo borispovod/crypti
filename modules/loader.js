@@ -156,7 +156,7 @@ Loader.prototype.loadBlocks = function (lastBlock, cb) {
 
 
 						if (lastBlock.id != commonBlockId) {
-							library.dbLite.query("SELECT height FROM blocks WHERE id=$id", {id: commonBlockId}, {'height' : Number}, function (err, rows) {
+							library.dbLite.query("SELECT height FROM blocks WHERE id=$id", {id: commonBlockId}, {'height': Number}, function (err, rows) {
 								if (err || rows.length == 0) {
 									return cb(err || 'block is null');
 								}
@@ -167,14 +167,24 @@ Loader.prototype.loadBlocks = function (lastBlock, cb) {
 									modules.peer.state(data.peer.ip, data.peer.port, 0, 3600);
 									cb();
 								} else {
+									var overTransactionList = [];
+									var unconfirmedList = modules.transactions.undoAllUnconfirmed();
+									for (var i = 0; i < unconfirmedList.length; i++) {
+										var transaction = modules.transactions.getUnconfirmedTransaction(unconfirmedList[i]);
+										overTransactionList.push(transaction);
+										modules.transactions.removeUnconfirmedTransaction(unconfirmedList[i]);
+									}
+
 									library.logger.info("Resolve fork before " + commonBlockId + " from " + peerStr);
 									modules.blocks.deleteBlocksBefore(commonBlockId, function (err, backupBlocks) {
 										if (err) {
-											setImmediate(cb, err);
+											library.logger.error(err);
+											process.exit(0);
 										} else {
 											library.logger.info("Load blocks from peer " + peerStr);
 											modules.blocks.loadBlocksFromPeer(data.peer, commonBlockId, function (err) {
 												if (err) {
+													modules.transactions.deleteHiddenTransaction();
 													library.logger.error(err);
 													library.logger.info('ban 60 min', peerStr);
 													modules.peer.state(data.peer.ip, data.peer.port, 0, 3600);
@@ -182,17 +192,44 @@ Loader.prototype.loadBlocks = function (lastBlock, cb) {
 													modules.blocks.deleteBlocksBefore(commonBlockId, function (err) {
 														if (err) {
 															library.logger.error(err);
-															setImmediate(cb);
-															return;
+															process.exit(0);
 														}
 
 														//library.logger.info("First last block already: " + modules.blocks.getLastBlock().height + ", first block in backup: " + backupBlocks[0].height);
-														async.eachSeries(backupBlocks, function (block, cb) {
-															modules.blocks.processBlock(block, false, cb);
-														}, cb);
+														if (backupBlocks.length) {
+															async.eachSeries(backupBlocks, function (block, cb) {
+																modules.blocks.processBlock(block, false, cb);
+															}, function (err) {
+																if (err) {
+																	return cb(err);
+																}
+
+																async.eachSeries(overTransactionList, function (trs, cb) {
+																	modules.transactions.processUnconfirmedTransaction(trs, false, cb);
+																}, cb);
+															});
+														} else {
+															async.eachSeries(overTransactionList, function (trs, cb) {
+																modules.transactions.processUnconfirmedTransaction(trs, false, cb);
+															}, cb);
+														}
 													});
 												} else {
-													setImmediate(cb);
+													for (var i = 0; i < overTransactionList.length; i++) {
+														modules.transactions.pushHiddenTransaction(overTransactionList[i]);
+													}
+
+													var trs = modules.transactions.shiftHiddenTransaction();
+													async.whilst(
+														function () {
+															return trs
+														},
+														function (next) {
+															modules.transactions.processUnconfirmedTransaction(trs, true, function () {
+																trs = modules.transactions.shiftHiddenTransaction();
+																next();
+															});
+														}, cb);
 												}
 											});
 										}

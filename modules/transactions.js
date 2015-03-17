@@ -177,6 +177,7 @@ var commonBlocks = [
 // private
 var modules, library, self;
 var unconfirmedTransactions, doubleSpendingTransactions;
+var hiddenTransactions = [];
 
 function Transactions(cb, scope) {
 	library = scope;
@@ -713,6 +714,17 @@ Transactions.prototype.undoAllUnconfirmed = function () {
 	return ids;
 }
 
+Transactions.prototype.pushHiddenTransaction = function (transaction) {
+	hiddenTransactions.push(transaction);
+}
+
+Transactions.prototype.shiftHiddenTransaction = function () {
+	return hiddenTransactions.shift();
+}
+
+Transactions.prototype.deleteHiddenTransaction = function () {
+	hiddenTransactions = [];
+}
 
 Transactions.prototype.apply = function (transaction) {
 	var sender = modules.accounts.getAccountByPublicKey(transaction.senderPublicKey);

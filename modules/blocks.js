@@ -1448,10 +1448,10 @@ Blocks.prototype.popLastBlock = function (lastBlock, cb) {
 					return cb(err);
 				}
 
-				var transactions = lastBlock.transactions;
+				//var transactions = lastBlock.transactions;
 				self.setLastBlock(previousBlock)
-
-				async.eachSeries(transactions, function (transaction, cb) {
+				cb();
+				/*async.eachSeries(transactions, function (transaction, cb) {
 					modules.transactions.processUnconfirmedTransaction(transaction, false, cb);
 				}, function (err) {
 					if (err) {
@@ -1459,7 +1459,7 @@ Blocks.prototype.popLastBlock = function (lastBlock, cb) {
 					}
 
 					cb();
-				});
+				});*/
 			});
 		});
 	});
@@ -1482,6 +1482,7 @@ Blocks.prototype.undoBlock = function (block, previousBlock, cb) {
 			async.eachSeries(block.transactions, function (transaction, cb) {
 				modules.transactions.undo(transaction);
 				modules.transactions.undoUnconfirmed(transaction);
+				modules.transactions.pushHiddenTransaction(transaction);
 				self.undoForger(block.generatorPublicKey, transaction);
 				setImmediate(cb);
 			}, done);
