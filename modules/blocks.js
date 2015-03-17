@@ -950,12 +950,23 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 				for (var i = 0; i < block.transactions.length; i++) {
 					var transaction = block.transactions[i];
 
-					modules.transactions.apply(transaction);
+					if (!modules.transactions.apply(transaction)) {
+						library.logger.error("Can't apply transactions: " + transaction.id);
+						process.exit(0);
+						return;
+					}
 					modules.transactions.removeUnconfirmedTransaction(transaction.id);
 				}
 
 
 				saveBlock(block, function (err) {
+					if (err) {
+						library.logger.error("Can't save block...");
+						library.logger.error(err);
+						process.exit(0);
+						return;
+					}
+
 					if (!err) {
 						library.bus.message('newBlock', block, broadcast)
 						lastBlock = block;
