@@ -352,7 +352,7 @@ function getDelegate(filter, rateSort) {
 
 	var stat = modules.round.blocksStat(delegate.publicKey);
 
-	var percent = 100 - (stat.missed / (stat.forged + stat.missed) / 100);
+	var percent = 100 - (stat.missed / ((stat.forged + stat.missed) / 100));
 	var novice = stat.missed ===  null&& stat.forged === null;
 	var outsider = rateSort[delegate.publicKey] > slots.delegates && novice;
 	var productivity = novice ? 0 : floatHelper.toFixed(percent, 2);
