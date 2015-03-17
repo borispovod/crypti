@@ -952,6 +952,7 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 				function (done) {
 					async.eachSeries(block.transactions, function (transaction, cb) {
 						transaction.id = transactionHelper.getId(transaction);
+						transaction.blockId = block.id;
 
 						library.dbLite.query("SELECT id FROM trs WHERE id=$id", {id: transaction.id}, ['id'], function (err, rows) {
 							if (err) {
