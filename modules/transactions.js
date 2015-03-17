@@ -225,6 +225,7 @@ Transactions.prototype.secondSign = function (secret, transaction) {
 }
 
 Transactions.prototype.list = function (filter, cb) {
+	var sortFields = ['t.id', 't.blockId', 't.type', 't.subtype', 't.timestamp', 't.senderPublicKey', 't.senderId', 't.recipientId', 't.amount', 't.fee', 't.signature', 't.signSignature', 't.confirmations'];
 	var parameters = {}, fields = [];
 	if (filter.blockId) {
 		fields.push('blockId = $blockId')
@@ -256,6 +257,14 @@ Transactions.prototype.list = function (filter, cb) {
 		sortBy = "t." + sortBy;
 		if (sort.length == 2) {
 			sortMethod = sort[1] == 'desc' ? 'desc' : 'asc'
+		} else {
+			sortMethod = "desc";
+		}
+	}
+
+	if (sortBy) {
+		if (sortFields.indexOf(sortBy) < 0) {
+			return cb("Invalid sort field");
 		}
 	}
 
@@ -434,6 +443,26 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 
 							if (!transaction.asset.signature.publicKey) {
 								cb && cb("Invalid public key");
+								return;
+							}
+
+							if (transaction.asset.signature.publicKey.length != 32) {
+								cb && cb("Invalid public key");
+								return;
+							}
+
+							if (transaction.asset.signature.generatorPublicKey.length != 32) {
+								cb && cb("Invalid generator public key");
+								return;
+							}
+
+							if (transaction.asset.signature.generationSignature.length != 64) {
+								cb && cb("Invalid generation signature");
+								return;
+							}
+
+							if (transaction.asset.signature.signature.length != 64) {
+								cb && cb("Invalid generation signature");
 								return;
 							}
 

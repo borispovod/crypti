@@ -218,6 +218,7 @@ Blocks.prototype.get = function (id, cb) {
 
 Blocks.prototype.list = function (filter, cb) {
 	var parameters = {}, fields = [], sortMethod = '', sortBy = '';
+	var sortFields = ["b.id", "b.version", "b.timestamp", "b.height", "b.previousBlock", "b.numberOfRequests", "b.numberOfTransactions", "b.numberOfConfirmations", "b.totalAmount", "b.totalFee", "b.payloadLength", "b.requestsLength", "b.confirmationsLength", "b.payloadHash", "b.generatorPublicKey", "b.generationSignature", "b.blockSignature"];
 	if (filter.generatorPublicKey) {
 		fields.push('hex(generatorPublicKey) = $generatorPublicKey')
 		parameters.generatorPublicKey = params.buffer(filter.generatorPublicKey, 'hex').toString('hex').toUpperCase();
@@ -259,6 +260,15 @@ Blocks.prototype.list = function (filter, cb) {
 		sortBy = "b." + sortBy;
 		if (sort.length == 2) {
 			sortMethod = sort[1] == 'desc' ? 'desc' : 'asc'
+		} else {
+			sortMethod = 'desc';
+		}
+	}
+
+
+	if (sortBy) {
+		if (sortFields.indexOf(sortBy) < 0) {
+			return cb("Invalid sort number");
 		}
 	}
 
@@ -983,13 +993,53 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 									return cb("Invalid transaction type/fee: " + transaction.id);
 								}
 
-								if (transaction.amount < 0) {
+								if (!transaction.amount < 0) {
 									return cb("Invalid transaction amount: " + transaction.id);
+								}
+
+								if (transaction.type == 0) {
+									if (!transaction.amount || transaction.amount.toString().indexOf("e") >= 0 || transaction.amount.toString().indexOf(".") >= 0) {
+										return cb("Invalid transaction amount: " + transaction.id);
+									}
+								}
+
+								if (transaction.type == 0) {
+									if (!transaction.recipientId) {
+										return cb("Invalid recipient id");
+									}
 								}
 
 								if (transaction.type == 2 && transaction.subtype == 0) {
 									if (!transaction.asset.signature) {
 										return cb("Transaction must have signature");
+									}
+
+									if (!transaction.asset.signature) {
+										return cb("Empty transaction asset for company transaction");
+									}
+
+									if (!transaction.asset.signature.publicKey) {
+										return cb("Invalid public key");
+									}
+
+									if (transaction.asset.signature.publicKey.length != 32) {
+										return cb("Invalid public key");
+									}
+
+									if (transaction.asset.signature.generatorPublicKey.length != 32) {
+										return cb("Invalid generator public key");
+									}
+
+									if (transaction.asset.signature.generationSignature.length != 64) {
+										return cb("Invalid generation signature");
+									}
+
+									if (transaction.asset.signature.signature.length != 64) {
+										return cb("Invalid generation signature");
+									}
+
+									if (transaction.recipientId) {
+										return cb("Invalid recipientId");
 									}
 								}
 
@@ -1009,9 +1059,6 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 								if (index >= 0) {
 									unconfirmedTransactions.splice(index, 1);
 								}
-
-								self.applyForger(block.generatorPublicKey, transaction);
-								modules.transactions.apply(transaction);
 
 								payloadHash.update(transactionHelper.getBytes(transaction));
 								totalAmount += transaction.amount;
@@ -1127,8 +1174,8 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 						var transaction = block.transactions[i];
 
 						if (appliedTransactions[transaction.id]) {
-							self.undoForger(block.generatorPublicKey, transaction);
-							modules.transactions.undo(transaction);
+							/*self.undoForger(block.generatorPublicKey, transaction);
+							modules.transactions.undo(transaction);*/
 							modules.transactions.undoUnconfirmed(transaction);
 						}
 					}
@@ -1145,19 +1192,32 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 
 					setImmediate(cb, errors[0]);
 				} else {
-					modules.transactions.applyUnconfirmedList(unconfirmedTransactions);
-
 					for (var i = 0; i < block.transactions.length; i++) {
 						var transaction = block.transactions[i];
+
+						if (!modules.transactions.apply(transaction)) {
+							library.logger.error("Can't apply transaction: ");
+							library.logger.info(transaction);
+							process.exit(0);
+							return;
+						}
+
+						self.applyForger(block.generatorPublicKey, transaction);
 						modules.transactions.removeUnconfirmedTransaction(transaction.id);
 					}
+
+					modules.transactions.applyUnconfirmedList(unconfirmedTransactions);
 
 					self.applyFee(block);
 					self.applyWeight(block);
 
 					self.saveBlock(block, function (err) {
 						if (err) {
-							return cb(err);
+							library.logger.error("Can't save block: ");
+							library.logger.error(err);
+							process.exit(0);
+							return;
+							//return cb(err);
 						}
 
 						setTimeout(function () {
