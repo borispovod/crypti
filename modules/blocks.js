@@ -1421,6 +1421,7 @@ Blocks.prototype.undoBlock = function (block, previousBlock, cb) {
 			async.eachSeries(block.transactions, function (transaction, cb) {
 				modules.transactions.undo(transaction);
 				modules.transactions.undoUnconfirmed(transaction);
+				modules.transactions.pushHiddenTransaction(transaction);
 				self.undoForger(block.generatorPublicKey, transaction);
 				setImmediate(cb);
 			}, done);
