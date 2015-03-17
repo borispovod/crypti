@@ -135,7 +135,7 @@ Round.prototype.tick = function (block) {
 		if (delegatesByRound[round].length == slots.delegates || block.height == 1) {
 			var roundDelegates = modules.delegates.generateDelegateList(block.height);
 			roundDelegates.forEach(function (delegate) {
-				if (delegatesByRound[round].indexOf(delegate) !== -1) {
+				if (delegatesByRound[round].indexOf(delegate) == -1) {
 					missedBlocks[delegate] = (missedBlocks[delegate] || 0) + 1;
 				}
 			});
