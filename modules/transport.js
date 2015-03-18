@@ -3,7 +3,6 @@ var Router = require('../helpers/router.js'),
 	request = require('request'),
 	ip = require('ip'),
 	util = require('util'),
-	params = require('../helpers/params.js'),
 	RequestSanitizer = require('../helpers/request-sanitizer.js'),
 	normalize = require('../helpers/normalize.js');
 
@@ -40,16 +39,16 @@ function attachApi() {
 		}
 
 		req.sanitize(req.headers, {
-			port : "int",
-			os : "string?",
-			'share-port' : {
-				int : true,
-				boolean : true
+			port: "int",
+			os: "string?",
+			'share-port': {
+				int: true,
+				boolean: true
 			},
-			version : "string?"
-		}, function(err, report, headers){
+			version: "string?"
+		}, function (err, report, headers) {
 			if (err) return next(err);
-			if (! report.isValid) return {status:false, error:report.issues};
+			if (!report.isValid) return {status: false, error: report.issues};
 
 
 			var peer = {
@@ -82,29 +81,35 @@ function attachApi() {
 		res.set(headers);
 
 		req.sanitize("query", {
-			max : "int!",
-			min : "int!",
-			ids : {
-				required : true,
-				string : true,
-				array : ",",
-				minLength : 1,
-				maxLength : 1000
+			max: "int!",
+			min: "int!",
+			ids: {
+				required: true,
+				string: true,
+				array: ",",
+				minLength: 1,
+				maxLength: 1000
 			}
-		}, function(err, report, query){
+		}, function (err, report, query) {
 			if (err) return next(err);
-			if (! report.isValid) return res.json({success:false, error: report.issue});
+			if (!report.isValid) return res.json({success: false, error: report.issue});
 
 
 			var max = query.max;
 			var min = query.min;
-			var ids = query.ids;
-
-			var numberPattern = /\d+/g;
-			var escapedIds = ids.map(function (id) {
-				// Stop operation?
-				return "'" + id.replace(/\D/g, '') + "'";
+			var ids = query.id.split(',').filter(function (id) {
+				return /^\d+$/.test(id);
 			});
+			var escapedIds = ids.map(function (id) {
+				return "'" + id + "'";
+			});
+
+			if (!escapedIds.length) {
+				var peerIp = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+				var peerStr = peerIp ? peerIp + ":" + RequestSanitizer.int(req.headers['port']) : 'unknown';
+				library.logger.log('common block request is not valid, ban 60 min', peerStr);
+				modules.peer.state(ip.toLong(peerIp), RequestSanitizer.int(req.headers['port']), 0, 3600);
+			}
 
 			library.dbLite.query("select max(height), id, previousBlock, timestamp, lower(hex(blockSignature)) from blocks where id in (" + escapedIds.join(',') + ") and height >= $min and height <= $max", {
 				"max": max,
@@ -116,10 +121,10 @@ function attachApi() {
 				"timestamp": Number,
 				"blockSignature": String
 			}, function (err, rows) {
-							if (err) {
+				if (err) {
 					cb(err);
 					return res.json({success: false, error: "Error in db"});
-							}
+				}
 
 				var commonBlock = rows.length ? rows[0] : null;
 				return res.json({success: true, common: commonBlock});
@@ -146,7 +151,7 @@ function attachApi() {
 		} catch (e) {
 			var peerIp = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
 			var peerStr = peerIp ? peerIp + ":" + RequestSanitizer.int(req.headers['port']) : 'unknown';
-			library.logger.log('ban 60 min', peerStr);
+			library.logger.log('transaction ' + (block ? block.id : 'null') + ' is not valid, ban 60 min', peerStr);
 			modules.peer.state(ip.toLong(peerIp), RequestSanitizer.int(req.headers['port']), 0, 3600);
 			return res.sendStatus(200);
 		}
@@ -159,7 +164,7 @@ function attachApi() {
 	router.get("/transactions", function (req, res) {
 		res.set(headers);
 		// need to process headers from peer
-		res.status(200).json({transactions: modules.transactions.getUnconfirmedTransactions()});
+		res.status(200).json({transactions: modules.transactions.getUnconfirmedTransactionList()});
 	});
 
 	router.post("/transactions", function (req, res) {
@@ -170,14 +175,20 @@ function attachApi() {
 		} catch (e) {
 			var peerIp = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
 			var peerStr = peerIp ? peerIp + ":" + RequestSanitizer.int(req.headers['port']) : 'unknown';
-			library.logger.log('ban 60 min', peerStr);
+			library.logger.log('transaction ' + (transaction ? transaction.id : 'null') + ' is not valid, ban 60 min', peerStr);
 			modules.peer.state(ip.toLong(peerIp), RequestSanitizer.int(req.headers['port']), 0, 3600);
-			return res.sendStatus(200);
+			return res.status(200).json({success: false, message: "Invalid transaction body"});
 		}
 
-		library.bus.message('receiveTransaction', transaction);
-
-		res.sendStatus(200);
+		library.sequence.add(function (cb) {
+			modules.transactions.receiveTransactions([transaction], cb);
+		}, function (err) {
+			if (err) {
+				res.status(200).json({success: false, message: err});
+			} else {
+				res.status(200).json({success: true});
+			}
+		});
 	});
 
 	router.get('/height', function (req, res) {
@@ -226,8 +237,15 @@ function _request(peer, api, method, data, cb) {
 				err: err
 			});
 
-			modules.peer.state(peer.ip, peer.port, 0, 600);
-			library.logger.info('ban 10 min ' + req.method + ' ' + req.url)
+			if (peer) {
+				if (err && (err.code == "ETIMEDOUT" || err.code == "ESOCKETTIMEDOUT" || err.code == "ECONNREFUSED")) {
+					library.logger.info('remove peer ' + req.method + ' ' + req.url)
+					modules.peer.remove(peer.ip, peer.port);
+				} else {
+					library.logger.info('ban 10 min ' + req.method + ' ' + req.url)
+					modules.peer.state(peer.ip, peer.port, 0, 600);
+				}
+			}
 			cb && cb(err || ('request status code' + response.statusCode));
 			return;
 		}
@@ -282,7 +300,7 @@ Transport.prototype.getFromRandomPeer = function (method, cb) {
 				return cb(err || "Nothing peers in db");
 			}
 		});
-	}, function(err, results){
+	}, function (err, results) {
 		cb(err, results)
 	});
 }

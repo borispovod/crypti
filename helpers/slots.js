@@ -11,8 +11,8 @@ function beginEpochTime() {
 }
 
 function getEpochTime(time) {
-	if (typeof time === 'undefined') {
-		time = Date.now();
+	if (time === undefined) {
+		time = (new Date()).getTime();
 	}
 	var d = beginEpochTime();
 	var t = d.getTime();
@@ -30,7 +30,7 @@ module.exports = {
 	},
 
 	getRealTime: function (epochTime) {
-		if (typeof epochTime === 'undefined') {
+		if (epochTime === undefined) {
 			epochTime = this.getTime()
 		}
 		var d = beginEpochTime();
@@ -39,7 +39,7 @@ module.exports = {
 	},
 
 	getSlotNumber: function (epochTime) {
-		if (typeof epochTime === 'undefined') {
+		if (epochTime === undefined) {
 			epochTime = this.getTime()
 		}
 		return Math.floor(epochTime / this.interval);

@@ -9,6 +9,8 @@ var async = require('async'),
 	fs = require('fs'),
 	path = require('path');
 
+require('array.prototype.find'); //old node fix
+
 //private fields
 var modules, library, self;
 
@@ -248,6 +250,22 @@ Peer.prototype.state = function (ip, port, state, timeoutSeconds, cb) {
 	});
 }
 
+Peer.prototype.remove = function (pip, port, cb) {
+	var isFrozenList = library.config.peers.list.find(function (peer) {
+		return peer.ip == ip.fromLong(pip) && peer.port == port;
+	});
+	console.log(isFrozenList);
+	if (isFrozenList !== undefined) return cb && cb();
+	library.dbLite.query("DELETE FROM peers WHERE ip = $ip and port = $port;", {
+		ip: pip,
+		port: port
+	}, function (err) {
+		err && library.logger.error('Peer#delete', err);
+
+		cb && cb()
+	});
+}
+
 Peer.prototype.update = function (peer, cb) {
 	var params = {
 		ip: peer.ip,
@@ -278,7 +296,7 @@ Peer.prototype.onBind = function (scope) {
 }
 
 Peer.prototype.onBlockchainReady = function () {
-	async.forEach(library.config.peers.list, function (peer, cb) {
+	async.eachSeries(library.config.peers.list, function (peer, cb) {
 		library.dbLite.query("INSERT OR IGNORE INTO peers(ip, port, state, sharePort) VALUES($ip, $port, $state, $sharePort)", {
 			ip: ip.toLong(peer.ip),
 			port: peer.port,
