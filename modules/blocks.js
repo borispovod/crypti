@@ -59,9 +59,9 @@ function attachApi() {
 
 	router.get('/', function (req, res, next) {
 		req.sanitize("query", {
-			limit: "int",
-			orderBy: "string",
-			offset: "int",
+			limit: "int?",
+			orderBy: "string?",
+			offset: "int?",
 			generatorPublicKey: "hex?",
 			totalAmount: "int?",
 			totalFee: "int?",

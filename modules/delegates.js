@@ -153,9 +153,9 @@ function attachApi() {
 
 	router.get('/get', function (req, res, next) {
 		req.sanitize("query", {
-			transactionId: "string",
-			publicKey: "string",
-			username: "string"
+			transactionId: "string?",
+			publicKey: "string?",
+			username: "string?"
 		}, function (err, report, query) {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});

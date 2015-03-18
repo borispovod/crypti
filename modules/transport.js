@@ -109,6 +109,7 @@ function attachApi() {
 				var peerStr = peerIp ? peerIp + ":" + RequestSanitizer.int(req.headers['port']) : 'unknown';
 				library.logger.log('common block request is not valid, ban 60 min', peerStr);
 				modules.peer.state(ip.toLong(peerIp), RequestSanitizer.int(req.headers['port']), 0, 3600);
+				return res.json({success: false, error: "ids is invalid"});
 			}
 
 			library.dbLite.query("select max(height), id, previousBlock, timestamp, lower(hex(blockSignature)) from blocks where id in (" + escapedIds.join(',') + ") and height >= $min and height <= $max", {
@@ -122,7 +123,6 @@ function attachApi() {
 				"blockSignature": String
 			}, function (err, rows) {
 				if (err) {
-					cb(err);
 					return res.json({success: false, error: "Error in db"});
 				}
 

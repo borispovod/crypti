@@ -35,13 +35,13 @@ function attachApi() {
 
 	router.get('/', function (req, res, next) {
 		req.sanitize("query", {
-			state : "int",
+			state : "int?",
 			os : "string?",
 			version : "string?",
-			limit : "int",
-			shared : "boolean",
-			orderBy : "string",
-			offset : "int"
+			limit : "int?",
+			shared : "boolean?",
+			orderBy : "string?",
+			offset : "int?"
 		}, function(err, report, query){
 			if (err) return next(err);
 			if (! report.isValid) return res.json({success:false, error:report.issues});
@@ -77,8 +77,8 @@ function attachApi() {
 
 	router.get('/get', function (req, res) {
 		req.sanitize("query", {
-			ip_str: "string",
-			port: "int"
+			ip_str: "string!",
+			port: "int!"
 		}, function (err, report, query) {
 			try {
 				var ip_str = ip.toLong(query.ip_str);

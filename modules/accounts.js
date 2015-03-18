@@ -189,7 +189,7 @@ function attachApi() {
 
 	router.post('/open', function (req, res, next) {
 		req.sanitize(req.body, {
-			secret: "string"
+			secret: "string!"
 		}, function (err, report, body) {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});

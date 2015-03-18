@@ -51,7 +51,7 @@ function attachApi() {
 			orderBy: "string?",
 			offset: {default: 0, int: true},
 			senderPublicKey: "hex?",
-			senderId: "string",
+			senderId: "string?",
 			recipientId: "string?"
 		}, function (err, report, query) {
 			if (err) return next(err);
@@ -122,11 +122,8 @@ function attachApi() {
 
 	router.put('/', function (req, res) {
 		req.sanitize("body", {
-			secret: {
-				string: true,
-				minLength: 1
-			},
-			amount: "int",
+			secret: "string!",
+			amount: "int!",
 			recipientId: "string?",
 			publicKey: "hex?",
 			secondSecret: "string?",

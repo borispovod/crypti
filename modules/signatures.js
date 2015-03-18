@@ -51,14 +51,8 @@ function attachApi() {
 
 	router.put('/', function (req, res) {
 		req.sanitize("body", {
-			secret : {
-				string : true,
-				empty : false
-			},
-			secondSecret : {
-				string : true,
-				empty : false
-			},
+			secret : "string!",
+			secondSecret : "string?",
 			publicKey : "hex?"
 		}, function(err, report, body){
 			if (err) return next(err);
