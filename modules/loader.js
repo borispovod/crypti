@@ -205,12 +205,16 @@ Loader.prototype.loadBlocks = function (lastBlock, cb) {
 																}
 
 																async.eachSeries(overTransactionList, function (trs, cb) {
-																	modules.transactions.processUnconfirmedTransaction(trs, false, cb);
+																	modules.transactions.processUnconfirmedTransaction(trs, false, function () {
+																		cb();
+																	});
 																}, cb);
 															});
 														} else {
 															async.eachSeries(overTransactionList, function (trs, cb) {
-																modules.transactions.processUnconfirmedTransaction(trs, false, cb);
+																modules.transactions.processUnconfirmedTransaction(trs, false, function () {
+																	cb();
+																});
 															}, cb);
 														}
 													});

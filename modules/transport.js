@@ -213,6 +213,7 @@ function Transport(cb, scope) {
 							return cb();
 						}
 
+
 						modules.blocks.popLastBlock(lastBlock, function (err) {
 							if (err) {
 								library.logger.error('popLastBlock', err);
