@@ -388,7 +388,7 @@ function attachApi() {
 				secondPublicKey: account.secondPublicKey
 			}
 		});
-	})
+	});
 
 	router.use(function (req, res, next) {
 		res.status(500).send({success: false, error: 'api not found'});

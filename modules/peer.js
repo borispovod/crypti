@@ -112,7 +112,7 @@ function attachApi() {
 		});
 	})
 
-	router.use(function (req, res, next) {
+	router.use(function (req, res) {
 		res.status(500).send({success: false, error: 'api not found'});
 	});
 
@@ -145,8 +145,6 @@ function updatePeerList(cb) {
 }
 
 function count(cb) {
-	var params = {};
-
 	library.dbLite.query("select count(rowid) from peers", {"count": Number}, function (err, rows) {
 		if (err) {
 			library.logger.error('Peer#count', err);
