@@ -1,6 +1,5 @@
 var async = require('async'),
 	util = require('util'),
-	params = require('../helpers/params.js'),
 	arrayHelper = require('../helpers/array.js'),
 	slots = require('../helpers/slots.js');
 
