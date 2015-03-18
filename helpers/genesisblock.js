@@ -3,7 +3,7 @@ module.exports = {
         "version": 0,
         "totalAmount": 10000000000000000,
         "totalFee": 0,
-        "payloadHash": "efc74db16483015f5df5fddd597bff656c90277fe0a6ff9fe55d27567d94afcb",
+        "payloadHash": "8118904fd8df54167c104aa3a8e6416ba032e2486751036825d6dda28e0b0716",
         "timestamp": 0,
         "numberOfTransactions": 103,
         "payloadLength": 20326,
@@ -1647,6 +1647,7 @@ module.exports = {
                 "senderPublicKey": "631b91fa537f74e23addccd30555fbc7729ea267c7e0517cbf1bfcc46354abc3",
                 "asset": {
                     "votes": [
+                        "+db769b826286d86f23855eb86d1a0e2324f550a4933f22b8e6bc88bc9d329b59",
                         "+708b04bd45cf1c2503c14c4465433de46f6461647b2e352c96d7bfa7ba32e124",
                         "+76a9635f43ff40d131b61844c03c09e40d4dcc32cafda395f628b6a60e1dded6",
                         "+9299c51656d51502ef90b2dd713e40786043a01e67abe52a2609f042649dd21e",
@@ -1746,16 +1747,15 @@ module.exports = {
                         "+e7b367bae1ceb2ccb3560ca14d0903f037945507ef1a934f264a66c865f4164f",
                         "+a74b7f6cefc28e53c497d2817f671894a164c015bef32e02aabc02959139682f",
                         "+1ccf44ce4b8a9551885919324ae0f021c132d4f3de42a5397a4ef78312093d8c",
-                        "+f143730cbb5c42a9a02f183f8ee7b4b2ade158cb179b12777714edf27b4fcf3e",
-                        "+db769b826286d86f23855eb86d1a0e2324f550a4933f22b8e6bc88bc9d329b59"
+                        "+f143730cbb5c42a9a02f183f8ee7b4b2ade158cb179b12777714edf27b4fcf3e"
                     ]
                 },
-                "signature": "ad8cb33f1074f48e9f0e5e9fe92f80cb37bf0869a8bb6f15e2eb242667b92354851208096b0452f983b2eefd1ea6c0be2366f22526e05977435528fce2d0f60f",
-                "id": "15459927444686211292"
+                "signature": "05bbdc275fe1965f6bf7dd84fee88d58c49fce11d99df707dd6e62ca253afae89f46252183f425774174fa58f91f4c302c6e1d6e59fe3153592bf41504ec120c",
+                "id": "6357979051638929474"
             }
         ],
         "height": 1,
-        "blockSignature": "db8dcb6ef56ef8f4a6abe78246efa1c415c44165a63d85f54f6314384004706306332557f616594372c6667a79ba24a578aeb3bcc68adfd8e250feaa20217c04",
-        "id": "3766208183268029507"
+        "blockSignature": "950a38a07edd7559c20f452fb6595efe2e5ec919f6ecd88bfb3b514f7a7f959c8b5f3f038223d0e836d5033cc5039bf74b963635e9a899e7d268afba911f570d",
+        "id": "15003175896497424894"
     }
 }
