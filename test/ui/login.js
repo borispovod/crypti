@@ -19,7 +19,7 @@ describe("Web interface.", function(){
         // remove existing blockchains
         if (fs.exists(blockchainPath)) fs.unlinkSync(blockchainPath);
 
-        crypti = spawn("nodejs", ["app.js","-b", blockchainPath, "-p", 7000], {stdio:"pipe"});
+        crypti = spawn("nodejs", ["bin/cli.js", "-b", blockchainPath, "-p", 7000], {stdio:"pipe"});
 
         [
             "passphrase",
