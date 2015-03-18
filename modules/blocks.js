@@ -162,7 +162,7 @@ function getBytes(block) {
 		bb.flip();
 		var b = bb.toBuffer();
 	} catch (e) {
-		throw e.toString();
+		throw Error(e.toString());
 	}
 
 	return b;
@@ -928,6 +928,12 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 
 						setImmediate(done, errors[0]);
 					} else {
+						try {
+							block = normalize.block(block);
+						} catch (e) {
+							return setImmediate(done, e);
+						}
+
 						for (var i = 0; i < block.transactions.length; i++) {
 							var transaction = block.transactions[i];
 
@@ -945,11 +951,8 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 							setImmediate(done, err);
 						});
 					}
-				}
-			)
-			;
-		}
-	)
+				});
+	})
 }
 
 Blocks.prototype.simpleDeleteAfterBlock = function (blockId, cb) {
