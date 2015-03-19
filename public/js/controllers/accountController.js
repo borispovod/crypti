@@ -95,6 +95,7 @@ angular.module('webApp').controller('accountController', ['$scope', '$rootScope'
             $scope.secondPassphraseModal = secondPassphraseModal.activate({
                 totalBalance: $scope.unconfirmedBalance,
                 destroy: function (r) {
+					console.log("here");
                     $scope.getAccount();
                     $scope.getTransactions();
 
@@ -103,6 +104,8 @@ angular.module('webApp').controller('accountController', ['$scope', '$rootScope'
                     }
                 }
             });
+
+			return false;
         }
 
         $scope.getAccount();

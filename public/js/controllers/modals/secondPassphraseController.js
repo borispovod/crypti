@@ -7,6 +7,7 @@ angular.module('webApp').controller('secondPassphraseModalController', ["$scope"
         $scope.sending = false;
 
         $scope.close = function () {
+			console.log("close");
             if ($scope.destroy) {
                 $scope.destroy();
             }
@@ -31,6 +32,7 @@ angular.module('webApp').controller('secondPassphraseModalController', ["$scope"
                 $scope.fromServer = checkBeforSending.message;
                 return;
             };
+
             $scope.sending = true;
 
             $http.post(peerFactory.getUrl() + "/peer/transactions", {transaction: transaction}, transactionService.createHeaders()).then(function (resp) {
