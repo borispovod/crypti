@@ -266,7 +266,7 @@ Loader.prototype.getUnconfirmedTransactions = function (cb) {
 
 		var transactions = params.array(data.body.transactions);
 
-		async.forEach(transactions, function (transaction, cb) {
+		async.eachSeries(transactions, function (transaction, cb) {
 			modules.transactions.processUnconfirmedTransaction(modules.transactions.parseTransaction(transaction), true, cb);
 		}, cb);
 	});

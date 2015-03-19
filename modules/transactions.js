@@ -498,6 +498,8 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 		transaction.id = txId;
 	}
 
+	delete transaction.blockId;
+
 	library.dbLite.query("SELECT id FROM trs WHERE id=$id", {id: transaction.id}, ['id'], function (err, rows) {
 		if (err) {
 			cb && cb("Internal sql error");

@@ -410,7 +410,7 @@ Transport.prototype.getFromPeer = function (peer, method, cb) {
 Transport.prototype.onBlockchainReady = function () {
 	apiReady = true;
 
-	async.forEach(library.config.peers.list, function (peer, cb) {
+	async.eachSeries(library.config.peers.list, function (peer, cb) {
 		library.dbLite.query("INSERT OR IGNORE INTO peers(ip, port, state, sharePort) VALUES($ip, $port, $state, $sharePort)",
 			{
 				ip: ip.toLong(peer.ip),

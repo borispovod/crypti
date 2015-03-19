@@ -1102,7 +1102,7 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 					}, done);
 				},
 				function (done) {
-					async.forEach(block.companyconfirmations, function (confirmation, cb) {
+					async.eachSeries(block.companyconfirmations, function (confirmation, cb) {
 						confirmation.id = confirmationHelper.getId(confirmation);
 
 						library.dbLite.query("SELECT id FROM companyconfirmations WHERE id=$id", {id: confirmation.id}, ['id'], function (err, rows) {
