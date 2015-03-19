@@ -337,6 +337,7 @@ Transactions.prototype.removeUnconfirmedTransaction = function (id) {
 
 Transactions.prototype.processUnconfirmedTransaction = function (transaction, broadcast, cb) {
 	var txId = transactionHelper.getId(transaction);
+	delete transaction.blockId;
 
 	if (transaction.id && transaction.id != txId) {
 		cb && cb("Invalid transaction id");
