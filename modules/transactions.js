@@ -415,12 +415,12 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 Transactions.prototype.validateTransaction = function (transaction, done) {
 	var sender = modules.accounts.getAccountByPublicKey(transaction.senderPublicKey);
 
-	if (!modules.transactions.verifySignature(transaction)) {
+	if (!self.verifySignature(transaction)) {
 		return done("Can't verify transaction signature: " + transaction.id);
 	}
 
 	if (sender.secondSignature) {
-		if (!modules.transactions.verifySecondSignature(transaction, sender.secondPublicKey)) {
+		if (!self.verifySecondSignature(transaction, sender.secondPublicKey)) {
 			return done("Can't verify second signature: " + transaction.id);
 		}
 	}
