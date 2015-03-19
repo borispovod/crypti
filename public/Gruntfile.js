@@ -2,7 +2,8 @@ module.exports = function (grunt) {
 	var files = [
 		"bower_components/jquery/dist/jquery.js",
 		"js/main.js",
-		"js/modal.js"
+		"js/modal.js",
+		"bower_components/angular-blurred-modal/st-blurred-dialog.js"
 	];
 
 	// Project configuration.

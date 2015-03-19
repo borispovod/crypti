@@ -29,12 +29,13 @@ angular.module('webApp').controller('secondPassphraseModalController', ["$scope"
             var checkBeforSending = transactionService.checkTransaction(transaction, $scope.secretPhrase);
 
             if (checkBeforSending.err) {
-                $scope.fromServer = checkBeforSending.err.message;
+                $scope.fromServer = checkBeforSending.message;
                 return;
             };
 
             $scope.sending = true;
-            $http.post(peerFactory.url + "/peer/transactions", {transaction: voteTransaction}, transactionService.createHeaders()).then(function (resp) {
+
+            $http.post(peerFactory.getUrl() + "/peer/transactions", {transaction: transaction}, transactionService.createHeaders()).then(function (resp) {
                 $scope.sending = false;
                 if (!resp.data.success) {
                     $scope.fromServer = resp.data.message;

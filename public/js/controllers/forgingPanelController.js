@@ -4,7 +4,7 @@ angular.module('webApp').controller('forgingPanelController', ['$scope', '$http'
 	$scope.buttonType = "submit";
 
 	$scope.getForgingInfo = function () {
-		$http.get(peerFactory.url + "/api/forging").then(function (resp) {
+		$http.get(peerFactory.getUrl() + "/api/forging").then(function (resp) {
 			$scope.forgingEnabled = resp.data.enabled;
 
 			if ($scope.forgingEnabled) {
@@ -23,7 +23,7 @@ angular.module('webApp').controller('forgingPanelController', ['$scope', '$http'
 			return;
 		}
 
-		$http.post(peerFactory.url + "/api/forging/enable", {
+		$http.post(peerFactory.getUrl() + "/api/forging/enable", {
 			secret: pass,
 			saveToConfig: $scope.saveToConfig
 		}).then(function (resp) {
@@ -42,7 +42,7 @@ angular.module('webApp').controller('forgingPanelController', ['$scope', '$http'
 			alert("Provide secret passphrase");
 			return;
 		}
-		$http.post(peerFactory.url + "/api/forging/disable", {
+		$http.post(peerFactory.getUrl() + "/api/forging/disable", {
 			secret: pass
 		}).then(function (resp) {
 			if (resp.data.success) {

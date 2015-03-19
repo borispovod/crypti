@@ -14,5 +14,6 @@ require('../../js/controllers/modals/freeModalController');
 require('../../js/controllers/modals/secondPassphraseController');
 require('../../js/controllers/modals/sendCryptiController');
 require('../../js/controllers/modals/voteController');
+require('../../js/controllers/modals/blurredModalController');
 
 

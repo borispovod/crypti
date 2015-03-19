@@ -14,6 +14,7 @@ angular.module('webApp').controller('delegatesController', ['$scope', '$rootScop
 		$scope.countStandby = 0;
 
 		$scope.address = userService.address;
+		$scope.unconfirmedPassphrase = userService.unconfirmedPassphrase;
 
 		$scope.showVotes = false;
 
@@ -68,7 +69,7 @@ angular.module('webApp').controller('delegatesController', ['$scope', '$rootScop
 		$scope.unconfirmedTransactions = {
 			list: [],
 			getList: function () {
-				$http.get(peerFactory.url + "/api/transactions/unconfirmed/", {params: {senderPublicKey: userService.publicKey}})
+				$http.get(peerFactory.getUrl() + "/api/transactions/unconfirmed/", {params: {senderPublicKey: userService.publicKey}})
 					.then(function (response) {
 						$scope.unconfirmedTransactions.list = [];
 						response.data.transactions.forEach(function (transaction) {
@@ -88,7 +89,7 @@ angular.module('webApp').controller('delegatesController', ['$scope', '$rootScop
 		$scope.delegates = {
 			list: [],
 			getList: function (cb) {
-				$http.get(peerFactory.url + "/api/accounts/delegates/", {params: {address: userService.address}})
+				$http.get(peerFactory.getUrl() + "/api/accounts/delegates/", {params: {address: userService.address}})
 					.then(function (response) {
 						if (response.data.delegates == null) {
 							return [];

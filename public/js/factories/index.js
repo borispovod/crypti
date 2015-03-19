@@ -1,5 +1,6 @@
 require('../../js/factories/userFactory');
 require('../../js/factories/peerFactory.js');
+require('../../js/factories/dbFactory.js');
 
 //modals
 require('../../js/factories/modals/blockModal');

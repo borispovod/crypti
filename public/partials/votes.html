@@ -8,8 +8,12 @@
                 <button class="button green" id="delegates-list" ng-disabled="voteList.list.toServer.length==0"
                         ng-click="voteList.toggle()">View Selection
                 </button>
-                <button class="button green" ng-click="vote()" ng-disabled="voteList.list.toServer.length==0">Remove
+                <button class="button green vote" ng-click="vote()"
+                        ng-disabled="voteList.list.toServer.length==0 || unconfirmedPassphrase">Remove
                     Votes
+                    <div class="tollip" ng-hide="!unconfirmedPassphrase && voteList.list.toServer.length!=0">
+                        Wait for second passphrase applying.
+                    </div>
                 </button>
                 <div class="overlay" ng-click="voteList.toggle()">
                 </div>
