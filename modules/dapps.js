@@ -28,6 +28,10 @@ function Dapps(cb, scope) {
     setImmediate(cb, null, self);
 }
 
+Dapps.prototype.onBind = function (scope) {
+    modules = scope;
+};
+
 function attachApi() {
     var router = new Router();
 
@@ -104,10 +108,27 @@ function attachApi() {
             if (err) return next(err);
             if (! dapp) return res.status(404).json({success:false});
 
-            self.fetchDapp(dapp, function(err, files){
+            self.fetchDapp(dapp, function(err, main){
                 if (err) return next(err);
 
-                res.json({success:true, files   :files});
+                res.json({success:true, source : main.contents.toString()});
+            });
+        });
+    });
+
+    router.get('/run', function(req, res, next){
+        self.getDapp(req.query.id, function(err, dapp){
+            if (err) return next(err);
+            if (! dapp) return res.status(404).json({success:false});
+
+            self.fetchDappSource(dapp, function(err, source){
+                if (err) return next(err);
+
+                modules.sandboxes.execDapp(dapp, source, function(err, result){
+                    if (err) return next(err);
+
+                    res.json({success:true, result: result});
+                });
             });
         });
     });
@@ -142,6 +163,7 @@ function attachApi() {
             });
         });
     });
+
 
     router.get('/search', function(req, res, next){
         req.sanitize("query", {
@@ -191,6 +213,7 @@ function attachApi() {
             }
         });
     });
+
 
     router.get('/tags/:tag', function(req, res, next){
         var tag = self.normalizeTag(req.params.tag);
@@ -264,7 +287,7 @@ var dappFields = {
  * @param {function(Error|null,{}|null=)} cb Result callback.
  */
 Dapps.prototype.getDapp = function(id, cb) {
-    library.dbLite.query('SELECT id, name, description, url FROM dapps WHERE id = $id;', {id:id}, dbappFields, function(err, rows){
+    library.dbLite.query('SELECT id, name, description, url FROM dapps WHERE id = $id;', {id:id}, dappFields, function(err, rows){
         if (err) return cb(err);
         cb(null, rows[0] || null);
     });
@@ -504,14 +527,14 @@ Dapps.prototype.populateTags = function(dapps, cb) {
 };
 
 /**
- * Fetch dapp source from repository url.
+ * Fetch dapp files from repository url.
  * @param {object} dapp Dapp object
- * @param {function} cb Result callback
+ * @param {function(Error|null, object[]=)} cb Result callback
  */
-Dapps.prototype.fetchDapp = function(dapp, cb) {
-    var dappPath = path.join(path.resolve(process.cwd(), library.config.dappsDir), dapp.id);
+Dapps.prototype.fetchDappFiles = function(dapp, cb) {
+    var dappPath = path.join(path.resolve(process.cwd(), library.config.dappsDir), String(dapp.id));
+
     var gitUrl = url.parse(dapp.url);
-    var repoName = gitUrl.pathname.replace(/^\/+|\/+$/,'').split('/').pop();
     var branch = gitUrl.hash || 'master';
 
     gitUrl.pathname += '/archive/' + branch + '.zip';
@@ -522,16 +545,51 @@ Dapps.prototype.fetchDapp = function(dapp, cb) {
         .get(url.format(gitUrl), dappPath);
 
     download.run(function(err, files){
+        if (err !== null) return cb(err);
+
+        files.forEach(function(file){
+            file.path = '/' + file.relative.split('/').slice(1).join('/');
+        });
+
+        cb(null, files);
+    });
+};
+
+/**
+ * Fetch dapp repository and extract the main file source. Result is script object contained `filename` and `source`.
+ * @param {object} dapp Dapp object
+ * @param {function(Error|null, {filename:String,source:String}=)} cb Result callback
+ */
+Dapps.prototype.fetchDappSource = function(dapp, cb) {
+    this.fetchDappFiles(dapp, function(err, files){
         if (err) return cb(err);
 
-        var packageJson = _.find(files, function(file){
-            return file.relative === repoName + '-' + branch + '/package.json';
+        var packageJson = underscore.find(files, function(file){
+            return file.path === '/package.json';
         });
 
         if (! packageJson) return cb(new Error('Repository package.json file not found'));
 
         // TODO Parse packageJson content.
-        cb(null, files);
+        try {
+            var data = JSON.parse(packageJson.contents.toString('utf-8'));
+        } catch (err) {
+            return cb(new Error('Parse error: Invalid package.json'));
+        }
+
+        var mainPath = data.main || 'index.js';
+        var mainJs = underscore.find(files, function(file){
+            return file.path === path.resolve('/', mainPath);
+        });
+
+        if (! mainJs) {
+            return cb(new Error('Main file "' + mainPath + '" not found'));
+        }
+
+        cb(null, {
+            filename : dapp.name + '/' + mainPath,
+            source : mainJs.toString()
+        });
     });
 };
 

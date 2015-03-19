@@ -45,7 +45,8 @@
     "usage": "^0.6.0",
     "download": "~4.0.1",
     "unzip": "~0.1.11",
-    "squel": "~3.10.0"
+    "squel": "~3.10.0",
+    "mkdirp": "~0.5.0"
   },
   "devDependencies": {
     "cli-table": "~0.3.1",
