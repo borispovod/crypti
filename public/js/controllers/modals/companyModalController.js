@@ -54,7 +54,7 @@ angular.module('webApp').controller('companyModalController', ["$scope", "compan
         }
 
         if (!$scope.emailError && !$scope.domainError) {
-            $http.post(peerFactory.url + "/api/createCompany", {
+            $http.post(peerFactory.getUrl() + "/api/createCompany", {
                 secret : $scope.secretPhrase,
                 accountAddress : userService.address,
                 companyName : $scope.companyName,
@@ -119,7 +119,7 @@ angular.module('webApp').controller('companyModalController', ["$scope", "compan
         }
 
         if (!$scope.emailError && !$scope.domainError) {
-            $http.post(peerFactory.url + "/api/getToken", {
+            $http.post(peerFactory.getUrl() + "/api/getToken", {
                 secret : $scope.secretPhrase,
                 accountAddress : userService.address,
                 companyName : $scope.companyName,

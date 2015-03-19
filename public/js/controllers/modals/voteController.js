@@ -57,7 +57,7 @@ angular.module('webApp').controller('voteController', ["$scope", "voteModal", "$
             };
 
             $scope.voting = !$scope.voting;
-            $http.post(peerFactory.url + "/peer/transactions", {transaction: voteTransaction}, transactionService.createHeaders()).then(function (resp) {
+            $http.post(peerFactory.getUrl() + "/peer/transactions", {transaction: voteTransaction}, transactionService.createHeaders()).then(function (resp) {
                 $scope.voting = !$scope.voting;
                 if (!resp.data.success) {
                     $scope.fromServer = resp.data.message;

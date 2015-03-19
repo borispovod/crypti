@@ -63,7 +63,7 @@ angular.module('webApp').controller('votedDelegatesController', ['$scope', '$roo
         $scope.unconfirmedTransactions = {
             list: [],
             getList: function () {
-                $http.get(peerFactory.url + "/api/transactions/unconfirmed/", {params: {senderPublicKey: userService.publicKey}})
+                $http.get(peerFactory.getUrl() + "/api/transactions/unconfirmed/", {params: {senderPublicKey: userService.publicKey}})
                     .then(function (response) {
                         $scope.unconfirmedTransactions.list = [];
                         response.data.transactions.forEach(function (transaction) {

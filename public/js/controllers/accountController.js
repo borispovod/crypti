@@ -18,7 +18,7 @@ angular.module('webApp').controller('accountController', ['$scope', '$rootScope'
         * 100;
 
         $scope.getTransactions = function () {
-            $http.get(peerFactory.url +"/api/transactions", {
+            $http.get(peerFactory.getUrl() +"/api/transactions", {
                 params: {
                     senderPublicKey: userService.publicKey,
                     recipientId: $scope.address,
@@ -29,7 +29,7 @@ angular.module('webApp').controller('accountController', ['$scope', '$rootScope'
                 .then(function (resp) {
                     var transactions = resp.data.transactions;
 
-                    $http.get(peerFactory.url + '/api/transactions/unconfirmed', {
+                    $http.get(peerFactory.getUrl() + '/api/transactions/unconfirmed', {
                         params: {
                             senderPublicKey: userService.publicKey,
                             address: userService.address
@@ -43,7 +43,7 @@ angular.module('webApp').controller('accountController', ['$scope', '$rootScope'
         }
 
         $scope.getAccount = function () {
-            $http.get(peerFactory.url + "/api/accounts", {params: {address: userService.address}})
+            $http.get(peerFactory.getUrl() + "/api/accounts", {params: {address: userService.address}})
                 .then(function (resp) {
                     if (resp.data.success) {
                         var account = resp.data.account;

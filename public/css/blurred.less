@@ -1,0 +1,69 @@
+.st-blurred-region {
+  -webkit-filter: blur(1px);
+  -moz-filter: blur(1px);
+  -o-filter: blur(1px);
+  -ms-filter: blur(1px);
+  filter: blur(1px)
+}
+
+.st-blurred-region-overlay {
+  position: fixed;
+  overflow-y: auto;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 10000;
+  -webkit-overflow-scrolling: touch
+}
+
+.st-blurred-region-close {
+  display: none;
+
+}
+
+.st-blurred-region-close:hover {
+
+}
+
+.st-blurred-region-close:focus {
+
+}
+
+.st-blurred-modal-vertical-center {
+  -webkit-box-align: center;
+  -webkit-box-orient: vertical;
+  -webkit-box-pack: center;
+  -webkit-perspective: 1px;
+  -webkit-transition: 200ms opacity;
+  bottom: 0;
+  display: -webkit-box;
+  left: 0;
+  position: fixed;
+  right: 0;
+  top: 0;
+}
+
+.st-blurred-modal {
+  -webkit-box-align: center;
+  -webkit-box-orient: vertical;
+  -webkit-box-pack: center;
+  display: -webkit-box;
+  position: relative;
+  -webkit-perspective: 1px;
+  width: 400px;
+  padding: 25px;
+  border-radius: 8px;
+  color: #fff;
+  font-size: 15px;
+  font-weight: bold;
+  &.green {
+    background: #61b26e;
+    border: 2px solid #50955c;
+  }
+  &.red {
+    background: #ED4A4A;
+    border: 2px solid #E67A7A;
+  }
+}
