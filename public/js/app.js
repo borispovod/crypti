@@ -5,7 +5,7 @@ require('angular-resource');
 require('crypti-js');
 require('../node_modules/ng-table/ng-table.js');
 
-webApp = angular.module('webApp', ['ui.router', 'btford.modal', 'ngTable']);
+webApp = angular.module('webApp', ['ui.router', 'btford.modal', 'ngTable', 'stBlurredDialog']);
 
 webApp.config([
     "$locationProvider",

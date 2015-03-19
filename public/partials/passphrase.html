@@ -1,13 +1,38 @@
-<div id="pass">
+<div id="pass" st-blurred-dialog-region>
     <div id="center">
         <div id="logo-grey"><sup>testnet</sup></div>
         <div id="login-form">
             <form autocomplete="off">
-                <input type="password" id="enter" placeholder="Your secret passphrase here" ng-model="pass" ng-trim="false" autofocus>
+                <input type="password" id="enter" placeholder="Your secret passphrase here" ng-model="pass"
+                       ng-trim="false" autofocus>
+
                 <p id="message-error">Don't use your real passphrase! It can be dangerous in testnet.</p>
-                <p id="message">For security reasons, please use long passphrases. We recommend passphrases as long as 50 characters.</p>
-                <button type="submit" class="button green" id="login" ng-click="login(pass)">Login</button>
+
+                <p id="message">For security reasons, please use long passphrases. We recommend passphrases as long as
+                    50 characters.</p>
+                <button type="submit" class="button green" id="login" ng-click="login(pass)">
+                    Login
+                </button>
             </form>
         </div>
     </div>
+
+    <div class="cloud" ng-click="peerSettings()"></div>
+    <div class="edit_peer" ng-show="editingPeer">
+        <form autocomplete="off">
+            <span id="label">Custom peer</span>
+            <input type="text" id="peer" placeholder="example: '225.225.225.225:2020'" ng-model="customPeer"
+                   ng-trim="true" autofocus>
+            <span style="display: none;">{{bestPeer}}</span>
+            <input type="checkbox" id="bestPeer" name="check" ng-model="bestPeer"/>
+            <label for="bestPeer">Always use the best peer.</label>
+
+            <button type="submit" class="button green small" id="savePeer"
+                    ng-click="savePeerSettings(customPeer, bestPeer)">
+                Save
+            </button>
+        </form>
+    </div>
 </div>
+
+<st-blurred-dialog-overlay></st-blurred-dialog-overlay>

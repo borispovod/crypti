@@ -10,7 +10,7 @@ angular.module('webApp').controller('forgingController', ['$scope', '$rootScope'
         $scope.delegateInRegistration = userService.delegateInRegistration;
 
         $scope.getBlocks = function () {
-            $http.get(peerFactory.url + "/api/blocks", {
+            $http.get(peerFactory.getUrl() + "/api/blocks", {
                 params: {
                     generatorPublicKey: userService.publicKey,
                     limit: 20,
@@ -24,7 +24,7 @@ angular.module('webApp').controller('forgingController', ['$scope', '$rootScope'
         }
 
         $scope.getForgedAmount = function () {
-            $http.get(peerFactory.url + "/api/delegates/forging/getForgedByAccount", {params: {generatorPublicKey: userService.publicKey}})
+            $http.get(peerFactory.getUrl() + "/api/delegates/forging/getForgedByAccount", {params: {generatorPublicKey: userService.publicKey}})
                 .then(function (resp) {
                     $scope.totalForged = resp.data.fees;
                 });

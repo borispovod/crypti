@@ -5,9 +5,9 @@ angular.module('webApp').service('blockService', function ($http, peerFactory) {
     var blocks = {
         lastBlockId: null,
         getBlocks: function ($defer, params, filter, cb) {
-            $http.get(peerFactory.url + "/api/blocks/", {params: {orderBy: "height:desc", limit: params.count(), offset: (params.page() - 1) * params.count()}})
+            $http.get(peerFactory.getUrl() + "/api/blocks/", {params: {orderBy: "height:desc", limit: params.count(), offset: (params.page() - 1) * params.count()}})
                 .then(function (response) {
-                    $http.get(peerFactory.url + "/api/blocks/", {params: {orderBy: "height:desc", limit: 1, offset: 0}})
+                    $http.get(peerFactory.getUrl() + "/api/blocks/", {params: {orderBy: "height:desc", limit: 1, offset: 0}})
                         .then(function (res) {
                             params.total(res.data.blocks[0].height);
                             $defer.resolve(response.data.blocks);

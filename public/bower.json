@@ -2,6 +2,7 @@
   "name": "web-app",
   "version": "0.0.1",
   "dependencies": {
-    "jquery": "~2.1.1"
+    "jquery": "~2.1.1",
+    "angular-blurred-modal": "git@github.com:sthomp/angular-blurred-modal"
   }
 }

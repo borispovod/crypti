@@ -6,7 +6,7 @@
     "title": "Crypti light",
     "toolbar": true,
     "icon": "images/favicon.ico",
-    "width": 1200,
+    "width": 1400,
     "height": 800
   },
   "devDependencies": {
@@ -20,6 +20,7 @@
   },
   "dependencies": {
     "angular": "~1.2.8",
+    "angular-local-storage": "^0.1.5",
     "angular-modal": "~0.4.0",
     "angular-resource": "latest",
     "angular-route": "latest",
@@ -33,7 +34,9 @@
     "jquery": "~2.1.1",
     "js-nacl": "^0.6.0",
     "ng-table": "latest",
+    "node-ip": "^0.1.0",
     "platform": "^1.3.0",
+    "pouchdb": "^3.3.1",
     "requests": "0.0.1"
   }
 }
