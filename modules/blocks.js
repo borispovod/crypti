@@ -488,8 +488,13 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 				if (err) break;
 
 
-
 				//verify block's transactions
+				blocks[i].transactions = blocks[i].transactions.sort(function (a, b) {
+					if (a.type == 1)
+						return 1;
+					return 0;
+				})
+
 				for (var n = 0, n_length = blocks[i].transactions.length; n < n_length; n++) {
 					if (blocks[i].id != genesisblock.blockId) {
 						if (verify && !modules.transactions.verifySignature(blocks[i].transactions[n])) {
@@ -1176,7 +1181,7 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 
 						if (appliedTransactions[transaction.id]) {
 							/*self.undoForger(block.generatorPublicKey, transaction);
-							modules.transactions.undo(transaction);*/
+							 modules.transactions.undo(transaction);*/
 							modules.transactions.undoUnconfirmed(transaction);
 						}
 					}
@@ -1452,14 +1457,14 @@ Blocks.prototype.popLastBlock = function (lastBlock, cb) {
 				self.setLastBlock(previousBlock)
 				cb();
 				/*async.eachSeries(transactions, function (transaction, cb) {
-					modules.transactions.processUnconfirmedTransaction(transaction, false, cb);
-				}, function (err) {
-					if (err) {
-						return cb(err);
-					}
+				 modules.transactions.processUnconfirmedTransaction(transaction, false, cb);
+				 }, function (err) {
+				 if (err) {
+				 return cb(err);
+				 }
 
-					cb();
-				});*/
+				 cb();
+				 });*/
 			});
 		});
 	});
