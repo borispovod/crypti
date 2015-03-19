@@ -1,3 +1,8 @@
+/**
+ * @title Router
+ * @overview Router stub
+ * @returns {*}
+ */
 module.exports = function () {
 	var router = require('express').Router();
 

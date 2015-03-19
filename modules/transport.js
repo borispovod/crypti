@@ -89,7 +89,6 @@ function attachApi() {
 			"blockSignature": String
 		}, function (err, rows) {
 			if (err) {
-				cb(err);
 				return res.json({success: false, error: "Error in db"});
 			}
 
@@ -187,7 +186,7 @@ function _request(peer, api, method, data, cb) {
 	};
 
 
-	library.logger.trace('request', req.url)
+	library.logger.trace('request', req.url);
 
 	if (Object.prototype.toString.call(data) == "[object Object]" || util.isArray(data)) {
 		req.json = data;
