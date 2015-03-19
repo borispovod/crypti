@@ -5,6 +5,7 @@ module.exports = function (grunt) {
 		"bower_components/angular-blurred-modal/st-blurred-dialog.js"
 	];
 
+
 	// Project configuration.
 	grunt.initConfig({
 		pkg: grunt.file.readJSON('package.json'),
@@ -56,20 +57,24 @@ module.exports = function (grunt) {
 				}
 			}
 		},
+		exec : {
+			command: "mkdir -p build &&" +
+				"cp -rf ./static ./build/ &&" +
+				"cp -rf ./partials ./build/ && " +
+				"cp -rf ./images ./build/ && " +
+				"cp package.json ./build/ && " +
+				"cp index.html ./build/"
+		},
 		nodewebkit: {
 			options: {
-				platforms: ['win','osx'],
-				buildDir: './webkitbuilds'
+				appName : "CryptiLight",
+				buildDir: './webkitbuilds',
+				platforms: ['win', 'osx']
 			},
-			src: [
-				'./static/js/br_app.js',
-				'./static/css/app.css',
-				'./partials/**/*',
-				'./images/**/*',
-				'./index.html'
-			]
+			src: './build/**/*'
 		}
 	});
+
 
 	grunt.loadNpmTasks("grunt-contrib-concat");
 	grunt.loadNpmTasks("grunt-contrib-cssmin");
@@ -77,10 +82,12 @@ module.exports = function (grunt) {
 	grunt.loadNpmTasks("grunt-contrib-uglify");
 	grunt.loadNpmTasks('grunt-browserify');
 	grunt.loadNpmTasks('grunt-node-webkit-builder');
+	grunt.loadNpmTasks('grunt-exec');
 
 	// Default task.
-	grunt.registerTask("default", ["less", "cssmin", "concat", 'browserify']);
+	grunt.registerTask("default", ["less", "cssmin", "concat", "browserify"]);
 	// Release task
 	grunt.registerTask("release", ["default", "uglify:release"]);
+	grunt.registerTask("build", ["release", "exec:command", "nodewebkit"]);
 
 };

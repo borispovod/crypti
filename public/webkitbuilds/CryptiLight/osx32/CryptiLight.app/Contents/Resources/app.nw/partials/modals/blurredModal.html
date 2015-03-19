@@ -1,0 +1,9 @@
+<div ng-controller="BlurredModalController" class="st-blurred-modal-vertical-center">
+    <div class="st-blurred-modal" ng-class="{'red': dialogData.err}">
+        <p ng-show="!dialogData.err">Searching for the best peer available. This process can take a moment.</p>
+        <p ng-show="dialogData.err">Your peer is offline. To change your peer or use the auto peer function click on the cloud on the top right corner.</p>
+        <button ng-show="dialogData.err" type="submit" class="button small" ng-click="close()">
+            Close
+        </button>
+    </div>
+</div>
