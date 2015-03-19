@@ -219,7 +219,6 @@ function verifySignature(block) {
 	return res;
 }
 
-
 function deleteBlock(blockId, cb) {
 	library.dbLite.query("DELETE FROM blocks WHERE id = $id", {id: blockId}, function (err, res) {
 		cb(err, res)
@@ -604,7 +603,7 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 			}
 
 			//verify block's transactions
-			blocks[i].transactions = blocks[i].transactions.sort(function(a, b){
+			blocks[i].transactions = blocks[i].transactions.sort(function (a, b) {
 				if (a.type == 1)
 					return 1;
 				return 0;
@@ -826,7 +825,7 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 							}
 
 							if (transaction.amount < 0 || transaction.amount > 100000000 * constants.fixedPoint || transaction.amount.toString().indexOf('.') >= 0 || transaction.amount.toString().indexOf('e') >= 0) {
-								return cb("Invalid transaction amount");
+								return cb("Invalid transaction amount: " + transaction.id);
 							}
 
 							switch (transaction.type) {
@@ -965,15 +964,12 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 						library.logger.error("Can't save block...");
 						library.logger.error(err);
 						process.exit(0);
-						return;
 					}
 
-					if (!err) {
-						library.bus.message('newBlock', block, broadcast)
-						lastBlock = block;
-					}
+					library.bus.message('newBlock', block, broadcast);
+					lastBlock = block;
 
-					setImmediate(done, err);
+					setImmediate(done);
 				});
 			}
 		});

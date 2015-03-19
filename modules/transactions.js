@@ -94,16 +94,7 @@ function attachApi() {
 			return res.json({success: false, error : "Transaction not found"});
 		}
 
-
-		var transaction = extend(true, {}, unconfirmedTransaction);
-
-		if (!transaction) {
-			return res.json({success: false, error: "Transaction not found"});
-		}
-
-		delete transaction.asset;
-
-		res.json({success: true, transaction: transaction});
+		res.json({success: true, transaction: unconfirmedTransaction});
 	});
 
 	router.get('/unconfirmed/', function (req, res) {
@@ -138,7 +129,7 @@ function attachApi() {
 		var hash = crypto.createHash('sha256').update(secret, 'utf8').digest();
 		var keypair = ed.MakeKeypair(hash);
 
-		if (secret.length == 0) {
+		if (!secret) {
 			return res.json({success: false, error: "Provide secret key"});
 		}
 
