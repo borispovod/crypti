@@ -2,7 +2,7 @@ require('angular');
 
 angular.module('webApp').controller('templateController', ['$scope', '$rootScope', '$http', 'userService', "$interval", "peerFactory", function($rootScope, $scope, $http, userService, $interval, peerFactory) {
     $scope.getSync = function () {
-        $http.get(peerFactory.url + "/api/loader/status/sync").then(function (resp) {
+        $http.get(peerFactory.getUrl() + "/api/loader/status/sync").then(function (resp) {
             if (resp.data.success) {
                 $rootScope.sync = resp.data.sync;
                 $rootScope.height = resp.data.height;

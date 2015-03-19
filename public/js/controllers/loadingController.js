@@ -4,7 +4,7 @@ angular.module('webApp').controller("loadingController", ["$scope", "$http", "$i
     $scope.height = null;
 
     $scope.getHeight = function () {
-        $http.get(peerFactory.url + "/api/loader/status")
+        $http.get(peerFactory.getUrl() + "/api/loader/status")
             .then(function (resp) {
                 if (resp.data.success) {
                     if (!resp.data.loaded) {

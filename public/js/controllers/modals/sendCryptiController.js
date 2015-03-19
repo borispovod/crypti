@@ -137,7 +137,7 @@ angular.module('webApp').controller('sendCryptiController', ["$scope", "sendCryp
         }
 
         $scope.getCurrentFee = function () {
-            $http.get(peerFactory.url + "/api/blocks/getFee")
+            $http.get(peerFactory.getUrl() + "/api/blocks/getFee")
                 .then(function (resp) {
                     $scope.currentFee = resp.data.fee;
                 });
@@ -219,7 +219,7 @@ angular.module('webApp').controller('sendCryptiController', ["$scope", "sendCryp
             if (!$scope.lengthError && !$scope.sending) {
                 $scope.sending = !$scope.sending;
 
-                $http.post(peerFactory.url + "/peer/transactions",
+                $http.post(peerFactory.getUrl() + "/peer/transactions",
                     {transaction: sendTransaction},
                     transactionService.createHeaders()).then(function (resp) {
                         $scope.sending = !$scope.sending;

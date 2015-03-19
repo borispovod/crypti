@@ -41,7 +41,7 @@ angular.module('webApp').service('delegateService', function ($http, $filter, pe
                     $defer.resolve(transformedData);
                 }
                 else {
-                    $http.get(peerFactory.url + "/api/delegates/", {params: {orderBy: "rate:asc", limit: this.topRate, offset: 0}})
+                    $http.get(peerFactory.getUrl() + "/api/delegates/", {params: {orderBy: "rate:asc", limit: this.topRate, offset: 0}})
                         .then(function (response) {
                             angular.copy(response.data.delegates, delegates.cachedTOP.data);
                             delegates.cachedTOP.time = new Date();
@@ -69,7 +69,7 @@ angular.module('webApp').service('delegateService', function ($http, $filter, pe
                 else {
                     this.cachedStundby.data = [];
                     var getPart = function (limit, offset) {
-                        $http.get(peerFactory.url + "/api/delegates/", {params: {orderBy: "rate:asc", limit: limit, offset: offset}})
+                        $http.get(peerFactory.getUrl() + "/api/delegates/", {params: {orderBy: "rate:asc", limit: limit, offset: offset}})
                             .then(function (response) {
                                 if (response.data.delegates.length > 0) {
                                     delegates.cachedStundby.data = delegates.cachedStundby.data.concat(response.data.delegates);
@@ -102,7 +102,7 @@ angular.module('webApp').service('delegateService', function ($http, $filter, pe
                     cb();
                 }
                 else {
-                    $http.get(peerFactory.url + "/api/accounts/delegates/", {params: {address: address}})
+                    $http.get(peerFactory.getUrl() + "/api/accounts/delegates/", {params: {address: address}})
                         .then(function (response) {
                             angular.copy(response.data.delegates ? response.data.delegates : [], delegates.cachedVotedDelegates.data);
                             delegates.cachedVotedDelegates.time = new Date();
@@ -118,7 +118,7 @@ angular.module('webApp').service('delegateService', function ($http, $filter, pe
             }
         },
         getDelegate: function (publicKey, cb) {
-            $http.get(peerFactory.url + "/api/delegates/get/", {params: {publicKey: publicKey}})
+            $http.get(peerFactory.getUrl() + "/api/delegates/get/", {params: {publicKey: publicKey}})
                 .then(function (response) {
                     if (response.data.success) {
                         response.data.delegate.active = delegates.isActiveRate(response.data.delegate.rate);
