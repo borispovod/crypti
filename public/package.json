@@ -4,9 +4,9 @@
   "main": "index.html",
   "window": {
     "title": "Crypti light",
-    "toolbar": true,
+    "toolbar": false,
     "icon": "images/favicon.ico",
-    "width": 1400,
+    "width": 1200,
     "height": 800
   },
   "devDependencies": {
@@ -32,6 +32,7 @@
     "grunt-contrib-concat": "~0.3.0",
     "grunt-contrib-cssmin": "~0.6.1",
     "jquery": "~2.1.1",
+    "jquery-browserify": "^1.8.1",
     "js-nacl": "^0.6.0",
     "ng-table": "latest",
     "node-ip": "^0.1.0",
