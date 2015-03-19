@@ -55,6 +55,19 @@ module.exports = function (grunt) {
 					"static/js/app.js": files
 				}
 			}
+		},
+		nodewebkit: {
+			options: {
+				platforms: ['win','osx'],
+				buildDir: './webkitbuilds'
+			},
+			src: [
+				'./static/js/br_app.js',
+				'./static/css/app.css',
+				'./partials/**/*',
+				'./images/**/*',
+				'./index.html'
+			]
 		}
 	});
 
@@ -63,8 +76,7 @@ module.exports = function (grunt) {
 	grunt.loadNpmTasks("grunt-contrib-less");
 	grunt.loadNpmTasks("grunt-contrib-uglify");
 	grunt.loadNpmTasks('grunt-browserify');
-
-
+	grunt.loadNpmTasks('grunt-node-webkit-builder');
 
 	// Default task.
 	grunt.registerTask("default", ["less", "cssmin", "concat", 'browserify']);
