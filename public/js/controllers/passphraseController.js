@@ -19,8 +19,12 @@ angular.module('webApp').controller('passphraseController',
                         $scope.customPeer = customPeer;
                         if (!$scope.bestPeer) {
                             $scope.custom = true;
-                            peerFactory.setPeer(peer.split(":")[0],
-                                peer.split(":")[1] == undefined ? '' : peer.split(":")[1]);
+                            peerFactory.setPeer(custom.split(":")[0],
+                                custom.split(":")[1] == undefined ? '' : custom.split(":")[1]);
+                        }
+                        else {
+                            stBlurredDialog.open('partials/modals/blurredModal.html', {err: false});
+                            $scope.setBestPeer();
                         }
                     })
                 });
@@ -74,29 +78,42 @@ angular.module('webApp').controller('passphraseController',
             }
 
             $scope.login = function (pass) {
-                if ($scope.custom) {
-                    peerFactory.checkPeer(peerFactory.getUrl(), function (resp) {
-                        if (resp.status == 200) {
-                            var data = {secret: pass};
-                            if (!pass || pass.length > 100) {
+                if ($scope.peerexists) {
+                    if ($scope.custom) {
+                        peerFactory.checkPeer(peerFactory.getUrl(), function (resp) {
+                            if (resp.status == 200) {
+                                var data = {secret: pass};
+                                if (!pass || pass.length > 100) {
+                                }
+                                else {
+                                    var crypti = require('crypti-js');
+                                    var keys = crypti.crypto.getKeys(pass);
+                                    var address = crypti.crypto.getAddress(keys.publicKey);
+                                    userService.setData(address, keys.publicKey);
+                                    $state.go('main.account');
+                                }
                             }
                             else {
-                                var crypti = require('crypti-js');
-                                var keys = crypti.crypto.getKeys(pass);
-                                var address = crypti.crypto.getAddress(keys.publicKey);
-                                userService.setData(address, keys.publicKey);
-                                $state.go('main.account');
+                                stBlurredDialog.open('partials/modals/blurredModal.html', {err: true});
                             }
+
+                        })
+                    }
+                    else {
+                        var data = {secret: pass};
+                        if (!pass || pass.length > 100) {
                         }
                         else {
-                            stBlurredDialog.open('partials/modals/blurredModal.html', {err: false});
+                            var crypti = require('crypti-js');
+                            var keys = crypti.crypto.getKeys(pass);
+                            var address = crypti.crypto.getAddress(keys.publicKey);
+                            userService.setData(address, keys.publicKey);
+                            $state.go('main.account');
                         }
+                    }
 
-                    })
                 }
-
             }
-
             //runtime
 
 
@@ -161,8 +178,8 @@ angular.module('webApp').controller('passphraseController',
                                             $scope.setBestPeer();
                                         }
                                         else {
-                                            console.log('custom peer');
                                             $scope.peerexists = true;
+                                            console.log('custom peer');
                                             $scope.custom = true;
                                             $scope.customPeer = response.rows[0].key.ip + ':' + response.rows[0].key.port;
                                             peerFactory.setPeer(response.rows[0].key.ip, response.rows[0].key.port);
@@ -181,7 +198,4 @@ angular.module('webApp').controller('passphraseController',
     ])
 ;
 
-angular.module('webApp').controller('DialogCtrl', ['$scope', 'stBlurredDialog', function ($scope, stBlurredDialog) {
-    // Get the data passed from the controller
-    $scope.dialogData = stBlurredDialog.getDialogData();
-}]);
+
