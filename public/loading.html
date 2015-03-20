@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html ng-app="webApp">
+<head>
+    <meta charset="UTF-8">
+    <title>Crypti - loading...</title>
+    <link rel="shortcut icon" href="/images/favicon.ico">
+
+    <link rel="stylesheet" href="/static/css/app.css">
+    <script src="/static/js/br_app.js"></script>
+</head>
+    <body>
+        <div id="pass">
+            <div id="center">
+                <div id="logo-grey"></div>
+                <div class="loading" ng-controller="loadingController">
+                    <h3 class="heading" ng-show="!height || !blocksCount">Blockchain loading...</h3>
+                    <h3 class="heading" ng-show="height">Blockchain loading: ({{height}}/{{blocksCount}} blocks)</h3>
+                </div>
+            </div>
+        </div>
+    </body>
+</html>
