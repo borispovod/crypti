@@ -4,7 +4,7 @@
   "main": "index.html",
   "window": {
     "title": "Crypti light",
-    "toolbar": false,
+    "toolbar": true,
     "icon": "images/favicon.ico",
     "width": 1200,
     "height": 800
