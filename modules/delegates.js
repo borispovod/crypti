@@ -30,12 +30,41 @@ var fees = {};
 
 var keypairs = {};
 
+function Delegate() {
+	this.create = function (config, cb) {
+		config.transaction.amount = 0;
+		config.transaction.recipientId = null;
+		config.transaction.asset.delegate = {
+			username: username,
+			publicKey: config.sender.publicKey
+		};
+
+		library.sequence.add(function (cb) {
+			modules.transactions.processUnconfirmedTransaction(config.transaction, true, cb);
+		}, cb);
+	}
+
+	this.calculateFee = function (trs) {
+		return 10000 * constants.fixedPoint;
+	}
+
+	this.verify = function (trs, cb) {
+
+	}
+
+	this.getBytes = function (trs) {
+		return new Buffer(trs.asset.delegate.username, 'utf8');
+	}
+};
+
 //constructor
 function Delegates(cb, scope) {
 	library = scope;
 	self = this;
 
 	attachApi();
+
+	library.logic.transaction.attachAssetType(2, new Delegate());
 
 	setImmediate(cb, null, self);
 }
@@ -305,6 +334,17 @@ function attachApi() {
 				return res.json({success: false, error: "Open account to make transaction"});
 			}
 
+			if (account.secondSignature && !secondSecret) {
+				return res.json({success: false, error: "Provide second secret key"});
+			}
+
+			var secondKeypair = null;
+
+			if (account.secondSignature) {
+				var secondHash = crypto.createHash('sha256').update(secret, 'utf8').digest();
+				secondKeypair = ed.MakeKeypair(secondHash);
+			}
+
 			var transaction = {
 				type: 2,
 				amount: 0,
@@ -319,15 +359,16 @@ function attachApi() {
 				}
 			};
 
-			modules.transactions.sign(secret, transaction);
+			library.logic.transaction.create({
+				type: 2,
+				body: transaction,
+				sender: account,
+				recipient: null,
+				keypair: keypair,
+				secondKeypair: secondKeypair
+			}, function (err, transaction) {
 
-			if (account.secondSignature) {
-				if (!secondSecret) {
-					return res.json({success: false, error: "Provide second secret key"});
-				}
-
-				modules.transactions.secondSign(secondSecret, transaction);
-			}
+			});
 
 			library.sequence.add(function (cb) {
 				modules.transactions.processUnconfirmedTransaction(transaction, true, cb);

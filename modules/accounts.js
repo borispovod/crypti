@@ -168,12 +168,32 @@ Account.prototype.undoDelegateList = function (diff) {
 	return isValid;
 }
 
+function Vote() {
+	this.create = function (trs, cb) {
+
+	}
+
+	this.calculateFee = function (trs) {
+		return 0;
+	}
+
+	this.verify = function (trs, cb) {
+
+	}
+
+	this.getBytes = function (trs) {
+		return 0;
+	}
+};
+
 //constructor
 function Accounts(cb, scope) {
 	library = scope;
 	self = this;
 
 	attachApi();
+
+	library.logic.transaction.attachAssetType(3, new Vote());
 
 	setImmediate(cb, null, self);
 }
@@ -347,6 +367,10 @@ function attachApi() {
 				return res.json({success: false, error: "Open account to make transaction"});
 			}
 
+			if (account.secondSignature && !secondSecret) {
+				return res.json({success: false, error: "Provide second secret key"});
+			}
+
 			var transaction = {
 				type: 3,
 				amount: 0,
@@ -361,10 +385,6 @@ function attachApi() {
 			modules.transactions.sign(secret, transaction);
 
 			if (account.secondSignature) {
-				if (!secondSecret) {
-					return res.json({success: false, error: "Provide second secret key"});
-				}
-
 				modules.transactions.secondSign(secondSecret, transaction);
 			}
 

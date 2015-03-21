@@ -30,11 +30,11 @@ if (program.address) {
 }
 
 if (program.peers) {
-	appConfig.peers.list = program.peers.split(',').map(function(peer){
+	appConfig.peers.list = program.peers.split(',').map(function (peer) {
 		peer = peer.split(":");
 		return {
-			ip : peer.shift(),
-			port : peer.shift() || appConfig.port
+			ip: peer.shift(),
+			port: peer.shift() || appConfig.port
 		};
 	});
 }
@@ -61,7 +61,7 @@ var config = {
 		"delegates": "./modules/delegates.js",
 		"scripts": "./modules/scripts.js",
 		"round": "./modules/round.js",
-		"sandboxes" : "./modules/sandboxes.js"
+		"sandboxes": "./modules/sandboxes.js"
 	}
 }
 
@@ -193,6 +193,14 @@ d.run(function () {
 		dbLite: function (cb) {
 			var dbLite = require('./helpers/dbLite.js');
 			dbLite.connect(config.db, cb);
+		},
+
+		logic: function (cb) {
+			var Transaction = require('./logic/transaction.js');
+
+			cb(null, {
+				transaction: new Transaction()
+			})
 		},
 
 		modules: ['express', 'app', 'config', 'logger', 'bus', 'sequence', 'dbLite', function (cb, scope) {

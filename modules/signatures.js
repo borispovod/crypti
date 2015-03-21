@@ -14,12 +14,32 @@ var ed = require('ed25519'),
 // private fields
 var modules, library, self;
 
+function Signature() {
+	this.create = function (trs, cb) {
+
+	}
+
+	this.calculateFee = function (trs) {
+		return 0;
+	}
+
+	this.verify = function (trs, cb) {
+
+	}
+
+	this.getBytes = function (trs) {
+		return 0;
+	}
+};
+
 //constructor
 function Signatures(cb, scope) {
 	library = scope;
 	self = this;
 
 	attachApi();
+
+	library.logic.transaction.attachAssetType(1, new Signature());
 
 	setImmediate(cb, null, self);
 }

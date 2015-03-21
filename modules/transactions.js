@@ -25,12 +25,32 @@ var unconfirmedTransactions = [];
 var unconfirmedTransactionsIdIndex = {};
 var doubleSpendingTransactions = {};
 
+function Transfer() {
+	this.create = function (trs, cb) {
+
+	}
+
+	this.calculateFee = function (trs) {
+		return 0;
+	}
+
+	this.verify = function (trs, cb) {
+
+	}
+
+	this.getBytes = function (trs) {
+		return 0;
+	}
+};
+
 //constructor
 function Transactions(cb, scope) {
 	library = scope;
 	self = this;
 
 	attachApi();
+
+	library.logic.transaction.attachAssetType(0, new Transfer());
 
 	setImmediate(cb, null, self);
 }
@@ -160,12 +180,9 @@ function attachApi() {
 				return res.json({success: false, error: "Open account to make transaction"});
 			}
 
-
-			if (amount.toString().indexOf('e') >= 0) {
-				return res.json({success: false, error: "Incorrect amount, please, correct it"});
+			if (account.secondSignature && !secondSecret) {
+				return res.json({success: false, error: "Provide second secret key"});
 			}
-
-			amount = RequestSanitizer.int(amount);
 
 			var transaction = {
 				type: 0,
@@ -179,10 +196,6 @@ function attachApi() {
 			self.sign(secret, transaction);
 
 			if (account.secondSignature) {
-				if (!secondSecret) {
-					return res.json({success: false, error: "Provide second secret key"});
-				}
-
 				self.secondSign(secondSecret, transaction);
 			}
 

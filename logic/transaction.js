@@ -1,10 +1,11 @@
 var slots = require('../helpers/slots.js'),
 	ed = require('ed25519'),
-	crypto = require('crypto');
+	crypto = require('crypto'),
+	genesisblock = require("../helpers/genesisblock.js");
 
 //constructor
 function Transaction() {
-	Object.freeze(this);
+	//Object.freeze(this);
 }
 
 //private methods
@@ -12,39 +13,153 @@ var private = {};
 private.types = {};
 
 //public methods
-Transaction.prototype.create = function (trs, cb) {
-	if (!private.types[trs.type]) {
+Transaction.prototype.create = function (config, cb) {
+	if (!private.types[config.type]) {
 		return cb('Unknown transaction type');
 	}
-	private.types[trs.type].create(trs, cb);
+
+	var transaction = {
+		type: config.type,
+		senderPublicKey: config.sender.publicKey,
+		timestamp: slots.getTime(),
+		asset: {}
+	};
+
+	this.sign(config.keypair, config.transaction);
+
+	if (config.secondKeypair) {
+		modules.transactions.secondSign(config.secondKeypair, config.transaction);
+	}
+
+	private.types[config.type].create(config, cb);
 }
 
 Transaction.prototype.attachAssetType = function (typeId, instance) {
-	if (instance && typeof instance.create == 'function' && typeof instance.getBytes == 'function' && typeof instance.calculateFee == 'function' && typeof instance.verify == 'function') {
+	if (instance && typeof instance.create == 'function' && typeof instance.apply == 'function' && typeof instance.getBytes == 'function' && typeof instance.calculateFee == 'function' && typeof instance.verify == 'function') {
 		private.types[typeId] = instance;
 	} else {
 		throw Error('Invalid instance interface');
 	}
 }
 
-Transaction.prototype.verify = function (trs, cb) { //inheritance
+Transaction.prototype.sign = function (keypair, trs) {
+	var hash = this.getHash(trs);
+	trs.signature = ed.Sign(hash, keypair).toString('hex');
+}
+
+Transaction.prototype.secondSign = function (keypair, trs) {
+	var hash = this.getHash(trs);
+	trs.signSignature = ed.Sign(hash, keypair).toString('hex');
+}
+
+Transaction.prototype.getId = function (trs) {
+	var hash = crypto.createHash('sha256').update(this.getBytes(trs)).digest();
+	var temp = new Buffer(8);
+	for (var i = 0; i < 8; i++) {
+		temp[i] = hash[7 - i];
+	}
+
+	var id = bignum.fromBuffer(temp).toString();
+	return id;
+}
+
+Transaction.prototype.getHash = function (trs) {
+	return crypto.createHash('sha256').update(this.getBytes(trs)).digest();
+}
+
+Transaction.prototype.apply = function (trs, sender, recipient, cb) {
+	if (!private.types[trs.type]) {
+		return cb('Unknown transaction type');
+	}
+
+	var amount = trs.amount + trs.fee;
+
+	if (sender.balance < amount && trs.blockId != genesisblock.block.id) {
+		return cb('Has no balance');
+	}
+
+	sender.addToBalance(-amount);
+
+	private.types[trs.type].apply(trs, sender, recipient, cb);
+}
+
+Transaction.prototype.getBytes = function (trs) {
+	if (!private.types[trs.type]) {
+		return cb('Unknown transaction type');
+	}
+
+	try {
+		var assetBytes = private.types[trs.type].getBytes(trs);
+		var assetSize = assetBytes.length;
+
+		var bb = new ByteBuffer(1 + 4 + 32 + 8 + 8 + 64 + 64 + assetSize, true);
+		bb.writeByte(trs.type);
+		bb.writeInt(trs.timestamp);
+
+		var senderPublicKeyBuffer = new Buffer(trs.senderPublicKey, 'hex');
+		for (var i = 0; i < senderPublicKeyBuffer.length; i++) {
+			bb.writeByte(senderPublicKeyBuffer[i]);
+		}
+
+		if (trs.recipientId) {
+			var recipient = trs.recipientId.slice(0, -1);
+			recipient = bignum(recipient).toBuffer({size: 8});
+
+			for (var i = 0; i < 8; i++) {
+				bb.writeByte(recipient[i] || 0);
+			}
+		} else {
+			for (var i = 0; i < 8; i++) {
+				bb.writeByte(0);
+			}
+		}
+
+		bb.writeLong(trs.amount);
+
+		if (assetSize > 0) {
+			for (var i = 0; i < assetSize; i++) {
+				bb.writeByte(assetBytes[i]);
+			}
+		}
+
+		if (trs.signature) {
+			var signatureBuffer = new Buffer(trs.signature, 'hex');
+			for (var i = 0; i < signatureBuffer.length; i++) {
+				bb.writeByte(signatureBuffer[i]);
+			}
+		}
+
+		if (trs.signSignature) {
+			var signSignatureBuffer = new Buffer(trs.signSignature, 'hex');
+			for (var i = 0; i < signSignatureBuffer.length; i++) {
+				bb.writeByte(signSignatureBuffer[i]);
+			}
+		}
+
+		bb.flip();
+	} catch (e) {
+		throw Error(e.toString());
+	}
+	return bb.toBuffer();
+}
+
+Transaction.prototype.verify = function (trs, sender, recipient, cb) { //inheritance
 	if (!private.types[trs.type]) {
 		return cb('Unknown transaction type');
 	}
 
 	//check sender
-	var sender = this.getSender(trs);
 	if (!sender) {
 		return cb("Can't find sender");
 	}
 
 	//verify signature
-	if (!this.verifySignature(trs)) {
+	if (!this.verifySignature(trs, sender, recipient)) {
 		return cb("Can't verify signature");
 	}
 
 	//verify second signature
-	if (!self.verifySecondSignature(trs, sender.secondPublicKey)) {
+	if (!this.verifySecondSignature(trs, sender, recipient)) {
 		return cb("Can't verify second signature: " + trs.id);
 	}
 
@@ -63,11 +178,7 @@ Transaction.prototype.verify = function (trs, cb) { //inheritance
 	}
 
 	//spec
-	private.types[trs.type].verify(trs, cb);
-}
-
-Transaction.prototype.getSender = function (trs) {
-	throw Error('method getSender not implemented');
+	private.types[trs.type].verify(trs, sender, recipient, cb);
 }
 
 Transaction.prototype.verifySignature = function (trs) {
@@ -95,13 +206,13 @@ Transaction.prototype.verifySignature = function (trs) {
 		var senderPublicKeyBuffer = new Buffer(trs.senderPublicKey, 'hex');
 		var res = ed.Verify(hash, signatureBuffer || ' ', senderPublicKeyBuffer || ' ');
 	} catch (e) {
-		throw Error(e);
+		throw Error(e.toString());
 	}
 
 	return res;
 }
 
-Transaction.prototype.verifySecondSignature = function (trs, senderPublicKey) {
+Transaction.prototype.verifySecondSignature = function (trs, sender) {
 	if (!private.types[trs.type]) {
 		throw Error('Unknown transaction type');
 	}
@@ -117,85 +228,14 @@ Transaction.prototype.verifySecondSignature = function (trs, senderPublicKey) {
 
 	try {
 		var signSignatureBuffer = new Buffer(trs.signSignature, 'hex');
-		var publicKeyBuffer = new Buffer(senderPublicKey, 'hex');
+		var publicKeyBuffer = new Buffer(sender.secondPublicKey, 'hex');
 		var res = ed.Verify(hash, signSignatureBuffer || ' ', publicKeyBuffer || ' ');
 	} catch (e) {
-		throw Error(e);
+		throw Error(e.toString());
 	}
 
 	return res;
 }
 
-
-//Samples
-var Transfer = function () {
-	this.create = function (trs, cb) {
-
-	}
-
-	this.calculateFee = function (trs) {
-		return 0;
-	}
-
-	this.verify = function (trs, cb) {
-
-	}
-
-	this.getBytes = function (trs) {
-		return 0;
-	}
-};
-
-var Signature = function () {
-	this.create = function (trs, cb) {
-
-	}
-
-	this.calculateFee = function (trs) {
-		return 0;
-	}
-
-	this.verify = function (trs, cb) {
-
-	}
-
-	this.getBytes = function (trs) {
-		return 0;
-	}
-};
-
-var Delegate = function () {
-	this.create = function (trs, cb) {
-
-	}
-
-	this.calculateFee = function (trs) {
-		return 0;
-	}
-
-	this.verify = function (trs, cb) {
-
-	}
-
-	this.getBytes = function (trs) {
-		return 0;
-	}
-};
-
-var Vote = function () {
-	this.create = function (trs, cb) {
-
-	}
-
-	this.calculateFee = function (trs) {
-		return 0;
-	}
-
-	this.verify = function (trs, cb) {
-
-	}
-
-	this.getBytes = function (trs) {
-		return 0;
-	}
-};
+//export
+module.exports = Transaction;
