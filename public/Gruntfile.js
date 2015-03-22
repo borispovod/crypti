@@ -67,7 +67,8 @@ module.exports = function (grunt) {
 		},
 		nodewebkit: {
 			options: {
-				appName : "CryptiLight",
+				macIcns: "./icons/crypti.icns",
+				appName : "Crypti Lite",
 				buildDir: './webkitbuilds',
 				platforms: ['win', 'osx']
 			},
