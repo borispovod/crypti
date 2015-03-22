@@ -774,7 +774,11 @@ span.menu-text {
   position: fixed;
   top: 8px;
   right: 8px;
+<<<<<<< HEAD
   background-size: 36px 24px;
+=======
+  background-size: 48px 32px;
+>>>>>>> 89d539761d1ea5e6a28cb7ed55d58277ebeac7ce
   background-image: url('../../images/cloud-grey.png');
   background-repeat: no-repeat;
   height: 32px;
@@ -788,7 +792,11 @@ span.menu-text {
   width: 260px;
   height: 160px;
   right: 8px;
+<<<<<<< HEAD
   top: 50px;
+=======
+  top: 70px;
+>>>>>>> 89d539761d1ea5e6a28cb7ed55d58277ebeac7ce
   border-radius: 8px;
 }
 .edit_peer #bestPeer {
@@ -830,7 +838,11 @@ span.menu-text {
 .edit_peer:after,
 .edit_peer:before {
   bottom: 100%;
+<<<<<<< HEAD
   left: 89%;
+=======
+  left: 90%;
+>>>>>>> 89d539761d1ea5e6a28cb7ed55d58277ebeac7ce
   border: solid transparent;
   content: " ";
   height: 0;
@@ -1235,11 +1247,19 @@ span.menu-text {
   box-shadow: 0px 3px 0px #d4d5d6;
 }
 .st-blurred-region {
+<<<<<<< HEAD
   -webkit-filter: blur(3px);
   -moz-filter: blur(3px);
   -o-filter: blur(3px);
   -ms-filter: blur(3px);
   filter: blur(3px);
+=======
+  -webkit-filter: blur(1px);
+  -moz-filter: blur(1px);
+  -o-filter: blur(1px);
+  -ms-filter: blur(1px);
+  filter: blur(1px);
+>>>>>>> 89d539761d1ea5e6a28cb7ed55d58277ebeac7ce
 }
 .st-blurred-region-overlay {
   position: fixed;
@@ -1284,6 +1304,7 @@ span.menu-text {
   background: #61b26e;
   border: 2px solid #50955c;
 }
+<<<<<<< HEAD
 .st-blurred-modal .searchText {
   display: inline-block;
   width: 320px;
@@ -1303,10 +1324,13 @@ span.menu-text {
   height: 64px;
   width: 64px;
 }
+=======
+>>>>>>> 89d539761d1ea5e6a28cb7ed55d58277ebeac7ce
 .st-blurred-modal.red {
   background: #ED4A4A;
   border: 2px solid #E67A7A;
 }
+<<<<<<< HEAD
 .st-blurred-modal.red .icon {
   background-image: url('../../images/error_peer.png');
 }
@@ -1364,4 +1388,8 @@ span.menu-text {
   to {
     transform: rotate(0deg);
   }
+=======
+.st-blurred-modal .button {
+  margin: 16px 0 0 0;
+>>>>>>> 89d539761d1ea5e6a28cb7ed55d58277ebeac7ce
 }
