@@ -31,17 +31,14 @@ var fees = {};
 var keypairs = {};
 
 function Delegate() {
-	this.create = function (config, cb) {
-		config.transaction.amount = 0;
-		config.transaction.recipientId = null;
-		config.transaction.asset.delegate = {
-			username: username,
-			publicKey: config.sender.publicKey
+	this.create = function (data, trs) {
+		trs.recipientId = null;
+		trs.asset.delegate = {
+			username: data.asset.username,
+			publicKey: data.sender.publicKey
 		};
 
-		library.sequence.add(function (cb) {
-			modules.transactions.processUnconfirmedTransaction(config.transaction, true, cb);
-		}, cb);
+		return trs;
 	}
 
 	this.calculateFee = function (trs) {
@@ -345,29 +342,14 @@ function attachApi() {
 				secondKeypair = ed.MakeKeypair(secondHash);
 			}
 
-			var transaction = {
+			var transaction = library.logic.transaction.create({
 				type: 2,
-				amount: 0,
-				recipientId: null,
-				senderPublicKey: account.publicKey,
-				timestamp: slots.getTime(),
-				asset: {
-					delegate: {
-						username: username,
-						publicKey: account.publicKey
-					}
-				}
-			};
-
-			library.logic.transaction.create({
-				type: 2,
-				body: transaction,
+				asset:{
+					username: username
+				},
 				sender: account,
-				recipient: null,
 				keypair: keypair,
 				secondKeypair: secondKeypair
-			}, function (err, transaction) {
-
 			});
 
 			library.sequence.add(function (cb) {

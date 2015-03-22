@@ -13,25 +13,30 @@ var private = {};
 private.types = {};
 
 //public methods
-Transaction.prototype.create = function (config, cb) {
-	if (!private.types[config.type]) {
+Transaction.prototype.create = function (data, cb) {
+	if (!private.types[data.type]) {
 		return cb('Unknown transaction type');
 	}
 
 	var transaction = {
-		type: config.type,
-		senderPublicKey: config.sender.publicKey,
+		type: data.type,
+		amount: 0,
+		senderPublicKey: data.sender.publicKey,
 		timestamp: slots.getTime(),
 		asset: {}
 	};
 
-	this.sign(config.keypair, config.transaction);
+	transaction = private.types[config.type].create(data, transaction);
 
-	if (config.secondKeypair) {
-		modules.transactions.secondSign(config.secondKeypair, config.transaction);
+	this.sign(data.keypair, transaction);
+
+	if (data.secondKeypair) {
+		this.secondSign(data.secondKeypair, transaction);
 	}
 
-	private.types[config.type].create(config, cb);
+	transaction.id = this.getId(transaction);
+
+	return transaction;
 }
 
 Transaction.prototype.attachAssetType = function (typeId, instance) {
@@ -90,7 +95,7 @@ Transaction.prototype.getBytes = function (trs) {
 
 	try {
 		var assetBytes = private.types[trs.type].getBytes(trs);
-		var assetSize = assetBytes.length;
+		var assetSize = assetBytes ? assetBytes.length : 0;
 
 		var bb = new ByteBuffer(1 + 4 + 32 + 8 + 8 + 64 + 64 + assetSize, true);
 		bb.writeByte(trs.type);

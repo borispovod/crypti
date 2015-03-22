@@ -26,12 +26,15 @@ var unconfirmedTransactionsIdIndex = {};
 var doubleSpendingTransactions = {};
 
 function Transfer() {
-	this.create = function (trs, cb) {
+	this.create = function (trs, data) {
+		trs.recipientId = data.recipientId;
+		trs.amount = data.amount;
 
+		return trs;
 	}
 
 	this.calculateFee = function (trs) {
-		return 0;
+		return trs.fee;
 	}
 
 	this.verify = function (trs, cb) {
@@ -39,7 +42,7 @@ function Transfer() {
 	}
 
 	this.getBytes = function (trs) {
-		return 0;
+		return null;
 	}
 };
 
@@ -184,20 +187,21 @@ function attachApi() {
 				return res.json({success: false, error: "Provide second secret key"});
 			}
 
-			var transaction = {
-				type: 0,
-				amount: amount,
-				recipientId: recipientId,
-				senderPublicKey: account.publicKey,
-				timestamp: slots.getTime(),
-				asset: {}
-			};
-
-			self.sign(secret, transaction);
+			var secondKeypair = null;
 
 			if (account.secondSignature) {
-				self.secondSign(secondSecret, transaction);
+				var secondHash = crypto.createHash('sha256').update(secret, 'utf8').digest();
+				secondKeypair = ed.MakeKeypair(secondHash);
 			}
+
+			var transaction = library.logic.transaction.create({
+				type: 0,
+				amount: amount,
+				sender: account,
+				recipientId: recipientId,
+				keypair: keypair,
+				secondKeypair: secondKeypair
+			});
 
 			library.sequence.add(function (cb) {
 				self.processUnconfirmedTransaction(transaction, true, cb);
@@ -308,20 +312,6 @@ function addUnconfirmedTransaction(transaction) {
 }
 
 //public methods
-Transactions.prototype.sign = function (secret, transaction) {
-	var hash = transactionHelper.getHash(transaction);
-	var passHash = crypto.createHash('sha256').update(secret, 'utf8').digest();
-	var keypair = ed.MakeKeypair(passHash);
-	transaction.signature = ed.Sign(hash, keypair).toString('hex');
-}
-
-Transactions.prototype.secondSign = function (secret, transaction) {
-	var hash = transactionHelper.getHash(transaction);
-	var passHash = crypto.createHash('sha256').update(secret, 'utf8').digest();
-	var keypair = ed.MakeKeypair(passHash);
-	transaction.signSignature = ed.Sign(hash, keypair).toString('hex');
-}
-
 Transactions.prototype.getUnconfirmedTransaction = function (id) {
 	var index = unconfirmedTransactionsIdIndex[id];
 	return unconfirmedTransactions[index];

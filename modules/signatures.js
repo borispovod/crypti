@@ -105,21 +105,14 @@ function attachApi() {
 				return res.json({success: false, error: "Second signature already enabled"});
 			}
 
-			var signature = newSignature(secondSecret);
-			var transaction = {
+			var transaction = library.logic.transaction.create({
 				type: 1,
-				amount: 0,
-				recipientId: null,
-				senderPublicKey: account.publicKey,
-				timestamp: slots.getTime(),
 				asset: {
-					signature: signature
-				}
-			};
-
-			modules.transactions.sign(secret, transaction);
-
-			transaction.id = transactionHelper.getId(transaction);
+					signature: newSignature(secondSecret)
+				},
+				sender: account,
+				keypair: keypair
+			});
 
 			library.sequence.add(function (cb) {
 				modules.transactions.processUnconfirmedTransaction(transaction, true, cb);

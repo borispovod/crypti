@@ -169,12 +169,15 @@ Account.prototype.undoDelegateList = function (diff) {
 }
 
 function Vote() {
-	this.create = function (trs, cb) {
+	this.create = function (trs, data) {
+		trs.recipientId = data.sender.address;
+		trs.asset.votes = data.asset.votes;
 
+		return trs;
 	}
 
 	this.calculateFee = function (trs) {
-		return 0;
+		return 1 * constants.fixedPoint;
 	}
 
 	this.verify = function (trs, cb) {
@@ -182,7 +185,7 @@ function Vote() {
 	}
 
 	this.getBytes = function (trs) {
-		return 0;
+		return trs.asset.votes ? new Buffer(transaction.asset.votes.join(''), 'utf8') : null;
 	}
 };
 
@@ -371,22 +374,22 @@ function attachApi() {
 				return res.json({success: false, error: "Provide second secret key"});
 			}
 
-			var transaction = {
-				type: 3,
-				amount: 0,
-				recipientId: account.address,
-				senderPublicKey: account.publicKey,
-				timestamp: slots.getTime(),
-				asset: {
-					votes: delegates
-				}
-			};
-
-			modules.transactions.sign(secret, transaction);
+			var secondKeypair = null;
 
 			if (account.secondSignature) {
-				modules.transactions.secondSign(secondSecret, transaction);
+				var secondHash = crypto.createHash('sha256').update(secret, 'utf8').digest();
+				secondKeypair = ed.MakeKeypair(secondHash);
 			}
+
+			var transaction = library.logic.transaction.create({
+				type: 3,
+				asset:{
+					votes: delegates
+				},
+				sender: account,
+				keypair: keypair,
+				secondKeypair: secondKeypair
+			});
 
 			library.sequence.add(function (cb) {
 				modules.transactions.processUnconfirmedTransaction(transaction, true, cb);

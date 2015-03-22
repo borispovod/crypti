@@ -30,31 +30,31 @@ function attachApi() {
 
 	router.put('/', function (req, res, next) {
 		req.sanitize("body", {
-			secret : "string!",
-			publicKey : "hex",
-			code : {
-				required : true,
-				string : true,
-				maxByteLength : 4 * 1024
+			secret: "string!",
+			publicKey: "hex",
+			code: {
+				required: true,
+				string: true,
+				maxByteLength: 4 * 1024
 			},
-			parameters : {
-				required : true,
-				object : true,
-				maxByteLength : 4 * 1024
+			parameters: {
+				required: true,
+				object: true,
+				maxByteLength: 4 * 1024
 			},
-			name : {
-				required : true,
-				string : true,
-				minLength : 1,
-				maxLength : 16
+			name: {
+				required: true,
+				string: true,
+				minLength: 1,
+				maxLength: 16
 			},
-			description : {
-				string : true,
-				maxLength : 140
+			description: {
+				string: true,
+				maxLength: 140
 			}
-		}, function(err, report, body) {
+		}, function (err, report, body) {
 			if (err) return next(err);
-			if (! report.isValid) return res.json({success: false, error: report.issues});
+			if (!report.isValid) return res.json({success: false, error: report.issues});
 
 			var secret = body.secret,
 				publicKey = body.publicKey,
@@ -89,35 +89,37 @@ function attachApi() {
 				return res.json({success: false, error: "Open account to make transaction"});
 			}
 
+			if (account.secondSignature && !secondSecret) {
+				return res.json({success: false, error: "Provide second secret key"});
+			}
+
 			var script = {
 				code: new Buffer(code, 'utf8').toString('hex'),
 				parameters: new Buffer(parameters, 'utf8').toString('hex'),
-				name : name,
-				description : description
+				name: name,
+				description: description
 			};
 
-			var transaction = {
-				type: 4,
-				amount: 0,
-				recipientId: null,
-				senderPublicKey: account.publicKey,
-				timestamp: slots.getTime(),
-				asset: {
-					script: script
-				}
-			};
-
-			modules.transactions.sign(secret, transaction);
+			var secondKeypair = null;
 
 			if (account.secondSignature) {
-				if (!secondSecret || secondSecret.length == 0) {
-					return res.json({success: false, error: "Provide second secret key"});
-				}
-
-				modules.transactions.secondSign(secondSecret, transaction);
+				var secondHash = crypto.createHash('sha256').update(secret, 'utf8').digest();
+				secondKeypair = ed.MakeKeypair(secondHash);
 			}
 
-			modules.transactions.processUnconfirmedTransaction(transaction, true, function (err) {
+			var transaction = library.logic.transaction.create({
+				type: 4,
+				asset: {
+					script: script
+				},
+				sender: account,
+				keypair: keypair,
+				secondKeypair: secondKeypair
+			});
+
+			library.sequence.add(function (cb) {
+				modules.transactions.processUnconfirmedTransaction(transaction, true, cb);
+			}, function (err) {
 				if (err) {
 					return res.json({success: false, error: err});
 				}
@@ -154,17 +156,17 @@ Scripts.prototype.onBind = function (scope) {
 Scripts.prototype.getScript = function (transactionId, cb) {
 	var fields = ['name', 'description', 'transactionId', 'code', 'parameters'];
 	library.dbLite.query("SELECT name, description, transactionId, lower(hex(code)), lower(hex(parameters)) FROM scripts WHERE transactionId=$transactionId", {transactionId: transactionId}, fields, function (err, rows) {
-		setImmediate(cb, err, rows.length > 0? rows[0] : null);
+		setImmediate(cb, err, rows.length > 0 ? rows[0] : null);
 	});
 }
 
 Scripts.prototype.onNewBlock = function (block, broadcast) {
 	/*block.transactions.forEach(function(transaction){
-		if (transaction.type == 4){
-			var js = new Buffer(transaction.asset.script.code, 'hex').toString();
-			eval(js);
-		}
-	})*/
+	 if (transaction.type == 4){
+	 var js = new Buffer(transaction.asset.script.code, 'hex').toString();
+	 eval(js);
+	 }
+	 })*/
 }
 
 //export
