@@ -6,6 +6,8 @@ var params = require('../helpers/params.js');
 var arrayHelper = require('../helpers/array.js');
 var extend = require('extend');
 
+require('array.prototype.find'); //old node fix
+
 //private
 var modules, library, self;
 
@@ -98,6 +100,21 @@ Peer.prototype.list = function (limit, cb) {
 
 	library.dbLite.query("select ip, port, state, os, sharePort, version from peers where state > 0 and sharePort = 1 ORDER BY RANDOM() LIMIT $limit", params, {'ip' : Number, 'port' : Number, 'state' : Number, 'os' : String, 'sharePort' : Number, 'version' : String}, function (err, res) {
 		cb(err, res);
+	});
+}
+
+Peer.prototype.remove = function (pip, port, cb) {
+	var isFrozenList = library.config.peers.list.find(function (peer) {
+		return peer.ip == ip.fromLong(pip) && peer.port == port;
+	});
+	if (isFrozenList !== undefined) return cb && cb();
+	library.dbLite.query("DELETE FROM peers WHERE ip = $ip and port = $port;", {
+		ip: pip,
+		port: port
+	}, function (err) {
+		err && library.logger.error('Peer#delete', err);
+
+		cb && cb()
 	});
 }
 

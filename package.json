@@ -1,43 +1,44 @@
 {
-  "name": "Crypti",
-  "version": "0.1.9c",
-  "private": true,
-  "scripts": {
-    "start": "node app.js",
-    "test": "./node_modules/.bin/mocha test/test.js -s 2s"
-  },
-  "dependencies": {
-    "async": "https://github.com/crypti/async/tarball/master",
-    "basic-auth": "*",
-    "basic-auth-connect": "^1.0.0",
-    "bignum": "https://github.com/crypti/node-bignum/tarball/master",
-    "body-parser": "*",
-    "bytebuffer": "https://github.com/crypti/ByteBuffer.js/tarball/master",
-    "change-case": "*",
-    "colors": "^1.0.3",
-    "compression": "^1.3.0",
-    "cycle": "^1.0.3",
-    "dblite": "https://github.com/crypti/dblite/tarball/master",
-    "ed25519": "https://github.com/crypti/Ed25519/tarball/master",
-    "ejs": "*",
-    "express": "4.x",
-    "express-domain-middleware": "*",
-    "extend": "^2.0.0",
-    "grunt": "^0.4.5",
-    "ip": "^0.3.2",
-    "long": "^1.1.5",
-    "method-override": "*",
-    "pkginfo": "^0.3.0",
-    "request": "*",
-    "segfault-handler": "*",
-    "stack-trace": "0.0.9",
-    "strftime": "*",
-    "underscore": "https://github.com/crypti/underscore/tarball/master"
-  },
-  "devDependencies": {
-    "grunt-jscrambler": "^0.2.7",
-    "grunt-obfuscator": "^0.1.0",
-    "should": "~4.6.0",
-    "mocha": "~2.1.0"
-  }
+	"name": "Crypti",
+	"version": "0.1.9c",
+	"private": true,
+	"scripts": {
+		"start": "node app.js",
+		"test": "./node_modules/.bin/mocha test/test.js -s 2s"
+	},
+	"dependencies": {
+		"array.prototype.find": "*",
+		"async": "https://github.com/crypti/async/tarball/master",
+		"basic-auth": "*",
+		"basic-auth-connect": "^1.0.0",
+		"bignum": "https://github.com/crypti/node-bignum/tarball/master",
+		"body-parser": "*",
+		"bytebuffer": "https://github.com/crypti/ByteBuffer.js/tarball/master",
+		"change-case": "*",
+		"colors": "^1.0.3",
+		"compression": "^1.3.0",
+		"cycle": "^1.0.3",
+		"dblite": "https://github.com/crypti/dblite/tarball/master",
+		"ed25519": "https://github.com/crypti/Ed25519/tarball/master",
+		"ejs": "*",
+		"express": "4.x",
+		"express-domain-middleware": "*",
+		"extend": "^2.0.0",
+		"grunt": "^0.4.5",
+		"ip": "^0.3.2",
+		"long": "^1.1.5",
+		"method-override": "*",
+		"pkginfo": "^0.3.0",
+		"request": "*",
+		"segfault-handler": "*",
+		"stack-trace": "0.0.9",
+		"strftime": "*",
+		"underscore": "https://github.com/crypti/underscore/tarball/master"
+	},
+	"devDependencies": {
+		"grunt-jscrambler": "^0.2.7",
+		"grunt-obfuscator": "^0.1.0",
+		"should": "~4.6.0",
+		"mocha": "~2.1.0"
+	}
 }
