@@ -6,7 +6,7 @@
     "crypti": "./crypti"
   },
   "scripts": {
-    "start": "node app.js",
+    "start": "$NODE bin/cli.js",
     "test": "./test/test.sh"
   },
   "dependencies": {
@@ -60,6 +60,7 @@
     "grunt-gcloud": "https://github.com/crypti/grunt-gcloud/tarball/master",
     "grunt-nodemailer": "^0.3.0",
     "grunt-slack-hook": "0.0.4",
-    "moment": "^2.9.0"
+    "moment": "^2.9.0",
+    "faker": "~2.1.2"
   }
 }
