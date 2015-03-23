@@ -231,7 +231,6 @@ function Transport(cb, scope) {
 							modules.blocks.processBlock(block, true, function (err) {
 								if (err) {
 									modules.transactions.deleteHiddenTransaction();
-									lastBlock = modules.blocks.getLastBlock();
 									modules.blocks.processBlock(lastBlock, false, function (err) {
 										if (err) {
 											library.logger.error("processBlock", err);
