@@ -6,7 +6,7 @@
     "crypti": "./crypti"
   },
   "scripts": {
-    "start": "node app.js",
+    "start": "$NODE bin/cli.js",
     "test": "./test/test.sh"
   },
   "dependencies": {
