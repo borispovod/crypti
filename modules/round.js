@@ -1,6 +1,5 @@
 var async = require('async'),
 	util = require('util'),
-	params = require('../helpers/params.js'),
 	arrayHelper = require('../helpers/array.js'),
 	slots = require('../helpers/slots.js');
 
@@ -12,6 +11,7 @@ var delegatesByRound = {};
 var unFeesByRound = {};
 var unDelegatesByRound = {};
 var forgedBlocks = {};
+var missedBlocks = {};
 
 //constructor
 function Round(cb, scope) {
@@ -50,6 +50,8 @@ Round.prototype.directionSwap = function (direction) {
 }
 
 Round.prototype.backwardTick = function (block, previousBlock) {
+	forgedBlocks[block.generatorPublicKey] = (forgedBlocks[block.generatorPublicKey] || 0) - 1;
+
 	var round = self.calc(block.height);
 
 	var prevRound = self.calc(previousBlock.height);
@@ -64,8 +66,8 @@ Round.prototype.backwardTick = function (block, previousBlock) {
 		if (unDelegatesByRound[round].length == slots.delegates || previousBlock.height == 1) {
 			var roundDelegates = modules.delegates.generateDelegateList(block.height);
 			roundDelegates.forEach(function (delegate) {
-				if (unDelegatesByRound[round].indexOf(delegate) !== -1) {
-					forgedBlocks[delegate] = (forgedBlocks[delegate] || 0) - 1;
+				if (unDelegatesByRound[round].indexOf(delegate) == -1) {
+					missedBlocks[delegate] = (missedBlocks[delegate] || 0) - 1;
 				}
 			});
 
@@ -109,12 +111,15 @@ Round.prototype.backwardTick = function (block, previousBlock) {
 	}
 }
 
-
-Round.prototype.passedTours = function (publicKey) {
-	return forgedBlocks[publicKey] || 0
+Round.prototype.blocksStat = function (publicKey) {
+	return {
+		forged: forgedBlocks[publicKey] || null,
+		missed: missedBlocks[publicKey] || null
+}
 }
 
 Round.prototype.tick = function (block) {
+	forgedBlocks[block.generatorPublicKey] = (forgedBlocks[block.generatorPublicKey] || 0) + 1;
 	var round = self.calc(block.height);
 
 	feesByRound[round] = (feesByRound[round] || 0);
@@ -129,8 +134,8 @@ Round.prototype.tick = function (block) {
 		if (delegatesByRound[round].length == slots.delegates || block.height == 1) {
 			var roundDelegates = modules.delegates.generateDelegateList(block.height);
 			roundDelegates.forEach(function (delegate) {
-				if (delegatesByRound[round].indexOf(delegate) !== -1) {
-					forgedBlocks[delegate] = (forgedBlocks[delegate] || 0) + 1;
+				if (delegatesByRound[round].indexOf(delegate) == -1) {
+					missedBlocks[delegate] = (missedBlocks[delegate] || 0) + 1;
 				}
 			});
 

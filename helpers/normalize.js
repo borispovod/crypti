@@ -30,11 +30,11 @@ function normalizeBlock(block) {
 function normalizeDelegate(delegate, transaction) {
 	delegate = RequestSanitizer.object(delegate);
 
-	delegate.username = params.string(delegate.username);
-	delegate.publicKey = params.hex(transaction.senderPublicKey);
-	delegate.transactionId = params.string(transaction.id);
-	delegate.address = params.string(transaction.senderId);
-	delegate.created = params.int(transaction.timestamp);
+	delegate.username = RequestSanitizer.string(delegate.username);
+	delegate.publicKey = RequestSanitizer.hex(transaction.senderPublicKey);
+	delegate.transactionId = RequestSanitizer.string(transaction.id);
+	delegate.address = RequestSanitizer.string(transaction.senderId);
+	delegate.created = RequestSanitizer.int(transaction.timestamp);
 
 	return delegate;
 }

@@ -20,7 +20,9 @@ var transactionHelper = require('../helpers/transaction.js'),
 // private fields
 var modules, library, self;
 
-var unconfirmedTransactions = {};
+var hiddenTransactions = [];
+var unconfirmedTransactions = [];
+var unconfirmedTransactionsIdIndex = {};
 var doubleSpendingTransactions = {};
 
 //constructor
@@ -49,7 +51,7 @@ function attachApi() {
 			orderBy: "string?",
 			offset: {default: 0, int: true},
 			senderPublicKey: "hex?",
-			senderId: "string",
+			senderId: "string?",
 			recipientId: "string?"
 		}, function (err, report, query) {
 			if (err) return next(err);
@@ -87,19 +89,17 @@ function attachApi() {
 			return res.json({success: false, error: "Provide id in url"});
 		}
 
-		var transaction = extend(true, {}, self.getUnconfirmedTransaction(id));
+		var unconfirmedTransaction = self.getUnconfirmedTransaction(id);
 
-		if (!transaction) {
+		if (!unconfirmedTransaction) {
 			return res.json({success: false, error: "Transaction not found"});
 		}
 
-		delete transaction.asset;
-
-		res.json({success: true, transaction: transaction});
+		res.json({success: true, transaction: unconfirmedTransaction});
 	});
 
 	router.get('/unconfirmed/', function (req, res) {
-		var transactions = self.getUnconfirmedTransactions(true),
+		var transactions = self.getUnconfirmedTransactionList(true),
 			toSend = [];
 
 		var senderPublicKey = RequestSanitizer.hex(req.query.senderPublicKey || null, true),
@@ -122,11 +122,8 @@ function attachApi() {
 
 	router.put('/', function (req, res) {
 		req.sanitize("body", {
-			secret: {
-				string: true,
-				minLength: 1
-			},
-			amount: "int",
+			secret: "string!",
+			amount: "int!",
 			recipientId: "string?",
 			publicKey: "hex?",
 			secondSecret: "string?",
@@ -162,6 +159,13 @@ function attachApi() {
 			if (!account.publicKey) {
 				return res.json({success: false, error: "Open account to make transaction"});
 			}
+
+
+			if (amount.toString().indexOf('e') >= 0) {
+				return res.json({success: false, error: "Incorrect amount, please, correct it"});
+			}
+
+			amount = RequestSanitizer.int(amount);
 
 			var transaction = {
 				type: 0,
@@ -207,6 +211,7 @@ function attachApi() {
 }
 
 function list(filter, cb) {
+	var sortFields = ['t.id', 't.blockId', 't.type', 't.timestamp', 't.senderPublicKey', 't.senderId', 't.recipientId', 't.amount', 't.fee', 't.signature', 't.signSignature', 't.confirmations'];
 	var params = {}, fields = [];
 	if (filter.blockId) {
 		fields.push('blockId = $blockId')
@@ -237,6 +242,14 @@ function list(filter, cb) {
 		sortBy = "t." + sortBy;
 		if (sort.length == 2) {
 			var sortMethod = sort[1] == 'desc' ? 'desc' : 'asc'
+		} else {
+			sortMethod = "desc";
+		}
+	}
+
+	if (sortBy) {
+		if (sortFields.indexOf(sortBy) < 0) {
+			return cb("Invalid field to sort");
 		}
 	}
 
@@ -244,15 +257,14 @@ function list(filter, cb) {
 		return cb('Maximum of limit is 100');
 	}
 
-
 	// need to fix 'or' or 'and' in query
 	library.dbLite.query("select t.id, t.blockId, t.type, t.timestamp, lower(hex(t.senderPublicKey)), t.senderId, t.recipientId, t.amount, t.fee, lower(hex(t.signature)), lower(hex(t.signSignature)), (select max(height) + 1 from blocks) - b.height " +
-		"from trs t " +
-		"inner join blocks b on t.blockId = b.id " +
-		(fields.length ? "where " + fields.join(' or ') : '') + " " +
-		(filter.orderBy ? 'order by ' + sortBy + ' ' + sortMethod : '') + " " +
-		(filter.limit ? 'limit $limit' : '') + " " +
-		(filter.offset ? 'offset $offset' : ''), params, ['t_id', 't_blockId', 't_type', 't_timestamp', 't_senderPublicKey', 't_senderId', 't_recipientId', 't_amount', 't_fee', 't_signature', 't_signSignature', 'confirmations'], function (err, rows) {
+	"from trs t " +
+	"inner join blocks b on t.blockId = b.id " +
+	(fields.length ? "where " + fields.join(' or ') : '') + " " +
+	(filter.orderBy ? 'order by ' + sortBy + ' ' + sortMethod : '') + " " +
+	(filter.limit ? 'limit $limit' : '') + " " +
+	(filter.offset ? 'offset $offset' : ''), params, ['t_id', 't_blockId', 't_type', 't_timestamp', 't_senderPublicKey', 't_senderId', 't_recipientId', 't_amount', 't_fee', 't_signature', 't_signSignature', 'confirmations'], function (err, rows) {
 		if (err) {
 			return cb(err)
 		}
@@ -264,9 +276,9 @@ function list(filter, cb) {
 
 function getById(id, cb) {
 	library.dbLite.query("select t.id, t.blockId, t.type, t.timestamp, lower(hex(t.senderPublicKey)), t.senderId, t.recipientId, t.amount, t.fee, lower(hex(t.signature)), lower(hex(t.signSignature)), (select max(height) + 1 from blocks) - b.height " +
-		"from trs t " +
-		"inner join blocks b on t.blockId = b.id " +
-		"where t.id = $id", {id: id}, ['t_id', 't_blockId', 't_type', 't_timestamp', 't_senderPublicKey', 't_senderId', 't_recipientId', 't_amount', 't_fee', 't_signature', 't_signSignature', 'confirmations'], function (err, rows) {
+	"from trs t " +
+	"inner join blocks b on t.blockId = b.id " +
+	"where t.id = $id", {id: id}, ['t_id', 't_blockId', 't_type', 't_timestamp', 't_senderPublicKey', 't_senderId', 't_recipientId', 't_amount', 't_fee', 't_signature', 't_signSignature', 'confirmations'], function (err, rows) {
 		if (err || !rows.length) {
 			return cb(err || "Can't find transaction: " + id);
 		}
@@ -274,6 +286,12 @@ function getById(id, cb) {
 		var transacton = relational.getTransaction(rows[0]);
 		cb(null, transacton);
 	});
+}
+
+function addUnconfirmedTransaction(transaction) {
+	unconfirmedTransactions.push(transaction);
+	var index = unconfirmedTransactions.length - 1;
+	unconfirmedTransactionsIdIndex[transaction.id] = index;
 }
 
 //public methods
@@ -292,41 +310,43 @@ Transactions.prototype.secondSign = function (secret, transaction) {
 }
 
 Transactions.prototype.getUnconfirmedTransaction = function (id) {
-	return unconfirmedTransactions[id];
+	var index = unconfirmedTransactionsIdIndex[id];
+	return unconfirmedTransactions[index];
 }
 
-Transactions.prototype.getUnconfirmedTransactions = function (sort) {
-	var a = arrayHelper.hash2array(unconfirmedTransactions);
+Transactions.prototype.addDoubleSpending = function (transaction) {
+	doubleSpendingTransactions[transaction.id] = transaction;
+}
 
-	if (sort) {
-		a.sort(function compare(a, b) {
-			if (a.timestamp > b.timestamp)
-				return -1;
-			if (a.timestamp < b.timestamp)
-				return 1;
-			return 0;
-		});
+Transactions.prototype.pushHiddenTransaction = function (transaction) {
+	hiddenTransactions.push(transaction);
+}
+
+Transactions.prototype.shiftHiddenTransaction = function () {
+	return hiddenTransactions.shift();
+}
+
+Transactions.prototype.deleteHiddenTransaction = function () {
+	hiddenTransactions = [];
+}
+
+Transactions.prototype.getUnconfirmedTransactionList = function (reverse) {
+	var a = [];
+	for (var i = 0; i < unconfirmedTransactions.length; i++) {
+		if (unconfirmedTransactions[i] !== false) {
+			a.push(unconfirmedTransactions[i]);
+		}
 	}
 
-	return a;
+	return reverse ? a.reverse() : a;
 }
 
-/**
- * Remove transaction from list of unconfirmed transactions by it's id.
- * @param {string} id Transaction id
- */
 Transactions.prototype.removeUnconfirmedTransaction = function (id) {
-	if (unconfirmedTransactions[id]) {
-		delete unconfirmedTransactions[id];
-	}
+	var index = unconfirmedTransactionsIdIndex[id];
+	delete unconfirmedTransactionsIdIndex[id];
+	unconfirmedTransactions[index] = false;
 }
 
-/**
- * Process unconfirmed transaction
- * @param {object} transaction
- * @param {boolean} broadcast Broadcast transaction confirmation
- * @param {function(err,transaction=)} cb Result callback.
- */
 Transactions.prototype.processUnconfirmedTransaction = function (transaction, broadcast, cb) {
 	var txId = transactionHelper.getId(transaction);
 
@@ -341,11 +361,11 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 		if (err) return cb && cb(err);
 
 		if (!self.applyUnconfirmed(transaction)) {
-			doubleSpendingTransactions[transaction.id] = transaction;
+			self.addDoubleSpending(transaction);
 			return cb && cb("Can't apply transaction: " + transaction.id);
 		}
 
-		unconfirmedTransactions[transaction.id] = transaction;
+		addUnconfirmedTransaction(transaction)
 
 		library.bus.message('unconfirmedTransaction', transaction, broadcast)
 
@@ -364,12 +384,11 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 			return done("Can't process transaction, transaction already confirmed");
 		} else {
 			// check in confirmed transactions
-			if (unconfirmedTransactions[transaction.id] || doubleSpendingTransactions[transaction.id]) {
+			if (unconfirmedTransactionsIdIndex[transaction.id] !== undefined || doubleSpendingTransactions[transaction.id]) {
 				return done("This transaction already exists");
 			}
 
 			var sender = modules.accounts.getAccountByPublicKey(transaction.senderPublicKey);
-
 
 			if (!sender) {
 				return done("Can't process transaction, sender not found");
@@ -396,12 +415,12 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 Transactions.prototype.validateTransaction = function (transaction, done) {
 	var sender = modules.accounts.getAccountByPublicKey(transaction.senderPublicKey);
 
-	if (!modules.transactions.verifySignature(transaction)) {
+	if (!self.verifySignature(transaction)) {
 		return done("Can't verify transaction signature: " + transaction.id);
 	}
 
 	if (sender.secondSignature) {
-		if (!modules.transactions.verifySecondSignature(transaction, sender.secondPublicKey)) {
+		if (!self.verifySecondSignature(transaction, sender.secondPublicKey)) {
 			return done("Can't verify second signature: " + transaction.id);
 		}
 	}
@@ -632,19 +651,21 @@ Transactions.prototype.apply = function (transaction) {
 
 Transactions.prototype.applyUnconfirmedList = function (ids) {
 	for (var i = 0; i < ids.length; i++) {
-		var transaction = unconfirmedTransactions[ids[i]];
-		if (!this.applyUnconfirmed(transaction)) {
-			delete unconfirmedTransactions[ids[i]];
-			doubleSpendingTransactions[ids[i]] = transaction;
+		var transaction = self.getUnconfirmedTransaction(ids[i])
+		if (!self.applyUnconfirmed(transaction)) {
+			self.removeUnconfirmedTransaction(ids[i]);
+			self.addDoubleSpending(transaction);
 		}
 	}
 }
 
-Transactions.prototype.undoAllUnconfirmed = function () {
-	var ids = Object.keys(unconfirmedTransactions);
-	for (var i = 0; i < ids.length; i++) {
-		var transaction = unconfirmedTransactions[ids[i]];
-		this.undoUnconfirmed(transaction);
+Transactions.prototype.undoUnconfirmedList = function () {
+	var ids = [];
+	for (var i = 0; i < unconfirmedTransactions.length; i++) {
+		if (unconfirmedTransactions[i] !== false) {
+			ids.push(unconfirmedTransactions[i].id);
+			self.undoUnconfirmed(unconfirmedTransactions[i]);
+		}
 	}
 	return ids;
 }
@@ -679,18 +700,24 @@ Transactions.prototype.applyUnconfirmed = function (transaction) {
 
 		modules.delegates.addUnconfirmedDelegate(transaction.asset.delegate);
 	} else if (transaction.type == 3) {
-		sender.applyUnconfirmedDelegateList(transaction.asset.votes);
+		if (!sender.applyUnconfirmedDelegateList(transaction.asset.votes)) {
+			return false;
+		}
 	}
 
 	var amount = transaction.amount + transaction.fee;
 
 	if (sender.unconfirmedBalance < amount && transaction.blockId != genesisblock.block.id) {
-		if (transaction.type == 1) {
-			sender.unconfirmedSignature = false;
-		} else if (transaction.type == 2) {
-			modules.delegates.removeUnconfirmedDelegate(transaction.asset.delegate);
-		} else if (transaction.type == 3) {
-			sender.undoUnconfirmedDelegateList(transaction.asset.votes);
+		switch (transaction.type) {
+			case 1:
+				sender.unconfirmedSignature = false;
+				break;
+			case 2:
+				modules.delegates.removeUnconfirmedDelegate(transaction.asset.delegate);
+				break;
+			case 3:
+				sender.undoUnconfirmedDelegateList(transaction.asset.votes);
+				break;
 		}
 
 		return false;
@@ -800,19 +827,13 @@ Transactions.prototype.verifySecondSignature = function (transaction, publicKey)
 	return res;
 }
 
-//events
-Transactions.prototype.onReceiveTransaction = function (transactions) {
-	if (!util.isArray(transactions)) {
-		transactions = [transactions];
-	}
-
-	library.sequence.add(function (cb) {
-		async.forEach(transactions, function (transaction, cb) {
-			self.processUnconfirmedTransaction(transaction, true, cb);
-		}, cb);
-	});
+Transactions.prototype.receiveTransactions = function (transactions, cb) {
+	async.eachSeries(transactions, function (transaction, cb) {
+		self.processUnconfirmedTransaction(transaction, true, cb);
+	}, cb);
 }
 
+//events
 Transactions.prototype.onBind = function (scope) {
 	modules = scope;
 }
