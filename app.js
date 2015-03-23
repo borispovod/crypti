@@ -22,7 +22,8 @@ var config = {
 		"delegates": "./modules/delegates.js",
 		"scripts": "./modules/scripts.js",
 		"round": "./modules/round.js",
-		"sandboxes" : "./modules/sandboxes.js"
+		"sandboxes" : "./modules/sandboxes.js",
+		"usernames":"./modules/usernames.js"
 	}
 };
 

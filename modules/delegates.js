@@ -339,7 +339,6 @@ function attachApi() {
 				res.json({success: true, transaction: transaction});
 			});
 		});
-
 	});
 
 	library.app.use('/api/delegates', router);

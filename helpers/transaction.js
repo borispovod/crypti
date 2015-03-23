@@ -6,6 +6,16 @@ var crypto = require('crypto'),
 	signatureHelper = require("./signature.js"),
 	scriptHelper = require("./script.js");
 
+
+var TYPES = {
+	MONEY_SEND : 0,
+	DELEGATE_ADD : 1,
+	DELEGATE_VOTE : 2,
+	SCRIPT_ADD : 4,
+	SCRIPT_RUN : 5,
+	USERNAME_ADD : 6
+};
+
 // get valid transaction fee, if we need to get fee for block generator, use isGenerator = true
 function getTransactionFee(transaction, isGenerator) {
 	var fee = -1;
@@ -29,6 +39,9 @@ function getTransactionFee(transaction, isGenerator) {
 			break;
 		case 5:
 			fee = 10 * constants.fixedPoint;
+			break;
+		case TYPES.USERNAME_ADD:
+			fee = 1 * constants.fixedPoint;
 			break;
 	}
 
@@ -173,5 +186,6 @@ module.exports = {
 	getId: getId,
 	getLastChar: getLastChar,
 	getHash: getHash,
-	getFee: getFee
+	getFee: getFee,
+	Types : TYPES
 };

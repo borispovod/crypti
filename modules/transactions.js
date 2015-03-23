@@ -17,6 +17,8 @@ var transactionHelper = require('../helpers/transaction.js'),
 	JsonSchema = require('../helpers/json-schema'),
 	esprima = require('esprima');
 
+var TYPES = transactionHelper.Types;
+
 // private fields
 var modules, library, self;
 
@@ -562,6 +564,30 @@ Transactions.prototype.validateTransaction = function (transaction, done) {
 			});
 
 			break;
+		case TYPES.USERNAME_ADD:
+			if (transaction.recipientId) {
+				return cb("Invalid recipient");
+			}
+
+			if (! transaction.asset.username) {
+				return done("Username not set");
+			}
+
+			if (! transaction.asset.username.length < 1) {
+				return done("Username is too short");
+			}
+
+			if (! transaction.asset.username.length > 16) {
+				return done("Username is too long");
+			}
+
+			if (modules.delegates.existsName(transaction.asset.username)) {
+				return done("The username name you entered is already in use. Please try a different name.");
+			}
+
+
+
+			return done(null, transaction);
 		default:
 			return done("Unknown transaction type");
 	}
@@ -570,7 +596,7 @@ Transactions.prototype.validateTransaction = function (transaction, done) {
 /**
  * Validate transaction script.
  * @param {{code:string,parameters:string}} script Script object.
- * @param {function(err:Error|string, script:{code:string,parameters:{}}=)} callback Result callback
+ * @param {function(err:Error|string, script:{code:string,parameters:{}}=)} cb Result callback
  * @returns {*}
  */
 Transactions.prototype.validateTransactionScript = function (script, cb) {
@@ -645,6 +671,9 @@ Transactions.prototype.apply = function (transaction) {
 		case 3:
 			sender.applyDelegateList(transaction.asset.votes);
 			break;
+		case TYPES.USERNAME_ADD:
+			modules.username.removeUnconfirmedUsername(transaction.asset.username);
+			modules.username.cache(transaction.asset.username);
 	}
 	return true;
 }
@@ -698,11 +727,29 @@ Transactions.prototype.applyUnconfirmed = function (transaction) {
 			return false;
 		}
 
+		if (modules.usernames.getUnconfirmedUsername(transaction.asset.delegate)) {
+			return false;
+		}
+
 		modules.delegates.addUnconfirmedDelegate(transaction.asset.delegate);
 	} else if (transaction.type == 3) {
 		if (!sender.applyUnconfirmedDelegateList(transaction.asset.votes)) {
 			return false;
 		}
+	} else if (transaction.type === TYPES.USERNAME_ADD) {
+		if (modules.delegates.getUnconfirmedDelegate(transaction.asset.username)) {
+			return false;
+		}
+
+		if (modules.delegates.getUnconfirmedName(transaction.asset.username)) {
+			return false;
+		}
+
+		if (modules.usernames.getUnconfirmedUsername(transaction.asset.username)) {
+			return false;
+		}
+
+		modules.usernames.addUnconfirmedUsername(transaction.asset.username);
 	}
 
 	var amount = transaction.amount + transaction.fee;
@@ -744,6 +791,9 @@ Transactions.prototype.undoUnconfirmed = function (transaction) {
 		case 3:
 			sender.undoUnconfirmedDelegateList(transaction.asset.votes);
 			break;
+		case TYPES.USERNAME_ADD:
+			modules.usernames.removeUnconfirmedUsername(transaction.asset.username);
+			break;
 	}
 
 	return true;
@@ -772,6 +822,10 @@ Transactions.prototype.undo = function (transaction) {
 			break;
 		case 3:
 			sender.undoDelegateList(transaction.asset.votes);
+			break;
+		case TYPES.USERNAME_ADD:
+			modules.delegates.uncache(transaction.asset.username);
+			modules.delegates.addUnconfirmedDelegate(transaction.asset.username);
 			break;
 	}
 
