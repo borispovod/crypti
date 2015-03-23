@@ -1,7 +1,8 @@
 var slots = require('../helpers/slots.js'),
 	ed = require('ed25519'),
 	crypto = require('crypto'),
-	genesisblock = require("../helpers/genesisblock.js");
+	genesisblock = require("../helpers/genesisblock.js"),
+	RequestSanitizer = require('./request-sanitizer.js');
 
 //constructor
 function Transaction() {
@@ -13,9 +14,17 @@ var private = {};
 private.types = {};
 
 //public methods
-Transaction.prototype.create = function (data, cb) {
+Transaction.prototype.create = function (data) {
 	if (!private.types[data.type]) {
-		return cb('Unknown transaction type');
+		throw Error('Unknown transaction type');
+	}
+
+	if (!data.sender) {
+		throw Error("Can't find sender");
+	}
+
+	if (!data.keypair) {
+		throw Error("Can't find keypair");
 	}
 
 	var transaction = {
@@ -26,7 +35,7 @@ Transaction.prototype.create = function (data, cb) {
 		asset: {}
 	};
 
-	transaction = private.types[config.type].create(data, transaction);
+	transaction = private.types[data.type].create(data, transaction);
 
 	this.sign(data.keypair, transaction);
 
@@ -72,25 +81,9 @@ Transaction.prototype.getHash = function (trs) {
 	return crypto.createHash('sha256').update(this.getBytes(trs)).digest();
 }
 
-Transaction.prototype.apply = function (trs, sender, recipient, cb) {
-	if (!private.types[trs.type]) {
-		return cb('Unknown transaction type');
-	}
-
-	var amount = trs.amount + trs.fee;
-
-	if (sender.balance < amount && trs.blockId != genesisblock.block.id) {
-		return cb('Has no balance');
-	}
-
-	sender.addToBalance(-amount);
-
-	private.types[trs.type].apply(trs, sender, recipient, cb);
-}
-
 Transaction.prototype.getBytes = function (trs) {
 	if (!private.types[trs.type]) {
-		return cb('Unknown transaction type');
+		throw Error('Unknown transaction type');
 	}
 
 	try {
@@ -148,7 +141,7 @@ Transaction.prototype.getBytes = function (trs) {
 	return bb.toBuffer();
 }
 
-Transaction.prototype.verify = function (trs, sender, recipient, cb) { //inheritance
+Transaction.prototype.verify = function (trs, sender, cb) { //inheritance
 	if (!private.types[trs.type]) {
 		return cb('Unknown transaction type');
 	}
@@ -159,13 +152,18 @@ Transaction.prototype.verify = function (trs, sender, recipient, cb) { //inherit
 	}
 
 	//verify signature
-	if (!this.verifySignature(trs, sender, recipient)) {
+	if (!this.verifySignature(trs)) {
 		return cb("Can't verify signature");
 	}
 
 	//verify second signature
-	if (!this.verifySecondSignature(trs, sender, recipient)) {
+	if (sender.secondSignature && !this.verifySecondSignature(trs, sender.secondPublicKey)) {
 		return cb("Can't verify second signature: " + trs.id);
+	}
+
+	//check sender
+	if (transaction.senderId != sender.address) {
+		return cb("Invalid sender id: " + trs.id);
 	}
 
 	//calc fee
@@ -174,7 +172,7 @@ Transaction.prototype.verify = function (trs, sender, recipient, cb) { //inherit
 		return cb("Invalid transaction type/fee: " + trs.id);
 	}
 	//check amount
-	if (trs.amount < 0 || String(trs.amount).indexOf('.') >= 0) {
+	if (trs.amount < 0 || transaction.amount > 100000000 * constants.fixedPoint || String(trs.amount).indexOf('.') >= 0 || transaction.amount.toString().indexOf('e') >= 0) {
 		return cb("Invalid transaction amount: " + trs.id);
 	}
 	//check timestamp
@@ -183,7 +181,7 @@ Transaction.prototype.verify = function (trs, sender, recipient, cb) { //inherit
 	}
 
 	//spec
-	private.types[trs.type].verify(trs, sender, recipient, cb);
+	private.types[trs.type].verify(trs, sender, cb);
 }
 
 Transaction.prototype.verifySignature = function (trs) {
@@ -217,7 +215,7 @@ Transaction.prototype.verifySignature = function (trs) {
 	return res;
 }
 
-Transaction.prototype.verifySecondSignature = function (trs, sender) {
+Transaction.prototype.verifySecondSignature = function (trs, secondPublicKey) {
 	if (!private.types[trs.type]) {
 		throw Error('Unknown transaction type');
 	}
@@ -233,13 +231,42 @@ Transaction.prototype.verifySecondSignature = function (trs, sender) {
 
 	try {
 		var signSignatureBuffer = new Buffer(trs.signSignature, 'hex');
-		var publicKeyBuffer = new Buffer(sender.secondPublicKey, 'hex');
+		var publicKeyBuffer = new Buffer(secondPublicKey, 'hex');
 		var res = ed.Verify(hash, signSignatureBuffer || ' ', publicKeyBuffer || ' ');
 	} catch (e) {
 		throw Error(e.toString());
 	}
 
 	return res;
+}
+
+Transaction.prototype.objectNormalize = function (trs) {
+	if (!private.types[trs.type]) {
+		throw Error('Unknown transaction type');
+	}
+
+	trs = RequestSanitizer.validate(trs, {
+		object: true,
+		properties: {
+			id: "string",
+			blockId: "string",
+			type: "int",
+			timestamp: "int",
+			senderPublicKey: "hex",
+			senderId: "string",
+			recipientId: "string?",
+			amount: "int",
+			fee: "int",
+			signature: "hex",
+			signSignature: "hex?",
+			asset: "object"
+		}
+	}).value;
+
+
+	private.types[data.type].objectNormalize(trs);
+
+	return transaction;
 }
 
 //export

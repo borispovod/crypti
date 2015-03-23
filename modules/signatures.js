@@ -6,7 +6,6 @@ var ed = require('ed25519'),
 	relational = require("../helpers/relational.js"),
 	slots = require('../helpers/slots.js'),
 	signatureHelper = require("../helpers/signature.js"),
-	transactionHelper = require("../helpers/transaction.js"),
 	RequestSanitizer = require('../helpers/request-sanitizer.js'),
 	Router = require('../helpers/router.js'),
 	async = require('async');
@@ -15,22 +14,45 @@ var ed = require('ed25519'),
 var modules, library, self;
 
 function Signature() {
-	this.create = function (trs, cb) {
-
+	this.create = function (data, trs) {
+		return trs
 	}
 
 	this.calculateFee = function (trs) {
-		return 0;
+		return 100 * constants.fixedPoint;
 	}
 
-	this.verify = function (trs, cb) {
+	this.verify = function (trs, sender, cb) {
+		if (!trs.asset.signature) {
+			return cb("Empty transaction asset for signature transaction")
+		}
 
+		try {
+			if (new Buffer(trs.asset.signature.publicKey, 'hex').length != 32) {
+				cb("Invalid length for signature public key");
+			}
+		} catch (e) {
+			cb("Invalid hex in signature public key");
+		}
 	}
 
 	this.getBytes = function (trs) {
-		return 0;
+		return null;
 	}
-};
+
+	this.objectNormalize = function (trs) {
+		trs.asset.signature = RequestSanitizer.validate(trs.asset.signature, {
+			object: true,
+			properties: {
+				id: "string",
+				transactionId: "string",
+				publicKey: "hex"
+			}
+		}).value;
+
+		return trs;
+	}
+}
 
 //constructor
 function Signatures(cb, scope) {
@@ -71,12 +93,12 @@ function attachApi() {
 
 	router.put('/', function (req, res) {
 		req.sanitize("body", {
-			secret : "string!",
-			secondSecret : "string?",
-			publicKey : "hex?"
-		}, function(err, report, body){
+			secret: "string!",
+			secondSecret: "string?",
+			publicKey: "hex?"
+		}, function (err, report, body) {
 			if (err) return next(err);
-			if (! report.isValid) return res.json({success:false, error:report.issues});
+			if (!report.isValid) return res.json({success: false, error: report.issues});
 
 			var secret = body.secret,
 				secondSecret = body.secondSecret,

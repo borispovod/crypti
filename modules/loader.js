@@ -4,8 +4,7 @@ var async = require('async'),
 	genesisBlock = require("../helpers/genesisblock.js"),
 	ip = require("ip"),
 	bignum = require('bignum'),
-	RequestSanitizer = require('../helpers/request-sanitizer'),
-	normalize = require('../helpers/normalize.js');
+	RequestSanitizer = require('../helpers/request-sanitizer');
 require('colors');
 
 //private fields
@@ -209,7 +208,7 @@ function loadUnconfirmedTransactions(cb) {
 
 		for (var i = 0; i < transactions.length; i++) {
 			try {
-				transactions[i] = normalize.transaction(transactions[i]);
+				transactions[i] = library.logic.transaction.normalize(transactions[i]);
 			} catch (e) {
 				var peerStr = data.peer ? ip.fromLong(data.peer.ip) + ":" + data.peer.port : 'unknown';
 				library.logger.log('transaction ' + (transactions[i] ? transactions[i].id : 'null') + ' is not valid, ban 60 min', peerStr);

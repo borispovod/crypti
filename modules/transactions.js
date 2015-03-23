@@ -1,5 +1,4 @@
-var transactionHelper = require('../helpers/transaction.js'),
-	scriptHelper = require('../helpers/script.js'),
+var scriptHelper = require('../helpers/script.js'),
 	ed = require('ed25519'),
 	bignum = require('bignum'),
 	util = require('util'),
@@ -11,7 +10,6 @@ var transactionHelper = require('../helpers/transaction.js'),
 	slots = require('../helpers/slots.js'),
 	extend = require('extend'),
 	Router = require('../helpers/router.js'),
-	arrayHelper = require('../helpers/array.js'),
 	async = require('async'),
 	RequestSanitizer = require('../helpers/request-sanitizer.js'),
 	JsonSchema = require('../helpers/json-schema'),
@@ -26,7 +24,7 @@ var unconfirmedTransactionsIdIndex = {};
 var doubleSpendingTransactions = {};
 
 function Transfer() {
-	this.create = function (trs, data) {
+	this.create = function (data, trs) {
 		trs.recipientId = data.recipientId;
 		trs.amount = data.amount;
 
@@ -44,7 +42,11 @@ function Transfer() {
 	this.getBytes = function (trs) {
 		return null;
 	}
-};
+
+	this.objectNormalize = function (trs) {
+		return trs;
+	}
+}
 
 //constructor
 function Transactions(cb, scope) {
@@ -351,7 +353,7 @@ Transactions.prototype.removeUnconfirmedTransaction = function (id) {
 }
 
 Transactions.prototype.processUnconfirmedTransaction = function (transaction, broadcast, cb) {
-	var txId = transactionHelper.getId(transaction);
+	var txId = library.logic.transaction.getId(transaction);
 
 	if (transaction.id && transaction.id != txId) {
 		cb && cb("Invalid transaction id");
@@ -399,257 +401,13 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 
 			transaction.senderId = sender.address;
 
-			if (!self.verifySignature(transaction)) {
+			if (!library.logic.transaction.verifySignature(transaction)) {
 				return done("Can't verify signature");
 			}
 
 			self.validateTransaction(transaction, done);
 		}
 	});
-}
-
-/**
- * Validate unconfirmed transaction
- *
- * @param {object} transaction Transaction object
- * @param {function(err:Error|string,transaction:object=)} done Result callback
- * @returns {*}
- */
-Transactions.prototype.validateTransaction = function (transaction, done) {
-	var sender = modules.accounts.getAccountByPublicKey(transaction.senderPublicKey);
-
-	if (!self.verifySignature(transaction)) {
-		return done("Can't verify transaction signature: " + transaction.id);
-	}
-
-	if (sender.secondSignature) {
-		if (!self.verifySecondSignature(transaction, sender.secondPublicKey)) {
-			return done("Can't verify second signature: " + transaction.id);
-		}
-	}
-
-	transaction.fee = transactionHelper.getTransactionFee(transaction);
-
-	if (transaction.fee === false) {
-		return done("Invalid transaction type/fee: " + transaction.id);
-	}
-
-	if (transaction.amount < 0 || String(transaction.amount).indexOf('.') >= 0) {
-		return done("Invalid transaction amount: " + transaction.id);
-	}
-
-	if (slots.getSlotNumber(transaction.timestamp) > slots.getSlotNumber()) {
-		return done("Invalid transaction timestamp");
-	}
-
-
-	switch (transaction.type) {
-
-		case 1:
-			if (!transaction.asset.signature) {
-				return done("Empty transaction asset for signature transaction")
-			}
-
-			try {
-				if (new Buffer(transaction.asset.signature.publicKey, 'hex').length != 32) {
-					return done("Invalid length for signature public key");
-				}
-			} catch (e) {
-				return done("Invalid hex in signature public key");
-			}
-			break;
-
-		case 2:
-			if (transaction.recipientId) {
-				return cb("Invalid recipient");
-			}
-
-			if (!transaction.asset.delegate.username) {
-				return done("Empty transaction asset for delegate transaction");
-			}
-
-			if (transaction.asset.delegate.username.length == 0 || transaction.asset.delegate.username.length > 20) {
-				return done("Incorrect delegate username length");
-			}
-
-			if (modules.delegates.existsName(transaction.asset.delegate.username)) {
-				return done("The delegate name you entered is already in use. Please try a different name.");
-			}
-
-			if (modules.delegates.existsDelegate(transaction.senderPublicKey)) {
-				return done("Your account are delegate already");
-			}
-			break;
-		case 3:
-			if (transaction.recipientId != transaction.senderId) {
-				return done("Incorrect recipient");
-			}
-
-			if (!modules.delegates.checkUnconfirmedDelegates(transaction.senderPublicKey, transaction.asset.votes)) {
-				return done("Can't verify votes, you already voted for this delegate: " + transaction.id);
-			}
-
-			if (!modules.delegates.checkDelegates(transaction.senderPublicKey, transaction.asset.votes)) {
-				return done("Can't verify votes, you already voted for this delegate: " + transaction.id);
-			}
-
-			if (transaction.asset.votes !== null && transaction.asset.votes.length > 33) {
-				return done("Can't verify votes, most be less then 33 delegates");
-			}
-			break;
-		case 4:
-			if (transaction.recipientId != null) {
-				return done("Incorrect recipient");
-			}
-
-			if (!transaction.asset.script) {
-				return done("Transaction script not set");
-			}
-
-			self.validateTransactionScript(transaction.asset.script, function (err) {
-				if (err) return done(err);
-
-				if (!transaction.asset.script.name || transaction.asset.script.name.length == 0 || transaction.asset.script.name.length > 16) {
-					return done("Incorrect name length");
-				}
-
-				if (transaction.asset.script.description && transaction.asset.script.description.length > 140) {
-					return done("Incorrect description length");
-				}
-
-				done(null, transaction);
-			});
-
-			break;
-		case 5:
-			if (!transaction.asset.input) {
-				return done("Empty asset");
-			}
-
-			// verify input
-			if (!transaction.asset.input.scriptId) {
-				return done("Empty script id in transaction");
-			}
-
-			if (!transaction.asset.input.scriptId) {
-				return done("Empty input in transaction");
-			}
-
-			// need to rewrite this part async
-			modules.scripts.getScript(transaction.asset.input.scriptId, function (err, script) {
-				if (err || !script) {
-					return done(err || ("Script not found: " + transaction.asset.input.scriptId));
-				}
-
-				transaction.asset.script = script;
-
-				self.validateTransactionScript(script, function (err, script) {
-					if (err) return done(err);
-
-					try {
-						var input = JSON.parse(new Buffer(transaction.asset.input.data, 'hex'));
-					} catch (err) {
-						return done(err);
-					}
-
-					transaction.asset.script.code = new Buffer(transaction.asset.script.code, 'hex').toString('utf8');
-					transaction.asset.script.parameters = new Buffer(transaction.asset.script.parameters, 'hex').toString('utf8');
-
-					JsonSchema.validate(input, script.parameters, function (err, report) {
-						if (err) return done(err);
-						if (!report.isValid) return done(report.issues);
-
-						done(null, transaction);
-					});
-				});
-			});
-
-			break;
-		default:
-			return done("Unknown transaction type");
-	}
-}
-
-/**
- * Validate transaction script.
- * @param {{code:string,parameters:string}} script Script object.
- * @param {function(err:Error|string, script:{code:string,parameters:{}}=)} callback Result callback
- * @returns {*}
- */
-Transactions.prototype.validateTransactionScript = function (script, cb) {
-
-
-	if (!script.code) {
-		return cb("Transaction script code not exists");
-	}
-
-	var code = null, parameters = null;
-
-	try {
-		code = new Buffer(script.code, 'hex');
-		parameters = new Buffer(script.parameters, 'hex');
-	} catch (e) {
-		return cb("Can't parse code/parameters from hex to strings in script transaction.");
-	}
-
-
-	if (code.length > 4 * 1024) {
-		return cb("Incorrect script code length");
-	}
-
-	try {
-		esprima.parse(code.toString('utf8'));
-	} catch (err) {
-		return cb("Transaction script code is not valid");
-	}
-
-	if (parameters.length > 4 * 1024) {
-		return cb("Incorrect script parameters length");
-	}
-
-	try {
-		parameters = JSON.parse(parameters.toString('utf8'));
-	} catch (e) {
-		return cb("Incorrect script parameters json");
-	}
-
-	cb(null, {
-		code: code,
-		parameters: parameters
-	});
-}
-
-Transactions.prototype.apply = function (transaction) {
-	var sender = modules.accounts.getAccountByPublicKey(transaction.senderPublicKey);
-	var amount = transaction.amount + transaction.fee;
-
-	if (sender.balance < amount && transaction.blockId != genesisblock.block.id) {
-		return false;
-	}
-
-	sender.addToBalance(-amount);
-
-	// process only two types of transactions
-	switch (transaction.type) {
-		case 0:
-			var recipient = modules.accounts.getAccountOrCreateByAddress(transaction.recipientId);
-			recipient.addToUnconfirmedBalance(transaction.amount);
-			recipient.addToBalance(transaction.amount);
-			break;
-		case 1:
-			sender.unconfirmedSignature = false;
-			sender.secondSignature = true;
-			sender.secondPublicKey = transaction.asset.signature.publicKey;
-			break;
-		case 2:
-			modules.delegates.removeUnconfirmedDelegate(transaction.asset.delegate);
-			modules.delegates.cache(transaction.asset.delegate);
-			break;
-		case 3:
-			sender.applyDelegateList(transaction.asset.votes);
-			break;
-	}
-	return true;
 }
 
 Transactions.prototype.applyUnconfirmedList = function (ids) {
@@ -779,55 +537,6 @@ Transactions.prototype.undo = function (transaction) {
 	}
 
 	return true;
-}
-
-Transactions.prototype.verifySignature = function (transaction) {
-	var remove = 64;
-
-	if (transaction.signSignature) {
-		remove = 128;
-	}
-
-	var bytes = transactionHelper.getBytes(transaction);
-	var data2 = new Buffer(bytes.length - remove);
-
-	for (var i = 0; i < data2.length; i++) {
-		data2[i] = bytes[i];
-	}
-
-	var hash = crypto.createHash('sha256').update(data2).digest();
-
-	try {
-		var signatureBuffer = new Buffer(transaction.signature, 'hex');
-		var senderPublicKeyBuffer = new Buffer(transaction.senderPublicKey, 'hex');
-		var res = ed.Verify(hash, signatureBuffer || ' ', senderPublicKeyBuffer || ' ');
-	} catch (e) {
-		library.logger.info("first signature");
-		library.logger.error(e, {err: e, transaction: transaction})
-	}
-
-	return res;
-}
-
-Transactions.prototype.verifySecondSignature = function (transaction, publicKey) {
-	var bytes = transactionHelper.getBytes(transaction);
-	var data2 = new Buffer(bytes.length - 64);
-
-	for (var i = 0; i < data2.length; i++) {
-		data2[i] = bytes[i];
-	}
-
-	var hash = crypto.createHash('sha256').update(data2).digest();
-
-	try {
-		var signSignatureBuffer = new Buffer(transaction.signSignature, 'hex');
-		var publicKeyBuffer = new Buffer(publicKey, 'hex');
-		var res = ed.Verify(hash, signSignatureBuffer || ' ', publicKeyBuffer || ' ');
-	} catch (e) {
-		library.logger.error(e, {err: e, transaction: transaction})
-	}
-
-	return res;
 }
 
 Transactions.prototype.receiveTransactions = function (transactions, cb) {

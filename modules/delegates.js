@@ -3,7 +3,6 @@ var crypto = require('crypto'),
 	ed = require('ed25519'),
 	shuffle = require('knuth-shuffle').knuthShuffle,
 	Router = require('../helpers/router.js'),
-	arrayHelper = require('../helpers/array.js'),
 	slots = require('../helpers/slots.js'),
 	schedule = require('node-schedule'),
 	util = require('util'),
@@ -45,14 +44,45 @@ function Delegate() {
 		return 10000 * constants.fixedPoint;
 	}
 
-	this.verify = function (trs, cb) {
+	this.verify = function (trs, sender, cb) {
+		if (trs.recipientId) {
+			return cb("Invalid recipient");
+		}
 
+		if (!trs.asset.delegate.username) {
+			return cb("Empty transaction asset for delegate transaction");
+		}
+
+		if (trs.asset.delegate.username.length == 0 || trs.asset.delegate.username.length > 20) {
+			return cb("Incorrect delegate username length");
+		}
+
+		if (modules.delegates.existsName(trs.asset.delegate.username)) {
+			return cb("The delegate name you entered is already in use. Please try a different name.");
+		}
+
+		if (modules.delegates.existsDelegate(trs.senderPublicKey)) {
+			return cb("Your account are delegate already");
+		}
 	}
 
 	this.getBytes = function (trs) {
 		return new Buffer(trs.asset.delegate.username, 'utf8');
 	}
-};
+
+	this.objectNormalize = function (trs) {
+		trs.asset.delegate = RequestSanitizer.validate(trs.asset.delegate, {
+			object: true,
+			properties: {
+				username: "string!",
+				publicKey: "hex",
+				transactionId: "string!"
+			}
+		}).value;
+
+		return trs;
+	}
+}
 
 //constructor
 function Delegates(cb, scope) {
@@ -344,7 +374,7 @@ function attachApi() {
 
 			var transaction = library.logic.transaction.create({
 				type: 2,
-				asset:{
+				asset: {
 					username: username
 				},
 				sender: account,

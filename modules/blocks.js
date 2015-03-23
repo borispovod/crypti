@@ -5,10 +5,8 @@ var crypto = require('crypto'),
 	ByteBuffer = require("bytebuffer"),
 	constants = require("../helpers/constants.js"),
 	genesisblock = require("../helpers/genesisblock.js"),
-	transactionHelper = require("../helpers/transaction.js"),
 	constants = require('../helpers/constants.js'),
 	RequestSanitizer = require('../helpers/request-sanitizer'),
-	arrayHelper = require('../helpers/array.js'),
 	normalize = require('../helpers/normalize.js'),
 	Router = require('../helpers/router.js'),
 	relational = require("../helpers/relational.js"),
@@ -624,7 +622,7 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 
 			for (var n = 0, n_length = blocks[i].transactions.length; n < n_length; n++) {
 				if (blocks[i].id != genesisblock.block.id) {
-					if (verify && !modules.transactions.verifySignature(blocks[i].transactions[n])) {
+					if (verify && !library.logic.transaction.verifySignature(blocks[i].transactions[n])) {
 						err = {
 							message: "Can't verify transaction: " + blocks[i].transactions[n].id,
 							transaction: blocks[i].transactions[n],
@@ -637,7 +635,7 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 					var sender = modules.accounts.getAccountByPublicKey(blocks[i].transactions[n].senderPublicKey);
 
 					if (sender.secondSignature) {
-						if (verify && !modules.transactions.verifySecondSignature(blocks[i].transactions[n], sender.secondPublicKey)) {
+						if (verify && !library.logic.transaction.verifySecondSignature(blocks[i].transactions[n], sender.secondPublicKey)) {
 							err = {
 								message: "Can't verify second signature transaction: " + blocks[i].transactions[n].id,
 								transaction: blocks[i].transactions[n],
@@ -788,7 +786,7 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 		async.series([
 				function (done) {
 					async.eachSeries(block.transactions, function (transaction, cb) {
-						transaction.id = transactionHelper.getId(transaction);
+						transaction.id = library.logic.transaction.getId(transaction);
 						transaction.blockId = block.id;
 
 						library.dbLite.query("SELECT id FROM trs WHERE id=$id", {id: transaction.id}, ['id'], function (err, rows) {
@@ -809,62 +807,25 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 
 								var sender = modules.accounts.getAccountByPublicKey(transaction.senderPublicKey);
 
-								if (!sender) {
-									return cb("Sender not found");
-								}
-
-								if (transaction.senderId != sender.address) {
-									return cb("Invalid sender id: " + transaction.id);
-								}
-
-								if (!modules.transactions.verifySignature(transaction)) {
-									return cb("Can't verify transaction signature: " + transaction.id);
-								}
-
-								if (sender.secondSignature) {
-									if (!modules.transactions.verifySecondSignature(transaction, sender.secondPublicKey)) {
-										return cb("Can't verify second signature: " + transaction.id);
+								library.logic.transaction.verify(transaction, sender, function (err) {
+									if (err) {
+										return cb(err);
 									}
-								}
 
-								if (slots.getSlotNumber(transaction.timestamp) > slots.getSlotNumber() || slots.getSlotNumber(transaction.timestamp) > slots.getSlotNumber(block.timestamp)) {
-									return cb("Can't accept transaction timestamp: " + transaction.id);
-								}
-
-								transaction.fee = transactionHelper.getTransactionFee(transaction);
-
-								if (transaction.fee === false) {
-									return cb("Invalid transaction type/fee: " + transaction.id);
-								}
-
-								if (transaction.amount < 0 || transaction.amount > 100000000 * constants.fixedPoint || transaction.amount.toString().indexOf('.') >= 0 || transaction.amount.toString().indexOf('e') >= 0) {
-									return cb("Invalid transaction amount: " + transaction.id);
-								}
-
-								modules.transactions.validateTransaction(transaction, function (err, transaction) {
-									if (err) return cb(err);
-
-									// Execute transaction
-									function finish(err, transaction) {
-										if (err) return cb(err);
-
-										if (!modules.transactions.applyUnconfirmed(transaction)) {
-											return cb("Can't apply transaction: " + transaction.id);
-										}
-
-										appliedTransactions[transaction.id] = transaction;
-
-										var index = unconfirmedTransactions.indexOf(transaction.id);
-										if (index >= 0) {
-											unconfirmedTransactions.splice(index, 1);
-										}
-
-										payloadHash.update(transactionHelper.getBytes(transaction));
-										totalAmount += transaction.amount;
-										totalFee += transaction.fee;
-
-										setImmediate(cb);
+									if (!modules.transactions.applyUnconfirmed(transaction)) {
+										return cb("Can't apply transaction: " + transaction.id);
 									}
+
+									appliedTransactions[transaction.id] = transaction;
+
+									var index = unconfirmedTransactions.indexOf(transaction.id);
+									if (index >= 0) {
+										unconfirmedTransactions.splice(index, 1);
+									}
+
+									payloadHash.update(library.logic.transaction.getBytes(transaction));
+									totalAmount += transaction.amount;
+									totalFee += transaction.fee;
 								});
 							}
 						});
@@ -1028,7 +989,7 @@ Blocks.prototype.generateBlock = function (keypair, timestamp, cb) {
 
 	for (var i = 0; i < transactions.length; i++) {
 		var transaction = transactions[i];
-		var bytes = transactionHelper.getBytes(transaction);
+		var bytes = library.logic.transaction.getBytes(transaction);
 
 		if (size + bytes.length > constants.maxPayloadLength) {
 			break;

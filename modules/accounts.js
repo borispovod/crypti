@@ -2,7 +2,8 @@ var crypto = require('crypto'),
 	bignum = require('bignum'),
 	ed = require('ed25519'),
 	slots = require('../helpers/slots.js'),
-	Router = require('../helpers/router.js');
+	Router = require('../helpers/router.js'),
+	RequestSanitizer = require('./request-sanitizer.js');
 
 //private
 var modules, library, self;
@@ -169,7 +170,7 @@ Account.prototype.undoDelegateList = function (diff) {
 }
 
 function Vote() {
-	this.create = function (trs, data) {
+	this.create = function (data, trs) {
 		trs.recipientId = data.sender.address;
 		trs.asset.votes = data.asset.votes;
 
@@ -180,14 +181,34 @@ function Vote() {
 		return 1 * constants.fixedPoint;
 	}
 
-	this.verify = function (trs, cb) {
+	this.verify = function (trs, sender, cb) {
+		if (trs.recipientId != trs.senderId) {
+			return cb("Incorrect recipient");
+		}
 
+		if (!modules.delegates.checkUnconfirmedDelegates(trs.senderPublicKey, trs.asset.votes)) {
+			return cb("Can't verify votes, you already voted for this delegate: " + trs.id);
+		}
+
+		if (!modules.delegates.checkDelegates(trs.senderPublicKey, trs.asset.votes)) {
+			return cb("Can't verify votes, you already voted for this delegate: " + trs.id);
+		}
+
+		if (trs.asset.votes !== null && trs.asset.votes.length > 33) {
+			return cb("Can't verify votes, most be less then 33 delegates");
+		}
 	}
 
 	this.getBytes = function (trs) {
 		return trs.asset.votes ? new Buffer(transaction.asset.votes.join(''), 'utf8') : null;
 	}
-};
+
+	this.objectNormalize = function (trs){
+		trs.asset.votes = RequestSanitizer.array(trs.asset.votes, true);
+
+		return trs;
+	}
+}
 
 //constructor
 function Accounts(cb, scope) {
@@ -383,7 +404,7 @@ function attachApi() {
 
 			var transaction = library.logic.transaction.create({
 				type: 3,
-				asset:{
+				asset: {
 					votes: delegates
 				},
 				sender: account,

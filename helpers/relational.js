@@ -54,7 +54,9 @@ function relational2object(rows) {
 	}
 
 	blocks = order.map(function (v) {
-		blocks[v].transactions = arrayHelper.hash2array(blocks[v].transactions);
+		blocks[v].transactions = Object.keys(blocks[v].transactions).map(function (t) {
+			return blocks[v].transactions[t];
+		});
 		return blocks[v];
 	});
 
@@ -117,8 +119,8 @@ function getScript(raw) {
 		return null
 	} else {
 		var d = {
-			name : raw.js_name,
-			description : raw.js_description,
+			name: raw.js_name,
+			description: raw.js_description,
 			code: raw.js_code,
 			parameters: raw.js_parameters
 		}
