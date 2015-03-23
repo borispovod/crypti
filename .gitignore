@@ -1,13 +1,12 @@
 stacktrace*
-logs.log
-logs.old.log
 .project
 .DS_Store
 node_modules
-npm-debug.log
+*.log
+*.out
 .idea
 .ed25519-node
-blockchain.*
+*.db
 addresses.txt
 public/bower_components/
 public/static/
