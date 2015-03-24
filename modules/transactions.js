@@ -6,7 +6,6 @@ var scriptHelper = require('../helpers/script.js'),
 	crypto = require('crypto'),
 	genesisblock = require('../helpers/genesisblock.js'),
 	constants = require("../helpers/constants.js"),
-	relational = require("../helpers/relational.js"),
 	slots = require('../helpers/slots.js'),
 	extend = require('extend'),
 	Router = require('../helpers/router.js'),
@@ -45,6 +44,10 @@ function Transfer() {
 
 	this.objectNormalize = function (trs) {
 		return trs;
+	}
+
+	this.dbRead = function (raw) {
+		return null;
 	}
 }
 
@@ -287,9 +290,12 @@ function list(filter, cb) {
 		if (err) {
 			return cb(err)
 		}
-		async.mapSeries(rows, function (row, cb) {
-			setImmediate(cb, null, relational.getTransaction(row));
-		}, cb)
+
+		var transactions = [];
+		for (var i = 0; i < rows.length; i++) {
+			transactions.push(library.logic.transaction.dbRead(rows[i]));
+		}
+		cb(null, transactions);
 	});
 }
 
@@ -302,7 +308,7 @@ function getById(id, cb) {
 			return cb(err || "Can't find transaction: " + id);
 		}
 
-		var transacton = relational.getTransaction(rows[0]);
+		var transacton = library.logic.transaction.dbRead(rows[0]);
 		cb(null, transacton);
 	});
 }
@@ -405,7 +411,7 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 				return done("Can't verify signature");
 			}
 
-			self.validateTransaction(transaction, done);
+			library.logic.transaction.verify(transaction, sender, done);
 		}
 	});
 }

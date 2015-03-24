@@ -197,10 +197,19 @@ d.run(function () {
 
 		logic: function (cb) {
 			var Transaction = require('./logic/transaction.js');
+			var Block = require('./logic/transaction.js');
+
+			var block = new Block();
+			var transaction = new Transaction();
+
+			block.logic = {
+				transaction: transaction
+			}
 
 			cb(null, {
-				transaction: new Transaction()
-			})
+				transaction: transaction,
+				block: block
+			});
 		},
 
 		modules: ['express', 'app', 'config', 'logger', 'bus', 'sequence', 'dbLite', function (cb, scope) {

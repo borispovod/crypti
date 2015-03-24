@@ -3,7 +3,6 @@ var ed = require('ed25519'),
 	ByteBuffer = require("bytebuffer"),
 	crypto = require('crypto'),
 	constants = require("../helpers/constants.js"),
-	relational = require("../helpers/relational.js"),
 	slots = require('../helpers/slots.js'),
 	signatureHelper = require("../helpers/signature.js"),
 	RequestSanitizer = require('../helpers/request-sanitizer.js'),
@@ -15,7 +14,7 @@ var modules, library, self;
 
 function Signature() {
 	this.create = function (data, trs) {
-		return trs
+		return trs;
 	}
 
 	this.calculateFee = function (trs) {
@@ -34,6 +33,8 @@ function Signature() {
 		} catch (e) {
 			cb("Invalid hex in signature public key");
 		}
+
+		cb(null, trs);
 	}
 
 	this.getBytes = function (trs) {
@@ -51,6 +52,20 @@ function Signature() {
 		}).value;
 
 		return trs;
+	}
+
+	this.dbRead = function (raw) {
+		if (!raw.s_id) {
+			return null
+		} else {
+			var signature = {
+				id: raw.s_id,
+				transactionId: raw.t_id,
+				publicKey: raw.s_publicKey
+			}
+
+			return {signature: signature};
+		}
 	}
 }
 
@@ -73,22 +88,6 @@ function attachApi() {
 	router.use(function (req, res, next) {
 		if (modules) return next();
 		res.status(500).send({success: false, error: 'loading'});
-	});
-
-	router.get('/get', function (req, res) {
-		var id = RequestSanitizer.string(req.query.id);
-
-		if (!id) {
-			return res.json({success: false, error: "Provide id in url"});
-		}
-
-		self.get(id, function (err, signature) {
-			if (!signature || err) {
-				return res.json({success: false, error: "Signature not found"});
-			}
-
-			return res.json({success: true, signature: signature});
-		});
 	});
 
 	router.put('/', function (req, res) {
@@ -186,18 +185,6 @@ function secondSignature(signature, secret) {
 }
 
 //public methods
-Signatures.prototype.get = function (id, cb) {
-	library.dbLite.query("select s.id, s.transactionId, lower(hex(s.publicKey)) " +
-	"from signatures s " +
-	"where s.id = $id", {id: id}, ['s_id', 's_transactionId', 's_publicKey'], function (err, rows) {
-		if (err || !rows.length) {
-			return cb(err || "Can't find signature: " + id);
-		}
-
-		var signature = relational.getSignature(row[0]);
-		cb(null, signature);
-	});
-}
 
 //events
 Signatures.prototype.onBind = function (scope) {

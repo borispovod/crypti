@@ -2,7 +2,9 @@ var slots = require('../helpers/slots.js'),
 	ed = require('ed25519'),
 	crypto = require('crypto'),
 	genesisblock = require("../helpers/genesisblock.js"),
-	RequestSanitizer = require('./request-sanitizer.js');
+	constants = require('../helpers/constants.js'),
+	extend = require('util-extend');
+RequestSanitizer = require('./request-sanitizer.js');
 
 //constructor
 function Transaction() {
@@ -162,7 +164,7 @@ Transaction.prototype.verify = function (trs, sender, cb) { //inheritance
 	}
 
 	//check sender
-	if (transaction.senderId != sender.address) {
+	if (trs.senderId != sender.address) {
 		return cb("Invalid sender id: " + trs.id);
 	}
 
@@ -172,7 +174,7 @@ Transaction.prototype.verify = function (trs, sender, cb) { //inheritance
 		return cb("Invalid transaction type/fee: " + trs.id);
 	}
 	//check amount
-	if (trs.amount < 0 || transaction.amount > 100000000 * constants.fixedPoint || String(trs.amount).indexOf('.') >= 0 || transaction.amount.toString().indexOf('e') >= 0) {
+	if (trs.amount < 0 || transaction.amount > 100000000 * constants.fixedPoint || String(trs.amount).indexOf('.') >= 0 || trs.amount.toString().indexOf('e') >= 0) {
 		return cb("Invalid transaction amount: " + trs.id);
 	}
 	//check timestamp
@@ -264,9 +266,43 @@ Transaction.prototype.objectNormalize = function (trs) {
 	}).value;
 
 
-	private.types[data.type].objectNormalize(trs);
+	trs = private.types[data.type].objectNormalize(trs);
 
-	return transaction;
+	return trs;
+}
+
+Transaction.prototype.dbRead = function (raw) {
+	if (!raw.t_id) {
+		return null
+	} else {
+		var tx = {
+			id: raw.t_id,
+			blockId: raw.b_id,
+			type: parseInt(raw.t_type),
+			timestamp: parseInt(raw.t_timestamp),
+			senderPublicKey: raw.t_senderPublicKey,
+			senderId: raw.t_senderId,
+			recipientId: raw.t_recipientId,
+			amount: parseInt(raw.t_amount),
+			fee: parseInt(raw.t_fee),
+			signature: raw.t_signature,
+			signSignature: raw.t_signSignature,
+			confirmations: raw.confirmations,
+			asset: {}
+		}
+
+		if (!private.types[tx.type]) {
+			throw Error('Unknown transaction type');
+		}
+
+		var asset = private.types[tx.type].dbRead(raw);
+
+		if (asset) {
+			tx.asset = extend(tx.asset, asset);
+		}
+
+		return tx;
+	}
 }
 
 //export

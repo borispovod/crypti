@@ -197,16 +197,28 @@ function Vote() {
 		if (trs.asset.votes !== null && trs.asset.votes.length > 33) {
 			return cb("Can't verify votes, most be less then 33 delegates");
 		}
+
+		cb(null, trs);
 	}
 
 	this.getBytes = function (trs) {
 		return trs.asset.votes ? new Buffer(transaction.asset.votes.join(''), 'utf8') : null;
 	}
 
-	this.objectNormalize = function (trs){
+	this.objectNormalize = function (trs) {
 		trs.asset.votes = RequestSanitizer.array(trs.asset.votes, true);
 
 		return trs;
+	}
+
+	this.dbRead = function (raw) {
+		if (!raw.v_votes) {
+			return null
+		} else {
+			var votes = raw.v_votes.split(',');
+
+			return {votes: votes};
+		}
 	}
 }
 

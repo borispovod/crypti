@@ -64,6 +64,8 @@ function Delegate() {
 		if (modules.delegates.existsDelegate(trs.senderPublicKey)) {
 			return cb("Your account are delegate already");
 		}
+
+		cb(null, trs);
 	}
 
 	this.getBytes = function (trs) {
@@ -81,6 +83,22 @@ function Delegate() {
 		}).value;
 
 		return trs;
+	}
+
+	this.dbRead = function (raw) {
+		if (!raw.d_username) {
+			return null
+		} else {
+			var delegate = {
+				username: raw.d_username,
+				publicKey: raw.t_senderPublicKey,
+				transactionId: raw.t_id,
+				address: raw.t_senderId,
+				created: parseInt(raw.t_timestamp)
+			}
+
+			return {delegate: delegate};
+		}
 	}
 }
 
