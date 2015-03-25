@@ -520,6 +520,7 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 
 		var blocks = {};
 		var order = [];
+		debugger;
 		for (var i = 0, length = rows.length; i < length; i++) {
 			var __block = library.logic.block.dbRead(rows[i]);
 			if (__block) {

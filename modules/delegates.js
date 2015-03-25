@@ -730,6 +730,8 @@ Delegates.prototype.uncache = function (delegate) {
 }
 
 Delegates.prototype.validateBlockSlot = function (block) {
+	debugger;
+
 	var activeDelegates = self.generateDelegateList(block.height);
 
 	var currentSlot = slots.getSlotNumber(block.timestamp);

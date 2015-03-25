@@ -197,7 +197,7 @@ d.run(function () {
 
 		logic: function (cb) {
 			var Transaction = require('./logic/transaction.js');
-			var Block = require('./logic/transaction.js');
+			var Block = require('./logic/block.js');
 
 			var block = new Block();
 			var transaction = new Transaction();

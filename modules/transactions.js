@@ -416,6 +416,39 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 	});
 }
 
+Transactions.prototype.apply = function (transaction) {
+	var sender = modules.accounts.getAccountByPublicKey(transaction.senderPublicKey);
+	var amount = transaction.amount + transaction.fee;
+
+	if (sender.balance < amount && transaction.blockId != genesisblock.block.id) {
+		return false;
+	}
+
+	sender.addToBalance(-amount);
+
+	// process only two types of transactions
+	switch (transaction.type) {
+		case 0:
+			var recipient = modules.accounts.getAccountOrCreateByAddress(transaction.recipientId);
+			recipient.addToUnconfirmedBalance(transaction.amount);
+			recipient.addToBalance(transaction.amount);
+			break;
+		case 1:
+			sender.unconfirmedSignature = false;
+			sender.secondSignature = true;
+			sender.secondPublicKey = transaction.asset.signature.publicKey;
+			break;
+		case 2:
+			modules.delegates.removeUnconfirmedDelegate(transaction.asset.delegate);
+			modules.delegates.cache(transaction.asset.delegate);
+			break;
+		case 3:
+			sender.applyDelegateList(transaction.asset.votes);
+			break;
+	}
+	return true;
+}
+
 Transactions.prototype.applyUnconfirmedList = function (ids) {
 	for (var i = 0; i < ids.length; i++) {
 		var transaction = self.getUnconfirmedTransaction(ids[i])
