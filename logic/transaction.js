@@ -268,7 +268,7 @@ Transaction.prototype.objectNormalize = function (trs) {
 	}).value;
 
 
-	trs = private.types[data.type].objectNormalize(trs);
+	trs = private.types[trs.type].objectNormalize(trs);
 
 	return trs;
 }

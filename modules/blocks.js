@@ -520,7 +520,6 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 
 		var blocks = {};
 		var order = [];
-		debugger;
 		for (var i = 0, length = rows.length; i < length; i++) {
 			var __block = library.logic.block.dbRead(rows[i]);
 			if (__block) {
@@ -886,7 +885,7 @@ Blocks.prototype.loadBlocksFromPeer = function (peer, lastCommonBlockId, cb) {
 				} else {
 					async.eachSeries(data.body.blocks, function (block, cb) {
 						try {
-							block = normalize.block(block);
+							block = library.logic.block.objectNormalize(block);
 						} catch (e) {
 							var peerStr = data.peer ? ip.fromLong(data.peer.ip) + ":" + data.peer.port : 'unknown';
 							library.logger.log('block ' + (block ? block.id : 'null') + ' is not valid, ban 60 min', peerStr);
@@ -909,8 +908,6 @@ Blocks.prototype.loadBlocksFromPeer = function (peer, lastCommonBlockId, cb) {
 			});
 		},
 		function (err) {
-			err && library.logger.error('loadBlocksFromPeer', err);
-
 			setImmediate(cb, err);
 		}
 	)
