@@ -31,7 +31,7 @@ Transaction.prototype.create = function (data) {
 		throw Error("Can't find keypair");
 	}
 
-	var transaction = {
+	var trs = {
 		type: data.type,
 		amount: 0,
 		senderPublicKey: data.sender.publicKey,
@@ -39,17 +39,17 @@ Transaction.prototype.create = function (data) {
 		asset: {}
 	};
 
-	transaction = private.types[data.type].create(data, transaction);
+	trs = private.types[trs.type].create(data, trs);
 
-	this.sign(data.keypair, transaction);
+	this.sign(data.keypair, trs);
 
 	if (data.secondKeypair) {
-		this.secondSign(data.secondKeypair, transaction);
+		this.secondSign(data.secondKeypair, trs);
 	}
 
-	transaction.id = this.getId(transaction);
+	trs.id = this.getId(trs);
 
-	return transaction;
+	return trs;
 }
 
 Transaction.prototype.attachAssetType = function (typeId, instance) {
@@ -176,7 +176,7 @@ Transaction.prototype.verify = function (trs, sender, cb) { //inheritance
 		return cb("Invalid transaction type/fee: " + trs.id);
 	}
 	//check amount
-	if (trs.amount < 0 || transaction.amount > 100000000 * constants.fixedPoint || String(trs.amount).indexOf('.') >= 0 || trs.amount.toString().indexOf('e') >= 0) {
+	if (trs.amount < 0 || trs.amount > 100000000 * constants.fixedPoint || String(trs.amount).indexOf('.') >= 0 || trs.amount.toString().indexOf('e') >= 0) {
 		return cb("Invalid transaction amount: " + trs.id);
 	}
 	//check timestamp
