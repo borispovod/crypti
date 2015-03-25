@@ -3,7 +3,7 @@ var crypto = require('crypto'),
 	ed = require('ed25519'),
 	slots = require('../helpers/slots.js'),
 	Router = require('../helpers/router.js'),
-	RequestSanitizer = require('./request-sanitizer.js');
+	RequestSanitizer = require('../helpers/request-sanitizer.js');
 
 //private
 var modules, library, self;

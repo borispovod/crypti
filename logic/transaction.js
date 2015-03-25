@@ -3,8 +3,10 @@ var slots = require('../helpers/slots.js'),
 	crypto = require('crypto'),
 	genesisblock = require("../helpers/genesisblock.js"),
 	constants = require('../helpers/constants.js'),
-	extend = require('util-extend');
-RequestSanitizer = require('./request-sanitizer.js');
+	ByteBuffer = require("bytebuffer"),
+	bignum = require('bignum'),
+	extend = require('util-extend'),
+	RequestSanitizer = require('../helpers/request-sanitizer.js');
 
 //constructor
 function Transaction() {
@@ -51,7 +53,7 @@ Transaction.prototype.create = function (data) {
 }
 
 Transaction.prototype.attachAssetType = function (typeId, instance) {
-	if (instance && typeof instance.create == 'function' && typeof instance.apply == 'function' && typeof instance.getBytes == 'function' && typeof instance.calculateFee == 'function' && typeof instance.verify == 'function') {
+	if (instance && typeof instance.create == 'function' && typeof instance.getBytes == 'function' && typeof instance.calculateFee == 'function' && typeof instance.verify == 'function' && typeof instance.objectNormalize == 'function' && typeof instance.dbRead == 'function') {
 		private.types[typeId] = instance;
 	} else {
 		throw Error('Invalid instance interface');
@@ -197,7 +199,7 @@ Transaction.prototype.verifySignature = function (trs) {
 		remove = 128;
 	}
 
-	var bytes = private.types[trs.type].getBytes(trs);
+	var bytes = this.getBytes(trs);
 	var data2 = new Buffer(bytes.length - remove);
 
 	for (var i = 0; i < data2.length; i++) {
@@ -222,7 +224,7 @@ Transaction.prototype.verifySecondSignature = function (trs, secondPublicKey) {
 		throw Error('Unknown transaction type');
 	}
 
-	var bytes = private.types[trs.type].getBytes(trs);
+	var bytes = this.getBytes(trs);
 	var data2 = new Buffer(bytes.length - 64);
 
 	for (var i = 0; i < data2.length; i++) {

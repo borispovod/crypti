@@ -7,7 +7,6 @@ var crypto = require('crypto'),
 	genesisblock = require("../helpers/genesisblock.js"),
 	constants = require('../helpers/constants.js'),
 	RequestSanitizer = require('../helpers/request-sanitizer'),
-	normalize = require('../helpers/normalize.js'),
 	Router = require('../helpers/router.js'),
 	slots = require('../helpers/slots.js'),
 	util = require('util'),
@@ -824,7 +823,7 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 					setImmediate(done, errors[0]);
 				} else {
 					try {
-						block = normalize.block(block);
+						block = library.logic.block.objectNormalize(block);
 					} catch (e) {
 						return setImmediate(done, e);
 					}

@@ -3,8 +3,7 @@ var Router = require('../helpers/router.js'),
 	request = require('request'),
 	ip = require('ip'),
 	util = require('util'),
-	RequestSanitizer = require('../helpers/request-sanitizer.js'),
-	normalize = require('../helpers/normalize.js');
+	RequestSanitizer = require('../helpers/request-sanitizer.js');
 
 //private fields
 var modules, library, self;
@@ -147,7 +146,7 @@ function attachApi() {
 		res.set(headers);
 
 		try {
-			var block = normalize.block(req.body.block)
+			var block = library.logic.block.objectNormalize(req.body.block)
 		} catch (e) {
 			var peerIp = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
 			var peerStr = peerIp ? peerIp + ":" + RequestSanitizer.int(req.headers['port']) : 'unknown';
@@ -171,7 +170,7 @@ function attachApi() {
 		res.set(headers);
 
 		try {
-			var transaction = library.logic.transaction.normalize(req.body.transaction);
+			var transaction = library.logic.transaction.objectNormalize(req.body.transaction);
 		} catch (e) {
 			var peerIp = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
 			var peerStr = peerIp ? peerIp + ":" + RequestSanitizer.int(req.headers['port']) : 'unknown';

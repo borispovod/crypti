@@ -208,7 +208,7 @@ function loadUnconfirmedTransactions(cb) {
 
 		for (var i = 0; i < transactions.length; i++) {
 			try {
-				transactions[i] = library.logic.transaction.normalize(transactions[i]);
+				transactions[i] = library.logic.transaction.objectNormalize(transactions[i]);
 			} catch (e) {
 				var peerStr = data.peer ? ip.fromLong(data.peer.ip) + ":" + data.peer.port : 'unknown';
 				library.logger.log('transaction ' + (transactions[i] ? transactions[i].id : 'null') + ' is not valid, ban 60 min', peerStr);

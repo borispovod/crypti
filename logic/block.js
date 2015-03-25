@@ -5,7 +5,7 @@ var slots = require('../helpers/slots.js'),
 	bignum = require('bignum'),
 	ByteBuffer = require("bytebuffer"),
 	constants = require('../helpers/constants.js'),
-	RequestSanitizer = require('./request-sanitizer.js');
+	RequestSanitizer = require('../helpers/request-sanitizer.js');
 
 //constructor
 function Block() {
