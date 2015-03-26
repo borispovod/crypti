@@ -23,7 +23,8 @@ var config = {
 		"scripts": "./modules/scripts.js",
 		"round": "./modules/round.js",
 		"sandboxes" : "./modules/sandboxes.js",
-		"usernames":"./modules/usernames.js"
+		"usernames":"./modules/usernames.js",
+		"contacts":"./modules/contacts.js"
 	}
 };
 

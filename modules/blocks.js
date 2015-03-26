@@ -380,6 +380,12 @@ function saveBlock(block, cb) {
 							transactionId: transaction.id
 						}, cb);
 						break;
+					case 7:
+						library.dbLite.query("INSERT INTO contacts(owner, target, transactionId) VALUES ($owner, $target, $txId)", {
+							owner : transaction.asset.owner,
+							target : transaction.asset.target,
+							txId : transaction.id
+						}, cb);
 					default:
 						cb();
 				}

@@ -16,6 +16,7 @@ module.exports.connect = function (connectString, cb) {
 		"CREATE TABLE IF NOT EXISTS scripts(parameters BINARY(4096), code BINARY(4096), name VARCHAR(16) NOT NULL, description VARCHAR(140), transactionId VARCHAR(20) NOT NULL, FOREIGN KEY(transactionId) REFERENCES trs(id) ON DELETE CASCADE)",
 		"CREATE TABLE IF NOT EXISTS forks_stat(delegatePublicKey BINARY(32) NOT NULL, blockTimestamp INT NOT NULL, blockId VARCHAR(20) NOT NULL, blockHeight INT NOT NULL, previousBlock VARCHAR(21) NOT NULL, cause INT NOT NULL)",
 		"CREATE TABLE IF NOT EXISTS usernames (username VARCHAR(20) PRIMARY KEY, transactionId VARCHAR(21) NOT NULL , FOREIGN KEY(transactionId) REFERENCES trs(id) ON DELETE CASCADE)",
+		"CREATE TABLE IF NOT EXISTS contacts (owner VARCHAR(21), target VARCHAR(21), transactionId VARCHAR(21) NOT NULL, FOREIGN KEY(transactionId) REFERENCES trs(id) ON DELETE CASCADE)",
 		// Indexes
 		"CREATE UNIQUE INDEX IF NOT EXISTS peers_unique ON peers(ip, port)",
 		"CREATE UNIQUE INDEX IF NOT EXISTS blocks_height ON blocks(height)",

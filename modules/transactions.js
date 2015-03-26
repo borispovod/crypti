@@ -565,6 +565,7 @@ Transactions.prototype.validateTransaction = function (transaction, done) {
 
 			break;
 		case TYPES.USERNAME_ADD:
+			// TODO(rumkin) Remove
 			if (transaction.recipientId) {
 				return cb("Invalid recipient");
 			}
@@ -585,7 +586,30 @@ Transactions.prototype.validateTransaction = function (transaction, done) {
 				return done("The username name you entered is already in use. Please try a different name.");
 			}
 
+			return done(null, transaction);
+		case TYPES.CONTACT_ADD:
+			if (! transaction.asset.owner) {
+				return done("Follower address not set");
+			}
 
+			if (transaction.asset.owner.length !== 21) {
+				return done("Follower address has invalid length");
+			}
+
+			if (! transaction.asset.target) {
+				return done("Following address not set");
+			}
+
+
+			if (transaction.asset.target.length !== 21) {
+				return done("Following address has invalid length");
+			}
+
+			if (modules.contacts.existsUnconfirmed(transaction.asset.owner, transaction.asset.target)) {
+				return  done("Contact is already exists");
+			}
+
+			// TODO(rumkin) Check if contact already exists
 
 			return done(null, transaction);
 		default:
@@ -750,6 +774,12 @@ Transactions.prototype.applyUnconfirmed = function (transaction) {
 		}
 
 		modules.usernames.addUnconfirmedUsername(transaction.asset.username);
+	} else if (transaction.type === TYPES.CONTACT_ADD) {
+		if (modules.contacts.existsUnconfirmed(transaction.asset.owner, transaction.asset.target)) {
+			return false;
+		}
+
+		modules.contacts.addUnconfirmed(transaction.asset.owner, transaction.asset.target);
 	}
 
 	var amount = transaction.amount + transaction.fee;
@@ -764,6 +794,9 @@ Transactions.prototype.applyUnconfirmed = function (transaction) {
 				break;
 			case 3:
 				sender.undoUnconfirmedDelegateList(transaction.asset.votes);
+				break;
+			case TYPES.CONTACT_ADD:
+				modules.contacts.removeUnconfirmed(transaction.asset.owner, transaction.asset.target);
 				break;
 		}
 
@@ -793,6 +826,9 @@ Transactions.prototype.undoUnconfirmed = function (transaction) {
 			break;
 		case TYPES.USERNAME_ADD:
 			modules.usernames.removeUnconfirmedUsername(transaction.asset.username);
+			break;
+		case TYPES.CONTACT_ADD:
+			modules.contacts.removeUnconfirmed(transaction.asset.owner, transaction.asset.target);
 			break;
 	}
 
@@ -826,6 +862,9 @@ Transactions.prototype.undo = function (transaction) {
 		case TYPES.USERNAME_ADD:
 			modules.delegates.uncache(transaction.asset.username);
 			modules.delegates.addUnconfirmedDelegate(transaction.asset.username);
+			break;
+		case TYPES.CONTACT_ADD:
+			modules.contacts.removeUnconfirmed(transaction.asset.owner, transaction.asset.target);
 			break;
 	}
 

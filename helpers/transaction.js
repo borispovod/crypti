@@ -13,7 +13,8 @@ var TYPES = {
 	DELEGATE_VOTE : 2,
 	SCRIPT_ADD : 4,
 	SCRIPT_RUN : 5,
-	USERNAME_ADD : 6
+	USERNAME_ADD : 6,
+	CONTACT_ADD : 7
 };
 
 // get valid transaction fee, if we need to get fee for block generator, use isGenerator = true
@@ -43,6 +44,8 @@ function getTransactionFee(transaction, isGenerator) {
 		case TYPES.USERNAME_ADD:
 			fee = 1 * constants.fixedPoint;
 			break;
+		case TYPES.CONTACT_ADD:
+			fee = 1 * constants.fixedPoint;
 	}
 
 	if (fee == -1) {
@@ -86,6 +89,11 @@ function getBytes(transaction) {
 
 			case 5:
 				assetBytes = scriptHelper.getInputBytes(transaction.asset.input);
+				assetSize = assetBytes.length;
+				break;
+
+			case TYPES.CONTACT_ADD:
+				assetBytes = scriptHelper.getBytes(transaction.asset.owner + '|' + transaction.asset.target);
 				assetSize = assetBytes.length;
 				break;
 		}
@@ -177,6 +185,9 @@ function getFee(transaction, percent) {
 		case 4:
 			return 100 * constants.fixedPoint;
 			break;
+
+		case TYPES.CONTACT_ADD:
+			return constants.fixedPoint;
 	}
 }
 

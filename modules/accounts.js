@@ -428,8 +428,7 @@ function addAccount(account) {
 }
 
 function openAccount(secret) {
-	var hash = crypto.createHash('sha256').update(secret, 'utf8').digest();
-	var keypair = ed.MakeKeypair(hash);
+	var keypair = this.getKeypair(secret);
 
 	return self.getAccountOrCreateByPublicKey(keypair.publicKey.toString('hex'));
 }
@@ -444,15 +443,30 @@ Accounts.prototype.getAccountByPublicKey = function (publicKey) {
 	return self.getAccount(address);
 }
 
+/**
+ * Create ed25519 keypair from string public key
+ * @param {string} publicKey public key string
+ * @returns {{publicKey:Buffer, privateKey:Buffer}} ed25519 keypair.
+ */
+Accounts.getKeypair = function(publicKey) {
+	var hash = crypto.createHash('sha256').update(publicKey, 'utf8').digest();
+	return ed.MakeKeypair(hash);
+}
+
+/**
+ * Get crypti address by public key.
+ * @param {string|Buffer} publicKey String or buffer public key.
+ * @returns {string}
+ */
 Accounts.prototype.getAddressByPublicKey = function (publicKey) {
+	if (Buffer.isBuffer(publicKey)) publicKey = publicKey.toString('hex');
 	var publicKeyHash = crypto.createHash('sha256').update(publicKey, 'hex').digest();
 	var temp = new Buffer(8);
 	for (var i = 0; i < 8; i++) {
 		temp[i] = publicKeyHash[7 - i];
 	}
 
-	var address = bignum.fromBuffer(temp).toString() + "C";
-	return address;
+	return bignum.fromBuffer(temp).toString() + "C";
 }
 
 Accounts.prototype.getAccountOrCreateByPublicKey = function (publicKey) {
