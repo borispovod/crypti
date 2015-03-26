@@ -10,6 +10,7 @@
             <input class="input-text" type="{{type}}" ng-model="newSecretPhrase" placeholder="New second secretphrase" ng-trim="false">
             <input class="input-text" type="{{type}}" ng-model="repeatSecretPhrase" placeholder="Repeat new second secretphrase" ng-trim="false">
             <input type="checkbox" ng-model="showPassphrase" ng-change="changeType()"> <label>Show secretphrases?</label>
+            <p class="error" style="margin-top: 10px;" ng-show="totalBalance < 100">You are missing {{(100 - totalBalance) | number : 2}} XCR.</p>
             <p class="error" style="margin-top: 10px;">{{fromServer}}.</p>
             <div class="pull-right">
                 <button type="submit" class="button green small" ng-disabled="sending || !repeatSecretPhrase || !newSecretPhrase || !secretPhrase || repeatSecretPhrase != newSecretPhrase || totalBalance < 100" ng-click="addNewPassphrase()">Generate</button>

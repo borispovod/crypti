@@ -1,9 +1,9 @@
 {
-  "name": "CryptiLight",
+  "name": "CryptiLite!",
   "version": "0.0.1",
   "main": "index.html",
   "window": {
-    "title": "Crypti light",
+    "title": "Crypti Lite!",
     "toolbar": true,
     "icon": "images/favicon.ico",
     "width": 1200,
@@ -31,6 +31,7 @@
     "grunt-cli": "^0.1.13",
     "grunt-contrib-concat": "~0.3.0",
     "grunt-contrib-cssmin": "~0.6.1",
+    "ip-regex": "^1.0.3",
     "jquery": "~2.1.1",
     "jquery-browserify": "^1.8.1",
     "js-nacl": "^0.6.0",

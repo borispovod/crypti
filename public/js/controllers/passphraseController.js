@@ -1,5 +1,6 @@
 require('angular');
 var ip = require('ip');
+var ipRegex = require('ip-regex');
 
 angular.module('webApp').controller('passphraseController',
     ['$scope', '$rootScope', '$http', "$state", '$interval', '$location', "userService", "dbFactory", "peerFactory", "transactionService", 'stBlurredDialog',
@@ -7,11 +8,20 @@ angular.module('webApp').controller('passphraseController',
             $scope.peerexists = false;
             $scope.editingPeer = false;
             $scope.custom = false;
+            $scope.addressError = false;
+            $scope.errorMessage = "";
 
             $scope.peerSettings = function () {
                 $scope.editingPeer = !$scope.editingPeer;
             };
             $scope.savePeerSettings = function (custom, best) {
+                $scope.addressError = false;
+                var isIP = ipRegex({exact: true}).test(custom.split(":")[0]);
+                var isPort = (parseInt(custom.split(":")[1]) > 0 && parseInt(custom.split(":")[1]) <= 61000);
+                $scope.addressError = (!isIP || !isPort) && custom !='';
+                if ($scope.addressError) {
+                  return;
+                }
                 $scope.editingPeer = false;
                 dbFactory.useBestPeer(best, function () {
                     $scope.bestPeer = best;
@@ -84,6 +94,7 @@ angular.module('webApp').controller('passphraseController',
                             if (resp.status == 200) {
                                 var data = {secret: pass};
                                 if (!pass || pass.length > 100) {
+                                    $scope.errorMessage = "Please enter your password.";
                                 }
                                 else {
                                     var crypti = require('crypti-js');
@@ -102,6 +113,7 @@ angular.module('webApp').controller('passphraseController',
                     else {
                         var data = {secret: pass};
                         if (!pass || pass.length > 100) {
+                            $scope.errorMessage = "Please enter your password.";
                         }
                         else {
                             var crypti = require('crypti-js');

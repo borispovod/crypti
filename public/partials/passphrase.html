@@ -10,24 +10,26 @@
 
                 <p id="message">For security reasons, please use long passphrases. We recommend passphrases as long as
                     50 characters.</p>
+
                 <button type="submit" class="button green" id="login" ng-click="login(pass)">
                     Login
                 </button>
+                <p class="error">{{errorMessage}}</p>
             </form>
         </div>
     </div>
 
     <div class="cloud" ng-click="peerSettings()"></div>
     <div class="edit_peer" ng-show="editingPeer">
-        <form autocomplete="off">
+        <form name="settingsForm" autocomplete="off">
             <span id="label">Custom peer</span>
-            <input type="text" id="peer" placeholder="example: '225.225.225.225:2020'" ng-model="customPeer"
+            <input type="text" name="peer" id="peer" placeholder="225.225.225.225:2020"
+                   ng-model="customPeer"
                    ng-disabled="bestPeer"
-                   ng-trim="true" autofocus>
+                   ng-trim="true" autofocus ng-class="{'err' : addressError}">
             <span style="display: none;">{{bestPeer}}</span>
             <input type="checkbox" id="bestPeer" name="check" ng-model="bestPeer"/>
             <label for="bestPeer">Always use the best peer.</label>
-
             <button type="submit" class="button green small" id="savePeer"
                     ng-click="savePeerSettings(customPeer, bestPeer)">
                 Save

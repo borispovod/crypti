@@ -9,6 +9,13 @@ angular.module('webApp').service('transactionService', function (userService) {
         var keys = crypti.crypto.getKeys(secret);
         var address = crypti.crypto.getAddress(keys.publicKey);
 
+        if (userService.address != address) {
+            return {
+                err: true,
+                message: "Invalid account password. Please try again"
+            }
+        }
+
         if (secret.length == 0) {
             return {
                 err: true,
@@ -47,7 +54,7 @@ angular.module('webApp').service('transactionService', function (userService) {
         return {
             "headers": {
                 "os": platform.os.toString(),
-                "version": "0.2.0light",
+                "version": "0.2.0Lite!",
                 "port": 0,
                 "share-port": false
             }
