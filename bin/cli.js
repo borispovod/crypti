@@ -27,7 +27,7 @@ if (program.address) {
 
 if (program.hasOwnProperty('peers')) {
     if (typeof program.peers === 'boolean') {
-        appConfig.peer.slit = [];
+        appConfig.peers.list = [];
     } else {
         appConfig.peers.list = program.peers.split(',').map(function(peer){
             peer = peer.split(":");
