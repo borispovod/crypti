@@ -34,8 +34,8 @@ function Transfer() {
 		return trs.fee;
 	}
 
-	this.verify = function (trs, cb) {
-
+	this.verify = function (trs, sender, cb) {
+		cb(null, trs);
 	}
 
 	this.getBytes = function (trs) {

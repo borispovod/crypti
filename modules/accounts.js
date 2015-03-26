@@ -3,6 +3,7 @@ var crypto = require('crypto'),
 	ed = require('ed25519'),
 	slots = require('../helpers/slots.js'),
 	Router = require('../helpers/router.js'),
+	constants = require('../helpers/constants.js'),
 	RequestSanitizer = require('../helpers/request-sanitizer.js');
 
 //private
@@ -202,7 +203,7 @@ function Vote() {
 	}
 
 	this.getBytes = function (trs) {
-		return trs.asset.votes ? new Buffer(transaction.asset.votes.join(''), 'utf8') : null;
+		return trs.asset.votes ? new Buffer(trs.asset.votes.join(''), 'utf8') : null;
 	}
 
 	this.objectNormalize = function (trs) {

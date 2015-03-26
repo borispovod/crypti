@@ -744,116 +744,114 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 
 		var totalAmount = 0, totalFee = 0, payloadHash = crypto.createHash('sha256'), appliedTransactions = {}, acceptedRequests = {}, acceptedConfirmations = {};
 
-		async.series([
-				function (done) {
-					async.eachSeries(block.transactions, function (transaction, cb) {
-						transaction.id = library.logic.transaction.getId(transaction);
-						transaction.blockId = block.id;
 
-						library.dbLite.query("SELECT id FROM trs WHERE id=$id", {id: transaction.id}, ['id'], function (err, rows) {
-							if (err) {
-								return cb(err);
-							}
+		async.eachSeries(block.transactions, function (transaction, cb) {
+			transaction.id = library.logic.transaction.getId(transaction);
+			transaction.blockId = block.id;
 
-							var tId = rows.length && rows[0].id;
-
-							if (tId) {
-								//fork transactions already exist
-								modules.delegates.fork(block, 2);
-								cb("Transaction already exists: " + transaction.id);
-							} else {
-								if (appliedTransactions[transaction.id]) {
-									return cb("Dublicated transaction in block: " + transaction.id);
-								}
-
-								var sender = modules.accounts.getAccountByPublicKey(transaction.senderPublicKey);
-
-								library.logic.transaction.verify(transaction, sender, function (err) {
-									if (err) {
-										return cb(err);
-									}
-
-									if (!modules.transactions.applyUnconfirmed(transaction)) {
-										return cb("Can't apply transaction: " + transaction.id);
-									}
-
-									appliedTransactions[transaction.id] = transaction;
-
-									var index = unconfirmedTransactions.indexOf(transaction.id);
-									if (index >= 0) {
-										unconfirmedTransactions.splice(index, 1);
-									}
-
-									payloadHash.update(library.logic.transaction.getBytes(transaction));
-									totalAmount += transaction.amount;
-									totalFee += transaction.fee;
-								});
-							}
-						});
-					}, done);
-				}],
-			function (err) {
-				var errors = [];
-
+			library.dbLite.query("SELECT id FROM trs WHERE id=$id", {id: transaction.id}, ['id'], function (err, rows) {
 				if (err) {
-					errors.push(err);
+					return cb(err);
 				}
 
-				if (payloadHash.digest().toString('hex') !== block.payloadHash) {
-					errors.push("Invalid payload hash: " + block.id);
-				}
+				var tId = rows.length && rows[0].id;
 
-				if (totalAmount != block.totalAmount) {
-					errors.push("Invalid total amount: " + block.id);
-				}
-
-				if (totalFee != block.totalFee) {
-					errors.push("Invalid total fee: " + block.id);
-				}
-
-				if (errors.length > 0) {
-					for (var i = 0; i < block.transactions.length; i++) {
-						var transaction = block.transactions[i];
-
-						if (appliedTransactions[transaction.id]) {
-							modules.transactions.undoUnconfirmed(transaction);
-						}
-					}
-
-					setImmediate(done, errors[0]);
+				if (tId) {
+					//fork transactions already exist
+					modules.delegates.fork(block, 2);
+					cb("Transaction already exists: " + transaction.id);
 				} else {
-					try {
-						block = library.logic.block.objectNormalize(block);
-					} catch (e) {
-						return setImmediate(done, e);
+					if (appliedTransactions[transaction.id]) {
+						return cb("Dublicated transaction in block: " + transaction.id);
 					}
 
-					for (var i = 0; i < block.transactions.length; i++) {
-						var transaction = block.transactions[i];
+					var sender = modules.accounts.getAccountByPublicKey(transaction.senderPublicKey);
 
-						if (!modules.transactions.apply(transaction)) {
-							library.logger.error("Can't apply transactions: " + transaction.id);
-							process.exit(0);
-							return;
-						}
-						modules.transactions.removeUnconfirmedTransaction(transaction.id);
-					}
-
-
-					saveBlock(block, function (err) {
+					library.logic.transaction.verify(transaction, sender, function (err) {
 						if (err) {
-							library.logger.error("Can't save block...");
-							library.logger.error(err);
-							process.exit(0);
+							return cb(err);
 						}
 
-						library.bus.message('newBlock', block, broadcast);
-						lastBlock = block;
+						if (!modules.transactions.applyUnconfirmed(transaction)) {
+							return cb("Can't apply transaction: " + transaction.id);
+						}
 
-						setImmediate(done);
+						appliedTransactions[transaction.id] = transaction;
+
+						var index = unconfirmedTransactions.indexOf(transaction.id);
+						if (index >= 0) {
+							unconfirmedTransactions.splice(index, 1);
+						}
+
+						payloadHash.update(library.logic.transaction.getBytes(transaction));
+						totalAmount += transaction.amount;
+						totalFee += transaction.fee;
+
+						cb();
 					});
 				}
 			});
+		}, function (err) {
+			var errors = [];
+
+			if (err) {
+				errors.push(err);
+			}
+
+			if (payloadHash.digest().toString('hex') !== block.payloadHash) {
+				errors.push("Invalid payload hash: " + block.id);
+			}
+
+			if (totalAmount != block.totalAmount) {
+				errors.push("Invalid total amount: " + block.id);
+			}
+
+			if (totalFee != block.totalFee) {
+				errors.push("Invalid total fee: " + block.id);
+			}
+
+			if (errors.length > 0) {
+				for (var i = 0; i < block.transactions.length; i++) {
+					var transaction = block.transactions[i];
+
+					if (appliedTransactions[transaction.id]) {
+						modules.transactions.undoUnconfirmed(transaction);
+					}
+				}
+
+				setImmediate(done, errors[0]);
+			} else {
+				try {
+					block = library.logic.block.objectNormalize(block);
+				} catch (e) {
+					return setImmediate(done, e);
+				}
+
+				for (var i = 0; i < block.transactions.length; i++) {
+					var transaction = block.transactions[i];
+
+					if (!modules.transactions.apply(transaction)) {
+						library.logger.error("Can't apply transactions: " + transaction.id);
+						process.exit(0);
+						return;
+					}
+					modules.transactions.removeUnconfirmedTransaction(transaction.id);
+				}
+
+				saveBlock(block, function (err) {
+					if (err) {
+						library.logger.error("Can't save block...");
+						library.logger.error(err);
+						process.exit(0);
+					}
+
+					library.bus.message('newBlock', block, broadcast);
+					lastBlock = block;
+
+					setImmediate(done);
+				});
+			}
+		});
 	})
 }
 
