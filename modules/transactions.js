@@ -1,5 +1,4 @@
-var scriptHelper = require('../helpers/script.js'),
-	ed = require('ed25519'),
+var ed = require('ed25519'),
 	bignum = require('bignum'),
 	util = require('util'),
 	ByteBuffer = require("bytebuffer"),
@@ -10,9 +9,7 @@ var scriptHelper = require('../helpers/script.js'),
 	extend = require('extend'),
 	Router = require('../helpers/router.js'),
 	async = require('async'),
-	RequestSanitizer = require('../helpers/request-sanitizer.js'),
-	JsonSchema = require('../helpers/json-schema'),
-	esprima = require('esprima');
+	RequestSanitizer = require('../helpers/request-sanitizer.js');
 
 // private fields
 var modules, library, self;
@@ -155,7 +152,6 @@ function attachApi() {
 			recipientId: "string?",
 			publicKey: "hex?",
 			secondSecret: "string?",
-			scriptId: "string?",
 			input: "object?"
 		}, function (err, report, body) {
 			if (err) return next(err);
@@ -165,9 +161,7 @@ function attachApi() {
 				amount = body.amount,
 				recipientId = body.recipientId,
 				publicKey = body.publicKey,
-				secondSecret = body.secondSecret,
-				scriptId = body.scriptId,
-				input = body.input;
+				secondSecret = body.secondSecret;
 
 			var hash = crypto.createHash('sha256').update(secret, 'utf8').digest();
 			var keypair = ed.MakeKeypair(hash);

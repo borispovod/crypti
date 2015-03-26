@@ -273,16 +273,6 @@ function saveBlock(block, cb) {
 							transactionId: transaction.id
 						}, cb);
 						break;
-
-					case 4:
-						library.dbLite.query("INSERT INTO scripts(name, description, parameters, code, transactionId) VALUES($name, $description, $parameters, $code, $transactionId)", {
-							name: transaction.asset.script.name,
-							description: transaction.asset.script.description || null,
-							parameters: new Buffer(transaction.asset.script.parameters, 'hex'),
-							code: new Buffer(transaction.asset.script.code, 'hex'),
-							transactionId: transaction.id
-						}, cb);
-						break;
 					default:
 						cb();
 				}
@@ -435,7 +425,6 @@ Blocks.prototype.loadBlocksPart = function (filter, cb) {
 	"FROM (select * from blocks " + (filter.id ? " where id = $id " : "") + (filter.lastId ? " where height > (SELECT height FROM blocks where id = $lastId) " : "") + " limit $limit) as b " +
 	"left outer join trs as t on t.blockId=b.id " +
 	"left outer join delegates as d on d.transactionId=t.id " +
-	"left outer join scripts as js on js.transactionId=t.id " +
 	"left outer join votes as v on v.transactionId=t.id " +
 	"left outer join signatures as s on s.transactionId=t.id " +
 	"ORDER BY b.height, t.rowid, s.rowid, d.rowid" +
@@ -491,8 +480,7 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 		't_id', 't_type', 't_timestamp', 't_senderPublicKey', 't_senderId', 't_recipientId', 't_amount', 't_fee', 't_signature', 't_signSignature',
 		's_publicKey',
 		'd_username',
-		'v_votes',
-		'js_name', 'js_description', 'js_code', 'js_parameters'
+		'v_votes'
 	];
 
 	library.dbLite.query("SELECT " +
@@ -500,12 +488,10 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 	"t.id, t.type, t.timestamp, lower(hex(t.senderPublicKey)), t.senderId, t.recipientId, t.amount, t.fee, lower(hex(t.signature)), lower(hex(t.signSignature)), " +
 	"lower(hex(s.publicKey)), " +
 	"d.username, " +
-	"v.votes, " +
-	"js.name, js.description, lower(hex(js.code)), lower(hex(js.parameters)) " +
+	"v.votes " +
 	"FROM (select * from blocks limit $limit offset $offset) as b " +
 	"left outer join trs as t on t.blockId=b.id " +
 	"left outer join delegates as d on d.transactionId=t.id " +
-	"left outer join scripts as js on js.transactionId=t.id " +
 	"left outer join votes as v on v.transactionId=t.id " +
 	"left outer join signatures as s on s.transactionId=t.id " +
 	"ORDER BY b.height, t.rowid, s.rowid, d.rowid" +
