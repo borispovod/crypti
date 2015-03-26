@@ -380,6 +380,12 @@ function saveBlock(block, cb) {
 							transactionId: transaction.id
 						}, cb);
 						break;
+					case 6:
+						library.dbLite.query("INSERT INTO usernames(username, transactionId) VALUES ($username,$txId);", {
+							username : transaction.asset.username,
+							txId : transaction.id
+						}, cb);
+						break;
 					default:
 						cb();
 				}

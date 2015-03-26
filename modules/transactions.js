@@ -765,6 +765,9 @@ Transactions.prototype.applyUnconfirmed = function (transaction) {
 			case 3:
 				sender.undoUnconfirmedDelegateList(transaction.asset.votes);
 				break;
+			case TYPES.USERNAME_ADD:
+				sender.removeUnconfirmedUsername(transaction.asset.username);
+				break;
 		}
 
 		return false;
@@ -824,8 +827,8 @@ Transactions.prototype.undo = function (transaction) {
 			sender.undoDelegateList(transaction.asset.votes);
 			break;
 		case TYPES.USERNAME_ADD:
-			modules.delegates.uncache(transaction.asset.username);
-			modules.delegates.addUnconfirmedDelegate(transaction.asset.username);
+			modules.usernames.uncache(transaction.asset.username);
+			modules.usernames.addUnconfirmedUsername(transaction.asset.username);
 			break;
 	}
 

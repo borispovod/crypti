@@ -88,6 +88,11 @@ function getBytes(transaction) {
 				assetBytes = scriptHelper.getInputBytes(transaction.asset.input);
 				assetSize = assetBytes.length;
 				break;
+
+			case TYPES.USERNAME_ADD:
+				assetBytes = scriptHelper.getInputBytes(transaction.asset.username);
+				assetSize = assetBytes.length;
+				break;
 		}
 
 		var bb = new ByteBuffer(1 + 4 + 32 + 8 + 8 + 64 + 64 + assetSize, true);
@@ -176,6 +181,10 @@ function getFee(transaction, percent) {
 
 		case 4:
 			return 100 * constants.fixedPoint;
+			break;
+
+		case TYPES.USERNAME_ADD:
+			return 1 * constants.fixedPoint;
 			break;
 	}
 }
