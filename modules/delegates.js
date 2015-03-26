@@ -77,8 +77,7 @@ function Delegate() {
 			object: true,
 			properties: {
 				username: "string!",
-				publicKey: "hex",
-				transactionId: "string!"
+				publicKey: "hex!"
 			}
 		}).value;
 
@@ -92,9 +91,7 @@ function Delegate() {
 			var delegate = {
 				username: raw.d_username,
 				publicKey: raw.t_senderPublicKey,
-				transactionId: raw.t_id,
-				address: raw.t_senderId,
-				created: parseInt(raw.t_timestamp)
+				address: raw.t_senderId
 			}
 
 			return {delegate: delegate};

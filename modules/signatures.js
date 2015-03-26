@@ -61,9 +61,7 @@ function Signature() {
 		trs.asset.signature = RequestSanitizer.validate(trs.asset.signature, {
 			object: true,
 			properties: {
-				id: "string",
-				transactionId: "string",
-				publicKey: "hex"
+				publicKey: "hex!"
 			}
 		}).value;
 
