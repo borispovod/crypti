@@ -71,7 +71,7 @@ Transaction.prototype.secondSign = function (keypair, trs) {
 }
 
 Transaction.prototype.getId = function (trs) {
-	var hash = crypto.createHash('sha256').update(this.getBytes(trs)).digest();
+	var hash = this.getHash(trs);
 	var temp = new Buffer(8);
 	for (var i = 0; i < 8; i++) {
 		temp[i] = hash[7 - i];

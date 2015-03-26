@@ -173,7 +173,7 @@ Account.prototype.undoDelegateList = function (diff) {
 function Vote() {
 	this.create = function (data, trs) {
 		trs.recipientId = data.sender.address;
-		trs.asset.votes = data.asset.votes;
+		trs.asset.votes = data.votes;
 
 		return trs;
 	}
@@ -411,15 +411,13 @@ function attachApi() {
 			var secondKeypair = null;
 
 			if (account.secondSignature) {
-				var secondHash = crypto.createHash('sha256').update(secret, 'utf8').digest();
+				var secondHash = crypto.createHash('sha256').update(secondSecret, 'utf8').digest();
 				secondKeypair = ed.MakeKeypair(secondHash);
 			}
 
 			var transaction = library.logic.transaction.create({
 				type: 3,
-				asset: {
-					votes: delegates
-				},
+				votes: delegates,
 				sender: account,
 				keypair: keypair,
 				secondKeypair: secondKeypair

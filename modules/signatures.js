@@ -4,7 +4,6 @@ var ed = require('ed25519'),
 	crypto = require('crypto'),
 	constants = require("../helpers/constants.js"),
 	slots = require('../helpers/slots.js'),
-	signatureHelper = require("../helpers/signature.js"),
 	RequestSanitizer = require('../helpers/request-sanitizer.js'),
 	Router = require('../helpers/router.js'),
 	async = require('async');
@@ -14,6 +13,11 @@ var modules, library, self;
 
 function Signature() {
 	this.create = function (data, trs) {
+		trs.recipientId = null;
+		trs.asset.signature = {
+			publicKey: data.secondKeypair.publicKey.toString('hex')
+		};
+
 		return trs;
 	}
 
@@ -38,7 +42,19 @@ function Signature() {
 	}
 
 	this.getBytes = function (trs) {
-		return null;
+		try {
+			var bb = new ByteBuffer(32, true);
+			var publicKeyBuffer = new Buffer(trs.asset.signature.publicKey, 'hex');
+
+			for (var i = 0; i < publicKeyBuffer.length; i++) {
+				bb.writeByte(publicKeyBuffer[i]);
+			}
+
+			bb.flip();
+		} catch (e) {
+			throw Error(e.toString());
+		}
+		return bb.toBuffer();
 	}
 
 	this.objectNormalize = function (trs) {
@@ -59,7 +75,6 @@ function Signature() {
 			return null
 		} else {
 			var signature = {
-				id: raw.s_id,
 				transactionId: raw.t_id,
 				publicKey: raw.s_publicKey
 			}
@@ -126,13 +141,14 @@ function attachApi() {
 				return res.json({success: false, error: "Second signature already enabled"});
 			}
 
+			var secondHash = crypto.createHash('sha256').update(secondSecret, 'utf8').digest();
+			var secondKeypair = ed.MakeKeypair(secondHash);
+
 			var transaction = library.logic.transaction.create({
 				type: 1,
-				asset: {
-					signature: newSignature(secondSecret)
-				},
 				sender: account,
-				keypair: keypair
+				keypair: keypair,
+				secondKeypair: secondKeypair
 			});
 
 			library.sequence.add(function (cb) {
@@ -156,32 +172,6 @@ function attachApi() {
 		if (!err) return next();
 		res.status(500).send({success: false, error: err.toString()});
 	});
-}
-
-function newSignature(secondSecret) {
-	var hash = crypto.createHash('sha256').update(secondSecret, 'utf8').digest();
-	var keypair = ed.MakeKeypair(hash);
-
-	var signature = {
-		publicKey: keypair.publicKey.toString('hex')
-	};
-
-	signature.id = signatureHelper.getId(signature);
-	return signature;
-}
-
-function sign(signature, secondSecret) {
-	var hash = signatureHelper.getHash(signature);
-	var passHash = crypto.createHash('sha256').update(secondSecret, 'utf8').digest();
-	var keypair = ed.MakeKeypair(passHash);
-	return ed.Sign(hash, keypair).toString('hex');
-}
-
-function secondSignature(signature, secret) {
-	var hash = signatureHelper.getHash(signature);
-	var passHash = crypto.createHash('sha256').update(secret, 'utf8').digest();
-	var keypair = ed.MakeKeypair(passHash);
-	return ed.Sign(hash, keypair).toString('hex');
 }
 
 //public methods

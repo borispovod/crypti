@@ -195,7 +195,7 @@ function attachApi() {
 			var secondKeypair = null;
 
 			if (account.secondSignature) {
-				var secondHash = crypto.createHash('sha256').update(secret, 'utf8').digest();
+				var secondHash = crypto.createHash('sha256').update(secondSecret, 'utf8').digest();
 				secondKeypair = ed.MakeKeypair(secondHash);
 			}
 

@@ -33,7 +33,7 @@ function Delegate() {
 	this.create = function (data, trs) {
 		trs.recipientId = null;
 		trs.asset.delegate = {
-			username: data.asset.username,
+			username: data.username,
 			publicKey: data.sender.publicKey
 		};
 
@@ -386,15 +386,13 @@ function attachApi() {
 			var secondKeypair = null;
 
 			if (account.secondSignature) {
-				var secondHash = crypto.createHash('sha256').update(secret, 'utf8').digest();
+				var secondHash = crypto.createHash('sha256').update(secondSecret, 'utf8').digest();
 				secondKeypair = ed.MakeKeypair(secondHash);
 			}
 
 			var transaction = library.logic.transaction.create({
 				type: 2,
-				asset: {
-					username: username
-				},
+				username: username,
 				sender: account,
 				keypair: keypair,
 				secondKeypair: secondKeypair
