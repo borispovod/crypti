@@ -152,7 +152,7 @@ function secondSignature(signature, secret) {
 Signatures.prototype.get = function (id, cb) {
 	library.dbLite.query("select s.transactionId, lower(hex(s.publicKey)) " +
 	"from signatures s " +
-	"where s.transactionid = $id", {id: id}, ['s_id', 's_transactionId', 's_publicKey'], function (err, rows) {
+	"where s.transactionid = $id", {id: id}, ['s_transactionId', 's_publicKey'], function (err, rows) {
 		if (err || !rows.length) {
 			return cb(err || "Can't find signature: " + id);
 		}
