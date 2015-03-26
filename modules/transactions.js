@@ -48,7 +48,8 @@ function attachApi() {
 		var offset = params.int(req.query.offset, true);
 		var senderPublicKey = params.hex(req.query.senderPublicKey || null, true);
 		var senderId = params.string(req.query.senderId, true);
-		var recipientId = params.string(req.query.recipientId, true)
+		var recipientId = params.string(req.query.recipientId, true);
+		var type = params.int(req.query.type, true);
 
 		list({
 			blockId: blockId,
@@ -57,7 +58,8 @@ function attachApi() {
 			limit: limit || 20,
 			orderBy: orderBy,
 			offset: offset,
-			senderId: senderId
+			senderId: senderId,
+			type : type
 		}, function (err, transactions) {
 			if (err) {
 				return res.json({success: false, error: "Transactions not found"});
@@ -204,6 +206,10 @@ function list(filter, cb) {
 	if (filter.blockId) {
 		fields.push('blockId = $blockId')
 		params.blockId = filter.blockId;
+	}
+	if (filter.type) {
+		fields.push('type = $type');
+		params.type = filter.type;
 	}
 	if (filter.senderPublicKey) {
 		fields.push('lower(hex(senderPublicKey)) = $senderPublicKey')
