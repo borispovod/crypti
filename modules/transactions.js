@@ -1,5 +1,4 @@
 var transactionHelper = require('../helpers/transaction.js'),
-	scriptHelper = require('../helpers/script.js'),
 	ed = require('ed25519'),
 	bignum = require('bignum'),
 	util = require('util'),
@@ -127,7 +126,6 @@ function attachApi() {
 			recipientId: "string?",
 			publicKey: "hex?",
 			secondSecret: "string?",
-			scriptId: "string?",
 			input: "object?"
 		}, function (err, report, body) {
 			if (err) return next(err);
@@ -137,9 +135,7 @@ function attachApi() {
 				amount = body.amount,
 				recipientId = body.recipientId,
 				publicKey = body.publicKey,
-				secondSecret = body.secondSecret,
-				scriptId = body.scriptId,
-				input = body.input;
+				secondSecret = body.secondSecret;
 
 			var hash = crypto.createHash('sha256').update(secret, 'utf8').digest();
 			var keypair = ed.MakeKeypair(hash);
@@ -494,126 +490,9 @@ Transactions.prototype.validateTransaction = function (transaction, done) {
 				return done("Can't verify votes, most be less then 33 delegates");
 			}
 			break;
-		case 4:
-			if (transaction.recipientId != null) {
-				return done("Incorrect recipient");
-			}
-
-			if (!transaction.asset.script) {
-				return done("Transaction script not set");
-			}
-
-			self.validateTransactionScript(transaction.asset.script, function (err) {
-				if (err) return done(err);
-
-				if (!transaction.asset.script.name || transaction.asset.script.name.length == 0 || transaction.asset.script.name.length > 16) {
-					return done("Incorrect name length");
-				}
-
-				if (transaction.asset.script.description && transaction.asset.script.description.length > 140) {
-					return done("Incorrect description length");
-				}
-
-				done(null, transaction);
-			});
-
-			break;
-		case 5:
-			if (!transaction.asset.input) {
-				return done("Empty asset");
-			}
-
-			// verify input
-			if (!transaction.asset.input.scriptId) {
-				return done("Empty script id in transaction");
-			}
-
-			if (!transaction.asset.input.scriptId) {
-				return done("Empty input in transaction");
-			}
-
-			// need to rewrite this part async
-			modules.scripts.getScript(transaction.asset.input.scriptId, function (err, script) {
-				if (err || !script) {
-					return done(err || ("Script not found: " + transaction.asset.input.scriptId));
-				}
-
-				transaction.asset.script = script;
-
-				self.validateTransactionScript(script, function (err, script) {
-					if (err) return done(err);
-
-					try {
-						var input = JSON.parse(new Buffer(transaction.asset.input.data, 'hex'));
-					} catch (err) {
-						return done(err);
-					}
-
-					transaction.asset.script.code = new Buffer(transaction.asset.script.code, 'hex').toString('utf8');
-					transaction.asset.script.parameters = new Buffer(transaction.asset.script.parameters, 'hex').toString('utf8');
-
-					JsonSchema.validate(input, script.parameters, function (err, report) {
-						if (err) return done(err);
-						if (!report.isValid) return done(report.issues);
-
-						done(null, transaction);
-					});
-				});
-			});
-
-			break;
 		default:
 			return done("Unknown transaction type");
 	}
-}
-
-/**
- * Validate transaction script.
- * @param {{code:string,parameters:string}} script Script object.
- * @param {function(err:Error|string, script:{code:string,parameters:{}}=)} callback Result callback
- * @returns {*}
- */
-Transactions.prototype.validateTransactionScript = function (script, cb) {
-
-
-	if (!script.code) {
-		return cb("Transaction script code not exists");
-	}
-
-	var code = null, parameters = null;
-
-	try {
-		code = new Buffer(script.code, 'hex');
-		parameters = new Buffer(script.parameters, 'hex');
-	} catch (e) {
-		return cb("Can't parse code/parameters from hex to strings in script transaction.");
-	}
-
-
-	if (code.length > 4 * 1024) {
-		return cb("Incorrect script code length");
-	}
-
-	try {
-		esprima.parse(code.toString('utf8'));
-	} catch (err) {
-		return cb("Transaction script code is not valid");
-	}
-
-	if (parameters.length > 4 * 1024) {
-		return cb("Incorrect script parameters length");
-	}
-
-	try {
-		parameters = JSON.parse(parameters.toString('utf8'));
-	} catch (e) {
-		return cb("Incorrect script parameters json");
-	}
-
-	cb(null, {
-		code: code,
-		parameters: parameters
-	});
 }
 
 Transactions.prototype.apply = function (transaction) {

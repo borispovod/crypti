@@ -57,7 +57,7 @@ test/test.sh
 Crypti uses mocha so it possible to run test manually from cli:
 ```
 mocha test/test.js
-mocha test/sandbox/index.js
+mocha test/transaction/index.js
 ```
 
 #### Own tests ####
@@ -77,7 +77,7 @@ $NODE test-file.js || exit 1;
 To add custom mocha test add test file into test dir and then require it in `test.js` file in the appropriate place:
 ```
 // test.js
-require('./helpers/sandbox.js');
+require('./helpers/transaction.js');
 require('./ui/login.js');
 ```
 

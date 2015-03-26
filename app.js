@@ -20,9 +20,7 @@ var config = {
 		"system": "./modules/system.js",
 		"peer": "./modules/peer.js",
 		"delegates": "./modules/delegates.js",
-		"scripts": "./modules/scripts.js",
-		"round": "./modules/round.js",
-		"sandboxes" : "./modules/sandboxes.js"
+		"round": "./modules/round.js"
 	}
 };
 
