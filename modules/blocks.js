@@ -353,8 +353,7 @@ function saveBlock(block, cb) {
 
 				switch (transaction.type) {
 					case 1:
-						library.dbLite.query("INSERT INTO signatures(id, transactionId, publicKey) VALUES($id, $transactionId, $publicKey)", {
-							id: transaction.asset.signature.id,
+						library.dbLite.query("INSERT INTO signatures(transactionId, publicKey) VALUES($transactionId, $publicKey)", {
 							transactionId: transaction.id,
 							publicKey: new Buffer(transaction.asset.signature.publicKey, 'hex')
 						}, cb);
@@ -511,14 +510,14 @@ Blocks.prototype.loadBlocksPart = function (filter, cb) {
 	var fields = [
 		'b_id', 'b_version', 'b_timestamp', 'b_height', 'b_previousBlock', 'b_numberOfTransactions', 'b_totalAmount', 'b_totalFee', 'b_payloadLength', 'b_payloadHash', 'b_generatorPublicKey', 'b_blockSignature',
 		't_id', 't_type', 't_timestamp', 't_senderPublicKey', 't_senderId', 't_recipientId', 't_amount', 't_fee', 't_signature', 't_signSignature',
-		's_id', 's_publicKey',
+		's_publicKey',
 		'd_username',
 		'v_votes'
 	]
 	library.dbLite.query("SELECT " +
 	"b.id, b.version, b.timestamp, b.height, b.previousBlock, b.numberOfTransactions, b.totalAmount, b.totalFee, b.payloadLength, lower(hex(b.payloadHash)), lower(hex(b.generatorPublicKey)), lower(hex(b.blockSignature)), " +
 	"t.id, t.type, t.timestamp, lower(hex(t.senderPublicKey)), t.senderId, t.recipientId, t.amount, t.fee, lower(hex(t.signature)), lower(hex(t.signSignature)), " +
-	"s.id, lower(hex(s.publicKey)), " +
+	"lower(hex(s.publicKey)), " +
 	"d.username, " +
 	"v.votes " +
 	"FROM (select * from blocks " + (filter.id ? " where id = $id " : "") + (filter.lastId ? " where height > (SELECT height FROM blocks where id = $lastId) " : "") + " limit $limit) as b " +
@@ -548,14 +547,14 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 	var fields = [
 		'b_id', 'b_version', 'b_timestamp', 'b_height', 'b_previousBlock', 'b_numberOfTransactions', 'b_totalAmount', 'b_totalFee', 'b_payloadLength', 'b_payloadHash', 'b_generatorPublicKey', 'b_blockSignature',
 		't_id', 't_type', 't_timestamp', 't_senderPublicKey', 't_senderId', 't_recipientId', 't_amount', 't_fee', 't_signature', 't_signSignature',
-		's_id', 's_publicKey',
+		's_publicKey',
 		'd_username',
 		'v_votes'
 	]
 	library.dbLite.query("SELECT " +
 	"b.id, b.version, b.timestamp, b.height, b.previousBlock, b.numberOfTransactions, b.totalAmount, b.totalFee, b.payloadLength, lower(hex(b.payloadHash)), lower(hex(b.generatorPublicKey)), lower(hex(b.blockSignature)), " +
 	"t.id, t.type, t.timestamp, lower(hex(t.senderPublicKey)), t.senderId, t.recipientId, t.amount, t.fee, lower(hex(t.signature)), lower(hex(t.signSignature)), " +
-	"s.id, lower(hex(s.publicKey)), " +
+	"lower(hex(s.publicKey)), " +
 	"d.username, " +
 	"v.votes " +
 	"FROM (select * from blocks limit $limit offset $offset) as b " +

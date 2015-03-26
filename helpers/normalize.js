@@ -55,7 +55,6 @@ function normalizePeer(peer) {
 function normalizeSignature(signature) {
 	signature = params.object(signature);
 
-	signature.id = params.string(signature.id);
 	signature.transactionId = params.string(signature.transactionId);
 	signature.publicKey = params.hex(signature.publicKey);
 

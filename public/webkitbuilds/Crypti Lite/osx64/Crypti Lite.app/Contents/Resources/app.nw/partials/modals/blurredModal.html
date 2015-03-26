@@ -1,0 +1,12 @@
+<div ng-controller="BlurredModalController" class="st-blurred-modal-vertical-center">
+    <div class="st-blurred-modal" ng-class="{'red': dialogData.err}">
+        <div class="content">
+        <div class="icon" ng-class="{'spin-load': !dialogData.err}"></div>
+        <div class="searchText" ng-show="!dialogData.err">Searching for the best peer available. This process can take a moment.</div>
+        <div class="errorText" ng-show="dialogData.err">Your peer is offline. To change your peer or use the auto peer function click on the cloud on the top right corner.</div>
+        <button ng-show="dialogData.err" type="submit" class="button small" ng-click="close()">
+            Close
+        </button>
+        </div>
+    </div>
+</div>

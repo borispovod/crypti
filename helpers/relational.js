@@ -132,17 +132,16 @@ function getTransaction(raw) {
 }
 
 function getSignature(raw) {
-	if (!raw.s_id) {
-		return null
-	} else {
-		var signature = {
-			id: raw.s_id,
-			transactionId: raw.t_id,
-			publicKey: raw.s_publicKey
-		}
-
-		return signature;
+	if (!raw.t_id) {
+		return null;
 	}
+
+	var signature = {
+		transactionId: raw.t_id,
+		publicKey: raw.s_publicKey
+	}
+
+	return signature;
 }
 
 function getVotes(raw) {

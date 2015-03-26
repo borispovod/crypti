@@ -1,0 +1,113 @@
+<div id="account">
+    <div class="clearfix">
+        <h1 class="heading">Forging > Delegates</h1>
+
+        <div class="vote-delegates"><h2>{{voteList.list.toServer.length
+            }}/{{countStandby + countTop}} Delegates
+            selected</h2>
+
+            <div class="vote-navigation" ng-class="{'active': showVotes}">
+                <button class="button green" id="delegates-list" ng-disabled="voteList.list.toServer.length==0"
+                        ng-click="voteList.toggle()">View Selection
+                </button>
+                <button class="button green vote" ng-click="vote()"
+                        ng-disabled="voteList.list.toServer.length==0 || unconfirmedPassphrase">Vote
+                    <div class="tollip" ng-hide="!unconfirmedPassphrase && voteList.list.toServer.length!=0">
+                        Wait for second passphrase applying.
+                    </div>
+                </button>
+                <div class="overlay" ng-click="voteList.toggle()">
+                </div>
+                <ul>
+                    <li ng-repeat="vote in voteList.list.toShow">{{vote}}</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <div class="ng-table-label">
+        <h2>Top Delegates</h2>
+    </div>
+    <table ng-table="tableTopDelegates" border="0" width="100%" cellpadding="0" cellspacing="0">
+        <tr ng-repeat="delegate in $data"
+            ng-class="{'voted' : (delegates.voted(delegate.publicKey) || unconfirmedTransactions.inList(delegate.publicKey))}">
+            <td data-title="'Rank'" sortable="'rate'">{{delegate.rate}}</td>
+            <td data-title="'Name'" sortable="'username'">{{delegate.username}}</td>
+            <td data-title="'Crypti Address'">{{delegate.address}}</td>
+            <td data-title="'Uptime'">{{(delegate.productivity)|uptimeFilter}}</td>
+            <td data-title="'Approval'">{{getApproval(delegate.vote) | number: 2}}%</td>
+            <td data-title="'Vote'">
+                <button class="button button-vote small green"
+                        ng-disabled="delegates.voted(delegate.publicKey) || unconfirmedTransactions.inList(delegate.publicKey)"
+                        ng-if="!voteList.inList(delegate.publicKey) && (delegates.voted(delegate.publicKey) || unconfirmedTransactions.inList(delegate.publicKey))">
+                    Voted
+                    <div class="tollip">
+                        You already voted for this delegate.
+                    </div>
+                </button>
+                <button class="button button-vote small green"
+                        ng-click="voteList.vote(delegate.publicKey, delegate.username)"
+                        ng-if="!voteList.inList(delegate.publicKey) && (!delegates.voted(delegate.publicKey) && !unconfirmedTransactions.inList(delegate.publicKey))">
+                    Select
+                </button>
+                <button class="button button-vote small red" ng-if="voteList.inList(delegate.publicKey)"
+                        ng-click="voteList.vote(delegate.publicKey, delegate.username)">
+                    Selected
+                </button>
+            </td>
+        </tr>
+        <tr ng-show="!loadingTop && (!$data || $data.length == 0)">
+            <td colspan="6">
+                No delegates
+            </td>
+        </tr>
+        <tr ng-show="loadingTop">
+            <td colspan="6">
+                Loading...
+            </td>
+        </tr>
+    </table>
+
+    <div class="ng-table-label">
+        <h2>Standby Delegates</h2>
+    </div>
+    <table ng-table="tableStandbyDelegates" border="0" width="100%" cellpadding="0" cellspacing="0">
+        <tr ng-repeat="delegate in $data"
+            ng-class="{'voted' : (delegates.voted(delegate.publicKey) || unconfirmedTransactions.inList(delegate.publicKey))}">
+            <td data-title="'Rank'" sortable="'rate'">{{delegate.rate}}</td>
+            <td data-title="'Name'" sortable="'username'">{{delegate.username}}</td>
+            <td data-title="'Crypti Address'">{{delegate.address}}</td>
+            <td data-title="'Uptime'">{{(delegate.productivity)|uptimeFilter}}</td>
+            <td data-title="'Approval'">{{getApproval(delegate.vote) | number: 2}}%</td>
+            <td data-title="'Vote'">
+                <button class="button button-vote small green"
+                        ng-disabled="delegates.voted(delegate.publicKey) || unconfirmedTransactions.inList(delegate.publicKey)"
+                        ng-if="!voteList.inList(delegate.publicKey) && (delegates.voted(delegate.publicKey) || unconfirmedTransactions.inList(delegate.publicKey))">
+                    Voted
+                    <div class="tollip">
+                        You already voted for this delegate.
+                    </div>
+                </button>
+                <button class="button button-vote small green"
+                        ng-click="voteList.vote(delegate.publicKey, delegate.username)"
+                        ng-if="!voteList.inList(delegate.publicKey) && (!delegates.voted(delegate.publicKey) && !unconfirmedTransactions.inList(delegate.publicKey))">
+                    Select
+                </button>
+                <button class="button button-vote small red" ng-if="voteList.inList(delegate.publicKey)"
+                        ng-click="voteList.vote(delegate.publicKey, delegate.username)">
+                    Selected
+                </button>
+            </td>
+        </tr>
+        <tr ng-show="!loadingStandby && (!$data || $data.length == 0)">
+            <td colspan="6">
+                No delegates
+            </td>
+        </tr>
+        <tr ng-show="loadingStandby">
+            <td colspan="6">
+                Loading...
+            </td>
+        </tr>
+    </table>
+</div>
