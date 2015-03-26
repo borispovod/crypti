@@ -13,9 +13,12 @@ public/static/
 public/node_modules/
 builded
 __MACOSX/
+<<<<<<< HEAD
 public/webkitbuilds
 public/build
 bfg.jar
 public/tmp
 public/webkitbuilds/**/*
 public/build/**/*
+=======
+>>>>>>> 6f6fdffc12f41240456cde8f334c4996b3b1ed44
