@@ -28,17 +28,7 @@
 		}
 	},
 	"loading": {
-<<<<<<< HEAD
-<<<<<<< HEAD
 		"verifyOnLoading": false,
 		"loadPerIteration": 10000
-=======
-		"verifyOnLoading": true,
-		"loadPerIteration": 5000
->>>>>>> 6f6fdffc12f41240456cde8f334c4996b3b1ed44
-=======
-		"verifyOnLoading": true,
-		"loadPerIteration": 5000
->>>>>>> 6f6fdffc12f41240456cde8f334c4996b3b1ed44
 	}
 }
