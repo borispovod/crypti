@@ -132,7 +132,7 @@ function getTransaction(raw) {
 }
 
 function getSignature(raw) {
-	if (!raw.t_id) {
+	if (!raw.s_publicKey) {
 		return null;
 	}
 
