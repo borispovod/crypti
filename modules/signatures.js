@@ -70,7 +70,7 @@ function Signature() {
 	}
 
 	this.dbRead = function (raw) {
-		if (!raw.s_id) {
+		if (!raw.s_publicKey) {
 			return null
 		} else {
 			var signature = {
