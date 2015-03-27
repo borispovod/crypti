@@ -140,7 +140,6 @@ Transaction.prototype.getBytes = function (trs) {
 
 		bb.flip();
 	} catch (e) {
-		console.log(trs);
 		throw Error(e.toString());
 	}
 	return bb.toBuffer();
