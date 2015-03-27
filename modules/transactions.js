@@ -9,7 +9,8 @@ var ed = require('ed25519'),
 	extend = require('extend'),
 	Router = require('../helpers/router.js'),
 	async = require('async'),
-	RequestSanitizer = require('../helpers/request-sanitizer.js');
+	RequestSanitizer = require('../helpers/request-sanitizer.js'),
+	TransactionTypes = require('../helpers/transaction-types.js');
 
 // private fields
 var modules, library, self;
@@ -55,7 +56,7 @@ function Transactions(cb, scope) {
 
 	attachApi();
 
-	library.logic.transaction.attachAssetType(0, new Transfer());
+	library.logic.transaction.attachAssetType(TransactionTypes.SEND, new Transfer());
 
 	setImmediate(cb, null, self);
 }

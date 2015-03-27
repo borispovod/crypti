@@ -4,7 +4,8 @@ var crypto = require('crypto'),
 	slots = require('../helpers/slots.js'),
 	Router = require('../helpers/router.js'),
 	constants = require('../helpers/constants.js'),
-	RequestSanitizer = require('../helpers/request-sanitizer.js');
+	RequestSanitizer = require('../helpers/request-sanitizer.js'),
+	TransactionTypes = require('../helpers/transaction-types.js');
 
 //private
 var modules, library, self;
@@ -230,7 +231,7 @@ function Accounts(cb, scope) {
 
 	attachApi();
 
-	library.logic.transaction.attachAssetType(3, new Vote());
+	library.logic.transaction.attachAssetType(TransactionTypes.VOTE, new Vote());
 
 	setImmediate(cb, null, self);
 }

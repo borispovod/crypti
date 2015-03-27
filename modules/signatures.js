@@ -6,7 +6,8 @@ var ed = require('ed25519'),
 	slots = require('../helpers/slots.js'),
 	RequestSanitizer = require('../helpers/request-sanitizer.js'),
 	Router = require('../helpers/router.js'),
-	async = require('async');
+	async = require('async'),
+	TransactionTypes = require('../helpers/transaction-types.js');
 
 // private fields
 var modules, library, self;
@@ -89,7 +90,7 @@ function Signatures(cb, scope) {
 
 	attachApi();
 
-	library.logic.transaction.attachAssetType(1, new Signature());
+	library.logic.transaction.attachAssetType(TransactionTypes.SIGNATURE, new Signature());
 
 	setImmediate(cb, null, self);
 }

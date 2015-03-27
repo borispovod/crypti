@@ -60,7 +60,7 @@ var config = {
 		"peer": "./modules/peer.js",
 		"delegates": "./modules/delegates.js",
 		"round": "./modules/round.js",
-		"messages" : "./m"
+		"messages" : "./modules/messages.js"
 	}
 }
 
