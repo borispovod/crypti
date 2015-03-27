@@ -7,7 +7,8 @@ var crypto = require('crypto'),
 	schedule = require('node-schedule'),
 	util = require('util'),
 	constants = require('../helpers/constants.js'),
-	RequestSanitizer = require('../helpers/request-sanitizer');
+	RequestSanitizer = require('../helpers/request-sanitizer'),
+	TransactionTypes = require('../helpers/transaction-types.js');
 
 require('array.prototype.find'); //old node fix
 
@@ -106,7 +107,7 @@ function Delegates(cb, scope) {
 
 	attachApi();
 
-	library.logic.transaction.attachAssetType(2, new Delegate());
+	library.logic.transaction.attachAssetType(TransactionTypes.DELEGATE, new Delegate());
 
 	setImmediate(cb, null, self);
 }
