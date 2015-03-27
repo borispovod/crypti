@@ -114,7 +114,7 @@ function getTransaction(raw) {
 	} else {
 		var tx = {
 			id: raw.t_id,
-			blockId: raw.b_id,
+			blockId: raw.b_id || raw.t_blockId,
 			type: parseInt(raw.t_type),
 			timestamp: parseInt(raw.t_timestamp),
 			senderPublicKey: raw.t_senderPublicKey,
