@@ -11,7 +11,7 @@ var crypto = require('crypto'),
 	slots = require('../helpers/slots.js'),
 	util = require('util'),
 	async = require('async'),
-	TransactionTypes = require('../helpers/transaction-type.js');
+	TransactionTypes = require('../helpers/transaction-types.js');
 
 //private fields
 var modules, library, self;
@@ -422,7 +422,8 @@ Blocks.prototype.loadBlocksPart = function (filter, cb) {
 		't_id', 't_type', 't_timestamp', 't_senderPublicKey', 't_senderId', 't_recipientId', 't_amount', 't_fee', 't_signature', 't_signSignature',
 		's_publicKey',
 		'd_username',
-		'v_votes'
+		'v_votes',
+		'm_data', 'm_nonce', 'm_encrypted'
 	]
 	library.dbLite.query("SELECT " +
 	"b.id, b.version, b.timestamp, b.height, b.previousBlock, b.numberOfTransactions, b.totalAmount, b.totalFee, b.payloadLength, lower(hex(b.payloadHash)), lower(hex(b.generatorPublicKey)), lower(hex(b.blockSignature)), " +
@@ -430,11 +431,13 @@ Blocks.prototype.loadBlocksPart = function (filter, cb) {
 	"lower(hex(s.publicKey)), " +
 	"d.username, " +
 	"v.votes, " +
+	"lower(hex(m.data)), lower(hex(m.hexnonce)), m_encrypted, " +
 	"FROM (select * from blocks " + (filter.id ? " where id = $id " : "") + (filter.lastId ? " where height > (SELECT height FROM blocks where id = $lastId) " : "") + " limit $limit) as b " +
 	"left outer join trs as t on t.blockId=b.id " +
 	"left outer join delegates as d on d.transactionId=t.id " +
 	"left outer join votes as v on v.transactionId=t.id " +
 	"left outer join signatures as s on s.transactionId=t.id " +
+	"left outer join messages as m on m.transactionId=t.id " +
 	"ORDER BY b.height, t.rowid, s.rowid, d.rowid" +
 	"", params, fields, function (err, rows) {
 		// Some notes:
@@ -492,19 +495,20 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 		'm_data', 'm_nonce', 'm_encrypted'
 	];
 
+
 	library.dbLite.query("SELECT " +
 	"b.id, b.version, b.timestamp, b.height, b.previousBlock, b.numberOfTransactions, b.totalAmount, b.totalFee, b.payloadLength, lower(hex(b.payloadHash)), lower(hex(b.generatorPublicKey)), lower(hex(b.blockSignature)), " +
 	"t.id, t.type, t.timestamp, lower(hex(t.senderPublicKey)), t.senderId, t.recipientId, t.amount, t.fee, lower(hex(t.signature)), lower(hex(t.signSignature)), " +
 	"lower(hex(s.publicKey)), " +
 	"d.username, " +
-	"v.votes " +
+	"v.votes, " +
 	"lower(hex(m.data)), lower(hex(m.nonce)), m.encrypted " +
 	"FROM (select * from blocks limit $limit offset $offset) as b " +
 	"left outer join trs as t on t.blockId=b.id " +
 	"left outer join delegates as d on d.transactionId=t.id " +
 	"left outer join votes as v on v.transactionId=t.id " +
 	"left outer join signatures as s on s.transactionId=t.id " +
-	"left outer join messages as m on m.transactionId=m.id " +
+	"left outer join messages as m on m.transactionId=t.id " +
 	"ORDER BY b.height, t.rowid, s.rowid, d.rowid, m.rowid" +
 	"", params, fields, function (err, rows) {
 		// Some notes:

@@ -1,6 +1,7 @@
 var encryptHelper = require('../helpers/encrypt.js'),
 	TransactionTypes = require('../helpers/transaction-types.js'),
-	RequestSanitizer = require('../helpers/request-sanitizer.js');
+	RequestSanitizer = require('../helpers/request-sanitizer.js'),
+	Router = require('../helpers/router.js');
 
 var modules, library, self;
 
@@ -18,7 +19,7 @@ function Message() {
 
 		trs.asset.message = {
 			data: message,
-			nonce : nonce.toString('hex'),
+			nonce : nonce? nonce.toString('hex') : null,
 			encrypted: data.encrypt
 		};
 
@@ -55,12 +56,18 @@ function Message() {
 			return cb("Invalid nonce");
 		}
 
-		try {
-			if (new Buffer(trs.asset.message.nonce, 'hex').length != 24) {
-				return cb("Invalid nonce length");
+		if (!trs.asset.message.nonce && trs.asset.message.encrypted) {
+			return cb("Can't encrypt with nonce");
+		}
+
+		if (trs.asset.message.nonce) {
+			try {
+				if (new Buffer(trs.asset.message.nonce, 'hex').length != 24) {
+					return cb("Invalid nonce length");
+				}
+			} catch (e) {
+				return cb("Invalid nonce param in message asset");
 			}
-		} catch (e) {
-			return cb("Invalid nonce param in message asset");
 		}
 
 		if (trs.asset.message.encrypted !== false && trs.asset.message.encrypted !== true) {
