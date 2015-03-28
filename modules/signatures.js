@@ -33,13 +33,13 @@ function Signature() {
 
 		try {
 			if (new Buffer(trs.asset.signature.publicKey, 'hex').length != 32) {
-				cb("Invalid length for signature public key");
+				return cb("Invalid length for signature public key");
 			}
 		} catch (e) {
-			cb("Invalid hex in signature public key");
+			return cb("Invalid hex in signature public key");
 		}
 
-		cb(null, trs);
+		return cb(null, trs);
 	}
 
 	this.getBytes = function (trs) {
@@ -70,7 +70,7 @@ function Signature() {
 	}
 
 	this.dbRead = function (raw) {
-		if (!raw.s_id) {
+		if (!raw.s_publicKey) {
 			return null
 		} else {
 			var signature = {

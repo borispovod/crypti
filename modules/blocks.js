@@ -10,7 +10,8 @@ var crypto = require('crypto'),
 	Router = require('../helpers/router.js'),
 	slots = require('../helpers/slots.js'),
 	util = require('util'),
-	async = require('async');
+	async = require('async'),
+	TransactionTypes = require('../helpers/transaction-type.js');
 
 //private fields
 var modules, library, self;
@@ -273,6 +274,15 @@ function saveBlock(block, cb) {
 							transactionId: transaction.id
 						}, cb);
 						break;
+
+					case TransactionTypes.MESSAGE:
+						library.dbLite.query("INSERT INTO messages(data, nonce, encrypted, transactionId) VALUES($data, $nonce, $encrypted, $transactionId)", {
+							data: new Buffer(transaction.asset.message.data, 'hex'),
+							nonce: new Buffer(transaction.asset.message.nonce, 'hex'),
+							encrypted: transaction.asset.message.encrypted? 1 : 0,
+							transactionId : transaction.id
+						}, cb);
+						break;
 					default:
 						cb();
 				}
@@ -480,7 +490,8 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 		't_id', 't_type', 't_timestamp', 't_senderPublicKey', 't_senderId', 't_recipientId', 't_amount', 't_fee', 't_signature', 't_signSignature',
 		's_publicKey',
 		'd_username',
-		'v_votes'
+		'v_votes',
+		'm_data', 'm_nonce', 'm_encrypted'
 	];
 
 	library.dbLite.query("SELECT " +
@@ -489,12 +500,14 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 	"lower(hex(s.publicKey)), " +
 	"d.username, " +
 	"v.votes " +
+	"lower(hex(m.data)), lower(hex(m.nonce)), m.encrypted " +
 	"FROM (select * from blocks limit $limit offset $offset) as b " +
 	"left outer join trs as t on t.blockId=b.id " +
 	"left outer join delegates as d on d.transactionId=t.id " +
 	"left outer join votes as v on v.transactionId=t.id " +
 	"left outer join signatures as s on s.transactionId=t.id " +
-	"ORDER BY b.height, t.rowid, s.rowid, d.rowid" +
+	"left outer join messages as m on m.transactionId=m.id " +
+	"ORDER BY b.height, t.rowid, s.rowid, d.rowid, m.rowid" +
 	"", params, fields, function (err, rows) {
 		// Some notes:
 		// If loading catch error, for example, invalid signature on block & transaction, need to stop loading and remove all blocks after last good block.
