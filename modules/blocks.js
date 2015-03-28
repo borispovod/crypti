@@ -422,8 +422,7 @@ Blocks.prototype.loadBlocksPart = function (filter, cb) {
 		't_id', 't_type', 't_timestamp', 't_senderPublicKey', 't_senderId', 't_recipientId', 't_amount', 't_fee', 't_signature', 't_signSignature',
 		's_publicKey',
 		'd_username',
-		'v_votes',
-		'js_code', 'js_parameters'
+		'v_votes'
 	]
 	library.dbLite.query("SELECT " +
 	"b.id, b.version, b.timestamp, b.height, b.previousBlock, b.numberOfTransactions, b.totalAmount, b.totalFee, b.payloadLength, lower(hex(b.payloadHash)), lower(hex(b.generatorPublicKey)), lower(hex(b.blockSignature)), " +
@@ -431,7 +430,6 @@ Blocks.prototype.loadBlocksPart = function (filter, cb) {
 	"lower(hex(s.publicKey)), " +
 	"d.username, " +
 	"v.votes, " +
-	"lower(hex(js.code)), lower(hex(js.parameters)) " +
 	"FROM (select * from blocks " + (filter.id ? " where id = $id " : "") + (filter.lastId ? " where height > (SELECT height FROM blocks where id = $lastId) " : "") + " limit $limit) as b " +
 	"left outer join trs as t on t.blockId=b.id " +
 	"left outer join delegates as d on d.transactionId=t.id " +
@@ -584,6 +582,7 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 
 			for (var n = 0, n_length = blocks[i].transactions.length; n < n_length; n++) {
 				if (blocks[i].id != genesisblock.block.id) {
+					if (blocks[i].id == '17716098720826987814') debugger;
 					if (verify && !library.logic.transaction.verifySignature(blocks[i].transactions[n])) {
 						err = {
 							message: "Can't verify transaction: " + blocks[i].transactions[n].id,
