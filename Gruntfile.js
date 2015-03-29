@@ -155,5 +155,6 @@ module.exports = function (grunt) {
 
 	grunt.registerTask("default", ["obfuscator"]);
 	grunt.registerTask("release", ["default", "jscrambler"]);
+	grunt.registerTask("build", ["exec:folder", "release", "exec:package", "exec:build", "compress"]);
 	grunt.registerTask("package", ["exec:folder", "release", "exec:package", "exec:build", "compress","gcloud:project", "nodemailer:message", "slack"]);
 };
