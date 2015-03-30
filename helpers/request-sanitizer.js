@@ -79,7 +79,7 @@ RequestSanitizer.addRule("array", {
     filter: function (accept, value, field) {
         if (field.isEmpty() && field.rules.empty) return null;
 
-        if (typeof value === "string" && typeof accept === "string") {
+        if (typeof value === "string" && (typeof accept === "string" || accept instanceof RegExp )) {
             return value.length ? value.split(accept) : [];
         } else if (Array.isArray(value)) {
             return value;
