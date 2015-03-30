@@ -56,7 +56,7 @@ function attachApi() {
 	});
 }
 
-function loadfullDb(peer, cb) {
+function loadFullDb(peer, cb) {
 	var peerStr = peer ? ip.fromLong(peer.ip) + ":" + peer.port : 'unknown';
 
 	var commonBlockId = genesisBlock.block.id;
@@ -190,7 +190,7 @@ function loadBlocks(lastBlock, cb) {
 			if (lastBlock.id != genesisBlock.block.id) { //have to found common block
 				findUpdate(lastBlock, data.peer, cb);
 			} else { //have to load full db
-				loadfullDb(data.peer, cb);
+				loadFullDb(data.peer, cb);
 			}
 		} else {
 			cb();

@@ -139,6 +139,36 @@ function attachApi() {
 		res.status(500).send({success: false, error: 'loading'});
 	});
 
+	router.post("/decrypt", function (req, res) {
+		req.sanitize("body", {
+			secret: "string!",
+			messageId: "string!"
+		}, function (err, report, body) {
+			if (err) return next(err);
+			if (!report.isValid) return res.json({success: false, error: report.issues});
+
+			var secret = body.secret;
+			var hash = crypto.createHash('sha256').update(secret, 'utf8').digest();
+			var keypair = ed.MakeKeypair(hash);
+
+			library.dbLite.query("SELECT lower(hex(data)), lower(hex(nonce)), encrypted FROM messa", function (err, rows) {
+				if (err || rows.length == 0) {
+					return res.json({success: false, error: err? "Internal error" : "Can't find message"});
+				}
+
+				var message = rows[0];
+
+				try {
+					var text = encryptHelper.decrypt(new Buffer(message.data, 'hex'), new Buffer(message.nonce, 'hex'), new Buffer(message.senderPublicKey, 'hex'), keypair.privateKey);
+				} catch (e) {
+					return res.json({success:false, error: "Can't decrypt message"});
+				}
+
+				return res.json({success:false, message:text});
+			});
+		});
+	});
+
 	router.put('/', function (req, res) {
 		req.sanitize("body", {
 			secret: "string!",
@@ -247,6 +277,8 @@ function Messages(cb, scope) {
 
 	setImmediate(cb, null, self);
 }
+
+
 
 Messages.prototype.onBind = function (scope) {
 	modules = scope;

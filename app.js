@@ -2,7 +2,6 @@ var program = require('commander');
 var packageJson = require('./package.json');
 var Logger = require('./logger.js');
 var appConfig = require("./config.json");
-var logger = new Logger({echo: appConfig.consoleLogLevel, errorLevel: appConfig.fileLogLevel});
 var async = require('async');
 var extend = require('extend');
 var path = require('path');
@@ -14,7 +13,8 @@ program
 	.option('-p, --port <port>', 'Listening port number')
 	.option('-a, --address <ip>', 'Listening host name or ip')
 	.option('-b, --blockchain <path>', 'Blockchain db path')
-	.option('-l, --peers <peers>', 'Peers list')
+	.option('-x, --peers <peers>', 'Peers list')
+	.option('-l, --log <level>', 'Log level')
 	.parse(process.argv);
 
 if (program.config) {
@@ -37,6 +37,10 @@ if (program.peers) {
 			port: peer.shift() || appConfig.port
 		};
 	});
+}
+
+if (program.log) {
+	appConfig.consoleLogLevel = program.log;
 }
 
 SegfaultHandler.registerHandler();
@@ -64,6 +68,8 @@ var config = {
 		"avatars" : "./modules/avatars.js"
 	}
 }
+
+var logger = new Logger({echo: appConfig.consoleLogLevel, errorLevel: appConfig.fileLogLevel});
 
 var d = require('domain').create();
 d.on('error', function (err) {
