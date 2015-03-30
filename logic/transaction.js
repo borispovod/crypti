@@ -53,7 +53,9 @@ Transaction.prototype.create = function (data) {
 }
 
 Transaction.prototype.attachAssetType = function (typeId, instance) {
-	if (instance && typeof instance.create == 'function' && typeof instance.getBytes == 'function' && typeof instance.calculateFee == 'function' && typeof instance.verify == 'function' && typeof instance.objectNormalize == 'function' && typeof instance.dbRead == 'function') {
+	if (instance && typeof instance.create == 'function' && typeof instance.getBytes == 'function' &&
+		typeof instance.calculateFee == 'function' && typeof instance.verify == 'function' &&
+		typeof instance.objectNormalize == 'function' && typeof instance.dbRead == 'function') {
 		private.types[typeId] = instance;
 	} else {
 		throw Error('Invalid instance interface');

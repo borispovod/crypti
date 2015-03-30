@@ -197,7 +197,7 @@ Block.prototype.getId = function (block) {
 }
 
 Block.prototype.getHash = function (block) {
-	return crypto.createHash('sha256').update(getBytes(block)).digest();
+	return crypto.createHash('sha256').update(this.getBytes(block)).digest();
 }
 
 Block.prototype.calculateFee = function (block) {
