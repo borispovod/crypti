@@ -212,6 +212,16 @@ function attachApi() {
 				encrypt: body.encrypt,
 				message : body.message
 			});
+
+			library.sequence.add(function (cb) {
+				modules.transactions.processUnconfirmedTransaction(transaction, true, cb);
+			}, function (err) {
+				if (err) {
+					return res.json({success: false, error: err});
+				}
+
+				res.json({success: true, transaction: transaction});
+			});
 		});
 	});
 

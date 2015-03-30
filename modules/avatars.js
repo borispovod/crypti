@@ -1,7 +1,8 @@
 var encryptHelper = require('../helpers/encrypt.js'),
 	TransactionTypes = require('../helpers/transaction-types.js'),
 	RequestSanitizer = require('../helpers/request-sanitizer.js'),
-	Router = require('../helpers/router.js');
+	Router = require('../helpers/router.js'),
+	imageType = require('image-type');
 
 var modules, library, self;
 
@@ -44,8 +45,14 @@ function Avatar() {
 			if (image.length > 10000 || image.length == 0) {
 				return cb("Invalid image");
 			}
+
+			var type = imageType(image);
+
+			if (type.ext != "png" || type.mime != 'image/png') {
+				return cb("Image is not png, upload png image please");
+			}
 		} catch (e) {
-			return cb("Invalid hex image");
+			return cb("Invalid hex image or invalid image");
 		}
 
 		return cb(null, trs);
@@ -102,12 +109,91 @@ function attachApi() {
 	});
 
 	router.get("/", function (req, res) {
-		// return image
-		res.send("text");
+		req.sanitize("query", {
+			publicKey: "hex!"
+		}, function (err, report, query) {
+			if (err) return next(err);
+			if (!report.isValid) return res.json({success: false, error: report.issues});
+
+			library.dbLite.query(
+				"SELECT lower(hex(image)), transactionId FROM avatars where transactionId=(SELECT id FROM trs where lower(hex(senderPublicKey))=$senderPublicKey and type=" + TransactionTypes.AVATAR + ")",
+				['image', 'transactionId'],
+				{
+					senderPublicKey: query.publicKey
+				}, function (err, rows) {
+					if (err || rows.length == 0) {
+						return res.json({success: false, error : err || "Can't find avatar of this account"});
+					}
+
+					var image = new Buffer(rows[0].image, 'hex');
+
+					res.writeHead(200, {'Content-Type': 'image/png' });
+					res.writeHead(200, {'Content-Length': image.length});
+					res.end(image, 'binary');
+				});
+		});
 	});
 
 	router.put("/", function (req, res) {
-		// put image transaction
+		req.sanitize("body", {
+			secret: "string!",
+			secondSecret: "string?",
+			publicKey: "hex?",
+			"image" : "hex!"
+		}, function (err, report, body) {
+			if (err) return next(err);
+			if (!report.isValid) return res.json({success: false, error: report.issues});
+
+			var secret = body.secret,
+				secondSecret = body.secondSecret,
+				publicKey = body.publicKey;
+
+			var hash = crypto.createHash('sha256').update(secret, 'utf8').digest();
+			var keypair = ed.MakeKeypair(hash);
+
+			if (publicKey) {
+				if (keypair.publicKey.toString('hex') != publicKey) {
+					return res.json({success: false, error: "Please, provide valid secret key of your account"});
+				}
+			}
+
+			var account = modules.accounts.getAccountByPublicKey(keypair.publicKey.toString('hex'));
+
+			if (!account) {
+				return res.json({success: false, error: "Account doesn't has balance"});
+			}
+
+			if (!account.publicKey) {
+				return res.json({success: false, error: "Open account to make transaction"});
+			}
+
+			if (account.secondSignature && !secondSecret) {
+				return res.json({success: false, error: "Provide second secret key"});
+			}
+
+			if (account.secondSignature && secondSecret) {
+				var secondHash = crypto.createHash('sha256').update(secondSecret, 'utf8').digest();
+				var secondKeypair = ed.MakeKeypair(secondHash);
+			}
+
+			var transaction = library.logic.transaction.create({
+				type: TransactionTypes.AVATAR,
+				sender: account,
+				keypair: keypair,
+				secondKeypair: secondKeypair,
+				image : body.image
+			});
+
+			library.sequence.add(function (cb) {
+				modules.transactions.processUnconfirmedTransaction(transaction, true, cb);
+			}, function (err) {
+				if (err) {
+					return res.json({success: false, error: err});
+				}
+
+				res.json({success: true, transaction: transaction});
+			});
+		});
 	});
 
 	router.use(function (req, res) {

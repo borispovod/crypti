@@ -29,6 +29,7 @@
     "express": "4.x",
     "express-domain-middleware": "*",
     "extend": "^2.0.0",
+    "image-type": "^2.0.2",
     "ip": "^0.3.2",
     "js-nacl": "^0.6.0",
     "json-schema": "~0.2.2",
