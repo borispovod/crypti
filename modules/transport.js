@@ -240,20 +240,13 @@ function attachApi() {
 }
 
 //public methods
-Transport.prototype.broadcast = function (peersCount, method, data, cb) {
+Transport.prototype.broadcast = function (peersCount, options, cb) {
 	peersCount = peersCount || 1;
-	if (!cb && (typeof(data) == 'function')) {
-		cb = data;
-		data = undefined;
-	}
+
 	modules.peer.list(peersCount, function (err, peers) {
 		if (!err) {
 			async.eachLimit(peers, 3, function (peer, cb) {
-				self.getFromPeer(peer, {
-					api: method,
-					method: 'POST',
-					data: data
-				});
+				self.getFromPeer(peer, options);
 
 				setImmediate(cb);
 			}, function () {
@@ -265,15 +258,12 @@ Transport.prototype.broadcast = function (peersCount, method, data, cb) {
 	});
 }
 
-Transport.prototype.getFromRandomPeer = function (method, cb) {
+Transport.prototype.getFromRandomPeer = function (options, cb) {
 	async.retry(20, function (cb) {
 		modules.peer.list(1, function (err, peers) {
 			if (!err && peers.length) {
 				var peer = peers[0];
-				self.getFromPeer(peer, {
-					api: method,
-					method: 'GET'
-				}, cb);
+				self.getFromPeer(peer, options, cb);
 			} else {
 				return cb(err || "No peers in db");
 			}
@@ -379,11 +369,11 @@ Transport.prototype.onBlockchainReady = function () {
 }
 
 Transport.prototype.onUnconfirmedTransaction = function (transaction, broadcast) {
-	broadcast && self.broadcast(100, '/transactions', {transaction: transaction});
+	broadcast && self.broadcast(100, {api: '/transactions', data: {transaction: transaction}, method: "POST"});
 }
 
 Transport.prototype.onNewBlock = function (block, broadcast) {
-	broadcast && self.broadcast(100, '/blocks', {block: block})
+	broadcast && self.broadcast(100, {api: '/blocks', data: {block: block}, method: "POST"})
 }
 
 //export
