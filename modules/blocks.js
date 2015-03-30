@@ -905,13 +905,13 @@ Blocks.prototype.loadBlocksFromPeer = function (peer, lastCommonBlockId, cb) {
 					if (err) return next(err);
 
 					// not working of data.body is empty....
-					data.body.blocks = RequestSanitizer.array(data.body.blocks);
+					blocks = RequestSanitizer.array(blocks);
 
-					if (data.body.blocks.length == 0) {
+					if (blocks.length == 0) {
 						loaded = true;
 						next();
 					} else {
-						async.eachSeries(data.body.blocks, function (block, cb) {
+						async.eachSeries(blocks, function (block, cb) {
 							try {
 								block = library.logic.block.objectNormalize(block);
 							} catch (e) {
