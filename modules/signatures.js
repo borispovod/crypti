@@ -15,6 +15,7 @@ var modules, library, self;
 function Signature() {
 	this.create = function (data, trs) {
 		trs.recipientId = null;
+		trs.amount = 0;
 		trs.asset.signature = {
 			publicKey: data.secondKeypair.publicKey.toString('hex')
 		};
@@ -29,6 +30,10 @@ function Signature() {
 	this.verify = function (trs, sender, cb) {
 		if (!trs.asset.signature) {
 			return cb("Empty transaction asset for signature transaction")
+		}
+
+		if (trs.amount != 0) {
+			return cb("Invalid amount");
 		}
 
 		try {
@@ -144,7 +149,7 @@ function attachApi() {
 			var secondKeypair = ed.MakeKeypair(secondHash);
 
 			var transaction = library.logic.transaction.create({
-				type: 1,
+				type: TransactionTypes.SIGNATURE,
 				sender: account,
 				keypair: keypair,
 				secondKeypair: secondKeypair

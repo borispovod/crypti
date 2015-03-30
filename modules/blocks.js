@@ -254,21 +254,21 @@ function saveBlock(block, cb) {
 				}
 
 				switch (transaction.type) {
-					case 1:
+					case TransactionTypes.SIGNATURE:
 						library.dbLite.query("INSERT INTO signatures(transactionId, publicKey) VALUES($transactionId, $publicKey)", {
 							transactionId: transaction.id,
 							publicKey: new Buffer(transaction.asset.signature.publicKey, 'hex')
 						}, cb);
 						break;
 
-					case 2:
+					case TransactionTypes.DELEGATE:
 						library.dbLite.query("INSERT INTO delegates(username, transactionId) VALUES($username, $transactionId)", {
 							username: transaction.asset.delegate.username,
 							transactionId: transaction.id
 						}, cb);
 						break;
 
-					case 3:
+					case TransactionTypes.VOTE:
 						library.dbLite.query("INSERT INTO votes(votes, transactionId) VALUES($votes, $transactionId)", {
 							votes: util.isArray(transaction.asset.votes) ? transaction.asset.votes.join(',') : null,
 							transactionId: transaction.id
@@ -283,6 +283,12 @@ function saveBlock(block, cb) {
 							transactionId : transaction.id
 						}, cb);
 						break;
+
+					case TransactionTypes.AVATAR:
+						library.dbLite.query("INSERT INTO avatars(image, transactionId) VALUES($image, $transactionId)", {
+							image: new Buffer(transaction.asset.avatar.image, 'hex'),
+							transactionId: transaction.id
+						}, cb);
 					default:
 						cb();
 				}
@@ -423,7 +429,8 @@ Blocks.prototype.loadBlocksPart = function (filter, cb) {
 		's_publicKey',
 		'd_username',
 		'v_votes',
-		'm_data', 'm_nonce', 'm_encrypted'
+		'm_data', 'm_nonce', 'm_encrypted',
+		'a_image'
 	]
 	library.dbLite.query("SELECT " +
 	"b.id, b.version, b.timestamp, b.height, b.previousBlock, b.numberOfTransactions, b.totalAmount, b.totalFee, b.payloadLength, lower(hex(b.payloadHash)), lower(hex(b.generatorPublicKey)), lower(hex(b.blockSignature)), " +
@@ -432,13 +439,15 @@ Blocks.prototype.loadBlocksPart = function (filter, cb) {
 	"d.username, " +
 	"v.votes, " +
 	"lower(hex(m.data)), lower(hex(m.hexnonce)), m_encrypted, " +
+	"lower(hex(a.image)) " +
 	"FROM (select * from blocks " + (filter.id ? " where id = $id " : "") + (filter.lastId ? " where height > (SELECT height FROM blocks where id = $lastId) " : "") + " limit $limit) as b " +
 	"left outer join trs as t on t.blockId=b.id " +
 	"left outer join delegates as d on d.transactionId=t.id " +
 	"left outer join votes as v on v.transactionId=t.id " +
 	"left outer join signatures as s on s.transactionId=t.id " +
 	"left outer join messages as m on m.transactionId=t.id " +
-	"ORDER BY b.height, t.rowid, s.rowid, d.rowid" +
+	"left outer join avatars as a on a.transactionId=t.id " +
+	"ORDER BY b.height, t.rowid, s.rowid, d.rowid, m.rowid, a.rowid" +
 	"", params, fields, function (err, rows) {
 		// Some notes:
 		// If loading catch error, for example, invalid signature on block & transaction, need to stop loading and remove all blocks after last good block.
@@ -492,7 +501,8 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 		's_publicKey',
 		'd_username',
 		'v_votes',
-		'm_data', 'm_nonce', 'm_encrypted'
+		'm_data', 'm_nonce', 'm_encrypted',
+		'a_image'
 	];
 
 
@@ -502,14 +512,16 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 	"lower(hex(s.publicKey)), " +
 	"d.username, " +
 	"v.votes, " +
-	"lower(hex(m.data)), lower(hex(m.nonce)), m.encrypted " +
+	"lower(hex(m.data)), lower(hex(m.nonce)), m.encrypted, " +
+	"lower(hex(a.image)) " +
 	"FROM (select * from blocks limit $limit offset $offset) as b " +
 	"left outer join trs as t on t.blockId=b.id " +
 	"left outer join delegates as d on d.transactionId=t.id " +
 	"left outer join votes as v on v.transactionId=t.id " +
 	"left outer join signatures as s on s.transactionId=t.id " +
 	"left outer join messages as m on m.transactionId=t.id " +
-	"ORDER BY b.height, t.rowid, s.rowid, d.rowid, m.rowid" +
+	"left outer join avatars as a on a.transactionId=t.id " +
+	"ORDER BY b.height, t.rowid, s.rowid, d.rowid, m.rowid, a.rowid" +
 	"", params, fields, function (err, rows) {
 		// Some notes:
 		// If loading catch error, for example, invalid signature on block & transaction, need to stop loading and remove all blocks after last good block.
@@ -579,7 +591,7 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 
 			//verify block's transactions
 			blocks[i].transactions = blocks[i].transactions.sort(function (a, b) {
-				if (a.type == 1)
+				if (a.type == TransactionTypes.SIGNATURE)
 					return 1;
 				return 0;
 			})
@@ -612,7 +624,7 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 					}
 				}
 
-				if (blocks[i].transactions[n].type == 3) {
+				if (blocks[i].transactions[n].type == TransactionTypes.VOTE) {
 					if (blocks[i].transactions[n].recipientId != blocks[i].transactions[n].senderId) {
 						err = {
 							message: "Can't verify transaction, has another recipient: " + transaction.id,

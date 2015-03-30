@@ -33,6 +33,7 @@ var keypairs = {};
 function Delegate() {
 	this.create = function (data, trs) {
 		trs.recipientId = null;
+		trs.amount = 0;
 		trs.asset.delegate = {
 			username: data.username,
 			publicKey: data.sender.publicKey
@@ -48,6 +49,10 @@ function Delegate() {
 	this.verify = function (trs, sender, cb) {
 		if (trs.recipientId) {
 			return cb("Invalid recipient");
+		}
+
+		if (trs.amount != 0) {
+			return cb("Invalid amount");
 		}
 
 		if (!trs.asset.delegate.username) {
@@ -389,7 +394,7 @@ function attachApi() {
 			}
 
 			var transaction = library.logic.transaction.create({
-				type: 2,
+				type: TransactionTypes.DELEGATE,
 				username: username,
 				sender: account,
 				keypair: keypair,

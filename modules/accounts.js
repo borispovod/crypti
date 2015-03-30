@@ -22,6 +22,8 @@ function Account(address, publicKey, balance, unconfirmedBalance) {
 	this.secondPublicKey = null;
 	this.delegates = null;
 	this.unconfirmedDelegates = null;
+	this.unconfirmedAvatar = false;
+	this.avatar = false;
 }
 
 function accountApplyDiff(account, diff) {
@@ -417,7 +419,7 @@ function attachApi() {
 			}
 
 			var transaction = library.logic.transaction.create({
-				type: 3,
+				type: TransactionTypes.VOTE,
 				votes: delegates,
 				sender: account,
 				keypair: keypair,

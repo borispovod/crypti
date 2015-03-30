@@ -39,7 +39,7 @@ function Message() {
 			return cb("Invalid message");
 		}
 
-		if (trs.amount > 0) {
+		if (trs.amount != 0) {
 			return cb("Invalid amount");
 		}
 
