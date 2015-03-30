@@ -140,34 +140,35 @@ function attachApi() {
 		// get 1400+ blocks with all data (joins) from provided block id
 		var blocksLimit = 1440;
 
-		var acceptEncoding = req.headers['accept-encoding'] || '';
+		//var acceptEncoding = req.headers['accept-encoding'] || '';
+		//if (~acceptEncoding.indexOf('gzip')) {
 
-		if (~acceptEncoding.indexOf('gzip')) {
-			modules.blocks.loadBlocksData({
-				limit: blocksLimit,
-				lastId: lastBlockId
-			}, {plain: true}, function (err, data) {
-				res.status(200);
-				if (err) {
-					res.json({blocks: ""});
-				} else {
-					zlib.gzip(JSON.stringify({blocks: err ? [] : data}), function (err, output) {
-						if (err) {
-							return res.json({blocks: []});
-						} else {
-							res.header('content-encoding', 'gzip')
-								.header('content-type', 'application/json')
-								.header('content-length', output.length)
-								.end(output);
-						}
-					});
-				}
-			});
-		} else {
-			modules.blocks.loadBlocksPart({limit: blocksLimit, lastId: lastBlockId}, function (err, data) {
-				res.status(200).json({blocks: err ? [] : data});
-			});
-		}
+
+		modules.blocks.loadBlocksData({
+			limit: blocksLimit,
+			lastId: lastBlockId
+		}, {plain: true}, function (err, data) {
+			res.status(200);
+			if (err) {
+				res.json({blocks: ""});
+			} else {
+				zlib.gzip(JSON.stringify({blocks: data}), function (err, output) {
+					if (err) {
+						return res.json({blocks: ""});
+					} else {
+						res.header('content-encoding', 'gzip')
+							.header('content-type', 'application/json')
+							.header('content-length', output.length)
+							.end(output);
+					}
+				});
+			}
+		});
+		//} else {
+		//	modules.blocks.loadBlocksPart({limit: blocksLimit, lastId: lastBlockId}, function (err, data) {
+		//		res.status(200).json({blocks: err ? [] : data});
+		//	});
+		//}
 
 	});
 
