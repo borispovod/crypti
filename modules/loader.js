@@ -175,7 +175,10 @@ function findUpdate(lastBlock, peer, cb) {
 }
 
 function loadBlocks(lastBlock, cb) {
-	modules.transport.getFromRandomPeer('/height', function (err, data) {
+	modules.transport.getFromRandomPeer({
+		api: '/height',
+		method: 'GET'
+	}, function (err, data) {
 		var peerStr = data && data.peer ? ip.fromLong(data.peer.ip) + ":" + data.peer.port : 'unknown';
 		if (err || !data.body) {
 			library.logger.log("Fail request at " + peerStr);
@@ -199,7 +202,10 @@ function loadBlocks(lastBlock, cb) {
 }
 
 function loadUnconfirmedTransactions(cb) {
-	modules.transport.getFromRandomPeer('/transactions', function (err, data) {
+	modules.transport.getFromRandomPeer({
+		api: '/transactions',
+		method: 'GET'
+	}, function (err, data) {
 		if (err) {
 			return cb()
 		}

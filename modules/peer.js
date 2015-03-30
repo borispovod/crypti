@@ -116,7 +116,10 @@ function attachApi() {
 }
 
 function updatePeerList(cb) {
-	modules.transport.getFromRandomPeer('/list', function (err, data) {
+	modules.transport.getFromRandomPeer({
+		api: '/list',
+		method: 'GET'
+	}, function (err, data) {
 		if (err) {
 			return cb();
 		}
