@@ -152,7 +152,7 @@ for (var i = 0; i < file.accounts.length; i++) {
 		transactions.push(transaction);
 	}
 
-	if (account.secondSignature) {
+	if (account.secondPublicKey) {
 		var transaction = {
 			type : 1,
 			amount: 0,
