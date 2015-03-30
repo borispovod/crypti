@@ -128,7 +128,6 @@ console.log("Make accounts transactions....");
 for (var i = 0; i < file.accounts.length; i++) {
 	var account = file.accounts[i];
 
-
 	if (account.balance > 0) {
 		var transaction = {
 			type: 0,
@@ -152,7 +151,7 @@ for (var i = 0; i < file.accounts.length; i++) {
 		transactions.push(transaction);
 	}
 
-	if (account.secondSignature) {
+	if (account.secondPublicKey) {
 		var transaction = {
 			type : 1,
 			amount: 0,

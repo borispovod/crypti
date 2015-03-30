@@ -5,5 +5,6 @@ module.exports = {
 	VOTE : 3,
 	USERNAME : 4,
 	FOLLOW : 5,
-	MESSAGE : 6
+	MESSAGE : 6,
+	AVATAR : 7
 }

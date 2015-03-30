@@ -195,7 +195,7 @@ function attachApi() {
 			}
 
 			var transaction = library.logic.transaction.create({
-				type: 0,
+				type: TransactionTypes.SEND,
 				amount: amount,
 				sender: account,
 				recipientId: recipientId,
@@ -423,22 +423,26 @@ Transactions.prototype.apply = function (transaction) {
 
 	// process only two types of transactions
 	switch (transaction.type) {
-		case 0:
+		case TransactionTypes.SEND:
 			var recipient = modules.accounts.getAccountOrCreateByAddress(transaction.recipientId);
 			recipient.addToUnconfirmedBalance(transaction.amount);
 			recipient.addToBalance(transaction.amount);
 			break;
-		case 1:
+		case TransactionTypes.SIGNATURE:
 			sender.unconfirmedSignature = false;
 			sender.secondSignature = true;
 			sender.secondPublicKey = transaction.asset.signature.publicKey;
 			break;
-		case 2:
+		case TransactionTypes.DELEGATE:
 			modules.delegates.removeUnconfirmedDelegate(transaction.asset.delegate);
 			modules.delegates.cache(transaction.asset.delegate);
 			break;
-		case 3:
+		case TransactionTypes.VOTE:
 			sender.applyDelegateList(transaction.asset.votes);
+			break;
+		case TransactionTypes.AVATAR:
+			sender.unconfirmedAvatar = false;
+			sender.avatar = true;
 			break;
 	}
 	return true;
@@ -478,13 +482,13 @@ Transactions.prototype.applyUnconfirmed = function (transaction) {
 		return false;
 	}
 
-	if (transaction.type == 1) {
+	if (transaction.type == TransactionTypes.SIGNATURE) {
 		if (sender.unconfirmedSignature || sender.secondSignature) {
 			return false;
 		}
 
 		sender.unconfirmedSignature = true;
-	} else if (transaction.type == 2) {
+	} else if (transaction.type == TransactionTypes.DELEGATE) {
 		if (modules.delegates.getUnconfirmedDelegate(transaction.asset.delegate)) {
 			return false;
 		}
@@ -494,24 +498,34 @@ Transactions.prototype.applyUnconfirmed = function (transaction) {
 		}
 
 		modules.delegates.addUnconfirmedDelegate(transaction.asset.delegate);
-	} else if (transaction.type == 3) {
+	} else if (transaction.type == TransactionTypes.VOTE) {
 		if (!sender.applyUnconfirmedDelegateList(transaction.asset.votes)) {
 			return false;
 		}
+	} else if (transaction.type == TransactionTypes.AVATAR) {
+		if (sender.unconfirmedAvatar || sender.avatar) {
+			return false;
+		}
+
+		return true;
 	}
 
 	var amount = transaction.amount + transaction.fee;
 
 	if (sender.unconfirmedBalance < amount && transaction.blockId != genesisblock.block.id) {
 		switch (transaction.type) {
-			case 1:
+			case TransactionTypes.SIGNATURE:
 				sender.unconfirmedSignature = false;
 				break;
-			case 2:
+			case TransactionTypes.DELEGATE:
 				modules.delegates.removeUnconfirmedDelegate(transaction.asset.delegate);
 				break;
-			case 3:
+			case TransactionTypes.VOTE:
 				sender.undoUnconfirmedDelegateList(transaction.asset.votes);
+				break;
+
+			case TransactionTypes.AVATAR:
+				sender.unconfirmedAvatar = true;
 				break;
 		}
 
@@ -530,14 +544,17 @@ Transactions.prototype.undoUnconfirmed = function (transaction) {
 	sender.addToUnconfirmedBalance(amount);
 
 	switch (transaction.type) {
-		case 1:
+		case TransactionTypes.SIGNATURE:
 			sender.unconfirmedSignature = false;
 			break;
-		case 2:
+		case TransactionTypes.DELEGATE:
 			modules.delegates.removeUnconfirmedDelegate(transaction.asset.delegate);
 			break;
-		case 3:
+		case TransactionTypes.VOTE:
 			sender.undoUnconfirmedDelegateList(transaction.asset.votes);
+			break;
+		case TransactionTypes.AVATAR:
+			sender.unconfirmedAvatar = false;
 			break;
 	}
 
@@ -551,22 +568,26 @@ Transactions.prototype.undo = function (transaction) {
 	sender.addToBalance(amount);
 
 	switch (transaction.type) {
-		case 0:
+		case TransactionTypes.SEND:
 			var recipient = modules.accounts.getAccountOrCreateByAddress(transaction.recipientId);
 			recipient.addToUnconfirmedBalance(-transaction.amount);
 			recipient.addToBalance(-transaction.amount);
 			break;
-		case 1:
+		case TransactionTypes.SIGNATURE:
 			sender.secondSignature = false;
 			sender.unconfirmedSignature = true;
 			sender.secondPublicKey = null;
 			break;
-		case 2:
+		case TransactionTypes.DELEGATE:
 			modules.delegates.uncache(transaction.asset.delegate);
 			modules.delegates.addUnconfirmedDelegate(transaction.asset.delegate);
 			break;
-		case 3:
+		case TransactionTypes.VOTE:
 			sender.undoDelegateList(transaction.asset.votes);
+			break;
+		case TransactionTypes.AVATAR:
+			sender.avatar = false;
+			sender.unconfirmedAvatar = true;
 			break;
 	}
 

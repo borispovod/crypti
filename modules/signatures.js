@@ -15,6 +15,7 @@ var modules, library, self;
 function Signature() {
 	this.create = function (data, trs) {
 		trs.recipientId = null;
+		trs.amount = 0;
 		trs.asset.signature = {
 			publicKey: data.secondKeypair.publicKey.toString('hex')
 		};
@@ -31,15 +32,19 @@ function Signature() {
 			return cb("Empty transaction asset for signature transaction")
 		}
 
-		try {
-			if (new Buffer(trs.asset.signature.publicKey, 'hex').length != 32) {
-				cb("Invalid length for signature public key");
-			}
-		} catch (e) {
-			cb("Invalid hex in signature public key");
+		if (trs.amount != 0) {
+			return cb("Invalid amount");
 		}
 
-		cb(null, trs);
+		try {
+			if (new Buffer(trs.asset.signature.publicKey, 'hex').length != 32) {
+				return cb("Invalid length for signature public key");
+			}
+		} catch (e) {
+			return cb("Invalid hex in signature public key");
+		}
+
+		return cb(null, trs);
 	}
 
 	this.getBytes = function (trs) {
@@ -144,7 +149,7 @@ function attachApi() {
 			var secondKeypair = ed.MakeKeypair(secondHash);
 
 			var transaction = library.logic.transaction.create({
-				type: 1,
+				type: TransactionTypes.SIGNATURE,
 				sender: account,
 				keypair: keypair,
 				secondKeypair: secondKeypair
