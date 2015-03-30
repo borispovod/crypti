@@ -11,11 +11,11 @@ function convertPrivateKey(privateKey) {
 }
 
 function encrypt(message, nonce, senderPrivateKey, recipientPublicKey) {
-	return nacl.crypto_box(message, nonce, recipientPublicKey, senderPrivateKey);
+	return nacl.crypto_box(message, nonce, convertPublicKey(recipientPublicKey), convertPrivateKey(senderPrivateKey));
 }
 
 function decrypt(message, nonce, senderPublicKey, recipientPrivateKey) {
-	return nacl.crypto_box_open(message, nonce, senderPublicKey, recipientPrivateKey);
+	return nacl.crypto_box_open(message, nonce, convertPublicKey(senderPublicKey), convertPrivateKey(recipientPrivateKey));
 }
 
 function getNonce() {
