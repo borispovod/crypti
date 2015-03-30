@@ -79,7 +79,7 @@ function Avatar() {
 		trs.asset.avatar = RequestSanitizer.validate(trs.asset.avatar, {
 			object: true,
 			properties: {
-				images: "hex!"
+				image: "hex!"
 			}
 		}).value;
 
@@ -139,7 +139,7 @@ function attachApi() {
 			secret: "string!",
 			secondSecret: "string?",
 			publicKey: "hex?",
-			"image" : "hex!"
+			image : "hex!"
 		}, function (err, report, body) {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
