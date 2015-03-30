@@ -3,6 +3,8 @@ var Router = require('../helpers/router.js'),
 	request = require('request'),
 	ip = require('ip'),
 	util = require('util'),
+	_ = require('underscore'),
+	zlib = require('zlib'),
 	RequestSanitizer = require('../helpers/request-sanitizer.js');
 
 //private fields
@@ -135,11 +137,35 @@ function attachApi() {
 		res.set(headers);
 
 		var lastBlockId = RequestSanitizer.string(req.query.lastBlockId);
-
 		// get 1400+ blocks with all data (joins) from provided block id
-		modules.blocks.loadBlocksPart({limit: 1440, lastId: lastBlockId}, function (err, blocks) {
-			return res.status(200).json({blocks: !err ? blocks : []});
-		});
+		var blocksLimit = 1440;
+
+		var acceptEncoding = req.headers['accept-encoding'] || '';
+
+		if (~acceptEncoding.indexOf('gzip')) {
+			modules.blocks.loadBlocksData({limit: blocksLimit, lastId: lastBlockId}, {plain:true}, function (err, data) {
+				res.status(200);
+				if (err) {
+					res.json({blocks:""});
+				} else {
+					zlib.gzip(JSON.stringify({blocks: err ? [] : data}), function(err, output){
+						if (err) {
+							return res.json({blocks:[]});
+						} else {
+							res.header('content-encoding', 'gzip')
+								.header('content-type', 'application/json')
+								.header('content-length', output.length)
+								.end(output);
+						}
+					});
+				}
+			});
+		} else {
+			modules.blocks.loadBlocksPart({limit: blocksLimit, lastId: lastBlockId}, function (err, data) {
+				res.status(200).json({blocks: err ? [] : data});
+			});
+		}
+
 	});
 
 	router.post("/blocks", function (req, res) {
@@ -266,6 +292,63 @@ function _request(peer, api, method, data, cb) {
 	});
 }
 
+function requestWithParams(peer, options, data, cb){
+	var req = {
+		url: 'http://' + ip.fromLong(peer.ip) + ':' + peer.port + '/peer' + options.api,
+		method: options.method,
+		json: true,
+		headers: _.extend({}, headers, options.headers),
+		timeout: 5000
+	};
+
+	if (Object.prototype.toString.call(data) === "[object Object]" || util.isArray(data)) {
+		req.json = data;
+	} else {
+		req.body = data;
+	}
+
+	if (options.gzip) {
+		req.gzip = true;
+	}
+
+	return request(req, function (err, response, body) {
+		if (err || response.statusCode != 200) {
+			library.logger.debug('request', {
+				url: req.url,
+				statusCode: response ? response.statusCode : 'unknown',
+				err: err
+			});
+
+			if (peer) {
+				if (err && (err.code == "ETIMEDOUT" || err.code == "ESOCKETTIMEDOUT" || err.code == "ECONNREFUSED")) {
+					library.logger.info('remove peer ' + req.method + ' ' + req.url)
+					modules.peer.remove(peer.ip, peer.port);
+				} else {
+					library.logger.info('ban 10 min ' + req.method + ' ' + req.url)
+					modules.peer.state(peer.ip, peer.port, 0, 600);
+				}
+			}
+			cb && cb(err || ('request status code' + response.statusCode));
+			return;
+		}
+
+		var port = RequestSanitizer.int(response.headers['port']);
+		if (port > 0 && port <= 65535 && RequestSanitizer.string(response.headers['version'], true) == library.config.version) {
+			modules.peer.update({
+				ip: peer.ip,
+				port: port,
+				state: 2,
+				os: RequestSanitizer.string(response.headers['os'], true),
+				sharePort: Number(!!RequestSanitizer.int(response.headers['share-port'])),
+				version: RequestSanitizer.string(response.headers['version'], true)
+			});
+		}
+
+
+		cb && cb(null, body);
+	});
+}
+
 //public methods
 Transport.prototype.broadcast = function (peersCount, method, data, cb) {
 	peersCount = peersCount || 1;
@@ -309,6 +392,10 @@ Transport.prototype.getFromPeer = function (peer, method, cb) {
 		cb(err, {body: body, peer: peer});
 	});
 }
+
+Transport.prototype.getFromPeerWithParams = function(peer, options, cb) {
+	return requestWithParams(peer, options, cb);
+};
 
 //events
 Transport.prototype.onBind = function (scope) {

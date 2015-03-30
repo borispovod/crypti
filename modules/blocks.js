@@ -11,6 +11,7 @@ var crypto = require('crypto'),
 	slots = require('../helpers/slots.js'),
 	util = require('util'),
 	async = require('async'),
+	csvParse = require('csv-parse'),
 	TransactionTypes = require('../helpers/transaction-types.js');
 
 //private fields
@@ -417,7 +418,14 @@ Blocks.prototype.count = function (cb) {
 	});
 }
 
-Blocks.prototype.loadBlocksPart = function (filter, cb) {
+Blocks.prototype.loadBlocksData = function(filter, options, cb) {
+	if (arguments.length < 3) {
+		cb = options;
+		options = {};
+	}
+
+	options = options || {};
+
 	//console.time('loading');
 	var params = {limit: filter.limit || 1};
 	filter.lastId && (params['lastId'] = filter.lastId);
@@ -431,14 +439,16 @@ Blocks.prototype.loadBlocksPart = function (filter, cb) {
 		'v_votes',
 		'm_data', 'm_nonce', 'm_encrypted',
 		'a_image'
-	]
-	library.dbLite.query("SELECT " +
+	];
+
+	var method = options.plain ? 'plain' : 'query';
+	library.dbLite[method]("SELECT " +
 	"b.id, b.version, b.timestamp, b.height, b.previousBlock, b.numberOfTransactions, b.totalAmount, b.totalFee, b.payloadLength, lower(hex(b.payloadHash)), lower(hex(b.generatorPublicKey)), lower(hex(b.blockSignature)), " +
 	"t.id, t.type, t.timestamp, lower(hex(t.senderPublicKey)), t.senderId, t.recipientId, t.amount, t.fee, lower(hex(t.signature)), lower(hex(t.signSignature)), " +
 	"lower(hex(s.publicKey)), " +
 	"d.username, " +
 	"v.votes, " +
-	"lower(hex(m.data)), lower(hex(m.hexnonce)), m_encrypted, " +
+	"lower(hex(m.data)), lower(hex(m.nonce)), m.encrypted, " +
 	"lower(hex(a.image)) " +
 	"FROM (select * from blocks " + (filter.id ? " where id = $id " : "") + (filter.lastId ? " where height > (SELECT height FROM blocks where id = $lastId) " : "") + " limit $limit) as b " +
 	"left outer join trs as t on t.blockId=b.id " +
@@ -448,7 +458,11 @@ Blocks.prototype.loadBlocksPart = function (filter, cb) {
 	"left outer join messages as m on m.transactionId=t.id " +
 	"left outer join avatars as a on a.transactionId=t.id " +
 	"ORDER BY b.height, t.rowid, s.rowid, d.rowid, m.rowid, a.rowid" +
-	"", params, fields, function (err, rows) {
+	"", params, fields, cb);
+};
+
+Blocks.prototype.loadBlocksPart = function (filter, cb) {
+	self.loadBlocksData(filter, function (err, rows) {
 		// Some notes:
 		// If loading catch error, for example, invalid signature on block & transaction, need to stop loading and remove all blocks after last good block.
 		// We need to process all transactions of block
@@ -882,40 +896,44 @@ Blocks.prototype.loadBlocksFromPeer = function (peer, lastCommonBlockId, cb) {
 		},
 		function (next) {
 			count++;
-			modules.transport.getFromPeer(peer, '/blocks?lastBlockId=' + lastCommonBlockId, function (err, data) {
+			modules.transport.getFromPeerWithParams(peer, {url:'/blocks?lastBlockId=' + lastCommonBlockId, gzip:true}, function (err, data) {
 				if (err || data.body.error) {
 					return next(err || RequestSanitizer.string(data.body.error));
 				}
 
-				// not working of data.body is empty....
-				data.body.blocks = RequestSanitizer.array(data.body.blocks);
+				csvParse(data.body.blocks, function(err, blocks){
+					if (err) return next(err);
 
-				if (data.body.blocks.length == 0) {
-					loaded = true;
-					next();
-				} else {
-					async.eachSeries(data.body.blocks, function (block, cb) {
-						try {
-							block = library.logic.block.objectNormalize(block);
-						} catch (e) {
-							var peerStr = data.peer ? ip.fromLong(data.peer.ip) + ":" + data.peer.port : 'unknown';
-							library.logger.log('block ' + (block ? block.id : 'null') + ' is not valid, ban 60 min', peerStr);
-							modules.peer.state(peer.ip, peer.port, 0, 3600);
-							return setImmediate(cb, e);
-						}
-						self.processBlock(block, false, function (err) {
-							if (!err) {
-								lastCommonBlockId = block.id;
-							} else {
+					// not working of data.body is empty....
+					data.body.blocks = RequestSanitizer.array(data.body.blocks);
+
+					if (data.body.blocks.length == 0) {
+						loaded = true;
+						next();
+					} else {
+						async.eachSeries(data.body.blocks, function (block, cb) {
+							try {
+								block = library.logic.block.objectNormalize(block);
+							} catch (e) {
 								var peerStr = data.peer ? ip.fromLong(data.peer.ip) + ":" + data.peer.port : 'unknown';
 								library.logger.log('block ' + (block ? block.id : 'null') + ' is not valid, ban 60 min', peerStr);
 								modules.peer.state(peer.ip, peer.port, 0, 3600);
+								return setImmediate(cb, e);
 							}
+							self.processBlock(block, false, function (err) {
+								if (!err) {
+									lastCommonBlockId = block.id;
+								} else {
+									var peerStr = data.peer ? ip.fromLong(data.peer.ip) + ":" + data.peer.port : 'unknown';
+									library.logger.log('block ' + (block ? block.id : 'null') + ' is not valid, ban 60 min', peerStr);
+									modules.peer.state(peer.ip, peer.port, 0, 3600);
+								}
 
-							setImmediate(cb, err);
-						});
-					}, next);
-				}
+								setImmediate(cb, err);
+							});
+						}, next);
+					}
+				});
 			});
 		},
 		function (err) {
