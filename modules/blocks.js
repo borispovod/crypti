@@ -896,7 +896,7 @@ Blocks.prototype.loadBlocksFromPeer = function (peer, lastCommonBlockId, cb) {
 		},
 		function (next) {
 			count++;
-			modules.transport.getFromPeerWithParams(peer, {url:'/blocks?lastBlockId=' + lastCommonBlockId, gzip:true}, function (err, data) {
+			modules.transport.peerRequest(peer, {api:'/blocks?lastBlockId=' + lastCommonBlockId, gzip:true}, function (err, data) {
 				if (err || data.body.error) {
 					return next(err || RequestSanitizer.string(data.body.error));
 				}

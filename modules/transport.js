@@ -236,65 +236,39 @@ function attachApi() {
 	});
 }
 
-function _request(peer, api, method, data, cb) {
-	var req = {
-		url: 'http://' + ip.fromLong(peer.ip) + ':' + peer.port + '/peer' + api,
-		method: method,
-		json: true,
-		headers: headers,
-		timeout: 5000
-	};
+/**
+ * Send request to selected peer
+ * @param {object} peer Peer object
+ * @param {object} options Request lib params with special value `api` which should be string name of peer's module
+ * web method
+ * @param {*=} data Optional value. Request body. If passed value is an Object or an Array than JSON encoded body
+ * will sent.
+ * @param {function} cb Result Callback
+ * @returns {*|exports} Request lib request instance
+ * @private
+ * @exmplae
+ *
+ * // Send gzipped request to peer's web method /peer/blocks.
+ * _request(peer, {api:'/blocks', gzip:true}, function(err, data){
+ * 	// process request
+ * });
+ */
+function _request(peer, options, data, cb){
 
-
-	library.logger.trace('request', req.url);
-
-	if (Object.prototype.toString.call(data) == "[object Object]" || util.isArray(data)) {
-		req.json = data;
-	} else {
-		req.body = data;
+	if (arguments.length < 4) {
+		cb = data;
+		data = undefined;
 	}
 
-	request(req, function (err, response, body) {
-		if (err || response.statusCode != 200) {
-			library.logger.debug('request', {
-				url: req.url,
-				statusCode: response ? response.statusCode : 'unknown',
-				err: err
-			});
+	var url;
+	if (options.api) {
+		url = '/peer' + options.api
+	} else {
+		url = options.url;
+	}
 
-			if (peer) {
-				if (err && (err.code == "ETIMEDOUT" || err.code == "ESOCKETTIMEDOUT" || err.code == "ECONNREFUSED")) {
-					library.logger.info('remove peer ' + req.method + ' ' + req.url)
-					modules.peer.remove(peer.ip, peer.port);
-				} else {
-					library.logger.info('ban 10 min ' + req.method + ' ' + req.url)
-					modules.peer.state(peer.ip, peer.port, 0, 600);
-				}
-			}
-			cb && cb(err || ('request status code' + response.statusCode));
-			return;
-		}
-
-		var port = RequestSanitizer.int(response.headers['port']);
-		if (port > 0 && port <= 65535 && RequestSanitizer.string(response.headers['version'], true) == library.config.version) {
-			modules.peer.update({
-				ip: peer.ip,
-				port: port,
-				state: 2,
-				os: RequestSanitizer.string(response.headers['os'], true),
-				sharePort: Number(!!RequestSanitizer.int(response.headers['share-port'])),
-				version: RequestSanitizer.string(response.headers['version'], true)
-			});
-		}
-
-
-		cb && cb(null, body);
-	});
-}
-
-function requestWithParams(peer, options, data, cb){
 	var req = {
-		url: 'http://' + ip.fromLong(peer.ip) + ':' + peer.port + '/peer' + options.api,
+		url: 'http://' + ip.fromLong(peer.ip) + ':' + peer.port + url,
 		method: options.method,
 		json: true,
 		headers: _.extend({}, headers, options.headers),
@@ -359,7 +333,11 @@ Transport.prototype.broadcast = function (peersCount, method, data, cb) {
 	modules.peer.list(peersCount, function (err, peers) {
 		if (!err) {
 			async.eachLimit(peers, 3, function (peer, cb) {
-				_request(peer, method, "POST", data);
+				_request(peer, {
+					api : method,
+					method : 'POST'
+				}, data);
+
 				setImmediate(cb);
 			}, function () {
 				cb && cb(null, {body: null, peer: peers});
@@ -375,11 +353,14 @@ Transport.prototype.getFromRandomPeer = function (method, cb) {
 		modules.peer.list(1, function (err, peers) {
 			if (!err && peers.length) {
 				var peer = peers[0];
-				_request(peer, method, "GET", undefined, function (err, body) {
+				_request(peer, {
+					api : method,
+					method : 'GET'
+				}, function (err, body) {
 					cb(err, {body: body, peer: peer});
 				});
 			} else {
-				return cb(err || "Nothing peers in db");
+				return cb(err || "No peers in db");
 			}
 		});
 	}, function (err, results) {
@@ -388,14 +369,15 @@ Transport.prototype.getFromRandomPeer = function (method, cb) {
 }
 
 Transport.prototype.getFromPeer = function (peer, method, cb) {
-	_request(peer, method, "GET", undefined, function (err, body) {
+	_request(peer, {
+		api: method,
+		method: 'GET'
+	}, function (err, body) {
 		cb(err, {body: body, peer: peer});
 	});
 }
 
-Transport.prototype.getFromPeerWithParams = function(peer, options, cb) {
-	return requestWithParams(peer, options, cb);
-};
+Transport.prototype.peerRequest = _request;
 
 //events
 Transport.prototype.onBind = function (scope) {
