@@ -280,8 +280,8 @@ function saveBlock(block, cb) {
 						library.dbLite.query("INSERT INTO messages(data, nonce, encrypted, transactionId) VALUES($data, $nonce, $encrypted, $transactionId)", {
 							data: new Buffer(transaction.asset.message.data, 'hex'),
 							nonce: new Buffer(transaction.asset.message.nonce, 'hex'),
-							encrypted: transaction.asset.message.encrypted? 1 : 0,
-							transactionId : transaction.id
+							encrypted: transaction.asset.message.encrypted ? 1 : 0,
+							transactionId: transaction.id
 						}, cb);
 						break;
 
@@ -371,7 +371,10 @@ Blocks.prototype.getCommonBlock = function (peer, height, cb) {
 			getIdSequence(lastBlockHeight, function (err, data) {
 				var max = lastBlockHeight;
 				lastBlockHeight = data.firstHeight;
-				modules.transport.getFromPeer(peer, "/blocks/common?ids=" + data.ids + '&max=' + max + '&min=' + lastBlockHeight, function (err, data) {
+				modules.transport.getFromPeer(peer, {
+					api: "/blocks/common?ids=" + data.ids + '&max=' + max + '&min=' + lastBlockHeight,
+					method: "GET"
+				}, function (err, data) {
 					if (err || data.body.error) {
 						return next(err || RequestSanitizer.string(data.body.error));
 					}
@@ -418,7 +421,7 @@ Blocks.prototype.count = function (cb) {
 	});
 }
 
-Blocks.prototype.loadBlocksData = function(filter, options, cb) {
+Blocks.prototype.loadBlocksData = function (filter, options, cb) {
 	if (arguments.length < 3) {
 		cb = options;
 		options = {};
@@ -896,12 +899,16 @@ Blocks.prototype.loadBlocksFromPeer = function (peer, lastCommonBlockId, cb) {
 		},
 		function (next) {
 			count++;
-			modules.transport.peerRequest(peer, {api:'/blocks?lastBlockId=' + lastCommonBlockId, gzip:true}, function (err, data) {
+			modules.transport.getFromPeer(peer, {
+				method: "GET",
+				api: '/blocks?lastBlockId=' + lastCommonBlockId,
+				gzip: true
+			}, function (err, data) {
 				if (err || data.body.error) {
 					return next(err || RequestSanitizer.string(data.body.error));
 				}
 
-				csvParse(data.body.blocks, function(err, blocks){
+				csvParse(data.body.blocks, function (err, blocks) {
 					if (err) return next(err);
 
 					// not working of data.body is empty....
