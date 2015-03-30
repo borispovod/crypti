@@ -63,8 +63,6 @@ function loadFullDb(peer, cb) {
 
 	library.logger.debug("Load blocks from genesis from " + peerStr);
 
-	console.log("TEHRERERERERREREERR");
-
 	modules.blocks.loadBlocksFromPeer(peer, commonBlockId, cb);
 }
 
