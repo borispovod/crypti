@@ -59,17 +59,32 @@ function Delegate() {
 			return cb("Empty transaction asset for delegate transaction");
 		}
 
+		var allowSymbols = /^[a-z0-9!@$&_.]+$/g;
+		if (!allowSymbols.test(trs.asset.delegate.username.toLowerCase())) {
+			return cb("username can only contain alphanumeric characters with the exception of !@$&_.");
+		}
+
+		if (trs.asset.delegate.username.search(/(admin|genesis|delegate|crypti)/i) > -1) {
+			return cb("username containing the words Admin, Genesis, Delegate or Crypti cannot be claimed");
+		}
+
+		var isAddress = /^[0-9]+[C|c]$/g;
+		if (!isAddress.test(trs.asset.delegate.username.toLowerCase())) {
+			return cb("username can't be like an address");
+		}
+
 		if (trs.asset.delegate.username.length == 0 || trs.asset.delegate.username.length > 20) {
 			return cb("Incorrect delegate username length");
 		}
 
-		if (modules.delegates.existsName(trs.asset.delegate.username)) {
+		if (self.existsName(trs.asset.delegate.username)) {
 			return cb("The delegate name you entered is already in use. Please try a different name.");
 		}
 
-		if (modules.delegates.existsDelegate(trs.senderPublicKey)) {
+		if (self.existsDelegate(trs.senderPublicKey)) {
 			return cb("Your account are delegate already");
 		}
+
 
 		cb(null, trs);
 	}
@@ -432,7 +447,7 @@ function getDelegate(filter, rateSort) {
 		index = publicKeyIndex[filter.publicKey];
 	}
 	if (filter.username) {
-		index = namesIndex[filter.username];
+		index = namesIndex[filter.username.toLowerCase()];
 	}
 
 	if (index === undefined) {
@@ -703,7 +718,7 @@ Delegates.prototype.existsDelegate = function (publicKey) {
 }
 
 Delegates.prototype.existsName = function (userName) {
-	return namesIndex[userName] !== undefined;
+	return namesIndex[userName.toLowerCase()] !== undefined;
 }
 
 Delegates.prototype.cache = function (delegate) {
@@ -713,7 +728,7 @@ Delegates.prototype.cache = function (delegate) {
 	unconfirmedVotes[delegate.publicKey] = 0;
 	votes[delegate.publicKey] = 0;
 
-	namesIndex[delegate.username] = index;
+	namesIndex[delegate.username.toLowerCase()] = index;
 	publicKeyIndex[delegate.publicKey] = index;
 	transactionIdIndex[delegate.transactionId] = index;
 }
@@ -725,7 +740,7 @@ Delegates.prototype.uncache = function (delegate) {
 	var index = publicKeyIndex[delegate.publicKey];
 
 	delete publicKeyIndex[delegate.publicKey]
-	delete namesIndex[delegate.username];
+	delete namesIndex[delegate.username.toLowerCase()];
 	delete transactionIdIndex[delegate.transactionId];
 	delegates[index] = false;
 }
