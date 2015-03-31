@@ -472,6 +472,11 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 						return done("username containing the words Admin, Genesis, Delegate or Crypti cannot be claimed");
 					}
 
+					var isAddress = /^[0-9]+[C|c]$/g;
+					if (!isAddress.test(transaction.asset.delegate.username.toLowerCase())) {
+						return done("username can't be like an address");
+					}
+
 					if (transaction.asset.delegate.username.length == 0 || transaction.asset.delegate.username.length > 20) {
 						return done("Incorrect delegate username length");
 					}
