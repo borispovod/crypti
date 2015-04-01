@@ -20,6 +20,17 @@ var signTransaction = function (secret, transaction) {
 	transaction.signature = ed.Sign(hash, keypair).toString('hex');
 }
 
+function getAddress(publicKey) {
+	var publicKeyHash = crypto.createHash('sha256').update(publicKey, 'hex').digest();
+	var temp = new Buffer(8);
+	for (var i = 0; i < 8; i++) {
+		temp[i] = publicKeyHash[7 - i];
+	}
+
+	var address = bignum.fromBuffer(temp).toString() + "C";
+	return address;
+}
+
 
 function getBytes(block) {
 	var size = 4 + 4 + 8 + 4 + 4 + 8 + 8 + 4 + 4 + 4 + 32 + 32 + 64;
@@ -128,7 +139,6 @@ console.log("Make accounts transactions....");
 for (var i = 0; i < file.accounts.length; i++) {
 	var account = file.accounts[i];
 
-
 	if (account.balance > 0) {
 		var transaction = {
 			type: 0,
@@ -139,6 +149,7 @@ for (var i = 0; i < file.accounts.length; i++) {
 			senderId: address,
 			senderPublicKey : keypair.publicKey.toString('hex')
 		};
+
 
 		totalAmount += transaction.amount;
 
@@ -152,7 +163,7 @@ for (var i = 0; i < file.accounts.length; i++) {
 		transactions.push(transaction);
 	}
 
-	if (account.secondSignature) {
+	if (account.secondPublicKey) {
 		var transaction = {
 			type : 1,
 			amount: 0,
@@ -211,7 +222,37 @@ for (var i = 0; i < file.delegates.length; i++) {
 
 console.log("Make votes...");
 
+for (var i = 0; i < file.votes.publicKeys.length; i++) {
+	var publicKey = file.votes.publicKeys[i];
 
+	var address = getAddress(publicKey);
+
+	var transaction = {
+		type : 3,
+		amount: 0,
+		fee : 0,
+		timestamp : 0,
+		recipientId : address,
+		senderId : address,
+		senderPublicKey : publicKey,
+		asset : {
+			votes : file.votes.votes
+		}
+	}
+
+	signTransaction(secret, transaction);
+	transaction.id = transactionHelper.getId(transaction);
+
+	console.log(transaction.senderPublicKey);
+
+	var bytes = transactionHelper.getBytes(transaction);
+	payloadLength += bytes.length;
+	payloadHash.update(bytes);
+
+	transactions.push(transaction);
+}
+
+/*
 for (var i = 0; i < file.votes.length; i++) {
 	var account = file.votes[i];
 
@@ -236,7 +277,15 @@ for (var i = 0; i < file.votes.length; i++) {
 	payloadHash.update(bytes);
 
 	transactions.push(transaction);
-}
+}*/
+
+transactions = transactions.sort(function compare(a, b) {
+	if (a.type < b.type) return -1;
+	if (a.type > b.type) return 1;
+	if (a.amount < b.amount) return -1;
+	if (a.amount > b.amount) return 1;
+	return 0;
+});
 
 payloadHash = payloadHash.digest();
 

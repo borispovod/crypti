@@ -579,7 +579,7 @@ Transactions.prototype.applyUnconfirmed = function (transaction) {
 		sender = modules.accounts.getAccountOrCreateByPublicKey(transaction.senderPublicKey);
 	}
 
-	if (sender.secondSignature && !transaction.signSignature) {
+	if (sender.secondSignature && !transaction.signSignature && transaction.blockId != genesisblock.block.id) {
 		return false;
 	}
 

@@ -603,10 +603,18 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 
 			//verify block's transactions
 			blocks[i].transactions = blocks[i].transactions.sort(function (a, b) {
+				if (blocks[i].id == genesisblock.block.id) {
+					if (a.type == 3) {
+						return 1;
+					}
+				}
+
 				if (a.type == 1)
 					return 1;
+
 				return 0;
-			})
+			});
+
 
 			for (var n = 0, n_length = blocks[i].transactions.length; n < n_length; n++) {
 				if (blocks[i].id != genesisblock.block.id) {
@@ -638,7 +646,7 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 				if (blocks[i].transactions[n].type == 3) {
 					if (blocks[i].transactions[n].recipientId != blocks[i].transactions[n].senderId) {
 						err = {
-							message: "Can't verify transaction, has another recipient: " + transaction.id,
+							message: "Can't verify transaction, has another recipient: " + blocks[i].transactions[n].id,
 							transaction: blocks[i].transactions[n],
 							rollbackTransactionsUntil: n > 0 ? (n - 1) : null,
 							block: blocks[i]
@@ -667,7 +675,7 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 
 				if (!modules.transactions.applyUnconfirmed(blocks[i].transactions[n])) {
 					err = {
-						message: "Can't apply transaction: " + blocks[i].transactions[n].id,
+						message: "Can't apply unconfirmed transaction: " + blocks[i].transactions[n].id,
 						transaction: blocks[i].transactions[n],
 						rollbackTransactionsUntil: n > 0 ? (n - 1) : null,
 						block: blocks[i]
