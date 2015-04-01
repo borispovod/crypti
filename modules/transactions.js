@@ -59,7 +59,7 @@ function attachApi() {
 			orderBy: orderBy,
 			offset: offset,
 			senderId: senderId,
-			type : type
+			type: type
 		}, function (err, transactions) {
 			if (err) {
 				return res.json({success: false, error: "Transactions not found"});
@@ -93,7 +93,7 @@ function attachApi() {
 		var unconfirmedTransaction = self.getUnconfirmedTransaction(id);
 
 		if (!unconfirmedTransaction) {
-			return res.json({success: false, error : "Transaction not found"});
+			return res.json({success: false, error: "Transaction not found"});
 		}
 
 		res.json({success: true, transaction: unconfirmedTransaction});
@@ -461,6 +461,20 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 
 					if (!transaction.asset.delegate.username) {
 						return done("Empty transaction asset for delegate transaction");
+					}
+
+					var allowSymbols = /^[a-z0-9!@$&_.]+$/g;
+					if (!allowSymbols.test(transaction.asset.delegate.username.toLowerCase())) {
+						return done("username can only contain alphanumeric characters with the exception of !@$&_.");
+					}
+
+					if (transaction.asset.delegate.username.search(/(admin|genesis|delegate|crypti)/i) > -1) {
+						return done("username containing the words Admin, Genesis, Delegate or Crypti cannot be claimed");
+					}
+
+					var isAddress = /^[0-9]+[C|c]$/g;
+					if (!isAddress.test(transaction.asset.delegate.username.toLowerCase())) {
+						return done("username can't be like an address");
 					}
 
 					if (transaction.asset.delegate.username.length == 0 || transaction.asset.delegate.username.length > 20) {
