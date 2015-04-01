@@ -859,6 +859,20 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 										return cb("Empty transaction asset for delegate transaction");
 									}
 
+									var allowSymbols = /^[a-z0-9!@$&_.]+$/g;
+									if (!allowSymbols.test(transaction.asset.delegate.username.toLowerCase())) {
+										return cb("username can only contain alphanumeric characters with the exception of !@$&_.");
+									}
+
+									if (transaction.asset.delegate.username.search(/(admin|genesis|delegate|crypti)/i) > -1) {
+										return cb("username containing the words Admin, Genesis, Delegate or Crypti cannot be claimed");
+									}
+
+									var isAddress = /^[0-9]+[C|c]$/g;
+									if (!isAddress.test(transaction.asset.delegate.username.toLowerCase())) {
+										return cb("username can't be like an address");
+									}
+
 									if (transaction.asset.delegate.username.length == 0 || transaction.asset.delegate.username.length > 20) {
 										return cb("Incorrect delegate username length");
 									}

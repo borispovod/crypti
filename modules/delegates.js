@@ -351,7 +351,7 @@ function getDelegate(filter, rateSort) {
 	var stat = modules.round.blocksStat(delegate.publicKey);
 
 	var percent = 100 - (stat.missed / ((stat.forged + stat.missed) / 100));
-	var novice = stat.missed ===  null&& stat.forged === null;
+	var novice = stat.missed === null && stat.forged === null;
 	var outsider = rateSort[delegate.publicKey] > slots.delegates && novice;
 	var productivity = novice ? 0 : parseFloat(Math.floor(percent * 100) / 100).toFixed(2)
 
@@ -549,14 +549,9 @@ Delegates.prototype.checkUnconfirmedDelegates = function (publicKey, votes) {
 	}
 }
 
-// to remove
-Delegates.prototype.getUnconfirmedDelegates = function () {
-	return unconfirmedDelegates;
-}
-
 Delegates.prototype.addUnconfirmedDelegate = function (delegate) {
 	unconfirmedDelegates[delegate.publicKey] = true;
-	unconfirmedNames[delegate.username] = true;
+	unconfirmedNames[delegate.username.toLowerCase()] = true;
 }
 
 Delegates.prototype.getUnconfirmedDelegate = function (delegate) {
@@ -564,12 +559,12 @@ Delegates.prototype.getUnconfirmedDelegate = function (delegate) {
 }
 
 Delegates.prototype.getUnconfirmedName = function (delegate) {
-	return !!unconfirmedNames[delegate.username];
+	return !!unconfirmedNames[delegate.username.toLowerCase()];
 }
 
 Delegates.prototype.removeUnconfirmedDelegate = function (delegate) {
 	delete unconfirmedDelegates[delegate.publicKey];
-	delete unconfirmedNames[delegate.username];
+	delete unconfirmedNames[delegate.username.toLowerCase()];
 }
 
 Delegates.prototype.fork = function (block, cause) {
