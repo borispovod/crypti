@@ -152,6 +152,7 @@ function attachApi() {
 			amount: "int!",
 			recipientId: "string?",
 			publicKey: "hex?",
+			username: "string?",
 			secondSecret: "string?",
 			input: "object?"
 		}, function (err, report, body) {
@@ -161,8 +162,13 @@ function attachApi() {
 			var secret = body.secret,
 				amount = body.amount,
 				recipientId = body.recipientId,
+				username = body.username,
 				publicKey = body.publicKey,
 				secondSecret = body.secondSecret;
+
+			if (!recipientId && username){
+
+			}
 
 			var hash = crypto.createHash('sha256').update(secret, 'utf8').digest();
 			var keypair = ed.MakeKeypair(hash);
@@ -421,7 +427,6 @@ Transactions.prototype.apply = function (transaction) {
 
 	sender.addToBalance(-amount);
 
-	// process only two types of transactions
 	switch (transaction.type) {
 		case TransactionTypes.SEND:
 			var recipient = modules.accounts.getAccountOrCreateByAddress(transaction.recipientId);

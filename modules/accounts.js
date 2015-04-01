@@ -190,6 +190,10 @@ function Vote() {
 			return cb("Incorrect recipient");
 		}
 
+		if (trs.asset.votes && trs.asset.votes.length > 33) {
+			return cb("Please, provide less 33 delegates");
+		}
+
 		if (!modules.delegates.checkUnconfirmedDelegates(trs.senderPublicKey, trs.asset.votes)) {
 			return cb("Can't verify votes, you already voted for this delegate: " + trs.id);
 		}
@@ -226,6 +230,90 @@ function Vote() {
 	}
 }
 
+function Username() {
+	this.create = function (data, trs) {
+		trs.recipientId = null;
+		trs.amount = 0;
+		trs.asset.username = {
+			alias: data.username,
+			publicKey: data.sender.publicKey
+		};
+
+		return trs;
+	}
+
+	this.calculateFee = function (trs) {
+		return 1 * constants.fixedPoint;
+	}
+
+	this.verify = function (trs, sender, cb) {
+		if (trs.recipientId) {
+			return cb("Invalid recipient");
+		}
+
+		if (trs.amount != 0) {
+			return cb("Invalid amount");
+		}
+
+		if (!trs.asset.username.alias) {
+			return cb("Empty transaction asset for username transaction");
+		}
+
+		var allowSymbols = /^[a-z0-9!@$&_.]+$/g;
+		if (!allowSymbols.test(trs.asset.username.alias.toLowerCase())) {
+			return cb("username can only contain alphanumeric characters with the exception of !@$&_.");
+		}
+
+		if (trs.asset.username.alias.search(/(admin|genesis|delegate|crypti)/i) > -1) {
+			return cb("username containing the words Admin, Genesis, Delegate or Crypti cannot be claimed");
+		}
+
+		var isAddress = /^[0-9]+[C|c]$/g;
+		if (!isAddress.test(trs.asset.username.alias.toLowerCase())) {
+			return cb("username can't be like an address");
+		}
+
+		if (trs.asset.username.alias.length == 0 || trs.asset.username.alias.length > 20) {
+			return cb("Incorrect username length");
+		}
+
+		if (modules.delegates.existsName(trs.asset.username.alias)) {
+			return cb("The username you entered is already in use. Please try a different name.");
+		}
+
+		cb(null, trs);
+	}
+
+	this.getBytes = function (trs) {
+		return new Buffer(trs.asset.username.alias, 'utf8');
+	}
+
+	this.objectNormalize = function (trs) {
+		trs.asset.delegate = RequestSanitizer.validate(trs.asset.username, {
+			object: true,
+			properties: {
+				alias: "string!",
+				publicKey: "hex!"
+			}
+		}).value;
+
+		return trs;
+	}
+
+	this.dbRead = function (raw) {
+		if (!raw.u_alias) {
+			return null
+		} else {
+			var username = {
+				alias: raw.u_alias,
+				publicKey: raw.t_senderPublicKey
+			}
+
+			return {username: username};
+		}
+	}
+}
+
 //constructor
 function Accounts(cb, scope) {
 	library = scope;
@@ -234,6 +322,7 @@ function Accounts(cb, scope) {
 	attachApi();
 
 	library.logic.transaction.attachAssetType(TransactionTypes.VOTE, new Vote());
+	library.logic.transaction.attachAssetType(TransactionTypes.USERNAME, new Username());
 
 	setImmediate(cb, null, self);
 }
@@ -393,10 +482,6 @@ function attachApi() {
 				}
 			}
 
-			if (delegates && delegates.length > 33) {
-				return res.json({success: false, error: "Please, provide less 33 delegates"});
-			}
-
 			var account = self.getAccountByPublicKey(keypair.publicKey.toString('hex'));
 
 			if (!account) {
@@ -421,6 +506,71 @@ function attachApi() {
 			var transaction = library.logic.transaction.create({
 				type: TransactionTypes.VOTE,
 				votes: delegates,
+				sender: account,
+				keypair: keypair,
+				secondKeypair: secondKeypair
+			});
+
+			library.sequence.add(function (cb) {
+				modules.transactions.processUnconfirmedTransaction(transaction, true, cb);
+			}, function (err) {
+				if (err) {
+					return res.json({success: false, error: err});
+				}
+
+				res.json({success: true, transaction: transaction});
+			});
+		});
+	});
+
+	router.put("/username", function (req, res, next) {
+		req.sanitize("body", {
+			secret: "string!",
+			publicKey: "hex?",
+			secondSecret: "string?",
+			username: "string!"
+		}, function (err, report, body) {
+			if (err) return next(err);
+			if (!report.isValid) return res.json({success: false, error: report.issues});
+
+			var secret = body.secret,
+				publicKey = body.publicKey,
+				secondSecret = body.secondSecret,
+				username = body.username;
+
+			var hash = crypto.createHash('sha256').update(secret, 'utf8').digest();
+			var keypair = ed.MakeKeypair(hash);
+
+			if (publicKey) {
+				if (keypair.publicKey.toString('hex') != publicKey) {
+					return res.json({success: false, error: "Please, provide valid secret key of your account"});
+				}
+			}
+
+			var account = self.getAccountByPublicKey(keypair.publicKey.toString('hex'));
+
+			if (!account) {
+				return res.json({success: false, error: "Account doesn't has balance"});
+			}
+
+			if (!account.publicKey) {
+				return res.json({success: false, error: "Open account to make transaction"});
+			}
+
+			if (account.secondSignature && !secondSecret) {
+				return res.json({success: false, error: "Provide second secret key"});
+			}
+
+			var secondKeypair = null;
+
+			if (account.secondSignature) {
+				var secondHash = crypto.createHash('sha256').update(secondSecret, 'utf8').digest();
+				secondKeypair = ed.MakeKeypair(secondHash);
+			}
+
+			var transaction = library.logic.transaction.create({
+				type: TransactionTypes.USERNAME,
+				username: username,
 				sender: account,
 				keypair: keypair,
 				secondKeypair: secondKeypair
@@ -503,6 +653,17 @@ Accounts.prototype.getAccountByPublicKey = function (publicKey) {
 }
 
 Accounts.prototype.getAddressByPublicKey = function (publicKey) {
+	var publicKeyHash = crypto.createHash('sha256').update(publicKey, 'hex').digest();
+	var temp = new Buffer(8);
+	for (var i = 0; i < 8; i++) {
+		temp[i] = publicKeyHash[7 - i];
+	}
+
+	var address = bignum.fromBuffer(temp).toString() + "C";
+	return address;
+}
+
+Accounts.prototype.getAddressByUsername = function (publicKey) {
 	var publicKeyHash = crypto.createHash('sha256').update(publicKey, 'hex').digest();
 	var temp = new Buffer(8);
 	for (var i = 0; i < 8; i++) {
