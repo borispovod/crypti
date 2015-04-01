@@ -149,7 +149,7 @@ for (var i = 0; i < file.accounts.length; i++) {
 			senderId: address,
 			senderPublicKey : keypair.publicKey.toString('hex')
 		};
-		
+
 
 		totalAmount += transaction.amount;
 

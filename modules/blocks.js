@@ -603,8 +603,15 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 
 			//verify block's transactions
 			blocks[i].transactions = blocks[i].transactions.sort(function (a, b) {
+				if (blocks[i].id == genesisblock.block.id) {
+					if (a.type == 3) {
+						return 1;
+					}
+				}
+
 				if (a.type == 1)
 					return 1;
+
 				return 0;
 			});
 
@@ -668,7 +675,7 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 
 				if (!modules.transactions.applyUnconfirmed(blocks[i].transactions[n])) {
 					err = {
-						message: "Can't apply transaction: " + blocks[i].transactions[n].id,
+						message: "Can't apply unconfirmed transaction: " + blocks[i].transactions[n].id,
 						transaction: blocks[i].transactions[n],
 						rollbackTransactionsUntil: n > 0 ? (n - 1) : null,
 						block: blocks[i]

@@ -466,7 +466,6 @@ Accounts.prototype.getAllAccounts = function () {
 }
 
 Accounts.prototype.getDelegates = function (publicKey) {
-	console.log(accounts);
 	var account = self.getAccountByPublicKey(publicKey);
 	return account.delegates;
 
