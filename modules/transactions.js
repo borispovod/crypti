@@ -166,7 +166,7 @@ function attachApi() {
 				publicKey = body.publicKey,
 				secondSecret = body.secondSecret;
 
-			if (!recipientId && username){
+			if (!recipientId && username) {
 
 			}
 
@@ -449,6 +449,9 @@ Transactions.prototype.apply = function (transaction) {
 			sender.unconfirmedAvatar = false;
 			sender.avatar = true;
 			break;
+		case TransactionTypes.USERNAME:
+			sender.applyUsername(transaction.asset.username);
+			break;
 	}
 	return true;
 }
@@ -487,32 +490,37 @@ Transactions.prototype.applyUnconfirmed = function (transaction) {
 		return false;
 	}
 
-	if (transaction.type == TransactionTypes.SIGNATURE) {
-		if (sender.unconfirmedSignature || sender.secondSignature) {
-			return false;
-		}
+	switch (transaction.type) {
+		case TransactionTypes.SIGNATURE:
+			if (sender.unconfirmedSignature || sender.secondSignature) {
+				return false;
+			}
 
-		sender.unconfirmedSignature = true;
-	} else if (transaction.type == TransactionTypes.DELEGATE) {
-		if (modules.delegates.getUnconfirmedDelegate(transaction.asset.delegate)) {
-			return false;
-		}
+			sender.unconfirmedSignature = true;
+			break;
+		case TransactionTypes.DELEGATE:
+			if (modules.delegates.getUnconfirmedDelegate(transaction.asset.delegate)) {
+				return false;
+			}
 
-		if (modules.delegates.getUnconfirmedName(transaction.asset.delegate)) {
-			return false;
-		}
+			if (modules.delegates.getUnconfirmedName(transaction.asset.delegate)) {
+				return false;
+			}
 
-		modules.delegates.addUnconfirmedDelegate(transaction.asset.delegate);
-	} else if (transaction.type == TransactionTypes.VOTE) {
-		if (!sender.applyUnconfirmedDelegateList(transaction.asset.votes)) {
-			return false;
-		}
-	} else if (transaction.type == TransactionTypes.AVATAR) {
-		if (sender.unconfirmedAvatar || sender.avatar) {
-			return false;
-		}
+			modules.delegates.addUnconfirmedDelegate(transaction.asset.delegate);
+			break;
+		case TransactionTypes.VOTE:
+			if (!sender.applyUnconfirmedDelegateList(transaction.asset.votes)) {
+				return false;
+			}
+			break;
+		case TransactionTypes.AVATAR:
+			if (sender.unconfirmedAvatar || sender.avatar) {
+				return false;
+			}
 
-		return true;
+			return true;
+			break;
 	}
 
 	var amount = transaction.amount + transaction.fee;
@@ -593,6 +601,9 @@ Transactions.prototype.undo = function (transaction) {
 		case TransactionTypes.AVATAR:
 			sender.avatar = false;
 			sender.unconfirmedAvatar = true;
+			break;
+		case TransactionTypes.USERNAME:
+			sender.undoUsername(transaction.asset.username);
 			break;
 	}
 
