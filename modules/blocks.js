@@ -872,12 +872,12 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 										return cb("username can only contain alphanumeric characters with the exception of !@$&_.");
 									}
 
-									if (transaction.asset.delegate.username.search(/(admin|genesis|delegate|crypti)/i) > -1) {
-										return cb("username containing the words Admin, Genesis, Delegate or Crypti cannot be claimed");
+									if (transaction.asset.delegate.username.search(/(admin|genesis|delegate|crypti|support)/i) > -1) {
+										return cb("username containing the words Admin, Genesis, Delegate, Support or Crypti cannot be claimed");
 									}
 
 									var isAddress = /^[0-9]+[C|c]$/g;
-									if (!isAddress.test(transaction.asset.delegate.username.toLowerCase())) {
+									if (isAddress.test(transaction.asset.delegate.username.toLowerCase())) {
 										return cb("username can't be like an address");
 									}
 
