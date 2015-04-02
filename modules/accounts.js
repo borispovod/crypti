@@ -3,6 +3,7 @@ var crypto = require('crypto'),
 	ed = require('ed25519'),
 	slots = require('../helpers/slots.js'),
 	Router = require('../helpers/router.js'),
+	util = require('util'),
 	constants = require('../helpers/constants.js'),
 	RequestSanitizer = require('../helpers/request-sanitizer.js'),
 	TransactionTypes = require('../helpers/transaction-types.js');
@@ -11,6 +12,7 @@ var crypto = require('crypto'),
 var modules, library, self;
 
 var accounts = {};
+var username2address = {};
 
 function Account(address, publicKey, balance, unconfirmedBalance) {
 	this.address = address;
@@ -24,6 +26,7 @@ function Account(address, publicKey, balance, unconfirmedBalance) {
 	this.unconfirmedDelegates = null;
 	this.unconfirmedAvatar = false;
 	this.avatar = false;
+	this.username = null;
 }
 
 function accountApplyDiff(account, diff) {
@@ -173,6 +176,14 @@ Account.prototype.undoDelegateList = function (diff) {
 	return isValid;
 }
 
+Account.prototype.applyUsername = function (username) {
+	username2address[username.toLowerCase()] = this.address;
+}
+
+Account.prototype.undoUsername = function (username) {
+	delete username2address[username.toLowerCase()];
+}
+
 function Vote() {
 	this.create = function (data, trs) {
 		trs.recipientId = data.sender.address;
@@ -213,6 +224,32 @@ function Vote() {
 		return trs.asset.votes ? new Buffer(trs.asset.votes.join(''), 'utf8') : null;
 	}
 
+	this.apply = function (trs, sender) {
+		sender.applyDelegateList(trs.asset.votes);
+
+		return true;
+	}
+
+	this.undo = function (trs, sender) {
+		sender.undoDelegateList(trs.asset.votes);
+
+		return true;
+	}
+
+	this.applyUnconfirmed = function (trs, sender) {
+		//if (!sender.applyUnconfirmedDelegateList(trs.asset.votes)) {
+		//	return false;
+		//}
+
+		return true;
+	}
+
+	this.undoUnconfirmed = function (trs, sender) {
+		//sender.undoUnconfirmedDelegateList(trs.asset.votes);
+
+		return true;
+	}
+
 	this.objectNormalize = function (trs) {
 		trs.asset.votes = RequestSanitizer.array(trs.asset.votes, true);
 
@@ -227,6 +264,13 @@ function Vote() {
 
 			return {votes: votes};
 		}
+	}
+
+	this.dbSave = function (dbLite, trs, cb) {
+		dbLite.query("INSERT INTO votes(votes, transactionId) VALUES($votes, $transactionId)", {
+			votes: util.isArray(trs.asset.votes) ? trs.asset.votes.join(',') : null,
+			transactionId: trs.id
+		}, cb);
 	}
 }
 
@@ -288,6 +332,30 @@ function Username() {
 		return new Buffer(trs.asset.username.alias, 'utf8');
 	}
 
+	this.apply = function (trs, sender) {
+		sender.applyUsername(trs.asset.username);
+
+		return true;
+	}
+
+	this.undo = function (trs, sender) {
+		sender.undoUsername(trs.asset.username);
+
+		return true;
+	}
+
+	this.applyUnconfirmed = function (trs, sender) {
+		sender.applyUnconfirmedUsername(trs.asset.username);
+
+		return true;
+	}
+
+	this.undoUnconfirmed = function (trs, sender) {
+		sender.undoUnconfirmedUsername(trs.asset.username);
+
+		return true;
+	}
+
 	this.objectNormalize = function (trs) {
 		trs.asset.delegate = RequestSanitizer.validate(trs.asset.username, {
 			object: true,
@@ -311,6 +379,13 @@ function Username() {
 
 			return {username: username};
 		}
+	}
+
+	this.dbSave = function (dbLite, trs, cb) {
+		dbLite.query("INSERT INTO usernames(username, transactionId) VALUES($username, $transactionId)", {
+			username: trs.asset.username.alias,
+			transactionId: trs.id
+		}, cb);
 	}
 }
 
@@ -663,15 +738,10 @@ Accounts.prototype.getAddressByPublicKey = function (publicKey) {
 	return address;
 }
 
-Accounts.prototype.getAddressByUsername = function (publicKey) {
-	var publicKeyHash = crypto.createHash('sha256').update(publicKey, 'hex').digest();
-	var temp = new Buffer(8);
-	for (var i = 0; i < 8; i++) {
-		temp[i] = publicKeyHash[7 - i];
-	}
+Accounts.prototype.getAccountByUsername = function (username) {
+	var address = username2address[username];
 
-	var address = bignum.fromBuffer(temp).toString() + "C";
-	return address;
+	return this.getAccount(address);
 }
 
 Accounts.prototype.getAccountOrCreateByPublicKey = function (publicKey) {

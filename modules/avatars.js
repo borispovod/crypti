@@ -12,7 +12,7 @@ function Avatar() {
 		trs.amount = 0;
 
 		trs.asset.avatar = {
-			image : data.image
+			image: data.image
 		}
 
 		return trs;
@@ -75,6 +75,35 @@ function Avatar() {
 		return bb.toBuffer()
 	}
 
+	this.apply = function (trs, sender) {
+		sender.unconfirmedAvatar = false;
+		sender.avatar = true;
+
+		return true;
+	}
+
+	this.undo = function (trs, sender) {
+		sender.avatar = false;
+		sender.unconfirmedAvatar = true;
+
+		return true;
+	}
+
+	this.applyUnconfirmed = function (trs, sender) {
+		if (sender.unconfirmedAvatar || sender.avatar) {
+			return false;
+		}
+
+		sender.unconfirmedAvatar = true;
+
+		return true;
+	}
+
+	this.undoUnconfirmed = function (trs, sender) {
+		sender.unconfirmedAvatar = false;
+		return true;
+	}
+
 	this.objectNormalize = function (trs) {
 		trs.asset.avatar = RequestSanitizer.validate(trs.asset.avatar, {
 			object: true,
@@ -97,6 +126,13 @@ function Avatar() {
 
 			return {avatar: avatar};
 		}
+	}
+
+	this.dbSave = function (dbLite, trs, cb) {
+		dbLite.query("INSERT INTO avatars(image, transactionId) VALUES($image, $transactionId)", {
+			image: new Buffer(trs.asset.avatar.image, 'hex'),
+			transactionId: trs.id
+		}, cb);
 	}
 }
 
@@ -122,12 +158,12 @@ function attachApi() {
 					senderPublicKey: query.publicKey
 				}, function (err, rows) {
 					if (err || rows.length == 0) {
-						return res.json({success: false, error : err || "Can't find avatar of this account"});
+						return res.json({success: false, error: err || "Can't find avatar of this account"});
 					}
 
 					var image = new Buffer(rows[0].image, 'hex');
 
-					res.writeHead(200, {'Content-Type': 'image/png' });
+					res.writeHead(200, {'Content-Type': 'image/png'});
 					res.writeHead(200, {'Content-Length': image.length});
 					res.end(image, 'binary');
 				});
@@ -139,7 +175,7 @@ function attachApi() {
 			secret: "string!",
 			secondSecret: "string?",
 			publicKey: "hex?",
-			image : "hex!"
+			image: "hex!"
 		}, function (err, report, body) {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
@@ -181,7 +217,7 @@ function attachApi() {
 				sender: account,
 				keypair: keypair,
 				secondKeypair: secondKeypair,
-				image : body.image
+				image: body.image
 			});
 
 			library.sequence.add(function (cb) {

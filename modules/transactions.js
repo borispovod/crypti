@@ -40,12 +40,40 @@ function Transfer() {
 		return null;
 	}
 
+	this.apply = function (trs, sender) {
+		var recipient = modules.accounts.getAccountOrCreateByAddress(trs.recipientId);
+		recipient.addToUnconfirmedBalance(trs.amount);
+		recipient.addToBalance(trs.amount);
+
+		return true;
+	}
+
+	this.undo = function (trs, sender) {
+		var recipient = modules.accounts.getAccountOrCreateByAddress(trs.recipientId);
+		recipient.addToUnconfirmedBalance(-trs.amount);
+		recipient.addToBalance(-trs.amount);
+
+		return true;
+	}
+
+	this.applyUnconfirmed = function (trs, sender) {
+		return true;
+	}
+
+	this.undoUnconfirmed = function (trs, sender) {
+		return true;
+	}
+
 	this.objectNormalize = function (trs) {
 		return trs;
 	}
 
 	this.dbRead = function (raw) {
 		return null;
+	}
+
+	this.dbSave = function (dbLite, trs, cb) {
+		setImmediate(cb);
 	}
 }
 
@@ -417,45 +445,6 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 	});
 }
 
-Transactions.prototype.apply = function (transaction) {
-	var sender = modules.accounts.getAccountByPublicKey(transaction.senderPublicKey);
-	var amount = transaction.amount + transaction.fee;
-
-	if (sender.balance < amount && transaction.blockId != genesisblock.block.id) {
-		return false;
-	}
-
-	sender.addToBalance(-amount);
-
-	switch (transaction.type) {
-		case TransactionTypes.SEND:
-			var recipient = modules.accounts.getAccountOrCreateByAddress(transaction.recipientId);
-			recipient.addToUnconfirmedBalance(transaction.amount);
-			recipient.addToBalance(transaction.amount);
-			break;
-		case TransactionTypes.SIGNATURE:
-			sender.unconfirmedSignature = false;
-			sender.secondSignature = true;
-			sender.secondPublicKey = transaction.asset.signature.publicKey;
-			break;
-		case TransactionTypes.DELEGATE:
-			modules.delegates.removeUnconfirmedDelegate(transaction.asset.delegate);
-			modules.delegates.cache(transaction.asset.delegate);
-			break;
-		case TransactionTypes.VOTE:
-			sender.applyDelegateList(transaction.asset.votes);
-			break;
-		case TransactionTypes.AVATAR:
-			sender.unconfirmedAvatar = false;
-			sender.avatar = true;
-			break;
-		case TransactionTypes.USERNAME:
-			sender.applyUsername(transaction.asset.username);
-			break;
-	}
-	return true;
-}
-
 Transactions.prototype.applyUnconfirmedList = function (ids) {
 	for (var i = 0; i < ids.length; i++) {
 		var transaction = self.getUnconfirmedTransaction(ids[i])
@@ -477,6 +466,18 @@ Transactions.prototype.undoUnconfirmedList = function () {
 	return ids;
 }
 
+Transactions.prototype.apply = function (transaction) {
+	var sender = modules.accounts.getAccountByPublicKey(transaction.senderPublicKey);
+
+	return library.logic.transaction.apply(transaction, sender);
+}
+
+Transactions.prototype.undo = function (transaction) {
+	var sender = modules.accounts.getAccountByPublicKey(transaction.senderPublicKey);
+
+	return library.logic.transaction.undo(transaction, sender);
+}
+
 Transactions.prototype.applyUnconfirmed = function (transaction) {
 	var sender = modules.accounts.getAccountByPublicKey(transaction.senderPublicKey);
 
@@ -486,128 +487,13 @@ Transactions.prototype.applyUnconfirmed = function (transaction) {
 		sender = modules.accounts.getAccountOrCreateByPublicKey(transaction.senderPublicKey);
 	}
 
-	if (sender.secondSignature && !transaction.signSignature) {
-		return false;
-	}
-
-	switch (transaction.type) {
-		case TransactionTypes.SIGNATURE:
-			if (sender.unconfirmedSignature || sender.secondSignature) {
-				return false;
-			}
-
-			sender.unconfirmedSignature = true;
-			break;
-		case TransactionTypes.DELEGATE:
-			if (modules.delegates.getUnconfirmedDelegate(transaction.asset.delegate)) {
-				return false;
-			}
-
-			if (modules.delegates.getUnconfirmedName(transaction.asset.delegate)) {
-				return false;
-			}
-
-			modules.delegates.addUnconfirmedDelegate(transaction.asset.delegate);
-			break;
-		case TransactionTypes.VOTE:
-			if (!sender.applyUnconfirmedDelegateList(transaction.asset.votes)) {
-				return false;
-			}
-			break;
-		case TransactionTypes.AVATAR:
-			if (sender.unconfirmedAvatar || sender.avatar) {
-				return false;
-			}
-
-			return true;
-			break;
-	}
-
-	var amount = transaction.amount + transaction.fee;
-
-	if (sender.unconfirmedBalance < amount && transaction.blockId != genesisblock.block.id) {
-		switch (transaction.type) {
-			case TransactionTypes.SIGNATURE:
-				sender.unconfirmedSignature = false;
-				break;
-			case TransactionTypes.DELEGATE:
-				modules.delegates.removeUnconfirmedDelegate(transaction.asset.delegate);
-				break;
-			case TransactionTypes.VOTE:
-				sender.undoUnconfirmedDelegateList(transaction.asset.votes);
-				break;
-
-			case TransactionTypes.AVATAR:
-				sender.unconfirmedAvatar = true;
-				break;
-		}
-
-		return false;
-	}
-
-	sender.addToUnconfirmedBalance(-amount);
-
-	return true;
+	return library.logic.transaction.applyUnconfirmed(transaction, sender);
 }
 
 Transactions.prototype.undoUnconfirmed = function (transaction) {
 	var sender = modules.accounts.getAccountByPublicKey(transaction.senderPublicKey);
-	var amount = transaction.amount + transaction.fee;
 
-	sender.addToUnconfirmedBalance(amount);
-
-	switch (transaction.type) {
-		case TransactionTypes.SIGNATURE:
-			sender.unconfirmedSignature = false;
-			break;
-		case TransactionTypes.DELEGATE:
-			modules.delegates.removeUnconfirmedDelegate(transaction.asset.delegate);
-			break;
-		case TransactionTypes.VOTE:
-			sender.undoUnconfirmedDelegateList(transaction.asset.votes);
-			break;
-		case TransactionTypes.AVATAR:
-			sender.unconfirmedAvatar = false;
-			break;
-	}
-
-	return true;
-}
-
-Transactions.prototype.undo = function (transaction) {
-	var sender = modules.accounts.getAccountByPublicKey(transaction.senderPublicKey);
-	var amount = transaction.amount + transaction.fee;
-
-	sender.addToBalance(amount);
-
-	switch (transaction.type) {
-		case TransactionTypes.SEND:
-			var recipient = modules.accounts.getAccountOrCreateByAddress(transaction.recipientId);
-			recipient.addToUnconfirmedBalance(-transaction.amount);
-			recipient.addToBalance(-transaction.amount);
-			break;
-		case TransactionTypes.SIGNATURE:
-			sender.secondSignature = false;
-			sender.unconfirmedSignature = true;
-			sender.secondPublicKey = null;
-			break;
-		case TransactionTypes.DELEGATE:
-			modules.delegates.uncache(transaction.asset.delegate);
-			modules.delegates.addUnconfirmedDelegate(transaction.asset.delegate);
-			break;
-		case TransactionTypes.VOTE:
-			sender.undoDelegateList(transaction.asset.votes);
-			break;
-		case TransactionTypes.AVATAR:
-			sender.avatar = false;
-			sender.unconfirmedAvatar = true;
-			break;
-		case TransactionTypes.USERNAME:
-			sender.undoUsername(transaction.asset.username);
-			break;
-	}
-
-	return true;
+	return library.logic.transaction.undoUnconfirmed(transaction, sender);
 }
 
 Transactions.prototype.receiveTransactions = function (transactions, cb) {

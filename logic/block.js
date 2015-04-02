@@ -158,6 +158,23 @@ Block.prototype.verifySignature = function (block) {
 	return res;
 }
 
+Block.prototype.dbSave = function(dbLite, block, cb){
+	dbLite.query("INSERT INTO blocks(id, version, timestamp, height, previousBlock,  numberOfTransactions, totalAmount, totalFee, payloadLength, payloadHash, generatorPublicKey, blockSignature) VALUES($id, $version, $timestamp, $height, $previousBlock, $numberOfTransactions, $totalAmount, $totalFee, $payloadLength,  $payloadHash, $generatorPublicKey, $blockSignature)", {
+		id: block.id,
+		version: block.version,
+		timestamp: block.timestamp,
+		height: block.height,
+		previousBlock: block.previousBlock || null,
+		numberOfTransactions: block.numberOfTransactions,
+		totalAmount: block.totalAmount,
+		totalFee: block.totalFee,
+		payloadLength: block.payloadLength,
+		payloadHash: new Buffer(block.payloadHash, 'hex'),
+		generatorPublicKey: new Buffer(block.generatorPublicKey, 'hex'),
+		blockSignature: new Buffer(block.blockSignature, 'hex')
+	}, cb);
+}
+
 Block.prototype.objectNormalize = function (block) {
 	block = RequestSanitizer.validate(block, {
 		object: true,

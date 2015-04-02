@@ -55,7 +55,10 @@ Transaction.prototype.create = function (data) {
 Transaction.prototype.attachAssetType = function (typeId, instance) {
 	if (instance && typeof instance.create == 'function' && typeof instance.getBytes == 'function' &&
 		typeof instance.calculateFee == 'function' && typeof instance.verify == 'function' &&
-		typeof instance.objectNormalize == 'function' && typeof instance.dbRead == 'function') {
+		typeof instance.objectNormalize == 'function' && typeof instance.dbRead == 'function' &&
+		typeof instance.apply == 'function' && typeof instance.undo == 'function' &&
+		typeof instance.applyUnconfirmed == 'function' && typeof instance.undoUnconfirmed == 'function'
+	) {
 		private.types[typeId] = instance;
 	} else {
 		throw Error('Invalid instance interface');
@@ -244,6 +247,113 @@ Transaction.prototype.verifySecondSignature = function (trs, secondPublicKey) {
 	}
 
 	return res;
+}
+
+Transaction.prototype.apply = function (trs, sender) {
+	if (!private.types[trs.type]) {
+		throw Error('Unknown transaction type');
+	}
+
+	var amount = trs.amount + trs.fee;
+
+	if (trs.blockId != genesisblock.block.id && sender.balance < amount) {
+		return false;
+	}
+
+	sender.addToBalance(-amount);
+
+	if (!private.types[trs.type].apply(trs, sender)) {
+		sender.addToBalance(amount);
+		return false;
+	}
+
+	return true;
+}
+
+Transaction.prototype.undo = function (trs, sender) {
+	if (!private.types[trs.type]) {
+		throw Error('Unknown transaction type');
+	}
+
+	var amount = trs.amount + trs.fee;
+
+	sender.addToBalance(amount);
+
+	if (!private.types[trs.type].undo(trs, sender)) {
+		sender.addToBalance(-amount);
+		return false;
+	}
+
+	return true;
+}
+
+Transaction.prototype.applyUnconfirmed = function (trs, sender) {
+	if (!private.types[trs.type]) {
+		throw Error('Unknown transaction type');
+	}
+
+	if (sender.secondSignature && !trs.signSignature) {
+		return false;
+	}
+
+	var amount = trs.amount + trs.fee;
+
+	if (sender.unconfirmedBalance < amount && trs.blockId != genesisblock.block.id) {
+		return false;
+	}
+
+	sender.addToUnconfirmedBalance(-amount);
+
+	if (!private.types[trs.type].applyUnconfirmed(trs, sender)) {
+		sender.addToUnconfirmedBalance(amount);
+		return false;
+	}
+
+	return true;
+}
+
+Transaction.prototype.undoUnconfirmed = function (trs, sender) {
+	if (!private.types[trs.type]) {
+		throw Error('Unknown transaction type');
+	}
+
+	var amount = trs.amount + trs.fee;
+
+	sender.addToUnconfirmedBalance(amount);
+
+	if (!private.types[trs.type].undoUnconfirmed(trs, sender)) {
+		sender.addToUnconfirmedBalance(-amount);
+		return false;
+	}
+
+	return true;
+}
+
+Transaction.prototype.dbSave = function (dbLite, trs, cb) {
+	if (!private.types[trs.type]) {
+		return cb('Unknown transaction type');
+	}
+
+	dbLite.query("INSERT INTO trs(id, blockId, type, timestamp, senderPublicKey, senderId, recipientId, amount, fee, signature, signSignature) VALUES($id, $blockId, $type, $timestamp, $senderPublicKey, $senderId, $recipientId, $amount, $fee, $signature, $signSignature)", {
+		id: trs.id,
+		blockId: trs.blockId,
+		type: trs.type,
+		timestamp: trs.timestamp,
+		senderPublicKey: new Buffer(trs.senderPublicKey, 'hex'),
+		senderId: trs.senderId,
+		recipientId: trs.recipientId || null,
+		amount: trs.amount,
+		fee: trs.fee,
+		signature: new Buffer(trs.signature, 'hex'),
+		signSignature: trs.signSignature ? new Buffer(trs.signSignature, 'hex') : null
+	}, function(err){
+		if (err){
+			return cb(err);
+		}
+
+		private.types[trs.type].dbSave(dbLite, trs, cb);
+	});
+
 }
 
 Transaction.prototype.objectNormalize = function (trs) {

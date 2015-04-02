@@ -215,20 +215,7 @@ function getById(id, cb) {
 function saveBlock(block, cb) {
 	library.dbLite.query('BEGIN TRANSACTION;');
 
-	library.dbLite.query("INSERT INTO blocks(id, version, timestamp, height, previousBlock,  numberOfTransactions, totalAmount, totalFee, payloadLength, payloadHash, generatorPublicKey, blockSignature) VALUES($id, $version, $timestamp, $height, $previousBlock, $numberOfTransactions, $totalAmount, $totalFee, $payloadLength,  $payloadHash, $generatorPublicKey, $blockSignature)", {
-		id: block.id,
-		version: block.version,
-		timestamp: block.timestamp,
-		height: block.height,
-		previousBlock: block.previousBlock || null,
-		numberOfTransactions: block.numberOfTransactions,
-		totalAmount: block.totalAmount,
-		totalFee: block.totalFee,
-		payloadLength: block.payloadLength,
-		payloadHash: new Buffer(block.payloadHash, 'hex'),
-		generatorPublicKey: new Buffer(block.generatorPublicKey, 'hex'),
-		blockSignature: new Buffer(block.blockSignature, 'hex')
-	}, function (err) {
+	library.logic.block.dbSave(library.dbLite, block, function (err) {
 		if (err) {
 			library.dbLite.query('ROLLBACK;', function (rollbackErr) {
 				cb(rollbackErr || err);
@@ -237,63 +224,8 @@ function saveBlock(block, cb) {
 		}
 
 		async.eachSeries(block.transactions, function (transaction, cb) {
-			library.dbLite.query("INSERT INTO trs(id, blockId, type, timestamp, senderPublicKey, senderId, recipientId, amount, fee, signature, signSignature) VALUES($id, $blockId, $type, $timestamp, $senderPublicKey, $senderId, $recipientId, $amount, $fee, $signature, $signSignature)", {
-				id: transaction.id,
-				blockId: block.id,
-				type: transaction.type,
-				timestamp: transaction.timestamp,
-				senderPublicKey: new Buffer(transaction.senderPublicKey, 'hex'),
-				senderId: transaction.senderId,
-				recipientId: transaction.recipientId || null,
-				amount: transaction.amount,
-				fee: transaction.fee,
-				signature: new Buffer(transaction.signature, 'hex'),
-				signSignature: transaction.signSignature ? new Buffer(transaction.signSignature, 'hex') : null
-			}, function (err) {
-				if (err) {
-					return cb(err);
-				}
-
-				switch (transaction.type) {
-					case TransactionTypes.SIGNATURE:
-						library.dbLite.query("INSERT INTO signatures(transactionId, publicKey) VALUES($transactionId, $publicKey)", {
-							transactionId: transaction.id,
-							publicKey: new Buffer(transaction.asset.signature.publicKey, 'hex')
-						}, cb);
-						break;
-
-					case TransactionTypes.DELEGATE:
-						library.dbLite.query("INSERT INTO delegates(username, transactionId) VALUES($username, $transactionId)", {
-							username: transaction.asset.delegate.username,
-							transactionId: transaction.id
-						}, cb);
-						break;
-
-					case TransactionTypes.VOTE:
-						library.dbLite.query("INSERT INTO votes(votes, transactionId) VALUES($votes, $transactionId)", {
-							votes: util.isArray(transaction.asset.votes) ? transaction.asset.votes.join(',') : null,
-							transactionId: transaction.id
-						}, cb);
-						break;
-
-					case TransactionTypes.MESSAGE:
-						library.dbLite.query("INSERT INTO messages(data, nonce, encrypted, transactionId) VALUES($data, $nonce, $encrypted, $transactionId)", {
-							data: new Buffer(transaction.asset.message.data, 'hex'),
-							nonce: new Buffer(transaction.asset.message.nonce, 'hex'),
-							encrypted: transaction.asset.message.encrypted ? 1 : 0,
-							transactionId: transaction.id
-						}, cb);
-						break;
-
-					case TransactionTypes.AVATAR:
-						library.dbLite.query("INSERT INTO avatars(image, transactionId) VALUES($image, $transactionId)", {
-							image: new Buffer(transaction.asset.avatar.image, 'hex'),
-							transactionId: transaction.id
-						}, cb);
-					default:
-						cb();
-				}
-			});
+			transaction.blockId = block.id;
+			library.logic.transaction.dbSave(library.dbLite, transaction, cb);
 		}, function (err) {
 			if (err) {
 				library.dbLite.query('ROLLBACK;', function (rollbackErr) {

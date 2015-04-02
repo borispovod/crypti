@@ -63,6 +63,38 @@ function Signature() {
 		return bb.toBuffer();
 	}
 
+	this.apply = function (trs, sender) {
+		sender.unconfirmedSignature = false;
+		sender.secondSignature = true;
+		sender.secondPublicKey = trs.asset.signature.publicKey;
+
+		return true;
+	}
+
+	this.undo = function (trs, sender) {
+		sender.secondSignature = false;
+		sender.unconfirmedSignature = true;
+		sender.secondPublicKey = null;
+
+		return true;
+	}
+
+	this.applyUnconfirmed = function (trs, sender) {
+		if (sender.unconfirmedSignature || sender.secondSignature) {
+			return false;
+		}
+
+		sender.unconfirmedSignature = true;
+
+		return true;
+	}
+
+	this.undoUnconfirmed = function (trs, sender) {
+		sender.unconfirmedSignature = false;
+
+		return true;
+	}
+
 	this.objectNormalize = function (trs) {
 		trs.asset.signature = RequestSanitizer.validate(trs.asset.signature, {
 			object: true,
@@ -85,6 +117,13 @@ function Signature() {
 
 			return {signature: signature};
 		}
+	}
+
+	this.dbSave = function (dbLite, trs, cb) {
+		dbLite.query("INSERT INTO signatures(transactionId, publicKey) VALUES($transactionId, $publicKey)", {
+			transactionId: trs.id,
+			publicKey: new Buffer(trs.asset.signature.publicKey, 'hex')
+		}, cb);
 	}
 }
 

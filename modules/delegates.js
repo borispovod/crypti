@@ -93,6 +93,39 @@ function Delegate() {
 		return new Buffer(trs.asset.delegate.username, 'utf8');
 	}
 
+	this.apply = function (trs, sender) {
+		modules.delegates.removeUnconfirmedDelegate(trs.asset.delegate);
+		modules.delegates.cache(trs.asset.delegate);
+
+		return true;
+	}
+
+	this.undo = function (trs, sender) {
+		modules.delegates.uncache(trs.asset.delegate);
+		modules.delegates.addUnconfirmedDelegate(trs.asset.delegate);
+
+		return true;
+	}
+
+	this.applyUnconfirmed = function (trs, sender) {
+		if (modules.delegates.getUnconfirmedDelegate(trs.asset.delegate)) {
+			return false;
+		}
+
+		if (modules.delegates.getUnconfirmedName(trs.asset.delegate)) {
+			return false;
+		}
+
+		modules.delegates.addUnconfirmedDelegate(trs.asset.delegate);
+
+		return true;
+	}
+
+	this.undoUnconfirmed = function (trs, sender) {
+		modules.delegates.removeUnconfirmedDelegate(trs.asset.delegate);
+		return true;
+	}
+
 	this.objectNormalize = function (trs) {
 		trs.asset.delegate = RequestSanitizer.validate(trs.asset.delegate, {
 			object: true,
@@ -117,6 +150,13 @@ function Delegate() {
 
 			return {delegate: delegate};
 		}
+	}
+
+	this.dbSave = function (dbLite, trs, cb) {
+		dbLite.query("INSERT INTO delegates(username, transactionId) VALUES($username, $transactionId)", {
+			username: trs.asset.delegate.username,
+			transactionId: trs.id
+		}, cb);
 	}
 }
 

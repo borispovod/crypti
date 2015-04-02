@@ -19,7 +19,7 @@ function Message() {
 
 		trs.asset.message = {
 			data: message,
-			nonce : nonce? nonce.toString('hex') : null,
+			nonce: nonce ? nonce.toString('hex') : null,
 			encrypted: data.encrypt
 		};
 
@@ -102,6 +102,22 @@ function Message() {
 		return bb.toBuffer()
 	}
 
+	this.apply = function (trs, sender) {
+		return true;
+	}
+
+	this.undo = function (trs, sender) {
+		return true;
+	}
+
+	this.applyUnconfirmed = function (trs, sender) {
+		return true;
+	}
+
+	this.undoUnconfirmed = function (trs, sender) {
+		return true;
+	}
+
 	this.objectNormalize = function (trs) {
 		trs.asset.message = RequestSanitizer.validate(trs.asset.message, {
 			object: true,
@@ -121,13 +137,22 @@ function Message() {
 		} else {
 			var message = {
 				transactionId: raw.t_id,
-				data : raw.m_data,
-				nonce : raw.m_nonce,
+				data: raw.m_data,
+				nonce: raw.m_nonce,
 				encrypted: raw.m_encrypted
 			}
 
 			return {message: message};
 		}
+	}
+
+	this.dbSave = function (dbLite, trs, cb) {
+		dbLite.query("INSERT INTO messages(data, nonce, encrypted, transactionId) VALUES($data, $nonce, $encrypted, $transactionId)", {
+			data: new Buffer(trs.asset.message.data, 'hex'),
+			nonce: new Buffer(trs.asset.message.nonce, 'hex'),
+			encrypted: trs.asset.message.encrypted ? 1 : 0,
+			transactionId: trs.id
+		}, cb);
 	}
 }
 
@@ -153,7 +178,7 @@ function attachApi() {
 
 			library.dbLite.query("SELECT lower(hex(data)), lower(hex(nonce)), encrypted FROM messa", function (err, rows) {
 				if (err || rows.length == 0) {
-					return res.json({success: false, error: err? "Internal error" : "Can't find message"});
+					return res.json({success: false, error: err ? "Internal error" : "Can't find message"});
 				}
 
 				var message = rows[0];
@@ -161,10 +186,10 @@ function attachApi() {
 				try {
 					var text = encryptHelper.decrypt(new Buffer(message.data, 'hex'), new Buffer(message.nonce, 'hex'), new Buffer(message.senderPublicKey, 'hex'), keypair.privateKey);
 				} catch (e) {
-					return res.json({success:false, error: "Can't decrypt message"});
+					return res.json({success: false, error: "Can't decrypt message"});
 				}
 
-				return res.json({success:false, message:text});
+				return res.json({success: false, message: text});
 			});
 		});
 	});
@@ -225,7 +250,10 @@ function attachApi() {
 			}
 
 			if (body.message.length == 0 || body.message.length > 140) {
-				return res.json({success: false, error: "Incorrect message length, message length from 0 to 140 characters"});
+				return res.json({
+					success: false,
+					error: "Incorrect message length, message length from 0 to 140 characters"
+				});
 			}
 
 			if (account.secondSignature && secondSecret) {
@@ -240,7 +268,7 @@ function attachApi() {
 				secondKeypair: secondKeypair,
 				recipientPublicKey: body.recipientPublicKey,
 				encrypt: body.encrypt,
-				message : body.message
+				message: body.message
 			});
 
 			library.sequence.add(function (cb) {
@@ -277,7 +305,6 @@ function Messages(cb, scope) {
 
 	setImmediate(cb, null, self);
 }
-
 
 
 Messages.prototype.onBind = function (scope) {
