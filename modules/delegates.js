@@ -331,7 +331,7 @@ function getDelegate(filter, rateSort) {
 		index = publicKeyIndex[filter.publicKey];
 	}
 	if (filter.username) {
-		index = namesIndex[filter.username];
+		index = namesIndex[filter.username.toLowerCase()];
 	}
 
 	if (index === undefined) {
@@ -597,7 +597,7 @@ Delegates.prototype.existsDelegate = function (publicKey) {
 }
 
 Delegates.prototype.existsName = function (userName) {
-	return namesIndex[userName] !== undefined;
+	return namesIndex[userName.toLowerCase()] !== undefined;
 }
 
 Delegates.prototype.cache = function (delegate) {
@@ -607,7 +607,7 @@ Delegates.prototype.cache = function (delegate) {
 	unconfirmedVotes[delegate.publicKey] = 0;
 	votes[delegate.publicKey] = 0;
 
-	namesIndex[delegate.username] = index;
+	namesIndex[delegate.username.toLowerCase()] = index;
 	publicKeyIndex[delegate.publicKey] = index;
 	transactionIdIndex[delegate.transactionId] = index;
 }
@@ -619,7 +619,7 @@ Delegates.prototype.uncache = function (delegate) {
 	var index = publicKeyIndex[delegate.publicKey];
 
 	delete publicKeyIndex[delegate.publicKey]
-	delete namesIndex[delegate.username];
+	delete namesIndex[delegate.username.toLowerCase()];
 	delete transactionIdIndex[delegate.transactionId];
 	delegates[index] = false;
 }
