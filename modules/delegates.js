@@ -61,8 +61,9 @@ function Delegate() {
 
 		var allowSymbols = /^[a-z0-9!@$&_.]+$/g;
 		if (!allowSymbols.test(trs.asset.delegate.username.toLowerCase())) {
-			return cb("username can only contain alphanumeric characters with the exception of !@$&_.");
+			return cb("Username can only contain alphanumeric characters with the exception of !@$&_.");
 		}
+
 
 		//if (trs.asset.delegate.username.search(/(admin|genesis|delegate|crypti)/i) > -1) {
 		//	return cb("username containing the words Admin, Genesis, Delegate or Crypti cannot be claimed");
@@ -70,11 +71,15 @@ function Delegate() {
 
 		var isAddress = /^[0-9]+[C|c]$/g;
 		if (!isAddress.test(trs.asset.delegate.username.toLowerCase())) {
-			return cb("username can't be like an address");
+			return cb("Username can't be like an address");
 		}
 
-		if (trs.asset.delegate.username.length == 0 || trs.asset.delegate.username.length > 20) {
-			return cb("Incorrect delegate username length");
+		if (trs.asset.delegate.username.length < 1) {
+			return cb("Delegate name is too short");
+		}
+
+		if (trs.asset.delegate.username.length > 20) {
+			return cb("Delegate name is longer then 20 chars");
 		}
 
 		if (self.existsName(trs.asset.delegate.username)) {
