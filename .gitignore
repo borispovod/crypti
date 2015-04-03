@@ -15,3 +15,6 @@ public/node_modules/
 builded
 tmp
 __MACOSX/
+public/webkitbuilds/
+public/build/
+bfg.jar

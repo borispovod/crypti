@@ -2,12 +2,17 @@ var crypto = require('crypto'),
 	bignum = require('bignum'),
 	ed = require('ed25519'),
 	slots = require('../helpers/slots.js'),
-	Router = require('../helpers/router.js');
+	Router = require('../helpers/router.js'),
+	util = require('util'),
+	constants = require('../helpers/constants.js'),
+	RequestSanitizer = require('../helpers/request-sanitizer.js'),
+	TransactionTypes = require('../helpers/transaction-types.js');
 
 //private
 var modules, library, self;
 
 var accounts = {};
+var username2address = {};
 
 function Account(address, publicKey, balance, unconfirmedBalance) {
 	this.address = address;
@@ -19,6 +24,9 @@ function Account(address, publicKey, balance, unconfirmedBalance) {
 	this.secondPublicKey = null;
 	this.delegates = null;
 	this.unconfirmedDelegates = null;
+	this.unconfirmedAvatar = false;
+	this.avatar = false;
+	this.username = null;
 }
 
 function accountApplyDiff(account, diff) {
@@ -168,12 +176,228 @@ Account.prototype.undoDelegateList = function (diff) {
 	return isValid;
 }
 
+Account.prototype.applyUsername = function (username) {
+	username2address[username.toLowerCase()] = this.address;
+}
+
+Account.prototype.undoUsername = function (username) {
+	delete username2address[username.toLowerCase()];
+}
+
+function Vote() {
+	this.create = function (data, trs) {
+		trs.recipientId = data.sender.address;
+		trs.asset.votes = data.votes;
+
+		return trs;
+	}
+
+	this.calculateFee = function (trs) {
+		return 1 * constants.fixedPoint;
+	}
+
+	this.verify = function (trs, sender, cb) {
+		if (trs.recipientId != trs.senderId) {
+			return cb("Incorrect recipient");
+		}
+
+		if (trs.asset.votes && trs.asset.votes.length > 33) {
+			return cb("Please, provide less 33 delegates");
+		}
+
+		if (!modules.delegates.checkUnconfirmedDelegates(trs.senderPublicKey, trs.asset.votes)) {
+			return cb("Can't verify votes, you already voted for this delegate: " + trs.id);
+		}
+
+		if (!modules.delegates.checkDelegates(trs.senderPublicKey, trs.asset.votes)) {
+			return cb("Can't verify votes, you already voted for this delegate: " + trs.id);
+		}
+
+		if (trs.asset.votes !== null && trs.asset.votes.length > 33) {
+			return cb("Can't verify votes, most be less then 33 delegates");
+		}
+
+		cb(null, trs);
+	}
+
+	this.getBytes = function (trs) {
+		return trs.asset.votes ? new Buffer(trs.asset.votes.join(''), 'utf8') : null;
+	}
+
+	this.apply = function (trs, sender) {
+		sender.applyDelegateList(trs.asset.votes);
+
+		return true;
+	}
+
+	this.undo = function (trs, sender) {
+		sender.undoDelegateList(trs.asset.votes);
+
+		return true;
+	}
+
+	this.applyUnconfirmed = function (trs, sender) {
+		//if (!sender.applyUnconfirmedDelegateList(trs.asset.votes)) {
+		//	return false;
+		//}
+
+		return true;
+	}
+
+	this.undoUnconfirmed = function (trs, sender) {
+		//sender.undoUnconfirmedDelegateList(trs.asset.votes);
+
+		return true;
+	}
+
+	this.objectNormalize = function (trs) {
+		trs.asset.votes = RequestSanitizer.array(trs.asset.votes, true);
+
+		return trs;
+	}
+
+	this.dbRead = function (raw) {
+		if (!raw.v_votes) {
+			return null
+		} else {
+			var votes = raw.v_votes.split(',');
+
+			return {votes: votes};
+		}
+	}
+
+	this.dbSave = function (dbLite, trs, cb) {
+		dbLite.query("INSERT INTO votes(votes, transactionId) VALUES($votes, $transactionId)", {
+			votes: util.isArray(trs.asset.votes) ? trs.asset.votes.join(',') : null,
+			transactionId: trs.id
+		}, cb);
+	}
+}
+
+function Username() {
+	this.create = function (data, trs) {
+		trs.recipientId = null;
+		trs.amount = 0;
+		trs.asset.username = {
+			alias: data.username,
+			publicKey: data.sender.publicKey
+		};
+
+		return trs;
+	}
+
+	this.calculateFee = function (trs) {
+		return 1 * constants.fixedPoint;
+	}
+
+	this.verify = function (trs, sender, cb) {
+		if (trs.recipientId) {
+			return cb("Invalid recipient");
+		}
+
+		if (trs.amount != 0) {
+			return cb("Invalid amount");
+		}
+
+		if (!trs.asset.username.alias) {
+			return cb("Empty transaction asset for username transaction");
+		}
+
+		var allowSymbols = /^[a-z0-9!@$&_.]+$/g;
+		if (!allowSymbols.test(trs.asset.username.alias.toLowerCase())) {
+			return cb("username can only contain alphanumeric characters with the exception of !@$&_.");
+		}
+
+		if (trs.asset.username.alias.search(/(admin|genesis|delegate|crypti)/i) > -1) {
+			return cb("username containing the words Admin, Genesis, Delegate or Crypti cannot be claimed");
+		}
+
+		var isAddress = /^[0-9]+[C|c]$/g;
+		if (!isAddress.test(trs.asset.username.alias.toLowerCase())) {
+			return cb("username can't be like an address");
+		}
+
+		if (trs.asset.username.alias.length == 0 || trs.asset.username.alias.length > 20) {
+			return cb("Incorrect username length");
+		}
+
+		if (modules.delegates.existsName(trs.asset.username.alias)) {
+			return cb("The username you entered is already in use. Please try a different name.");
+		}
+
+		cb(null, trs);
+	}
+
+	this.getBytes = function (trs) {
+		return new Buffer(trs.asset.username.alias, 'utf8');
+	}
+
+	this.apply = function (trs, sender) {
+		sender.applyUsername(trs.asset.username);
+
+		return true;
+	}
+
+	this.undo = function (trs, sender) {
+		sender.undoUsername(trs.asset.username);
+
+		return true;
+	}
+
+	this.applyUnconfirmed = function (trs, sender) {
+		sender.applyUnconfirmedUsername(trs.asset.username);
+
+		return true;
+	}
+
+	this.undoUnconfirmed = function (trs, sender) {
+		sender.undoUnconfirmedUsername(trs.asset.username);
+
+		return true;
+	}
+
+	this.objectNormalize = function (trs) {
+		trs.asset.delegate = RequestSanitizer.validate(trs.asset.username, {
+			object: true,
+			properties: {
+				alias: "string!",
+				publicKey: "hex!"
+			}
+		}).value;
+
+		return trs;
+	}
+
+	this.dbRead = function (raw) {
+		if (!raw.u_alias) {
+			return null
+		} else {
+			var username = {
+				alias: raw.u_alias,
+				publicKey: raw.t_senderPublicKey
+			}
+
+			return {username: username};
+		}
+	}
+
+	this.dbSave = function (dbLite, trs, cb) {
+		dbLite.query("INSERT INTO usernames(username, transactionId) VALUES($username, $transactionId)", {
+			username: trs.asset.username.alias,
+			transactionId: trs.id
+		}, cb);
+	}
+}
+
 //constructor
 function Accounts(cb, scope) {
 	library = scope;
 	self = this;
 
 	attachApi();
+
+	library.logic.transaction.attachAssetType(TransactionTypes.VOTE, new Vote());
+	library.logic.transaction.attachAssetType(TransactionTypes.USERNAME, new Username());
 
 	setImmediate(cb, null, self);
 }
@@ -333,8 +557,69 @@ function attachApi() {
 				}
 			}
 
-			if (delegates && delegates.length > 33) {
-				return res.json({success: false, error: "Please, provide less 33 delegates"});
+			var account = self.getAccountByPublicKey(keypair.publicKey.toString('hex'));
+
+			if (!account) {
+				return res.json({success: false, error: "Account doesn't has balance"});
+			}
+
+			if (!account.publicKey) {
+				return res.json({success: false, error: "Open account to make transaction"});
+			}
+
+			if (account.secondSignature && !secondSecret) {
+				return res.json({success: false, error: "Provide second secret key"});
+			}
+
+			var secondKeypair = null;
+
+			if (account.secondSignature) {
+				var secondHash = crypto.createHash('sha256').update(secondSecret, 'utf8').digest();
+				secondKeypair = ed.MakeKeypair(secondHash);
+			}
+
+			var transaction = library.logic.transaction.create({
+				type: TransactionTypes.VOTE,
+				votes: delegates,
+				sender: account,
+				keypair: keypair,
+				secondKeypair: secondKeypair
+			});
+
+			library.sequence.add(function (cb) {
+				modules.transactions.processUnconfirmedTransaction(transaction, true, cb);
+			}, function (err) {
+				if (err) {
+					return res.json({success: false, error: err});
+				}
+
+				res.json({success: true, transaction: transaction});
+			});
+		});
+	});
+
+	router.put("/username", function (req, res, next) {
+		req.sanitize("body", {
+			secret: "string!",
+			publicKey: "hex?",
+			secondSecret: "string?",
+			username: "string!"
+		}, function (err, report, body) {
+			if (err) return next(err);
+			if (!report.isValid) return res.json({success: false, error: report.issues});
+
+			var secret = body.secret,
+				publicKey = body.publicKey,
+				secondSecret = body.secondSecret,
+				username = body.username;
+
+			var hash = crypto.createHash('sha256').update(secret, 'utf8').digest();
+			var keypair = ed.MakeKeypair(hash);
+
+			if (publicKey) {
+				if (keypair.publicKey.toString('hex') != publicKey) {
+					return res.json({success: false, error: "Please, provide valid secret key of your account"});
+				}
 			}
 
 			var account = self.getAccountByPublicKey(keypair.publicKey.toString('hex'));
@@ -347,26 +632,24 @@ function attachApi() {
 				return res.json({success: false, error: "Open account to make transaction"});
 			}
 
-			var transaction = {
-				type: 3,
-				amount: 0,
-				recipientId: account.address,
-				senderPublicKey: account.publicKey,
-				timestamp: slots.getTime(),
-				asset: {
-					votes: delegates
-				}
-			};
+			if (account.secondSignature && !secondSecret) {
+				return res.json({success: false, error: "Provide second secret key"});
+			}
 
-			modules.transactions.sign(secret, transaction);
+			var secondKeypair = null;
 
 			if (account.secondSignature) {
-				if (!secondSecret) {
-					return res.json({success: false, error: "Provide second secret key"});
-				}
-
-				modules.transactions.secondSign(secondSecret, transaction);
+				var secondHash = crypto.createHash('sha256').update(secondSecret, 'utf8').digest();
+				secondKeypair = ed.MakeKeypair(secondHash);
 			}
+
+			var transaction = library.logic.transaction.create({
+				type: TransactionTypes.USERNAME,
+				username: username,
+				sender: account,
+				keypair: keypair,
+				secondKeypair: secondKeypair
+			});
 
 			library.sequence.add(function (cb) {
 				modules.transactions.processUnconfirmedTransaction(transaction, true, cb);
@@ -453,6 +736,12 @@ Accounts.prototype.getAddressByPublicKey = function (publicKey) {
 
 	var address = bignum.fromBuffer(temp).toString() + "C";
 	return address;
+}
+
+Accounts.prototype.getAccountByUsername = function (username) {
+	var address = username2address[username];
+
+	return this.getAccount(address);
 }
 
 Accounts.prototype.getAccountOrCreateByPublicKey = function (publicKey) {

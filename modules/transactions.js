@@ -1,20 +1,16 @@
-var transactionHelper = require('../helpers/transaction.js'),
-	ed = require('ed25519'),
+var ed = require('ed25519'),
 	bignum = require('bignum'),
 	util = require('util'),
 	ByteBuffer = require("bytebuffer"),
 	crypto = require('crypto'),
 	genesisblock = require('../helpers/genesisblock.js'),
 	constants = require("../helpers/constants.js"),
-	relational = require("../helpers/relational.js"),
 	slots = require('../helpers/slots.js'),
 	extend = require('extend'),
 	Router = require('../helpers/router.js'),
-	arrayHelper = require('../helpers/array.js'),
 	async = require('async'),
 	RequestSanitizer = require('../helpers/request-sanitizer.js'),
-	JsonSchema = require('../helpers/json-schema'),
-	esprima = require('esprima');
+	TransactionTypes = require('../helpers/transaction-types.js');
 
 // private fields
 var modules, library, self;
@@ -24,12 +20,71 @@ var unconfirmedTransactions = [];
 var unconfirmedTransactionsIdIndex = {};
 var doubleSpendingTransactions = {};
 
+function Transfer() {
+	this.create = function (data, trs) {
+		trs.recipientId = data.recipientId;
+		trs.amount = data.amount;
+
+		return trs;
+	}
+
+	this.calculateFee = function (trs) {
+		return trs.fee;
+	}
+
+	this.verify = function (trs, sender, cb) {
+		cb(null, trs);
+	}
+
+	this.getBytes = function (trs) {
+		return null;
+	}
+
+	this.apply = function (trs, sender) {
+		var recipient = modules.accounts.getAccountOrCreateByAddress(trs.recipientId);
+		recipient.addToUnconfirmedBalance(trs.amount);
+		recipient.addToBalance(trs.amount);
+
+		return true;
+	}
+
+	this.undo = function (trs, sender) {
+		var recipient = modules.accounts.getAccountOrCreateByAddress(trs.recipientId);
+		recipient.addToUnconfirmedBalance(-trs.amount);
+		recipient.addToBalance(-trs.amount);
+
+		return true;
+	}
+
+	this.applyUnconfirmed = function (trs, sender) {
+		return true;
+	}
+
+	this.undoUnconfirmed = function (trs, sender) {
+		return true;
+	}
+
+	this.objectNormalize = function (trs) {
+		return trs;
+	}
+
+	this.dbRead = function (raw) {
+		return null;
+	}
+
+	this.dbSave = function (dbLite, trs, cb) {
+		setImmediate(cb);
+	}
+}
+
 //constructor
 function Transactions(cb, scope) {
 	library = scope;
 	self = this;
 
 	attachApi();
+
+	library.logic.transaction.attachAssetType(TransactionTypes.SEND, new Transfer());
 
 	setImmediate(cb, null, self);
 }
@@ -125,6 +180,7 @@ function attachApi() {
 			amount: "int!",
 			recipientId: "string?",
 			publicKey: "hex?",
+			username: "string?",
 			secondSecret: "string?",
 			input: "object?"
 		}, function (err, report, body) {
@@ -134,8 +190,13 @@ function attachApi() {
 			var secret = body.secret,
 				amount = body.amount,
 				recipientId = body.recipientId,
+				username = body.username,
 				publicKey = body.publicKey,
 				secondSecret = body.secondSecret;
+
+			if (!recipientId && username) {
+
+			}
 
 			var hash = crypto.createHash('sha256').update(secret, 'utf8').digest();
 			var keypair = ed.MakeKeypair(hash);
@@ -156,31 +217,25 @@ function attachApi() {
 				return res.json({success: false, error: "Open account to make transaction"});
 			}
 
-
-			if (amount.toString().indexOf('e') >= 0) {
-				return res.json({success: false, error: "Incorrect amount, please, correct it"});
+			if (account.secondSignature && !secondSecret) {
+				return res.json({success: false, error: "Provide second secret key"});
 			}
 
-			amount = RequestSanitizer.int(amount);
-
-			var transaction = {
-				type: 0,
-				amount: amount,
-				recipientId: recipientId,
-				senderPublicKey: account.publicKey,
-				timestamp: slots.getTime(),
-				asset: {}
-			};
-
-			self.sign(secret, transaction);
+			var secondKeypair = null;
 
 			if (account.secondSignature) {
-				if (!secondSecret) {
-					return res.json({success: false, error: "Provide second secret key"});
-				}
-
-				self.secondSign(secondSecret, transaction);
+				var secondHash = crypto.createHash('sha256').update(secondSecret, 'utf8').digest();
+				secondKeypair = ed.MakeKeypair(secondHash);
 			}
+
+			var transaction = library.logic.transaction.create({
+				type: TransactionTypes.SEND,
+				amount: amount,
+				sender: account,
+				recipientId: recipientId,
+				keypair: keypair,
+				secondKeypair: secondKeypair
+			});
 
 			library.sequence.add(function (cb) {
 				self.processUnconfirmedTransaction(transaction, true, cb);
@@ -264,9 +319,12 @@ function list(filter, cb) {
 		if (err) {
 			return cb(err)
 		}
-		async.mapSeries(rows, function (row, cb) {
-			setImmediate(cb, null, relational.getTransaction(row));
-		}, cb)
+
+		var transactions = [];
+		for (var i = 0; i < rows.length; i++) {
+			transactions.push(library.logic.transaction.dbRead(rows[i]));
+		}
+		cb(null, transactions);
 	});
 }
 
@@ -279,7 +337,7 @@ function getById(id, cb) {
 			return cb(err || "Can't find transaction: " + id);
 		}
 
-		var transacton = relational.getTransaction(rows[0]);
+		var transacton = library.logic.transaction.dbRead(rows[0]);
 		cb(null, transacton);
 	});
 }
@@ -291,20 +349,6 @@ function addUnconfirmedTransaction(transaction) {
 }
 
 //public methods
-Transactions.prototype.sign = function (secret, transaction) {
-	var hash = transactionHelper.getHash(transaction);
-	var passHash = crypto.createHash('sha256').update(secret, 'utf8').digest();
-	var keypair = ed.MakeKeypair(passHash);
-	transaction.signature = ed.Sign(hash, keypair).toString('hex');
-}
-
-Transactions.prototype.secondSign = function (secret, transaction) {
-	var hash = transactionHelper.getHash(transaction);
-	var passHash = crypto.createHash('sha256').update(secret, 'utf8').digest();
-	var keypair = ed.MakeKeypair(passHash);
-	transaction.signSignature = ed.Sign(hash, keypair).toString('hex');
-}
-
 Transactions.prototype.getUnconfirmedTransaction = function (id) {
 	var index = unconfirmedTransactionsIdIndex[id];
 	return unconfirmedTransactions[index];
@@ -344,7 +388,7 @@ Transactions.prototype.removeUnconfirmedTransaction = function (id) {
 }
 
 Transactions.prototype.processUnconfirmedTransaction = function (transaction, broadcast, cb) {
-	var txId = transactionHelper.getId(transaction);
+	var txId = library.logic.transaction.getId(transaction);
 
 	if (transaction.id && transaction.id != txId) {
 		cb && cb("Invalid transaction id");
@@ -392,140 +436,13 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 
 			transaction.senderId = sender.address;
 
-			if (!self.verifySignature(transaction)) {
+			if (!library.logic.transaction.verifySignature(transaction)) {
 				return done("Can't verify signature");
 			}
 
-			self.validateTransaction(transaction, done);
+			library.logic.transaction.verify(transaction, sender, done);
 		}
 	});
-}
-
-/**
- * Validate unconfirmed transaction
- *
- * @param {object} transaction Transaction object
- * @param {function(err:Error|string,transaction:object=)} done Result callback
- * @returns {*}
- */
-Transactions.prototype.validateTransaction = function (transaction, done) {
-	var sender = modules.accounts.getAccountByPublicKey(transaction.senderPublicKey);
-
-	if (!self.verifySignature(transaction)) {
-		return done("Can't verify transaction signature: " + transaction.id);
-	}
-
-	if (sender.secondSignature) {
-		if (!self.verifySecondSignature(transaction, sender.secondPublicKey)) {
-			return done("Can't verify second signature: " + transaction.id);
-		}
-	}
-
-	transaction.fee = transactionHelper.getTransactionFee(transaction);
-
-	if (transaction.fee === false) {
-		return done("Invalid transaction type/fee: " + transaction.id);
-	}
-
-	if (transaction.amount < 0 || String(transaction.amount).indexOf('.') >= 0) {
-		return done("Invalid transaction amount: " + transaction.id);
-	}
-
-	if (slots.getSlotNumber(transaction.timestamp) > slots.getSlotNumber()) {
-		return done("Invalid transaction timestamp");
-	}
-
-
-	switch (transaction.type) {
-
-		case 1:
-			if (!transaction.asset.signature) {
-				return done("Empty transaction asset for signature transaction")
-			}
-
-			try {
-				if (new Buffer(transaction.asset.signature.publicKey, 'hex').length != 32) {
-					return done("Invalid length for signature public key");
-				}
-			} catch (e) {
-				return done("Invalid hex in signature public key");
-			}
-			break;
-
-		case 2:
-			if (transaction.recipientId) {
-				return cb("Invalid recipient");
-			}
-
-			if (!transaction.asset.delegate.username) {
-				return done("Empty transaction asset for delegate transaction");
-			}
-
-			if (transaction.asset.delegate.username.length == 0 || transaction.asset.delegate.username.length > 20) {
-				return done("Incorrect delegate username length");
-			}
-
-			if (modules.delegates.existsName(transaction.asset.delegate.username)) {
-				return done("The delegate name you entered is already in use. Please try a different name.");
-			}
-
-			if (modules.delegates.existsDelegate(transaction.senderPublicKey)) {
-				return done("Your account are delegate already");
-			}
-			break;
-		case 3:
-			if (transaction.recipientId != transaction.senderId) {
-				return done("Incorrect recipient");
-			}
-
-			if (!modules.delegates.checkUnconfirmedDelegates(transaction.senderPublicKey, transaction.asset.votes)) {
-				return done("Can't verify votes, you already voted for this delegate: " + transaction.id);
-			}
-
-			if (!modules.delegates.checkDelegates(transaction.senderPublicKey, transaction.asset.votes)) {
-				return done("Can't verify votes, you already voted for this delegate: " + transaction.id);
-			}
-
-			if (transaction.asset.votes !== null && transaction.asset.votes.length > 33) {
-				return done("Can't verify votes, most be less then 33 delegates");
-			}
-			break;
-		default:
-			return done("Unknown transaction type");
-	}
-}
-
-Transactions.prototype.apply = function (transaction) {
-	var sender = modules.accounts.getAccountByPublicKey(transaction.senderPublicKey);
-	var amount = transaction.amount + transaction.fee;
-
-	if (sender.balance < amount && transaction.blockId != genesisblock.block.id) {
-		return false;
-	}
-
-	sender.addToBalance(-amount);
-
-	// process only two types of transactions
-	switch (transaction.type) {
-		case 0:
-			var recipient = modules.accounts.getAccountOrCreateByAddress(transaction.recipientId);
-			recipient.addToUnconfirmedBalance(transaction.amount);
-			recipient.addToBalance(transaction.amount);
-			break;
-		case 1:
-			sender.unconfirmedSignature = false;
-			sender.secondSignature = true;
-			sender.secondPublicKey = transaction.asset.signature.publicKey;
-			break;
-		case 2:
-			modules.delegates.removeUnconfirmedDelegate(transaction.asset.delegate);
-			modules.delegates.cache(transaction.asset.delegate);
-			break;
-		case 3:
-			sender.applyDelegateList(transaction.asset.votes);
-			break;
-	}
-	return true;
 }
 
 Transactions.prototype.applyUnconfirmedList = function (ids) {
@@ -549,6 +466,18 @@ Transactions.prototype.undoUnconfirmedList = function () {
 	return ids;
 }
 
+Transactions.prototype.apply = function (transaction) {
+	var sender = modules.accounts.getAccountByPublicKey(transaction.senderPublicKey);
+
+	return library.logic.transaction.apply(transaction, sender);
+}
+
+Transactions.prototype.undo = function (transaction) {
+	var sender = modules.accounts.getAccountByPublicKey(transaction.senderPublicKey);
+
+	return library.logic.transaction.undo(transaction, sender);
+}
+
 Transactions.prototype.applyUnconfirmed = function (transaction) {
 	var sender = modules.accounts.getAccountByPublicKey(transaction.senderPublicKey);
 
@@ -558,152 +487,13 @@ Transactions.prototype.applyUnconfirmed = function (transaction) {
 		sender = modules.accounts.getAccountOrCreateByPublicKey(transaction.senderPublicKey);
 	}
 
-	if (sender.secondSignature && !transaction.signSignature) {
-		return false;
-	}
-
-	if (transaction.type == 1) {
-		if (sender.unconfirmedSignature || sender.secondSignature) {
-			return false;
-		}
-
-		sender.unconfirmedSignature = true;
-	} else if (transaction.type == 2) {
-		if (modules.delegates.getUnconfirmedDelegate(transaction.asset.delegate)) {
-			return false;
-		}
-
-		if (modules.delegates.getUnconfirmedName(transaction.asset.delegate)) {
-			return false;
-		}
-
-		modules.delegates.addUnconfirmedDelegate(transaction.asset.delegate);
-	} else if (transaction.type == 3) {
-		if (!sender.applyUnconfirmedDelegateList(transaction.asset.votes)) {
-			return false;
-		}
-	}
-
-	var amount = transaction.amount + transaction.fee;
-
-	if (sender.unconfirmedBalance < amount && transaction.blockId != genesisblock.block.id) {
-		switch (transaction.type) {
-			case 1:
-				sender.unconfirmedSignature = false;
-				break;
-			case 2:
-				modules.delegates.removeUnconfirmedDelegate(transaction.asset.delegate);
-				break;
-			case 3:
-				sender.undoUnconfirmedDelegateList(transaction.asset.votes);
-				break;
-		}
-
-		return false;
-	}
-
-	sender.addToUnconfirmedBalance(-amount);
-
-	return true;
+	return library.logic.transaction.applyUnconfirmed(transaction, sender);
 }
 
 Transactions.prototype.undoUnconfirmed = function (transaction) {
 	var sender = modules.accounts.getAccountByPublicKey(transaction.senderPublicKey);
-	var amount = transaction.amount + transaction.fee;
 
-	sender.addToUnconfirmedBalance(amount);
-
-	switch (transaction.type) {
-		case 1:
-			sender.unconfirmedSignature = false;
-			break;
-		case 2:
-			modules.delegates.removeUnconfirmedDelegate(transaction.asset.delegate);
-			break;
-		case 3:
-			sender.undoUnconfirmedDelegateList(transaction.asset.votes);
-			break;
-	}
-
-	return true;
-}
-
-Transactions.prototype.undo = function (transaction) {
-	var sender = modules.accounts.getAccountByPublicKey(transaction.senderPublicKey);
-	var amount = transaction.amount + transaction.fee;
-
-	sender.addToBalance(amount);
-
-	switch (transaction.type) {
-		case 0:
-			var recipient = modules.accounts.getAccountOrCreateByAddress(transaction.recipientId);
-			recipient.addToUnconfirmedBalance(-transaction.amount);
-			recipient.addToBalance(-transaction.amount);
-			break;
-		case 1:
-			sender.secondSignature = false;
-			sender.unconfirmedSignature = true;
-			sender.secondPublicKey = null;
-			break;
-		case 2:
-			modules.delegates.uncache(transaction.asset.delegate);
-			modules.delegates.addUnconfirmedDelegate(transaction.asset.delegate);
-			break;
-		case 3:
-			sender.undoDelegateList(transaction.asset.votes);
-			break;
-	}
-
-	return true;
-}
-
-Transactions.prototype.verifySignature = function (transaction) {
-	var remove = 64;
-
-	if (transaction.signSignature) {
-		remove = 128;
-	}
-
-	var bytes = transactionHelper.getBytes(transaction);
-	var data2 = new Buffer(bytes.length - remove);
-
-	for (var i = 0; i < data2.length; i++) {
-		data2[i] = bytes[i];
-	}
-
-	var hash = crypto.createHash('sha256').update(data2).digest();
-
-	try {
-		var signatureBuffer = new Buffer(transaction.signature, 'hex');
-		var senderPublicKeyBuffer = new Buffer(transaction.senderPublicKey, 'hex');
-		var res = ed.Verify(hash, signatureBuffer || ' ', senderPublicKeyBuffer || ' ');
-	} catch (e) {
-		library.logger.info("first signature");
-		library.logger.error(e, {err: e, transaction: transaction})
-	}
-
-	return res;
-}
-
-Transactions.prototype.verifySecondSignature = function (transaction, publicKey) {
-	var bytes = transactionHelper.getBytes(transaction);
-	var data2 = new Buffer(bytes.length - 64);
-
-	for (var i = 0; i < data2.length; i++) {
-		data2[i] = bytes[i];
-	}
-
-	var hash = crypto.createHash('sha256').update(data2).digest();
-
-	try {
-		var signSignatureBuffer = new Buffer(transaction.signSignature, 'hex');
-		var publicKeyBuffer = new Buffer(publicKey, 'hex');
-		var res = ed.Verify(hash, signSignatureBuffer || ' ', publicKeyBuffer || ' ');
-	} catch (e) {
-		library.logger.error(e, {err: e, transaction: transaction})
-	}
-
-	return res;
+	return library.logic.transaction.undoUnconfirmed(transaction, sender);
 }
 
 Transactions.prototype.receiveTransactions = function (transactions, cb) {

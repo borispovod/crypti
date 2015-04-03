@@ -14,15 +14,11 @@
 	},
 	"peers": {
 		"list": [
-			{
-				"ip": "130.211.104.33",
-				"port": 7040
-			}
 		],
 		"blackList": []
 	},
 	"forging": {
-		"secret": "",
+		"secret": [],
 		"access": {
 			"whiteList": []
 		}

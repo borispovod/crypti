@@ -4,8 +4,7 @@ var async = require('async'),
 	genesisBlock = require("../helpers/genesisblock.js"),
 	ip = require("ip"),
 	bignum = require('bignum'),
-	RequestSanitizer = require('../helpers/request-sanitizer'),
-	normalize = require('../helpers/normalize.js');
+	RequestSanitizer = require('../helpers/request-sanitizer');
 require('colors');
 
 //private fields
@@ -57,7 +56,7 @@ function attachApi() {
 	});
 }
 
-function loadfullDb(peer, cb) {
+function loadFullDb(peer, cb) {
 	var peerStr = peer ? ip.fromLong(peer.ip) + ":" + peer.port : 'unknown';
 
 	var commonBlockId = genesisBlock.block.id;
@@ -176,7 +175,10 @@ function findUpdate(lastBlock, peer, cb) {
 }
 
 function loadBlocks(lastBlock, cb) {
-	modules.transport.getFromRandomPeer('/height', function (err, data) {
+	modules.transport.getFromRandomPeer({
+		api: '/height',
+		method: 'GET'
+	}, function (err, data) {
 		var peerStr = data && data.peer ? ip.fromLong(data.peer.ip) + ":" + data.peer.port : 'unknown';
 		if (err || !data.body) {
 			library.logger.log("Fail request at " + peerStr);
@@ -191,7 +193,7 @@ function loadBlocks(lastBlock, cb) {
 			if (lastBlock.id != genesisBlock.block.id) { //have to found common block
 				findUpdate(lastBlock, data.peer, cb);
 			} else { //have to load full db
-				loadfullDb(data.peer, cb);
+				loadFullDb(data.peer, cb);
 			}
 		} else {
 			cb();
@@ -200,7 +202,10 @@ function loadBlocks(lastBlock, cb) {
 }
 
 function loadUnconfirmedTransactions(cb) {
-	modules.transport.getFromRandomPeer('/transactions', function (err, data) {
+	modules.transport.getFromRandomPeer({
+		api: '/transactions',
+		method: 'GET'
+	}, function (err, data) {
 		if (err) {
 			return cb()
 		}
@@ -209,7 +214,7 @@ function loadUnconfirmedTransactions(cb) {
 
 		for (var i = 0; i < transactions.length; i++) {
 			try {
-				transactions[i] = normalize.transaction(transactions[i]);
+				transactions[i] = library.logic.transaction.objectNormalize(transactions[i]);
 			} catch (e) {
 				var peerStr = data.peer ? ip.fromLong(data.peer.ip) + ":" + data.peer.port : 'unknown';
 				library.logger.log('transaction ' + (transactions[i] ? transactions[i].id : 'null') + ' is not valid, ban 60 min', peerStr);

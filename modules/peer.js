@@ -3,8 +3,6 @@ var async = require('async'),
 	ip = require('ip'),
 	Router = require('../helpers/router.js'),
 	RequestSanitizer = require('../helpers/request-sanitizer'),
-	arrayHelper = require('../helpers/array.js'),
-	normalize = require('../helpers/normalize.js'),
 	extend = require('extend'),
 	fs = require('fs'),
 	path = require('path');
@@ -35,16 +33,16 @@ function attachApi() {
 
 	router.get('/', function (req, res, next) {
 		req.sanitize("query", {
-			state : "int?",
-			os : "string?",
-			version : "string?",
-			limit : "int?",
-			shared : "boolean?",
-			orderBy : "string?",
-			offset : "int?"
-		}, function(err, report, query){
+			state: "int?",
+			os: "string?",
+			version: "string?",
+			limit: "int?",
+			shared: "boolean?",
+			orderBy: "string?",
+			offset: "int?"
+		}, function (err, report, query) {
 			if (err) return next(err);
-			if (! report.isValid) return res.json({success:false, error:report.issues});
+			if (!report.isValid) return res.json({success: false, error: report.issues});
 
 			if (query.limit < 0 || query.limit > 100) {
 				return res.json({success: false, error: "Max limit is 100"});
@@ -68,7 +66,7 @@ function attachApi() {
 		fs.readFile(path.join(__dirname, '..', 'build'), 'utf8', function (err, data) {
 			if (err) {
 				library.logger.error("Can't read build file: " + err);
-				return res.json({success: false, error : "Can't read 'build' file, see logs"});
+				return res.json({success: false, error: "Can't read 'build' file, see logs"});
 			}
 
 			return res.json({success: true, version: library.config.version, build: data.trim()});
@@ -118,14 +116,27 @@ function attachApi() {
 }
 
 function updatePeerList(cb) {
-	modules.transport.getFromRandomPeer('/list', function (err, data) {
+	modules.transport.getFromRandomPeer({
+		api: '/list',
+		method: 'GET'
+	}, function (err, data) {
 		if (err) {
 			return cb();
 		}
 
 		var peers = RequestSanitizer.array(data.body.peers);
 		async.eachLimit(peers, 2, function (peer, cb) {
-			peer = normalize.peer(peer);
+			peer = RequestSanitizer.validate(peer, {
+				object: true,
+				properties: {
+					ip: "int",
+					port: "int",
+					state: "int",
+					os: "string?",
+					sharePort: "string",
+					version: "string?"
+				}
+			}).value;
 
 			if (ip.toLong("127.0.0.1") == peer.ip || peer.port == 0 || peer.port > 65535) {
 				setImmediate(cb);
@@ -254,7 +265,6 @@ Peer.prototype.remove = function (pip, port, cb) {
 	var isFrozenList = library.config.peers.list.find(function (peer) {
 		return peer.ip == ip.fromLong(pip) && peer.port == port;
 	});
-	console.log(isFrozenList);
 	if (isFrozenList !== undefined) return cb && cb();
 	library.dbLite.query("DELETE FROM peers WHERE ip = $ip and port = $port;", {
 		ip: pip,

@@ -3,8 +3,9 @@ var Router = require('../helpers/router.js'),
 	request = require('request'),
 	ip = require('ip'),
 	util = require('util'),
-	RequestSanitizer = require('../helpers/request-sanitizer.js'),
-	normalize = require('../helpers/normalize.js');
+	_ = require('underscore'),
+	zlib = require('zlib'),
+	RequestSanitizer = require('../helpers/request-sanitizer.js');
 
 //private fields
 var modules, library, self;
@@ -97,7 +98,7 @@ function attachApi() {
 
 			var max = query.max;
 			var min = query.min;
-			var ids = query.id.split(',').filter(function (id) {
+			var ids = query.ids.split(',').filter(function (id) {
 				return /^\d+$/.test(id);
 			});
 			var escapedIds = ids.map(function (id) {
@@ -136,18 +137,46 @@ function attachApi() {
 		res.set(headers);
 
 		var lastBlockId = RequestSanitizer.string(req.query.lastBlockId);
-
 		// get 1400+ blocks with all data (joins) from provided block id
-		modules.blocks.loadBlocksPart({limit: 1440, lastId: lastBlockId}, function (err, blocks) {
-			return res.status(200).json({blocks: !err ? blocks : []});
+		var blocksLimit = 1440;
+
+		//var acceptEncoding = req.headers['accept-encoding'] || '';
+		//if (~acceptEncoding.indexOf('gzip')) {
+
+
+		modules.blocks.loadBlocksData({
+			limit: blocksLimit,
+			lastId: lastBlockId
+		}, {plain: true}, function (err, data) {
+			res.status(200);
+			if (err) {
+				res.json({blocks: ""});
+			} else {
+				zlib.gzip(JSON.stringify({blocks: data}), function (err, output) {
+					if (err) {
+						return res.json({blocks: ""});
+					} else {
+						res.header('content-encoding', 'gzip')
+							.header('content-type', 'application/json')
+							.header('content-length', output.length)
+							.end(output);
+					}
+				});
+			}
 		});
+		//} else {
+		//	modules.blocks.loadBlocksPart({limit: blocksLimit, lastId: lastBlockId}, function (err, data) {
+		//		res.status(200).json({blocks: err ? [] : data});
+		//	});
+		//}
+
 	});
 
 	router.post("/blocks", function (req, res) {
 		res.set(headers);
 
 		try {
-			var block = normalize.block(req.body.block)
+			var block = library.logic.block.objectNormalize(req.body.block)
 		} catch (e) {
 			var peerIp = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
 			var peerStr = peerIp ? peerIp + ":" + RequestSanitizer.int(req.headers['port']) : 'unknown';
@@ -171,7 +200,7 @@ function attachApi() {
 		res.set(headers);
 
 		try {
-			var transaction = normalize.transaction(req.body.transaction);
+			var transaction = library.logic.transaction.objectNormalize(req.body.transaction);
 		} catch (e) {
 			var peerIp = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
 			var peerStr = peerIp ? peerIp + ":" + RequestSanitizer.int(req.headers['port']) : 'unknown';
@@ -211,25 +240,82 @@ function attachApi() {
 	});
 }
 
-function _request(peer, api, method, data, cb) {
+//public methods
+Transport.prototype.broadcast = function (peersCount, options, cb) {
+	peersCount = peersCount || 1;
+
+	modules.peer.list(peersCount, function (err, peers) {
+		if (!err) {
+			async.eachLimit(peers, 3, function (peer, cb) {
+				self.getFromPeer(peer, options);
+
+				setImmediate(cb);
+			}, function () {
+				cb && cb(null, {body: null, peer: peers});
+			})
+		} else {
+			cb && setImmediate(cb, err);
+		}
+	});
+}
+
+Transport.prototype.getFromRandomPeer = function (options, cb) {
+	async.retry(20, function (cb) {
+		modules.peer.list(1, function (err, peers) {
+			if (!err && peers.length) {
+				var peer = peers[0];
+				self.getFromPeer(peer, options, cb);
+			} else {
+				return cb(err || "No peers in db");
+			}
+		});
+	}, function (err, results) {
+		cb(err, results)
+	});
+}
+
+/**
+ * Send request to selected peer
+ * @param {object} peer Peer object
+ * @param {object} options Request lib params with special value `api` which should be string name of peer's module
+ * web method
+ * @param {function} cb Result Callback
+ * @returns {*|exports} Request lib request instance
+ * @private
+ * @exmplae
+ *
+ * // Send gzipped request to peer's web method /peer/blocks.
+ * .getFromPeer(peer, {api:'/blocks', gzip:true}, function(err, data){
+ * 	// process request
+ * });
+ */
+Transport.prototype.getFromPeer = function (peer, options, cb) {
+	var url;
+	if (options.api) {
+		url = '/peer' + options.api
+	} else {
+		url = options.url;
+	}
+
 	var req = {
-		url: 'http://' + ip.fromLong(peer.ip) + ':' + peer.port + '/peer' + api,
-		method: method,
+		url: 'http://' + ip.fromLong(peer.ip) + ':' + peer.port + url,
+		method: options.method,
 		json: true,
-		headers: headers,
+		headers: _.extend({}, headers, options.headers),
 		timeout: 5000
 	};
 
-
-	library.logger.trace('request', req.url);
-
-	if (Object.prototype.toString.call(data) == "[object Object]" || util.isArray(data)) {
-		req.json = data;
+	if (Object.prototype.toString.call(options.data) === "[object Object]" || util.isArray(options.data)) {
+		req.json = options.data;
 	} else {
-		req.body = data;
+		req.body = options.data;
 	}
 
-	request(req, function (err, response, body) {
+	if (options.gzip) {
+		req.gzip = true;
+	}
+
+	return request(req, function (err, response, body) {
 		if (err || response.statusCode != 200) {
 			library.logger.debug('request', {
 				url: req.url,
@@ -263,51 +349,7 @@ function _request(peer, api, method, data, cb) {
 		}
 
 
-		cb && cb(null, body);
-	});
-}
-
-//public methods
-Transport.prototype.broadcast = function (peersCount, method, data, cb) {
-	peersCount = peersCount || 1;
-	if (!cb && (typeof(data) == 'function')) {
-		cb = data;
-		data = undefined;
-	}
-	modules.peer.list(peersCount, function (err, peers) {
-		if (!err) {
-			async.eachLimit(peers, 3, function (peer, cb) {
-				_request(peer, method, "POST", data);
-				setImmediate(cb);
-			}, function () {
-				cb && cb(null, {body: null, peer: peers});
-			})
-		} else {
-			cb && setImmediate(cb, err);
-		}
-	});
-}
-
-Transport.prototype.getFromRandomPeer = function (method, cb) {
-	async.retry(20, function (cb) {
-		modules.peer.list(1, function (err, peers) {
-			if (!err && peers.length) {
-				var peer = peers[0];
-				_request(peer, method, "GET", undefined, function (err, body) {
-					cb(err, {body: body, peer: peer});
-				});
-			} else {
-				return cb(err || "Nothing peers in db");
-			}
-		});
-	}, function (err, results) {
-		cb(err, results)
-	});
-}
-
-Transport.prototype.getFromPeer = function (peer, method, cb) {
-	_request(peer, method, "GET", undefined, function (err, body) {
-		cb(err, {body: body, peer: peer});
+		cb && cb(null, {body: body, peer: peer});
 	});
 }
 
@@ -328,11 +370,11 @@ Transport.prototype.onBlockchainReady = function () {
 }
 
 Transport.prototype.onUnconfirmedTransaction = function (transaction, broadcast) {
-	broadcast && self.broadcast(100, '/transactions', {transaction: transaction});
+	broadcast && self.broadcast(100, {api: '/transactions', data: {transaction: transaction}, method: "POST"});
 }
 
 Transport.prototype.onNewBlock = function (block, broadcast) {
-	broadcast && self.broadcast(100, '/blocks', {block: block})
+	broadcast && self.broadcast(100, {api: '/blocks', data: {block: block}, method: "POST"})
 }
 
 //export

@@ -3,12 +3,12 @@ var crypto = require('crypto'),
 	ed = require('ed25519'),
 	shuffle = require('knuth-shuffle').knuthShuffle,
 	Router = require('../helpers/router.js'),
-	arrayHelper = require('../helpers/array.js'),
 	slots = require('../helpers/slots.js'),
 	schedule = require('node-schedule'),
 	util = require('util'),
 	constants = require('../helpers/constants.js'),
-	RequestSanitizer = require('../helpers/request-sanitizer');
+	RequestSanitizer = require('../helpers/request-sanitizer'),
+	TransactionTypes = require('../helpers/transaction-types.js');
 
 require('array.prototype.find'); //old node fix
 
@@ -30,12 +30,144 @@ var fees = {};
 
 var keypairs = {};
 
+function Delegate() {
+	this.create = function (data, trs) {
+		trs.recipientId = null;
+		trs.amount = 0;
+		trs.asset.delegate = {
+			username: data.username,
+			publicKey: data.sender.publicKey
+		};
+
+		return trs;
+	}
+
+	this.calculateFee = function (trs) {
+		return 10000 * constants.fixedPoint;
+	}
+
+	this.verify = function (trs, sender, cb) {
+		if (trs.recipientId) {
+			return cb("Invalid recipient");
+		}
+
+		if (trs.amount != 0) {
+			return cb("Invalid amount");
+		}
+
+		if (!trs.asset.delegate.username) {
+			return cb("Empty transaction asset for delegate transaction");
+		}
+
+		var allowSymbols = /^[a-z0-9!@$&_.]+$/g;
+		if (!allowSymbols.test(trs.asset.delegate.username.toLowerCase())) {
+			return cb("username can only contain alphanumeric characters with the exception of !@$&_.");
+		}
+
+		if (trs.asset.delegate.username.search(/(admin|genesis|delegate|crypti)/i) > -1) {
+			return cb("username containing the words Admin, Genesis, Delegate or Crypti cannot be claimed");
+		}
+
+		var isAddress = /^[0-9]+[C|c]$/g;
+		if (!isAddress.test(trs.asset.delegate.username.toLowerCase())) {
+			return cb("username can't be like an address");
+		}
+
+		if (trs.asset.delegate.username.length == 0 || trs.asset.delegate.username.length > 20) {
+			return cb("Incorrect delegate username length");
+		}
+
+		if (self.existsName(trs.asset.delegate.username)) {
+			return cb("The delegate name you entered is already in use. Please try a different name.");
+		}
+
+		if (self.existsDelegate(trs.senderPublicKey)) {
+			return cb("Your account are delegate already");
+		}
+
+
+		cb(null, trs);
+	}
+
+	this.getBytes = function (trs) {
+		return new Buffer(trs.asset.delegate.username, 'utf8');
+	}
+
+	this.apply = function (trs, sender) {
+		modules.delegates.removeUnconfirmedDelegate(trs.asset.delegate);
+		modules.delegates.cache(trs.asset.delegate);
+
+		return true;
+	}
+
+	this.undo = function (trs, sender) {
+		modules.delegates.uncache(trs.asset.delegate);
+		modules.delegates.addUnconfirmedDelegate(trs.asset.delegate);
+
+		return true;
+	}
+
+	this.applyUnconfirmed = function (trs, sender) {
+		if (modules.delegates.getUnconfirmedDelegate(trs.asset.delegate)) {
+			return false;
+		}
+
+		if (modules.delegates.getUnconfirmedName(trs.asset.delegate)) {
+			return false;
+		}
+
+		modules.delegates.addUnconfirmedDelegate(trs.asset.delegate);
+
+		return true;
+	}
+
+	this.undoUnconfirmed = function (trs, sender) {
+		modules.delegates.removeUnconfirmedDelegate(trs.asset.delegate);
+		return true;
+	}
+
+	this.objectNormalize = function (trs) {
+		trs.asset.delegate = RequestSanitizer.validate(trs.asset.delegate, {
+			object: true,
+			properties: {
+				username: "string!",
+				publicKey: "hex!"
+			}
+		}).value;
+
+		return trs;
+	}
+
+	this.dbRead = function (raw) {
+		if (!raw.d_username) {
+			return null
+		} else {
+			var delegate = {
+				username: raw.d_username,
+				publicKey: raw.t_senderPublicKey,
+				address: raw.t_senderId
+			}
+
+			return {delegate: delegate};
+		}
+	}
+
+	this.dbSave = function (dbLite, trs, cb) {
+		dbLite.query("INSERT INTO delegates(username, transactionId) VALUES($username, $transactionId)", {
+			username: trs.asset.delegate.username,
+			transactionId: trs.id
+		}, cb);
+	}
+}
+
 //constructor
 function Delegates(cb, scope) {
 	library = scope;
 	self = this;
 
 	attachApi();
+
+	library.logic.transaction.attachAssetType(TransactionTypes.DELEGATE, new Delegate());
 
 	setImmediate(cb, null, self);
 }
@@ -274,7 +406,7 @@ function attachApi() {
 	router.put('/', function (req, res, next) {
 		req.sanitize("body", {
 			secret: "string!",
-			publicKey: "string?",
+			publicKey: "hex?",
 			secondSecret: "string?",
 			username: "string!"
 		}, function (err, report, body) {
@@ -305,29 +437,24 @@ function attachApi() {
 				return res.json({success: false, error: "Open account to make transaction"});
 			}
 
-			var transaction = {
-				type: 2,
-				amount: 0,
-				recipientId: null,
-				senderPublicKey: account.publicKey,
-				timestamp: slots.getTime(),
-				asset: {
-					delegate: {
-						username: username,
-						publicKey: account.publicKey
-					}
-				}
-			};
+			if (account.secondSignature && !secondSecret) {
+				return res.json({success: false, error: "Provide second secret key"});
+			}
 
-			modules.transactions.sign(secret, transaction);
+			var secondKeypair = null;
 
 			if (account.secondSignature) {
-				if (!secondSecret) {
-					return res.json({success: false, error: "Provide second secret key"});
-				}
-
-				modules.transactions.secondSign(secondSecret, transaction);
+				var secondHash = crypto.createHash('sha256').update(secondSecret, 'utf8').digest();
+				secondKeypair = ed.MakeKeypair(secondHash);
 			}
+
+			var transaction = library.logic.transaction.create({
+				type: TransactionTypes.DELEGATE,
+				username: username,
+				sender: account,
+				keypair: keypair,
+				secondKeypair: secondKeypair
+			});
 
 			library.sequence.add(function (cb) {
 				modules.transactions.processUnconfirmedTransaction(transaction, true, cb);
@@ -360,7 +487,7 @@ function getDelegate(filter, rateSort) {
 		index = publicKeyIndex[filter.publicKey];
 	}
 	if (filter.username) {
-		index = namesIndex[filter.username];
+		index = namesIndex[filter.username.toLowerCase()];
 	}
 
 	if (index === undefined) {
@@ -631,7 +758,7 @@ Delegates.prototype.existsDelegate = function (publicKey) {
 }
 
 Delegates.prototype.existsName = function (userName) {
-	return namesIndex[userName] !== undefined;
+	return namesIndex[userName.toLowerCase()] !== undefined;
 }
 
 Delegates.prototype.cache = function (delegate) {
@@ -641,7 +768,7 @@ Delegates.prototype.cache = function (delegate) {
 	unconfirmedVotes[delegate.publicKey] = 0;
 	votes[delegate.publicKey] = 0;
 
-	namesIndex[delegate.username] = index;
+	namesIndex[delegate.username.toLowerCase()] = index;
 	publicKeyIndex[delegate.publicKey] = index;
 	transactionIdIndex[delegate.transactionId] = index;
 }
@@ -653,7 +780,7 @@ Delegates.prototype.uncache = function (delegate) {
 	var index = publicKeyIndex[delegate.publicKey];
 
 	delete publicKeyIndex[delegate.publicKey]
-	delete namesIndex[delegate.username];
+	delete namesIndex[delegate.username.toLowerCase()];
 	delete transactionIdIndex[delegate.transactionId];
 	delegates[index] = false;
 }
