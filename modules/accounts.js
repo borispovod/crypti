@@ -202,7 +202,7 @@ function Vote() {
 		}
 
 		if (trs.asset.votes && trs.asset.votes.length > 33) {
-			return cb("Please, provide less 33 delegates");
+			return cb("You can only vote for a maximum of 33 delegates at any one time.");
 		}
 
 		if (!modules.delegates.checkUnconfirmedDelegates(trs.senderPublicKey, trs.asset.votes)) {
@@ -211,10 +211,6 @@ function Vote() {
 
 		if (!modules.delegates.checkDelegates(trs.senderPublicKey, trs.asset.votes)) {
 			return cb("Can't verify votes, you already voted for this delegate: " + trs.id);
-		}
-
-		if (trs.asset.votes !== null && trs.asset.votes.length > 33) {
-			return cb("Can't verify votes, most be less then 33 delegates");
 		}
 
 		cb(null, trs);
