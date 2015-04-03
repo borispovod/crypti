@@ -64,9 +64,10 @@ function Delegate() {
 			return cb("Username can only contain alphanumeric characters with the exception of !@$&_.");
 		}
 
-		if (trs.asset.delegate.username.search(/(admin|genesis|delegate|crypti)/i) > -1) {
-			return cb("Username containing the words Admin, Genesis, Delegate or Crypti cannot be claimed");
-		}
+
+		//if (trs.asset.delegate.username.search(/(admin|genesis|delegate|crypti)/i) > -1) {
+		//	return cb("username containing the words Admin, Genesis, Delegate or Crypti cannot be claimed");
+		//}
 
 		var isAddress = /^[0-9]+[C|c]$/g;
 		if (!isAddress.test(trs.asset.delegate.username.toLowerCase())) {

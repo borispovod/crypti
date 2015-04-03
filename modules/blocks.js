@@ -547,6 +547,12 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 
 			//verify block's transactions
 			blocks[i].transactions = blocks[i].transactions.sort(function (a, b) {
+				if (blocks[i].id == genesisblock.block.id) {
+					if (a.type == TransactionTypes.VOTE) {
+						return 1;
+					}
+				}
+
 				if (a.type == TransactionTypes.SIGNATURE)
 					return 1;
 				return 0;
@@ -554,7 +560,6 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 
 			for (var n = 0, n_length = blocks[i].transactions.length; n < n_length; n++) {
 				if (blocks[i].id != genesisblock.block.id) {
-					if (blocks[i].id == '17716098720826987814') debugger;
 					if (verify && !library.logic.transaction.verifySignature(blocks[i].transactions[n])) {
 						err = {
 							message: "Can't verify transaction: " + blocks[i].transactions[n].id,
