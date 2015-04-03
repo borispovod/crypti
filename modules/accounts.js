@@ -48,6 +48,11 @@ function accountApplyDiff(account, diff) {
 				return false;
 			}
 
+			if (account.delegates && account.delegates.length >= 101){
+				account.delegates = tmp;
+				return false;
+			}
+
 			account.delegates.push(publicKey);
 		}
 		if (math == "-") {
@@ -83,6 +88,11 @@ function accountApplyUnconfirmedDiff(account, diff) {
 				index = account.unconfirmedDelegates.indexOf(publicKey);
 			}
 			if (index != -1) {
+				account.unconfirmedDelegates = tmp;
+				return false;
+			}
+
+			if (account.unconfirmedDelegates && account.unconfirmedDelegates.length >= 101){
 				account.unconfirmedDelegates = tmp;
 				return false;
 			}
