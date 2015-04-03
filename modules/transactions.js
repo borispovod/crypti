@@ -41,7 +41,13 @@ function Transfer() {
 	}
 
 	this.apply = function (trs, sender) {
-		var recipient = modules.accounts.getAccountOrCreateByAddress(trs.recipientId);
+		var recipient = null;
+		var isAddress = /^[0-9]+[C|c]$/g;
+		if (isAddress.test(trs.recipientId.toLowerCase())) {
+			recipient = modules.accounts.getAccountOrCreateByAddress(trs.recipientId);
+		}else{
+			recipient = modules.accounts.getAccountByUsername(trs.recipientId);
+		}
 		recipient.addToUnconfirmedBalance(trs.amount);
 		recipient.addToBalance(trs.amount);
 
@@ -49,7 +55,13 @@ function Transfer() {
 	}
 
 	this.undo = function (trs, sender) {
-		var recipient = modules.accounts.getAccountOrCreateByAddress(trs.recipientId);
+		var recipient = null;
+		var isAddress = /^[0-9]+[C|c]$/g;
+		if (isAddress.test(trs.recipientId.toLowerCase())) {
+			recipient = modules.accounts.getAccountOrCreateByAddress(trs.recipientId);
+		}else{
+			recipient = modules.accounts.getAccountByUsername(trs.recipientId);
+		}
 		recipient.addToUnconfirmedBalance(-trs.amount);
 		recipient.addToBalance(-trs.amount);
 

@@ -308,9 +308,9 @@ function Username() {
 			return cb("username can only contain alphanumeric characters with the exception of !@$&_.");
 		}
 
-		if (trs.asset.username.alias.search(/(admin|genesis|delegate|crypti)/i) > -1) {
-			return cb("username containing the words Admin, Genesis, Delegate or Crypti cannot be claimed");
-		}
+		//if (trs.asset.username.alias.search(/(admin|genesis|delegate|crypti)/i) > -1) {
+		//	return cb("username containing the words Admin, Genesis, Delegate or Crypti cannot be claimed");
+		//}
 
 		var isAddress = /^[0-9]+[C|c]$/g;
 		if (!isAddress.test(trs.asset.username.alias.toLowerCase())) {
@@ -739,7 +739,7 @@ Accounts.prototype.getAddressByPublicKey = function (publicKey) {
 }
 
 Accounts.prototype.getAccountByUsername = function (username) {
-	var address = username2address[username];
+	var address = username2address[username.toLowerCase()];
 
 	return this.getAccount(address);
 }
