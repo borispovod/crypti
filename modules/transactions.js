@@ -48,6 +48,10 @@ function Transfer() {
 		}else{
 			recipient = modules.accounts.getAccountByUsername(trs.recipientId);
 		}
+		if (!recipient){
+			return false;
+		}
+
 		recipient.addToUnconfirmedBalance(trs.amount);
 		recipient.addToBalance(trs.amount);
 
@@ -62,6 +66,10 @@ function Transfer() {
 		}else{
 			recipient = modules.accounts.getAccountByUsername(trs.recipientId);
 		}
+		if (!recipient){
+			return false;
+		}
+
 		recipient.addToUnconfirmedBalance(-trs.amount);
 		recipient.addToBalance(-trs.amount);
 

@@ -35,12 +35,32 @@ function Transfer() {
 		return null;
 	}
 
+	this.apply = function (trs, sender){
+		return true;
+	}
+
+	this.undo = function (trs, sender){
+		return true;
+	}
+
+	this.applyUnconfirmed = function (trs, sender){
+		return true;
+	}
+
+	this.undoUnconfirmed = function (trs, sender){
+		return true;
+	}
+
 	this.objectNormalize = function (trs) {
 		return trs;
 	}
 
 	this.dbRead = function (raw) {
 		return null;
+	}
+
+	this.dbSave = function (dbLite, trs, cb){
+		cb();
 	}
 }
 
@@ -73,12 +93,32 @@ function Signature() {
 		return bb.toBuffer();
 	}
 
+	this.apply = function (trs, sender){
+		return true;
+	}
+
+	this.undo = function (trs, sender){
+		return true;
+	}
+
+	this.applyUnconfirmed = function (trs, sender){
+		return true;
+	}
+
+	this.undoUnconfirmed = function (trs, sender){
+		return true;
+	}
+
 	this.objectNormalize = function (trs) {
 		return trs;
 	}
 
 	this.dbRead = function (raw) {
 		return null;
+	}
+
+	this.dbSave = function (dbLite, trs, cb){
+		cb();
 	}
 }
 
@@ -99,12 +139,32 @@ function Delegate() {
 		return new Buffer(trs.asset.delegate.username, 'utf8');
 	}
 
+	this.apply = function (trs, sender){
+		return true;
+	}
+
+	this.undo = function (trs, sender){
+		return true;
+	}
+
+	this.applyUnconfirmed = function (trs, sender){
+		return true;
+	}
+
+	this.undoUnconfirmed = function (trs, sender){
+		return true;
+	}
+
 	this.objectNormalize = function (trs) {
 		return trs;
 	}
 
 	this.dbRead = function (raw) {
 		return null;
+	}
+
+	this.dbSave = function (dbLite, trs, cb){
+		cb();
 	}
 }
 
@@ -125,12 +185,32 @@ function Vote() {
 		return trs.asset.votes ? new Buffer(trs.asset.votes.join(''), 'utf8') : null;
 	}
 
+	this.apply = function (trs, sender){
+		return true;
+	}
+
+	this.undo = function (trs, sender){
+		return true;
+	}
+
+	this.applyUnconfirmed = function (trs, sender){
+		return true;
+	}
+
+	this.undoUnconfirmed = function (trs, sender){
+		return true;
+	}
+
 	this.objectNormalize = function (trs) {
 		return trs;
 	}
 
 	this.dbRead = function (raw) {
 		return null;
+	}
+
+	this.dbSave = function (dbLite, trs, cb){
+		cb();
 	}
 }
 
@@ -259,25 +339,28 @@ for (var i = 0; i < file.delegates.length; i++) {
 
 console.log("Make votes...");
 
+for (var i = 0; i < file.votes.publicKeys.length; i++) {
+	var publicKey = file.votes.publicKeys[i];
 
-for (var i = 0; i < file.votes.length; i++) {
-	var account = file.votes[i];
+	var address = getAddressByPublicKey(publicKey);
 
 	var transaction = {
-		type: 3,
+		type : 3,
 		amount: 0,
-		fee: 0,
-		timestamp: 0,
-		recipientId: null,
-		senderId: account.address,
-		senderPublicKey: account.publicKey,
-		asset: {
-			votes: account.votes
+		fee : 0,
+		timestamp : 0,
+		recipientId : address,
+		senderId : address,
+		senderPublicKey : publicKey,
+		asset : {
+			votes : file.votes.votes
 		}
 	}
 
 	transactionHelper.sign(keypair, transaction);
 	transaction.id = transactionHelper.getId(transaction);
+
+	console.log(transaction.senderPublicKey);
 
 	var bytes = transactionHelper.getBytes(transaction);
 	payloadLength += bytes.length;
@@ -285,6 +368,15 @@ for (var i = 0; i < file.votes.length; i++) {
 
 	transactions.push(transaction);
 }
+
+transactions = transactions.sort(function compare(a, b) {
+	if (a.type == 1) return 1;
+	if (a.type < b.type) return -1;
+	if (a.type > b.type) return 1;
+	if (a.amount < b.amount) return -1;
+	if (a.amount > b.amount) return 1;
+	return 0;
+});
 
 payloadHash = payloadHash.digest();
 

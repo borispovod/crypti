@@ -237,17 +237,11 @@ function Vote() {
 	}
 
 	this.applyUnconfirmed = function (trs, sender) {
-		//if (!sender.applyUnconfirmedDelegateList(trs.asset.votes)) {
-		//	return false;
-		//}
-
-		return true;
+		return sender.applyUnconfirmedDelegateList(trs.asset.votes);
 	}
 
 	this.undoUnconfirmed = function (trs, sender) {
-		//sender.undoUnconfirmedDelegateList(trs.asset.votes);
-
-		return true;
+		return sender.undoUnconfirmedDelegateList(trs.asset.votes);
 	}
 
 	this.objectNormalize = function (trs) {
