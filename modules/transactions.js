@@ -485,7 +485,7 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 
 					var isFirstCharacter = /^[a-z0-9]+$/g;
 					if (!isFirstCharacter.test(firstCharacter.toLowerCase())) {
-						return done("First character of username might be letter or number");
+						return done("First character of username must be either a letter or number.");
 					}
 
 					if (modules.delegates.existsName(transaction.asset.delegate.username)) {

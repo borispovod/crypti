@@ -889,7 +889,7 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 
 									var isFirstCharacter = /^[a-z0-9]+$/g;
 									if (!isFirstCharacter.test(firstCharacter.toLowerCase())) {
-										return cb("First character of username might be letter or number");
+										return cb("First character of username must be either a letter or number.");
 									}
 
 									if (modules.delegates.existsName(transaction.asset.delegate.username)) {
