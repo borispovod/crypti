@@ -1,6 +1,10 @@
 var dblite = require('dblite');
 var async = require('async');
+var path = require('path');
 
+if (process.env.WINDOWS) {
+	dblite.bin = path.join(process.cwd(), 'sqlite', 'sqlite3.exe');
+}
 
 module.exports.connect = function (connectString, cb) {
 	var db = dblite(connectString);
