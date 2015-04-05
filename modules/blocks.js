@@ -885,6 +885,13 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 										return cb("Incorrect delegate username length");
 									}
 
+									var firstCharacter = transaction.asset.delegate.username[0];
+
+									var isFirstCharacter = /^[a-z0-9]+$/g;
+									if (!isFirstCharacter.test(firstCharacter.toLowerCase())) {
+										return done("First character of username might be letter or number");
+									}
+
 									if (modules.delegates.existsName(transaction.asset.delegate.username)) {
 										return cb("Delegate with this name is already exists");
 									}

@@ -481,6 +481,13 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 						return done("Incorrect delegate username length");
 					}
 
+					var firstCharacter = transaction.asset.delegate.username[0];
+
+					var isFirstCharacter = /^[a-z0-9]+$/g;
+					if (!isFirstCharacter.test(firstCharacter.toLowerCase())) {
+						return done("First character of username might be letter or number");
+					}
+
 					if (modules.delegates.existsName(transaction.asset.delegate.username)) {
 						return done("The delegate name you entered is already in use. Please try a different name.");
 					}
