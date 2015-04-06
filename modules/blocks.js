@@ -712,7 +712,7 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 }
 
 Blocks.prototype.getFee = function () {
-	return 0.5;
+	return 0.1;
 }
 
 Blocks.prototype.getLastBlock = function () {
