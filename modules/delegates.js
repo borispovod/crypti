@@ -60,17 +60,16 @@ function Delegate() {
 		}
 
 		var allowSymbols = /^[a-z0-9!@$&_.]+$/g;
-		if (!allowSymbols.test(trs.asset.delegate.username.toLowerCase())) {
+		if (! allowSymbols.test(trs.asset.delegate.username.toLowerCase())) {
 			return cb("Username can only contain alphanumeric characters with the exception of !@$&_.");
 		}
 
-
-		//if (trs.asset.delegate.username.search(/(admin|genesis|delegate|crypti)/i) > -1) {
+		//if (trs.asset.delegate.username.search(/(admin|genesis|delegate|crypti|support)/i) > -1) {
 		//	return cb("username containing the words Admin, Genesis, Delegate or Crypti cannot be claimed");
 		//}
 
-		var isAddress = /^[0-9]+[C|c]$/g;
-		if (!isAddress.test(trs.asset.delegate.username.toLowerCase())) {
+		var isAddress = /^[0-9]+c$/g;
+		if (! isAddress.test(trs.asset.delegate.username.toLowerCase())) {
 			return cb("Username can't be like an address");
 		}
 
