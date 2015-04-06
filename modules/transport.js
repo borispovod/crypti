@@ -98,7 +98,7 @@ function attachApi() {
 
 			var max = query.max;
 			var min = query.min;
-			var ids = query.ids.split(',').filter(function (id) {
+			var ids = query.ids.filter(function (id) {
 				return /^\d+$/.test(id);
 			});
 			var escapedIds = ids.map(function (id) {
