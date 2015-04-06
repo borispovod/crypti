@@ -2,7 +2,7 @@
  Genesis block generator. v0.1
 
  Example:
- SECRET=4AMbeHpDvmtcHnCu5AWjbgzT4psH8RVMgjPnRNBbYUZxStBMSqGE OUTPUT=./helpers/genesisblock.js
+ OUTPUT=./helpers/genesisblock.js SECRET=4AMbeHpDvmtcHnCu5AWjbgzT4psH8RVMgjPnRNBbYUZxStBMSqGE node ./genesisBlock.js
  */
 
 var crypto = require('crypto'),
@@ -359,8 +359,6 @@ for (var i = 0; i < file.votes.publicKeys.length; i++) {
 
 	transactionHelper.sign(keypair, transaction);
 	transaction.id = transactionHelper.getId(transaction);
-
-	console.log(transaction.senderPublicKey);
 
 	var bytes = transactionHelper.getBytes(transaction);
 	payloadLength += bytes.length;
