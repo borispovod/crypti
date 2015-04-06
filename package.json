@@ -46,8 +46,7 @@
     "toposort": "~0.2.10",
     "underscore": "https://github.com/crypti/underscore/tarball/master",
     "usage": "^0.6.0",
-    "util-extend": "*",
-    "csv-parse": "~0.1.0"
+    "util-extend": "*"
   },
   "devDependencies": {
     "cli-table": "~0.3.1",

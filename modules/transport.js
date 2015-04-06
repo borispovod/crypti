@@ -140,9 +140,7 @@ function attachApi() {
 		// get 1400+ blocks with all data (joins) from provided block id
 		var blocksLimit = 1440;
 
-		//var acceptEncoding = req.headers['accept-encoding'] || '';
-		//if (~acceptEncoding.indexOf('gzip')) {
-
+		var acceptEncoding = req.headers['accept-encoding'] || '';
 
 		modules.blocks.loadBlocksData({
 			limit: blocksLimit,
@@ -151,6 +149,8 @@ function attachApi() {
 			res.status(200);
 			if (err) {
 				res.json({blocks: ""});
+			} else if (acceptEncoding.indexOf('gzip') < 0) {
+				res.json({blocks:data});
 			} else {
 				zlib.gzip(JSON.stringify({blocks: data}), function (err, output) {
 					if (err) {
@@ -350,7 +350,6 @@ Transport.prototype.getFromPeer = function (peer, options, cb) {
 				version: RequestSanitizer.string(response.headers['version'], true)
 			});
 		}
-
 
 		cb && cb(null, {body: body, peer: peer});
 	});

@@ -11,7 +11,7 @@ var crypto = require('crypto'),
 	slots = require('../helpers/slots.js'),
 	util = require('util'),
 	async = require('async'),
-	csvParse = require('csv-parse'),
+	dblite = require('dblite'),
 	TransactionTypes = require('../helpers/transaction-types.js');
 
 //private fields
@@ -849,39 +849,40 @@ Blocks.prototype.loadBlocksFromPeer = function (peer, lastCommonBlockId, cb) {
 					return next(err || RequestSanitizer.string(data.body.error));
 				}
 
-				csvParse(data.body.blocks, function (err, blocks) {
-					if (err) return next(err);
+				var blocks = data.body.blocks;
+				if (typeof blocks === "string") {
+					blocks = dblite.parse(blocks);
+				}
 
-					// not working of data.body is empty....
-					blocks = RequestSanitizer.array(blocks);
+				// not working of data.body is empty....
+				blocks = RequestSanitizer.array(blocks);
 
-					if (blocks.length == 0) {
-						loaded = true;
-						next();
-					} else {
-						async.eachSeries(blocks, function (block, cb) {
-							try {
-								block = library.logic.block.objectNormalize(block);
-							} catch (e) {
+				if (blocks.length == 0) {
+					loaded = true;
+					next();
+				} else {
+					async.eachSeries(blocks, function (block, cb) {
+						try {
+							block = library.logic.block.objectNormalize(block);
+						} catch (e) {
+							var peerStr = data.peer ? ip.fromLong(data.peer.ip) + ":" + data.peer.port : 'unknown';
+							library.logger.log('block ' + (block ? block.id : 'null') + ' is not valid, ban 60 min', peerStr);
+							modules.peer.state(peer.ip, peer.port, 0, 3600);
+							return setImmediate(cb, e);
+						}
+						self.processBlock(block, false, function (err) {
+							if (!err) {
+								lastCommonBlockId = block.id;
+							} else {
 								var peerStr = data.peer ? ip.fromLong(data.peer.ip) + ":" + data.peer.port : 'unknown';
 								library.logger.log('block ' + (block ? block.id : 'null') + ' is not valid, ban 60 min', peerStr);
 								modules.peer.state(peer.ip, peer.port, 0, 3600);
-								return setImmediate(cb, e);
 							}
-							self.processBlock(block, false, function (err) {
-								if (!err) {
-									lastCommonBlockId = block.id;
-								} else {
-									var peerStr = data.peer ? ip.fromLong(data.peer.ip) + ":" + data.peer.port : 'unknown';
-									library.logger.log('block ' + (block ? block.id : 'null') + ' is not valid, ban 60 min', peerStr);
-									modules.peer.state(peer.ip, peer.port, 0, 3600);
-								}
 
-								setImmediate(cb, err);
-							});
-						}, next);
-					}
-				});
+							setImmediate(cb, err);
+						});
+					}, next);
+				}
 			});
 		},
 		function (err) {
