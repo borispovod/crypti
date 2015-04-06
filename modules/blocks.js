@@ -84,7 +84,7 @@ function attachApi() {
 	});
 
 	router.get('/getFee', function (req, res) {
-		res.json({success: true, fee: 0.5});
+		res.json({success: true, fee: 0.1});
 	});
 
 	router.get('/getHeight', function (req, res) {
