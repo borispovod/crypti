@@ -288,6 +288,41 @@ function getIdSequence(height, cb) {
 	})
 }
 
+function readDbRows(rows) {
+	var blocks = {};
+	var order = [];
+	for (var i = 0, length = rows.length; i < length; i++) {
+		var __block = library.logic.block.dbRead(rows[i]);
+		if (__block) {
+			if (!blocks[__block.id]) {
+				if (__block.id == genesisblock.block.id) {
+					__block.generationSignature = (new Array(65)).join('0');
+				}
+
+				order.push(__block.id);
+				blocks[__block.id] = __block;
+			}
+
+			var __transaction = library.logic.transaction.dbRead(rows[i]);
+			blocks[__block.id].transactions = blocks[__block.id].transactions || {};
+			if (__transaction) {
+				if (!blocks[__block.id].transactions[__transaction.id]) {
+					blocks[__block.id].transactions[__transaction.id] = __transaction;
+				}
+			}
+		}
+	}
+
+	blocks = order.map(function (v) {
+		blocks[v].transactions = Object.keys(blocks[v].transactions).map(function (t) {
+			return blocks[v].transactions[t];
+		});
+		return blocks[v];
+	});
+
+	return blocks;
+}
+
 //public methods
 Blocks.prototype.getCommonBlock = function (peer, height, cb) {
 	var commonBlock = null;
@@ -408,42 +443,14 @@ Blocks.prototype.loadBlocksPart = function (filter, cb) {
 		// Some notes:
 		// If loading catch error, for example, invalid signature on block & transaction, need to stop loading and remove all blocks after last good block.
 		// We need to process all transactions of block
-		if (err) {
-			return cb(err, []);
+
+		var blocks = [];
+
+		if (!err) {
+			blocks = readDbRows(rows);
 		}
 
-		var blocks = {};
-		var order = [];
-		for (var i = 0, length = rows.length; i < length; i++) {
-			var __block = library.logic.block.dbRead(rows[i]);
-			if (__block) {
-				if (!blocks[__block.id]) {
-					if (__block.id == genesisblock.block.id) {
-						__block.generationSignature = (new Array(65)).join('0');
-					}
-
-					order.push(__block.id);
-					blocks[__block.id] = __block;
-				}
-
-				var __transaction = library.logic.transaction.dbRead(rows[i]);
-				blocks[__block.id].transactions = blocks[__block.id].transactions || {};
-				if (__transaction) {
-					if (!blocks[__block.id].transactions[__transaction.id]) {
-						blocks[__block.id].transactions[__transaction.id] = __transaction;
-					}
-				}
-			}
-		}
-
-		blocks = order.map(function (v) {
-			blocks[v].transactions = Object.keys(blocks[v].transactions).map(function (t) {
-				return blocks[v].transactions[t];
-			});
-			return blocks[v];
-		});
-
-		cb(null, blocks);
+		cb(err, blocks);
 	});
 }
 
@@ -486,36 +493,7 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 			return cb(err);
 		}
 
-		var blocks = {};
-		var order = [];
-		for (var i = 0, length = rows.length; i < length; i++) {
-			var __block = library.logic.block.dbRead(rows[i]);
-			if (__block) {
-				if (!blocks[__block.id]) {
-					if (__block.id == genesisblock.block.id) {
-						__block.generationSignature = (new Array(65)).join('0');
-					}
-
-					order.push(__block.id);
-					blocks[__block.id] = __block;
-				}
-
-				var __transaction = library.logic.transaction.dbRead(rows[i]);
-				blocks[__block.id].transactions = blocks[__block.id].transactions || {};
-				if (__transaction) {
-					if (!blocks[__block.id].transactions[__transaction.id]) {
-						blocks[__block.id].transactions[__transaction.id] = __transaction;
-					}
-				}
-			}
-		}
-
-		blocks = order.map(function (v) {
-			blocks[v].transactions = Object.keys(blocks[v].transactions).map(function (t) {
-				return blocks[v].transactions[t];
-			});
-			return blocks[v];
-		});
+		var blocks = readDbRows(rows);
 
 		for (var i = 0, i_length = blocks.length; i < i_length; i++) {
 			if (blocks[i].id != genesisblock.block.id) {
@@ -844,8 +822,8 @@ Blocks.prototype.loadBlocksFromPeer = function (peer, lastCommonBlockId, cb) {
 				method: "GET",
 				api: '/blocks?lastBlockId=' + lastCommonBlockId,
 				gzip: true,
-				headers : {
-					test:true
+				headers: {
+					test: true
 				}
 			}, function (err, data) {
 				if (err || data.body.error) {
