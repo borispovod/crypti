@@ -15,14 +15,14 @@
 	"peers": {
 		"list": [
 			{
-				"ip": "5.167.146.128",
+				"ip": "130.211.72.188",
 				"port": 4060
 			}
 		],
 		"blackList": []
 	},
 	"forging": {
-		"secret": [],
+		"secret": "",
 		"access": {
 			"whiteList": ["127.0.0.1"]
 		}
