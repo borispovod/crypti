@@ -843,7 +843,10 @@ Blocks.prototype.loadBlocksFromPeer = function (peer, lastCommonBlockId, cb) {
 			modules.transport.getFromPeer(peer, {
 				method: "GET",
 				api: '/blocks?lastBlockId=' + lastCommonBlockId,
-				gzip: false
+				gzip: true,
+				headers : {
+					test:true
+				}
 			}, function (err, data) {
 				if (err || data.body.error) {
 					return next(err || RequestSanitizer.string(data.body.error));
@@ -851,11 +854,13 @@ Blocks.prototype.loadBlocksFromPeer = function (peer, lastCommonBlockId, cb) {
 
 				var blocks = data.body.blocks;
 				if (typeof blocks === "string") {
-					blocks = dblite.parse(blocks);
+					blocks = dblite.parseCSV(blocks);
 				}
 
 				// not working of data.body is empty....
 				blocks = RequestSanitizer.array(blocks);
+
+				console.log(blocks);
 
 				if (blocks.length == 0) {
 					loaded = true;
