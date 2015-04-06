@@ -265,14 +265,14 @@ Peer.prototype.remove = function (pip, port, cb) {
 	var isFrozenList = library.config.peers.list.find(function (peer) {
 		return peer.ip == ip.fromLong(pip) && peer.port == port;
 	});
-	if (isFrozenList !== undefined) return cb && cb();
+	if (isFrozenList !== undefined) return cb && cb('peer in white list');
 	library.dbLite.query("DELETE FROM peers WHERE ip = $ip and port = $port;", {
 		ip: pip,
 		port: port
 	}, function (err) {
 		err && library.logger.error('Peer#delete', err);
 
-		cb && cb()
+		cb && cb(err)
 	});
 }
 
