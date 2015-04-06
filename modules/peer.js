@@ -242,7 +242,11 @@ Peer.prototype.list = function (limit, cb) {
 	});
 }
 
-Peer.prototype.state = function (ip, port, state, timeoutSeconds, cb) {
+Peer.prototype.state = function (pip, port, state, timeoutSeconds, cb) {
+	var isFrozenList = library.config.peers.list.find(function (peer) {
+		return peer.ip == ip.fromLong(pip) && peer.port == port;
+	});
+	if (isFrozenList !== undefined) return cb && cb('peer in white list');
 	if (state == 0) {
 		var clock = (timeoutSeconds || 1) * 1000;
 		clock = Date.now() + clock;
@@ -252,7 +256,7 @@ Peer.prototype.state = function (ip, port, state, timeoutSeconds, cb) {
 	library.dbLite.query("UPDATE peers SET state = $state, clock = $clock WHERE ip = $ip and port = $port;", {
 		state: state,
 		clock: clock,
-		ip: ip,
+		ip: pip,
 		port: port
 	}, function (err) {
 		err && library.logger.error('Peer#state', err);
