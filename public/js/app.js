@@ -2,9 +2,12 @@ require('angular');
 require('angular-ui-router');
 require('angular-modal');
 require('angular-resource');
+require('browserify-angular-animate');
+
 require('../node_modules/ng-table/ng-table.js');
 
-webApp = angular.module('webApp', ['ui.router', 'btford.modal', 'ngTable']);
+
+webApp = angular.module('webApp', ['ui.router', 'btford.modal', 'ngTable', 'ngAnimate']);
 
 webApp.config([
     "$locationProvider",
@@ -26,6 +29,11 @@ webApp.config([
                 url: "/account",
                 templateUrl: "/partials/account.html",
                 controller: "accountController"
+            })
+            .state('main.transactions', {
+                url: "/transactions",
+                templateUrl: "/partials/transactions.html",
+                controller: "transactionsController"
             })
             .state('main.delegates', {
                 url: "/delegates",

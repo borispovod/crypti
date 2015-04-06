@@ -13,3 +13,8 @@ public/static/
 public/node_modules/
 builded
 __MACOSX/
+public/webkitbuilds/
+public/build/
+bfg.jar
+public/tmp
+0.2.0.zip

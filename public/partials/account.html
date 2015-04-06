@@ -1,57 +1,71 @@
-<div id="account">
-    <div class="row">
-        <h1 class="heading">Account</h1>
-
-        <h2 class="account-id">Your account: {{ address }}<span
-                ng-hide="secondPassphrase || unconfirmedPassphrase"> / </span><a href="#"
-                                                                                 ng-hide="secondPassphrase || unconfirmedPassphrase"
-                                                                                 ng-click="addSecondPassphrase()"
-                                                                                 title="Increase your account security!">Add
-            second passphrase</a></h2>
-    </div>
-    <div class="raw-buttons" id="paddingFix">
-        <button class="button green send" ng-click="sendCrypti()">Send Crypti</button>
-        <div id="buttons">
-            <div class="container">
-                <button class="button static label" title="{{ unconfirmedBalance | feeFilter }}">Balance: <span>{{ unconfirmedBalance | feeFilter }}</span>
-                </button>
+<div class="row">
+    <div class="col-md-3">
+        <div class="panel widget green">
+            <div class="panel-body">
+                <div class="wg-label">Balance</div>
+                <div class="wg-data"><span class="strong">{{ unconfirmedBalance | feeFilter }}</span> XCR</div>
             </div>
-            <div class="container" ng-show="delegate">
-                <button class="button static label forging" title=" Delegate Status: {{delegate.active?'Active':'Standby'}} as {{delegate.username}}, with {{(delegate.vote/allVotes)*100}}% approval">
-                    Delegate Status: {{delegate.active?'Active':'Standby'}} as {{delegate.username}}, with {{(delegate.vote/allVotes)*100
-                    | number: 2}}% approval</span>
-                </button>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="panel widget blue">
+            <div class="panel-body">
+                <div class="wg-label">Contacts</div>
+                <div class="wg-data"><span class="strong">64</span><span
+                        class="wg-legend">12 this week</span></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="panel widget violet">
+            <div class="panel-body">
+                <div class="wg-label">Dapps Installed</div>
+                <div class="wg-data"><span class="strong">13</span><span
+                        class="wg-legend">5 Updates Available</span></div>
             </div>
         </div>
     </div>
 
-    <h1>Transactions</h1>
-    <table border="0" width="100%" cellpadding="0" cellspacing="0" id="transactions">
-        <tr>
-            <th>ID</th>
-            <th>Sender</th>
-            <th>Recipient</th>
-            <th>Date & Time</th>
-            <th>Fee</th>
-            <th>Amount</th>
-            <th>Confirmations</th>
-        </tr>
-        <tr ng-repeat="transaction in transactions">
-            <td>{{transaction.id}}</td>
-            <td>{{transaction.senderId}}</td>
-            <td ng-show="transaction.type <= 1">{{ transaction.recipientId }}</td>
-            <td ng-show="transaction.type == 2  || transaction.type == 3 ">
-                -
-            </td>
-            <td>{{transaction.timestamp | timestampFilter}}</td>
-            <td>{{transaction.fee / 100000000 | feeFilter}}</td>
-            <td>{{transaction.amount / 100000000 | feeFilter}}</td>
-            <td>{{transaction.confirmations || '-' }}</td>
-        </tr>
-        <tr ng-show="transactions.length == 0">
-            <td colspan="8">
-                No transactions yet
-            </td>
-        </tr>
-    </table>
+
+    <div class="col-md-3">
+        <div class="panel widget cloud">
+            <div class="panel-body">
+                <div class="wg-label">Crypti Client</div>
+                <div class="wg-data"><span class="strong">v 0.1.2</span><span
+                        class="wg-legend">Latest version</span></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-9">
+        <div class="panel panel-default">
+            <div class="panel-heading"><h2>Latest Transactions</h2>
+
+                <div class="more" ui-sref="main.transactions"><span class="sr-only">More</span></div>
+            </div>
+            <table id="transactions">
+                <tr class="head">
+                    <th>Transaction ID</th>
+                    <th>Sender</th>
+                    <th>Recipient</th>
+                    <th>Time</th>
+                    <th>Amount</th>
+                </tr>
+                <tr ng-repeat="transaction in transactions">
+                    <td><a href="#">{{transaction.id}}</a></td>
+                    <td><a href="#">{{transaction.senderId}}</a></td>
+                    <td ng-show="transaction.type <= 1"><a href="#">{{ transaction.recipientId }}</a></td>
+                    <td ng-show="transaction.type > 1"></td>
+                    <td>{{transaction.timestamp | timestampFilter}}</td>
+                    <td>{{transaction.amount / 100000000 | feeFilter}}</td>
+                </tr>
+                <tr ng-show="transactions.length == 0">
+                    <td colspan="5">
+                        No transactions yet
+                    </td>
+                </tr>
+            </table>
+
+        </div>
+    </div>
 </div>

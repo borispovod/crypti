@@ -1,4 +1,6 @@
 require('../../js/controllers/accountController');
+require('../../js/controllers/transactionsController');
+require('../../js/controllers/appController');
 require('../../js/controllers/blockchainController');
 require('../../js/controllers/delegatesController');
 require('../../js/controllers/forgingController');

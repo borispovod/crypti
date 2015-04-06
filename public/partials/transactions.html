@@ -1,0 +1,31 @@
+<div class="row">
+    <div class="col-md-12">
+        <div class="panel panel-default">
+            <div class="panel-heading"><h2>Latest Transactions</h2>
+            </div>
+            <table id="transactions">
+                <tr class="head">
+                    <th>Transaction ID</th>
+                    <th>Sender</th>
+                    <th>Recipient</th>
+                    <th>Time</th>
+                    <th>Amount</th>
+                </tr>
+                <tr ng-repeat="transaction in transactions">
+                    <td><a href="#">{{transaction.id}}</a></td>
+                    <td><a href="#">{{transaction.senderId}}</a></td>
+                    <td ng-show="transaction.type <= 1"><a href="#">{{ transaction.recipientId}}</a></td>
+                    <td ng-show="transaction.type > 1"></td>
+                    <td>{{transaction.timestamp | timestampFilter}}</td>
+                    <td>{{transaction.amount / 100000000 | feeFilter}}</td>
+                </tr>
+                <tr ng-show="transactions.length == 0">
+                    <td colspan="5">
+                        No transactions yet
+                    </td>
+                </tr>
+            </table>
+
+        </div>
+    </div>
+</div>

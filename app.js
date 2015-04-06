@@ -6,33 +6,32 @@ var SegfaultHandler = require('segfault-handler');
 
 SegfaultHandler.registerHandler();
 
-
 process.on('uncaughtException', function (err) {
-    // handle the error safely
-    logger.fatal('system error', {message: err.message, stack: err.stack});
+	// handle the error safely
+	logger.fatal('system error', {message: err.message, stack: err.stack});
 });
 
 var config = {
-    "db": "./blockchain.db",
-    "modules": {
-        "server": "./modules/server.js",
-        "accounts": "./modules/accounts.js",
-        "transactions": "./modules/transactions.js",
-        "blocks": "./modules/blocks.js",
-        "signatures": "./modules/signatures.js",
-        "transport": "./modules/transport.js",
-        "loader": "./modules/loader.js",
-        "system": "./modules/system.js",
-        "peer": "./modules/peer.js",
-        "delegates": "./modules/delegates.js",
-        "round": "./modules/round.js"
-    }
+	"db": "./blockchain.db",
+	"modules": {
+		"server": "./modules/server.js",
+		"accounts": "./modules/accounts.js",
+		"transactions": "./modules/transactions.js",
+		"blocks": "./modules/blocks.js",
+		"signatures": "./modules/signatures.js",
+		"transport": "./modules/transport.js",
+		"loader": "./modules/loader.js",
+		"system": "./modules/system.js",
+		"peer": "./modules/peer.js",
+		"delegates": "./modules/delegates.js",
+		"round": "./modules/round.js"
+	}
 }
 
 var d = require('domain').create();
 d.on('error', function (err) {
-    logger.fatal('domain master', {message: err.message, stack: err.stack});
-    //process.exit(0);
+	logger.fatal('domain master', {message: err.message, stack: err.stack});
+	//process.exit(0);
 });
 d.run(function () {
 	var modules = [];

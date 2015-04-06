@@ -39,11 +39,10 @@
     "grunt-cli": "^0.1.13",
     "grunt-contrib-compress": "^0.13.0",
     "grunt-exec": "^0.4.6",
-    "grunt-gcloud": "https://github.com/crypti/grunt-gcloud/tarball/master",
+    "grunt-gcloud": "git+ssh://git@github.com:crypti/grunt-gcloud.git",
     "grunt-jscrambler": "^0.2.7",
     "grunt-nodemailer": "^0.3.0",
     "grunt-obfuscator": "^0.1.0",
-    "grunt-slack-hook": "0.0.4",
-    "moment": "^2.9.0"
+    "grunt-slack-hook": "0.0.4"
   }
 }

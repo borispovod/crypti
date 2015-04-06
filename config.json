@@ -22,13 +22,13 @@
 		"blackList": []
 	},
 	"forging": {
-		"secret": "",
+		"secret":"",
 		"access": {
 			"whiteList": []
 		}
 	},
 	"loading": {
-		"verifyOnLoading": true,
-		"loadPerIteration": 5000
+		"verifyOnLoading": false,
+		"loadPerIteration": 10000
 	}
 }

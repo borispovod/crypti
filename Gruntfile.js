@@ -1,5 +1,3 @@
-var moment = require('moment');
-
 module.exports = function (grunt) {
 	var files = [
 		'logger.js',
@@ -7,8 +5,6 @@ module.exports = function (grunt) {
 		'modules/*.js',
 		'app.js'
 	];
-
-	var today = moment().format("HH:mm:ss DD/MM/YYYY");
 
 	var recipients = [
 		{
@@ -64,6 +60,7 @@ module.exports = function (grunt) {
 						"cp ./config.json ./builded/" + config.version + "/config.json" + "&&" +
 						"cp ./package.json ./builded/" + config.version + "/package.json" + "&&" +
 						"cd public && mkdir -p ./static && npm install &&  bower install && grunt release && cd ../ &&" +
+						"cp ./public/forging.html ./builded/" + config.version + "/public/" + "&&" +
 						"cp ./public/wallet.html ./builded/" + config.version + "/public/" + "&&" +
 						"cp ./public/loading.html ./builded/" + config.version + "/public/" + "&&" +
 						"cp -rf ./public/images ./builded/" + config.version + "/public/" + "&&" +
@@ -73,9 +70,6 @@ module.exports = function (grunt) {
 			},
 			folder: {
 				command: "mkdir -p ./builded"
-			},
-			build: {
-				command: "cd ./builded/" + config.version + "/ && touch build && echo 'v" + today + "' > build"
 			}
 		},
 
@@ -124,8 +118,8 @@ module.exports = function (grunt) {
 				options: {
 					from: "Crypti Versions <helpdesk@crypti.me>",
 					subject: 'Version ' + config.version + ' available now',
-					text: 'New version is avaliable now: http://storage.googleapis.com/crypti-testing/nodes/' + config.version + '.zip (v' + today + ')',
-					html: 'New version is avaliable now: http://storage.googleapis.com/crypti-testing/nodes/' + config.version + '.zip (v' + today + ')'
+					text: 'New version is avaliable now: http://storage.googleapis.com/crypti-testing/nodes/' + config.version + '.zip',
+					html: 'New version is avaliable now: http://storage.googleapis.com/crypti-testing/nodes/' + config.version + '.zip'
 				}
 			}
 		},
@@ -138,7 +132,7 @@ module.exports = function (grunt) {
 				icon_url: 'http://vermilion1.github.io/presentations/grunt/images/grunt-logo.png' // if icon_emoji not specified
 			},
 			notify: {
-				text: '@sebastian @eric @boris @landgraf_paul New version (' + config.version + ') of Crypti available: http://storage.googleapis.com/crypti-testing/nodes/' + config.version + '.zip (v' + today + ')'
+				text: '@sebastian @eric @boris @landgraf_paul New version (' + config.version + ') of Crypti available: http://storage.googleapis.com/crypti-testing/nodes/' + config.version + '.zip'
 			}
 		}
 	});
@@ -155,5 +149,5 @@ module.exports = function (grunt) {
 
 	grunt.registerTask("default", ["obfuscator"]);
 	grunt.registerTask("release", ["default", "jscrambler"]);
-	grunt.registerTask("package", ["exec:folder", "release", "exec:package", "exec:build", "compress","gcloud:project", "nodemailer:message", "slack"]);
+	grunt.registerTask("package", ["exec:folder", "release", "exec:package", "compress","gcloud:project", "nodemailer:message", "slack"]);
 };

@@ -1,5 +1,5 @@
 require('../../js/factories/userFactory');
-
+require('../../js/factories/viewFactory');
 //modals
 require('../../js/factories/modals/blockModal');
 require('../../js/factories/modals/companyModal');

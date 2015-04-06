@@ -1,0 +1,100 @@
+.panel-default {
+  border-radius: @border-radius;
+  border-color: @border-grey;
+  .panel-heading {
+    background-color: @grey;
+    padding: 16px 16px;
+    border-bottom: 2px solid @border-grey;
+    .more {
+      position: absolute;
+      top: 20px;
+      right: 32px;
+      cursor: pointer;
+      background-image: url('@{images}/sprites/iconset.png');
+      background-position: 0 0;
+      background-repeat: no-repeat;
+      height: 12px;
+      width: 7px;
+    }
+    h2 {
+      font-size: @widget-text;
+      font-weight: bold;
+    }
+  }
+  table {
+    border: 0;
+    width: 100%;
+    cellpadding: 0;
+    cellspacing: 0;
+    margin-top: 0;
+    .head {
+      th {
+        padding: 20px 0;
+        &:first-child {
+          padding-left: 16px;
+        }
+        color: @black;
+        font-size: @normal-text;
+        font-weight: bold;
+        background-color: @grey;
+        border-bottom: 1px solid @border-grey;
+      }
+
+    }
+    tr {
+      &:hover {
+        background-color: @background;
+      }
+    }
+    td {
+      padding: 18px 0;
+      color: @black;
+      font-size: @normal-text;
+      font-weight: normal;
+      &:first-child {
+        padding-left: 16px;
+      }
+      text-align: left;
+    }
+  }
+}
+
+.widget {
+  border-color: @light-cloud;
+  &.green {
+    color: @green;
+    border-top: 4px solid @green;
+  }
+  &.blue {
+    color: @blue;
+    border-top: 4px solid @blue;
+  }
+  &.violet {
+    color: @violet;
+    border-top: 4px solid @violet;
+  }
+  &.cloud {
+    color: @cloud;
+    border-top: 4px solid @cloud;
+  }
+
+  .wg-label {
+    display: block;
+    font-size: @big-text;
+    padding: 10px 0 20px;
+  }
+  .wg-data {
+    padding: 20px 0;
+    display: block;
+    font-size: @widget-text;
+    .strong {
+      font-size: 30px;
+    }
+  }
+  .wg-legend {
+    font-size: @normal-text;
+    color: @black;
+    float: right;
+    padding-top: 16px;
+  }
+}
