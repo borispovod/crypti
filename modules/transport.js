@@ -325,8 +325,11 @@ Transport.prototype.getFromPeer = function (peer, options, cb) {
 
 			if (peer) {
 				if (err && (err.code == "ETIMEDOUT" || err.code == "ESOCKETTIMEDOUT" || err.code == "ECONNREFUSED")) {
-					library.logger.info('remove peer ' + req.method + ' ' + req.url)
-					modules.peer.remove(peer.ip, peer.port);
+					modules.peer.remove(peer.ip, peer.port, function(err){
+						if (!err) {
+							library.logger.info('remove peer ' + req.method + ' ' + req.url)
+						}
+					});
 				} else {
 					library.logger.info('ban 10 min ' + req.method + ' ' + req.url)
 					modules.peer.state(peer.ip, peer.port, 0, 600);
