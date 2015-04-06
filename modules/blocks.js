@@ -843,11 +843,13 @@ Blocks.prototype.loadBlocksFromPeer = function (peer, lastCommonBlockId, cb) {
 			modules.transport.getFromPeer(peer, {
 				method: "GET",
 				api: '/blocks?lastBlockId=' + lastCommonBlockId,
-				gzip: true
+				gzip: false
 			}, function (err, data) {
 				if (err || data.body.error) {
 					return next(err || RequestSanitizer.string(data.body.error));
 				}
+
+				console.log(data.body);
 
 				csvParse(data.body.blocks, function (err, blocks) {
 					if (err) return next(err);

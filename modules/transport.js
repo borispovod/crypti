@@ -318,6 +318,8 @@ Transport.prototype.getFromPeer = function (peer, options, cb) {
 		req.gzip = true;
 	}
 
+	console.log(req);
+
 	return request(req, function (err, response, body) {
 		if (err || response.statusCode != 200) {
 			library.logger.debug('request', {
