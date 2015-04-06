@@ -353,6 +353,16 @@ Blocks.prototype.count = function (cb) {
 	});
 }
 
+var blocksDataFields = [
+	'b_id', 'b_version', 'b_timestamp', 'b_height', 'b_previousBlock', 'b_numberOfTransactions', 'b_totalAmount', 'b_totalFee', 'b_payloadLength', 'b_payloadHash', 'b_generatorPublicKey', 'b_blockSignature',
+	't_id', 't_type', 't_timestamp', 't_senderPublicKey', 't_senderId', 't_recipientId', 't_amount', 't_fee', 't_signature', 't_signSignature',
+	's_publicKey',
+	'd_username',
+	'v_votes',
+	'm_data', 'm_nonce', 'm_encrypted',
+	'a_image'
+];
+
 Blocks.prototype.loadBlocksData = function (filter, options, cb) {
 	if (arguments.length < 3) {
 		cb = options;
@@ -366,15 +376,7 @@ Blocks.prototype.loadBlocksData = function (filter, options, cb) {
 	filter.lastId && (params['lastId'] = filter.lastId);
 	filter.id && !filter.lastId && (params['id'] = filter.id);
 
-	var fields = [
-		'b_id', 'b_version', 'b_timestamp', 'b_height', 'b_previousBlock', 'b_numberOfTransactions', 'b_totalAmount', 'b_totalFee', 'b_payloadLength', 'b_payloadHash', 'b_generatorPublicKey', 'b_blockSignature',
-		't_id', 't_type', 't_timestamp', 't_senderPublicKey', 't_senderId', 't_recipientId', 't_amount', 't_fee', 't_signature', 't_signSignature',
-		's_publicKey',
-		'd_username',
-		'v_votes',
-		'm_data', 'm_nonce', 'm_encrypted',
-		'a_image'
-	];
+	var fields = blocksDataFields;
 	var method;
 
 	if (options.plain) {
@@ -403,6 +405,41 @@ Blocks.prototype.loadBlocksData = function (filter, options, cb) {
 	"", params, fields, cb);
 };
 
+function processBlockDataRows(rows) {
+	var blocks = {};
+	var order = [];
+	for (var i = 0, length = rows.length; i < length; i++) {
+		var __block = library.logic.block.dbRead(rows[i]);
+		if (__block) {
+			if (!blocks[__block.id]) {
+				if (__block.id == genesisblock.block.id) {
+					__block.generationSignature = (new Array(65)).join('0');
+				}
+
+				order.push(__block.id);
+				blocks[__block.id] = __block;
+			}
+
+			var __transaction = library.logic.transaction.dbRead(rows[i]);
+			blocks[__block.id].transactions = blocks[__block.id].transactions || {};
+			if (__transaction) {
+				if (!blocks[__block.id].transactions[__transaction.id]) {
+					blocks[__block.id].transactions[__transaction.id] = __transaction;
+				}
+			}
+		}
+	}
+
+	blocks = order.map(function (v) {
+		blocks[v].transactions = Object.keys(blocks[v].transactions).map(function (t) {
+			return blocks[v].transactions[t];
+		});
+		return blocks[v];
+	});
+
+	return blocks;
+}
+
 Blocks.prototype.loadBlocksPart = function (filter, cb) {
 	self.loadBlocksData(filter, function (err, rows) {
 		// Some notes:
@@ -412,38 +449,7 @@ Blocks.prototype.loadBlocksPart = function (filter, cb) {
 			return cb(err, []);
 		}
 
-		var blocks = {};
-		var order = [];
-		for (var i = 0, length = rows.length; i < length; i++) {
-			var __block = library.logic.block.dbRead(rows[i]);
-			if (__block) {
-				if (!blocks[__block.id]) {
-					if (__block.id == genesisblock.block.id) {
-						__block.generationSignature = (new Array(65)).join('0');
-					}
-
-					order.push(__block.id);
-					blocks[__block.id] = __block;
-				}
-
-				var __transaction = library.logic.transaction.dbRead(rows[i]);
-				blocks[__block.id].transactions = blocks[__block.id].transactions || {};
-				if (__transaction) {
-					if (!blocks[__block.id].transactions[__transaction.id]) {
-						blocks[__block.id].transactions[__transaction.id] = __transaction;
-					}
-				}
-			}
-		}
-
-		blocks = order.map(function (v) {
-			blocks[v].transactions = Object.keys(blocks[v].transactions).map(function (t) {
-				return blocks[v].transactions[t];
-			});
-			return blocks[v];
-		});
-
-		cb(null, blocks);
+		cb(null, processBlockDataRows(rows));
 	});
 }
 
@@ -843,10 +849,7 @@ Blocks.prototype.loadBlocksFromPeer = function (peer, lastCommonBlockId, cb) {
 			modules.transport.getFromPeer(peer, {
 				method: "GET",
 				api: '/blocks?lastBlockId=' + lastCommonBlockId,
-				gzip: true,
-				headers : {
-					test:true
-				}
+				gzip: true
 			}, function (err, data) {
 				if (err || data.body.error) {
 					return next(err || RequestSanitizer.string(data.body.error));
@@ -856,6 +859,9 @@ Blocks.prototype.loadBlocksFromPeer = function (peer, lastCommonBlockId, cb) {
 				if (typeof blocks === "string") {
 					blocks = dblite.parseCSV(blocks);
 				}
+
+				blocks = blocks.map(dblite.row2object, blocksDataFields);
+				blocks = processBlockDataRows(blocks);
 
 				// not working of data.body is empty....
 				blocks = RequestSanitizer.array(blocks);
