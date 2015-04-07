@@ -13,7 +13,7 @@ var crypto = require('crypto'),
 require('array.prototype.find'); //old node fix
 
 //private fields
-var modules, library, self;
+var modules, library, self, private;
 
 var loaded = false;
 var unconfirmedDelegates = {};

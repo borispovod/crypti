@@ -15,7 +15,7 @@ var crypto = require('crypto'),
 	TransactionTypes = require('../helpers/transaction-types.js');
 
 //private fields
-var modules, library, self;
+var modules, library, self, private;
 
 var lastBlock = {};
 
@@ -832,12 +832,8 @@ Blocks.prototype.loadBlocksFromPeer = function (peer, lastCommonBlockId, cb) {
 				blocks = blocks.map(dblite.row2object, blocksDataFields);
 				blocks = processBlockDataRows(blocks);
 
-				console.log(blocks);
-
 				// not working of data.body is empty....
 				blocks = RequestSanitizer.array(blocks);
-
-				console.log(blocks);
 
 				if (blocks.length == 0) {
 					loaded = true;

@@ -1,7 +1,7 @@
 var os = require("os");
 
 //private fields
-var modules, library, self;
+var modules, library, self, private;
 
 var version, osName, port, sharePort;
 

@@ -8,7 +8,7 @@ var Router = require('../helpers/router.js'),
 	RequestSanitizer = require('../helpers/request-sanitizer.js');
 
 //private fields
-var modules, library, self;
+var modules, library, self, private;
 
 var headers = {};
 var loaded = false;
@@ -295,7 +295,6 @@ Transport.prototype.getFromPeer = function (peer, options, cb) {
 	if (options.gzip) {
 		req.gzip = true;
 	}
-
 
 	return request(req, function (err, response, body) {
 		if (err || response.statusCode != 200) {

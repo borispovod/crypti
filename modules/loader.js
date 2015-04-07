@@ -8,7 +8,7 @@ var async = require('async'),
 require('colors');
 
 //private fields
-var modules, library, self;
+var modules, library, self, private;
 
 var loaded = false;
 var sync = false;

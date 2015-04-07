@@ -10,7 +10,7 @@ var ed = require('ed25519'),
 	TransactionTypes = require('../helpers/transaction-types.js');
 
 // private fields
-var modules, library, self;
+var modules, library, self, private;
 
 function Signature() {
 	this.create = function (data, trs) {

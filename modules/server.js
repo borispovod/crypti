@@ -4,7 +4,7 @@ var util = require('util'),
 	Router = require('../helpers/router.js');
 
 //private fields
-var modules, library, self;
+var modules, library, self, private;
 
 var loaded = false
 

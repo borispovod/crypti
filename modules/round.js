@@ -3,7 +3,7 @@ var async = require('async'),
 	slots = require('../helpers/slots.js');
 
 //private fields
-var modules, library, self;
+var modules, library, self, private;
 var tasks = [];
 var feesByRound = {};
 var delegatesByRound = {};

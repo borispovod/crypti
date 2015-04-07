@@ -9,7 +9,7 @@ var crypto = require('crypto'),
 	TransactionTypes = require('../helpers/transaction-types.js');
 
 //private
-var modules, library, self;
+var modules, library, self, private;
 
 var accounts = {};
 var username2address = {};

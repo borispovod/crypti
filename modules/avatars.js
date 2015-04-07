@@ -4,7 +4,7 @@ var encryptHelper = require('../helpers/encrypt.js'),
 	Router = require('../helpers/router.js'),
 	imageType = require('image-type');
 
-var modules, library, self;
+var modules, library, self, private;
 
 function Avatar() {
 	this.create = function (data, trs) {

@@ -10,7 +10,7 @@ var async = require('async'),
 require('array.prototype.find'); //old node fix
 
 //private fields
-var modules, library, self;
+var modules, library, self, private;
 
 //constructor
 function Peer(cb, scope) {

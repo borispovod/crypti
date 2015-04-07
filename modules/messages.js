@@ -1,9 +1,10 @@
 var encryptHelper = require('../helpers/encrypt.js'),
 	TransactionTypes = require('../helpers/transaction-types.js'),
 	RequestSanitizer = require('../helpers/request-sanitizer.js'),
+	constants = require('../helpers/constants.js'),
 	Router = require('../helpers/router.js');
 
-var modules, library, self;
+var modules, library, self, private;
 
 function Message() {
 	this.create = function (data, trs) {
