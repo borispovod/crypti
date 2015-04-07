@@ -29,7 +29,7 @@ function Transfer() {
 	}
 
 	this.calculateFee = function (trs) {
-		return trs.fee;
+		return parseInt(trs.amount / 100 * library.logic.block.calculateFee());
 	}
 
 	this.verify = function (trs, sender, cb) {
