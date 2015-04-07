@@ -9,10 +9,10 @@ var crypto = require('crypto'),
 	TransactionTypes = require('../helpers/transaction-types.js');
 
 //private
-var modules, library, self, private;
+var modules, library, self, private = {};
 
-var accounts = {};
-var username2address = {};
+private.accounts = {};
+private.username2address = {};
 
 function Account(address, publicKey, balance, unconfirmedBalance) {
 	this.address = address;
@@ -48,7 +48,7 @@ function accountApplyDiff(account, diff) {
 				return false;
 			}
 
-			if (account.delegates && account.delegates.length >= 101){
+			if (account.delegates && account.delegates.length >= 101) {
 				account.delegates = tmp;
 				return false;
 			}
@@ -92,7 +92,7 @@ function accountApplyUnconfirmedDiff(account, diff) {
 				return false;
 			}
 
-			if (account.unconfirmedDelegates && account.unconfirmedDelegates.length >= 101){
+			if (account.unconfirmedDelegates && account.unconfirmedDelegates.length >= 101) {
 				account.unconfirmedDelegates = tmp;
 				return false;
 			}
@@ -187,11 +187,11 @@ Account.prototype.undoDelegateList = function (diff) {
 }
 
 Account.prototype.applyUsername = function (username) {
-	username2address[username.toLowerCase()] = this.address;
+	private.username2address[username.toLowerCase()] = this.address;
 }
 
 Account.prototype.undoUsername = function (username) {
-	delete username2address[username.toLowerCase()];
+	delete private.username2address[username.toLowerCase()];
 }
 
 function Vote() {
@@ -393,7 +393,7 @@ function Username() {
 function Accounts(cb, scope) {
 	library = scope;
 	self = this;
-
+	self.__private = private;
 	attachApi();
 
 	library.logic.transaction.attachAssetType(TransactionTypes.VOTE, new Vote());
@@ -418,7 +418,7 @@ function attachApi() {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
 
-			var account = openAccount(body.secret);
+			var account = private.openAccount(body.secret);
 
 			res.json({
 				success: true,
@@ -454,14 +454,14 @@ function attachApi() {
 	if (process.env.DEBUG && process.env.DEBUG.toUpperCase() == "TRUE") {
 		// for sebastian
 		router.get('/getAllAccounts', function (req, res) {
-			return res.json({success: true, accounts: accounts});
+			return res.json({success: true, accounts: private.accounts});
 		});
 	}
 
 	if (process.env.TOP && process.env.TOP.toUpperCase() == "TRUE") {
 		router.get('/top', function (req, res) {
-			var arr = Object.keys(accounts).map(function (key) {
-				return accounts[key]
+			var arr = Object.keys(private.accounts).map(function (key) {
+				return private.accounts[key]
 			});
 
 			arr.sort(function (a, b) {
@@ -501,7 +501,7 @@ function attachApi() {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
 
-			var account = openAccount(query.secret);
+			var account = private.openAccount(query.secret);
 			return res.json({success: true, publicKey: account.publicKey});
 		});
 
@@ -704,13 +704,13 @@ function attachApi() {
 	});
 }
 
-function addAccount(account) {
-	if (!accounts[account.address]) {
-		accounts[account.address] = account;
+private.addAccount = function (account) {
+	if (!private.accounts[account.address]) {
+		private.accounts[account.address] = account;
 	}
 }
 
-function openAccount(secret) {
+private.openAccount = function (secret) {
 	var hash = crypto.createHash('sha256').update(secret, 'utf8').digest();
 	var keypair = ed.MakeKeypair(hash);
 
@@ -719,7 +719,7 @@ function openAccount(secret) {
 
 //public methods
 Accounts.prototype.getAccount = function (id) {
-	return accounts[id];
+	return private.accounts[id];
 }
 
 Accounts.prototype.getAccountByPublicKey = function (publicKey) {
@@ -739,7 +739,7 @@ Accounts.prototype.getAddressByPublicKey = function (publicKey) {
 }
 
 Accounts.prototype.getAccountByUsername = function (username) {
-	var address = username2address[username.toLowerCase()];
+	var address = private.username2address[username.toLowerCase()];
 
 	return this.getAccount(address);
 }
@@ -754,7 +754,7 @@ Accounts.prototype.getAccountOrCreateByPublicKey = function (publicKey) {
 
 	if (!account) {
 		account = new Account(address, publicKey);
-		addAccount(account);
+		private.addAccount(account);
 	}
 	return account;
 }
@@ -764,13 +764,13 @@ Accounts.prototype.getAccountOrCreateByAddress = function (address) {
 
 	if (!account) {
 		account = new Account(address);
-		addAccount(account);
+		private.addAccount(account);
 	}
 	return account;
 }
 
 Accounts.prototype.getAllAccounts = function () {
-	return accounts;
+	return private.accounts;
 }
 
 Accounts.prototype.getDelegates = function (publicKey) {

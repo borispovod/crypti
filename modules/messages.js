@@ -4,7 +4,7 @@ var encryptHelper = require('../helpers/encrypt.js'),
 	constants = require('../helpers/constants.js'),
 	Router = require('../helpers/router.js');
 
-var modules, library, self, private;
+var modules, library, self, private = {};
 
 function Message() {
 	this.create = function (data, trs) {
@@ -299,7 +299,7 @@ function attachApi() {
 function Messages(cb, scope) {
 	library = scope;
 	self = this;
-
+	self.__private = private;
 	attachApi();
 
 	library.logic.transaction.attachAssetType(TransactionTypes.MESSAGE, new Message());
