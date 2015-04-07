@@ -313,7 +313,7 @@ function Username() {
 		//}
 
 		var isAddress = /^[0-9]+[C|c]$/g;
-		if (!isAddress.test(trs.asset.username.alias.toLowerCase())) {
+		if (isAddress.test(trs.asset.username.alias.toLowerCase())) {
 			return cb("username can't be like an address");
 		}
 

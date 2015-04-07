@@ -70,7 +70,7 @@ function Delegate() {
 		//}
 
 		var isAddress = /^[0-9]+[C|c]$/g;
-		if (!isAddress.test(trs.asset.delegate.username.toLowerCase())) {
+		if (isAddress.test(trs.asset.delegate.username.toLowerCase())) {
 			return cb("Username can't be like an address");
 		}
 
