@@ -140,39 +140,17 @@ function attachApi() {
 		// get 1400+ blocks with all data (joins) from provided block id
 		var blocksLimit = 1440;
 
-		var acceptEncoding = req.headers['accept-encoding'] || '';
-
 		modules.blocks.loadBlocksData({
 			limit: blocksLimit,
 			lastId: lastBlockId
 		}, {plain: true}, function (err, data) {
 			res.status(200);
 			if (err) {
-				res.json({blocks: ""});
-			} else if (acceptEncoding.indexOf('gzip') < 0) {
-				res.json({blocks:data});
-			} else {
-				return res.json({blocks: data});
-				/*
-				zlib.gzip(JSON.stringify({blocks: data}), function (err, output) {
-					if (err) {
-						return res.json({blocks: ""});
-					} else {
-						res.header('content-encoding', 'gzip')
-							.header('content-type', 'application/json')
-							.header('content-length', output.length)
-							.end(output);
-					}
-				});
-				*/
+				return res.json({blocks: ""});
 			}
-		});
-		//} else {
-		//	modules.blocks.loadBlocksPart({limit: blocksLimit, lastId: lastBlockId}, function (err, data) {
-		//		res.status(200).json({blocks: err ? [] : data});
-		//	});
-		//}
+			res.json({blocks: data});
 
+		});
 	});
 
 	router.post("/blocks", function (req, res) {
@@ -318,7 +296,6 @@ Transport.prototype.getFromPeer = function (peer, options, cb) {
 		req.gzip = true;
 	}
 
-	console.log(req);
 
 	return request(req, function (err, response, body) {
 		if (err || response.statusCode != 200) {
@@ -330,13 +307,13 @@ Transport.prototype.getFromPeer = function (peer, options, cb) {
 
 			if (peer) {
 				if (err && (err.code == "ETIMEDOUT" || err.code == "ESOCKETTIMEDOUT" || err.code == "ECONNREFUSED")) {
-					modules.peer.remove(peer.ip, peer.port, function(err){
+					modules.peer.remove(peer.ip, peer.port, function (err) {
 						if (!err) {
 							library.logger.info('remove peer ' + req.method + ' ' + req.url)
 						}
 					});
 				} else {
-					modules.peer.state(peer.ip, peer.port, 0, 600, function(err){
+					modules.peer.state(peer.ip, peer.port, 0, 600, function (err) {
 						if (!err) {
 							library.logger.info('ban 10 min ' + req.method + ' ' + req.url);
 						}
