@@ -27,6 +27,8 @@ function Account(address, publicKey, balance, unconfirmedBalance) {
 	this.unconfirmedAvatar = false;
 	this.avatar = false;
 	this.username = null;
+	this.following = [];
+	this.unconfirmedFollowing = [];
 }
 
 function accountApplyDiff(account, diff) {
@@ -192,6 +194,40 @@ Account.prototype.applyUsername = function (username) {
 
 Account.prototype.undoUsername = function (username) {
 	delete private.username2address[username.toLowerCase()];
+}
+
+Account.prototype.applyContact = function (address) {
+	var index = this.following.indexOf(address);
+	if (index != -1) {
+		return false;
+	}
+	this.following.push(address);
+	return true;
+}
+
+Account.prototype.undoContact = function (address) {
+	var index = this.following.indexOf(address);
+	if (index == -1) {
+		return false;
+	}
+	this.following.splice(index, 1);
+}
+
+Account.prototype.applyUnconfirmedContact = function (address) {
+	var index = this.unconfirmedFollowing.indexOf(address);
+	if (index != -1) {
+		return false;
+	}
+	this.unconfirmedFollowing.push(address);
+	return true;
+}
+
+Account.prototype.undoUnconfirmedContact = function (address) {
+	var index = this.unconfirmedFollowing.indexOf(address);
+	if (index == -1) {
+		return false;
+	}
+	this.unconfirmedFollowing.splice(index, 1);
 }
 
 function Vote() {

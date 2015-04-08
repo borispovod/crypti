@@ -122,27 +122,33 @@ function attachApi() {
 
 	router.get("/", function (req, res) {
 		req.sanitize("query", {
-			publicKey: "hex!"
+			secret: "string!",
+			secondSecret: "string?",
+			publicKey: "hex?"
 		}, function (err, report, query) {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
 
-			library.dbLite.query(
-				"SELECT lower(hex(image)), transactionId FROM avatars where transactionId=(SELECT id FROM trs where lower(hex(senderPublicKey))=$senderPublicKey and type=" + TransactionTypes.AVATAR + ")",
-				['image', 'transactionId'],
-				{
-					senderPublicKey: query.publicKey
-				}, function (err, rows) {
-					if (err || rows.length == 0) {
-						return res.json({success: false, error: err || "Can't find avatar of this account"});
-					}
+			var hash = crypto.createHash('sha256').update(query.secret, 'utf8').digest();
+			var keypair = ed.MakeKeypair(hash);
 
-					var image = new Buffer(rows[0].image, 'hex');
+			if (query.publicKey) {
+				if (keypair.publicKey.toString('hex') != query.publicKey) {
+					return res.json({success: false, error: "Please, provide valid secret key of your account"});
+				}
+			}
 
-					res.writeHead(200, {'Content-Type': 'image/png'});
-					res.writeHead(200, {'Content-Length': image.length});
-					res.end(image, 'binary');
-				});
+			var account = modules.accounts.getAccountByPublicKey(keypair.publicKey.toString('hex'));
+
+			if (!account) {
+				return res.json({success: false, error: "Account doesn't has balance"});
+			}
+
+			if (!account.publicKey) {
+				return res.json({success: false, error: "Open account to make transaction"});
+			}
+
+			res.json({success: true, following: account.following});
 		});
 	});
 
