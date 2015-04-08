@@ -18,6 +18,15 @@ var crypto = require('crypto'),
 var modules, library, self, private = {};
 
 private.lastBlock = {};
+private.blocksDataFields = [
+	'b_id', 'b_version', 'b_timestamp', 'b_height', 'b_previousBlock', 'b_numberOfTransactions', 'b_totalAmount', 'b_totalFee', 'b_payloadLength', 'b_payloadHash', 'b_generatorPublicKey', 'b_blockSignature',
+	't_id', 't_type', 't_timestamp', 't_senderPublicKey', 't_senderId', 't_recipientId', 't_amount', 't_fee', 't_signature', 't_signSignature',
+	's_publicKey',
+	'd_username',
+	'v_votes',
+	'm_data', 'm_nonce', 'm_encrypted',
+	'a_image'
+];
 
 //constructor
 function Blocks(cb, scope) {
@@ -93,7 +102,7 @@ function attachApi() {
 	library.app.use('/api/blocks', router);
 	library.app.use(function (err, req, res, next) {
 		if (!err) return next();
-		library.logger.error('/api/blocks', err)
+		library.logger.error(req.url, err.toString());
 		res.status(500).send({success: false, error: err.toString()});
 	});
 }
@@ -288,7 +297,7 @@ private.getIdSequence = function (height, cb) {
 	})
 }
 
-private.processBlockDataRows = function (rows) {
+private.readDbRows = function (rows) {
 	var blocks = {};
 	var order = [];
 	for (var i = 0, length = rows.length; i < length; i++) {
@@ -388,16 +397,6 @@ Blocks.prototype.count = function (cb) {
 	});
 }
 
-var blocksDataFields = [
-	'b_id', 'b_version', 'b_timestamp', 'b_height', 'b_previousBlock', 'b_numberOfTransactions', 'b_totalAmount', 'b_totalFee', 'b_payloadLength', 'b_payloadHash', 'b_generatorPublicKey', 'b_blockSignature',
-	't_id', 't_type', 't_timestamp', 't_senderPublicKey', 't_senderId', 't_recipientId', 't_amount', 't_fee', 't_signature', 't_signSignature',
-	's_publicKey',
-	'd_username',
-	'v_votes',
-	'm_data', 'm_nonce', 'm_encrypted',
-	'a_image'
-];
-
 Blocks.prototype.loadBlocksData = function (filter, options, cb) {
 	if (arguments.length < 3) {
 		cb = options;
@@ -411,7 +410,7 @@ Blocks.prototype.loadBlocksData = function (filter, options, cb) {
 	filter.lastId && (params['lastId'] = filter.lastId);
 	filter.id && !filter.lastId && (params['id'] = filter.id);
 
-	var fields = blocksDataFields;
+	var fields = private.blocksDataFields;
 	var method;
 
 	if (options.plain) {
@@ -445,9 +444,14 @@ Blocks.prototype.loadBlocksPart = function (filter, cb) {
 		// Some notes:
 		// If loading catch error, for example, invalid signature on block & transaction, need to stop loading and remove all blocks after last good block.
 		// We need to process all transactions of block
-		if (err !== null) return cb(err, []);
 
-		cb(null, private.processBlockDataRows(rows));
+		var blocks = [];
+
+		if (!err) {
+			blocks = private.readDbRows(rows);
+		}
+
+		cb(err, blocks);
 	});
 }
 
@@ -490,7 +494,7 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 			return cb(err);
 		}
 
-		var blocks = private.processBlockDataRows(rows);
+		var blocks = private.readDbRows(rows);
 
 		for (var i = 0, i_length = blocks.length; i < i_length; i++) {
 			if (blocks[i].id != genesisblock.block.id) {
@@ -817,8 +821,7 @@ Blocks.prototype.loadBlocksFromPeer = function (peer, lastCommonBlockId, cb) {
 			count++;
 			modules.transport.getFromPeer(peer, {
 				method: "GET",
-				api: '/blocks?lastBlockId=' + lastCommonBlockId,
-				gzip: true
+				api: '/blocks?lastBlockId=' + lastCommonBlockId
 			}, function (err, data) {
 				if (err || data.body.error) {
 					return next(err || RequestSanitizer.string(data.body.error));
@@ -829,8 +832,8 @@ Blocks.prototype.loadBlocksFromPeer = function (peer, lastCommonBlockId, cb) {
 					blocks = dblite.parseCSV(blocks);
 				}
 
-				blocks = blocks.map(dblite.row2object, blocksDataFields);
-				blocks = private.processBlockDataRows(blocks);
+				blocks = blocks.map(dblite.row2object, private.blocksDataFields);
+				blocks = private.readDbRows(blocks);
 
 				// not working of data.body is empty....
 				blocks = RequestSanitizer.array(blocks);

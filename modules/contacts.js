@@ -6,7 +6,7 @@ var encryptHelper = require('../helpers/encrypt.js'),
 
 var modules, library, self, private = {};
 
-function Avatar() {
+function Contact() {
 	this.create = function (data, trs) {
 		trs.recipientId = null;
 		trs.amount = 0;
@@ -236,7 +236,7 @@ function attachApi() {
 		res.status(500).send({success: false, error: 'api not found'});
 	});
 
-	library.app.use('/api/avatars', router);
+	library.app.use('/api/contacts', router);
 	library.app.use(function (err, req, res, next) {
 		if (!err) return next();
 		library.logger.error(req.url, err.toString());
@@ -244,20 +244,20 @@ function attachApi() {
 	});
 }
 
-function Avatars(cb, scope) {
+function Contacts(cb, scope) {
 	library = scope;
 	self = this;
 	self.__private = private;
 	attachApi();
 
-	library.logic.transaction.attachAssetType(TransactionTypes.AVATAR, new Avatar());
+	library.logic.transaction.attachAssetType(TransactionTypes.FOLLOW, new Contact());
 
 	setImmediate(cb, null, self);
 }
 
-Avatars.prototype.onBind = function (scope) {
+Contacts.prototype.onBind = function (scope) {
 	modules = scope;
 }
 
 //export
-module.exports = Avatars;
+module.exports = Contacts;

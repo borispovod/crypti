@@ -699,7 +699,7 @@ function attachApi() {
 	library.app.use('/api/accounts', router);
 	library.app.use(function (err, req, res, next) {
 		if (!err) return next();
-		library.logger.error('/api/accounts', err)
+		library.logger.error(req.url, err.toString());
 		res.status(500).send({success: false, error: err.toString()});
 	});
 }

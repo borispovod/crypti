@@ -215,8 +215,8 @@ function attachApi() {
 	library.app.use('/peer', router);
 
 	library.app.use(function (err, req, res, next) {
-		library.logger.error('/peer', err)
 		if (!err) return next();
+		library.logger.error(req.url, err.toString());
 		res.status(500).send({success: false, error: err.toString()});
 	});
 }
@@ -290,10 +290,6 @@ Transport.prototype.getFromPeer = function (peer, options, cb) {
 		req.json = options.data;
 	} else {
 		req.body = options.data;
-	}
-
-	if (options.gzip) {
-		req.gzip = true;
 	}
 
 	return request(req, function (err, response, body) {
