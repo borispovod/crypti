@@ -151,6 +151,8 @@ function attachApi() {
 				return res.json({blocks: ""});
 			}
 
+			console.log(data);
+
 			res.json({blocks: data});
 
 		});
