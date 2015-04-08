@@ -409,8 +409,12 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 				return done("Invalid amount. You cannot send a negative amount");
 			}
 
+			if (transaction.type == 0 && transaction.amount == 0) {
+				return done("Invalid amount");
+			}
+
 			// check if transaction is not float and great then 0
-			if (transaction.amount < 0 || transaction.amount > 100000000 * constants.fixedPoint || transaction.amount.toString().indexOf('.') >= 0 || transaction.amount.toString().indexOf('e') >= 0) {
+			if (transaction.amount == 0 || transaction.amount < 0 || transaction.amount > 100000000 * constants.fixedPoint || transaction.amount.toString().indexOf('.') >= 0 || transaction.amount.toString().indexOf('e') >= 0) {
 				return done("Invalid transaction amount");
 			}
 
