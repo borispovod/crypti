@@ -211,8 +211,8 @@ function attachApi() {
 
 	library.app.use('/api/signatures', router);
 	library.app.use(function (err, req, res, next) {
-		err && library.logger.error('/api/signatures', err)
 		if (!err) return next();
+		library.logger.error(req.url, err.toString());
 		res.status(500).send({success: false, error: err.toString()});
 	});
 }

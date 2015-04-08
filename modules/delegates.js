@@ -477,7 +477,7 @@ function attachApi() {
 	library.app.use('/api/delegates', router);
 	library.app.use(function (err, req, res, next) {
 		if (!err) return next();
-		library.logger.error('/api/delegates', err)
+		library.logger.error(req.url, err.toString());
 		res.status(500).send({success: false, error: err.toString()});
 	});
 }
