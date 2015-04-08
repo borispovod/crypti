@@ -215,7 +215,11 @@ function attachApi() {
 				secondSecret = body.secondSecret;
 
 			if (!recipientId && username) {
-
+				var recipient = modules.accounts.getAccountByUsername(username);
+				if (!recipient) {
+					return res.json({success: false, error: "Recipient is not found"});
+				}
+				recipientId = recipient.address;
 			}
 
 			var hash = crypto.createHash('sha256').update(secret, 'utf8').digest();
@@ -281,7 +285,7 @@ function attachApi() {
 	});
 }
 
-private.list = function(filter, cb) {
+private.list = function (filter, cb) {
 	var sortFields = ['t.id', 't.blockId', 't.type', 't.timestamp', 't.senderPublicKey', 't.senderId', 't.recipientId', 't.amount', 't.fee', 't.signature', 't.signSignature', 't.confirmations'];
 	var params = {}, fields = [];
 	if (filter.blockId) {
@@ -348,7 +352,7 @@ private.list = function(filter, cb) {
 	});
 }
 
-private.getById = function(id, cb) {
+private.getById = function (id, cb) {
 	library.dbLite.query("select t.id, t.blockId, t.type, t.timestamp, lower(hex(t.senderPublicKey)), t.senderId, t.recipientId, t.amount, t.fee, lower(hex(t.signature)), lower(hex(t.signSignature)), (select max(height) + 1 from blocks) - b.height " +
 	"from trs t " +
 	"inner join blocks b on t.blockId = b.id " +
@@ -362,7 +366,7 @@ private.getById = function(id, cb) {
 	});
 }
 
-private.addUnconfirmedTransaction = function(transaction) {
+private.addUnconfirmedTransaction = function (transaction) {
 	private.unconfirmedTransactions.push(transaction);
 	var index = private.unconfirmedTransactions.length - 1;
 	private.unconfirmedTransactionsIdIndex[transaction.id] = index;
