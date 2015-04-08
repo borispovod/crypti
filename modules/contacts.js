@@ -2,7 +2,7 @@ var encryptHelper = require('../helpers/encrypt.js'),
 	TransactionTypes = require('../helpers/transaction-types.js'),
 	RequestSanitizer = require('../helpers/request-sanitizer.js'),
 	Router = require('../helpers/router.js'),
-	imageType = require('image-type');
+	constants = require('../helpers/constants.js');
 
 var modules, library, self, private = {};
 
@@ -11,48 +11,43 @@ function Contact() {
 		trs.recipientId = null;
 		trs.amount = 0;
 
-		trs.asset.avatar = {
-			image: data.image
+		trs.asset.contact = {
+			account: trs.following
 		}
 
 		return trs;
 	}
 
 	this.calculateFee = function (trs) {
-		return 200 * constants.fixedPoint;
+		return 1 * constants.fixedPoint;
 	}
 
 	this.verify = function (trs, sender, cb) {
-		if (!trs.asset.avatar) {
+		if (!trs.asset.contact) {
 			return cb("Invalid asset");
 		}
 
-		if (!trs.asset.avatar.image) {
-			return cb("Invalid message");
+		if (!trs.asset.contact.following) {
+			return cb("Invalid following");
+		}
+
+		var following = null;
+		var isAddress = /^[0-9]+[C|c]$/g;
+		if (isAddress.test(trs.asset.contact.following.toLowerCase())) {
+			following = modules.accounts.getAccountOrCreateByAddress(trs.asset.contact.following);
+		} else {
+			following = modules.accounts.getAccountByUsername(trs.asset.contact.following);
+		}
+		if (!following) {
+			return cb("Invalid following");
 		}
 
 		if (trs.amount != 0) {
 			return cb("Invalid amount");
 		}
 
-		if (trs.recipientId) {
+		if (trs.recipientId != trs.senderId) {
 			return cb("Invalid recipient id");
-		}
-
-		try {
-			var image = new Buffer(trs.asset.avatar.image, 'hex');
-
-			if (image.length > 10000 || image.length == 0) {
-				return cb("Invalid image");
-			}
-
-			var type = imageType(image);
-
-			if (type.ext != "png" || type.mime != 'image/png') {
-				return cb("Image is not png, upload png image please");
-			}
-		} catch (e) {
-			return cb("Invalid hex image or invalid image");
 		}
 
 		return cb(null, trs);
@@ -60,11 +55,11 @@ function Contact() {
 
 	this.getBytes = function (trs) {
 		try {
-			var image = new Buffer(trs.asset.avatar.image, 'hex');
+			var following = new Buffer(trs.asset.contact.following, 'hex');
 
-			var bb = new ByteBuffer(images.length, true);
-			for (var i = 0; i < images.length; i++) {
-				bb.writeByte(image[i]);
+			var bb = new ByteBuffer(following.length, true);
+			for (var i = 0; i < following.length; i++) {
+				bb.writeByte(following[i]);
 			}
 
 			bb.flip();
@@ -76,39 +71,26 @@ function Contact() {
 	}
 
 	this.apply = function (trs, sender) {
-		sender.unconfirmedAvatar = false;
-		sender.avatar = true;
-
-		return true;
+		return sender.applyContact(trs.asset.contact.following);
 	}
 
 	this.undo = function (trs, sender) {
-		sender.avatar = false;
-		sender.unconfirmedAvatar = true;
-
-		return true;
+		return sender.undoContact(trs.asset.contact.following);
 	}
 
 	this.applyUnconfirmed = function (trs, sender) {
-		if (sender.unconfirmedAvatar || sender.avatar) {
-			return false;
-		}
-
-		sender.unconfirmedAvatar = true;
-
-		return true;
+		return sender.applyUnconfirmedContact(trs.asset.contact.following);
 	}
 
 	this.undoUnconfirmed = function (trs, sender) {
-		sender.unconfirmedAvatar = false;
-		return true;
+		return sender.undoUnconfirmedContact(trs.asset.contact.following);
 	}
 
 	this.objectNormalize = function (trs) {
-		trs.asset.avatar = RequestSanitizer.validate(trs.asset.avatar, {
+		trs.asset.avatar = RequestSanitizer.validate(trs.asset.contact, {
 			object: true,
 			properties: {
-				image: "hex!"
+				following: "string!"
 			}
 		}).value;
 
@@ -116,21 +98,21 @@ function Contact() {
 	}
 
 	this.dbRead = function (raw) {
-		if (!raw.a_image) {
+		if (!raw.c_following) {
 			return null;
 		} else {
-			var avatar = {
+			var contact = {
 				transactionId: raw.t_id,
-				image: raw.a_image
+				following: raw.c_following
 			}
 
-			return {avatar: avatar};
+			return {contact: contact};
 		}
 	}
 
 	this.dbSave = function (dbLite, trs, cb) {
-		dbLite.query("INSERT INTO avatars(image, transactionId) VALUES($image, $transactionId)", {
-			image: new Buffer(trs.asset.avatar.image, 'hex'),
+		dbLite.query("INSERT INTO contacts(following, transactionId) VALUES($following, $transactionId)", {
+			following: trs.asset.contact.following,
 			transactionId: trs.id
 		}, cb);
 	}
@@ -175,20 +157,16 @@ function attachApi() {
 			secret: "string!",
 			secondSecret: "string?",
 			publicKey: "hex?",
-			image: "hex!"
+			following: "string!"
 		}, function (err, report, body) {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
 
-			var secret = body.secret,
-				secondSecret = body.secondSecret,
-				publicKey = body.publicKey;
-
-			var hash = crypto.createHash('sha256').update(secret, 'utf8').digest();
+			var hash = crypto.createHash('sha256').update(body.secret, 'utf8').digest();
 			var keypair = ed.MakeKeypair(hash);
 
-			if (publicKey) {
-				if (keypair.publicKey.toString('hex') != publicKey) {
+			if (body.publicKey) {
+				if (keypair.publicKey.toString('hex') != body.publicKey) {
 					return res.json({success: false, error: "Please, provide valid secret key of your account"});
 				}
 			}
@@ -203,25 +181,25 @@ function attachApi() {
 				return res.json({success: false, error: "Open account to make transaction"});
 			}
 
-			if (account.secondSignature && !secondSecret) {
+			if (account.secondSignature && !body.secondSecret) {
 				return res.json({success: false, error: "Provide second secret key"});
 			}
 
-			if (account.secondSignature && secondSecret) {
-				var secondHash = crypto.createHash('sha256').update(secondSecret, 'utf8').digest();
+			if (account.secondSignature && body.secondSecret) {
+				var secondHash = crypto.createHash('sha256').update(body.secondSecret, 'utf8').digest();
 				var secondKeypair = ed.MakeKeypair(secondHash);
 			}
 
 			var transaction = library.logic.transaction.create({
-				type: TransactionTypes.AVATAR,
+				type: TransactionTypes.FOLLOW,
 				sender: account,
 				keypair: keypair,
 				secondKeypair: secondKeypair,
-				image: body.image
+				following: body.following
 			});
 
 			library.sequence.add(function (cb) {
-				modules.transactions.processUnconfirmedTransaction(transaction, true, cb);
+				modules.transactions.receiveTransactions([transaction], cb);
 			}, function (err) {
 				if (err) {
 					return res.json({success: false, error: err});

@@ -543,16 +543,11 @@ function attachApi() {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
 
-			var secret = body.secret,
-				publicKey = body.publicKey,
-				secondSecret = body.secondSecret,
-				delegates = body.delegates;
-
-			var hash = crypto.createHash('sha256').update(secret, 'utf8').digest();
+			var hash = crypto.createHash('sha256').update(body.secret, 'utf8').digest();
 			var keypair = ed.MakeKeypair(hash);
 
-			if (publicKey) {
-				if (keypair.publicKey.toString('hex') != publicKey) {
+			if (body.publicKey) {
+				if (keypair.publicKey.toString('hex') != body.publicKey) {
 					return res.json({success: false, error: "Please, provide valid secret key of your account"});
 				}
 			}
@@ -567,27 +562,27 @@ function attachApi() {
 				return res.json({success: false, error: "Open account to make transaction"});
 			}
 
-			if (account.secondSignature && !secondSecret) {
+			if (account.secondSignature && !body.secondSecret) {
 				return res.json({success: false, error: "Provide second secret key"});
 			}
 
 			var secondKeypair = null;
 
 			if (account.secondSignature) {
-				var secondHash = crypto.createHash('sha256').update(secondSecret, 'utf8').digest();
+				var secondHash = crypto.createHash('sha256').update(body.secondSecret, 'utf8').digest();
 				secondKeypair = ed.MakeKeypair(secondHash);
 			}
 
 			var transaction = library.logic.transaction.create({
 				type: TransactionTypes.VOTE,
-				votes: delegates,
+				votes: body.delegates,
 				sender: account,
 				keypair: keypair,
 				secondKeypair: secondKeypair
 			});
 
 			library.sequence.add(function (cb) {
-				modules.transactions.processUnconfirmedTransaction(transaction, true, cb);
+				modules.transactions.receiveTransactions([transaction], cb);
 			}, function (err) {
 				if (err) {
 					return res.json({success: false, error: err});
@@ -608,16 +603,11 @@ function attachApi() {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
 
-			var secret = body.secret,
-				publicKey = body.publicKey,
-				secondSecret = body.secondSecret,
-				username = body.username;
-
-			var hash = crypto.createHash('sha256').update(secret, 'utf8').digest();
+			var hash = crypto.createHash('sha256').update(body.secret, 'utf8').digest();
 			var keypair = ed.MakeKeypair(hash);
 
-			if (publicKey) {
-				if (keypair.publicKey.toString('hex') != publicKey) {
+			if (body.publicKey) {
+				if (keypair.publicKey.toString('hex') != body.publicKey) {
 					return res.json({success: false, error: "Please, provide valid secret key of your account"});
 				}
 			}
@@ -632,27 +622,27 @@ function attachApi() {
 				return res.json({success: false, error: "Open account to make transaction"});
 			}
 
-			if (account.secondSignature && !secondSecret) {
+			if (account.secondSignature && !body.secondSecret) {
 				return res.json({success: false, error: "Provide second secret key"});
 			}
 
 			var secondKeypair = null;
 
 			if (account.secondSignature) {
-				var secondHash = crypto.createHash('sha256').update(secondSecret, 'utf8').digest();
+				var secondHash = crypto.createHash('sha256').update(body.secondSecret, 'utf8').digest();
 				secondKeypair = ed.MakeKeypair(secondHash);
 			}
 
 			var transaction = library.logic.transaction.create({
 				type: TransactionTypes.USERNAME,
-				username: username,
+				username: body.username,
 				sender: account,
 				keypair: keypair,
 				secondKeypair: secondKeypair
 			});
 
 			library.sequence.add(function (cb) {
-				modules.transactions.processUnconfirmedTransaction(transaction, true, cb);
+				modules.transactions.receiveTransactions([transaction], cb);
 			}, function (err) {
 				if (err) {
 					return res.json({success: false, error: err});

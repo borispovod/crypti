@@ -207,26 +207,19 @@ function attachApi() {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
 
-			var secret = body.secret,
-				amount = body.amount,
-				recipientId = body.recipientId,
-				username = body.username,
-				publicKey = body.publicKey,
-				secondSecret = body.secondSecret;
-
-			if (!recipientId && username) {
-				var recipient = modules.accounts.getAccountByUsername(username);
+			if (!body.recipientId && body.username) {
+				var recipient = modules.accounts.getAccountByUsername(body.username);
 				if (!recipient) {
 					return res.json({success: false, error: "Recipient is not found"});
 				}
-				recipientId = recipient.address;
+				body.recipientId = recipient.address;
 			}
 
-			var hash = crypto.createHash('sha256').update(secret, 'utf8').digest();
+			var hash = crypto.createHash('sha256').update(body.secret, 'utf8').digest();
 			var keypair = ed.MakeKeypair(hash);
 
-			if (publicKey) {
-				if (keypair.publicKey.toString('hex') != publicKey) {
+			if (body.publicKey) {
+				if (keypair.publicKey.toString('hex') != body.publicKey) {
 					return res.json({success: false, error: "Please, provide valid secret key of your account"});
 				}
 			}
@@ -241,28 +234,28 @@ function attachApi() {
 				return res.json({success: false, error: "Open account to make transaction"});
 			}
 
-			if (account.secondSignature && !secondSecret) {
+			if (account.secondSignature && !body.secondSecret) {
 				return res.json({success: false, error: "Provide second secret key"});
 			}
 
 			var secondKeypair = null;
 
 			if (account.secondSignature) {
-				var secondHash = crypto.createHash('sha256').update(secondSecret, 'utf8').digest();
+				var secondHash = crypto.createHash('sha256').update(body.secondSecret, 'utf8').digest();
 				secondKeypair = ed.MakeKeypair(secondHash);
 			}
 
 			var transaction = library.logic.transaction.create({
 				type: TransactionTypes.SEND,
-				amount: amount,
+				amount: body.amount,
 				sender: account,
-				recipientId: recipientId,
+				recipientId: body.recipientId,
 				keypair: keypair,
 				secondKeypair: secondKeypair
 			});
 
 			library.sequence.add(function (cb) {
-				self.processUnconfirmedTransaction(transaction, true, cb);
+				modules.transactions.receiveTransactions([transaction], cb);
 			}, function (err) {
 				if (err) {
 					return res.json({success: false, error: err});

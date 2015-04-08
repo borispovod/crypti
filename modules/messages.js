@@ -208,15 +208,11 @@ function attachApi() {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
 
-			var secret = body.secret,
-				secondSecret = body.secondSecret,
-				publicKey = body.publicKey;
-
-			var hash = crypto.createHash('sha256').update(secret, 'utf8').digest();
+			var hash = crypto.createHash('sha256').update(body.secret, 'utf8').digest();
 			var keypair = ed.MakeKeypair(hash);
 
-			if (publicKey) {
-				if (keypair.publicKey.toString('hex') != publicKey) {
+			if (body.publicKey) {
+				if (keypair.publicKey.toString('hex') != body.publicKey) {
 					return res.json({success: false, error: "Please, provide valid secret key of your account"});
 				}
 			}
@@ -231,7 +227,7 @@ function attachApi() {
 				return res.json({success: false, error: "Open account to make transaction"});
 			}
 
-			if (account.secondSignature && !secondSecret) {
+			if (account.secondSignature && !body.secondSecret) {
 				return res.json({success: false, error: "Provide second secret key"});
 			}
 
@@ -257,8 +253,8 @@ function attachApi() {
 				});
 			}
 
-			if (account.secondSignature && secondSecret) {
-				var secondHash = crypto.createHash('sha256').update(secondSecret, 'utf8').digest();
+			if (account.secondSignature && body.secondSecret) {
+				var secondHash = crypto.createHash('sha256').update(body.secondSecret, 'utf8').digest();
 				var secondKeypair = ed.MakeKeypair(secondHash);
 			}
 
@@ -273,7 +269,7 @@ function attachApi() {
 			});
 
 			library.sequence.add(function (cb) {
-				modules.transactions.processUnconfirmedTransaction(transaction, true, cb);
+				modules.transactions.receiveTransactions([transaction], cb);
 			}, function (err) {
 				if (err) {
 					return res.json({success: false, error: err});
