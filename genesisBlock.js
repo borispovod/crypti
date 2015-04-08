@@ -2,7 +2,7 @@
  Genesis block generator. v0.1
 
  Example:
- OUTPUT=./helpers/genesisblock.js SECRET=4AMbeHpDvmtcHnCu5AWjbgzT4psH8RVMgjPnRNBbYUZxStBMSqGE node ./genesisBlock.js
+ OUTPUT=./helpers/genesisblock.js SECRET=4AMbeHpDvmtcHnCu5AWjbgzT4psH8RVMgjPnRNBbYUZxStBMSqGE FILE=scheme.json node ./genesisBlock.js
  */
 
 var crypto = require('crypto'),
