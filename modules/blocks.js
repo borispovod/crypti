@@ -25,7 +25,8 @@ private.blocksDataFields = [
 	'd_username',
 	'v_votes',
 	'm_data', 'm_nonce', 'm_encrypted',
-	'a_image'
+	'a_image',
+	'c_address'
 ];
 
 //constructor
@@ -428,7 +429,8 @@ Blocks.prototype.loadBlocksData = function (filter, options, cb) {
 	"d.username, " +
 	"v.votes, " +
 	"lower(hex(m.data)), lower(hex(m.nonce)), m.encrypted, " +
-	"lower(hex(a.image)) " +
+	"lower(hex(a.image)), " +
+	"c.address " +
 	"FROM (select * from blocks " + (filter.id ? " where id = $id " : "") + (filter.lastId ? " where height > (SELECT height FROM blocks where id = $lastId) " : "") + " limit $limit) as b " +
 	"left outer join trs as t on t.blockId=b.id " +
 	"left outer join delegates as d on d.transactionId=t.id " +
@@ -436,7 +438,8 @@ Blocks.prototype.loadBlocksData = function (filter, options, cb) {
 	"left outer join signatures as s on s.transactionId=t.id " +
 	"left outer join messages as m on m.transactionId=t.id " +
 	"left outer join avatars as a on a.transactionId=t.id " +
-	"ORDER BY b.height, t.rowid, s.rowid, d.rowid, m.rowid, a.rowid" +
+	"left outer join contacts as c on c.transactionId=t.id " +
+	"ORDER BY b.height, t.rowid, s.rowid, d.rowid, m.rowid, a.rowid, c.rowid" +
 	"", params, fields, cb);
 };
 
@@ -460,16 +463,6 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 	var verify = library.config.loading.verifyOnLoading;
 
 	var params = {limit: limit, offset: offset || 0};
-	var fields = [
-		'b_id', 'b_version', 'b_timestamp', 'b_height', 'b_previousBlock', 'b_numberOfTransactions', 'b_totalAmount', 'b_totalFee', 'b_payloadLength', 'b_payloadHash', 'b_generatorPublicKey', 'b_blockSignature',
-		't_id', 't_type', 't_timestamp', 't_senderPublicKey', 't_senderId', 't_recipientId', 't_amount', 't_fee', 't_signature', 't_signSignature',
-		's_publicKey',
-		'd_username',
-		'v_votes',
-		'm_data', 'm_nonce', 'm_encrypted',
-		'a_image'
-	];
-
 
 	library.dbLite.query("SELECT " +
 	"b.id, b.version, b.timestamp, b.height, b.previousBlock, b.numberOfTransactions, b.totalAmount, b.totalFee, b.payloadLength, lower(hex(b.payloadHash)), lower(hex(b.generatorPublicKey)), lower(hex(b.blockSignature)), " +
@@ -478,7 +471,8 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 	"d.username, " +
 	"v.votes, " +
 	"lower(hex(m.data)), lower(hex(m.nonce)), m.encrypted, " +
-	"lower(hex(a.image)) " +
+	"lower(hex(a.image)), " +
+	"c.address " +
 	"FROM (select * from blocks limit $limit offset $offset) as b " +
 	"left outer join trs as t on t.blockId=b.id " +
 	"left outer join delegates as d on d.transactionId=t.id " +
@@ -486,8 +480,9 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 	"left outer join signatures as s on s.transactionId=t.id " +
 	"left outer join messages as m on m.transactionId=t.id " +
 	"left outer join avatars as a on a.transactionId=t.id " +
-	"ORDER BY b.height, t.rowid, s.rowid, d.rowid, m.rowid, a.rowid" +
-	"", params, fields, function (err, rows) {
+	"left outer join contacts as c on c.transactionId=t.id " +
+	"ORDER BY b.height, t.rowid, s.rowid, d.rowid, m.rowid, a.rowid, c.rowid" +
+	"", params, private.blocksDataFields, function (err, rows) {
 		// Some notes:
 		// If loading catch error, for example, invalid signature on block & transaction, need to stop loading and remove all blocks after last good block.
 		// We need to process all transactions of block

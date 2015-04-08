@@ -48,20 +48,20 @@ function Delegate() {
 
 	this.verify = function (trs, sender, cb) {
 		if (trs.recipientId) {
-			return cb("Invalid recipient");
+			return cb("Invalid recipient: " + trs.id);
 		}
 
 		if (trs.amount != 0) {
-			return cb("Invalid amount");
+			return cb("Invalid amount: " + trs.id);
 		}
 
 		if (!trs.asset.delegate.username) {
-			return cb("Empty transaction asset for delegate transaction");
+			return cb("Empty transaction asset for delegate transaction: " + trs.id);
 		}
 
 		var allowSymbols = /^[a-z0-9!@$&_.]+$/g;
 		if (!allowSymbols.test(trs.asset.delegate.username.toLowerCase())) {
-			return cb("Username can only contain alphanumeric characters with the exception of !@$&_.");
+			return cb("Username can only contain alphanumeric characters with the exception of !@$&_.: " + trs.id);
 		}
 
 
@@ -71,23 +71,23 @@ function Delegate() {
 
 		var isAddress = /^[0-9]+[C|c]$/g;
 		if (isAddress.test(trs.asset.delegate.username.toLowerCase())) {
-			return cb("Username can't be like an address");
+			return cb("Username can't be like an address: " + trs.id);
 		}
 
 		if (trs.asset.delegate.username.length < 1) {
-			return cb("Delegate name is too short");
+			return cb("Delegate name is too short: " + trs.id);
 		}
 
 		if (trs.asset.delegate.username.length > 20) {
-			return cb("Delegate name is longer then 20 chars");
+			return cb("Delegate name is longer then 20 chars: " + trs.id);
 		}
 
 		if (self.existsName(trs.asset.delegate.username)) {
-			return cb("The delegate name you entered is already in use. Please try a different name.");
+			return cb("The delegate name you entered is already in use. Please try a different name.: " + trs.id);
 		}
 
 		if (self.existsDelegate(trs.senderPublicKey)) {
-			return cb("Your account are delegate already");
+			return cb("Your account are delegate already: " + trs.id);
 		}
 
 

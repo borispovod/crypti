@@ -33,46 +33,46 @@ function Message() {
 
 	this.verify = function (trs, sender, cb) {
 		if (!trs.asset.message) {
-			return cb("Invalid asset");
+			return cb("Invalid asset: " + trs.id);
 		}
 
 		if (!trs.asset.message.data) {
-			return cb("Invalid message");
+			return cb("Invalid message: " + trs.id);
 		}
 
 		if (trs.amount != 0) {
-			return cb("Invalid amount");
+			return cb("Invalid amount: " + trs.id);
 		}
 
 		try {
 			var messageData = new Buffer(trs.asset.message.data, 'hex');
 			if (messageData.length > 140 || messageData.length == 0) {
-				return cb("Invalid message length");
+				return cb("Invalid message length: " + trs.id);
 			}
 		} catch (e) {
-			return cb("Invalid hex in message asset");
+			return cb("Invalid hex in message asset: " + trs.id);
 		}
 
 		if (!trs.asset.message.nonce) {
-			return cb("Invalid nonce");
+			return cb("Invalid nonce: " + trs.id);
 		}
 
 		if (!trs.asset.message.nonce && trs.asset.message.encrypted) {
-			return cb("Can't encrypt with nonce");
+			return cb("Can't encrypt with nonce: " + trs.id);
 		}
 
 		if (trs.asset.message.nonce) {
 			try {
 				if (new Buffer(trs.asset.message.nonce, 'hex').length != 24) {
-					return cb("Invalid nonce length");
+					return cb("Invalid nonce length: " + trs.id);
 				}
 			} catch (e) {
-				return cb("Invalid nonce param in message asset");
+				return cb("Invalid nonce param in message asset: " + trs.id);
 			}
 		}
 
 		if (trs.asset.message.encrypted !== false && trs.asset.message.encrypted !== true) {
-			return cb("Invalid encrypted param in message asset");
+			return cb("Invalid encrypted param in message asset: " + trs.id);
 		}
 
 		return cb(null, trs);

@@ -208,11 +208,11 @@ function Vote() {
 
 	this.verify = function (trs, sender, cb) {
 		if (trs.recipientId != trs.senderId) {
-			return cb("Incorrect recipient");
+			return cb("Incorrect recipient: " + trs.id);
 		}
 
 		if (trs.asset.votes && trs.asset.votes.length > 33) {
-			return cb("You can only vote for a maximum of 33 delegates at any one time.");
+			return cb("You can only vote for a maximum of 33 delegates at any one time.: " + trs.id);
 		}
 
 		if (!modules.delegates.checkUnconfirmedDelegates(trs.senderPublicKey, trs.asset.votes)) {
@@ -292,20 +292,20 @@ function Username() {
 
 	this.verify = function (trs, sender, cb) {
 		if (trs.recipientId) {
-			return cb("Invalid recipient");
+			return cb("Invalid recipient: " + trs.id);
 		}
 
 		if (trs.amount != 0) {
-			return cb("Invalid amount");
+			return cb("Invalid amount: " + trs.id);
 		}
 
 		if (!trs.asset.username.alias) {
-			return cb("Empty transaction asset for username transaction");
+			return cb("Empty transaction asset for username transaction: " + trs.id);
 		}
 
 		var allowSymbols = /^[a-z0-9!@$&_.]+$/g;
 		if (!allowSymbols.test(trs.asset.username.alias.toLowerCase())) {
-			return cb("username can only contain alphanumeric characters with the exception of !@$&_.");
+			return cb("username can only contain alphanumeric characters with the exception of !@$&_.: " + trs.id);
 		}
 
 		//if (trs.asset.username.alias.search(/(admin|genesis|delegate|crypti)/i) > -1) {
@@ -314,15 +314,15 @@ function Username() {
 
 		var isAddress = /^[0-9]+[C|c]$/g;
 		if (isAddress.test(trs.asset.username.alias.toLowerCase())) {
-			return cb("username can't be like an address");
+			return cb("username can't be like an address: " + trs.id);
 		}
 
 		if (trs.asset.username.alias.length == 0 || trs.asset.username.alias.length > 20) {
-			return cb("Incorrect username length");
+			return cb("Incorrect username length: " + trs.id);
 		}
 
 		if (modules.delegates.existsName(trs.asset.username.alias)) {
-			return cb("The username you entered is already in use. Please try a different name.");
+			return cb("The username you entered is already in use. Please try a different name.: " + trs.id);
 		}
 
 		cb(null, trs);

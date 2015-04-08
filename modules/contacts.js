@@ -12,7 +12,7 @@ function Contact() {
 		trs.amount = 0;
 
 		trs.asset.contact = {
-			account: trs.following
+			address: trs.contactAddress
 		}
 
 		return trs;
@@ -24,30 +24,24 @@ function Contact() {
 
 	this.verify = function (trs, sender, cb) {
 		if (!trs.asset.contact) {
-			return cb("Invalid asset");
+			return cb("Invalid asset: " + trs.id);
 		}
 
-		if (!trs.asset.contact.following) {
-			return cb("Invalid following");
+		if (!trs.asset.contact.address) {
+			return cb("Invalid following: " + trs.id);
 		}
 
-		var following = null;
 		var isAddress = /^[0-9]+[C|c]$/g;
-		if (isAddress.test(trs.asset.contact.following.toLowerCase())) {
-			following = modules.accounts.getAccountOrCreateByAddress(trs.asset.contact.following);
-		} else {
-			following = modules.accounts.getAccountByUsername(trs.asset.contact.following);
-		}
-		if (!following) {
-			return cb("Invalid following");
+		if (!isAddress.test(trs.asset.contact.address.toLowerCase())) {
+			return cb("Invalid following: " + trs.id);
 		}
 
 		if (trs.amount != 0) {
-			return cb("Invalid amount");
+			return cb("Invalid amount: " + trs.id);
 		}
 
 		if (trs.recipientId != trs.senderId) {
-			return cb("Invalid recipient id");
+			return cb("Invalid recipient id: " + trs.id);
 		}
 
 		return cb(null, trs);
@@ -55,11 +49,11 @@ function Contact() {
 
 	this.getBytes = function (trs) {
 		try {
-			var following = new Buffer(trs.asset.contact.following, 'hex');
+			var contactAddress = new Buffer(trs.asset.contact.address, 'hex');
 
-			var bb = new ByteBuffer(following.length, true);
-			for (var i = 0; i < following.length; i++) {
-				bb.writeByte(following[i]);
+			var bb = new ByteBuffer(contactAddress.length, true);
+			for (var i = 0; i < contactAddress.length; i++) {
+				bb.writeByte(contactAddress[i]);
 			}
 
 			bb.flip();
@@ -71,26 +65,26 @@ function Contact() {
 	}
 
 	this.apply = function (trs, sender) {
-		return sender.applyContact(trs.asset.contact.following);
+		return sender.applyContact(trs.asset.contact.address);
 	}
 
 	this.undo = function (trs, sender) {
-		return sender.undoContact(trs.asset.contact.following);
+		return sender.undoContact(trs.asset.contact.address);
 	}
 
 	this.applyUnconfirmed = function (trs, sender) {
-		return sender.applyUnconfirmedContact(trs.asset.contact.following);
+		return sender.applyUnconfirmedContact(trs.asset.contact.address);
 	}
 
 	this.undoUnconfirmed = function (trs, sender) {
-		return sender.undoUnconfirmedContact(trs.asset.contact.following);
+		return sender.undoUnconfirmedContact(trs.asset.contact.address);
 	}
 
 	this.objectNormalize = function (trs) {
-		trs.asset.avatar = RequestSanitizer.validate(trs.asset.contact, {
+		trs.asset.contact = RequestSanitizer.validate(trs.asset.contact, {
 			object: true,
 			properties: {
-				following: "string!"
+				address: "string!"
 			}
 		}).value;
 
@@ -98,12 +92,12 @@ function Contact() {
 	}
 
 	this.dbRead = function (raw) {
-		if (!raw.c_following) {
+		if (!raw.c_address) {
 			return null;
 		} else {
 			var contact = {
 				transactionId: raw.t_id,
-				following: raw.c_following
+				address: raw.c_address
 			}
 
 			return {contact: contact};
@@ -111,8 +105,8 @@ function Contact() {
 	}
 
 	this.dbSave = function (dbLite, trs, cb) {
-		dbLite.query("INSERT INTO contacts(following, transactionId) VALUES($following, $transactionId)", {
-			following: trs.asset.contact.following,
+		dbLite.query("INSERT INTO contacts(address, transactionId) VALUES($address, $transactionId)", {
+			address: trs.asset.contact.address,
 			transactionId: trs.id
 		}, cb);
 	}
@@ -190,12 +184,24 @@ function attachApi() {
 				var secondKeypair = ed.MakeKeypair(secondHash);
 			}
 
+			var followingAddress = null;
+			var isAddress = /^[0-9]+[C|c]$/g;
+			if (isAddress.test(body.following.toLowerCase())) {
+				followingAddress = body.following;
+			} else {
+				var following = modules.accounts.getAccountByUsername(body.following);
+				if (!following) {
+					return res.json({success: false, error: "Invalid following"});
+				}
+				followingAddress = following.address;
+			}
+
 			var transaction = library.logic.transaction.create({
 				type: TransactionTypes.FOLLOW,
 				sender: account,
 				keypair: keypair,
 				secondKeypair: secondKeypair,
-				following: body.following
+				contactAddress: followingAddress
 			});
 
 			library.sequence.add(function (cb) {

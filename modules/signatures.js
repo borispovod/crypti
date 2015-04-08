@@ -29,19 +29,19 @@ function Signature() {
 
 	this.verify = function (trs, sender, cb) {
 		if (!trs.asset.signature) {
-			return cb("Empty transaction asset for signature transaction")
+			return cb("Empty transaction asset for signature transaction: " + trs.id)
 		}
 
 		if (trs.amount != 0) {
-			return cb("Invalid amount");
+			return cb("Invalid amount: " + trs.id);
 		}
 
 		try {
 			if (new Buffer(trs.asset.signature.publicKey, 'hex').length != 32) {
-				return cb("Invalid length for signature public key");
+				return cb("Invalid length for signature public key: " + trs.id);
 			}
 		} catch (e) {
-			return cb("Invalid hex in signature public key");
+			return cb("Invalid hex in signature public key: " + trs.id);
 		}
 
 		return cb(null, trs);

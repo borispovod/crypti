@@ -24,19 +24,19 @@ function Avatar() {
 
 	this.verify = function (trs, sender, cb) {
 		if (!trs.asset.avatar) {
-			return cb("Invalid asset");
+			return cb("Invalid asset: " + trs.id);
 		}
 
 		if (!trs.asset.avatar.image) {
-			return cb("Invalid message");
+			return cb("Invalid message: " + trs.id);
 		}
 
 		if (trs.amount != 0) {
-			return cb("Invalid amount");
+			return cb("Invalid amount: " + trs.id);
 		}
 
 		if (trs.recipientId) {
-			return cb("Invalid recipient id");
+			return cb("Invalid recipient id: " + trs.id);
 		}
 
 		try {

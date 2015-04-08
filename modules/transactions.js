@@ -33,6 +33,15 @@ function Transfer() {
 	}
 
 	this.verify = function (trs, sender, cb) {
+		var isAddress = /^[0-9]+[C|c]$/g;
+		if (!isAddress.test(trs.recipientId.toLowerCase())) {
+			return cb("Invalid recipientId: " + trs.id);
+		}
+
+		if (!trs.amount){
+			return cb("Invalid transaction amount: " + trs.id);
+		}
+
 		cb(null, trs);
 	}
 
@@ -41,16 +50,7 @@ function Transfer() {
 	}
 
 	this.apply = function (trs, sender) {
-		var recipient = null;
-		var isAddress = /^[0-9]+[C|c]$/g;
-		if (isAddress.test(trs.recipientId.toLowerCase())) {
-			recipient = modules.accounts.getAccountOrCreateByAddress(trs.recipientId);
-		} else {
-			recipient = modules.accounts.getAccountByUsername(trs.recipientId);
-		}
-		if (!recipient) {
-			return false;
-		}
+		var recipient = modules.accounts.getAccountOrCreateByAddress(trs.recipientId);
 
 		recipient.addToUnconfirmedBalance(trs.amount);
 		recipient.addToBalance(trs.amount);
@@ -59,16 +59,7 @@ function Transfer() {
 	}
 
 	this.undo = function (trs, sender) {
-		var recipient = null;
-		var isAddress = /^[0-9]+[C|c]$/g;
-		if (isAddress.test(trs.recipientId.toLowerCase())) {
-			recipient = modules.accounts.getAccountOrCreateByAddress(trs.recipientId);
-		} else {
-			recipient = modules.accounts.getAccountByUsername(trs.recipientId);
-		}
-		if (!recipient) {
-			return false;
-		}
+		var recipient = modules.accounts.getAccountOrCreateByAddress(trs.recipientId);
 
 		recipient.addToUnconfirmedBalance(-trs.amount);
 		recipient.addToBalance(-trs.amount);
@@ -198,21 +189,24 @@ function attachApi() {
 		req.sanitize("body", {
 			secret: "string!",
 			amount: "int!",
-			recipientId: "string?",
+			recipientId: "string!",
 			publicKey: "hex?",
-			username: "string?",
 			secondSecret: "string?",
 			input: "object?"
 		}, function (err, report, body) {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
 
-			if (!body.recipientId && body.username) {
-				var recipient = modules.accounts.getAccountByUsername(body.username);
+			var recipientId = null;
+			var isAddress = /^[0-9]+[C|c]$/g;
+			if (isAddress.test(body.recipientId)) {
+				recipientId = body.recipientId;
+			} else {
+				var recipient = modules.accounts.getAccountByUsername(body.recipientId);
 				if (!recipient) {
 					return res.json({success: false, error: "Recipient is not found"});
 				}
-				body.recipientId = recipient.address;
+				recipientId = recipient.address;
 			}
 
 			var hash = crypto.createHash('sha256').update(body.secret, 'utf8').digest();
@@ -249,7 +243,7 @@ function attachApi() {
 				type: TransactionTypes.SEND,
 				amount: body.amount,
 				sender: account,
-				recipientId: body.recipientId,
+				recipientId: recipientId,
 				keypair: keypair,
 				secondKeypair: secondKeypair
 			});
