@@ -15,19 +15,23 @@ angular.module('webApp').controller('passphraseController',
                 $scope.editingPeer = !$scope.editingPeer;
             };
             $scope.savePeerSettings = function (custom, best) {
+                custom = custom || '';
                 $scope.addressError = false;
                 var isIP = ipRegex({exact: true}).test(custom.split(":")[0]);
                 var isPort = (parseInt(custom.split(":")[1]) > 0 && parseInt(custom.split(":")[1]) <= 61000);
                 $scope.addressError = (!isIP || !isPort) && custom !='';
                 if ($scope.addressError) {
-                  return;
+                    dbFactory.saveCustomPeer(undefined, function (peer) {
+
+                    })
+                    return;
                 }
                 $scope.editingPeer = false;
                 dbFactory.useBestPeer(best, function () {
                     $scope.bestPeer = best;
                     dbFactory.saveCustomPeer(custom, function (customPeer) {
                         $scope.customPeer = customPeer;
-                        if (!$scope.bestPeer) {
+                        if (!$scope.bestPeer && $scope.customPeer!='') {
                             $scope.custom = true;
                             peerFactory.setPeer(custom.split(":")[0],
                                 custom.split(":")[1] == undefined ? '' : custom.split(":")[1]);

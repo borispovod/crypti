@@ -174,7 +174,7 @@ angular.module('webApp').factory('dbFactory', function (peerFactory) {
                     if (err) {
                         //return console.log(err);
                     }
-                    cb(peer);
+                    cb('');
                 });
             });
         }
