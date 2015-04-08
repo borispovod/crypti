@@ -420,7 +420,6 @@ Blocks.prototype.loadBlocksData = function (filter, options, cb) {
 		method = 'query';
 	}
 
-	console.log(method);
 
 	library.dbLite[method]("SELECT " +
 	"b.id, b.version, b.timestamp, b.height, b.previousBlock, b.numberOfTransactions, b.totalAmount, b.totalFee, b.payloadLength, lower(hex(b.payloadHash)), lower(hex(b.generatorPublicKey)), lower(hex(b.blockSignature)), " +

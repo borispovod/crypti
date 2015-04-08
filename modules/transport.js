@@ -134,9 +134,7 @@ function attachApi() {
 	});
 
 	router.get("/blocks", function (req, res) {
-		//res.set(private.headers);
-
-		console.log(private.headers);
+		res.set(private.headers);
 
 		var lastBlockId = RequestSanitizer.string(req.query.lastBlockId);
 		// get 1400+ blocks with all data (joins) from provided block id
@@ -150,8 +148,6 @@ function attachApi() {
 			if (err) {
 				return res.json({blocks: ""});
 			}
-
-			console.log(data);
 
 			res.json({blocks: data});
 

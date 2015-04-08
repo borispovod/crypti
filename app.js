@@ -135,7 +135,7 @@ d.run(function () {
 			app.use(methodOverride());
 			app.use(requestSanitizer.express());
 
-			/*app.use(function (req, res, next) {
+			app.use(function (req, res, next) {
 				var parts = req.url.split('/');
 				var ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
 
@@ -166,7 +166,7 @@ d.run(function () {
 				} else {
 					next();
 				}
-			});*/
+			});
 
 			app.listen(scope.config.port, scope.config.address, function (err) {
 				scope.logger.log("Crypti started: " + scope.config.address + ":" + scope.config.port);
