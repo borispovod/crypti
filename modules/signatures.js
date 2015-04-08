@@ -10,7 +10,7 @@ var ed = require('ed25519'),
 	TransactionTypes = require('../helpers/transaction-types.js');
 
 // private fields
-var modules, library, self, private;
+var modules, library, self, private = {};
 
 function Signature() {
 	this.create = function (data, trs) {
@@ -131,7 +131,7 @@ function Signature() {
 function Signatures(cb, scope) {
 	library = scope;
 	self = this;
-
+	self.__private = private;
 	attachApi();
 
 	library.logic.transaction.attachAssetType(TransactionTypes.SIGNATURE, new Signature());

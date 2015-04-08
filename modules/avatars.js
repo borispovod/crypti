@@ -4,7 +4,7 @@ var encryptHelper = require('../helpers/encrypt.js'),
 	Router = require('../helpers/router.js'),
 	imageType = require('image-type');
 
-var modules, library, self, private;
+var modules, library, self, private = {};
 
 function Avatar() {
 	this.create = function (data, trs) {
@@ -247,7 +247,7 @@ function attachApi() {
 function Avatars(cb, scope) {
 	library = scope;
 	self = this;
-
+	self.__private = private;
 	attachApi();
 
 	library.logic.transaction.attachAssetType(TransactionTypes.AVATAR, new Avatar());

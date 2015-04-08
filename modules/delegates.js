@@ -13,22 +13,22 @@ var crypto = require('crypto'),
 require('array.prototype.find'); //old node fix
 
 //private fields
-var modules, library, self, private;
+var modules, library, self, private = {};
 
-var loaded = false;
-var unconfirmedDelegates = {};
-var unconfirmedNames = {};
+private.loaded = false;
+private.unconfirmedDelegates = {};
+private.unconfirmedNames = {};
 
-var votes = {};
-var unconfirmedVotes = {};
+private.votes = {};
+private.unconfirmedVotes = {};
 
-var namesIndex = {};
-var publicKeyIndex = {};
-var transactionIdIndex = {};
-var delegates = [];
-var fees = {};
+private.namesIndex = {};
+private.publicKeyIndex = {};
+private.transactionIdIndex = {};
+private.delegates = [];
+private.fees = {};
 
-var keypairs = {};
+private.keypairs = {};
 
 function Delegate() {
 	this.create = function (data, trs) {
@@ -169,7 +169,7 @@ function Delegate() {
 function Delegates(cb, scope) {
 	library = scope;
 	self = this;
-
+	self.__private = private;
 	attachApi();
 
 	library.logic.transaction.attachAssetType(TransactionTypes.DELEGATE, new Delegate());
@@ -182,7 +182,7 @@ function attachApi() {
 	var router = new Router();
 
 	router.use(function (req, res, next) {
-		if (modules && loaded) return next();
+		if (modules && private.loaded) return next();
 		res.status(500).send({success: false, error: 'loading'});
 	});
 
@@ -208,7 +208,7 @@ function attachApi() {
 			limit = limit > 101 ? 101 : limit;
 			var orderBy = orderField ? orderField[0] : null;
 			var sortMode = orderField && orderField.length == 2 ? orderField[1] : 'asc';
-			var publicKeys = Object.keys(publicKeyIndex);
+			var publicKeys = Object.keys(private.publicKeyIndex);
 			var count = publicKeys.length;
 			var length = Math.min(limit, count);
 			var realLimit = Math.min(offset + limit, count);
@@ -220,7 +220,7 @@ function attachApi() {
 			}
 
 			var rateSort = {};
-			getKeysSortByVote(publicKeys, votes)
+			private.getKeysSortByVote(publicKeys, private.votes)
 				.forEach(function (item, index) {
 					rateSort[item] = index + 1;
 				});
@@ -229,14 +229,14 @@ function attachApi() {
 				if (orderBy == 'username') {
 					publicKeys = publicKeys.sort(function compare(a, b) {
 						if (sortMode == 'asc') {
-							if (delegates[publicKeyIndex[a]][orderBy] < delegates[publicKeyIndex[b]][orderBy])
+							if (private.delegates[private.publicKeyIndex[a]][orderBy] < private.delegates[private.publicKeyIndex[b]][orderBy])
 								return -1;
-							if (delegates[publicKeyIndex[a]][orderBy] > delegates[publicKeyIndex[b]][orderBy])
+							if (private.delegates[private.publicKeyIndex[a]][orderBy] > private.delegates[private.publicKeyIndex[b]][orderBy])
 								return 1;
 						} else if (sortMode == 'desc') {
-							if (delegates[publicKeyIndex[a]][orderBy] > delegates[publicKeyIndex[b]][orderBy])
+							if (private.delegates[private.publicKeyIndex[a]][orderBy] > private.delegates[private.publicKeyIndex[b]][orderBy])
 								return -1;
-							if (delegates[publicKeyIndex[a]][orderBy] < delegates[publicKeyIndex[b]][orderBy])
+							if (private.delegates[private.publicKeyIndex[a]][orderBy] < private.delegates[private.publicKeyIndex[b]][orderBy])
 								return 1;
 						}
 						return 0;
@@ -246,14 +246,14 @@ function attachApi() {
 					publicKeys = publicKeys.sort(function compare(a, b) {
 
 						if (sortMode == 'asc') {
-							if (votes[a] < votes[b])
+							if (private.votes[a] < private.votes[b])
 								return -1;
-							if (votes[a] > votes[b])
+							if (private.votes[a] > private.votes[b])
 								return 1;
 						} else if (sortMode == 'desc') {
-							if (votes[a] > votes[b])
+							if (private.votes[a] > private.votes[b])
 								return -1;
-							if (votes[a] < votes[b])
+							if (private.votes[a] < private.votes[b])
 								return 1;
 						}
 						return 0;
@@ -281,7 +281,7 @@ function attachApi() {
 			publicKeys = publicKeys.slice(offset, realLimit);
 
 			var result = publicKeys.map(function (publicKey) {
-				return getDelegate({publicKey: publicKey}, rateSort);
+				return private.getDelegate({publicKey: publicKey}, rateSort);
 			});
 
 			res.json({success: true, delegates: result, totalCount: count});
@@ -297,7 +297,7 @@ function attachApi() {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
 
-			var delegate = getDelegate(query);
+			var delegate = private.getDelegate(query);
 			if (delegate) {
 				res.json({success: true, delegate: delegate});
 			} else {
@@ -313,11 +313,11 @@ function attachApi() {
 			return res.json({success: false, error: "Provide generatorPublicKey in request"});
 		}
 
-		if (fees[publicKey] === undefined) {
+		if (private.fees[publicKey] === undefined) {
 			return res.json({success: false, error: "Fees not found"});
 		}
 
-		res.json({success: true, fees: fees[publicKey]});
+		res.json({success: true, fees: private.fees[publicKey]});
 	});
 
 	router.post('/forging/enable', function (req, res) {
@@ -344,12 +344,12 @@ function attachApi() {
 			}
 		}
 
-		if (keypairs[keypair.publicKey.toString('hex')]) {
+		if (private.keypairs[keypair.publicKey.toString('hex')]) {
 			return res.json({success: false, error: "Forging on this account already enabled"});
 		}
 
 		if (account && self.existsDelegate(keypair.publicKey.toString('hex'))) {
-			keypairs[keypair.publicKey.toString('hex')] = keypair;
+			private.keypairs[keypair.publicKey.toString('hex')] = keypair;
 			res.json({success: true, address: address});
 			library.logger.info("Forging enabled on account: " + address);
 		} else {
@@ -385,12 +385,12 @@ function attachApi() {
 			}
 		}
 
-		if (!keypairs[keypair.publicKey.toString('hex')]) {
+		if (!private.keypairs[keypair.publicKey.toString('hex')]) {
 			return res.json({success: false, error: "Forger with this public key not found"});
 		}
 
 		if (account && self.existsDelegate(keypair.publicKey.toString('hex'))) {
-			delete keypairs[keypair.publicKey.toString('hex')];
+			delete private.keypairs[keypair.publicKey.toString('hex')];
 			res.json({success: true, address: address});
 			library.logger.info("Forging disabled on account: " + address);
 		} else {
@@ -405,7 +405,7 @@ function attachApi() {
 			return res.json({success: false, error: "Provide public key of account"});
 		}
 
-		return res.json({success: true, enabled: !!keypairs[publicKey]});
+		return res.json({success: true, enabled: !!private.keypairs[publicKey]});
 	});
 
 	router.put('/', function (req, res, next) {
@@ -482,17 +482,17 @@ function attachApi() {
 	});
 }
 
-function getDelegate(filter, rateSort) {
+private.getDelegate = function(filter, rateSort) {
 	var index;
 
 	if (filter.transactionId) {
-		index = transactionIdIndex[filter.transactionId];
+		index = private.transactionIdIndex[filter.transactionId];
 	}
 	if (filter.publicKey) {
-		index = publicKeyIndex[filter.publicKey];
+		index = private.publicKeyIndex[filter.publicKey];
 	}
 	if (filter.username) {
-		index = namesIndex[filter.username.toLowerCase()];
+		index = private.namesIndex[filter.username.toLowerCase()];
 	}
 
 	if (index === undefined) {
@@ -501,13 +501,13 @@ function getDelegate(filter, rateSort) {
 
 	if (!rateSort) {
 		rateSort = {};
-		getKeysSortByVote(Object.keys(publicKeyIndex), votes)
+		private.getKeysSortByVote(Object.keys(private.publicKeyIndex), private.votes)
 			.forEach(function (item, index) {
 				rateSort[item] = index + 1;
 			});
 	}
 
-	var delegate = delegates[index];
+	var delegate = private.delegates[index];
 
 	var stat = modules.round.blocksStat(delegate.publicKey);
 
@@ -521,13 +521,13 @@ function getDelegate(filter, rateSort) {
 		address: delegate.address,
 		publicKey: delegate.publicKey,
 		transactionId: delegate.transactionId,
-		vote: votes[delegate.publicKey],
+		vote: private.votes[delegate.publicKey],
 		rate: rateSort[delegate.publicKey],
 		productivity: outsider ? null : productivity
 	};
 }
 
-function getKeysSortByVote(keys, votes) {
+private.getKeysSortByVote = function(keys, votes) {
 	return keys.sort(function compare(a, b) {
 		if (votes[a] > votes[b]) return -1;
 		if (votes[a] < votes[b]) return 1;
@@ -537,7 +537,7 @@ function getKeysSortByVote(keys, votes) {
 	});
 }
 
-function getBlockSlotData(slot, height) {
+private.getBlockSlotData = function(slot, height) {
 	var activeDelegates = self.generateDelegateList(height);
 
 	var currentSlot = slot;
@@ -548,22 +548,22 @@ function getBlockSlotData(slot, height) {
 
 		var delegate_id = activeDelegates[delegate_pos];
 
-		if (delegate_id && keypairs[delegate_id]) {
-			return {time: slots.getSlotTime(currentSlot), keypair: keypairs[delegate_id]};
+		if (delegate_id && private.keypairs[delegate_id]) {
+			return {time: slots.getSlotTime(currentSlot), keypair: private.keypairs[delegate_id]};
 		}
 	}
 	return null;
 }
 
-function loop(cb) {
+private.loop = function(cb) {
 	setImmediate(cb);
 
-	if (!Object.keys(keypairs).length) {
+	if (!Object.keys(private.keypairs).length) {
 		library.logger.debug('loop', 'exit: have no delegates');
 		return;
 	}
 
-	if (!loaded || modules.loader.syncing()) {
+	if (!private.loaded || modules.loader.syncing()) {
 		library.logger.log('loop', 'exit: syncing');
 		return;
 	}
@@ -576,7 +576,7 @@ function loop(cb) {
 		return;
 	}
 
-	var currentBlockData = getBlockSlotData(currentSlot, lastBlock.height + 1);
+	var currentBlockData = private.getBlockSlotData(currentSlot, lastBlock.height + 1);
 
 	if (currentBlockData === null) {
 		library.logger.log('loop', 'skip slot');
@@ -603,7 +603,7 @@ function loop(cb) {
 	});
 }
 
-function loadMyDelegates() {
+private.loadMyDelegates = function() {
 	var secrets = null;
 	if (library.config.forging.secret) {
 		secrets = util.isArray(library.config.forging.secret) ? library.config.forging.secret : [library.config.forging.secret];
@@ -615,7 +615,7 @@ function loadMyDelegates() {
 			var address = modules.accounts.getAddressByPublicKey(keypair.publicKey.toString('hex'));
 			var account = modules.accounts.getAccount(address);
 			if (self.existsDelegate(keypair.publicKey.toString('hex'))) {
-				keypairs[keypair.publicKey.toString('hex')] = keypair;
+				private.keypairs[keypair.publicKey.toString('hex')] = keypair;
 				library.logger.info("Forging enabled on account: " + address);
 			} else {
 				library.logger.info("Forger with this public key not found " + keypair.publicKey.toString('hex'));
@@ -626,7 +626,7 @@ function loadMyDelegates() {
 
 //public methods
 Delegates.prototype.generateDelegateList = function (height) {
-	var sortedDelegateList = getKeysSortByVote(Object.keys(votes), votes);
+	var sortedDelegateList = private.getKeysSortByVote(Object.keys(private.votes), private.votes);
 	var truncDelegateList = sortedDelegateList.slice(0, slots.delegates);
 	var seedSource = modules.round.calc(height).toString();
 
@@ -692,7 +692,7 @@ Delegates.prototype.checkUnconfirmedDelegates = function (publicKey, votes) {
 			var math = votes[i][0];
 			var publicKey = votes[i].slice(1);
 
-			if (unconfirmedVotes[publicKey] === undefined) {
+			if (private.unconfirmedVotes[publicKey] === undefined) {
 				return false;
 			}
 
@@ -712,30 +712,30 @@ Delegates.prototype.checkUnconfirmedDelegates = function (publicKey, votes) {
 
 // to remove
 Delegates.prototype.getUnconfirmedDelegates = function () {
-	return unconfirmedDelegates;
+	return private.unconfirmedDelegates;
 }
 
 Delegates.prototype.addUnconfirmedDelegate = function (delegate) {
-	unconfirmedDelegates[delegate.publicKey] = true;
-	unconfirmedNames[delegate.username] = true;
+	private.unconfirmedDelegates[delegate.publicKey] = true;
+	private.unconfirmedNames[delegate.username] = true;
 }
 
 Delegates.prototype.getUnconfirmedDelegate = function (delegate) {
-	return !!unconfirmedDelegates[delegate.publicKey];
+	return !!private.unconfirmedDelegates[delegate.publicKey];
 }
 
 Delegates.prototype.getUnconfirmedName = function (delegate) {
-	return !!unconfirmedNames[delegate.username];
+	return !!private.unconfirmedNames[delegate.username];
 }
 
 Delegates.prototype.removeUnconfirmedDelegate = function (delegate) {
-	delete unconfirmedDelegates[delegate.publicKey];
-	delete unconfirmedNames[delegate.username];
+	delete private.unconfirmedDelegates[delegate.publicKey];
+	delete private.unconfirmedNames[delegate.username];
 }
 
 Delegates.prototype.fork = function (block, cause) {
 	library.logger.info('fork', {
-		delegate: getDelegate({publicKey: block.generatorPublicKey}),
+		delegate: private.getDelegate({publicKey: block.generatorPublicKey}),
 		block: {id: block.id, timestamp: block.timestamp, height: block.height, previousBlock: block.previousBlock},
 		cause: cause
 	});
@@ -751,43 +751,43 @@ Delegates.prototype.fork = function (block, cause) {
 }
 
 Delegates.prototype.getDelegateByPublicKey = function (publicKey) {
-	return getDelegate({publicKey: publicKey});
+	return private.getDelegate({publicKey: publicKey});
 }
 
 Delegates.prototype.addFee = function (publicKey, value) {
-	fees[publicKey] = (fees[publicKey] || 0) + value;
+	private.fees[publicKey] = (private.fees[publicKey] || 0) + value;
 }
 
 Delegates.prototype.existsDelegate = function (publicKey) {
-	return votes[publicKey] !== undefined;
+	return private.votes[publicKey] !== undefined;
 }
 
 Delegates.prototype.existsName = function (userName) {
-	return namesIndex[userName.toLowerCase()] !== undefined;
+	return private.namesIndex[userName.toLowerCase()] !== undefined;
 }
 
 Delegates.prototype.cache = function (delegate) {
-	delegates.push(delegate);
-	var index = delegates.length - 1;
+	private.delegates.push(delegate);
+	var index = private.delegates.length - 1;
 
-	unconfirmedVotes[delegate.publicKey] = 0;
-	votes[delegate.publicKey] = 0;
+	private.unconfirmedVotes[delegate.publicKey] = 0;
+	private.votes[delegate.publicKey] = 0;
 
-	namesIndex[delegate.username.toLowerCase()] = index;
-	publicKeyIndex[delegate.publicKey] = index;
-	transactionIdIndex[delegate.transactionId] = index;
+	private.namesIndex[delegate.username.toLowerCase()] = index;
+	private.publicKeyIndex[delegate.publicKey] = index;
+	private.transactionIdIndex[delegate.transactionId] = index;
 }
 
 Delegates.prototype.uncache = function (delegate) {
-	delete votes[delegate.publicKey];
-	delete unconfirmedVotes[delegate.publicKey];
+	delete private.votes[delegate.publicKey];
+	delete private.unconfirmedVotes[delegate.publicKey];
 
-	var index = publicKeyIndex[delegate.publicKey];
+	var index = private.publicKeyIndex[delegate.publicKey];
 
-	delete publicKeyIndex[delegate.publicKey]
-	delete namesIndex[delegate.username.toLowerCase()];
-	delete transactionIdIndex[delegate.transactionId];
-	delegates[index] = false;
+	delete private.publicKeyIndex[delegate.publicKey]
+	delete private.namesIndex[delegate.username.toLowerCase()];
+	delete private.transactionIdIndex[delegate.transactionId];
+	private.delegates[index] = false;
 }
 
 Delegates.prototype.validateBlockSlot = function (block) {
@@ -809,12 +809,12 @@ Delegates.prototype.onBind = function (scope) {
 }
 
 Delegates.prototype.onBlockchainReady = function () {
-	loaded = true;
+	private.loaded = true;
 
-	loadMyDelegates(); //temp
+	private.loadMyDelegates(); //temp
 
 	process.nextTick(function nextLoop() {
-		loop(function (err) {
+		private.loop(function (err) {
 			err && library.logger.error('delegate loop', err);
 
 			var nextSlot = slots.getNextSlot();
@@ -836,7 +836,7 @@ Delegates.prototype.onChangeBalance = function (delegates, amount) {
 
 		if (delegates !== null) {
 			delegates.forEach(function (publicKey) {
-				votes[publicKey] !== undefined && (votes[publicKey] += vote);
+				private.votes[publicKey] !== undefined && (private.votes[publicKey] += vote);
 			});
 		}
 	});
@@ -847,7 +847,7 @@ Delegates.prototype.onChangeUnconfirmedBalance = function (unconfirmedDelegates,
 
 	if (unconfirmedDelegates !== null) {
 		unconfirmedDelegates.forEach(function (publicKey) {
-			unconfirmedVotes[publicKey] !== undefined && (unconfirmedVotes[publicKey] += vote);
+			private.unconfirmedVotes[publicKey] !== undefined && (private.unconfirmedVotes[publicKey] += vote);
 		});
 	}
 }
@@ -860,10 +860,10 @@ Delegates.prototype.onChangeDelegates = function (balance, diff) {
 			var math = diff[i][0];
 			var publicKey = diff[i].slice(1);
 			if (math == "+") {
-				votes[publicKey] !== undefined && (votes[publicKey] += vote);
+				private.votes[publicKey] !== undefined && (private.votes[publicKey] += vote);
 			}
 			if (math == "-") {
-				votes[publicKey] !== undefined && (votes[publicKey] -= vote);
+				private.votes[publicKey] !== undefined && (private.votes[publicKey] -= vote);
 			}
 		}
 	});
@@ -876,10 +876,10 @@ Delegates.prototype.onChangeUnconfirmedDelegates = function (balance, diff) {
 		var math = diff[i][0];
 		var publicKey = diff[i].slice(1);
 		if (math == "+") {
-			unconfirmedVotes[publicKey] !== undefined && (unconfirmedVotes[publicKey] += vote);
+			private.unconfirmedVotes[publicKey] !== undefined && (private.unconfirmedVotes[publicKey] += vote);
 		}
 		if (math == "-") {
-			unconfirmedVotes[publicKey] !== undefined && (unconfirmedVotes[publicKey] -= vote);
+			private.unconfirmedVotes[publicKey] !== undefined && (private.unconfirmedVotes[publicKey] -= vote);
 		}
 	}
 }
