@@ -411,8 +411,6 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 
 			if (transaction.type == 0 && transaction.amount == 0) {
 				return done("Invalid amount");
-			} else if (transaction.type != 0 && transaction.amount > 0) {
-				return done("Invalid amount");
 			}
 
 			// check if transaction is not float and great then 0

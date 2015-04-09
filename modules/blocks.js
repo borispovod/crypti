@@ -833,8 +833,6 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 
 							if (transaction.type == 0 && transaction.amount == 0) {
 								return cb("Invalid amount of transaction: " + transaction.id);
-							} else if (transaction.type != 0 && transaction.amount > 0) {
-								return cb("Invalid amount of transaction: " + transaction.id);
 							}
 
 							if (transaction.amount < 0 || transaction.amount > 100000000 * constants.fixedPoint || transaction.amount.toString().indexOf('.') >= 0 || transaction.amount.toString().indexOf('e') >= 0) {

@@ -1,12 +1,12 @@
 {
-	"port": 7040,
+	"port": 8040,
 	"address": "0.0.0.0",
 	"serveHttpAPI": true,
 	"serveHttpWallet": true,
 	"version": "0.2.0",
 	"fileLogLevel": "info",
 	"consoleLogLevel": "log",
-	"sharePort": true,
+	"sharePort": false,
 	"api": {
 		"access": {
 			"whiteList": []
@@ -15,8 +15,20 @@
 	"peers": {
 		"list": [
 			{
-				"ip": "104.155.57.21",
-				"port": 7040
+				"ip": "104.155.2.92",
+				"port": 8040
+			},
+			{
+				"ip": "130.211.95.57",
+				"port": 8040
+			},
+			{
+				"ip": "130.211.111.230",
+				"port": 8040
+			},
+			{
+				"ip": "130.211.54.79",
+				"port": 8040
 			}
 		],
 		"blackList": []
@@ -28,7 +40,7 @@
 		}
 	},
 	"loading": {
-		"verifyOnLoading": false,
+		"verifyOnLoading": true,
 		"loadPerIteration": 10000
 	}
 }
