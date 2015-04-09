@@ -1,9 +1,10 @@
 var encryptHelper = require('../helpers/encrypt.js'),
 	TransactionTypes = require('../helpers/transaction-types.js'),
 	RequestSanitizer = require('../helpers/request-sanitizer.js'),
+	constants = require('../helpers/constants.js'),
 	Router = require('../helpers/router.js');
 
-var modules, library, self;
+var modules, library, self, private = {};
 
 function Message() {
 	this.create = function (data, trs) {
@@ -32,46 +33,46 @@ function Message() {
 
 	this.verify = function (trs, sender, cb) {
 		if (!trs.asset.message) {
-			return cb("Invalid asset");
+			return cb("Invalid asset: " + trs.id);
 		}
 
 		if (!trs.asset.message.data) {
-			return cb("Invalid message");
+			return cb("Invalid message: " + trs.id);
 		}
 
 		if (trs.amount != 0) {
-			return cb("Invalid amount");
+			return cb("Invalid amount: " + trs.id);
 		}
 
 		try {
 			var messageData = new Buffer(trs.asset.message.data, 'hex');
 			if (messageData.length > 140 || messageData.length == 0) {
-				return cb("Invalid message length");
+				return cb("Invalid message length: " + trs.id);
 			}
 		} catch (e) {
-			return cb("Invalid hex in message asset");
+			return cb("Invalid hex in message asset: " + trs.id);
 		}
 
 		if (!trs.asset.message.nonce) {
-			return cb("Invalid nonce");
+			return cb("Invalid nonce: " + trs.id);
 		}
 
 		if (!trs.asset.message.nonce && trs.asset.message.encrypted) {
-			return cb("Can't encrypt with nonce");
+			return cb("Can't encrypt with nonce: " + trs.id);
 		}
 
 		if (trs.asset.message.nonce) {
 			try {
 				if (new Buffer(trs.asset.message.nonce, 'hex').length != 24) {
-					return cb("Invalid nonce length");
+					return cb("Invalid nonce length: " + trs.id);
 				}
 			} catch (e) {
-				return cb("Invalid nonce param in message asset");
+				return cb("Invalid nonce param in message asset: " + trs.id);
 			}
 		}
 
 		if (trs.asset.message.encrypted !== false && trs.asset.message.encrypted !== true) {
-			return cb("Invalid encrypted param in message asset");
+			return cb("Invalid encrypted param in message asset: " + trs.id);
 		}
 
 		return cb(null, trs);
@@ -207,15 +208,11 @@ function attachApi() {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
 
-			var secret = body.secret,
-				secondSecret = body.secondSecret,
-				publicKey = body.publicKey;
-
-			var hash = crypto.createHash('sha256').update(secret, 'utf8').digest();
+			var hash = crypto.createHash('sha256').update(body.secret, 'utf8').digest();
 			var keypair = ed.MakeKeypair(hash);
 
-			if (publicKey) {
-				if (keypair.publicKey.toString('hex') != publicKey) {
+			if (body.publicKey) {
+				if (keypair.publicKey.toString('hex') != body.publicKey) {
 					return res.json({success: false, error: "Please, provide valid secret key of your account"});
 				}
 			}
@@ -230,7 +227,7 @@ function attachApi() {
 				return res.json({success: false, error: "Open account to make transaction"});
 			}
 
-			if (account.secondSignature && !secondSecret) {
+			if (account.secondSignature && !body.secondSecret) {
 				return res.json({success: false, error: "Provide second secret key"});
 			}
 
@@ -256,8 +253,8 @@ function attachApi() {
 				});
 			}
 
-			if (account.secondSignature && secondSecret) {
-				var secondHash = crypto.createHash('sha256').update(secondSecret, 'utf8').digest();
+			if (account.secondSignature && body.secondSecret) {
+				var secondHash = crypto.createHash('sha256').update(body.secondSecret, 'utf8').digest();
 				var secondKeypair = ed.MakeKeypair(secondHash);
 			}
 
@@ -272,7 +269,7 @@ function attachApi() {
 			});
 
 			library.sequence.add(function (cb) {
-				modules.transactions.processUnconfirmedTransaction(transaction, true, cb);
+				modules.transactions.receiveTransactions([transaction], cb);
 			}, function (err) {
 				if (err) {
 					return res.json({success: false, error: err});
@@ -289,8 +286,8 @@ function attachApi() {
 
 	library.app.use('/api/messages', router);
 	library.app.use(function (err, req, res, next) {
-		err && library.logger.error('/api/messages', err)
 		if (!err) return next();
+		library.logger.error(req.url, err.toString());
 		res.status(500).send({success: false, error: err.toString()});
 	});
 }
@@ -298,7 +295,7 @@ function attachApi() {
 function Messages(cb, scope) {
 	library = scope;
 	self = this;
-
+	self.__private = private;
 	attachApi();
 
 	library.logic.transaction.attachAssetType(TransactionTypes.MESSAGE, new Message());

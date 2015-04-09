@@ -2,57 +2,46 @@ var encryptHelper = require('../helpers/encrypt.js'),
 	TransactionTypes = require('../helpers/transaction-types.js'),
 	RequestSanitizer = require('../helpers/request-sanitizer.js'),
 	Router = require('../helpers/router.js'),
-	imageType = require('image-type');
+	constants = require('../helpers/constants.js');
 
 var modules, library, self, private = {};
 
-function Avatar() {
+function Contact() {
 	this.create = function (data, trs) {
 		trs.recipientId = null;
 		trs.amount = 0;
 
-		trs.asset.avatar = {
-			image: data.image
+		trs.asset.contact = {
+			address: trs.contactAddress
 		}
 
 		return trs;
 	}
 
 	this.calculateFee = function (trs) {
-		return 200 * constants.fixedPoint;
+		return 1 * constants.fixedPoint;
 	}
 
 	this.verify = function (trs, sender, cb) {
-		if (!trs.asset.avatar) {
+		if (!trs.asset.contact) {
 			return cb("Invalid asset: " + trs.id);
 		}
 
-		if (!trs.asset.avatar.image) {
-			return cb("Invalid message: " + trs.id);
+		if (!trs.asset.contact.address) {
+			return cb("Invalid following: " + trs.id);
+		}
+
+		var isAddress = /^[0-9]+[C|c]$/g;
+		if (!isAddress.test(trs.asset.contact.address.toLowerCase())) {
+			return cb("Invalid following: " + trs.id);
 		}
 
 		if (trs.amount != 0) {
 			return cb("Invalid amount: " + trs.id);
 		}
 
-		if (trs.recipientId) {
+		if (trs.recipientId != trs.senderId) {
 			return cb("Invalid recipient id: " + trs.id);
-		}
-
-		try {
-			var image = new Buffer(trs.asset.avatar.image, 'hex');
-
-			if (image.length > 10000 || image.length == 0) {
-				return cb("Invalid image");
-			}
-
-			var type = imageType(image);
-
-			if (type.ext != "png" || type.mime != 'image/png') {
-				return cb("Image is not png, upload png image please");
-			}
-		} catch (e) {
-			return cb("Invalid hex image or invalid image");
 		}
 
 		return cb(null, trs);
@@ -60,11 +49,11 @@ function Avatar() {
 
 	this.getBytes = function (trs) {
 		try {
-			var image = new Buffer(trs.asset.avatar.image, 'hex');
+			var contactAddress = new Buffer(trs.asset.contact.address, 'hex');
 
-			var bb = new ByteBuffer(image.length, true);
-			for (var i = 0; i < image.length; i++) {
-				bb.writeByte(image[i]);
+			var bb = new ByteBuffer(contactAddress.length, true);
+			for (var i = 0; i < contactAddress.length; i++) {
+				bb.writeByte(contactAddress[i]);
 			}
 
 			bb.flip();
@@ -76,39 +65,26 @@ function Avatar() {
 	}
 
 	this.apply = function (trs, sender) {
-		sender.unconfirmedAvatar = false;
-		sender.avatar = true;
-
-		return true;
+		return sender.applyContact(trs.asset.contact.address);
 	}
 
 	this.undo = function (trs, sender) {
-		sender.avatar = false;
-		sender.unconfirmedAvatar = true;
-
-		return true;
+		return sender.undoContact(trs.asset.contact.address);
 	}
 
 	this.applyUnconfirmed = function (trs, sender) {
-		if (sender.unconfirmedAvatar || sender.avatar) {
-			return false;
-		}
-
-		sender.unconfirmedAvatar = true;
-
-		return true;
+		return sender.applyUnconfirmedContact(trs.asset.contact.address);
 	}
 
 	this.undoUnconfirmed = function (trs, sender) {
-		sender.unconfirmedAvatar = false;
-		return true;
+		return sender.undoUnconfirmedContact(trs.asset.contact.address);
 	}
 
 	this.objectNormalize = function (trs) {
-		trs.asset.avatar = RequestSanitizer.validate(trs.asset.avatar, {
+		trs.asset.contact = RequestSanitizer.validate(trs.asset.contact, {
 			object: true,
 			properties: {
-				image: "hex!"
+				address: "string!"
 			}
 		}).value;
 
@@ -116,21 +92,21 @@ function Avatar() {
 	}
 
 	this.dbRead = function (raw) {
-		if (!raw.a_image) {
+		if (!raw.c_address) {
 			return null;
 		} else {
-			var avatar = {
+			var contact = {
 				transactionId: raw.t_id,
-				image: raw.a_image
+				address: raw.c_address
 			}
 
-			return {avatar: avatar};
+			return {contact: contact};
 		}
 	}
 
 	this.dbSave = function (dbLite, trs, cb) {
-		dbLite.query("INSERT INTO avatars(image, transactionId) VALUES($image, $transactionId)", {
-			image: new Buffer(trs.asset.avatar.image, 'hex'),
+		dbLite.query("INSERT INTO contacts(address, transactionId) VALUES($address, $transactionId)", {
+			address: trs.asset.contact.address,
 			transactionId: trs.id
 		}, cb);
 	}
@@ -146,27 +122,33 @@ function attachApi() {
 
 	router.get("/", function (req, res) {
 		req.sanitize("query", {
-			publicKey: "hex!"
+			secret: "string!",
+			secondSecret: "string?",
+			publicKey: "hex?"
 		}, function (err, report, query) {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
 
-			library.dbLite.query(
-				"SELECT lower(hex(image)), transactionId FROM avatars where transactionId=(SELECT id FROM trs where lower(hex(senderPublicKey))=$senderPublicKey and type=" + TransactionTypes.AVATAR + ")",
-				['image', 'transactionId'],
-				{
-					senderPublicKey: query.publicKey
-				}, function (err, rows) {
-					if (err || rows.length == 0) {
-						return res.json({success: false, error: err || "Can't find avatar of this account"});
-					}
+			var hash = crypto.createHash('sha256').update(query.secret, 'utf8').digest();
+			var keypair = ed.MakeKeypair(hash);
 
-					var image = new Buffer(rows[0].image, 'hex');
+			if (query.publicKey) {
+				if (keypair.publicKey.toString('hex') != query.publicKey) {
+					return res.json({success: false, error: "Please, provide valid secret key of your account"});
+				}
+			}
 
-					res.writeHead(200, {'Content-Type': 'image/png'});
-					res.writeHead(200, {'Content-Length': image.length});
-					res.end(image, 'binary');
-				});
+			var account = modules.accounts.getAccountByPublicKey(keypair.publicKey.toString('hex'));
+
+			if (!account) {
+				return res.json({success: false, error: "Account doesn't has balance"});
+			}
+
+			if (!account.publicKey) {
+				return res.json({success: false, error: "Open account to make transaction"});
+			}
+
+			res.json({success: true, following: account.following});
 		});
 	});
 
@@ -175,7 +157,7 @@ function attachApi() {
 			secret: "string!",
 			secondSecret: "string?",
 			publicKey: "hex?",
-			image: "hex!"
+			following: "string!"
 		}, function (err, report, body) {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
@@ -208,12 +190,24 @@ function attachApi() {
 				var secondKeypair = ed.MakeKeypair(secondHash);
 			}
 
+			var followingAddress = null;
+			var isAddress = /^[0-9]+[C|c]$/g;
+			if (isAddress.test(body.following.toLowerCase())) {
+				followingAddress = body.following;
+			} else {
+				var following = modules.accounts.getAccountByUsername(body.following);
+				if (!following) {
+					return res.json({success: false, error: "Invalid following"});
+				}
+				followingAddress = following.address;
+			}
+
 			var transaction = library.logic.transaction.create({
-				type: TransactionTypes.AVATAR,
+				type: TransactionTypes.FOLLOW,
 				sender: account,
 				keypair: keypair,
 				secondKeypair: secondKeypair,
-				image: body.image
+				contactAddress: followingAddress
 			});
 
 			library.sequence.add(function (cb) {
@@ -232,7 +226,7 @@ function attachApi() {
 		res.status(500).send({success: false, error: 'api not found'});
 	});
 
-	library.app.use('/api/avatars', router);
+	library.app.use('/api/contacts', router);
 	library.app.use(function (err, req, res, next) {
 		if (!err) return next();
 		library.logger.error(req.url, err.toString());
@@ -240,20 +234,20 @@ function attachApi() {
 	});
 }
 
-function Avatars(cb, scope) {
+function Contacts(cb, scope) {
 	library = scope;
 	self = this;
 	self.__private = private;
 	attachApi();
 
-	library.logic.transaction.attachAssetType(TransactionTypes.AVATAR, new Avatar());
+	library.logic.transaction.attachAssetType(TransactionTypes.FOLLOW, new Contact());
 
 	setImmediate(cb, null, self);
 }
 
-Avatars.prototype.onBind = function (scope) {
+Contacts.prototype.onBind = function (scope) {
 	modules = scope;
 }
 
 //export
-module.exports = Avatars;
+module.exports = Contacts;

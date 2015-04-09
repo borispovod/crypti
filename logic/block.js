@@ -218,7 +218,7 @@ Block.prototype.getHash = function (block) {
 }
 
 Block.prototype.calculateFee = function (block) {
-	return 0.5;
+	return 0.1;
 }
 
 Block.prototype.dbRead = function (raw) {

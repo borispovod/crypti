@@ -5,7 +5,6 @@ var appConfig = require("./config.json");
 var async = require('async');
 var extend = require('extend');
 var path = require('path');
-var SegfaultHandler = require('segfault-handler');
 
 program
 	.version(packageJson.version)
@@ -42,8 +41,6 @@ if (program.peers) {
 if (program.log) {
 	appConfig.consoleLogLevel = program.log;
 }
-
-SegfaultHandler.registerHandler();
 
 process.on('uncaughtException', function (err) {
 	// handle the error safely

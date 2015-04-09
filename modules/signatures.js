@@ -10,7 +10,7 @@ var ed = require('ed25519'),
 	TransactionTypes = require('../helpers/transaction-types.js');
 
 // private fields
-var modules, library, self;
+var modules, library, self, private = {};
 
 function Signature() {
 	this.create = function (data, trs) {
@@ -29,19 +29,19 @@ function Signature() {
 
 	this.verify = function (trs, sender, cb) {
 		if (!trs.asset.signature) {
-			return cb("Empty transaction asset for signature transaction")
+			return cb("Empty transaction asset for signature transaction: " + trs.id)
 		}
 
 		if (trs.amount != 0) {
-			return cb("Invalid amount");
+			return cb("Invalid amount: " + trs.id);
 		}
 
 		try {
 			if (new Buffer(trs.asset.signature.publicKey, 'hex').length != 32) {
-				return cb("Invalid length for signature public key");
+				return cb("Invalid length for signature public key: " + trs.id);
 			}
 		} catch (e) {
-			return cb("Invalid hex in signature public key");
+			return cb("Invalid hex in signature public key: " + trs.id);
 		}
 
 		return cb(null, trs);
@@ -131,7 +131,7 @@ function Signature() {
 function Signatures(cb, scope) {
 	library = scope;
 	self = this;
-
+	self.__private = private;
 	attachApi();
 
 	library.logic.transaction.attachAssetType(TransactionTypes.SIGNATURE, new Signature());
@@ -157,15 +157,11 @@ function attachApi() {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
 
-			var secret = body.secret,
-				secondSecret = body.secondSecret,
-				publicKey = body.publicKey;
-
-			var hash = crypto.createHash('sha256').update(secret, 'utf8').digest();
+			var hash = crypto.createHash('sha256').update(body.secret, 'utf8').digest();
 			var keypair = ed.MakeKeypair(hash);
 
-			if (publicKey) {
-				if (keypair.publicKey.toString('hex') != publicKey) {
+			if (body.publicKey) {
+				if (keypair.publicKey.toString('hex') != body.publicKey) {
 					return res.json({success: false, error: "Please, provide valid secret key of your account"});
 				}
 			}
@@ -184,7 +180,7 @@ function attachApi() {
 				return res.json({success: false, error: "Second signature already enabled"});
 			}
 
-			var secondHash = crypto.createHash('sha256').update(secondSecret, 'utf8').digest();
+			var secondHash = crypto.createHash('sha256').update(body.secondSecret, 'utf8').digest();
 			var secondKeypair = ed.MakeKeypair(secondHash);
 
 			var transaction = library.logic.transaction.create({
@@ -195,7 +191,7 @@ function attachApi() {
 			});
 
 			library.sequence.add(function (cb) {
-				modules.transactions.processUnconfirmedTransaction(transaction, true, cb);
+				modules.transactions.receiveTransactions([transaction], cb);
 			}, function (err) {
 				if (err) {
 					return res.json({success: false, error: err});
@@ -211,8 +207,8 @@ function attachApi() {
 
 	library.app.use('/api/signatures', router);
 	library.app.use(function (err, req, res, next) {
-		err && library.logger.error('/api/signatures', err)
 		if (!err) return next();
+		library.logger.error(req.url, err.toString());
 		res.status(500).send({success: false, error: err.toString()});
 	});
 }

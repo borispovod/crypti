@@ -4,15 +4,15 @@ var util = require('util'),
 	Router = require('../helpers/router.js');
 
 //private fields
-var modules, library, self;
+var modules, library, self, private = {};
 
-var loaded = false
+private.loaded = false
 
 //constructor
 function Server(cb, scope) {
 	library = scope;
 	self = this;
-
+	self.__private = private;
 	attachApi();
 
 	setImmediate(cb, null, self);
@@ -28,7 +28,7 @@ function attachApi() {
 	});
 
 	router.get('/', function (req, res) {
-		if (loaded) {
+		if (private.loaded) {
 			res.render('wallet.html', {layout: false});
 		} else {
 			res.render('loading.html');
@@ -53,8 +53,8 @@ Server.prototype.onBind = function (scope) {
 	modules = scope;
 }
 
-Server.prototype.onBlockchainReady = function(){
-	loaded = true;
+Server.prototype.onBlockchainReady = function () {
+	private.loaded = true;
 }
 
 //export

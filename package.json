@@ -40,7 +40,6 @@
     "node-schedule": "~0.1.16",
     "pkginfo": "^0.3.0",
     "request": "*",
-    "segfault-handler": "*",
     "stack-trace": "0.0.9",
     "strftime": "*",
     "toposort": "~0.2.10",
