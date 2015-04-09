@@ -414,7 +414,7 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 			}
 
 			// check if transaction is not float and great then 0
-			if (transaction.amount == 0 || transaction.amount < 0 || transaction.amount > 100000000 * constants.fixedPoint || transaction.amount.toString().indexOf('.') >= 0 || transaction.amount.toString().indexOf('e') >= 0) {
+			if (transaction.amount < 0 || transaction.amount > 100000000 * constants.fixedPoint || transaction.amount.toString().indexOf('.') >= 0 || transaction.amount.toString().indexOf('e') >= 0) {
 				return done("Invalid transaction amount");
 			}
 
