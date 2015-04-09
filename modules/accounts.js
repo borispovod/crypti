@@ -80,6 +80,7 @@ function accountApplyUnconfirmedDiff(account, diff) {
 			if (account.unconfirmedDelegates) {
 				index = account.unconfirmedDelegates.indexOf(publicKey);
 			}
+
 			if (index != -1) {
 				account.unconfirmedDelegates = tmp;
 				return false;

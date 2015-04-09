@@ -2,7 +2,7 @@
 	Genesis block generator. v0.1
 
 	Example:
-	SECRET=4AMbeHpDvmtcHnCu5AWjbgzT4psH8RVMgjPnRNBbYUZxStBMSqGE OUTPUT=./helpers/genesisblock.js
+	SECRET=nY4NxXNd9velmtPxRN6TS8JLDR2dMGzkyL51p1sTPefA3tY9SzWBZT6GYlxyUgCQhSrJsoLiXHiuGqFVZTEObqI5BWgua6i5MAk OUTPUT=./helpers/genesisblock.js
  */
 
 var crypto = require('crypto'),
@@ -132,7 +132,7 @@ console.log("Address: " + address + ", pubic key: " + keypair.publicKey.toString
 var payloadLength = 0,
 	payloadHash = crypto.createHash('sha256'),
 	transactions = [],
-	totalAmount = 0;
+	totalAmount = bignum(0);
 
 console.log("Make accounts transactions....");
 
@@ -151,7 +151,12 @@ for (var i = 0; i < file.accounts.length; i++) {
 		};
 
 
-		totalAmount += transaction.amount;
+		/*if (transaction.amount == 0 || transaction.amount.toString().indexOf('.') >= 0) {
+			console.log(transaction.amount);
+		}*/
+
+		console.log(transaction.amount);
+		totalAmount = totalAmount.add(transaction.amount);
 
 		signTransaction(secret, transaction);
 		transaction.id = transactionHelper.getId(transaction);
@@ -293,7 +298,7 @@ console.log("Make block...");
 
 var block = {
 	version: 0,
-	totalAmount: totalAmount,
+	totalAmount: totalAmount.toNumber(),
 	totalFee: 0,
 	payloadHash: payloadHash.toString('hex'),
 	timestamp: 0,
@@ -304,6 +309,8 @@ var block = {
 	transactions: transactions,
 	height: 1
 };
+
+console.log(totalAmount.toNumber());
 
 block.blockSignature = sign(keypair, block);
 block.id = getId(block);
