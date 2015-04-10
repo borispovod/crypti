@@ -52,7 +52,7 @@ angular.module('webApp').controller('voteController', ["$scope", "voteModal", "$
             var checkBeforSending = transactionService.checkTransaction(voteTransaction, $scope.secretPhrase);
 
             if (checkBeforSending.err) {
-                $scope.fromServer = checkBeforSending.err.message;
+                $scope.fromServer = checkBeforSending.message;
                 return;
             };
 

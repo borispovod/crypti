@@ -46,6 +46,10 @@
                     </div>
                 </button>
                 <button class="button button-vote small green"
+<<<<<<< HEAD
+=======
+                        ng-disabled="voteList.list.toServer.length == 32"
+>>>>>>> 318e7a3217b5a4112c8bcee29560402a0b3d621e
                         ng-click="voteList.vote(delegate.publicKey, delegate.username)"
                         ng-if="!voteList.inList(delegate.publicKey) && (!delegates.voted(delegate.publicKey) && !unconfirmedTransactions.inList(delegate.publicKey))">
                     Select
@@ -89,6 +93,7 @@
                     </div>
                 </button>
                 <button class="button button-vote small green"
+                        ng-disabled="voteList.list.toServer.length == 32"
                         ng-click="voteList.vote(delegate.publicKey, delegate.username)"
                         ng-if="!voteList.inList(delegate.publicKey) && (!delegates.voted(delegate.publicKey) && !unconfirmedTransactions.inList(delegate.publicKey))">
                     Select

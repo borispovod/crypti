@@ -5,9 +5,10 @@ angular.module('webApp').controller('secondPassphraseModalController', ["$scope"
     function ($scope, secondPassphraseModal, $http, userService, peerFactory, transactionService) {
         $scope.type = "password";
         $scope.sending = false;
+        $scope.totalBalance = userService.balance;
 
         $scope.close = function () {
-			console.log("close");
+            console.log("close");
             if ($scope.destroy) {
                 $scope.destroy();
             }
@@ -19,11 +20,15 @@ angular.module('webApp').controller('secondPassphraseModalController', ["$scope"
             if ($scope.showPassphrase) {
                 $scope.type = "text";
             } else {
-                $scope.type = "password";
+                $scope.type = "password"
             }
         }
 
         $scope.addNewPassphrase = function () {
+            if ($scope.totalBalance < 100) {
+                $scope.fromServer = 'You are missing ' + (100 - $scope.totalBalance) + ' XCR';
+                return;
+            }
 
             var transaction = crypti.signature.createSignature($scope.secretPhrase, $scope.newSecretPhrase);
             var checkBeforSending = transactionService.checkTransaction(transaction, $scope.secretPhrase);
@@ -31,7 +36,7 @@ angular.module('webApp').controller('secondPassphraseModalController', ["$scope"
             if (checkBeforSending.err) {
                 $scope.fromServer = checkBeforSending.message;
                 return;
-            };
+            }
 
             $scope.sending = true;
 

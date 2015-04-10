@@ -7,6 +7,7 @@ angular.module('webApp').controller('sendCryptiController', ["$scope", "sendCryp
         $scope.accountValid = true;
         $scope.errorMessage = "";
         $scope.onlyNumbers = /^-?\d*(\.\d+)?$/;
+        $scope.cryptiAddress = /[0-9]*C$/;
         $scope.secondPassphrase = userService.secondPassphrase;
         $scope.address = userService.address;
 
@@ -111,14 +112,17 @@ angular.module('webApp').controller('sendCryptiController', ["$scope", "sendCryp
             if (string[string.length - 1] == "D" || string[string.length - 1] == "C") {
                 var isnum = /^\d+$/.test(string.substring(0, string.length - 1));
                 if (isnum && string.length - 1 >= 1 && string.length - 1 <= 20) {
+                    $scope.errorMessage = "";
                     $scope.accountValid = true;
                 }
                 else {
                     $scope.accountValid = false;
+                    $scope.errorMessage = "Please enter a valid Crypti address";
                 }
             }
             else {
                 $scope.accountValid = false;
+                $scope.errorMessage = "Please enter a valid Crypti address";
             }
         }
 
@@ -209,11 +213,9 @@ angular.module('webApp').controller('sendCryptiController', ["$scope", "sendCryp
             var checkBeforSending = transactionService.checkTransaction(sendTransaction, $scope.secretPhrase);
 
             if (checkBeforSending.err) {
-                $scope.amountError = checkBeforSending.err;
-                $scope.errorMessage = checkBeforSending.err.message;
+                $scope.errorMessage = checkBeforSending.message;
                 return;
             }
-            ;
 
             if (!$scope.lengthError && !$scope.sending) {
                 $scope.sending = !$scope.sending;
