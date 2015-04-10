@@ -9,8 +9,6 @@ angular.module('webApp').service('transactionService', function (userService) {
         var keys = crypti.crypto.getKeys(secret);
         var address = crypti.crypto.getAddress(keys.publicKey);
 
-<<<<<<< HEAD
-=======
         if (userService.address != address) {
             return {
                 err: true,
@@ -18,7 +16,6 @@ angular.module('webApp').service('transactionService', function (userService) {
             }
         }
 
->>>>>>> 318e7a3217b5a4112c8bcee29560402a0b3d621e
         if (secret.length == 0) {
             return {
                 err: true,
@@ -57,11 +54,7 @@ angular.module('webApp').service('transactionService', function (userService) {
         return {
             "headers": {
                 "os": platform.os.toString(),
-<<<<<<< HEAD
-                "version": "0.2.0light",
-=======
                 "version": "0.2.0Lite!",
->>>>>>> 318e7a3217b5a4112c8bcee29560402a0b3d621e
                 "port": 0,
                 "share-port": false
             }

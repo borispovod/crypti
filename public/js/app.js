@@ -4,7 +4,7 @@ require('angular-ui-router');
 require('angular-modal');
 require('angular-resource');
 require('crypti-js');
-require('../node_modules/ng-table/ng-table.js');
+require('../node_modules/ng-table/dist/ng-table.js');
 require('./contextmenu.js');
 
 webApp = angular.module('webApp', ['ui.router', 'btford.modal', 'ngTable', 'stBlurredDialog']);
