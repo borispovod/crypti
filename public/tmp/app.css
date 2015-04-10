@@ -711,10 +711,19 @@ span.menu-text {
 }
 #login-form {
   width: 526px;
-  height: 250px;
+  height: 280px;
   background-color: #fff;
   border-radius: 3px;
   box-shadow: 0 1px rgba(0, 0, 0, 0.07);
+}
+#login-form p.error {
+  display: block;
+  width: 492px;
+  line-height: 1.6;
+  margin: 15px auto 0;
+  font-size: 13px;
+  text-align: center;
+  color: #F24A65;
 }
 #center {
   position: absolute;
@@ -774,7 +783,7 @@ span.menu-text {
   position: fixed;
   top: 8px;
   right: 8px;
-  background-size: 48px 32px;
+  background-size: 36px 24px;
   background-image: url('../../images/cloud-grey.png');
   background-repeat: no-repeat;
   height: 32px;
@@ -788,7 +797,7 @@ span.menu-text {
   width: 260px;
   height: 160px;
   right: 8px;
-  top: 70px;
+  top: 50px;
   border-radius: 8px;
 }
 .edit_peer #bestPeer {
@@ -824,13 +833,16 @@ span.menu-text {
   border-radius: 9px;
   box-sizing: border-box;
 }
+.edit_peer #peer.err {
+  border: 1px solid red;
+}
 .edit_peer #peer:focus {
   outline: none;
 }
 .edit_peer:after,
 .edit_peer:before {
   bottom: 100%;
-  left: 90%;
+  left: 89%;
   border: solid transparent;
   content: " ";
   height: 0;
@@ -1235,11 +1247,11 @@ span.menu-text {
   box-shadow: 0px 3px 0px #d4d5d6;
 }
 .st-blurred-region {
-  -webkit-filter: blur(1px);
-  -moz-filter: blur(1px);
-  -o-filter: blur(1px);
-  -ms-filter: blur(1px);
-  filter: blur(1px);
+  -webkit-filter: blur(3px);
+  -moz-filter: blur(3px);
+  -o-filter: blur(3px);
+  -ms-filter: blur(3px);
+  filter: blur(3px);
 }
 .st-blurred-region-overlay {
   position: fixed;
@@ -1284,10 +1296,84 @@ span.menu-text {
   background: #61b26e;
   border: 2px solid #50955c;
 }
+.st-blurred-modal .searchText {
+  display: inline-block;
+  width: 320px;
+  padding: 12px 0 0 10px;
+}
+.st-blurred-modal .errorText {
+  display: inline-block;
+  width: 320px;
+  padding: 8px 0 0 10px;
+}
+.st-blurred-modal .icon {
+  display: inline-block;
+  float: left;
+  background-size: 64px 64px;
+  background-image: url('../../images/search_peer.png');
+  background-repeat: no-repeat;
+  height: 64px;
+  width: 64px;
+}
 .st-blurred-modal.red {
   background: #ED4A4A;
   border: 2px solid #E67A7A;
 }
+.st-blurred-modal.red .icon {
+  background-image: url('../../images/error_peer.png');
+}
 .st-blurred-modal .button {
   margin: 16px 0 0 0;
+  display: block;
+  float: right;
+}
+.spin-load {
+  -webkit-animation-name: spin;
+  -webkit-animation-duration: 2000ms;
+  -webkit-animation-iteration-count: infinite;
+  -webkit-animation-timing-function: linear;
+  -moz-animation-name: spin;
+  -moz-animation-duration: 2000ms;
+  -moz-animation-iteration-count: infinite;
+  -moz-animation-timing-function: linear;
+  -ms-animation-name: spin;
+  -ms-animation-duration: 2000ms;
+  -ms-animation-iteration-count: infinite;
+  -ms-animation-timing-function: linear;
+  animation-name: spin;
+  animation-duration: 2000ms;
+  animation-iteration-count: infinite;
+  animation-timing-function: linear;
+}
+@-ms-keyframes spin {
+  from {
+    -ms-transform: rotate(360deg);
+  }
+  to {
+    -ms-transform: rotate(0deg);
+  }
+}
+@-moz-keyframes spin {
+  from {
+    -moz-transform: rotate(360deg);
+  }
+  to {
+    -moz-transform: rotate(0deg);
+  }
+}
+@-webkit-keyframes spin {
+  from {
+    -webkit-transform: rotate(360deg);
+  }
+  to {
+    -webkit-transform: rotate(0deg);
+  }
+}
+@keyframes spin {
+  from {
+    transform: rotate(3600deg);
+  }
+  to {
+    transform: rotate(0deg);
+  }
 }
