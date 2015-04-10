@@ -4,6 +4,8 @@ var path = require('path');
 
 if (process.env.WINDOWS) {
 	dblite.bin = path.join(process.cwd(), 'sqlite', 'sqlite3.exe');
+} else if (process.env.MACOS) {
+	dblite.bin = path.join(process.cwd(), 'sqlite', 'sqlite3');
 }
 
 module.exports.connect = function (connectString, cb) {
