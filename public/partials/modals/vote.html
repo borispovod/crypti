@@ -5,13 +5,14 @@
 		</div>
 		<div class="clearfix">
 			<p class="lead">
-				Your current voting weight is {{totalBalance}} XCR. It will cost you 1 XCR to vote.
+                Your current voting weight is {{totalBalance}} XCR. You can vote for up to 33 delegates at any one time. Voting fee: 1 XCR.
+
 			</p>
 		</div>
 		<form class="form" autocomplete="off">
-			<input class="input-text" type="password" ng-model="secretPhrase" placeholder="Your secretPhrase"
+			<input class="input-text" type="password" ng-model="secretPhrase" placeholder="Primary password"
 				   ng-trim="false">
-			<input class="input-text" type="password" ng-model="secondPhrase" placeholder="Your second secretPhrase"
+			<input class="input-text" type="password" ng-model="secondPhrase" placeholder="Secondary password"
 				   ng-show="secondPassphrase" ng-trim="false">
 
 			<p class="error">{{fromServer}}.</p>

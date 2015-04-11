@@ -27,7 +27,7 @@ angular.module('webApp').service('transactionService', function (userService) {
             if (keys.publicKey != transaction.senderPublicKey) {
                 return {
                     err: true,
-                    message: "Please, provide valid secret key of your account"
+                    message: "Invalid account primary password. Try again"
                 }
             }
         }

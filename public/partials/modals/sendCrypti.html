@@ -5,8 +5,8 @@
             <input class="input-text" ng-class="{err: !accountValid}" type="text" ng-model="to" placeholder="To" ng-blur="accountChanged($event)">
             <input class="input-text" ng-class="{err: amount < 0 || amountError || lengthError}" type="text" ng-model="amount" placeholder="Amount" ng-change="recalculateFee($event)" ng-pattern="onlyNumbers">
             <input class="input-text" ng-class="{err: fee < 0 || amountError }" type="text" ng-model="fee" placeholder="Network fee percent: {{currentFee}}%" readonly>
-            <input class="input-text" type="password" ng-model="secretPhrase" placeholder="Your secretPhrase" ng-trim="false">
-            <input class="input-text" type="password" ng-model="secondPhrase" placeholder="Your second secretPhrase" ng-show="secondPassphrase" ng-trim="false">
+            <input class="input-text" type="password" ng-model="secretPhrase" placeholder="Primary password" ng-trim="false">
+            <input class="input-text" type="password" ng-model="secondPhrase" placeholder="Secondary password" ng-show="secondPassphrase" ng-trim="false">
             <p class="error" ng-show="(address == to)">Self sending.</p>
             <p class="error">{{errorMessage}}.</p>
             <div class="pull-right">

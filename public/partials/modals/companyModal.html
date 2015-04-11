@@ -25,8 +25,8 @@
             <input class="input-text" type="text" ng-readonly="token" ng-model="email" placeholder="Email">
             <p class="error" ng-show="emailError">{{ emailError }}</p>
             <input class="input-text" type="text" value="1000 XCR (Service cost)" readonly>
-            <input class="input-text" type="password" ng-readonly="token" ng-model="secretPhrase" placeholder="Your SecretPhrase" ng-trim="false">
-            <input class="input-text" type="password" ng-readonly="token" ng-model="secondPhrase" placeholder="Your second secretPhrase" ng-show="secondPassphrase" ng-trim="false">
+            <input class="input-text" type="password" ng-readonly="token" ng-model="secretPhrase" placeholder="Primary password" ng-trim="false">
+            <input class="input-text" type="password" ng-readonly="token" ng-model="secondPhrase" placeholder="Secondary password" ng-show="secondPassphrase" ng-trim="false">
             <input class="input-text" type="text" ng-model="token" ng-show="token" readonly>
             <p class="error">{{fromServer}}</p>
             <div class="pull-right">

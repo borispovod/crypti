@@ -192,7 +192,7 @@ angular.module('webApp').controller('sendCryptiController', ["$scope", "sendCryp
 
             if (($scope.amount + '').indexOf('.') != -1) {
                 $scope.lengthError = $scope.amount.split('.')[1].length > 8;
-                $scope.errorMessage = "More than 8 numbers in decimal part";
+                $scope.errorMessage = "Invalid amount. Please use up to 8 decimal numbers";
             }
 
             if ($scope.lengthError) {
