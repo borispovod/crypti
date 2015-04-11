@@ -1,5 +1,5 @@
 {
-	"port": 7040,
+	"port": 8040,
 	"address": "0.0.0.0",
 	"serveHttpAPI": true,
 	"serveHttpWallet": true,
@@ -15,20 +15,32 @@
 	"peers": {
 		"list": [
 			{
-				"ip": "130.211.104.33",
-				"port": 7040
+				"ip": "104.155.2.92",
+				"port": 8040
+			},
+			{
+				"ip": "130.211.95.57",
+				"port": 8040
+			},
+			{
+				"ip": "130.211.111.230",
+				"port": 8040
+			},
+			{
+				"ip": "130.211.54.79",
+				"port": 8040
 			}
 		],
 		"blackList": []
 	},
 	"forging": {
-		"secret":"",
+		"secret":[],
 		"access": {
-			"whiteList": []
+			"whiteList": ["127.0.0.1"]
 		}
 	},
 	"loading": {
-		"verifyOnLoading": false,
-		"loadPerIteration": 10000
+		"verifyOnLoading": true,
+		"loadPerIteration": 5000
 	}
 }

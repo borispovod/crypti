@@ -67,7 +67,7 @@ function attachApi() {
 
 		if (publicKey) {
 			if (keypair.publicKey.toString('hex') != publicKey) {
-				return res.json({success: false, error: "Please, provide valid secret key of your account"});
+				return res.json({success: false, error: "Invalid account primary password. Try again"});
 			}
 		}
 
@@ -83,6 +83,10 @@ function attachApi() {
 
 		if (account.secondSignature || account.unconfirmedSignature) {
 			return res.json({success: false, error: "Second signature already enabled"});
+		}
+
+		if (account.unconfirmedBalance < 100 * constants.fixedPoint) {
+			return res.json({success: false, error: "You are missing " + (100 - account.unconfirmedBalance) + " XCR."})
 		}
 
 		var signature = newSignature(secondSecret);

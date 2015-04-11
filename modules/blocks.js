@@ -84,7 +84,7 @@ function attachApi() {
 	});
 
 	router.get('/getFee', function (req, res) {
-		res.json({success: true, fee: 0.5});
+		res.json({success: true, fee: 0.1});
 	});
 
 	router.get('/getHeight', function (req, res) {
@@ -712,7 +712,7 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 }
 
 Blocks.prototype.getFee = function () {
-	return 0.5;
+	return 0.1;
 }
 
 Blocks.prototype.getLastBlock = function () {
@@ -831,6 +831,10 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 								return cb("Invalid transaction type/fee: " + transaction.id);
 							}
 
+							if (transaction.type == 0 && transaction.amount == 0) {
+								return cb("Invalid amount of transaction: " + transaction.id);
+							}
+
 							if (transaction.amount < 0 || transaction.amount > 100000000 * constants.fixedPoint || transaction.amount.toString().indexOf('.') >= 0 || transaction.amount.toString().indexOf('e') >= 0) {
 								return cb("Invalid transaction amount: " + transaction.id);
 							}
@@ -883,6 +887,13 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 
 									if (transaction.asset.delegate.username.length == 0 || transaction.asset.delegate.username.length > 20) {
 										return cb("Incorrect delegate username length");
+									}
+
+									var firstCharacter = transaction.asset.delegate.username[0];
+
+									var isFirstCharacter = /^[a-z0-9]+$/g;
+									if (!isFirstCharacter.test(firstCharacter.toLowerCase())) {
+										return cb("First character of username must be either a letter or number.");
 									}
 
 									if (modules.delegates.existsName(transaction.asset.delegate.username)) {

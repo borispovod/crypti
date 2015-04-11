@@ -41,6 +41,11 @@ function accountApplyDiff(account, diff) {
 				return false;
 			}
 
+			if (account.delegates && account.delegates.length >= 101){
+				account.delegates = tmp;
+				return false;
+			}
+
 			account.delegates.push(publicKey);
 		}
 		if (math == "-") {
@@ -75,7 +80,13 @@ function accountApplyUnconfirmedDiff(account, diff) {
 			if (account.unconfirmedDelegates) {
 				index = account.unconfirmedDelegates.indexOf(publicKey);
 			}
+
 			if (index != -1) {
+				account.unconfirmedDelegates = tmp;
+				return false;
+			}
+
+			if (account.unconfirmedDelegates && account.unconfirmedDelegates.length >= 101){
 				account.unconfirmedDelegates = tmp;
 				return false;
 			}
@@ -313,7 +324,7 @@ function attachApi() {
 
 		if (publicKey) {
 			if (keypair.publicKey.toString('hex') != publicKey) {
-				return res.json({success: false, error: "Please, provide valid secret key of your account"});
+				return res.json({success: false, error: "Invalid account primary password. Try again"});
 			}
 		}
 
@@ -346,7 +357,7 @@ function attachApi() {
 
 		if (account.secondSignature) {
 			if (!secondSecret) {
-				return res.json({success: false, error: "Provide second secret key"});
+				return res.json({success: false, error: "Invalid account secondary password. Try again"});
 			}
 
 			modules.transactions.secondSign(secondSecret, transaction);

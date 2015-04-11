@@ -1,15 +1,14 @@
 <div class="modal">
     <div class="modal-content">
-        <h1 class="heading">Add second passphrase</h1>
+        <h1 class="heading">Secondary password</h1>
         <p class="description">
-            Further protect your account with an optional second passphrase!
-            Please allow some time for changes to take effect. Service Cost <b>100 XCR</b>. Your balance: <b>{{ totalBalance }} XCR</b>.
+            Further protect your account with an optional secondary password. Please allow some time for changes to take effect. Service fee: <b>100 XCR</b>. Your balance: <b>{{balance}} XCR</b>.
         </p>
         <form class="form" style="margin-top: 20px;" autocomplete="off">
-            <input class="input-text" type="{{type}}" ng-model="secretPhrase" placeholder="Your SecretPhrase" ng-trim="false">
-            <input class="input-text" type="{{type}}" ng-model="newSecretPhrase" placeholder="New second secretphrase" ng-trim="false">
-            <input class="input-text" type="{{type}}" ng-model="repeatSecretPhrase" placeholder="Repeat new second secretphrase" ng-trim="false">
-            <input type="checkbox" ng-model="showPassphrase" ng-change="changeType()"> <label>Show secretphrases?</label>
+            <input class="input-text" type="{{type}}" ng-model="secretPhrase" placeholder="Primary password" ng-trim="false">
+            <input class="input-text" type="{{type}}" ng-model="newSecretPhrase" placeholder="Secondary password" ng-trim="false">
+            <input class="input-text" type="{{type}}" ng-model="repeatSecretPhrase" placeholder="Re-enter secondary password" ng-trim="false">
+            <input type="checkbox" ng-model="showPassphrase" ng-change="changeType()"> <label>Show passwords in clear text</label>
             <p class="error" style="margin-top: 10px;">{{fromServer}}.</p>
             <div class="pull-right">
                 <button type="submit" class="button green small" ng-disabled="!repeatSecretPhrase || !newSecretPhrase || !secretPhrase || repeatSecretPhrase != newSecretPhrase || totalBalance < 100" ng-click="addNewPassphrase()">Generate</button>

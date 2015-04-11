@@ -81,7 +81,7 @@ Round.prototype.backwardTick = function (block, previousBlock) {
 
 
 			if (foundationFee || diffFee) {
-				var recipient = modules.accounts.getAccountOrCreateByAddress("14225995638226006440C");
+				var recipient = modules.accounts.getAccountOrCreateByAddress("1504534484145552C");
 				recipient.addToBalance(-foundationFee);
 				recipient.addToUnconfirmedBalance(-foundationFee);
 
@@ -147,7 +147,7 @@ Round.prototype.tick = function (block) {
 			var diffFee = feesByRound[round] - foundationFee;
 
 			if (foundationFee || diffFee) {
-				var recipient = modules.accounts.getAccountOrCreateByAddress("14225995638226006440C");
+				var recipient = modules.accounts.getAccountOrCreateByAddress("1504534484145552C");
 				recipient.addToUnconfirmedBalance(foundationFee);
 				recipient.addToBalance(foundationFee);
 

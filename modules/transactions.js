@@ -132,12 +132,12 @@ function attachApi() {
 		var keypair = ed.MakeKeypair(hash);
 
 		if (!secret) {
-			return res.json({success: false, error: "Provide secret key"});
+			return res.json({success: false, error: "Invalid account primary password. Try again"});
 		}
 
 		if (publicKey) {
 			if (keypair.publicKey.toString('hex') != publicKey) {
-				return res.json({success: false, error: "Please, provide valid secret key of your account"});
+				return res.json({success: false, error: "Invalid account primary password. Try again"});
 			}
 		}
 
@@ -171,7 +171,7 @@ function attachApi() {
 
 		if (account.secondSignature) {
 			if (!secondSecret) {
-				return res.json({success: false, error: "Provide second secret key"});
+				return res.json({success: false, error: "Invalid account secondary password. Try again"});
 			}
 
 			self.secondSign(secondSecret, transaction);
@@ -397,12 +397,20 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 
 			if (sender.secondSignature) {
 				if (!self.verifySecondSignature(transaction, sender.secondPublicKey)) {
-					return done("Second secretPhrase is incorrect.");
+					return done("Second password is incorrect");
 				}
 			}
 
 			if (!sender.secondSignature && transaction.signSignature) {
 				return done("Can't process transaction with second signature, sender didn't has second signature");
+			}
+
+			if (transaction.amount < 0) {
+				return done("Invalid amount. You cannot send a negative amount");
+			}
+
+			if (transaction.type == 0 && transaction.amount == 0) {
+				return done("Invalid amount");
 			}
 
 			// check if transaction is not float and great then 0
@@ -465,7 +473,7 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 
 					var allowSymbols = /^[a-z0-9!@$&_.]+$/g;
 					if (!allowSymbols.test(transaction.asset.delegate.username.toLowerCase())) {
-						return done("username can only contain alphanumeric characters with the exception of !@$&_.");
+						return done("Delegate name can only contain alphanumeric and !@.$&_ combinations");
 					}
 
 					//if (transaction.asset.delegate.username.search(/(admin|genesis|delegate|crypti|support)/i) > -1) {
@@ -478,11 +486,18 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 					}
 
 					if (transaction.asset.delegate.username.length == 0 || transaction.asset.delegate.username.length > 20) {
-						return done("Incorrect delegate username length");
+						return done("Invalid delegate name length. Please use 1 to 16 valid characters");
+					}
+
+					var firstCharacter = transaction.asset.delegate.username[0];
+
+					var isFirstCharacter = /^[a-z0-9]+$/g;
+					if (!isFirstCharacter.test(firstCharacter.toLowerCase())) {
+						return done("First character of username must be either a letter or a number. Try again");
 					}
 
 					if (modules.delegates.existsName(transaction.asset.delegate.username)) {
-						return done("The delegate name you entered is already in use. Please try a different name.");
+						return done("The delegate name you entered is already in use. Please try a different name");
 					}
 
 					if (modules.delegates.existsDelegate(transaction.senderPublicKey)) {
