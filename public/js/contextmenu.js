@@ -39,37 +39,74 @@ $(function () {
         menu.popup(e.originalEvent.x, e.originalEvent.y);
     });
     var options = [{
-        key: "Ctrl+V",
-        active: function () {
-            document.execCommand("paste");
-        },
-        failed: function (msg) {
-            console.log(msg);
-        }
-    },
-        {
-            key: "Ctrl+C",
+            key: "Ctrl+V",
             active: function () {
-                document.execCommand("copy");
+                document.execCommand("paste");
             },
             failed: function (msg) {
                 console.log(msg);
             }
         },
-        {
-            key: "Ctrl+X",
-            active: function () {
-                document.execCommand("cut");
+            {
+                key: "Ctrl+C",
+                active: function () {
+                    document.execCommand("copy");
+                },
+                failed: function (msg) {
+                    console.log(msg);
+                }
             },
-            failed: function (msg) {
-                console.log(msg);
+            {
+                key: "Ctrl+X",
+                active: function () {
+                    document.execCommand("cut");
+                },
+                failed: function (msg) {
+                    console.log(msg);
+                }
+            }, {
+                key: "Cmd+V",
+                active: function () {
+                    document.execCommand("paste");
+                }
+
+                ,
+                failed: function (msg) {
+                    console.log(msg);
+                }
+            },
+            {
+                key: "Cmd+C",
+                active: function () {
+                    document.execCommand("copy");
+                },
+                failed: function (msg) {
+                    console.log(msg);
+                }
+            },
+            {
+                key: "Cmd+X",
+                active: function () {
+                    document.execCommand("cut");
+                },
+                failed: function (msg) {
+                    console.log(msg);
+                }
             }
-        }];
+        ]
+        ;
 
     var shortcutPaste = new gui.Shortcut(options[0]);
 
     var shortcutCopy = new gui.Shortcut(options[1]);
 
     var shortcutCut = new gui.Shortcut(options[2]);
-    
-});
+
+    var shortcutPasteMac = new gui.Shortcut(options[3]);
+
+    var shortcutCopyMac = new gui.Shortcut(options[4]);
+
+    var shortcutCutMac = new gui.Shortcut(options[5]);
+
+})
+;
