@@ -8,6 +8,7 @@ angular.module('webApp').controller('passphraseController',
             $scope.peerexists = false;
             $scope.editingPeer = false;
             $scope.custom = false;
+            $scope.logging = false;
             $scope.addressError = false;
             $scope.errorMessage = "";
 
@@ -35,6 +36,16 @@ angular.module('webApp').controller('passphraseController',
                             $scope.custom = true;
                             peerFactory.setPeer(custom.split(":")[0],
                                 custom.split(":")[1] == undefined ? '' : custom.split(":")[1]);
+                            stBlurredDialog.open('partials/modals/blurredModal.html', {err: false, search: true});
+                            peerFactory.checkPeer(peerFactory.getUrl(), function (resp) {
+                                stBlurredDialog.close();
+                                if (resp.status == 200) {
+                                }
+                                else {
+                                    stBlurredDialog.open('partials/modals/blurredModal.html', {err: true});
+                                }
+
+                            });
                         }
                         else {
                             stBlurredDialog.open('partials/modals/blurredModal.html', {err: false});
@@ -92,6 +103,7 @@ angular.module('webApp').controller('passphraseController',
             }
 
             $scope.login = function (pass) {
+                $scope.logging = true;
                 if ($scope.peerexists) {
                     if ($scope.custom) {
                         peerFactory.checkPeer(peerFactory.getUrl(), function (resp) {
@@ -99,16 +111,19 @@ angular.module('webApp').controller('passphraseController',
                                 var data = {secret: pass};
                                 if (!pass || pass.length > 100) {
                                     $scope.errorMessage = "Please enter your password.";
+                                    $scope.logging = false;
                                 }
                                 else {
                                     var crypti = require('crypti-js');
                                     var keys = crypti.crypto.getKeys(pass);
                                     var address = crypti.crypto.getAddress(keys.publicKey);
                                     userService.setData(address, keys.publicKey);
+                                    $scope.logging = false;
                                     $state.go('main.account');
                                 }
                             }
                             else {
+                                $scope.logging = false;
                                 stBlurredDialog.open('partials/modals/blurredModal.html', {err: true});
                             }
 
@@ -118,12 +133,14 @@ angular.module('webApp').controller('passphraseController',
                         var data = {secret: pass};
                         if (!pass || pass.length > 100) {
                             $scope.errorMessage = "Please enter your password.";
+                            $scope.logging = false;
                         }
                         else {
                             var crypti = require('crypti-js');
                             var keys = crypti.crypto.getKeys(pass);
                             var address = crypti.crypto.getAddress(keys.publicKey);
                             userService.setData(address, keys.publicKey);
+                            $scope.logging = false;
                             $state.go('main.account');
                         }
                     }
