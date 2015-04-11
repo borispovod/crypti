@@ -62,8 +62,8 @@ module.exports = function (grunt) {
 				"cp -rf ./static ./build/ &&" +
 				"cp -rf ./partials ./build/ && " +
 				"cp -rf ./images ./build/ && " +
-				"cp package.json ./build/ && " +
-				"cp index.html ./build/"
+				"cp ./package.json ./build/ && " +
+				"cp ./index.html ./build/"
 		},
 		nodewebkit: {
 			options: {
@@ -71,7 +71,7 @@ module.exports = function (grunt) {
 				winIco: "./icons/crypti.png",
 				appName : "Crypti Lite",
 				buildDir: './webkitbuilds',
-				platforms: ['osx']
+				platforms: ['win','osx']
 			},
 			src: './build/**/*'
 		}
