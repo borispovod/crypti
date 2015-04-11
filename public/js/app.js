@@ -2,7 +2,7 @@ require('angular');
 require('angular-ui-router');
 require('angular-modal');
 require('angular-resource');
-require('../node_modules/ng-table/ng-table.js');
+require('../node_modules/ng-table/dist/ng-table.js');
 
 webApp = angular.module('webApp', ['ui.router', 'btford.modal', 'ngTable']);
 
