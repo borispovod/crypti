@@ -71,7 +71,7 @@ module.exports = function (grunt) {
 				winIco: "./icons/crypti.png",
 				appName : "Crypti Lite",
 				buildDir: './webkitbuilds',
-				platforms: ['win', 'osx']
+				platforms: ['osx']
 			},
 			src: './build/**/*'
 		}
