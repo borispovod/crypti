@@ -1,6 +1,7 @@
 var $ = require('jquery-browserify');
 $(function () {
     var gui = global.window.nwDispatcher.requireNwGui()
+
     function Menu(cutLabel, copyLabel, pasteLabel) {
         var menu = new gui.Menu()
             , cut = new gui.MenuItem({
@@ -43,7 +44,6 @@ $(function () {
             document.execCommand("paste");
         },
         failed: function (msg) {
-            // :(, fail to register the |key| or couldn't parse the |key|.
             console.log(msg);
         }
     },
@@ -53,7 +53,6 @@ $(function () {
                 document.execCommand("copy");
             },
             failed: function (msg) {
-                // :(, fail to register the |key| or couldn't parse the |key|.
                 console.log(msg);
             }
         },
@@ -63,36 +62,14 @@ $(function () {
                 document.execCommand("cut");
             },
             failed: function (msg) {
-                // :(, fail to register the |key| or couldn't parse the |key|.
                 console.log(msg);
             }
         }];
 
     var shortcutPaste = new gui.Shortcut(options[0]);
-    gui.App.registerGlobalHotKey(shortcutPaste);
-    shortcutPaste.on('active', function () {
-    });
-    shortcutPaste.on('failed', function (msg) {
-        console.log(msg);
-    });
-    gui.App.unregisterGlobalHotKey(shortcutPaste);
 
     var shortcutCopy = new gui.Shortcut(options[1]);
-    gui.App.registerGlobalHotKey(shortcutCopy);
-    shortcutCopy.on('active', function () {
-    });
-    shortcutCopy.on('failed', function (msg) {
-        console.log(msg);
-    });
-    gui.App.unregisterGlobalHotKey(shortcutCopy);
 
     var shortcutCut = new gui.Shortcut(options[2]);
-    gui.App.registerGlobalHotKey(shortcutCut);
-    shortcutCut.on('active', function () {
-    });
-    shortcutCut.on('failed', function (msg) {
-        console.log(msg);
-    });
-    gui.App.unregisterGlobalHotKey(shortcutCut);
-
+    
 });
