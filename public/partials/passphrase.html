@@ -1,13 +1,10 @@
 <div id="pass" st-blurred-dialog-region>
     <div id="center">
-        <div id="logo-grey"><sup>testnet</sup></div>
+        <div id="logo-grey"></div>
         <div id="login-form">
             <form autocomplete="off">
                 <input type="password" id="enter" placeholder="Enter your password here" ng-model="pass"
                        ng-trim="false" autofocus>
-
-                <p id="message-error">Don't use your real passphrase! It can be dangerous in testnet.</p>
-
                 <p id="message">For security reasons, we recommend passwords as long as 50 characters.</p>
 
                 <button type="submit" class="button green" id="login" ng-click="login(pass)">
