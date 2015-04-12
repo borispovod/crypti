@@ -6,11 +6,10 @@
                 ng-hide="secondPassphrase || unconfirmedPassphrase"> / </span><span class="secondPassphrase"
                                                                                     ng-hide="secondPassphrase || unconfirmedPassphrase"
                                                                                     ng-click="addSecondPassphrase()"
-                                                                                    title="Increase your account security!">Add
-            second passphrase</span>
+                                                                                    title="Increase your account security!">Second password</span>
             <button class="button static small" ng-show="unconfirmedPassphrase">
                 <div id="spinn"></div>
-                Second passphrase is applying.
+                Second password is applying.
             </button>
         </h2>
 
@@ -18,7 +17,7 @@
     <div class="raw-buttons" id="paddingFix">
         <button class="button green send" ng-click="sendCrypti()" ng-disabled="unconfirmedPassphrase">Send Crypti
             <div class="tollip" ng-hide="!unconfirmedPassphrase">
-                Wait for second passphrase applying.
+                Wait for second password applying.
             </div>
         </button>
         <div id="buttons">
