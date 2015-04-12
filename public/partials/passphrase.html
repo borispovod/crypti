@@ -1,13 +1,16 @@
 <div id="pass" st-blurred-dialog-region>
     <div id="center">
-        <div id="logo-grey"></div>
+        <div id="logo-grey"><sup>testnet</sup></div>
         <div id="login-form">
             <form autocomplete="off">
                 <input type="password" id="enter" placeholder="Enter your password here" ng-model="pass"
-                       ng-trim="false" autofocus>
+                       ng-trim="false" autofocus ng-disabled="logging">
+
+                <p id="message-error">Don't use your real passphrase! It can be dangerous in testnet.</p>
+
                 <p id="message">For security reasons, we recommend passwords as long as 50 characters.</p>
 
-                <button type="submit" class="button green" id="login" ng-click="login(pass)">
+                <button type="submit" class="button green" id="login" ng-click="login(pass)" ng-disabled="logging">
                     Login
                 </button>
                 <p class="error">{{errorMessage}}</p>
@@ -19,7 +22,7 @@
     <div class="edit_peer" ng-show="editingPeer">
         <form name="settingsForm" autocomplete="off">
             <span id="label">Custom peer</span>
-            <input type="text" name="peer" id="peer" placeholder="225.225.225.225:2020"
+            <input type="text" name="peer" id="peer" placeholder="Put custom peer in format: ip:port"
                    ng-model="customPeer"
                    ng-disabled="bestPeer"
                    ng-trim="true" autofocus ng-class="{'err' : addressError}">

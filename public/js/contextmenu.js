@@ -1,6 +1,7 @@
 var $ = require('jquery-browserify');
 $(function () {
     var gui = global.window.nwDispatcher.requireNwGui()
+
     function Menu(cutLabel, copyLabel, pasteLabel) {
         var menu = new gui.Menu()
             , cut = new gui.MenuItem({
@@ -38,61 +39,74 @@ $(function () {
         menu.popup(e.originalEvent.x, e.originalEvent.y);
     });
     var options = [{
-        key: "Ctrl+V",
-        active: function () {
-            document.execCommand("paste");
-        },
-        failed: function (msg) {
-            // :(, fail to register the |key| or couldn't parse the |key|.
-            console.log(msg);
-        }
-    },
-        {
-            key: "Ctrl+C",
+            key: "Ctrl+V",
             active: function () {
-                document.execCommand("copy");
+                document.execCommand("paste");
             },
             failed: function (msg) {
-                // :(, fail to register the |key| or couldn't parse the |key|.
                 console.log(msg);
             }
         },
-        {
-            key: "Ctrl+X",
-            active: function () {
-                document.execCommand("cut");
+            {
+                key: "Ctrl+C",
+                active: function () {
+                    document.execCommand("copy");
+                },
+                failed: function (msg) {
+                    console.log(msg);
+                }
             },
-            failed: function (msg) {
-                // :(, fail to register the |key| or couldn't parse the |key|.
-                console.log(msg);
+            {
+                key: "Ctrl+X",
+                active: function () {
+                    document.execCommand("cut");
+                },
+                failed: function (msg) {
+                    console.log(msg);
+                }
+            }, {
+                key: "Cmd+V",
+                active: function () {
+                    document.execCommand("paste");
+                }
+
+                ,
+                failed: function (msg) {
+                    console.log(msg);
+                }
+            },
+            {
+                key: "Cmd+C",
+                active: function () {
+                    document.execCommand("copy");
+                },
+                failed: function (msg) {
+                    console.log(msg);
+                }
+            },
+            {
+                key: "Cmd+X",
+                active: function () {
+                    document.execCommand("cut");
+                },
+                failed: function (msg) {
+                    console.log(msg);
+                }
             }
-        }];
+        ]
+        ;
 
     var shortcutPaste = new gui.Shortcut(options[0]);
-    gui.App.registerGlobalHotKey(shortcutPaste);
-    shortcutPaste.on('active', function () {
-    });
-    shortcutPaste.on('failed', function (msg) {
-        console.log(msg);
-    });
-    gui.App.unregisterGlobalHotKey(shortcutPaste);
 
     var shortcutCopy = new gui.Shortcut(options[1]);
-    gui.App.registerGlobalHotKey(shortcutCopy);
-    shortcutCopy.on('active', function () {
-    });
-    shortcutCopy.on('failed', function (msg) {
-        console.log(msg);
-    });
-    gui.App.unregisterGlobalHotKey(shortcutCopy);
 
     var shortcutCut = new gui.Shortcut(options[2]);
-    gui.App.registerGlobalHotKey(shortcutCut);
-    shortcutCut.on('active', function () {
-    });
-    shortcutCut.on('failed', function (msg) {
-        console.log(msg);
-    });
-    gui.App.unregisterGlobalHotKey(shortcutCut);
 
-});
+    var shortcutPasteMac = new gui.Shortcut(options[3]);
+
+    var shortcutCopyMac = new gui.Shortcut(options[4]);
+
+    var shortcutCutMac = new gui.Shortcut(options[5]);
+
+})
+;
