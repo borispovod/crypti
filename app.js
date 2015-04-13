@@ -61,8 +61,8 @@ var config = {
 		"peer": "./modules/peer.js",
 		"delegates": "./modules/delegates.js",
 		"round": "./modules/round.js",
-		"messages" : "./modules/messages.js",
-		"avatars" : "./modules/avatars.js"
+		"messages": "./modules/messages.js",
+		"avatars": "./modules/avatars.js"
 	}
 }
 
@@ -84,9 +84,17 @@ d.run(function () {
 			cb(null, logger);
 		},
 
-		express: function (cb) {
+		network: function (cb) {
 			var express = require('express');
-			cb(null, express);
+			var app = express();
+			var server = require('http').createServer(app);
+			var io = require('socket.io')(server);
+			cb(null, {
+				express: express,
+				app: app,
+				server: server,
+				io: io
+			});
 		},
 
 		sequence: function (cb) {
@@ -118,24 +126,23 @@ d.run(function () {
 			});
 		},
 
-		app: ['config', 'logger', 'express', function (cb, scope) {
-			var app = scope.express();
+		connect: ['config', 'logger', 'network', function (cb, scope) {
 			var path = require('path');
 			var bodyParser = require('body-parser');
 			var methodOverride = require('method-override');
 			var requestSanitizer = require('./helpers/request-sanitizer');
 
-			app.engine('html', require('ejs').renderFile);
-			app.use(require('express-domain-middleware'));
-			app.set('view engine', 'ejs');
-			app.set('views', path.join(__dirname, 'public'));
-			app.use(scope.express.static(path.join(__dirname, 'public')));
-			app.use(bodyParser.urlencoded({extended: true, parameterLimit: 5000}));
-			app.use(bodyParser.json());
-			app.use(methodOverride());
-			app.use(requestSanitizer.express());
+			scope.network.app.engine('html', require('ejs').renderFile);
+			scope.network.app.use(require('express-domain-middleware'));
+			scope.network.app.set('view engine', 'ejs');
+			scope.network.app.set('views', path.join(__dirname, 'public'));
+			scope.network.app.use(scope.network.express.static(path.join(__dirname, 'public')));
+			scope.network.app.use(bodyParser.urlencoded({extended: true, parameterLimit: 5000}));
+			scope.network.app.use(bodyParser.json());
+			scope.network.app.use(methodOverride());
+			scope.network.app.use(requestSanitizer.express());
 
-			app.use(function (req, res, next) {
+			scope.network.app.use(function (req, res, next) {
 				var parts = req.url.split('/');
 				var ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
 
@@ -168,10 +175,10 @@ d.run(function () {
 				}
 			});
 
-			app.listen(scope.config.port, scope.config.address, function (err) {
+			scope.network.server.listen(scope.config.port, scope.config.address, function (err) {
 				scope.logger.log("Crypti started: " + scope.config.address + ":" + scope.config.port);
 
-				cb(err, app);
+				cb(err, scope.network);
 			});
 		}],
 
@@ -215,7 +222,7 @@ d.run(function () {
 			});
 		},
 
-		modules: ['express', 'app', 'config', 'logger', 'bus', 'sequence', 'dbLite', function (cb, scope) {
+		modules: ['network', 'connect', 'config', 'logger', 'bus', 'sequence', 'dbLite', function (cb, scope) {
 			var tasks = {};
 			Object.keys(config.modules).forEach(function (name) {
 				tasks[name] = function (cb) {

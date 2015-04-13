@@ -213,9 +213,9 @@ function attachApi() {
 		res.status(500).send({success: false, error: 'api not found'});
 	});
 
-	library.app.use('/peer', router);
+	library.network.app.use('/peer', router);
 
-	library.app.use(function (err, req, res, next) {
+	library.network.app.use(function (err, req, res, next) {
 		if (!err) return next();
 		library.logger.error(req.url, err.toString());
 		res.status(500).send({success: false, error: err.toString()});
@@ -353,11 +353,17 @@ Transport.prototype.onBlockchainReady = function () {
 }
 
 Transport.prototype.onUnconfirmedTransaction = function (transaction, broadcast) {
-	broadcast && self.broadcast(100, {api: '/transactions', data: {transaction: transaction}, method: "POST"});
+	if (broadcast){
+		self.broadcast(100, {api: '/transactions', data: {transaction: transaction}, method: "POST"});
+		library.network.io.sockets.emit('transactions', {transaction: transaction});
+	}
 }
 
 Transport.prototype.onNewBlock = function (block, broadcast) {
-	broadcast && self.broadcast(100, {api: '/blocks', data: {block: block}, method: "POST"})
+	if(broadcast){
+		self.broadcast(100, {api: '/blocks', data: {block: block}, method: "POST"});
+		library.network.io.sockets.emit('blocks', {block: block});
+	}
 }
 
 //export
