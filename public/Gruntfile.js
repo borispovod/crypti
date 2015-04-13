@@ -67,11 +67,12 @@ module.exports = function (grunt) {
 		},
 		nodewebkit: {
 			options: {
+				version: "0.11.0",
 				macIcns: "./icons/crypti.icns",
 				winIco: "./icons/crypti.png",
 				appName : "Crypti Lite",
 				buildDir: './webkitbuilds',
-				platforms: ['osx']
+				platforms: ['win','osx']
 			},
 			src: './build/**/*'
 		}
@@ -91,5 +92,4 @@ module.exports = function (grunt) {
 	// Release task
 	grunt.registerTask("release", ["default", "uglify:release"]);
 	grunt.registerTask("build", ["release", "exec:command", "nodewebkit"]);
-	grunt.registerTask("webkit", ["nodewebkit"]);
 };
