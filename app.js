@@ -60,9 +60,7 @@ var config = {
 		"system": "./modules/system.js",
 		"peer": "./modules/peer.js",
 		"delegates": "./modules/delegates.js",
-		"round": "./modules/round.js",
-		"messages": "./modules/messages.js",
-		"avatars": "./modules/avatars.js"
+		"round": "./modules/round.js"
 	}
 }
 
