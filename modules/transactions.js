@@ -264,8 +264,8 @@ function attachApi() {
 		res.status(500).send({success: false, error: 'api not found'});
 	});
 
-	library.app.use('/api/transactions', router);
-	library.app.use(function (err, req, res, next) {
+	library.network.app.use('/api/transactions', router);
+	library.network.app.use(function (err, req, res, next) {
 		if (!err) return next();
 		library.logger.error(req.url, err.toString());
 		res.status(500).send({success: false, error: err.toString()});

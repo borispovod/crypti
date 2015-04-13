@@ -43,7 +43,7 @@ function attachApi() {
 		//res.status(500).send({success: false, error: 'api not found'});
 	});
 
-	library.app.use('/', router);
+	library.network.app.use('/', router);
 }
 
 //public methods
