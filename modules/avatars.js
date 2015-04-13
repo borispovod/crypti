@@ -1,6 +1,8 @@
 var encryptHelper = require('../helpers/encrypt.js'),
 	TransactionTypes = require('../helpers/transaction-types.js'),
 	RequestSanitizer = require('../helpers/request-sanitizer.js'),
+	constants = require('../helpers/constants.js'),
+	crypto = require('crypto'),
 	Router = require('../helpers/router.js'),
 	imageType = require('image-type');
 
@@ -76,8 +78,8 @@ function Avatar() {
 	}
 
 	this.apply = function (trs, sender) {
-		sender.unconfirmedAvatar = false;
 		sender.avatar = true;
+		sender.unconfirmedAvatar = false;
 
 		return true;
 	}
