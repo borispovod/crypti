@@ -34,7 +34,7 @@ describe('Router helper.', function(){
         });
     });
 
-    it('Should pass controle to next middleware', function(done){
+    it('Should pass control to next middleware', function(done){
         http.get({
             hostname: 'localhost',
             port: server.address().port
