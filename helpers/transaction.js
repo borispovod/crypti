@@ -3,26 +3,45 @@ var crypto = require('crypto'),
 	bignum = require('bignum'),
 	ByteBuffer = require("bytebuffer"),
 	constants = require("./constants.js"),
-	signatureHelper = require("./signature.js");
+	signatureHelper = require("./signature.js"),
+	milestoneBlocks = require("./milestoneBlocks.js");
 
 // get valid transaction fee, if we need to get fee for block generator, use isGenerator = true
-function getTransactionFee(transaction, isGenerator) {
+function getTransactionFee(transaction, isGenerator, blockHeight) {
 	var fee = -1;
 
-	switch (transaction.type) {
-		case 0:
-			fee = transaction.fee;
-			break;
-		case 1:
-			fee = 100 * constants.fixedPoint;
-			break;
-		case 2:
-			// delegate registration
-			fee = 10000 * constants.fixedPoint;
-			break;
-		case 3:
-			fee = 1 * constants.fixedPoint;
-			break;
+	if (blockHeight < milestoneBlocks.FEE_BLOCK) {
+		switch (transaction.type) {
+			case 0:
+				fee = transaction.fee;
+				break;
+			case 1:
+				fee = 100 * constants.fixedPoint;
+				break;
+			case 2:
+				// delegate registration
+				fee = 10000 * constants.fixedPoint;
+				break;
+			case 3:
+				fee = 1 * constants.fixedPoint;
+				break;
+		}
+	} else {
+		switch (transaction.type) {
+			case 0:
+				fee = transaction.fee;
+				break;
+			case 1:
+				fee = 5 * constants.fixedPoint;
+				break;
+			case 2:
+				// delegate registration
+				fee = 100 * constants.fixedPoint;
+				break;
+			case 3:
+				fee = 1 * constants.fixedPoint;
+				break;
+		}
 	}
 
 	if (fee == -1) {
@@ -126,23 +145,43 @@ function getHash(transaction) {
 	return crypto.createHash('sha256').update(getBytes(transaction)).digest();
 }
 
-function getFee(transaction, percent) {
-	switch (transaction.type) {
-		case 0:
-			return parseInt(transaction.amount / 100 * percent);
-			break;
+function getFee(transaction, percent, blockHeight) {
+	if (blockHeight < milestoneBlocks.FEE_BLOCK) {
+		switch (transaction.type) {
+			case 0:
+				return parseInt(transaction.amount / 100 * percent);
+				break;
 
-		case 1:
-			return 100 * constants.fixedPoint;
-			break;
+			case 1:
+				return 100 * constants.fixedPoint;
+				break;
 
-		case 2:
-			return 10000 * constants.fixedPoint;
-			break;
+			case 2:
+				return 10000 * constants.fixedPoint;
+				break;
 
-		case 3:
-			return 1 * constants.fixedPoint;
-			break;
+			case 3:
+				return 1 * constants.fixedPoint;
+				break;
+		}
+	} else {
+		switch (transaction.type) {
+			case 0:
+				return parseInt(transaction.amount / 100 * percent);
+				break;
+
+			case 1:
+				return 5 * constants.fixedPoint;
+				break;
+
+			case 2:
+				return 100 * constants.fixedPoint;
+				break;
+
+			case 3:
+				return 1 * constants.fixedPoint;
+				break;
+		}
 	}
 }
 

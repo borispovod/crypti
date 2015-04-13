@@ -825,7 +825,7 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 								return cb("Can't accept transaction timestamp: " + transaction.id);
 							}
 
-							transaction.fee = transactionHelper.getTransactionFee(transaction);
+							transaction.fee = transactionHelper.getTransactionFee(transaction, false, lastBlock.height);
 
 							if (transaction.fee === false) {
 								return cb("Invalid transaction type/fee: " + transaction.id);

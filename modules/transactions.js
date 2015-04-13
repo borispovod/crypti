@@ -422,7 +422,7 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 				return done("Invalid transaction timestamp");
 			}
 
-			var fee = transactionHelper.getFee(transaction, modules.blocks.getFee());
+			var fee = transactionHelper.getFee(transaction, modules.blocks.getFee(), modules.blocks.getLastBlock().height);
 
 			if (fee <= 0) {
 				fee = 1;
