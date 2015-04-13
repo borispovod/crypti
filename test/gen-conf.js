@@ -1,25 +1,26 @@
 var _ = require('underscore');
 var fs = require('fs');
 var path = require('path');
+var format = require('util').format;
 var program = require('commander');
 var ed = require('ed25519');
 var crypto = require('crypto');
 var bignum = require('bignum');
 var glob = require('glob');
 var exec = require('child_process').exec;
-
 var DEBUG = false;
 var V = false;
 
 program.option('-c, --config <path>', 'Specify configuration file');
-program.option('-d,--debug', 'output debug information');
-program.option('-V,--verbose', 'output additional info');
+program.option('-d, --debug', 'output debug information');
+program.option('-V, --verbose [value]', 'output additional info', Boolean);
 
 program.command('list')
     .action(function(){
         var config = getConfig(program.config);
 
-        V = program.V;
+        V = program.verbose;
+        DEBUG = !! program.debug;
 
         glob('*.json', {cwd: config.presets}, function(err, files){
             files.forEach(function(file){
@@ -28,22 +29,85 @@ program.command('list')
         });
     });
 
-program.command('create <name> [alias]')
-    .action(function(name, alias){
+program.command('gen <name> [preset]')
+    .action(function(name, preset){
         var config = getConfig(program.config);
         V = program.V;
 
-        var preset = require(config.presets + '/' + name + '.json');
-        preset.name = alias || name;
+        preset = preset || 'default';
+        var data = require(config.presets + '/' + preset + '.json');
+        data.name = name;
 
-        if (program.debug) DEBUG = true;
+        V = program.verbose;
+        DEBUG = !! program.debug;
 
-        generatePreset(preset, config, function(err){
+        generatePreset(data, config, function(err){
             if (err) return onError(err);
 
             DEBUG && console.log('Finished');
         });
     });
+
+program.command('rm <name>')
+    .description('Remove preset')
+    .option('-b, --blockchain [n...]', 'Remove blockchains only')
+    .option('-e,--except <value>', 'Except blockchains')
+    .action(function(name, cmd){
+        var config = getConfig(program.config);
+        var rimraf = require('rimraf');
+
+        V = typeof program.verbose === 'undefined' ? true : program.verbose;
+        DEBUG = !! program.debug;
+
+        var tmp = path.join(config.tmp, name);
+
+        function remove(){
+            var files;
+            if (cmd.blockchain) {
+
+                V && console.log('Remove blockchain');
+
+                if (Array.isArray(cmd.blockchain)) {
+                    files = glob.sync('blockchain-*.db', {cwd:tmp}).filter(function(file){
+                        var match = file.match(/\d+/);
+
+                        if (! match) return false;
+
+
+                        return (cmd.blockchain.indexOf(match[0]) > -1);
+                    });
+                } else {
+                    var except = cmd.except;
+                    if (typeof except === 'string') {
+                        var range = getRange(except);
+                        if (range){
+                            except = getItemsFromRange(range);
+                        } else {
+                            except = except.split(',');
+                        }
+                    }
+
+                    files = glob.sync('*.db', {cwd:tmp}).filter(function(file){
+                        var match = file.match(/\d+/);
+                        if (! match) return false;
+
+                        return except ? except.indexOf(parseInt(match[0])) < 0 : true;
+                    });
+                }
+
+                files.forEach(function(file){
+                    fs.unlinkSync(tmp + '/' + file);
+                });
+            } else {
+                if (fs.existsSync(tmp)) rimraf.sync(tmp);
+            }
+        }
+
+        countDown('Remove after %d second(s).', DEBUG ? 1:3, remove);
+    });
+
+
+
 
 program.parse(process.argv);
 
@@ -53,7 +117,7 @@ function getConfig(config) {
         dir: process.cwd(),
         tmp: 'tmp' || process.env.TMP_PATH,
         test: 'test' || process.env.TEST_PATH,
-        presets : 'test/preset' || process.env.PRESET_PATH
+        presets: 'test/preset' || process.env.PRESET_PATH
     }, config);
 
 
@@ -75,6 +139,8 @@ function generatePreset(preset, config, callback) {
 
         // todo tmp dir
         fs.mkdirSync(tmpDir);
+
+        fs.writeFileSync(tmpDir + '/preset.json', JSON.stringify(preset, null, 4));
         DEBUG && console.log("Dir created");
 
         var schema = generateSchema(preset);
@@ -86,11 +152,11 @@ function generatePreset(preset, config, callback) {
         schema.delegates.forEach(function(delegate, i){
             var delegateConfig = {
                 forging: {
-                    secret: 'delegate' + i
+                    secret: 'delegate-' + i
                 }
             };
 
-            fs.writeFileSync(path.join(tmpDir + '/delegate' + i + ".json"), JSON.stringify(delegateConfig, null, 4));
+            fs.writeFileSync(path.join(tmpDir + '/delegate-' + i + ".json"), JSON.stringify(delegateConfig, null, 4));
         });
 
         exec(process.argv[0] + ' ./genesisBlock.js', {
@@ -225,4 +291,75 @@ function generateSchema(preset) {
     };
 
     return schema;
+}
+
+function getRange(value) {
+    var match = String(value).match(/^(\d+)\.\.(\d+)$/);
+    if (match) {
+        match = [parseInt(match[1]), parseInt(match[2])];
+    }
+    return match;
+}
+
+function isRange(string) {
+    return !! String(string).match(/^(\d+)\.\.(\d+)$/);
+}
+
+function getItemsFromRange(range) {
+    var i = range[0];
+    var l = range[1];
+    var items = [];
+    while(i <= l) {
+        items.push(i);
+        i++;
+    }
+    return items;
+}
+
+function splitOption(value){
+    var range = getRange(value);
+    if (range){
+        value = getItemsFromRange(range);
+    } else {
+        value = value.split(',');
+    }
+
+    return value;
+}
+
+function countDown(message, time, callback) {
+    var line = '';
+
+    function cleanLine(length) {
+        process.stdout.write('\r' + repeatStr(' ', length) + '\r');
+    }
+
+    function print() {
+        cleanLine(line.length);
+        line = format(message, time);
+        process.stdout.write(line);
+    }
+
+    var interval = setInterval(function(){
+        if (--time) {
+            print(line, time);
+            return;
+        }
+
+        cleanLine(line.length);
+        clearInterval(interval);
+        callback();
+
+    }, 1000);
+
+    print(message, time);
+}
+
+function repeatStr(msg, length) {
+    var result = '';
+    while (result.length < length) {
+        result += msg;
+    }
+
+    return result.slice(0, length);
 }
