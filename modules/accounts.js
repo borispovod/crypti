@@ -9,10 +9,10 @@ var crypto = require('crypto'),
 	TransactionTypes = require('../helpers/transaction-types.js');
 
 //private
-var modules, library, self;
+var modules, library, self, private = {};
 
-var accounts = {};
-var username2address = {};
+private.accounts = {};
+private.username2address = {};
 
 function Account(address, publicKey, balance, unconfirmedBalance) {
 	this.address = address;
@@ -27,6 +27,8 @@ function Account(address, publicKey, balance, unconfirmedBalance) {
 	this.unconfirmedAvatar = false;
 	this.avatar = false;
 	this.username = null;
+	this.following = [];
+	this.unconfirmedFollowing = [];
 }
 
 function accountApplyDiff(account, diff) {
@@ -48,7 +50,7 @@ function accountApplyDiff(account, diff) {
 				return false;
 			}
 
-			if (account.delegates && account.delegates.length >= 101){
+			if (account.delegates && account.delegates.length >= 101) {
 				account.delegates = tmp;
 				return false;
 			}
@@ -92,7 +94,7 @@ function accountApplyUnconfirmedDiff(account, diff) {
 				return false;
 			}
 
-			if (account.unconfirmedDelegates && account.unconfirmedDelegates.length >= 101){
+			if (account.unconfirmedDelegates && account.unconfirmedDelegates.length >= 101) {
 				account.unconfirmedDelegates = tmp;
 				return false;
 			}
@@ -187,11 +189,45 @@ Account.prototype.undoDelegateList = function (diff) {
 }
 
 Account.prototype.applyUsername = function (username) {
-	username2address[username.toLowerCase()] = this.address;
+	private.username2address[username.toLowerCase()] = this.address;
 }
 
 Account.prototype.undoUsername = function (username) {
-	delete username2address[username.toLowerCase()];
+	delete private.username2address[username.toLowerCase()];
+}
+
+Account.prototype.applyContact = function (address) {
+	var index = this.following.indexOf(address);
+	if (index != -1) {
+		return false;
+	}
+	this.following.push(address);
+	return true;
+}
+
+Account.prototype.undoContact = function (address) {
+	var index = this.following.indexOf(address);
+	if (index == -1) {
+		return false;
+	}
+	this.following.splice(index, 1);
+}
+
+Account.prototype.applyUnconfirmedContact = function (address) {
+	var index = this.unconfirmedFollowing.indexOf(address);
+	if (index != -1) {
+		return false;
+	}
+	this.unconfirmedFollowing.push(address);
+	return true;
+}
+
+Account.prototype.undoUnconfirmedContact = function (address) {
+	var index = this.unconfirmedFollowing.indexOf(address);
+	if (index == -1) {
+		return false;
+	}
+	this.unconfirmedFollowing.splice(index, 1);
 }
 
 function Vote() {
@@ -208,11 +244,11 @@ function Vote() {
 
 	this.verify = function (trs, sender, cb) {
 		if (trs.recipientId != trs.senderId) {
-			return cb("Incorrect recipient");
+			return cb("Incorrect recipient: " + trs.id);
 		}
 
 		if (trs.asset.votes && trs.asset.votes.length > 33) {
-			return cb("You can only vote for a maximum of 33 delegates at any one time.");
+			return cb("You can only vote for a maximum of 33 delegates at any one time.: " + trs.id);
 		}
 
 		if (!modules.delegates.checkUnconfirmedDelegates(trs.senderPublicKey, trs.asset.votes)) {
@@ -292,20 +328,20 @@ function Username() {
 
 	this.verify = function (trs, sender, cb) {
 		if (trs.recipientId) {
-			return cb("Invalid recipient");
+			return cb("Invalid recipient: " + trs.id);
 		}
 
 		if (trs.amount != 0) {
-			return cb("Invalid amount");
+			return cb("Invalid amount: " + trs.id);
 		}
 
 		if (!trs.asset.username.alias) {
-			return cb("Empty transaction asset for username transaction");
+			return cb("Empty transaction asset for username transaction: " + trs.id);
 		}
 
 		var allowSymbols = /^[a-z0-9!@$&_.]+$/g;
 		if (!allowSymbols.test(trs.asset.username.alias.toLowerCase())) {
-			return cb("username can only contain alphanumeric characters with the exception of !@$&_.");
+			return cb("username can only contain alphanumeric characters with the exception of !@$&_.: " + trs.id);
 		}
 
 		//if (trs.asset.username.alias.search(/(admin|genesis|delegate|crypti)/i) > -1) {
@@ -313,16 +349,16 @@ function Username() {
 		//}
 
 		var isAddress = /^[0-9]+[C|c]$/g;
-		if (!isAddress.test(trs.asset.username.alias.toLowerCase())) {
-			return cb("username can't be like an address");
+		if (isAddress.test(trs.asset.username.alias.toLowerCase())) {
+			return cb("username can't be like an address: " + trs.id);
 		}
 
 		if (trs.asset.username.alias.length == 0 || trs.asset.username.alias.length > 20) {
-			return cb("Incorrect username length");
+			return cb("Incorrect username length: " + trs.id);
 		}
 
 		if (modules.delegates.existsName(trs.asset.username.alias)) {
-			return cb("The username you entered is already in use. Please try a different name.");
+			return cb("The username you entered is already in use. Please try a different name.: " + trs.id);
 		}
 
 		cb(null, trs);
@@ -393,7 +429,7 @@ function Username() {
 function Accounts(cb, scope) {
 	library = scope;
 	self = this;
-
+	self.__private = private;
 	attachApi();
 
 	library.logic.transaction.attachAssetType(TransactionTypes.VOTE, new Vote());
@@ -418,7 +454,7 @@ function attachApi() {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
 
-			var account = openAccount(body.secret);
+			var account = private.openAccount(body.secret);
 
 			res.json({
 				success: true,
@@ -454,14 +490,14 @@ function attachApi() {
 	if (process.env.DEBUG && process.env.DEBUG.toUpperCase() == "TRUE") {
 		// for sebastian
 		router.get('/getAllAccounts', function (req, res) {
-			return res.json({success: true, accounts: accounts});
+			return res.json({success: true, accounts: private.accounts});
 		});
 	}
 
 	if (process.env.TOP && process.env.TOP.toUpperCase() == "TRUE") {
 		router.get('/top', function (req, res) {
-			var arr = Object.keys(accounts).map(function (key) {
-				return accounts[key]
+			var arr = Object.keys(private.accounts).map(function (key) {
+				return private.accounts[key]
 			});
 
 			arr.sort(function (a, b) {
@@ -501,7 +537,7 @@ function attachApi() {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
 
-			var account = openAccount(query.secret);
+			var account = private.openAccount(query.secret);
 			return res.json({success: true, publicKey: account.publicKey});
 		});
 
@@ -543,16 +579,11 @@ function attachApi() {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
 
-			var secret = body.secret,
-				publicKey = body.publicKey,
-				secondSecret = body.secondSecret,
-				delegates = body.delegates;
-
-			var hash = crypto.createHash('sha256').update(secret, 'utf8').digest();
+			var hash = crypto.createHash('sha256').update(body.secret, 'utf8').digest();
 			var keypair = ed.MakeKeypair(hash);
 
-			if (publicKey) {
-				if (keypair.publicKey.toString('hex') != publicKey) {
+			if (body.publicKey) {
+				if (keypair.publicKey.toString('hex') != body.publicKey) {
 					return res.json({success: false, error: "Please, provide valid secret key of your account"});
 				}
 			}
@@ -567,27 +598,27 @@ function attachApi() {
 				return res.json({success: false, error: "Open account to make transaction"});
 			}
 
-			if (account.secondSignature && !secondSecret) {
+			if (account.secondSignature && !body.secondSecret) {
 				return res.json({success: false, error: "Provide second secret key"});
 			}
 
 			var secondKeypair = null;
 
 			if (account.secondSignature) {
-				var secondHash = crypto.createHash('sha256').update(secondSecret, 'utf8').digest();
+				var secondHash = crypto.createHash('sha256').update(body.secondSecret, 'utf8').digest();
 				secondKeypair = ed.MakeKeypair(secondHash);
 			}
 
 			var transaction = library.logic.transaction.create({
 				type: TransactionTypes.VOTE,
-				votes: delegates,
+				votes: body.delegates,
 				sender: account,
 				keypair: keypair,
 				secondKeypair: secondKeypair
 			});
 
 			library.sequence.add(function (cb) {
-				modules.transactions.processUnconfirmedTransaction(transaction, true, cb);
+				modules.transactions.receiveTransactions([transaction], cb);
 			}, function (err) {
 				if (err) {
 					return res.json({success: false, error: err});
@@ -608,16 +639,11 @@ function attachApi() {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
 
-			var secret = body.secret,
-				publicKey = body.publicKey,
-				secondSecret = body.secondSecret,
-				username = body.username;
-
-			var hash = crypto.createHash('sha256').update(secret, 'utf8').digest();
+			var hash = crypto.createHash('sha256').update(body.secret, 'utf8').digest();
 			var keypair = ed.MakeKeypair(hash);
 
-			if (publicKey) {
-				if (keypair.publicKey.toString('hex') != publicKey) {
+			if (body.publicKey) {
+				if (keypair.publicKey.toString('hex') != body.publicKey) {
 					return res.json({success: false, error: "Please, provide valid secret key of your account"});
 				}
 			}
@@ -632,27 +658,27 @@ function attachApi() {
 				return res.json({success: false, error: "Open account to make transaction"});
 			}
 
-			if (account.secondSignature && !secondSecret) {
+			if (account.secondSignature && !body.secondSecret) {
 				return res.json({success: false, error: "Provide second secret key"});
 			}
 
 			var secondKeypair = null;
 
 			if (account.secondSignature) {
-				var secondHash = crypto.createHash('sha256').update(secondSecret, 'utf8').digest();
+				var secondHash = crypto.createHash('sha256').update(body.secondSecret, 'utf8').digest();
 				secondKeypair = ed.MakeKeypair(secondHash);
 			}
 
 			var transaction = library.logic.transaction.create({
 				type: TransactionTypes.USERNAME,
-				username: username,
+				username: body.username,
 				sender: account,
 				keypair: keypair,
 				secondKeypair: secondKeypair
 			});
 
 			library.sequence.add(function (cb) {
-				modules.transactions.processUnconfirmedTransaction(transaction, true, cb);
+				modules.transactions.receiveTransactions([transaction], cb);
 			}, function (err) {
 				if (err) {
 					return res.json({success: false, error: err});
@@ -696,21 +722,21 @@ function attachApi() {
 		res.status(500).send({success: false, error: 'api not found'});
 	});
 
-	library.app.use('/api/accounts', router);
-	library.app.use(function (err, req, res, next) {
+	library.network.app.use('/api/accounts', router);
+	library.network.app.use(function (err, req, res, next) {
 		if (!err) return next();
-		library.logger.error('/api/accounts', err)
+		library.logger.error(req.url, err.toString());
 		res.status(500).send({success: false, error: err.toString()});
 	});
 }
 
-function addAccount(account) {
-	if (!accounts[account.address]) {
-		accounts[account.address] = account;
+private.addAccount = function (account) {
+	if (!private.accounts[account.address]) {
+		private.accounts[account.address] = account;
 	}
 }
 
-function openAccount(secret) {
+private.openAccount = function (secret) {
 	var hash = crypto.createHash('sha256').update(secret, 'utf8').digest();
 	var keypair = ed.MakeKeypair(hash);
 
@@ -719,7 +745,7 @@ function openAccount(secret) {
 
 //public methods
 Accounts.prototype.getAccount = function (id) {
-	return accounts[id];
+	return private.accounts[id];
 }
 
 Accounts.prototype.getAccountByPublicKey = function (publicKey) {
@@ -739,7 +765,7 @@ Accounts.prototype.getAddressByPublicKey = function (publicKey) {
 }
 
 Accounts.prototype.getAccountByUsername = function (username) {
-	var address = username2address[username.toLowerCase()];
+	var address = private.username2address[username.toLowerCase()];
 
 	return this.getAccount(address);
 }
@@ -754,7 +780,7 @@ Accounts.prototype.getAccountOrCreateByPublicKey = function (publicKey) {
 
 	if (!account) {
 		account = new Account(address, publicKey);
-		addAccount(account);
+		private.addAccount(account);
 	}
 	return account;
 }
@@ -764,13 +790,13 @@ Accounts.prototype.getAccountOrCreateByAddress = function (address) {
 
 	if (!account) {
 		account = new Account(address);
-		addAccount(account);
+		private.addAccount(account);
 	}
 	return account;
 }
 
 Accounts.prototype.getAllAccounts = function () {
-	return accounts;
+	return private.accounts;
 }
 
 Accounts.prototype.getDelegates = function (publicKey) {

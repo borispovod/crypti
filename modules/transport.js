@@ -8,16 +8,16 @@ var Router = require('../helpers/router.js'),
 	RequestSanitizer = require('../helpers/request-sanitizer.js');
 
 //private fields
-var modules, library, self;
+var modules, library, self, private = {};
 
-var headers = {};
-var loaded = false;
+private.headers = {};
+private.loaded = false;
 
 //constructor
 function Transport(cb, scope) {
 	library = scope;
 	self = this;
-
+	self.__private = private;
 	attachApi();
 
 	setImmediate(cb, null, self);
@@ -28,7 +28,7 @@ function attachApi() {
 	var router = new Router();
 
 	router.use(function (req, res, next) {
-		if (modules && loaded) return next();
+		if (modules && private.loaded) return next();
 		res.status(500).send({success: false, error: 'loading'});
 	});
 
@@ -54,11 +54,11 @@ function attachApi() {
 
 			var peer = {
 				ip: ip.toLong(peerIp),
-				port: headers.port,
+				port: private.headers.port,
 				state: 2,
-				os: headers.os,
-				sharePort: Number(headers['share-port']),
-				version: headers.version
+				os: private.headers.os,
+				sharePort: Number(private.headers['share-port']),
+				version: private.headers.version
 			};
 
 
@@ -72,14 +72,14 @@ function attachApi() {
 	});
 
 	router.get('/list', function (req, res) {
-		res.set(headers);
+		res.set(private.headers);
 		modules.peer.list(100, function (err, peers) {
 			return res.status(200).json({peers: !err ? peers : []});
 		})
 	});
 
 	router.get("/blocks/common", function (req, res, next) {
-		res.set(headers);
+		res.set(private.headers);
 
 		req.sanitize("query", {
 			max: "int!",
@@ -134,7 +134,7 @@ function attachApi() {
 	});
 
 	router.get("/blocks", function (req, res) {
-		res.set(headers);
+		res.set(private.headers);
 
 		var lastBlockId = RequestSanitizer.string(req.query.lastBlockId);
 		// get 1400+ blocks with all data (joins) from provided block id
@@ -148,13 +148,14 @@ function attachApi() {
 			if (err) {
 				return res.json({blocks: ""});
 			}
+
 			res.json({blocks: data});
 
 		});
 	});
 
 	router.post("/blocks", function (req, res) {
-		res.set(headers);
+		res.set(private.headers);
 
 		try {
 			var block = library.logic.block.objectNormalize(req.body.block)
@@ -172,13 +173,13 @@ function attachApi() {
 	});
 
 	router.get("/transactions", function (req, res) {
-		res.set(headers);
+		res.set(private.headers);
 		// need to process headers from peer
 		res.status(200).json({transactions: modules.transactions.getUnconfirmedTransactionList()});
 	});
 
 	router.post("/transactions", function (req, res) {
-		res.set(headers);
+		res.set(private.headers);
 
 		try {
 			var transaction = library.logic.transaction.objectNormalize(req.body.transaction);
@@ -202,7 +203,7 @@ function attachApi() {
 	});
 
 	router.get('/height', function (req, res) {
-		res.set(headers);
+		res.set(private.headers);
 		res.status(200).json({
 			height: modules.blocks.getLastBlock().height
 		});
@@ -212,11 +213,11 @@ function attachApi() {
 		res.status(500).send({success: false, error: 'api not found'});
 	});
 
-	library.app.use('/peer', router);
+	library.network.app.use('/peer', router);
 
-	library.app.use(function (err, req, res, next) {
-		library.logger.error('/peer', err)
+	library.network.app.use(function (err, req, res, next) {
 		if (!err) return next();
+		library.logger.error(req.url, err.toString());
 		res.status(500).send({success: false, error: err.toString()});
 	});
 }
@@ -282,7 +283,7 @@ Transport.prototype.getFromPeer = function (peer, options, cb) {
 		url: 'http://' + ip.fromLong(peer.ip) + ':' + peer.port + url,
 		method: options.method,
 		json: true,
-		headers: _.extend({}, headers, options.headers),
+		headers: _.extend({}, private.headers, options.headers),
 		timeout: 5000
 	};
 
@@ -290,10 +291,6 @@ Transport.prototype.getFromPeer = function (peer, options, cb) {
 		req.json = options.data;
 	} else {
 		req.body = options.data;
-	}
-
-	if (options.gzip) {
-		req.gzip = true;
 	}
 
 	return request(req, function (err, response, body) {
@@ -343,7 +340,7 @@ Transport.prototype.getFromPeer = function (peer, options, cb) {
 Transport.prototype.onBind = function (scope) {
 	modules = scope;
 
-	headers = {
+	private.headers = {
 		os: modules.system.getOS(),
 		version: modules.system.getVersion(),
 		port: modules.system.getPort(),
@@ -352,15 +349,21 @@ Transport.prototype.onBind = function (scope) {
 }
 
 Transport.prototype.onBlockchainReady = function () {
-	loaded = true;
+	private.loaded = true;
 }
 
 Transport.prototype.onUnconfirmedTransaction = function (transaction, broadcast) {
-	broadcast && self.broadcast(100, {api: '/transactions', data: {transaction: transaction}, method: "POST"});
+	if (broadcast){
+		self.broadcast(100, {api: '/transactions', data: {transaction: transaction}, method: "POST"});
+		library.network.io.sockets.emit('transactions', {transaction: transaction});
+	}
 }
 
 Transport.prototype.onNewBlock = function (block, broadcast) {
-	broadcast && self.broadcast(100, {api: '/blocks', data: {block: block}, method: "POST"})
+	if(broadcast){
+		self.broadcast(100, {api: '/blocks', data: {block: block}, method: "POST"});
+		library.network.io.sockets.emit('blocks', {block: block});
+	}
 }
 
 //export

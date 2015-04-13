@@ -1,8 +1,10 @@
 var should = require('should');
+var deepEqual = require('assert').deepEqual;
 
 describe("Validator.", function(){
     var Validator;
     Validator = require("../../helpers/validator");
+    var utils = require("../../helpers/validator/utils");
 
     describe("Constructor object.", function(){
         it("Should be a function", function(){
@@ -108,6 +110,7 @@ describe("Validator.", function(){
                 // Instance copied
                 should(data.instance).have.type('object').and.equal(instance);
             });
+
         });
 
         describe('Copy()', function(){
@@ -138,5 +141,6 @@ describe("Validator.", function(){
                 should(data.instance).have.type('object').and.equal(instance);
             });
         });
+
     });
 });
