@@ -69,5 +69,74 @@ describe("Validator.", function(){
                 done();
             });
         });
-    })
+    });
+
+    describe('Utils', function(){
+        describe('Extend()', function(){
+            it('Should add property', function(){
+                var a = {};
+                var b = {a:1};
+
+                utils.extend(a, b);
+
+                should(a).have.ownProperty('a');
+            });
+
+            it('Should add nested property', function(){
+                var a = {a:{}};
+                var b = {a:{c:1}};
+
+                utils.extend(a, b);
+
+                should(a).have.ownProperty('a').which.is.an.Object.and.equal(b.a);
+                deepEqual(a, b);
+                should(a.a).have.type('object').and.ownProperty('c').which.equal(1);
+            });
+
+            it('Replace instances with last the last one occurrence', function(){
+                var native = {};
+                var instance = new (function() {});
+
+                var data = utils.extend({native:{},instance:{}}, {
+                    native: native,
+                    instance: instance
+                });
+
+                should(data).have.type('object');
+                // Object copied
+                should(data.native).have.type('object').and.equal(native);
+                // Instance copied
+                should(data.instance).have.type('object').and.equal(instance);
+            });
+        });
+
+        describe('Copy()', function(){
+            it('Should copy nested object', function(){
+                var a = utils.copy({n:1,b:true,o:{},a:[1,2,3]});
+
+                should(a).have.type('object').and.be.instanceOf(Object);
+                should(a.n).have.type('number').and.equal(1);
+                should(a.b).have.type('boolean').and.equal(true);
+                should(a.o).have.type('object');
+                deepEqual(a.o, {});
+                should(a.a).be.an.instanceOf(Array).and.have.lengthOf(3);
+            });
+
+            it('Should copy only NativeObject', function(){
+                var native = {};
+                var instance = new (function() {});
+
+                var data = utils.copy({
+                    native: native,
+                    instance: instance
+                });
+
+                should(data).have.type('object');
+                // Object copied
+                should(data.native).have.type('object').and.not.equal(native);
+                // Object passed as is
+                should(data.instance).have.type('object').and.equal(instance);
+            });
+        });
+    });
 });
