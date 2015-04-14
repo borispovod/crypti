@@ -50,6 +50,7 @@ $(function () {
             {
                 key: "Ctrl+C",
                 active: function () {
+					console.log("here copy 1");
                     document.execCommand("copy");
                 },
                 failed: function (msg) {
@@ -78,6 +79,7 @@ $(function () {
             {
                 key: "Cmd+C",
                 active: function () {
+					console.log("here copy 2");
                     document.execCommand("copy");
                 },
                 failed: function (msg) {
@@ -108,5 +110,14 @@ $(function () {
 
     var shortcutCutMac = new gui.Shortcut(options[5]);
 
+	var gui = global.window.nwDispatcher.requireNwGui();
+	if (process.platform === "darwin") {
+		var mb = new gui.Menu({type: 'menubar'});
+		mb.createMacBuiltin('Crypti', {
+			hideEdit: false
+		});
+		gui.Window.get().menu = mb;
+	}
+	console.log("menu");
 })
 ;
