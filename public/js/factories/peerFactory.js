@@ -1,8 +1,9 @@
 require('angular');
 
-angular.module('webApp').factory('peerFactory', ['$http', 'transactionService', function ($http, transactionService) {
+angular.module('webApp').factory('peerFactory', ['$http', 'transactionService', '$interval', function ($http, transactionService, $interval) {
 
     var factory = {
+        editing: false,
         peer: {
             ip: "104.155.57.21",
             port: "8040"

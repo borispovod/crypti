@@ -7,6 +7,7 @@ require('../../js/controllers/loadingController');
 require('../../js/controllers/templateController');
 require('../../js/controllers/passphraseController');
 require('../../js/controllers/votedDelegatesController');
+require('../../js/controllers/appController');
 //modals
 require('../../js/controllers/modals/blockModalController');
 require('../../js/controllers/modals/companyModalController');

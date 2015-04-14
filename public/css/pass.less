@@ -92,7 +92,6 @@
   color: #F24A65;
 }
 
-
 .loading {
   text-align: center;
 
@@ -102,7 +101,8 @@
 }
 
 .cloud {
-  position: fixed;
+  position: absolute;
+  z-index: 10;
   top: 8px;
   right: 8px;
   background-size: 36px 24px;
@@ -118,13 +118,20 @@
   background: #fff;
   border: 2px solid #9b9d9e;
   width: 260px;
-  height: 160px;
+  padding-bottom: 20px;
   right: 8px;
   top: 50px;
   border-radius: 8px;
+  .error {
+    font-size: 12px;
+    margin-top: 8px;
+    margin-left: 16px;
+    text-align: center;
+    color: #ED4A4A;
+  }
   #bestPeer {
     display: inline-block;
-    margin: -12px 0 0 16px;
+    margin: -2px 0 0 16px;
   }
   label {
     display: inline-block;

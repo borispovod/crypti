@@ -6,33 +6,39 @@ angular.module('webApp').controller('passphraseController',
     ['$scope', '$rootScope', '$http', "$state", '$interval', '$location', "userService", "dbFactory", "peerFactory", "transactionService", 'stBlurredDialog',
         function ($rootScope, $scope, $http, $state, $interval, $location, userService, dbFactory, peerFactory, transactionService, stBlurredDialog) {
             $scope.peerexists = false;
-            $scope.editingPeer = false;
+            $scope.editingPeer = peerFactory.editing;
             $scope.custom = false;
             $scope.logging = false;
             $scope.addressError = false;
             $scope.errorMessage = "";
-
+            $scope.peerError = false;
             $scope.peerSettings = function () {
                 $scope.editingPeer = !$scope.editingPeer;
+                peerFactory.editing = !peerFactory.editing;
             };
             $scope.savePeerSettings = function (custom, best) {
+
+                $scope.peerError = false;
                 custom = custom || '';
                 $scope.addressError = false;
-                var isIP = ipRegex({exact: true}).test(custom.split(":")[0]);
+                var isIP = ipRegex({exact: true}).test(custom.split(":")[0]) || custom.split(":")[0].toLowerCase()=='localhost';
                 var isPort = (parseInt(custom.split(":")[1]) > 0 && parseInt(custom.split(":")[1]) <= 61000);
-                $scope.addressError = (!isIP || !isPort) && custom !='';
+                $scope.addressError = (!isIP || !isPort) && custom != '';
+                $scope.addressError = (custom == '' && !best) || $scope.addressError;
                 if ($scope.addressError) {
+                    $scope.peerError = 'Invalid Peer';
                     dbFactory.saveCustomPeer(undefined, function (peer) {
 
                     })
                     return;
                 }
                 $scope.editingPeer = false;
+                peerFactory.editing = false;
                 dbFactory.useBestPeer(best, function () {
                     $scope.bestPeer = best;
                     dbFactory.saveCustomPeer(custom, function (customPeer) {
                         $scope.customPeer = customPeer;
-                        if (!$scope.bestPeer && $scope.customPeer!='') {
+                        if (!$scope.bestPeer && $scope.customPeer != '') {
                             $scope.custom = true;
                             peerFactory.setPeer(custom.split(":")[0],
                                 custom.split(":")[1] == undefined ? '' : custom.split(":")[1]);
@@ -103,17 +109,21 @@ angular.module('webApp').controller('passphraseController',
             }
 
             $scope.login = function (pass) {
-                $scope.logging = true;
+                $scope.logging = !$scope.logging;
                 if ($scope.peerexists) {
                     if ($scope.custom) {
                         peerFactory.checkPeer(peerFactory.getUrl(), function (resp) {
                             if (resp.status == 200) {
                                 var data = {secret: pass};
-                                if (!pass || pass.length > 100) {
+                                if (!!pass && pass.length > 100) {
+                                    $scope.errorMessage = "Your password is too long. Please be within 100 chars.";
+                                    $scope.logging = false;
+                                }
+                                if (!pass) {
                                     $scope.errorMessage = "Please enter your password.";
                                     $scope.logging = false;
                                 }
-                                else {
+                            else {
                                     var crypti = require('crypti-js');
                                     var keys = crypti.crypto.getKeys(pass);
                                     var address = crypti.crypto.getAddress(keys.publicKey);
@@ -146,9 +156,15 @@ angular.module('webApp').controller('passphraseController',
                     }
 
                 }
+                else {
+                    $scope.logging = false;}
             }
-            //runtime
 
+            //runtime
+            $scope.$on('edit-peer', function (event, args) {
+                $scope.editingPeer = true;
+                peerFactory.editing = true;
+            });
 
             $scope.ubpatedbinterval = $interval(function () {
                 dbFactory.updatedb(function (response) {
@@ -183,7 +199,6 @@ angular.module('webApp').controller('passphraseController',
 
             dbFactory.emptydb(
                 function (empty) {
-
                     if (empty) {
                         stBlurredDialog.open('partials/modals/blurredModal.html', {err: false});
                         $scope.getPeers(peerFactory.getUrl(), function () {
@@ -212,7 +227,6 @@ angular.module('webApp').controller('passphraseController',
                                         }
                                         else {
                                             $scope.peerexists = true;
-                                            console.log('custom peer');
                                             $scope.custom = true;
                                             $scope.customPeer = response.rows[0].key.ip + ':' + response.rows[0].key.port;
                                             peerFactory.setPeer(response.rows[0].key.ip, response.rows[0].key.port);

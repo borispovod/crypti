@@ -8,7 +8,6 @@ angular.module('webApp').controller('secondPassphraseModalController', ["$scope"
         $scope.totalBalance = userService.balance;
 
         $scope.close = function () {
-            console.log("close");
             if ($scope.destroy) {
                 $scope.destroy();
             }
