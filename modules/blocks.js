@@ -4,7 +4,7 @@ var crypto = require('crypto'),
 	bignum = require('bignum'),
 	ByteBuffer = require("bytebuffer"),
 	constants = require("../helpers/constants.js"),
-	genesisblock = require("../helpers/genesisblock.js"),
+	genesisblock = require(process.env.GENESIS_BLOCK || "../helpers/genesisblock.js"),
 	constants = require('../helpers/constants.js'),
 	RequestSanitizer = require('../helpers/request-sanitizer'),
 	Router = require('../helpers/router.js'),
@@ -923,6 +923,10 @@ Blocks.prototype.onReceiveBlock = function (block) {
 
 Blocks.prototype.onBind = function (scope) {
 	modules = scope;
+}
+
+Blocks.prototype.getGenesisBlock = function(){
+	return genesisblock;
 }
 
 //export

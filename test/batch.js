@@ -64,7 +64,12 @@ async.map(configuration, function(instance, done){
         }
     });
 
-    var child = spawn(process.env.NODE || process.execPath, args, {stdio: instance.output ? 'inherit' : 'ignore'});
+    var child = spawn(process.env.NODE || process.execPath, args, {
+        env: {
+            GENESIS_BLOCK : path.join(presetDir, 'genesis-block.js')
+        },
+        stdio: instance.output ? 'inherit' : 'ignore'
+    });
     setImmediate(done, null, child);
 }, function(err){
     if (err) {

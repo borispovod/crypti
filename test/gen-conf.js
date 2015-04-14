@@ -162,7 +162,7 @@ function generatePreset(preset, config, callback) {
         exec(process.argv[0] + ' ./genesisBlock.js', {
             env: {
                 SECRET: 'account1',
-                OUTPUT: tmpDir + '/genesisBlock.js',
+                OUTPUT: tmpDir + '/genesis-block.js',
                 FILE: tmpDir + '/scheme.json'
             }
         }, function(err, stdout, stderr){
@@ -214,7 +214,7 @@ function tmpname() {
 
 function generateAccount(secret, secondSecret) {
     var publicKey = getKeypair(secret).publicKey;
-    var address = getAddress(publicKey);
+    var address = getAddress(publicKey.toString('hex'));
     var account = {
         address: address,
         publicKey: publicKey.toString('hex')
@@ -238,14 +238,14 @@ function generateSchema(preset) {
     if (typeof preset.delegates === 'number') {
         delegates = [];
         for (i = 0; i < preset.delegates; i++) {
-            account = generateAccount('delegate' + i);
+            account = generateAccount('delegate-' + i);
             account.username = 'genesisDelegate' + i;
             delegates.push(account);
         }
 
     } else {
         delegates = preset.delegates.map(function(account, i){
-            var secret = account.secret || ('account' + i);
+            var secret = account.secret || ('delegate-' + i);
             var secondSecret = account.secondSecret;
             var account = generateAccount(account.secret, secondSecret);
 
@@ -259,18 +259,20 @@ function generateSchema(preset) {
     if (typeof preset.accounts === 'number') {
         accounts = [];
         for (i = 0; i < preset.delegates; i++) {
-            account = generateAccount('delegate' + i);
-            account.username = 'genesisDelegate' + i
+            account = generateAccount('peer-' + i);
+            account.username = 'usualPeer' + i;
+            //account.balance = Math.round(preset.balance / preset.accounts);
+
             accounts.push(account);
         }
 
     } else {
         accounts = preset.accounts.map(function(delegate, i){
-            var secret = delegate.secret || ('delegate' + i);
+            var secret = delegate.secret || ('peer-' + i);
             var secondSecret = delegate.secondSecret;
             var account = generateAccount(delegate.secret, secondSecret);
 
-            account.balance = preset.balance;
+            account.balance = preset.balance / preset.accounts.length;
             account.username = delegate.username || secret;
 
             return account;

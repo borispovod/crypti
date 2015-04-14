@@ -3,7 +3,6 @@ var ed = require('ed25519'),
 	util = require('util'),
 	ByteBuffer = require("bytebuffer"),
 	crypto = require('crypto'),
-	genesisblock = require('../helpers/genesisblock.js'),
 	constants = require("../helpers/constants.js"),
 	slots = require('../helpers/slots.js'),
 	extend = require('extend'),
@@ -13,7 +12,7 @@ var ed = require('ed25519'),
 	TransactionTypes = require('../helpers/transaction-types.js');
 
 // private fields
-var modules, library, self, private = {};
+var modules, library, self, private = {}, genesisblock;
 
 private.hiddenTransactions = [];
 private.unconfirmedTransactions = [];
@@ -516,6 +515,7 @@ Transactions.prototype.receiveTransactions = function (transactions, cb) {
 //events
 Transactions.prototype.onBind = function (scope) {
 	modules = scope;
+	genesisblock = modules.blocks.getGenesisBlock();
 }
 
 //export
