@@ -19,7 +19,7 @@ describe("Web interface.", function(){
         // remove existing blockchains
         if (fs.exists(blockchainPath)) fs.unlinkSync(blockchainPath);
 
-        crypti = spawn("nodejs", ["bin/cli.js", "-b", blockchainPath, "-p", 7000], {stdio:"pipe"});
+        crypti = spawn(process.execPath, ['app.js', '-b', blockchainPath, '-p', 7000, '-x'], {stdio:"ignore"});
 
         [
             "passphrase",
@@ -60,26 +60,27 @@ describe("Web interface.", function(){
                         if (! value) return this.reload().wait(2000);
                     });
             })
-            .render('./tmp/login.png')
+            .render('./tmp/test-login.png')
             .macros("passphrase.login", testPass)
-            .render("tmp/logged.png")
+            .render("tmp/test-logged.png")
             .macros("account.view.check")
             // Check blockchain view
             .macros("blockchain.gotoFromMenu")
-            .render("tmp/blockchain.png")
+            .render("tmp/test-blockchain.png")
             .macros("blockchain.viewCheck")
             // Check forging view
             .macros("forging.gotoFromMenu")
-            .render("tmp/forging.png")
+            .render("tmp/test-forging.png")
             .macros("forging.viewCheck")
             // Check foring/delegates
             .macros("delegates.gotoFromMenu")
             .macros("delegates.viewCheck")
-            .render("tmp/forging-delegates.png")
+            .render("tmp/test-forging-delegates.png")
             // Check forging/votes
             .macros("delegates.gotoFromMenu")
             .macros("delegates.viewCheck")
-            .render("tmp/forging-votes.png")
+            .render("tmp/test-forging-votes.png")
+            .render("tmp/test-forging-votes.png")
             // Logout
             .click("#logout")
             .wait()
