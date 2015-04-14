@@ -11,17 +11,23 @@ angular.module('webApp').controller('passphraseController',
             $scope.logging = false;
             $scope.addressError = false;
             $scope.errorMessage = "";
+            $scope.peerError = false;
 
             $scope.peerSettings = function () {
                 $scope.editingPeer = !$scope.editingPeer;
             };
             $scope.savePeerSettings = function (custom, best) {
+
+                $scope.peerError = false;
                 custom = custom || '';
                 $scope.addressError = false;
-                var isIP = ipRegex({exact: true}).test(custom.split(":")[0]);
+                debugger;
+                var isIP = ipRegex({exact: true}).test(custom.split(":")[0]) || custom.split(":")[0].toLowerCase()=='localhost';
                 var isPort = (parseInt(custom.split(":")[1]) > 0 && parseInt(custom.split(":")[1]) <= 61000);
-                $scope.addressError = (!isIP || !isPort) && custom !='';
+                $scope.addressError = (!isIP || !isPort) && custom != '';
+                $scope.addressError = (custom == '' && !best) || $scope.addressError;
                 if ($scope.addressError) {
+                    $scope.peerError = 'Invalid Peer';
                     dbFactory.saveCustomPeer(undefined, function (peer) {
 
                     })
@@ -32,7 +38,7 @@ angular.module('webApp').controller('passphraseController',
                     $scope.bestPeer = best;
                     dbFactory.saveCustomPeer(custom, function (customPeer) {
                         $scope.customPeer = customPeer;
-                        if (!$scope.bestPeer && $scope.customPeer!='') {
+                        if (!$scope.bestPeer && $scope.customPeer != '') {
                             $scope.custom = true;
                             peerFactory.setPeer(custom.split(":")[0],
                                 custom.split(":")[1] == undefined ? '' : custom.split(":")[1]);
@@ -105,15 +111,20 @@ angular.module('webApp').controller('passphraseController',
             $scope.login = function (pass) {
                 $scope.logging = true;
                 if ($scope.peerexists) {
+
                     if ($scope.custom) {
                         peerFactory.checkPeer(peerFactory.getUrl(), function (resp) {
                             if (resp.status == 200) {
                                 var data = {secret: pass};
-                                if (!pass || pass.length > 100) {
+                                if (!!pass && pass.length > 100) {
+                                    $scope.errorMessage = "Your password is too long. Please be within 100 chars.";
+                                    $scope.logging = false;
+                                }
+                                if (!pass) {
                                     $scope.errorMessage = "Please enter your password.";
                                     $scope.logging = false;
                                 }
-                                else {
+                            else {
                                     var crypti = require('crypti-js');
                                     var keys = crypti.crypto.getKeys(pass);
                                     var address = crypti.crypto.getAddress(keys.publicKey);
@@ -146,6 +157,8 @@ angular.module('webApp').controller('passphraseController',
                     }
 
                 }
+                else {
+                    $scope.logging = false;}
             }
             //runtime
 

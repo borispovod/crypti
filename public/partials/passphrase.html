@@ -22,13 +22,14 @@
     <div class="edit_peer" ng-show="editingPeer">
         <form name="settingsForm" autocomplete="off">
             <span id="label">Custom peer</span>
-            <input type="text" name="peer" id="peer" placeholder="Put custom peer in format: ip:port"
+            <input type="text" name="peer" id="peer" placeholder="Enter peer. Use IP:PORT format"
                    ng-model="customPeer"
                    ng-disabled="bestPeer"
                    ng-trim="true" autofocus ng-class="{'err' : addressError}">
+            <p class="error" ng-show="peerError">{{peerError}}</p>
             <span style="display: none;">{{bestPeer}}</span>
             <input type="checkbox" id="bestPeer" name="check" ng-model="bestPeer"/>
-            <label for="bestPeer">Always use the best peer.</label>
+            <label for="bestPeer">Automatic peer.</label>
             <button type="submit" class="button green small" id="savePeer"
                     ng-click="savePeerSettings(customPeer, bestPeer)">
                 Save

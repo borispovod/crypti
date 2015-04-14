@@ -15,7 +15,7 @@
 			<input class="input-text" type="password" ng-model="secondPhrase" placeholder="Secondary password"
 				   ng-show="secondPassphrase" ng-trim="false">
 
-			<p class="error">{{fromServer}}.</p>
+			<p class="error" ng-show="fromServer">{{fromServer}}.</p>
 
 			<div class="pull-right">
 				<button type="submit" class="button green small"
