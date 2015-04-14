@@ -62,8 +62,8 @@ module.exports = function (grunt) {
 				"cp -rf ./static ./build/ &&" +
 				"cp -rf ./partials ./build/ && " +
 				"cp -rf ./images ./build/ && " +
-				"cp package.json ./build/ && " +
-				"cp index.html ./build/"
+				"cp ./package.json ./build/ && " +
+				"cp ./index.html ./build/"
 		},
 		nodewebkit: {
 			options: {
@@ -91,5 +91,5 @@ module.exports = function (grunt) {
 	// Release task
 	grunt.registerTask("release", ["default", "uglify:release"]);
 	grunt.registerTask("build", ["release", "exec:command", "nodewebkit"]);
-
+	grunt.registerTask("webkit", ["nodewebkit"]);
 };
