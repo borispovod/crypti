@@ -6,7 +6,7 @@ angular.module('webApp').controller('passphraseController',
     ['$scope', '$rootScope', '$http', "$state", '$interval', '$location', "userService", "dbFactory", "peerFactory", "transactionService", 'stBlurredDialog',
         function ($rootScope, $scope, $http, $state, $interval, $location, userService, dbFactory, peerFactory, transactionService, stBlurredDialog) {
             $scope.peerexists = false;
-            $scope.editingPeer = false;
+            $scope.editingPeer = peerFactory.editing;
             $scope.custom = false;
             $scope.logging = false;
             $scope.addressError = false;
@@ -14,6 +14,7 @@ angular.module('webApp').controller('passphraseController',
             $scope.peerError = false;
             $scope.peerSettings = function () {
                 $scope.editingPeer = !$scope.editingPeer;
+                peerFactory.editing = !peerFactory.editing;
             };
             $scope.savePeerSettings = function (custom, best) {
 
@@ -32,6 +33,7 @@ angular.module('webApp').controller('passphraseController',
                     return;
                 }
                 $scope.editingPeer = false;
+                peerFactory.editing = false;
                 dbFactory.useBestPeer(best, function () {
                     $scope.bestPeer = best;
                     dbFactory.saveCustomPeer(custom, function (customPeer) {
@@ -157,10 +159,13 @@ angular.module('webApp').controller('passphraseController',
                 else {
                     $scope.logging = false;}
             }
+
             //runtime
             $scope.$on('edit-peer', function (event, args) {
                 $scope.editingPeer = true;
+                peerFactory.editing = true;
             });
+
             $scope.ubpatedbinterval = $interval(function () {
                 dbFactory.updatedb(function (response) {
                     response.forEach(function (peer) {
@@ -194,7 +199,6 @@ angular.module('webApp').controller('passphraseController',
 
             dbFactory.emptydb(
                 function (empty) {
-
                     if (empty) {
                         stBlurredDialog.open('partials/modals/blurredModal.html', {err: false});
                         $scope.getPeers(peerFactory.getUrl(), function () {
@@ -223,7 +227,6 @@ angular.module('webApp').controller('passphraseController',
                                         }
                                         else {
                                             $scope.peerexists = true;
-                                            console.log('custom peer');
                                             $scope.custom = true;
                                             $scope.customPeer = response.rows[0].key.ip + ':' + response.rows[0].key.port;
                                             peerFactory.setPeer(response.rows[0].key.ip, response.rows[0].key.port);

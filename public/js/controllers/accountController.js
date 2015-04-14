@@ -74,6 +74,7 @@ angular.module('webApp').controller('accountController', ['$scope', '$rootScope'
         }, 1000 * 10);
 
         $scope.$on('$destroy', function () {
+            console.log('acc destroy');
             $interval.cancel($scope.balanceInterval);
             $scope.balanceInterval = null;
 
@@ -95,7 +96,6 @@ angular.module('webApp').controller('accountController', ['$scope', '$rootScope'
             $scope.secondPassphraseModal = secondPassphraseModal.activate({
                 totalBalance: $scope.unconfirmedBalance,
                 destroy: function (r) {
-					console.log("here");
                     $scope.getAccount();
                     $scope.getTransactions();
 
@@ -113,4 +113,6 @@ angular.module('webApp').controller('accountController', ['$scope', '$rootScope'
         delegateService.getDelegate($scope.publicKey, function (response) {
             $scope.delegate = response;
         });
+
+
     }]);

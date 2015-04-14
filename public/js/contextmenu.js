@@ -44,7 +44,6 @@ $(function () {
                 document.execCommand("paste");
             },
             failed: function (msg) {
-                console.log(msg);
             }
         },
             {
@@ -53,7 +52,6 @@ $(function () {
                     document.execCommand("copy");
                 },
                 failed: function (msg) {
-                    console.log(msg);
                 }
             },
             {
@@ -62,7 +60,6 @@ $(function () {
                     document.execCommand("cut");
                 },
                 failed: function (msg) {
-                    console.log(msg);
                 }
             }, {
                 key: "Cmd+V",
@@ -72,7 +69,6 @@ $(function () {
 
                 ,
                 failed: function (msg) {
-                    console.log(msg);
                 }
             },
             {
@@ -81,7 +77,6 @@ $(function () {
                     document.execCommand("copy");
                 },
                 failed: function (msg) {
-                    console.log(msg);
                 }
             },
             {
@@ -90,7 +85,6 @@ $(function () {
                     document.execCommand("cut");
                 },
                 failed: function (msg) {
-                    console.log(msg);
                 }
             }
         ]

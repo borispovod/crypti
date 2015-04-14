@@ -28,7 +28,7 @@
         <span class="menu-text">Logout</span></a></li>
     <div id="inc"></div>
 </div>
-<div id="right-part">
+<div id="right-part" ng-controller="appController">
     <div ui-view class="partials-rules"></div>
 </div>
 <div ng-show="sync == true" class="syncLabel" title="Synchronization running...">
@@ -36,3 +36,5 @@
 
     <p ng-show="heightToSync <= 0">Synchronization: {{ height }}, wait please...</p>
 </div>
+
+<st-blurred-dialog-overlay></st-blurred-dialog-overlay>

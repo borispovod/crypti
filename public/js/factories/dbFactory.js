@@ -10,6 +10,14 @@ angular.module('webApp').factory('dbFactory', function (peerFactory) {
 
     };
 
+    factory.compact = function (cb) {
+        this.db.compact().then(function (result) {
+            cb(result);
+        }).catch(function (err) {
+            console.log(err);
+        });
+    };
+
     factory.emptydb = function (cb) {
         this.db.query(function (doc, emit) {
             if (doc._id != 'bestPeer' && doc._id != 'customPeer') {
@@ -94,7 +102,6 @@ angular.module('webApp').factory('dbFactory', function (peerFactory) {
             if (err) {
                 return console.log(err);
             }
-            console.log('custom', results)
             cb(results)
         });
     };
@@ -105,12 +112,10 @@ angular.module('webApp').factory('dbFactory', function (peerFactory) {
                 emit(doc);
             }
         }, {limit: 2}, function (err, results) {
-            console.log(results);
             if (err) {
                 return console.log(err);
             }
             if (results.total_rows === 0) {
-                console.log('doesnt need update');
                 factory.db.allDocs({
                     include_docs: true
                 }, function (err, response) {
@@ -132,7 +137,6 @@ angular.module('webApp').factory('dbFactory', function (peerFactory) {
                                     if (err) {
                                         return console.log(err);
                                     }
-                                    console.log('peer updated to new loop', response);
                                 });
                             });
                         }
@@ -226,7 +230,6 @@ angular.module('webApp').factory('dbFactory', function (peerFactory) {
                 if (err) {
                     return console.log(err);
                 }
-                console.log('peer updated', response);
             });
         });
     };
@@ -240,7 +243,6 @@ angular.module('webApp').factory('dbFactory', function (peerFactory) {
                 if (err) {
                     return console.log(err);
                 }
-                console.log('deletePeer', ip);
                 var newRandomList = [];
                 factory.randomList.forEach(function (peer) {
                     if (peer.id != ip) {

@@ -5,10 +5,22 @@
         <div class="searchText" ng-show="!dialogData.err && !dialogData.search">Searching for the best peer available. This process can take a moment.</div>
             <div class="searchText" ng-show="dialogData.search">Testing your peer.
             </div>
-        <div class="errorText" ng-show="dialogData.err">Your peer is offline. To change your peer or use the auto peer function click on the cloud on the top right corner.</div>
-        <button ng-show="dialogData.err" type="submit" class="button small" ng-click="close()">
+        <div class="errorText" ng-show="dialogData.err && !dialogData.disconnect">Your peer is offline. To change your peer or use the auto peer function click on the cloud on the top right corner.</div>
+            <div class="errorText" ng-show="dialogData.disconnect">The connection to the peer has been lost. You can try to reconnect to the peer or log out and configure another peer. If your custom peer is no longer available, please use the automatic peer detection option on the log in screen.</div>
+        <button ng-show="dialogData.err && !dialogData.disconnect" type="submit" class="button small" ng-click="close()">
             Close
         </button>
+
+            <button ng-show="dialogData.disconnect" class="button small"
+                    ng-click="reconfigure()" style="margin-left: 10px;">
+                <span>Reconfigure</span>
+            </button>
+
+            <button ng-show="dialogData.disconnect" class="button small"
+                    ng-click="retry()">
+                <span ng-show="!dialogData.retry">Retry</span>
+                <span ng-show="dialogData.retry">Testing connection</span>
+            </button>
         </div>
     </div>
 </div>
