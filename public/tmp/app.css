@@ -780,7 +780,8 @@ span.menu-text {
   color: #939495;
 }
 .cloud {
-  position: fixed;
+  position: absolute;
+  z-index: 10;
   top: 8px;
   right: 8px;
   background-size: 36px 24px;
