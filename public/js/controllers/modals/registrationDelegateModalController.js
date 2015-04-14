@@ -6,6 +6,15 @@ angular.module('webApp').controller('registrationDelegateModalController', ["$sc
         $scope.delegate = userService.delegate;
         $scope.action = false;
 		$scope.isSecondPassphrase = userService.secondPassphrase;
+		$scope.sum = "~";
+
+		$scope.loadFee = function () {
+			$http.get("/api/delegates/getFee").then(function (resp) {
+				$scope.sum = resp.data.fee;
+			});
+		}
+
+		$scope.loadFee();
 
         $scope.close = function () {
             if ($scope.destroy) {
@@ -14,6 +23,7 @@ angular.module('webApp').controller('registrationDelegateModalController', ["$sc
 
             registrationDelegateModal.deactivate();
         }
+
 
         $scope.registrationDelegate = function () {
             $scope.action = true;

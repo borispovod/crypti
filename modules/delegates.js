@@ -8,7 +8,8 @@ var crypto = require('crypto'),
 	slots = require('../helpers/slots.js'),
 	schedule = require('node-schedule'),
 	util = require('util'),
-	constants = require('../helpers/constants.js');
+	constants = require('../helpers/constants.js'),
+	milestoneBlocks = require('../helpers/milestoneBlocks.js');
 
 require('array.prototype.find'); //old node fix
 
@@ -47,6 +48,14 @@ function attachApi() {
 	router.use(function (req, res, next) {
 		if (modules && loaded) return next();
 		res.status(500).send({success: false, error: 'loading'});
+	});
+
+	router.get("/getFee", function (req, res) {
+		if (modules.blocks.getLastBlock().height < milestoneBlocks.FEE_BLOCK) {
+			return res.json({success: true, fee: 10000});
+		} else {
+			return res.json({success: true, fee: 100})
+		}
 	});
 
 	router.get('/', function (req, res) {

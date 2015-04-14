@@ -9,7 +9,8 @@ var ed = require('ed25519'),
 	transactionHelper = require("../helpers/transaction.js"),
 	params = require('../helpers/params.js'),
 	Router = require('../helpers/router.js'),
-	async = require('async');
+	async = require('async'),
+	milestoneBlocks = require('../helpers/milestoneBlocks.js');
 
 // private fields
 var modules, library, self;
@@ -31,6 +32,14 @@ function attachApi() {
 	router.use(function (req, res, next) {
 		if (modules) return next();
 		res.status(500).send({success: false, error: 'loading'});
+	});
+
+	router.get('/getFee', function (req, res) {
+		if (modules.blocks.getLastBlock().height < milestoneBlocks.FEE_BLOCK) {
+			return res.json({success: true, fee: 100});
+		} else {
+			return res.json({success: true, fee: 5})
+		}
 	});
 
 	router.get('/get', function (req, res) {

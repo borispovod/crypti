@@ -2,14 +2,23 @@ require('angular');
 
 angular.module('webApp').controller('secondPassphraseModalController', ["$scope", "secondPassphraseModal", "$http", "userService", function ($scope, secondPassphraseModal, $http, userService) {
     $scope.type = "password";
+	$scope.sum = "~";
 
-    $scope.close = function () {
+	$scope.close = function () {
         if ($scope.destroy) {
             $scope.destroy();
         }
 
         secondPassphraseModal.deactivate();
     }
+
+	$scope.loadFee = function () {
+		$http.get("/api/signatures/getFee").then(function (resp) {
+			$scope.sum = resp.data.fee;
+		});
+	}
+
+	$scope.loadFee();
 
     $scope.changeType = function () {
         if ($scope.showPassphrase) {
