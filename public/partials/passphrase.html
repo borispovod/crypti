@@ -4,9 +4,8 @@
         <div id="login-form">
             <form autocomplete="off">
                 <input type="password" id="enter" placeholder="Enter your password here" ng-model="pass"
-                       ng-trim="false" autofocus ng-disabled="logging">
+                       ng-trim="false" set-focus="!editingPeer" ng-disabled="logging">
                 <p id="message">For security reasons, we recommend passwords as long as 50 characters.</p>
-
                 <button type="submit" class="button green" id="login" ng-click="login(pass)" ng-disabled="logging">
                     Login
                 </button>
@@ -22,7 +21,7 @@
             <input type="text" name="peer" id="peer" placeholder="Enter peer. Use IP:PORT format"
                    ng-model="customPeer"
                    ng-disabled="bestPeer"
-                   ng-trim="true" autofocus ng-class="{'err' : addressError}">
+                   ng-trim="true" autofocus ng-class="{'err' : addressError}" set-focus="editingPeer">
             <p class="error" ng-show="peerError">{{peerError}}</p>
             <span style="display: none;">{{bestPeer}}</span>
             <input type="checkbox" id="bestPeer" name="check" ng-model="bestPeer"/>

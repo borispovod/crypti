@@ -12,7 +12,6 @@ angular.module('webApp').controller('passphraseController',
             $scope.addressError = false;
             $scope.errorMessage = "";
             $scope.peerError = false;
-
             $scope.peerSettings = function () {
                 $scope.editingPeer = !$scope.editingPeer;
             };
@@ -21,7 +20,6 @@ angular.module('webApp').controller('passphraseController',
                 $scope.peerError = false;
                 custom = custom || '';
                 $scope.addressError = false;
-                debugger;
                 var isIP = ipRegex({exact: true}).test(custom.split(":")[0]) || custom.split(":")[0].toLowerCase()=='localhost';
                 var isPort = (parseInt(custom.split(":")[1]) > 0 && parseInt(custom.split(":")[1]) <= 61000);
                 $scope.addressError = (!isIP || !isPort) && custom != '';
@@ -109,9 +107,8 @@ angular.module('webApp').controller('passphraseController',
             }
 
             $scope.login = function (pass) {
-                $scope.logging = true;
+                $scope.logging = !$scope.logging;
                 if ($scope.peerexists) {
-
                     if ($scope.custom) {
                         peerFactory.checkPeer(peerFactory.getUrl(), function (resp) {
                             if (resp.status == 200) {
@@ -161,8 +158,9 @@ angular.module('webApp').controller('passphraseController',
                     $scope.logging = false;}
             }
             //runtime
-
-
+            $scope.$on('edit-peer', function (event, args) {
+                $scope.editingPeer = true;
+            });
             $scope.ubpatedbinterval = $interval(function () {
                 dbFactory.updatedb(function (response) {
                     response.forEach(function (peer) {
