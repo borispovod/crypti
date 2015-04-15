@@ -50,15 +50,20 @@ angular.module('webApp').service('transactionService', function (userService) {
 
     }
 
-    this.createHeaders = function () {
-        return {
+    this.createHeaders = function (timeout) {
+        var data = {
             "headers": {
                 "os": platform.os.toString(),
                 "version": "0.2.0Lite!",
                 "port": 0,
                 "share-port": false
-            }
+            }};
+        if (timeout) {
+            data["timeout"] = timeout;
         }
+        return data;
     }
 
-});
+
+})
+;

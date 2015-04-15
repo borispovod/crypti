@@ -51,7 +51,7 @@ angular.module('webApp').controller('passphraseController',
                                     stBlurredDialog.open('partials/modals/blurredModal.html', {err: true});
                                 }
 
-                            });
+                            }, 10000);
                         }
                         else {
                             stBlurredDialog.open('partials/modals/blurredModal.html', {err: false});
@@ -90,12 +90,12 @@ angular.module('webApp').controller('passphraseController',
                             peerFactory.checkPeer(dbFactory.randomList[key].key.url, function (resp) {
                                 if (resp.status == 200) {
                                     peerFactory.setPeer(ip.fromLong(dbFactory.randomList[key].key._id), dbFactory.randomList[key].key.port);
-                                    console.log('newPeer', ip.fromLong(dbFactory.randomList[key].key._id));
+                                    console.log('newPeer', ip.fromLong(dbFactory.randomList[key].key._id) + ':'+ dbFactory.randomList[key].key.port);
                                     $scope.peerexists = true;
                                     stBlurredDialog.close();
                                 }
                                 else {
-                                    console.log('errorPeer', ip.fromLong(dbFactory.randomList[key].key._id), resp);
+                                    console.log('errorPeer', ip.fromLong(dbFactory.randomList[key].key._id) + ':' + dbFactory.randomList[key].key.port);
                                     dbFactory.delete(dbFactory.randomList[key].key._id, function () {
                                         $scope.setBestPeer();
                                     });
@@ -137,7 +137,7 @@ angular.module('webApp').controller('passphraseController',
                                 stBlurredDialog.open('partials/modals/blurredModal.html', {err: true});
                             }
 
-                        })
+                        }, 5000)
                     }
                     else {
                         var data = {secret: pass};
@@ -173,7 +173,7 @@ angular.module('webApp').controller('passphraseController',
                             peer.key.url,
                             function (resp) {
                                 if (resp.status == 200) {
-                                    console.log('workingPeer', ip.fromLong(peer.key._id), resp);
+                                    console.log('workingPeer', ip.fromLong(peer.key._id));
                                     resp.data.peers.forEach(function (peer) {
                                         if (peer.sharePort) {
                                             dbFactory.add(peer);
@@ -182,7 +182,7 @@ angular.module('webApp').controller('passphraseController',
                                     dbFactory.updatepeer(peer);
                                 }
                                 else {
-                                    console.log('errorPeer', ip.fromLong(peer.key._id), resp);
+                                    console.log('errorPeer', ip.fromLong(peer.key._id));
                                     dbFactory.delete(peer.key._id,
                                         function () {
 
@@ -197,14 +197,19 @@ angular.module('webApp').controller('passphraseController',
 
             dbFactory.createdb();
 
+
             dbFactory.emptydb(
                 function (empty) {
+                    if (peerFactory.peer) {
+                        return $scope.peerexists = true;
+                    }
                     if (empty) {
-                        stBlurredDialog.open('partials/modals/blurredModal.html', {err: false});
+                         stBlurredDialog.open('partials/modals/blurredModal.html', {err: false});
                         $scope.getPeers(peerFactory.getUrl(), function () {
                             $scope.setBestPeer();
                         });
-                    } else {
+                    }
+                    else {
                         dbFactory.isBestPeer(function (best) {
                                 $scope.bestPeer = best;
                                 if (best) {

@@ -14,7 +14,7 @@ angular.module('webApp').factory('dbFactory', function (peerFactory) {
         this.db.compact().then(function (result) {
             cb(result);
         }).catch(function (err) {
-            console.log(err);
+           console.log(err);
         });
     };
 
@@ -26,7 +26,7 @@ angular.module('webApp').factory('dbFactory', function (peerFactory) {
         }, function (err, results) {
 
             if (err) {
-                return console.log(err);
+                return err;
             }
             cb(results.total_rows == 0);
         });
@@ -43,7 +43,7 @@ angular.module('webApp').factory('dbFactory', function (peerFactory) {
         }, {limit: count}, function (err, results) {
 
             if (err) {
-                return console.log(err);
+                return null;
             }
             if (factory.randomList.length >= 10) {
                 cb();
@@ -100,7 +100,7 @@ angular.module('webApp').factory('dbFactory', function (peerFactory) {
         }, {limit: 1}, function (err, results) {
 
             if (err) {
-                return console.log(err);
+                return err;
             }
             cb(results)
         });
@@ -113,20 +113,20 @@ angular.module('webApp').factory('dbFactory', function (peerFactory) {
             }
         }, {limit: 2}, function (err, results) {
             if (err) {
-                return console.log(err);
+                return err;
             }
             if (results.total_rows === 0) {
                 factory.db.allDocs({
                     include_docs: true
                 }, function (err, response) {
                     if (err) {
-                        return console.log(err);
+                        return err;
                     }
                     response.rows.forEach(function (peer) {
                         if (peer.doc._id != 'customPeer' && peer.doc._id != 'bestPeer') {
                             factory.db.get(peer.doc._id, function (err, doc) {
                                 if (err) {
-                                    return console.log(err);
+                                    return  err;
                                 }
                                 factory.db.put({
                                     port: peer.doc.port,
@@ -135,7 +135,7 @@ angular.module('webApp').factory('dbFactory', function (peerFactory) {
                                     custom: false
                                 }, peer.doc._id, doc._rev, function (err, response) {
                                     if (err) {
-                                        return console.log(err);
+                                        return err;
                                     }
                                 });
                             });
@@ -164,7 +164,7 @@ angular.module('webApp').factory('dbFactory', function (peerFactory) {
             if (err) {
                 //return console.log(err);
             }
-            console.log(response);
+           // console.log(response);
         })
     };
 
@@ -219,7 +219,7 @@ angular.module('webApp').factory('dbFactory', function (peerFactory) {
     factory.updatepeer = function (peer) {
         this.db.get(peer.key._id, function (err, doc) {
             if (err) {
-                return console.log(err);
+                return err;
             }
             factory.db.put({
                 port: peer.key.port,
@@ -228,7 +228,7 @@ angular.module('webApp').factory('dbFactory', function (peerFactory) {
                 custom: false
             }, peer.key._id, doc._rev, function (err, response) {
                 if (err) {
-                    return console.log(err);
+                    return (err);
                 }
             });
         });
@@ -237,11 +237,11 @@ angular.module('webApp').factory('dbFactory', function (peerFactory) {
     factory.delete = function (ip, cb) {
         this.db.get(ip, function (err, doc) {
             if (err) {
-                return console.log(err);
+                return (err);
             }
             factory.db.remove(doc, function (err, response) {
                 if (err) {
-                    return console.log(err);
+                    return (err);
                 }
                 var newRandomList = [];
                 factory.randomList.forEach(function (peer) {
@@ -259,7 +259,7 @@ angular.module('webApp').factory('dbFactory', function (peerFactory) {
     factory.destroydb = function () {
         this.db.destroy(function (error) {
             if (error) {
-                return console.log(error);
+                return (error);
             } else {
 
             }

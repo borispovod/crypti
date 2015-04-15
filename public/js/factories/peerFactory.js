@@ -4,10 +4,7 @@ angular.module('webApp').factory('peerFactory', ['$http', 'transactionService', 
 
     var factory = {
         editing: false,
-        peer: {
-            ip: "104.155.57.21",
-            port: "8040"
-        },
+        peer: null,
         peerList: [
             {
                 ip: "104.155.57.21",
@@ -26,8 +23,8 @@ angular.module('webApp').factory('peerFactory', ['$http', 'transactionService', 
                 port: "7040"
             }
         ],
-        checkPeer: function (url, cb) {
-            $http.get(url + "/peer/list", transactionService.createHeaders())
+        checkPeer: function (url, cb, timeout) {
+            $http.get(url + "/peer/list", transactionService.createHeaders(timeout))
                 .then(function (resp) {
                     cb(resp);
                 }, function (err) {
