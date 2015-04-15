@@ -240,6 +240,30 @@ describe("Sanitizer.", function(){
                 done();
             });
         });
+
+        describe("arrayOf.", function(){
+            it("should return invalid report on wrong values", function(){
+                var report = validation.validate(['a', 'b', 'c1'], {
+                    arrayOf: {
+                        string: true,
+                        maxLength: 1
+                    }
+                });
+
+                should(report).be.an.Object.and.hasOwnProperty("isValid").equal(false);
+            });
+
+            it("should return valid report on wrong values", function(){
+                var report = validation.validate(['a', 'b', 'c'], {
+                    arrayOf: {
+                        string: true,
+                        maxLength: 1
+                    }
+                });
+
+                should(report).be.an.Object.and.hasOwnProperty("isValid").equal(true);
+            });
+        });
     });
 
     describe("Express middleware.", function(){

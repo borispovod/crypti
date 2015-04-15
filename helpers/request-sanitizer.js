@@ -89,6 +89,40 @@ RequestSanitizer.addRule("array", {
     }
 });
 
+RequestSanitizer.addRule("arrayOf", {
+    validate : function(accept, value, field) {
+        if (! Array.isArray(value)) return;
+
+        field.async(function(done){
+            var result = [];
+            var l = value.length;
+
+            function end(err) {
+                if (l === null) return;
+
+                --l;
+
+                if (err) l = null;
+
+                if (! l) {
+                    done(err);
+                }
+            }
+
+            value.forEach(function(item, i){
+                var child = field.child(i, item, accept, value);
+                child.validate(function(err, report, value){
+                    if (err) return end(err);
+
+                    result[i] = value;
+
+                    end();
+                })
+            });
+        });
+    }
+});
+
 RequestSanitizer.addRule("hex", {
     filter : function(accept, value, field) {
         if (field.isEmpty() && field.rules.empty) return null;
