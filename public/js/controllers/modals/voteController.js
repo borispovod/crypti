@@ -6,8 +6,9 @@ angular.module('webApp').controller('voteController', ["$scope", "voteModal", "$
         $scope.voting = false;
         $scope.fromServer = '';
         $scope.secondPassphrase = userService.secondPassphrase;
+		$scope.totalBalance = userService.balance || 0;
 
-        Number.prototype.roundTo = function (digitsCount) {
+		Number.prototype.roundTo = function (digitsCount) {
             var digitsCount = typeof digitsCount !== 'undefined' ? digitsCount : 2;
             var s = String(this);
             if (s.indexOf('e') < 0) {

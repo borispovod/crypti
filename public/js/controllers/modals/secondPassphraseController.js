@@ -5,7 +5,19 @@ angular.module('webApp').controller('secondPassphraseModalController', ["$scope"
     function ($scope, secondPassphraseModal, $http, userService, peerFactory, transactionService) {
         $scope.type = "password";
         $scope.sending = false;
-        $scope.totalBalance = userService.balance;
+        $scope.totalBalance = userService.balance || 0;
+		$scope.sum = "~";
+
+		$scope.loadFee = function () {
+			$http.post(peerFactory.getUrl() + "/api/signatures/getFee")
+				.success(function (data) {
+					$scope.sum = data.fee;
+				}).error(function () {
+					$scope.sum = 100;
+				})
+		}
+
+		$scope.loadFee();
 
         $scope.close = function () {
             if ($scope.destroy) {
