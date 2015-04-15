@@ -243,7 +243,7 @@ describe("Sanitizer.", function(){
 
         describe("arrayOf.", function(){
             it("should return invalid report on wrong values", function(){
-                var report = validation.validate(['a', 'b', 'c1'], {
+                var report = validation.validate(['a', 'b1', 'c1'], {
                     arrayOf: {
                         string: true,
                         maxLength: 1
@@ -259,6 +259,43 @@ describe("Sanitizer.", function(){
                         string: true,
                         maxLength: 1
                     }
+                });
+
+                should(report).be.an.Object.and.hasOwnProperty("isValid").equal(true);
+            });
+
+            it("Should return invalid report on non array value", function(){
+                var report = validation.validate(null, {
+                    arrayOf: {
+                        string: true,
+                        maxLength: 1
+                    }
+                });
+
+                should(report).be.an.Object.and.hasOwnProperty("isValid").equal(false);
+            });
+        });
+
+        describe("regexp.", function(){
+            it("should return invalid report on non string value", function(){
+                var report = validation.validate(null, {
+                    regexp: /^\d+C$/
+                });
+
+                should(report).be.an.Object.and.hasOwnProperty("isValid").equal(false);
+            });
+
+            it("should return invalid report on wrong value", function(){
+                var report = validation.validate('0F', {
+                    regexp: /^\d+C$/
+                });
+
+                should(report).be.an.Object.and.hasOwnProperty("isValid").equal(false);
+            });
+
+            it("should return valid report on valid value", function(){
+                var report = validation.validate('0123456789C', {
+                    regexp: /^\d+C$/
                 });
 
                 should(report).be.an.Object.and.hasOwnProperty("isValid").equal(true);

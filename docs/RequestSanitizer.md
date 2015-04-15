@@ -78,6 +78,7 @@ attempt to call async rule will throw an Error.
 | `float`      | *       | Convert value to number with parseFloat.    |
 | `boolean`    | *       | Convert value to boolean. |
 | `array`      | *       | Check if value is an Array. If not return `[]`.   |
+| `arrayOf`    | *       | Check if value is array which items meet a condition rules |
 | `object`     | *       | Check if value is object. If not return `{}`. |
 | `variant`    | *       | Check if value is not undefined otherwise return `''`.    |
 | `hex`        | *       | Check if value is a valid hex.    |
@@ -87,6 +88,7 @@ attempt to call async rule will throw an Error.
 | `maxLength`  | number | Check maximum string or array length.   |
 | `minByteLength` | number, object | Check minimum string length in bytes.   |
 | `maxByteLength` | number, object | Check maximum string length in bytes.   |
+| `regexp` | string | Check value to match a regular expression |
 
 ### array
 
@@ -113,6 +115,20 @@ specify encoding passing object as accepted value. Example:
             encoding : 'hex',
             length : 4 * 1024 // 4 Kb
         }
+    }
+}
+```
+
+### arrayOf
+
+This rule validates each value of passed array to meet conditions passed as rule value. It accepts an Array value only. Example:
+```javascript
+{
+    array: true,
+    arrayOf: {
+        string: true,
+        maxLength: 100,
+        regexp: /^\d+C$/
     }
 }
 ```

@@ -33,6 +33,15 @@ RequestSanitizer.addRule("string", {
     }
 });
 
+RequestSanitizer.addRule("regexp", {
+    message : "value should match template",
+    validate : function(accept, value) {
+        if (typeof value !== 'string') return false;
+
+        return accept.test(value);
+    }
+});
+
 RequestSanitizer.addRule("boolean", {
     filter : function(accept, value, field){
         if (field.isEmpty() && field.rules.empty) return null;
@@ -91,35 +100,16 @@ RequestSanitizer.addRule("array", {
 
 RequestSanitizer.addRule("arrayOf", {
     validate : function(accept, value, field) {
-        if (! Array.isArray(value)) return;
+        if (field.isEmpty() && field.rules.empty) return null;
+        if (! Array.isArray(value)) return false;
 
-        field.async(function(done){
-            var result = [];
-            var l = value.length;
+        var l = value.length;
+        var i = -1;
+        var child;
 
-            function end(err) {
-                if (l === null) return;
-
-                --l;
-
-                if (err) l = null;
-
-                if (! l) {
-                    done(err);
-                }
-            }
-
-            value.forEach(function(item, i){
-                var child = field.child(i, item, accept, value);
-                child.validate(function(err, report, value){
-                    if (err) return end(err);
-
-                    result[i] = value;
-
-                    end();
-                })
-            });
-        });
+        while (++i < l) {
+            field.child(i, value[i], accept, value).validate();
+        }
     }
 });
 
