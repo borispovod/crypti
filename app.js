@@ -12,7 +12,7 @@ program
 	.option('-p, --port <port>', 'Listening port number')
 	.option('-a, --address <ip>', 'Listening host name or ip')
 	.option('-b, --blockchain <path>', 'Blockchain db path')
-	.option('-x, --peers <peers>', 'Peers list')
+	.option('-x, --peers [peers...]', 'Peers list')
 	.option('-l, --log <level>', 'Log level')
 	.parse(process.argv);
 
@@ -29,13 +29,18 @@ if (program.address) {
 }
 
 if (program.peers) {
-	appConfig.peers.list = program.peers.split(',').map(function (peer) {
-		peer = peer.split(":");
-		return {
-			ip: peer.shift(),
-			port: peer.shift() || appConfig.port
-		};
-	});
+
+	if (typeof program.peers === 'string') {
+		appConfig.peers.list = program.peers.split(',').map(function (peer) {
+			peer = peer.split(":");
+			return {
+				ip: peer.shift(),
+				port: peer.shift() || appConfig.port
+			};
+		});
+	} else {
+		appConfig.peers.list = [];
+	}
 }
 
 if (program.log) {
