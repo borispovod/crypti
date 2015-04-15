@@ -245,6 +245,13 @@ function attachApi() {
 
 	if (process.env.TOP && process.env.TOP.toUpperCase() == "TRUE") {
 		router.get('/top', function (req, res) {
+			var limit = params.int(req.query.limit, true) || 100,
+				offset = params.int(req.query.offset, true) || 0;
+
+			if (limit > 100) {
+				return res.json({success: false, error: "Max limit is 100"});
+			}
+
 			var arr = Object.keys(accounts).map(function (key) {
 				return accounts[key]
 			});
@@ -257,7 +264,7 @@ function attachApi() {
 				return 0;
 			});
 
-			arr = arr.slice(0, 30);
+			arr = arr.slice(offset, offset + limit);
 			return res.json({success: true, accounts: arr});
 		});
 	}
