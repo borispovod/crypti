@@ -922,6 +922,10 @@ span.menu-text {
   color: #ed4a4a;
   font-size: 13px;
 }
+.modal p.loading {
+  color: #777;
+  font-size: 13px;
+}
 #block-modal .modal-content {
   position: fixed;
   top: 10%;

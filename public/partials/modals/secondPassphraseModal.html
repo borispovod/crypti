@@ -6,14 +6,15 @@
             effect. Service fee: <b>{{sum}} XCR</b>. Your balance: <b>{{ totalBalance }} XCR</b>.
         </p>
         <form class="form" style="margin-top: 20px;" autocomplete="off">
-            <input class="input-text" type="{{type}}" ng-model="secretPhrase" placeholder="Primary password" ng-trim="false">
-            <input class="input-text" type="{{type}}" ng-model="newSecretPhrase" placeholder="Secondary password" ng-trim="false">
-            <input class="input-text" type="{{type}}" ng-model="repeatSecretPhrase" placeholder="Re-enter secondary password" ng-trim="false">
-            <input type="checkbox" ng-model="showPassphrase" ng-change="changeType()"> <label>Show passwords in clear text</label>
+            <input class="input-text" ng-disabled="sum=='~'" type="{{type}}" ng-model="secretPhrase" placeholder="Primary password" ng-trim="false">
+            <input class="input-text" ng-disabled="sum=='~'" type="{{type}}" ng-model="newSecretPhrase" placeholder="Secondary password" ng-trim="false">
+            <input class="input-text" ng-disabled="sum=='~'" type="{{type}}" ng-model="repeatSecretPhrase" placeholder="Re-enter secondary password" ng-trim="false">
+            <input type="checkbox" ng-disabled="sum=='~'" ng-model="showPassphrase" ng-change="changeType()"> <label>Show passwords in clear text</label>
             <p class="error" style="margin-top: 10px;" ng-show="totalBalance < 100">You are missing {{(100 - totalBalance) | number : 2}} XCR.</p>
             <p class="error" style="margin-top: 10px;">{{fromServer}}.</p>
+            <p class="loading" ng-show="sum=='~'" style="margin-top: 10px;">Loading network fee percent.</p>
             <div class="pull-right">
-                <button type="submit" class="button green small" ng-disabled="sending || !repeatSecretPhrase || !newSecretPhrase || !secretPhrase || repeatSecretPhrase != newSecretPhrase || totalBalance < 100" ng-click="addNewPassphrase()">Generate</button>
+                <button type="submit" ng-disabled="sum=='~'" class="button green small" ng-disabled="sending || !repeatSecretPhrase || !newSecretPhrase || !secretPhrase || repeatSecretPhrase != newSecretPhrase || totalBalance < 100" ng-click="addNewPassphrase()">Generate</button>
                 <button class="button small" ng-click="close()" ng-disabled="sending">Close</button>
             </div>
         </form>

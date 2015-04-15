@@ -2,15 +2,17 @@
     <div class="modal-content">
         <h1 class="heading">Send Crypti</h1>
         <form class="form" autocomplete="off">
-            <input class="input-text" ng-class="{err: !accountValid}" type="text" ng-model="to" placeholder="To" ng-blur="accountChanged($event)">
-            <input class="input-text" ng-class="{err: amount < 0 || amountError || lengthError}" type="text" ng-model="amount" placeholder="Amount" ng-change="recalculateFee($event)" ng-pattern="onlyNumbers">
-            <input class="input-text" ng-class="{err: fee < 0 || amountError }" type="text" ng-model="fee" placeholder="Network fee percent: {{currentFee}}%" readonly>
-            <input class="input-text" type="password" ng-model="secretPhrase" placeholder="Primary password" ng-trim="false">
-            <input class="input-text" type="password" ng-model="secondPhrase" placeholder="Secondary password" ng-show="secondPassphrase" ng-trim="false">
+            <input class="input-text" ng-disabled="!currentFee" ng-class="{err: !accountValid}" type="text" ng-model="to" placeholder="To" ng-blur="accountChanged($event)">
+            <input class="input-text" ng-disabled="!currentFee" ng-class="{err: amount < 0 || amountError || lengthError}" type="text" ng-model="amount" placeholder="Amount" ng-change="recalculateFee($event)" ng-pattern="onlyNumbers">
+            <input class="input-text" ng-disabled="!currentFee" ng-class="{err: fee < 0 || amountError }" type="text" ng-model="fee" placeholder="Network fee percent: {{currentFee}}%" readonly>
+            <input class="input-text" ng-disabled="!currentFee" type="password" ng-model="secretPhrase" placeholder="Primary password" ng-trim="false">
+            <input class="input-text" ng-disabled="!currentFee" type="password" ng-model="secondPhrase" placeholder="Secondary password" ng-show="secondPassphrase" ng-trim="false">
             <p class="error" ng-show="(address == to)">Attention, you are sending XCR to your own account.</p>
+
+            <p class="loading" ng-show="!currentFee">Loading network fee percent.</p>
             <p class="error">{{errorMessage}}.</p>
             <div class="pull-right">
-                <button type="submit" class="button green small" ng-disabled="sending || !to || !secretPhrase || !amount || !fee || amount < 0 || fee < 0 || !accountValid || (secondPassphrase && !secondPhrase)" ng-click="sendCrypti()">Send</button>
+                <button ng-disabled="!currentFee" type="submit" class="button green small" ng-disabled="sending || !to || !secretPhrase || !amount || !fee || amount < 0 || fee < 0 || !accountValid || (secondPassphrase && !secondPhrase)" ng-click="sendCrypti()">Send</button>
                 <button class="button small" ng-click="close()" ng-disabled="sending">Close</button>
             </div>
         </form>
