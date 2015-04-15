@@ -308,6 +308,10 @@ function Vote() {
 			transactionId: trs.id
 		}, cb);
 	}
+
+	this.ready = function (trs) {
+		return true;
+	}
 }
 
 function Username() {
@@ -422,6 +426,10 @@ function Username() {
 			username: trs.asset.username.alias,
 			transactionId: trs.id
 		}, cb);
+	}
+
+	this.ready = function (trs) {
+		return true;
 	}
 }
 

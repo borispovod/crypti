@@ -110,6 +110,10 @@ function Contact() {
 			transactionId: trs.id
 		}, cb);
 	}
+
+	this.ready = function (trs) {
+		return true;
+	}
 }
 
 function attachApi() {

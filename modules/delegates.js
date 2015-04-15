@@ -162,6 +162,10 @@ function Delegate() {
 			transactionId: trs.id
 		}, cb);
 	}
+
+	this.ready = function (trs) {
+		return true;
+	}
 }
 
 //constructor

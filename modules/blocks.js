@@ -890,12 +890,18 @@ Blocks.prototype.deleteBlocksBefore = function (block, cb) {
 
 Blocks.prototype.generateBlock = function (keypair, timestamp, cb) {
 	var transactions = modules.transactions.getUnconfirmedTransactionList();
+	var ready = []
+	for (var i = 0; i < transactions.length; i++) {
+		if (library.logic.transaction.ready(transactions[i])) {
+			ready.push(transactions[i]);
+		}
+	}
 
 	var block = library.logic.block.create({
 		keypair: keypair,
 		timestamp: timestamp,
 		previousBlock: private.lastBlock,
-		transactions: transactions
+		transactions: ready
 	});
 
 	self.processBlock(block, true, cb);

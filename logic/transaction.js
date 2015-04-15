@@ -41,10 +41,10 @@ Transaction.prototype.create = function (data) {
 
 	trs = private.types[trs.type].create(data, trs);
 
-	this.sign(data.keypair, trs);
+	trs.signature = this.sign(data.keypair, trs);
 
 	if (data.secondKeypair) {
-		this.secondSign(data.secondKeypair, trs);
+		trs.signSignature = this.secondSign(data.secondKeypair, trs);
 	}
 
 	trs.id = this.getId(trs);
@@ -57,7 +57,8 @@ Transaction.prototype.attachAssetType = function (typeId, instance) {
 		typeof instance.calculateFee == 'function' && typeof instance.verify == 'function' &&
 		typeof instance.objectNormalize == 'function' && typeof instance.dbRead == 'function' &&
 		typeof instance.apply == 'function' && typeof instance.undo == 'function' &&
-		typeof instance.applyUnconfirmed == 'function' && typeof instance.undoUnconfirmed == 'function'
+		typeof instance.applyUnconfirmed == 'function' && typeof instance.undoUnconfirmed == 'function' &&
+		typeof instance.ready == 'function'
 	) {
 		private.types[typeId] = instance;
 	} else {
@@ -67,12 +68,12 @@ Transaction.prototype.attachAssetType = function (typeId, instance) {
 
 Transaction.prototype.sign = function (keypair, trs) {
 	var hash = this.getHash(trs);
-	trs.signature = ed.Sign(hash, keypair).toString('hex');
+	return ed.Sign(hash, keypair).toString('hex');
 }
 
 Transaction.prototype.secondSign = function (keypair, trs) {
 	var hash = this.getHash(trs);
-	trs.signSignature = ed.Sign(hash, keypair).toString('hex');
+	return ed.Sign(hash, keypair).toString('hex');
 }
 
 Transaction.prototype.getId = function (trs) {
@@ -148,6 +149,14 @@ Transaction.prototype.getBytes = function (trs) {
 		throw Error(e.toString());
 	}
 	return bb.toBuffer();
+}
+
+Transaction.prototype.ready = function (trs) {
+	if (!private.types[trs.type]) {
+		throw Error('Unknown transaction type');
+	}
+
+	return private.types[trs.type].ready(trs);
 }
 
 Transaction.prototype.verify = function (trs, sender, cb) { //inheritance
@@ -346,8 +355,8 @@ Transaction.prototype.dbSave = function (dbLite, trs, cb) {
 		fee: trs.fee,
 		signature: new Buffer(trs.signature, 'hex'),
 		signSignature: trs.signSignature ? new Buffer(trs.signSignature, 'hex') : null
-	}, function(err){
-		if (err){
+	}, function (err) {
+		if (err) {
 			return cb(err);
 		}
 
