@@ -3,7 +3,7 @@ module.exports = {
         "version": 0,
         "totalAmount": 10000000000000000,
         "totalFee": 0,
-        "payloadHash": "2f610e2264967df42f048806348599b80fb880545d508eae3d21f2500bbb4ed2",
+        "payloadHash": "cb93e510130cf42b6e17efb9ec622ce3224fd3c9c54a9dadc5a0e9dd5d3eff2b",
         "timestamp": 0,
         "numberOfTransactions": 103,
         "payloadLength": 20326,
@@ -1746,16 +1746,16 @@ module.exports = {
                         "+46d6250e91f498149be3fccbd733f899f411542c9ba28bbca74d2b5ff4d9364d",
                         "+e7b367bae1ceb2ccb3560ca14d0903f037945507ef1a934f264a66c865f4164f",
                         "+a74b7f6cefc28e53c497d2817f671894a164c015bef32e02aabc02959139682f",
-                        "+1ccf44ce4b8a9551885919324ae0f021c132d4f3de42a5397a4ef78312093d8c",
-                        "+f143730cbb5c42a9a02f183f8ee7b4b2ade158cb179b12777714edf27b4fcf3e"
+                        "+f143730cbb5c42a9a02f183f8ee7b4b2ade158cb179b12777714edf27b4fcf3e",
+                        "+1ccf44ce4b8a9551885919324ae0f021c132d4f3de42a5397a4ef78312093d8c"
                     ]
                 },
-                "signature": "edda5cd2a3ef26bacd70dd95603cf0d2d5740b75e2fc4953e8c2777f71e5abf16c28206cb9969c8dfae2e85b1c176b006ebd147bcc236eac714b93c03f32d803",
-                "id": "8542535171626863279"
+                "signature": "34f836623665bf43715b785e0b52fac6194ff6db2c7f026b28077f30d79b02afae62de9da8a47b8e4206413511a4b94fa8761d829f865ad1c7dfc9c923846e03",
+                "id": "14218251037812642697"
             }
         ],
         "height": 1,
-        "blockSignature": "0bc4696e5ace3b2c5f6aa0a526c96ae6ca6d7747833142b4c2f8dbba0fae65149adb5e6849579bc2197cc8b0f3d86b8127be43cf55927ec08b4d71994b681800",
-        "id": "5157408957444690862"
+        "blockSignature": "5bfd3ff93e6fbbb2970f9fdafe407ef149c339fca0811cdb2612a14ebe64c40860977978c4cdcfa44aca2d9d38f175290112f8cfb47e95a1001377017f58610e",
+        "id": "3051790244576518960"
     }
 }

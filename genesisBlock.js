@@ -35,19 +35,19 @@ function Transfer() {
 		return null;
 	}
 
-	this.apply = function (trs, sender){
+	this.apply = function (trs, sender) {
 		return true;
 	}
 
-	this.undo = function (trs, sender){
+	this.undo = function (trs, sender) {
 		return true;
 	}
 
-	this.applyUnconfirmed = function (trs, sender){
+	this.applyUnconfirmed = function (trs, sender) {
 		return true;
 	}
 
-	this.undoUnconfirmed = function (trs, sender){
+	this.undoUnconfirmed = function (trs, sender) {
 		return true;
 	}
 
@@ -59,8 +59,12 @@ function Transfer() {
 		return null;
 	}
 
-	this.dbSave = function (dbLite, trs, cb){
+	this.dbSave = function (dbLite, trs, cb) {
 		cb();
+	}
+
+	this.ready = function (trs) {
+		return true;
 	}
 }
 
@@ -93,19 +97,19 @@ function Signature() {
 		return bb.toBuffer();
 	}
 
-	this.apply = function (trs, sender){
+	this.apply = function (trs, sender) {
 		return true;
 	}
 
-	this.undo = function (trs, sender){
+	this.undo = function (trs, sender) {
 		return true;
 	}
 
-	this.applyUnconfirmed = function (trs, sender){
+	this.applyUnconfirmed = function (trs, sender) {
 		return true;
 	}
 
-	this.undoUnconfirmed = function (trs, sender){
+	this.undoUnconfirmed = function (trs, sender) {
 		return true;
 	}
 
@@ -117,8 +121,12 @@ function Signature() {
 		return null;
 	}
 
-	this.dbSave = function (dbLite, trs, cb){
+	this.dbSave = function (dbLite, trs, cb) {
 		cb();
+	}
+
+	this.ready = function (trs) {
+		return true;
 	}
 }
 
@@ -139,19 +147,19 @@ function Delegate() {
 		return new Buffer(trs.asset.delegate.username, 'utf8');
 	}
 
-	this.apply = function (trs, sender){
+	this.apply = function (trs, sender) {
 		return true;
 	}
 
-	this.undo = function (trs, sender){
+	this.undo = function (trs, sender) {
 		return true;
 	}
 
-	this.applyUnconfirmed = function (trs, sender){
+	this.applyUnconfirmed = function (trs, sender) {
 		return true;
 	}
 
-	this.undoUnconfirmed = function (trs, sender){
+	this.undoUnconfirmed = function (trs, sender) {
 		return true;
 	}
 
@@ -163,8 +171,12 @@ function Delegate() {
 		return null;
 	}
 
-	this.dbSave = function (dbLite, trs, cb){
+	this.dbSave = function (dbLite, trs, cb) {
 		cb();
+	}
+
+	this.ready = function (trs) {
+		return true;
 	}
 }
 
@@ -185,19 +197,19 @@ function Vote() {
 		return trs.asset.votes ? new Buffer(trs.asset.votes.join(''), 'utf8') : null;
 	}
 
-	this.apply = function (trs, sender){
+	this.apply = function (trs, sender) {
 		return true;
 	}
 
-	this.undo = function (trs, sender){
+	this.undo = function (trs, sender) {
 		return true;
 	}
 
-	this.applyUnconfirmed = function (trs, sender){
+	this.applyUnconfirmed = function (trs, sender) {
 		return true;
 	}
 
-	this.undoUnconfirmed = function (trs, sender){
+	this.undoUnconfirmed = function (trs, sender) {
 		return true;
 	}
 
@@ -209,8 +221,12 @@ function Vote() {
 		return null;
 	}
 
-	this.dbSave = function (dbLite, trs, cb){
+	this.dbSave = function (dbLite, trs, cb) {
 		cb();
+	}
+
+	this.ready = function (trs) {
+		return true;
 	}
 }
 
@@ -270,7 +286,7 @@ for (var i = 0; i < file.accounts.length; i++) {
 
 		totalAmount += transaction.amount;
 
-		transactionHelper.sign(keypair, transaction);
+		transaction.signature = transactionHelper.sign(keypair, transaction);
 		transaction.id = transactionHelper.getId(transaction);
 
 		var bytes = transactionHelper.getBytes(transaction);
@@ -296,7 +312,7 @@ for (var i = 0; i < file.accounts.length; i++) {
 			}
 		}
 
-		transactionHelper.sign(keypair, transaction);
+		transaction.signature = transactionHelper.sign(keypair, transaction);
 		transaction.id = transactionHelper.getId(transaction);
 
 		var bytes = transactionHelper.getBytes(transaction);
@@ -327,7 +343,7 @@ for (var i = 0; i < file.delegates.length; i++) {
 		}
 	}
 
-	transactionHelper.sign(keypair, transaction);
+	transaction.signature = transactionHelper.sign(keypair, transaction);
 	transaction.id = transactionHelper.getId(transaction);
 
 	var bytes = transactionHelper.getBytes(transaction);
@@ -345,19 +361,19 @@ for (var i = 0; i < file.votes.publicKeys.length; i++) {
 	var address = getAddressByPublicKey(publicKey);
 
 	var transaction = {
-		type : 3,
+		type: 3,
 		amount: 0,
-		fee : 0,
-		timestamp : 0,
-		recipientId : address,
-		senderId : address,
-		senderPublicKey : publicKey,
-		asset : {
-			votes : file.votes.votes
+		fee: 0,
+		timestamp: 0,
+		recipientId: address,
+		senderId: address,
+		senderPublicKey: publicKey,
+		asset: {
+			votes: file.votes.votes
 		}
 	}
 
-	transactionHelper.sign(keypair, transaction);
+	transaction.signature = transactionHelper.sign(keypair, transaction);
 	transaction.id = transactionHelper.getId(transaction);
 
 	var bytes = transactionHelper.getBytes(transaction);
