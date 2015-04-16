@@ -332,7 +332,7 @@ function Username() {
 
 	this.verify = function (trs, sender, cb) {
 		if (trs.recipientId) {
-			return cb("Invalid recipient: " + trs.id);
+			return cb("Invalid recipientId: " + trs.id);
 		}
 
 		if (trs.amount != 0) {

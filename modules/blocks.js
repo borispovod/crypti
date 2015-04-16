@@ -544,7 +544,7 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 					var sender = modules.accounts.getAccountByPublicKey(blocks[i].transactions[n].senderPublicKey);
 
 					if (sender.secondSignature) {
-						if (verify && !library.logic.transaction.verifySecondSignature(blocks[i].transactions[n], sender.secondPublicKey, blocks[i].transactions[n].signSignature)) {
+						if (verify && !library.logic.transaction.verifySignature(blocks[i].transactions[n], sender.secondPublicKey, blocks[i].transactions[n].signSignature)) {
 							err = {
 								message: "Can't verify second signature transaction: " + blocks[i].transactions[n].id,
 								transaction: blocks[i].transactions[n],
@@ -728,7 +728,7 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 							unconfirmedTransactions.splice(index, 1);
 						}
 
-						payloadHash.update(library.logic.transaction.getBytes(transaction));
+						payloadHash.update(library.logic.transaction.getBytes(transaction, false));
 						totalAmount += transaction.amount;
 						totalFee += transaction.fee;
 

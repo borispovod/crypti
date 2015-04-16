@@ -41,7 +41,7 @@ Block.prototype.create = function (data) {
 
 	for (var i = 0; i < transactions.length; i++) {
 		var transaction = transactions[i];
-		var bytes = this.logic.transaction.getBytes(transaction);
+		var bytes = this.logic.transaction.getBytes(transaction, false);
 
 		if (size + bytes.length > constants.maxPayloadLength) {
 			break;
