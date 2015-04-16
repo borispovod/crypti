@@ -3,7 +3,7 @@
   "version": "0.0.1",
   "main": "index.html",
   "window": {
-    "title": "Crypti Lite!",
+    "title": "Crypti Lite",
     "toolbar": true,
     "icon": "images/favicon.ico",
     "width": 1200,
