@@ -144,11 +144,11 @@ function attachApi() {
 		var account = modules.accounts.getAccountByPublicKey(keypair.publicKey.toString('hex'));
 
 		if (!account) {
-			return res.json({success: false, error: "Account doesn't has balance"});
+			return res.json({success: false, error: "Account not existing on this node, please, open you account first"});
 		}
 
 		if (!account.publicKey) {
-			return res.json({success: false, error: "Open account to make transaction"});
+			return res.json({success: false, error: "Account not existing on this node, please, open you account first"});
 		}
 
 
