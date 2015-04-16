@@ -356,6 +356,19 @@ private.getById = function (id, cb) {
 	});
 }
 
+private.addUnconfirmedTransaction = function (transaction) {
+	if (!self.applyUnconfirmed(transaction)) {
+		self.addDoubleSpending(transaction);
+		return false;
+	}
+
+	private.unconfirmedTransactions.push(transaction);
+	var index = private.unconfirmedTransactions.length - 1;
+	private.unconfirmedTransactionsIdIndex[transaction.id] = index;
+
+	return true;
+}
+
 //public methods
 Transactions.prototype.getUnconfirmedTransaction = function (id) {
 	var index = private.unconfirmedTransactionsIdIndex[id];
@@ -393,19 +406,6 @@ Transactions.prototype.removeUnconfirmedTransaction = function (id) {
 	var index = private.unconfirmedTransactionsIdIndex[id];
 	delete private.unconfirmedTransactionsIdIndex[id];
 	private.unconfirmedTransactions[index] = false;
-}
-
-Transactions.prototype.addUnconfirmedTransaction = function (transaction) {
-	if (!self.applyUnconfirmed(transaction)) {
-		self.addDoubleSpending(transaction);
-		return false;
-	}
-
-	private.unconfirmedTransactions.push(transaction);
-	var index = private.unconfirmedTransactions.length - 1;
-	private.unconfirmedTransactionsIdIndex[transaction.id] = index;
-
-	return true;
 }
 
 Transactions.prototype.processUnconfirmedTransaction = function (transaction, broadcast, cb) {
@@ -448,7 +448,7 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 			function done(err) {
 				if (err) return cb && cb(err);
 
-				if (!self.addUnconfirmedTransaction(transaction)) {
+				if (!private.addUnconfirmedTransaction(transaction)) {
 					return cb && cb("Can't apply transaction: " + transaction.id);
 				}
 
