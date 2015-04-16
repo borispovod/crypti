@@ -65,7 +65,8 @@ var config = {
 		"system": "./modules/system.js",
 		"peer": "./modules/peer.js",
 		"delegates": "./modules/delegates.js",
-		"round": "./modules/round.js"
+		"round": "./modules/round.js",
+		"multisignatures": "./modules/multisignatures.js"
 	}
 }
 

@@ -17,8 +17,8 @@ var modules, library, self, private = {};
 
 function Multisignature() {
 	this.create = function (data, trs) {
-		trs.recipientId = null;
-		trs.amount = 0;
+		trs.recipientId = data.recipientId;
+		trs.amount = data.amount;
 		trs.asset.multisignature = {
 			min: data.min,
 			dependence: data.dependence,
@@ -34,8 +34,9 @@ function Multisignature() {
 	}
 
 	this.verify = function (trs, sender, cb) {
-		if (trs.recipientId) {
-			return cb("Invalid recipient: " + trs.id);
+		var isAddress = /^[0-9]+[C|c]$/g;
+		if (!isAddress.test(trs.recipientId.toLowerCase())) {
+			return cb("Invalid recipientId: " + trs.id);
 		}
 
 		if (trs.amount != 0) {
@@ -77,14 +78,20 @@ function Multisignature() {
 		cb(null, trs);
 	}
 
-	this.getBytes = function (trs) {
+	this.getBytes = function (trs, skip) {
 		var dependenceBuffer = new Buffer(trs.asset.multisignature.dependence.join(''), 'utf8');
-
-		var bb = new ByteBuffer(1 + 1 + dependenceBuffer.length, true);
+		var signaturesBuffer = [];
+		if (!skip) {
+			signaturesBuffer = new Buffer(trs.asset.multisignature.signatures.join(''), 'utf8');
+		}
+		var bb = new ByteBuffer(1 + 1 + dependenceBuffer.length + signaturesBuffer.length, true);
 		bb.writeByte(trs.asset.multisignature.min);
 		bb.writeByte(trs.asset.multisignature.lifetime);
 		for (var i = 0; i < dependenceBuffer.length; i++) {
 			bb.writeByte(dependenceBuffer[i]);
+		}
+		for (var i = 0; i < signaturesBuffer.length; i++) {
+			bb.writeByte(signaturesBuffer[i]);
 		}
 		bb.flip();
 
@@ -203,7 +210,7 @@ function attachApi() {
 	router.post('/sign/', function (req, res) {
 		req.sanitize("body", {
 			secret: "string!",
-			publicKey: "hex!",
+			publicKey: "hex?",
 			transactionId: "string!"
 		}, function (err, report, body) {
 			if (err) return next(err);
@@ -224,7 +231,7 @@ function attachApi() {
 				}
 			}
 
-			if (transaction.asset.multisignature.dependence.indexOf(body.publicKey) == -1 || transaction.asset.multisignature.signatures.indexOf(body.publicKey) != -1) {
+			if (transaction.type != TransactionTypes.MULTI || transaction.asset.multisignature.dependence.indexOf(keypair.publicKey.toString('hex')) == -1 || transaction.asset.multisignature.signatures.indexOf(keypair.publicKey.toString('hex')) != -1) {
 				return res.json({success: false, error: "You can't sign this transaction"});
 			}
 
