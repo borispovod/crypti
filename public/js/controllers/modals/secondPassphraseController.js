@@ -9,7 +9,7 @@ angular.module('webApp').controller('secondPassphraseModalController', ["$scope"
 		$scope.sum = "~";
 
 		$scope.loadFee = function () {
-			$http.post(peerFactory.getUrl() + "/api/signatures/getFee")
+			$http.get(peerFactory.getUrl() + "/api/signatures/getFee")
 				.success(function (data) {
 					$scope.sum = data.fee;
 				}).error(function () {
