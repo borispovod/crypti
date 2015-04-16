@@ -4,7 +4,7 @@
   "main": "index.html",
   "window": {
     "title": "Crypti Lite",
-    "toolbar": true,
+    "toolbar": false,
     "icon": "images/favicon.ico",
     "width": 1200,
     "height": 800
