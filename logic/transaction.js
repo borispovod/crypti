@@ -44,7 +44,7 @@ Transaction.prototype.create = function (data) {
 	trs.signature = this.sign(data.keypair, trs);
 
 	if (data.secondKeypair) {
-		trs.signSignature = this.secondSign(data.secondKeypair, trs);
+		trs.signSignature = this.sign(data.secondKeypair, trs);
 	}
 
 	trs.id = this.getId(trs);
@@ -67,11 +67,6 @@ Transaction.prototype.attachAssetType = function (typeId, instance) {
 }
 
 Transaction.prototype.sign = function (keypair, trs) {
-	var hash = this.getHash(trs);
-	return ed.Sign(hash, keypair).toString('hex');
-}
-
-Transaction.prototype.secondSign = function (keypair, trs) {
 	var hash = this.getHash(trs);
 	return ed.Sign(hash, keypair).toString('hex');
 }
@@ -170,12 +165,12 @@ Transaction.prototype.verify = function (trs, sender, cb) { //inheritance
 	}
 
 	//verify signature
-	if (!this.verifySignature(trs)) {
+	if (!this.verifySignature(trs, trs.senderPublicKey, trs.signature)) {
 		return cb("Can't verify signature");
 	}
 
 	//verify second signature
-	if (sender.secondSignature && !this.verifySecondSignature(trs, sender.secondPublicKey)) {
+	if (sender.secondSignature && !this.verifySecondSignature(trs, sender.secondPublicKey, trs.signSignature)) {
 		return cb("Can't verify second signature: " + trs.id);
 	}
 
@@ -202,7 +197,7 @@ Transaction.prototype.verify = function (trs, sender, cb) { //inheritance
 	private.types[trs.type].verify(trs, sender, cb);
 }
 
-Transaction.prototype.verifySignature = function (trs) {
+Transaction.prototype.verifySignature = function (trs, publicKey, signature) {
 	if (!private.types[trs.type]) {
 		throw Error('Unknown transaction type');
 	}
@@ -223,9 +218,9 @@ Transaction.prototype.verifySignature = function (trs) {
 	var hash = crypto.createHash('sha256').update(data2).digest();
 
 	try {
-		var signatureBuffer = new Buffer(trs.signature, 'hex');
-		var senderPublicKeyBuffer = new Buffer(trs.senderPublicKey, 'hex');
-		var res = ed.Verify(hash, signatureBuffer || ' ', senderPublicKeyBuffer || ' ');
+		var signatureBuffer = new Buffer(signature, 'hex');
+		var publicKeyBuffer = new Buffer(publicKey, 'hex');
+		var res = ed.Verify(hash, signatureBuffer || ' ', publicKeyBuffer || ' ');
 	} catch (e) {
 		throw Error(e.toString());
 	}
@@ -233,13 +228,15 @@ Transaction.prototype.verifySignature = function (trs) {
 	return res;
 }
 
-Transaction.prototype.verifySecondSignature = function (trs, secondPublicKey) {
+Transaction.prototype.verifySecondSignature = function (trs, publicKey, signature) {
 	if (!private.types[trs.type]) {
 		throw Error('Unknown transaction type');
 	}
 
+	var remove = 64;
+
 	var bytes = this.getBytes(trs);
-	var data2 = new Buffer(bytes.length - 64);
+	var data2 = new Buffer(bytes.length - remove);
 
 	for (var i = 0; i < data2.length; i++) {
 		data2[i] = bytes[i];
@@ -248,8 +245,8 @@ Transaction.prototype.verifySecondSignature = function (trs, secondPublicKey) {
 	var hash = crypto.createHash('sha256').update(data2).digest();
 
 	try {
-		var signSignatureBuffer = new Buffer(trs.signSignature, 'hex');
-		var publicKeyBuffer = new Buffer(secondPublicKey, 'hex');
+		var signSignatureBuffer = new Buffer(signature, 'hex');
+		var publicKeyBuffer = new Buffer(publicKey, 'hex');
 		var res = ed.Verify(hash, signSignatureBuffer || ' ', publicKeyBuffer || ' ');
 	} catch (e) {
 		throw Error(e.toString());

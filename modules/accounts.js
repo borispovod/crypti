@@ -758,7 +758,13 @@ Accounts.prototype.getAccount = function (id) {
 
 Accounts.prototype.getAccountByPublicKey = function (publicKey) {
 	var address = self.getAddressByPublicKey(publicKey);
-	return self.getAccount(address);
+	var account = self.getAccount(address);
+
+	if (account && !account.publicKey) {
+		account.publicKey = publicKey;
+	}
+
+	return account;
 }
 
 Accounts.prototype.getAddressByPublicKey = function (publicKey) {
