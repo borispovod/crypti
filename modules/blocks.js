@@ -18,14 +18,16 @@ var crypto = require('crypto'),
 var modules, library, self, private = {};
 
 private.lastBlock = {};
-private.blocksDataFields = [
-	'b_id', 'b_version', 'b_timestamp', 'b_height', 'b_previousBlock', 'b_numberOfTransactions', 'b_totalAmount', 'b_totalFee', 'b_payloadLength', 'b_payloadHash', 'b_generatorPublicKey', 'b_blockSignature',
-	't_id', 't_type', 't_timestamp', 't_senderPublicKey', 't_senderId', 't_recipientId', 't_amount', 't_fee', 't_signature', 't_signSignature',
-	's_publicKey',
-	'd_username',
-	'v_votes',
-	'm_min', 'm_lifetime', 'm_dependence', 'm_signatures'
-];
+// @formatter:off
+private.blocksDataFields = {
+	'b_id': String, 'b_version': String, 'b_timestamp': Number, 'b_height': Number, 'b_previousBlock': String, 'b_numberOfTransactions': String, 'b_totalAmount': String, 'b_totalFee': String, 'b_payloadLength': String, 'b_payloadHash': String, 'b_generatorPublicKey': String, 'b_blockSignature': String,
+	't_id': String, 't_type': Number, 't_timestamp': Number, 't_senderPublicKey': String, 't_senderId': String, 't_recipientId': String, 't_amount': String, 't_fee': String, 't_signature': String, 't_signSignature': String,
+	's_publicKey': String,
+	'd_username': String,
+	'v_votes': String,
+	'm_min': Number, 'm_lifetime': Number, 'm_dependence': String, 'm_signatures': String
+};
+// @formatter:on
 
 //constructor
 function Blocks(cb, scope) {
