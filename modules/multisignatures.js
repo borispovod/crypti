@@ -39,8 +39,8 @@ function Multisignature() {
 			return cb("Invalid recipientId: " + trs.id);
 		}
 
-		if (trs.amount != 0) {
-			return cb("Invalid amount: " + trs.id);
+		if (trs.amount <= 0) {
+			return cb("Invalid transaction amount: " + trs.id);
 		}
 
 		if (!util.isArray(trs.asset.multisignature.dependence)) {
