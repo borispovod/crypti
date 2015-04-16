@@ -18,16 +18,15 @@ var crypto = require('crypto'),
 var modules, library, self, private = {};
 
 private.lastBlock = {};
-private.blocksDataFields = [
-	'b_id', 'b_version', 'b_timestamp', 'b_height', 'b_previousBlock', 'b_numberOfTransactions', 'b_totalAmount', 'b_totalFee', 'b_payloadLength', 'b_payloadHash', 'b_generatorPublicKey', 'b_blockSignature',
-	't_id', 't_type', 't_timestamp', 't_senderPublicKey', 't_senderId', 't_recipientId', 't_amount', 't_fee', 't_signature', 't_signSignature',
-	's_publicKey',
-	'd_username',
-	'v_votes',
-	'm_data', 'm_nonce', 'm_encrypted',
-	'a_image',
-	'c_address'
-];
+// @formatter:off
+private.blocksDataFields = {
+	'b_id': String, 'b_version': String, 'b_timestamp': Number, 'b_height': Number, 'b_previousBlock': String, 'b_numberOfTransactions': String, 'b_totalAmount': String, 'b_totalFee': String, 'b_payloadLength': String, 'b_payloadHash': String, 'b_generatorPublicKey': String, 'b_blockSignature': String,
+	't_id': String, 't_type': Number, 't_timestamp': Number, 't_senderPublicKey': String, 't_senderId': String, 't_recipientId': String, 't_amount': String, 't_fee': String, 't_signature': String, 't_signSignature': String,
+	's_publicKey': String,
+	'd_username': String,
+	'v_votes': String
+};
+// @formatter:on
 
 //constructor
 function Blocks(cb, scope) {
@@ -427,19 +426,13 @@ Blocks.prototype.loadBlocksData = function (filter, options, cb) {
 	"t.id, t.type, t.timestamp, lower(hex(t.senderPublicKey)), t.senderId, t.recipientId, t.amount, t.fee, lower(hex(t.signature)), lower(hex(t.signSignature)), " +
 	"lower(hex(s.publicKey)), " +
 	"d.username, " +
-	"v.votes, " +
-	"lower(hex(m.data)), lower(hex(m.nonce)), m.encrypted, " +
-	"lower(hex(a.image)), " +
-	"c.address " +
+	"v.votes " +
 	"FROM (select * from blocks " + (filter.id ? " where id = $id " : "") + (filter.lastId ? " where height > (SELECT height FROM blocks where id = $lastId) " : "") + " limit $limit) as b " +
 	"left outer join trs as t on t.blockId=b.id " +
 	"left outer join delegates as d on d.transactionId=t.id " +
 	"left outer join votes as v on v.transactionId=t.id " +
 	"left outer join signatures as s on s.transactionId=t.id " +
-	"left outer join messages as m on m.transactionId=t.id " +
-	"left outer join avatars as a on a.transactionId=t.id " +
-	"left outer join contacts as c on c.transactionId=t.id " +
-	"ORDER BY b.height, t.rowid, s.rowid, d.rowid, m.rowid, a.rowid, c.rowid" +
+	"ORDER BY b.height, t.rowid" +
 	"", params, fields, cb);
 };
 
@@ -469,19 +462,13 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 	"t.id, t.type, t.timestamp, lower(hex(t.senderPublicKey)), t.senderId, t.recipientId, t.amount, t.fee, lower(hex(t.signature)), lower(hex(t.signSignature)), " +
 	"lower(hex(s.publicKey)), " +
 	"d.username, " +
-	"v.votes, " +
-	"lower(hex(m.data)), lower(hex(m.nonce)), m.encrypted, " +
-	"lower(hex(a.image)), " +
-	"c.address " +
+	"v.votes " +
 	"FROM (select * from blocks limit $limit offset $offset) as b " +
 	"left outer join trs as t on t.blockId=b.id " +
 	"left outer join delegates as d on d.transactionId=t.id " +
 	"left outer join votes as v on v.transactionId=t.id " +
 	"left outer join signatures as s on s.transactionId=t.id " +
-	"left outer join messages as m on m.transactionId=t.id " +
-	"left outer join avatars as a on a.transactionId=t.id " +
-	"left outer join contacts as c on c.transactionId=t.id " +
-	"ORDER BY b.height, t.rowid, s.rowid, d.rowid, m.rowid, a.rowid, c.rowid" +
+	"ORDER BY b.height, t.rowid" +
 	"", params, private.blocksDataFields, function (err, rows) {
 		// Some notes:
 		// If loading catch error, for example, invalid signature on block & transaction, need to stop loading and remove all blocks after last good block.
@@ -890,20 +877,30 @@ Blocks.prototype.deleteBlocksBefore = function (block, cb) {
 Blocks.prototype.generateBlock = function (keypair, timestamp, cb) {
 	var transactions = modules.transactions.getUnconfirmedTransactionList();
 	var ready = []
-	for (var i = 0; i < transactions.length; i++) {
-		if (library.logic.transaction.ready(transactions[i])) {
-			ready.push(transactions[i]);
+
+	async.eachSeries(transactions, function (transaction, cb) {
+		if (library.logic.transaction.ready(transaction)) {
+			var sender = modules.accounts.getAccountByPublicKey(transaction.senderPublicKey);
+			library.logic.transaction.verify(transaction, sender, function (err) {
+				if (err) {
+					return cb();
+				}
+				ready.push(transaction);
+				cb();
+			});
+		} else {
+			setImmediate(cb);
 		}
-	}
+	}, function () {
+		var block = library.logic.block.create({
+			keypair: keypair,
+			timestamp: timestamp,
+			previousBlock: private.lastBlock,
+			transactions: ready
+		});
 
-	var block = library.logic.block.create({
-		keypair: keypair,
-		timestamp: timestamp,
-		previousBlock: private.lastBlock,
-		transactions: ready
+		self.processBlock(block, true, cb);
 	});
-
-	self.processBlock(block, true, cb);
 }
 
 //events

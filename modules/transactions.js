@@ -38,7 +38,7 @@ function Transfer() {
 			return cb("Invalid recipientId: " + trs.id);
 		}
 
-		if (!trs.amount) {
+		if (trs.amount <= 0) {
 			return cb("Invalid transaction amount: " + trs.id);
 		}
 
