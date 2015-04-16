@@ -231,7 +231,8 @@ function attachApi() {
 				}
 			}
 
-			if (transaction.type != TransactionTypes.MULTI || transaction.asset.multisignature.dependence.indexOf(keypair.publicKey.toString('hex')) == -1 || transaction.asset.multisignature.signatures.indexOf(keypair.publicKey.toString('hex')) != -1) {
+			var sign = library.logic.transaction.sign(keypair, transaction);
+			if (transaction.type != TransactionTypes.MULTI || transaction.asset.multisignature.dependence.indexOf(keypair.publicKey.toString('hex')) == -1 || transaction.asset.multisignature.signatures.indexOf(sign) != -1) {
 				return res.json({success: false, error: "You can't sign this transaction"});
 			}
 
@@ -250,7 +251,6 @@ function attachApi() {
 				if (!transaction) {
 					return cb("Transaction not found");
 				}
-				var sign = library.logic.transaction.sign(keypair, transaction);
 				transaction.asset.multisignature.signatures.push(sign);
 				cb();
 			}, function (err) {
@@ -301,6 +301,19 @@ function attachApi() {
 				if (keypair.publicKey.toString('hex') != body.publicKey) {
 					return res.json({success: false, error: "Please, provide valid secret key of your account"});
 				}
+			}
+
+			if (body.dependence.indexOf(keypair.publicKey.toString('hex')) != -1){
+				return res.json({success: false, error: "Your public key in key set"});
+			}
+
+			var dependence = body.dependence.reduce(function (p, c) {
+				if (p.indexOf(c) < 0) p.push(c);
+				return p;
+			}, []);
+
+			if (dependence.length != body.dependence.length) {
+				return res.json({success: false, error: "Provide unique set of public keys"});
 			}
 
 			var account = modules.accounts.getAccountByPublicKey(keypair.publicKey.toString('hex'));
