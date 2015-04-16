@@ -15,11 +15,6 @@ var ed = require('ed25519'),
 // private fields
 var modules, library, self, private = {};
 
-private.hiddenTransactions = [];
-private.unconfirmedTransactions = [];
-private.unconfirmedTransactionsIdIndex = {};
-private.doubleSpendingTransactions = {};
-
 function Multisignature() {
 	this.create = function (data, trs) {
 		trs.recipientId = null;
@@ -56,15 +51,27 @@ function Multisignature() {
 		}
 
 		if (trs.asset.multisignature.min < 2 || trs.asset.multisignature.min > trs.asset.multisignature.dependence.length) {
-			return cb("Min should be less dependence keys and more then 1");
+			return cb("Min should be less dependence keys and more then 1: " + trs.id);
 		}
 
 		if (trs.asset.multisignature.lifetime < 1 || trs.asset.multisignature.lifetime > 72) {
-			return cb("lifetime should be less 72h keys and more then 1h");
+			return cb("lifetime should be less 72h keys and more then 1h: " + trs.id);
 		}
 
-		if (trs.asset.multisignature.signatures.length < trs.asset.multisignature.min){
-			return cb("Count signatures less min");
+		if (trs.asset.multisignature.signatures.length < trs.asset.multisignature.min) {
+			return cb("Count signatures less min: " + trs.id);
+		}
+
+		for (var s = 0; s < trs.asset.multisignature.signatures.length; s++) {
+			var verify = false;
+			for (var d = 0; d < trs.asset.multisignature.dependence.length && !verify; d++) {
+				if (library.logic.transaction.verifySignature(trs, trs.asset.multisignature.dependence[d], trs.asset.multisignature.signatures[s])) {
+					verify = true;
+				}
+			}
+			if (!verify){
+				return cb("Failed multisignature: " + trs.id);
+			}
 		}
 
 		cb(null, trs);

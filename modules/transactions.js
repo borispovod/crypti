@@ -441,7 +441,7 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 
 			transaction.senderId = sender.address;
 
-			if (!library.logic.transaction.verifySignature(transaction)) {
+			if (!library.logic.transaction.verifySignature(transaction, transaction.senderPublicKey, transaction.signature)) {
 				return cb && cb("Can't verify signature");
 			}
 

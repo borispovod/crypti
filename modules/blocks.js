@@ -530,9 +530,8 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 			}
 
 			for (var n = 0, n_length = blocks[i].transactions.length; n < n_length; n++) {
-				if (blocks[i].transactions[n].id == "15976274878179589480") debugger;
 				if (blocks[i].id != genesisblock.block.id) {
-					if (verify && !library.logic.transaction.verifySignature(blocks[i].transactions[n])) {
+					if (verify && !library.logic.transaction.verifySignature(blocks[i].transactions[n], blocks[i].transactions[n].senderPublicKey, blocks[i].transactions[n].signature)) {
 						err = {
 							message: "Can't verify transaction: " + blocks[i].transactions[n].id,
 							transaction: blocks[i].transactions[n],
@@ -545,7 +544,7 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 					var sender = modules.accounts.getAccountByPublicKey(blocks[i].transactions[n].senderPublicKey);
 
 					if (sender.secondSignature) {
-						if (verify && !library.logic.transaction.verifySecondSignature(blocks[i].transactions[n], sender.secondPublicKey)) {
+						if (verify && !library.logic.transaction.verifySecondSignature(blocks[i].transactions[n], sender.secondPublicKey, blocks[i].transactions[n].signSignature)) {
 							err = {
 								message: "Can't verify second signature transaction: " + blocks[i].transactions[n].id,
 								transaction: blocks[i].transactions[n],
