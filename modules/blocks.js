@@ -433,7 +433,7 @@ Blocks.prototype.loadBlocksData = function (filter, options, cb) {
 	"left outer join votes as v on v.transactionId=t.id " +
 	"left outer join signatures as s on s.transactionId=t.id " +
 	"left outer join multisignatures as m on m.transactionId=t.id " +
-	"ORDER BY b.height, t.rowid, s.rowid, d.rowid, m.rowid, a.rowid, c.rowid" +
+	"ORDER BY b.height, t.rowid" +
 	"", params, fields, cb);
 };
 
@@ -471,7 +471,7 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 	"left outer join votes as v on v.transactionId=t.id " +
 	"left outer join signatures as s on s.transactionId=t.id " +
 	"left outer join multisignatures as m on m.transactionId=t.id " +
-	"ORDER BY b.height, t.rowid, s.rowid, d.rowid, m.rowid, a.rowid, c.rowid" +
+	"ORDER BY b.height, t.rowid" +
 	"", params, private.blocksDataFields, function (err, rows) {
 		// Some notes:
 		// If loading catch error, for example, invalid signature on block & transaction, need to stop loading and remove all blocks after last good block.
