@@ -453,6 +453,8 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 				}
 
 				library.bus.message('unconfirmedTransaction', transaction, broadcast);
+
+				cb && cb();
 			}
 
 			if (!library.logic.transaction.ready(transaction)) {
