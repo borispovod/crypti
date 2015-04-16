@@ -8,6 +8,10 @@ angular.module('webApp').controller('secondPassphraseModalController', ["$scope"
         $scope.totalBalance = userService.balance || 0;
 		$scope.sum = "~";
 
+		if (isNaN($scope.totalBalance)) {
+			$scope.totalBalance = 0;
+		}
+
 		$scope.loadFee = function () {
 			$http.get(peerFactory.getUrl() + "/api/signatures/getFee")
 				.success(function (data) {
