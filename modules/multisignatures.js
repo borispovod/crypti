@@ -69,7 +69,7 @@ function Multisignature() {
 					verify = true;
 				}
 			}
-			if (!verify){
+			if (!verify) {
 				return cb("Failed multisignature: " + trs.id);
 			}
 		}
@@ -239,7 +239,13 @@ function attachApi() {
 			}
 
 			library.sequence.add(function (cb) {
-				private.sign(keypair, transaction, cb);
+				var transaction = modules.transactions.getUnconfirmedTransaction(body.transactionId);
+				if (!transaction) {
+					return cb("Transaction not found");
+				}
+				var sign = library.logic.transaction.sign(keypair, transaction);
+				transaction.asset.multisignature.signatures.push(sign);
+				cb();
 			}, function (err) {
 				if (err) {
 					return res.json({success: false, error: err});
@@ -324,7 +330,7 @@ function attachApi() {
 			});
 
 			library.sequence.add(function (cb) {
-				modules.transactions.addUnconfirmedTransaction(transaction, true, cb);
+				modules.transactions.receiveTransactions([transaction], cb);
 			}, function (err) {
 				if (err) {
 					return res.json({success: false, error: err});
@@ -346,13 +352,6 @@ function attachApi() {
 		res.status(500).send({success: false, error: err.toString()});
 	});
 }
-
-private.sign = function (keypair, transaction, cb) {
-	var sign = library.logic.transaction.sign(keypair, transaction);
-	transaction.asset.multisignature.signatures.push(sign);
-	cb();
-}
-
 
 //public methods
 
