@@ -10,7 +10,7 @@
             <input class="input-text" ng-disabled="sum=='~'" type="{{type}}" ng-model="newSecretPhrase" placeholder="Secondary password" ng-trim="false">
             <input class="input-text" ng-disabled="sum=='~'" type="{{type}}" ng-model="repeatSecretPhrase" placeholder="Re-enter secondary password" ng-trim="false">
             <input type="checkbox" ng-disabled="sum=='~'" ng-model="showPassphrase" ng-change="changeType()"> <label>Show passwords in clear text</label>
-            <p class="error" style="margin-top: 10px;" ng-show="totalBalance < 100">You are missing {{(100 - totalBalance) | number : 2}} XCR.</p>
+            <p class="error" style="margin-top: 10px;" ng-show="totalBalance < sum">You are missing {{(sum - totalBalance) | number : 2}} XCR.</p>
             <p class="error" style="margin-top: 10px;">{{fromServer}}.</p>
             <p class="loading" ng-show="sum=='~'" style="margin-top: 10px;">Loading network fee percent.</p>
             <div class="pull-right">
