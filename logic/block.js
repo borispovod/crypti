@@ -182,20 +182,20 @@ Block.prototype.objectNormalize = function (block) {
 		object: true,
 		properties: {
 			id: "string",
-			version: "int",
-			timestamp: "int",
 			height: "int",
+			blockSignature: "hex!",
+			generatorPublicKey: "hex!",
+			numberOfTransactions: "int!",
+			payloadHash: "hex!",
+			payloadLength: "int!",
 			previousBlock: "string?",
-			numberOfTransactions: "int",
-			totalAmount: "int",
-			totalFee: "int",
-			payloadLength: "int",
-			payloadHash: "hex",
-			generatorPublicKey: "hex",
-			blockSignature: "hex",
-			transactions: "array"
+			timestamp: "int!",
+			totalAmount: "int!",
+			totalFee: "int!",
+			transactions: "array!",
+			version: "int!"
 		}
-	}).value;
+	});
 
 	if (!report.isValid) {
 		throw Error(report.issues);

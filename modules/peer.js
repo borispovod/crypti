@@ -130,14 +130,14 @@ private.updatePeerList = function (cb) {
 			var report = RequestSanitizer.validate(peer, {
 				object: true,
 				properties: {
-					ip: "int",
-					port: "int",
+					ip: "int!",					port: "int!",
+
 					state: "int",
 					os: "string?",
 					sharePort: "string",
 					version: "string?"
 				}
-			}).value;
+			});
 
 			if (!report.isValid) {
 				setImmediate(cb, report.issues);
