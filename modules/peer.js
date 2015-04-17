@@ -137,7 +137,7 @@ private.updatePeerList = function (cb) {
 					sharePort: "string",
 					version: "string?"
 				}
-			}).value;
+			});
 
 			if (!report.isValid) {
 				setImmediate(cb, report.issues);

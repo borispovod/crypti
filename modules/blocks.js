@@ -892,6 +892,7 @@ Blocks.prototype.generateBlock = function (keypair, timestamp, cb) {
 			setImmediate(cb);
 		}
 	}, function () {
+		debugger;
 		try {
 			var block = library.logic.block.create({
 				keypair: keypair,

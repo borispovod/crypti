@@ -195,7 +195,7 @@ Block.prototype.objectNormalize = function (block) {
 			blockSignature: "hex",
 			transactions: "array"
 		}
-	}).value;
+	});
 
 	if (!report.isValid) {
 		throw Error(report.issues);
