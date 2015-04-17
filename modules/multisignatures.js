@@ -133,7 +133,7 @@ function Multisignature() {
 	}
 
 	this.objectNormalize = function (trs) {
-		trs.asset.multisignature = RequestSanitizer.validate(trs.asset.multisignature, {
+		RequestSanitizer.validate(trs.asset.multisignature, {
 			object: true,
 			properties: {
 				min: "int!",
@@ -151,7 +151,13 @@ function Multisignature() {
 					maxLength: 10
 				}
 			}
-		}).value;
+		});
+
+		if (!report.isValid) {
+			throw Error(report.issues);
+		}
+
+		trs.asset.multisignature = report.value;
 
 		return trs;
 	}
