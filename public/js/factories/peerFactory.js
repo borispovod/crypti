@@ -6,22 +6,22 @@ angular.module('webApp').factory('peerFactory', ['$http', 'transactionService', 
         editing: false,
         peer: null,
         peerList: [
-            {
-                ip: "104.155.57.21",
-                port: "8040"
-            },
-            {
-                ip: "130.211.104.33",
-                port: "7040"
-            },
-            {
-                ip: "130.211.72.188",
-                port: "5040"
-            },
-            {
-                ip: "130.211.72.188",
-                port: "7040"
-            }
+			{
+				"ip": "104.155.2.92",
+				"port": 8040
+			},
+			{
+				"ip": "130.211.95.57",
+				"port": 8040
+			},
+			{
+				"ip": "130.211.111.230",
+				"port": 8040
+			},
+			{
+				"ip": "130.211.54.79",
+				"port": 8040
+			}
         ],
         checkPeer: function (url, cb, timeout) {
             $http.get(url + "/peer/list", transactionService.createHeaders(timeout))
