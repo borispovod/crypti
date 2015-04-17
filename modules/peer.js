@@ -39,7 +39,8 @@ function attachApi() {
 			limit: "int?",
 			shared: "boolean?",
 			orderBy: "string?",
-			offset: "int?"
+			offset: "int?",
+			port: "int?"
 		}, function (err, report, query) {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});

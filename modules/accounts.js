@@ -531,7 +531,7 @@ function attachApi() {
 	});
 
 	router.post("/generatePublicKey", function (req, res, next) {
-		req.sanitize("query", {
+		req.sanitize("body", {
 			secret: "string!"
 		}, function (err, report, query) {
 			if (err) return next(err);

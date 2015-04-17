@@ -189,9 +189,10 @@ function attachApi() {
 		req.sanitize("body", {
 			secret: "string!",
 			amount: "int!",
-			recipientId: "string!",
+			recipientId: "string?",
 			publicKey: "hex?",
 			secondSecret: "string?",
+			// TODO (rumkin) Remove?
 			input: "object?"
 		}, function (err, report, body) {
 			if (err) return next(err);
