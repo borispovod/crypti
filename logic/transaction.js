@@ -362,7 +362,7 @@ Transaction.prototype.objectNormalize = function (trs) {
 
 	try {
 		trs = private.types[trs.type].objectNormalize(trs);
-	}catch (e){
+	} catch (e) {
 		throw Error(e.toString());
 	}
 

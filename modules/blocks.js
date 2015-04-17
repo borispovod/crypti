@@ -892,12 +892,16 @@ Blocks.prototype.generateBlock = function (keypair, timestamp, cb) {
 			setImmediate(cb);
 		}
 	}, function () {
-		var block = library.logic.block.create({
-			keypair: keypair,
-			timestamp: timestamp,
-			previousBlock: private.lastBlock,
-			transactions: ready
-		});
+		try {
+			var block = library.logic.block.create({
+				keypair: keypair,
+				timestamp: timestamp,
+				previousBlock: private.lastBlock,
+				transactions: ready
+			});
+		} catch (e) {
+			setImmediate(cb, e);
+		}
 
 		self.processBlock(block, true, cb);
 	});
