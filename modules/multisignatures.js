@@ -133,7 +133,7 @@ function Multisignature() {
 	}
 
 	this.objectNormalize = function (trs) {
-		RequestSanitizer.validate(trs.asset.multisignature, {
+		var report = RequestSanitizer.validate(trs.asset.multisignature, {
 			object: true,
 			properties: {
 				min: "int!",

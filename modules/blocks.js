@@ -905,7 +905,7 @@ Blocks.prototype.generateBlock = function (keypair, timestamp, cb) {
 				transactions: ready
 			});
 		} catch (e) {
-			setImmediate(cb, e);
+			return setImmediate(cb, e);
 		}
 
 		self.processBlock(block, true, cb);
