@@ -341,14 +341,14 @@ Transaction.prototype.objectNormalize = function (trs) {
 		properties: {
 			id: "string",
 			blockId: "string",
-			type: "int",
-			timestamp: "int",
-			senderPublicKey: "hex",
+			type: "int!",
+			timestamp: "int!",
+			senderPublicKey: "hex!",
 			senderId: "string",
 			recipientId: "string?",
 			amount: "int",
 			fee: "int",
-			signature: "hex",
+			signature: "hex!",
 			signSignature: "hex?",
 			asset: "object"
 		}
