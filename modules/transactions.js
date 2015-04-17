@@ -38,7 +38,7 @@ function Transfer() {
 			return cb("Invalid recipientId: " + trs.id);
 		}
 
-		if (!trs.amount){
+		if (trs.amount <= 0) {
 			return cb("Invalid transaction amount: " + trs.id);
 		}
 
@@ -85,6 +85,10 @@ function Transfer() {
 
 	this.dbSave = function (dbLite, trs, cb) {
 		setImmediate(cb);
+	}
+
+	this.ready = function (trs) {
+		return true;
 	}
 }
 
@@ -191,9 +195,7 @@ function attachApi() {
 			amount: "int!",
 			recipientId: "string?",
 			publicKey: "hex?",
-			secondSecret: "string?",
-			// TODO (rumkin) Remove?
-			input: "object?"
+			secondSecret: "string?"
 		}, function (err, report, body) {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
@@ -355,9 +357,16 @@ private.getById = function (id, cb) {
 }
 
 private.addUnconfirmedTransaction = function (transaction) {
+	if (!self.applyUnconfirmed(transaction)) {
+		self.addDoubleSpending(transaction);
+		return false;
+	}
+
 	private.unconfirmedTransactions.push(transaction);
 	var index = private.unconfirmedTransactions.length - 1;
 	private.unconfirmedTransactionsIdIndex[transaction.id] = index;
+
+	return true;
 }
 
 //public methods
@@ -409,47 +418,47 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 		transaction.id = txId;
 	}
 
-	function done(err, transaction) {
-		if (err) return cb && cb(err);
-
-		if (!self.applyUnconfirmed(transaction)) {
-			self.addDoubleSpending(transaction);
-			return cb && cb("Can't apply transaction: " + transaction.id);
-		}
-
-		private.addUnconfirmedTransaction(transaction)
-
-		library.bus.message('unconfirmedTransaction', transaction, broadcast)
-
-		cb && cb(null, transaction.id);
-	}
-
 	library.dbLite.query("SELECT count(id) FROM trs WHERE id=$id", {id: transaction.id}, {"count": Number}, function (err, rows) {
 		if (err) {
-			done("Internal sql error");
-			return;
+			return cb && cb("Internal sql error");
 		}
 
 		var res = rows.length && rows[0];
 
 		if (res.count) {
-			return done("Can't process transaction, transaction already confirmed");
+			return cb && cb("Can't process transaction, transaction already confirmed");
 		} else {
 			// check in confirmed transactions
 			if (private.unconfirmedTransactionsIdIndex[transaction.id] !== undefined || private.doubleSpendingTransactions[transaction.id]) {
-				return done("This transaction already exists");
+				return cb && cb("This transaction already exists");
 			}
 
 			var sender = modules.accounts.getAccountByPublicKey(transaction.senderPublicKey);
 
 			if (!sender) {
-				return done("Can't process transaction, sender not found");
+				return cb && cb("Can't process transaction, sender not found");
 			}
 
 			transaction.senderId = sender.address;
 
-			if (!library.logic.transaction.verifySignature(transaction)) {
-				return done("Can't verify signature");
+			if (!library.logic.transaction.verifySignature(transaction, transaction.senderPublicKey, transaction.signature)) {
+				return cb && cb("Can't verify signature");
+			}
+
+			function done(err) {
+				if (err) return cb && cb(err);
+
+				if (!private.addUnconfirmedTransaction(transaction)) {
+					return cb && cb("Can't apply transaction: " + transaction.id);
+				}
+
+				library.bus.message('unconfirmedTransaction', transaction, broadcast);
+
+				cb && cb();
+			}
+
+			if (!library.logic.transaction.ready(transaction)) {
+				return done();
 			}
 
 			library.logic.transaction.verify(transaction, sender, done);

@@ -41,7 +41,7 @@ function Contact() {
 		}
 
 		if (trs.recipientId != trs.senderId) {
-			return cb("Invalid recipient id: " + trs.id);
+			return cb("Invalid recipientId: " + trs.id);
 		}
 
 		return cb(null, trs);
@@ -109,6 +109,10 @@ function Contact() {
 			address: trs.asset.contact.address,
 			transactionId: trs.id
 		}, cb);
+	}
+
+	this.ready = function (trs) {
+		return true;
 	}
 }
 

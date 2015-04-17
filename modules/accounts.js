@@ -308,6 +308,10 @@ function Vote() {
 			transactionId: trs.id
 		}, cb);
 	}
+
+	this.ready = function (trs) {
+		return true;
+	}
 }
 
 function Username() {
@@ -328,7 +332,7 @@ function Username() {
 
 	this.verify = function (trs, sender, cb) {
 		if (trs.recipientId) {
-			return cb("Invalid recipient: " + trs.id);
+			return cb("Invalid recipientId: " + trs.id);
 		}
 
 		if (trs.amount != 0) {
@@ -422,6 +426,10 @@ function Username() {
 			username: trs.asset.username.alias,
 			transactionId: trs.id
 		}, cb);
+	}
+
+	this.ready = function (trs) {
+		return true;
 	}
 }
 
@@ -750,7 +758,13 @@ Accounts.prototype.getAccount = function (id) {
 
 Accounts.prototype.getAccountByPublicKey = function (publicKey) {
 	var address = self.getAddressByPublicKey(publicKey);
-	return self.getAccount(address);
+	var account = self.getAccount(address);
+
+	if (account && !account.publicKey) {
+		account.publicKey = publicKey;
+	}
+
+	return account;
 }
 
 Accounts.prototype.getAddressByPublicKey = function (publicKey) {

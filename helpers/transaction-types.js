@@ -6,5 +6,6 @@ module.exports = {
 	USERNAME : 4,
 	FOLLOW : 5,
 	MESSAGE : 6,
-	AVATAR : 7
+	AVATAR : 7,
+	MULTI: 8
 }

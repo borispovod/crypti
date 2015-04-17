@@ -41,7 +41,7 @@ Block.prototype.create = function (data) {
 
 	for (var i = 0; i < transactions.length; i++) {
 		var transaction = transactions[i];
-		var bytes = this.logic.transaction.getBytes(transaction);
+		var bytes = this.logic.transaction.getBytes(transaction, false);
 
 		if (size + bytes.length > constants.maxPayloadLength) {
 			break;
@@ -139,8 +139,10 @@ Block.prototype.getBytes = function (block) {
 }
 
 Block.prototype.verifySignature = function (block) {
+	var remove = 64;
+
 	var data = this.getBytes(block);
-	var data2 = new Buffer(data.length - 64);
+	var data2 = new Buffer(data.length - remove);
 
 	for (var i = 0; i < data2.length; i++) {
 		data2[i] = data[i];

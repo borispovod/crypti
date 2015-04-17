@@ -125,6 +125,10 @@ function Signature() {
 			publicKey: new Buffer(trs.asset.signature.publicKey, 'hex')
 		}, cb);
 	}
+
+	this.ready = function (trs) {
+		return true;
+	}
 }
 
 //constructor
