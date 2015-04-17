@@ -21,7 +21,7 @@ angular.module('webApp').controller('passphraseController',
                 $scope.peerError = false;
                 custom = custom || '';
                 $scope.addressError = false;
-                var isIP = ipRegex({exact: true}).test(custom.split(":")[0]) || custom.split(":")[0].toLowerCase()=='localhost';
+                var isIP = ipRegex({exact: true}).test(custom.split(":")[0]) || custom.split(":")[0].toLowerCase() == 'localhost';
                 var isPort = (parseInt(custom.split(":")[1]) > 0 && parseInt(custom.split(":")[1]) <= 61000);
                 $scope.addressError = (!isIP || !isPort) && custom != '';
                 $scope.addressError = (custom == '' && !best) || $scope.addressError;
@@ -61,11 +61,11 @@ angular.module('webApp').controller('passphraseController',
                 });
             };
             // angular.element(document.getElementById("forgingButton")).show();
-            $scope.getPeers = function (url, cb) {
+            $scope.getPeers = function (cb) {
                 peerFactory.peerList.forEach(function (peer) {
                     peerFactory.setPeer(peer.ip, peer.port);
                     dbFactory.add({ip: ip.toLong(peer.ip).toString(), port: peer.port});
-                    $http.get(peerFactory.getUrl() + "/peer/list", transactionService.createHeaders())
+                    $http.get("http://" + peer.ip + ':' + peer.port + "/peer/list", transactionService.createHeaders())
                         .then(function (resp) {
                             //console.log(resp);
                             resp.data.peers.forEach(function (peer) {
@@ -90,7 +90,7 @@ angular.module('webApp').controller('passphraseController',
                             peerFactory.checkPeer(dbFactory.randomList[key].key.url, function (resp) {
                                 if (resp.status == 200) {
                                     peerFactory.setPeer(ip.fromLong(dbFactory.randomList[key].key._id), dbFactory.randomList[key].key.port);
-                                    console.log('newPeer', ip.fromLong(dbFactory.randomList[key].key._id) + ':'+ dbFactory.randomList[key].key.port);
+                                    console.log('newPeer', ip.fromLong(dbFactory.randomList[key].key._id) + ':' + dbFactory.randomList[key].key.port);
                                     $scope.peerexists = true;
                                     stBlurredDialog.close();
                                 }
@@ -123,7 +123,7 @@ angular.module('webApp').controller('passphraseController',
                                     $scope.errorMessage = "Please enter your password.";
                                     $scope.logging = false;
                                 }
-                            else {
+                                else {
                                     var crypti = require('crypti-js');
                                     var keys = crypti.crypto.getKeys(pass);
                                     var address = crypti.crypto.getAddress(keys.publicKey);
@@ -157,7 +157,8 @@ angular.module('webApp').controller('passphraseController',
 
                 }
                 else {
-                    $scope.logging = false;}
+                    $scope.logging = false;
+                }
             }
 
             //runtime
@@ -204,8 +205,8 @@ angular.module('webApp').controller('passphraseController',
                         return $scope.peerexists = true;
                     }
                     if (empty) {
-                         stBlurredDialog.open('partials/modals/blurredModal.html', {err: false});
-                        $scope.getPeers(peerFactory.getUrl(), function () {
+                        stBlurredDialog.open('partials/modals/blurredModal.html', {err: false});
+                        $scope.getPeers(function () {
                             $scope.setBestPeer();
                         });
                     }
