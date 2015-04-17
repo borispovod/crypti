@@ -131,13 +131,19 @@ function Delegate() {
 	}
 
 	this.objectNormalize = function (trs) {
-		trs.asset.delegate = RequestSanitizer.validate(trs.asset.delegate, {
+		var report = RequestSanitizer.validate(trs.asset.delegate, {
 			object: true,
 			properties: {
 				username: "string!",
 				publicKey: "hex!"
 			}
-		}).value;
+		});
+
+		if (!report.isValid) {
+			throw Error(report.issues);
+		}
+
+		trs.asset.delegate = report.value;
 
 		return trs;
 	}

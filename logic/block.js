@@ -160,7 +160,7 @@ Block.prototype.verifySignature = function (block) {
 	return res;
 }
 
-Block.prototype.dbSave = function(dbLite, block, cb){
+Block.prototype.dbSave = function (dbLite, block, cb) {
 	dbLite.query("INSERT INTO blocks(id, version, timestamp, height, previousBlock,  numberOfTransactions, totalAmount, totalFee, payloadLength, payloadHash, generatorPublicKey, blockSignature) VALUES($id, $version, $timestamp, $height, $previousBlock, $numberOfTransactions, $totalAmount, $totalFee, $payloadLength,  $payloadHash, $generatorPublicKey, $blockSignature)", {
 		id: block.id,
 		version: block.version,
@@ -178,7 +178,7 @@ Block.prototype.dbSave = function(dbLite, block, cb){
 }
 
 Block.prototype.objectNormalize = function (block) {
-	block = RequestSanitizer.validate(block, {
+	var report = RequestSanitizer.validate(block, {
 		object: true,
 		properties: {
 			id: "string",
@@ -197,8 +197,18 @@ Block.prototype.objectNormalize = function (block) {
 		}
 	}).value;
 
-	for (var i = 0; i < block.transactions.length; i++) {
-		block.transactions[i] = this.logic.transaction.objectNormalize(block.transactions[i]);
+	if (!report.isValid) {
+		throw Error(report.issues);
+	}
+
+	block = report.value;
+
+	try {
+		for (var i = 0; i < block.transactions.length; i++) {
+			block.transactions[i] = this.logic.transaction.objectNormalize(block.transactions[i]);
+		}
+	} catch (e) {
+		throw Error(e.toString());
 	}
 
 	return block;

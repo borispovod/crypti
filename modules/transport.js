@@ -40,7 +40,7 @@ function attachApi() {
 		}
 
 		req.sanitize(req.headers, {
-			port: "int",
+			port: "int!",
 			os: "string?",
 			'share-port': {
 				int: true,

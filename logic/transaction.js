@@ -336,7 +336,7 @@ Transaction.prototype.objectNormalize = function (trs) {
 		throw Error('Unknown transaction type');
 	}
 
-	trs = RequestSanitizer.validate(trs, {
+	var report = RequestSanitizer.validate(trs, {
 		object: true,
 		properties: {
 			id: "string",
@@ -352,10 +352,19 @@ Transaction.prototype.objectNormalize = function (trs) {
 			signSignature: "hex?",
 			asset: "object"
 		}
-	}).value;
+	});
 
+	if (!report.isValid) {
+		throw Error(report.issues);
+	}
 
-	trs = private.types[trs.type].objectNormalize(trs);
+	trs = report.value;
+
+	try {
+		trs = private.types[trs.type].objectNormalize(trs);
+	} catch (e) {
+		throw Error(e.toString());
+	}
 
 	return trs;
 }
