@@ -397,13 +397,19 @@ function Username() {
 	}
 
 	this.objectNormalize = function (trs) {
-		trs.asset.delegate = RequestSanitizer.validate(trs.asset.username, {
+		var report = RequestSanitizer.validate(trs.asset.username, {
 			object: true,
 			properties: {
 				alias: "string!",
 				publicKey: "hex!"
 			}
-		}).value;
+		});
+
+		if (!report.isValid) {
+			throw Error(report.issues);
+		}
+
+		trs.asset.delegate = report.value;
 
 		return trs;
 	}

@@ -116,7 +116,7 @@ function attachApi() {
 	});
 }
 
-private.updatePeerList = function(cb) {
+private.updatePeerList = function (cb) {
 	modules.transport.getFromRandomPeer({
 		api: '/list',
 		method: 'GET'
@@ -127,7 +127,7 @@ private.updatePeerList = function(cb) {
 
 		var peers = RequestSanitizer.array(data.body.peers);
 		async.eachLimit(peers, 2, function (peer, cb) {
-			peer = RequestSanitizer.validate(peer, {
+			var report = RequestSanitizer.validate(peer, {
 				object: true,
 				properties: {
 					ip: "int",
@@ -139,6 +139,12 @@ private.updatePeerList = function(cb) {
 				}
 			}).value;
 
+			if (!report.isValid) {
+				setImmediate(cb, report.issues);
+			}
+
+			peer = report.value;
+
 			if (ip.toLong("127.0.0.1") == peer.ip || peer.port == 0 || peer.port > 65535) {
 				setImmediate(cb);
 				return;
@@ -149,7 +155,7 @@ private.updatePeerList = function(cb) {
 	});
 }
 
-private.count = function(cb) {
+private.count = function (cb) {
 	library.dbLite.query("select count(rowid) from peers", {"count": Number}, function (err, rows) {
 		if (err) {
 			library.logger.error('Peer#count', err);
@@ -160,11 +166,11 @@ private.count = function(cb) {
 	})
 }
 
-private.banManager = function(cb) {
+private.banManager = function (cb) {
 	library.dbLite.query("UPDATE peers SET state = 1, clock = null where (state = 0 and clock - $now < 0)", {now: Date.now()}, cb);
 }
 
-private.getByFilter = function(filter, cb) {
+private.getByFilter = function (filter, cb) {
 	var limit = filter.limit || null;
 	var offset = filter.offset || null;
 	delete filter.limit;

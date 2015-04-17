@@ -178,7 +178,7 @@ Block.prototype.dbSave = function(dbLite, block, cb){
 }
 
 Block.prototype.objectNormalize = function (block) {
-	block = RequestSanitizer.validate(block, {
+	var report = RequestSanitizer.validate(block, {
 		object: true,
 		properties: {
 			id: "string",
@@ -196,6 +196,12 @@ Block.prototype.objectNormalize = function (block) {
 			transactions: "array"
 		}
 	}).value;
+
+	if(!report.isValid) {
+		throw Error(report.issues);
+	}
+
+	block = report.value;
 
 	for (var i = 0; i < block.transactions.length; i++) {
 		block.transactions[i] = this.logic.transaction.objectNormalize(block.transactions[i]);

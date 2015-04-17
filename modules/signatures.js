@@ -96,12 +96,18 @@ function Signature() {
 	}
 
 	this.objectNormalize = function (trs) {
-		trs.asset.signature = RequestSanitizer.validate(trs.asset.signature, {
+		var report = RequestSanitizer.validate(trs.asset.signature, {
 			object: true,
 			properties: {
 				publicKey: "hex!"
 			}
-		}).value;
+		});
+
+		if (!report.isValid) {
+			throw Error(report.issues);
+		}
+
+		trs.asset.signature = report.value;
 
 		return trs;
 	}
