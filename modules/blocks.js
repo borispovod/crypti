@@ -24,7 +24,8 @@ private.blocksDataFields = {
 	't_id': String, 't_type': Number, 't_timestamp': Number, 't_senderPublicKey': String, 't_senderId': String, 't_recipientId': String, 't_amount': String, 't_fee': String, 't_signature': String, 't_signSignature': String,
 	's_publicKey': String,
 	'd_username': String,
-	'v_votes': String
+	'v_votes': String,
+	'c_address': String
 };
 // @formatter:on
 
@@ -426,12 +427,14 @@ Blocks.prototype.loadBlocksData = function (filter, options, cb) {
 	"t.id, t.type, t.timestamp, lower(hex(t.senderPublicKey)), t.senderId, t.recipientId, t.amount, t.fee, lower(hex(t.signature)), lower(hex(t.signSignature)), " +
 	"lower(hex(s.publicKey)), " +
 	"d.username, " +
-	"v.votes " +
+	"v.votes, " +
+	"c.address " +
 	"FROM (select * from blocks " + (filter.id ? " where id = $id " : "") + (filter.lastId ? " where height > (SELECT height FROM blocks where id = $lastId) " : "") + " limit $limit) as b " +
 	"left outer join trs as t on t.blockId=b.id " +
 	"left outer join delegates as d on d.transactionId=t.id " +
 	"left outer join votes as v on v.transactionId=t.id " +
 	"left outer join signatures as s on s.transactionId=t.id " +
+	"left outer join contacts as c on c.transactionId=t.id " +
 	"ORDER BY b.height, t.rowid" +
 	"", params, fields, cb);
 };
@@ -462,12 +465,14 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 	"t.id, t.type, t.timestamp, lower(hex(t.senderPublicKey)), t.senderId, t.recipientId, t.amount, t.fee, lower(hex(t.signature)), lower(hex(t.signSignature)), " +
 	"lower(hex(s.publicKey)), " +
 	"d.username, " +
-	"v.votes " +
+	"v.votes, " +
+	"c.address " +
 	"FROM (select * from blocks limit $limit offset $offset) as b " +
 	"left outer join trs as t on t.blockId=b.id " +
 	"left outer join delegates as d on d.transactionId=t.id " +
 	"left outer join votes as v on v.transactionId=t.id " +
 	"left outer join signatures as s on s.transactionId=t.id " +
+	"left outer join contacts as c on c.transactionId=t.id " +
 	"ORDER BY b.height, t.rowid" +
 	"", params, private.blocksDataFields, function (err, rows) {
 		// Some notes:
