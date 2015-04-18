@@ -20,7 +20,7 @@ private.types = {};
 //public methods
 Transaction.prototype.create = function (data) {
 	if (!private.types[data.type]) {
-		throw Error('Unknown transaction type');
+		throw Error('Unknown transaction type ' + data.type);
 	}
 
 	if (!data.sender) {
@@ -90,7 +90,7 @@ Transaction.prototype.getHash = function (trs) {
 
 Transaction.prototype.getBytes = function (trs, skipSignatures) {
 	if (!private.types[trs.type]) {
-		throw Error('Unknown transaction type');
+		throw Error('Unknown transaction type ' + trs.type);
 	}
 
 	try {
@@ -150,7 +150,7 @@ Transaction.prototype.getBytes = function (trs, skipSignatures) {
 
 Transaction.prototype.ready = function (trs) {
 	if (!private.types[trs.type]) {
-		throw Error('Unknown transaction type');
+		throw Error('Unknown transaction type ' + trs.type);
 	}
 
 	return private.types[trs.type].ready(trs);
@@ -158,7 +158,7 @@ Transaction.prototype.ready = function (trs) {
 
 Transaction.prototype.verify = function (trs, sender, cb) { //inheritance
 	if (!private.types[trs.type]) {
-		return cb('Unknown transaction type');
+		return cb('Unknown transaction type ' + trs.type);
 	}
 
 	//check sender
@@ -201,7 +201,7 @@ Transaction.prototype.verify = function (trs, sender, cb) { //inheritance
 
 Transaction.prototype.verifySignature = function (trs, publicKey, signature) {
 	if (!private.types[trs.type]) {
-		throw Error('Unknown transaction type');
+		throw Error('Unknown transaction type ' + trs.type);
 	}
 
 	var bytes = this.getBytes(trs, true);
@@ -226,7 +226,7 @@ Transaction.prototype.verifySignature = function (trs, publicKey, signature) {
 
 Transaction.prototype.apply = function (trs, sender) {
 	if (!private.types[trs.type]) {
-		throw Error('Unknown transaction type');
+		throw Error('Unknown transaction type ' + trs.type);
 	}
 
 	var amount = trs.amount + trs.fee;
@@ -247,7 +247,7 @@ Transaction.prototype.apply = function (trs, sender) {
 
 Transaction.prototype.undo = function (trs, sender) {
 	if (!private.types[trs.type]) {
-		throw Error('Unknown transaction type');
+		throw Error('Unknown transaction type ' + trs.type);
 	}
 
 	var amount = trs.amount + trs.fee;
@@ -264,7 +264,7 @@ Transaction.prototype.undo = function (trs, sender) {
 
 Transaction.prototype.applyUnconfirmed = function (trs, sender) {
 	if (!private.types[trs.type]) {
-		throw Error('Unknown transaction type');
+		throw Error('Unknown transaction type ' + trs.type);
 	}
 
 	if (sender.secondSignature && !trs.signSignature) {
@@ -289,7 +289,7 @@ Transaction.prototype.applyUnconfirmed = function (trs, sender) {
 
 Transaction.prototype.undoUnconfirmed = function (trs, sender) {
 	if (!private.types[trs.type]) {
-		throw Error('Unknown transaction type');
+		throw Error('Unknown transaction type ' + trs.type);
 	}
 
 	var amount = trs.amount + trs.fee;
@@ -306,7 +306,7 @@ Transaction.prototype.undoUnconfirmed = function (trs, sender) {
 
 Transaction.prototype.dbSave = function (dbLite, trs, cb) {
 	if (!private.types[trs.type]) {
-		return cb('Unknown transaction type');
+		return cb('Unknown transaction type ' + trs.type);
 	}
 
 	dbLite.query("INSERT INTO trs(id, blockId, type, timestamp, senderPublicKey, senderId, recipientId, amount, fee, signature, signSignature) VALUES($id, $blockId, $type, $timestamp, $senderPublicKey, $senderId, $recipientId, $amount, $fee, $signature, $signSignature)", {
@@ -333,7 +333,7 @@ Transaction.prototype.dbSave = function (dbLite, trs, cb) {
 
 Transaction.prototype.objectNormalize = function (trs) {
 	if (!private.types[trs.type]) {
-		throw Error('Unknown transaction type');
+		throw Error('Unknown transaction type ' + trs.type);
 	}
 
 	var report = RequestSanitizer.validate(trs, {
@@ -390,7 +390,7 @@ Transaction.prototype.dbRead = function (raw) {
 		}
 
 		if (!private.types[tx.type]) {
-			throw Error('Unknown transaction type');
+			throw Error('Unknown transaction type ' + tx.type);
 		}
 
 		var asset = private.types[tx.type].dbRead(raw);

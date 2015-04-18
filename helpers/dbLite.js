@@ -10,8 +10,6 @@ module.exports.connect = function (connectString, cb) {
 		"CREATE TABLE IF NOT EXISTS peers (ip INTEGER NOT NULL, port TINYINT NOT NULL, state TINYINT NOT NULL, os VARCHAR(64), sharePort TINYINT NOT NULL, version VARCHAR(11), clock INT)",
 		"CREATE TABLE IF NOT EXISTS delegates(username VARCHAR(20) NOT NULL, transactionId VARCHAR(20) NOT NULL, FOREIGN KEY(transactionId) REFERENCES trs(id) ON DELETE CASCADE)",
 		"CREATE TABLE IF NOT EXISTS votes(votes TEXT, transactionId VARCHAR(20) NOT NULL, FOREIGN KEY(transactionId) REFERENCES trs(id) ON DELETE CASCADE)",
-		"CREATE TABLE IF NOT EXISTS messages(data BINARY(140) NOT NULL, nonce BINARY(24), encrypted TINYINT(1) NOT NULL, transactionId VARCHAR(20) NOT NULL, FOREIGN KEY(transactionId) REFERENCES trs(id) ON DELETE CASCADE)",
-		"CREATE TABLE IF NOT EXISTS avatars(image BINARY(10000), transactionId VARCHAR(20) NOT NULL, FOREIGN KEY(transactionId) REFERENCES trs(id) ON DELETE CASCADE)",
 		"CREATE TABLE IF NOT EXISTS usernames(username VARCHAR(20) NOT NULL, transactionId VARCHAR(20) NOT NULL, FOREIGN KEY(transactionId) REFERENCES trs(id) ON DELETE CASCADE)",
 		"CREATE TABLE IF NOT EXISTS contacts(address VARCHAR(21) NOT NULL, transactionId VARCHAR(20) NOT NULL, FOREIGN KEY(transactionId) REFERENCES trs(id) ON DELETE CASCADE)",
 		"CREATE TABLE IF NOT EXISTS forks_stat(delegatePublicKey BINARY(32) NOT NULL, blockTimestamp INT NOT NULL, blockId VARCHAR(20) NOT NULL, blockHeight INT NOT NULL, previousBlock VARCHAR(20) NOT NULL, cause INT NOT NULL)",
@@ -24,8 +22,11 @@ module.exports.connect = function (connectString, cb) {
 		"CREATE INDEX IF NOT EXISTS trs_sender_id ON trs(senderId)",
 		"CREATE INDEX IF NOT EXISTS trs_recipient_id ON trs(recipientId)",
 		"CREATE INDEX IF NOT EXISTS signatures_trs_id ON signatures(transactionId)",
-		"CREATE INDEX IF NOT EXISTS messages_trs_id ON messages(transactionId)",
-		"CREATE INDEX IF NOT EXISTS avatars_trs_id ON avatars(transactionId)",
+		"CREATE INDEX IF NOT EXISTS usernames_trs_id ON usernames(transactionId)",
+		"CREATE INDEX IF NOT EXISTS votes_trs_id ON votes(transactionId)",
+		"CREATE INDEX IF NOT EXISTS delegates_trs_id ON delegates(transactionId)",
+		"CREATE INDEX IF NOT EXISTS contacts_trs_id ON contacts(transactionId)",
+		"CREATE INDEX IF NOT EXISTS multisignatures_trs_id ON multisignatures(transactionId)",
 		"PRAGMA foreign_keys = ON",
 		"UPDATE peers SET state = 1, clock = null where state != 0"
 	];
