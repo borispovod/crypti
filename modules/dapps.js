@@ -4,6 +4,11 @@ var constants = require("../helpers/constants.js"),
 	fs = require('fs'),
 	path = require('path'),
 	git = require('gift'),
+	TransactionTypes = require('../helpers/transaction-types.js'),
+	crypto = require('crypto'),
+	bignum = require('bignum'),
+	ed = require('ed25519'),
+	Router = require('../helpers/router.js'),
 	npm = require('npm');
 
 var modules, library, self, private = {};
@@ -16,7 +21,7 @@ private.appPath = process.cwd()
 private.createBasePath = function () {
 	var dAppPath = path.join(private.appPath, "dapps");
 
-	if (!path.existsSync(dAppPath)) {
+	if (!fs.existsSync(dAppPath)) {
 		fs.mkdirSync(dAppPath);
 	}
 }
@@ -28,7 +33,7 @@ private.installDApp = function (dApp, cb) {
 
 	var dAppPath = path.join(private.appPath, "dapps", id);
 
-	if (path.existsSync(dAppPath)) {
+	if (fs.existsSync(dAppPath)) {
 		return setImmediate(cb, "This DApp already installed");
 	}
 
@@ -46,20 +51,26 @@ private.installDApp = function (dApp, cb) {
 				return setImmediate(cb, "Incorrect package.json file for " + id + " DApp");
 			}
 
-			npm.dir = dAppPath;
 			npm.load(config, function (err) {
 				if (err) {
 					library.logger.error(err.toString());
 					setImmediate(cb, "Can't read package.json of " + id + " DApp");
 				} else {
-					npm.commands.install(["ffi"], function (err, data) {
+					npm.root = path.join(dAppPath, "node_modules");
+					npm.prefix = dAppPath;
+
+					npm.commands.install(function (err, data) {
 						if (err) {
 							library.logger.error(err.toString());
 							setImmediate(cb, "Can't install dependencies of " + id + " DApp");
 						} else {
 							library.logger.info("DApp " + id + " succesfull installed");
-							setImmediate(cb);
+							setImmediate(cb, null, dAppPath);
 						}
+					});
+
+					npm.on("log", function (message) {
+						library.logger.info(message);
 					});
 				}
 			});
@@ -71,15 +82,29 @@ private.launchDApp = function (dApp, cb) {
 
 }
 
+private.get = function (id, cb) {
+	library.dbLite.query("SELECT name, description, tags, git FROM dapps WHERE transactionId=$id", {
+		id : id
+	}, ['name', 'description', 'tags', 'git'], function (err, rows) {
+		if (err || rows.length == 0) {
+			return cb(err.toString() || "Can't find dapp with id " + id);
+		} else {
+			var dapp = rows[0];
+			dapp.id = id;
+			return cb(null, dapp);
+		}
+	})
+}
+
 function DApp() {
 	this.create = function (data, trs) {
 		trs.recipientId = null;
 		trs.amount = 0;
 		trs.asset.dapp = {
-			name: data.dapp.name,
-			description: data.dapp.description,
-			git: data.dapp.git,
-			tags: data.dapp.tags
+			name: data.name,
+			description: data.description,
+			git: data.git,
+			tags: data.tags
 		};
 
 		return trs;
@@ -115,19 +140,7 @@ function DApp() {
 			return cb("Invalid transaction amount");
 		}
 
-		if (private.unconfirmedNames[trs.asset.dapp.name]) {
-			return cb("This name already using in DApp Store")
-		}
-
-		if (private.unconfirmedLinks[trs.asset.dapp.git]) {
-			return cb("This git repository already using in DApp Store");
-		}
-
-		if (sender.isDAppAccount || sender.isUnconfirmedDAppAccount)  {
-			return cb("This account already using as DApp Account");
-		}
-
-		async.eachSeries([
+		async.parallel([
 			function (cb) {
 				library.dbLite.query("SELECT COUNT(transactionId) FROM dapps WHERE name = $name", {
 					name: trs.asset.dapp.name
@@ -135,7 +148,7 @@ function DApp() {
 					if (err || rows.length == 0) {
 						cb("Sql error");
 					} else {
-						var count = rows[0].count;
+						var count = parseInt(rows[0].count);
 
 						if (count > 0) {
 							cb("This name already using in DApp Store");
@@ -152,7 +165,7 @@ function DApp() {
 					if (err || rows.length == 0) {
 						cb("Sql error");
 					} else {
-						var count = rows[0].count;
+						var count = parseInt(rows[0].count);
 
 						if (count > 0) {
 							cb("This git repository already using in DApp Store");
@@ -178,7 +191,7 @@ function DApp() {
 			var tags = new Buffer(trs.asset.dapp.tags || '', 'utf8');
 			var git = new Buffer(trs.asset.dapp.git, 'utf8');
 
-			var buffer = Buffer.concat(name, description, tags, git);
+			var buffer = Buffer.concat([name, description, tags, git]);
 		} catch (e) {
 			throw Error(e.toString());
 		}
@@ -199,6 +212,18 @@ function DApp() {
 	}
 
 	this.applyUnconfirmed = function (trs, sender) {
+		if (private.unconfirmedNames[trs.asset.dapp.name]) {
+			return false;
+		}
+
+		if (private.unconfirmedLinks[trs.asset.dapp.git]) {
+			return false;
+		}
+
+		if (sender.isDAppAccount || sender.isUnconfirmedDAppAccount)  {
+			return false;
+		}
+
 		private.unconfirmedNames[trs.asset.dapp.name] = true;
 		private.unconfirmedLinks[trs.asset.dapp.git] = true;
 		sender.isUnconfirmedDAppAccount = true;
@@ -240,7 +265,7 @@ function DApp() {
 				transactionId: raw.t_id,
 				name: raw.da_name,
 				description: raw.da_description,
-				tags: raw.da_tegs,
+				tags: raw.da_tags,
 				git: raw.da_git
 			}
 
@@ -320,6 +345,7 @@ function attachApi() {
 				description: body.description,
 				tags: body.tags,
 				git: body.git,
+				sender: account,
 				keypair: keypair,
 				secondKeypair: secondKeypair
 			});
@@ -337,7 +363,33 @@ function attachApi() {
 	});
 
 	router.post("/install", function (req, res) {
-		// install dapp
+		req.sanitize("body", {
+			id: "string!"
+		}, function (err, report, body) {
+			if (err) return next(err);
+			if (!report.isValid) return res.json({success: false, error: report.issues});
+
+			var ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+
+			if (library.config.dapps.access.whiteList.length > 0 && library.config.dapps.access.whiteList.indexOf(ip) < 0) {
+				return res.json({success: false, error: "Accesss denied"});
+			}
+
+			private.get(body.id, function (err, dapp) {
+				if (err) {
+					return res.json({success: false, error: err});
+				} else {
+					private.installDApp(dapp, function (err, path) {
+						if (err) {
+							return res.json({success:false, error: err});
+						} else {
+							return res.json({success:true, path: path});
+						}
+					});
+				}
+			})
+
+		});
 	});
 
 	router.post("/launch", function (req, res) {
@@ -363,6 +415,10 @@ function DApps(cb, scope) {
 	library.logic.transaction.attachAssetType(TransactionTypes.DAPP, new DApp());
 
 	setImmediate(cb, null, self);
+}
+
+DApps.prototype.onBind = function (scope) {
+	modules = scope;
 }
 
 module.exports = DApps;

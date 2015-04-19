@@ -25,7 +25,8 @@ private.blocksDataFields = {
 	's_publicKey': String,
 	'd_username': String,
 	'v_votes': String,
-	'm_min': Number, 'm_lifetime': Number, 'm_dependence': String, 'm_signatures': String
+	'm_min': Number, 'm_lifetime': Number, 'm_dependence': String, 'm_signatures': String,
+	'da_name': String, 'da_description': String, 'da_tags': String, 'da_git': String
 };
 // @formatter:on
 
@@ -428,13 +429,15 @@ Blocks.prototype.loadBlocksData = function (filter, options, cb) {
 	"lower(hex(s.publicKey)), " +
 	"d.username, " +
 	"v.votes, " +
-	"m.min, m.lifetime, m.dependence, m.signatures " +
+	"m.min, m.lifetime, m.dependence, m.signatures, " +
+	"da.name, da.description, da.tags, da.git " +
 	"FROM (select * from blocks " + (filter.id ? " where id = $id " : "") + (filter.lastId ? " where height > (SELECT height FROM blocks where id = $lastId) " : "") + " limit $limit) as b " +
 	"left outer join trs as t on t.blockId=b.id " +
 	"left outer join delegates as d on d.transactionId=t.id " +
 	"left outer join votes as v on v.transactionId=t.id " +
 	"left outer join signatures as s on s.transactionId=t.id " +
 	"left outer join multisignatures as m on m.transactionId=t.id " +
+	"left outer join dapps as da on da.transactionId=t.id " +
 	"ORDER BY b.height, t.rowid" +
 	"", params, fields, cb);
 };
@@ -466,13 +469,15 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 	"lower(hex(s.publicKey)), " +
 	"d.username, " +
 	"v.votes, " +
-	"m.min, m.lifetime, m.dependence, m.signatures " +
+	"m.min, m.lifetime, m.dependence, m.signatures, " +
+	"da.name, da.description, da.tags, da.git " +
 	"FROM (select * from blocks limit $limit offset $offset) as b " +
 	"left outer join trs as t on t.blockId=b.id " +
 	"left outer join delegates as d on d.transactionId=t.id " +
 	"left outer join votes as v on v.transactionId=t.id " +
 	"left outer join signatures as s on s.transactionId=t.id " +
 	"left outer join multisignatures as m on m.transactionId=t.id " +
+	"left outer join dapps as da on da.transactionId=t.id " +
 	"ORDER BY b.height, t.rowid" +
 	"", params, private.blocksDataFields, function (err, rows) {
 		// Some notes:

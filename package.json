@@ -40,6 +40,7 @@
     "long": "^1.1.5",
     "method-override": "*",
     "node-schedule": "~0.1.16",
+    "npm": "^2.8.3",
     "pkginfo": "^0.3.0",
     "request": "*",
     "socket.io": "*",
