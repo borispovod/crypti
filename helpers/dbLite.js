@@ -10,12 +10,11 @@ module.exports.connect = function (connectString, cb) {
 		"CREATE TABLE IF NOT EXISTS peers (ip INTEGER NOT NULL, port TINYINT NOT NULL, state TINYINT NOT NULL, os VARCHAR(64), sharePort TINYINT NOT NULL, version VARCHAR(11), clock INT)",
 		"CREATE TABLE IF NOT EXISTS delegates(username VARCHAR(20) NOT NULL, transactionId VARCHAR(20) NOT NULL, FOREIGN KEY(transactionId) REFERENCES trs(id) ON DELETE CASCADE)",
 		"CREATE TABLE IF NOT EXISTS votes(votes TEXT, transactionId VARCHAR(20) NOT NULL, FOREIGN KEY(transactionId) REFERENCES trs(id) ON DELETE CASCADE)",
-		"CREATE TABLE IF NOT EXISTS messages(data BINARY(140) NOT NULL, nonce BINARY(24), encrypted TINYINT(1) NOT NULL, transactionId VARCHAR(20) NOT NULL, FOREIGN KEY(transactionId) REFERENCES trs(id) ON DELETE CASCADE)",
-		"CREATE TABLE IF NOT EXISTS avatars(image BINARY(10000), transactionId VARCHAR(20) NOT NULL, FOREIGN KEY(transactionId) REFERENCES trs(id) ON DELETE CASCADE)",
 		"CREATE TABLE IF NOT EXISTS usernames(username VARCHAR(20) NOT NULL, transactionId VARCHAR(20) NOT NULL, FOREIGN KEY(transactionId) REFERENCES trs(id) ON DELETE CASCADE)",
 		"CREATE TABLE IF NOT EXISTS contacts(address VARCHAR(21) NOT NULL, transactionId VARCHAR(20) NOT NULL, FOREIGN KEY(transactionId) REFERENCES trs(id) ON DELETE CASCADE)",
 		"CREATE TABLE IF NOT EXISTS forks_stat(delegatePublicKey BINARY(32) NOT NULL, blockTimestamp INT NOT NULL, blockId VARCHAR(20) NOT NULL, blockHeight INT NOT NULL, previousBlock VARCHAR(20) NOT NULL, cause INT NOT NULL)",
 		"CREATE TABLE IF NOT EXISTS multisignatures(min INT NOT NULL, lifetime INT NOT NULL, dependence TEXT NOT NULL, signatures TEXT NOT NULL, transactionId  VARCHAR(20) NOT NULL, FOREIGN KEY(transactionId) REFERENCES trs(id) ON DELETE CASCADE)",
+		"CREATE TABLE IF NOT EXISTS dapps(transactionId VARCHAR(20) NOT NULL PRIMARY KEY, name VARCHAR(16) NOT NULL, description TEXT, tags TEXT, git VARCHAR(256) NOT NULL, FOREIGN KEY(transactionId) REFERENCES trs(id) ON DELETE CASCADE)",
 		// Indexes
 		"CREATE UNIQUE INDEX IF NOT EXISTS peers_unique ON peers(ip, port)",
 		"CREATE UNIQUE INDEX IF NOT EXISTS blocks_height ON blocks(height)",
@@ -24,8 +23,7 @@ module.exports.connect = function (connectString, cb) {
 		"CREATE INDEX IF NOT EXISTS trs_sender_id ON trs(senderId)",
 		"CREATE INDEX IF NOT EXISTS trs_recipient_id ON trs(recipientId)",
 		"CREATE INDEX IF NOT EXISTS signatures_trs_id ON signatures(transactionId)",
-		"CREATE INDEX IF NOT EXISTS messages_trs_id ON messages(transactionId)",
-		"CREATE INDEX IF NOT EXISTS avatars_trs_id ON avatars(transactionId)",
+		"CREATE INDEX IF NOT EXISTS dapps_trs_id ON dapps(transactionId)",
 		"PRAGMA foreign_keys = ON",
 		"UPDATE peers SET state = 1, clock = null where state != 0"
 	];

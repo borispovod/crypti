@@ -29,6 +29,8 @@ function Account(address, publicKey, balance, unconfirmedBalance) {
 	this.username = null;
 	this.following = [];
 	this.unconfirmedFollowing = [];
+	this.isDAppAccount = false;
+	this.isUnconfirmedDAppAccount = false;
 }
 
 function accountApplyDiff(account, diff) {
