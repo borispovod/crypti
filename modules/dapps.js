@@ -79,7 +79,21 @@ private.installDApp = function (dApp, cb) {
 }
 
 private.launchDApp = function (dApp, cb) {
+	var id = dApp.id;
 
+	library.logger.info("Installing " + id + " DApp");
+
+	var dAppPath = path.join(private.appPath, "dapps", id);
+
+	if (!fs.existsSync(dAppPath)) {
+		return setImmediate(cb, "This DApp not installed");
+	}
+
+	// launch runtime libs: accounts, transactions
+
+	// launch scripts: transaction processing
+
+	// launch api
 }
 
 private.get = function (id, cb) {
