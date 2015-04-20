@@ -45,62 +45,61 @@ private.installDApp = function (dApp, cb) {
 	git.clone(dApp.git, dAppPath, function (err, repo) {
 		if (err) {
 			library.logger.error(err.toString());
-			setImmediate(cb, "Git error of cloning repository " + dApp.git + " , " + id);
-		} else {
-			var packageJson = path.join(dAppPath, "package.json");
-			var config = null;
-
-			try {
-				config = JSON.parse(fs.readFileSync(packageJson));
-			} catch (e) {
-				return setImmediate(cb, "Incorrect package.json file for " + id + " DApp");
-			}
-
-			npm.load(config, function (err) {
-				if (err) {
-					library.logger.error(err.toString());
-					setImmediate(cb, "Can't read package.json of " + id + " DApp");
-				} else {
-					npm.root = path.join(dAppPath, "node_modules");
-					npm.prefix = dAppPath;
-
-					npm.commands.install(function (err, data) {
-						if (err) {
-							library.logger.error(err.toString());
-							setImmediate(cb, "Can't install dependencies of " + id + " DApp");
-						} else {
-							library.logger.info("DApp " + id + " succesfull installed");
-							setImmediate(cb, null, dAppPath);
-						}
-					});
-
-					npm.on("log", function (message) {
-						library.logger.info(message);
-					});
-				}
-			});
+			return setImmediate(cb, "Git error of cloning repository " + dApp.git + " , " + id);
 		}
+		var packageJson = path.join(dAppPath, "package.json");
+		var config = null;
+
+		try {
+			config = JSON.parse(fs.readFileSync(packageJson));
+		} catch (e) {
+			return setImmediate(cb, "Incorrect package.json file for " + id + " DApp");
+		}
+
+		npm.load(config, function (err) {
+			if (err) {
+				library.logger.error(err.toString());
+				setImmediate(cb, "Can't read package.json of " + id + " DApp");
+			} else {
+				npm.root = path.join(dAppPath, "node_modules");
+				npm.prefix = dAppPath;
+
+				npm.commands.install(function (err, data) {
+					if (err) {
+						library.logger.error(err.toString());
+						setImmediate(cb, "Can't install dependencies of " + id + " DApp");
+					} else {
+						library.logger.info("DApp " + id + " succesfull installed");
+						setImmediate(cb, null, dAppPath);
+					}
+				});
+
+				npm.on("log", function (message) {
+					library.logger.info(message);
+				});
+			}
+		});
 	});
 }
 
-private.initializeDAppRoutes = function (id, routes, cb) {
+private.initializeDAppRoutes = function (id, routes) {
 	private.routes[id] = new Router();
 
 	if (typeof routes != "object" || !routes.length) {
-		return cb("Invalid routes object");
+		return false;
 	}
 
 	routes.forEach(function (router) {
 		if (router.method == "get") {
 			private.routes[id].get(router.path, function (req, res) {
-				var body = req.query;
-				private.clients[id].request('api', [router.path, 'get', body], function (err, error, resp) {
+				private.clients[id].request('api', [router.path, 'get', req.query], function (err, error, resp) {
 					if (err || error) {
 						return res.json({success: false, error: err || error});
-					} else if (typeof resp == "object") {
-						return res.json(resp);
+					}
+					if (typeof resp == "object") {
+						res.json(resp);
 					} else {
-						return res.json({success: false, error: "Incorrect response from api call"});
+						res.json({success: false, error: "Incorrect response from api call"});
 					}
 				});
 			});
@@ -114,7 +113,7 @@ private.initializeDAppRoutes = function (id, routes, cb) {
 		res.status(500).send({success: false, error: err.toString()});
 	});
 
-	return cb();
+	return true;
 }
 
 private.launchDApp = function (dApp, cb) {
@@ -205,48 +204,47 @@ private.launchDApp = function (dApp, cb) {
 
 	library.logger.info("DApp " + id + " launched");
 
-	if (dAppConfig.jayson_port) {
-		library.logger.info("Connect to communicate server of DApp " + id);
-
-		var client = null;
-
-		try {
-			client = jayson.client.http({
-				port: dAppConfig.jayson_port,
-				hostname: 'localhost'
-			});
-		} catch (e) {
-			sandbox.kill(0);
-			delete private.sandboxes[id];
-			return setImmediate(cb, "Can't connect to communicate server of DApp " + id);
-		}
-
-		private.clients[id] = client;
-
-		try {
-			var dAppRoutes = require(path.join(dAppPath, "api", "routes.js"));
-		} catch (e) {
-			sandbox.kill(0);
-			delete private.sandboxes[id];
-			delete private.clients[id];
-			return setImmediate(cb, "Can't connect to api of DApp " + id + " , routes file not found");
-		}
-
-		private.initializeDAppRoutes(id, dAppRoutes, function (err) {
-			if (err) {
-				sandbox.kill(0);
-				delete private.sandboxes[id];
-				delete private.clients[id];
-				return setImmediate(cb, "Can't launch api, incorrect routes object of DApp " + id);
-			} else {
-				private.sandboxes[id] = sandbox;
-				return setImmediate(cb);
-			}
-		});
-	} else {
+	if (!dAppConfig.jayson_port) {
 		private.sandboxes[id] = sandbox;
 		return setImmediate(cb);
 	}
+
+	library.logger.info("Connect to communicate server of DApp " + id);
+
+	var client = null;
+
+	try {
+		client = jayson.client.http({
+			port: dAppConfig.jayson_port,
+			hostname: 'localhost'
+		});
+	} catch (e) {
+		sandbox.kill(0);
+		delete private.sandboxes[id];
+		return setImmediate(cb, "Can't connect to communicate server of DApp " + id);
+	}
+
+	private.clients[id] = client;
+
+	try {
+		var dAppRoutes = require(path.join(dAppPath, "api", "routes.js"));
+	} catch (e) {
+		sandbox.kill(0);
+		delete private.sandboxes[id];
+		delete private.clients[id];
+		return setImmediate(cb, "Can't connect to api of DApp " + id + " , routes file not found");
+	}
+
+	if (private.initializeDAppRoutes(id, dAppRoutes)) {
+		private.sandboxes[id] = sandbox;
+		return setImmediate(cb);
+	}
+
+	sandbox.kill(0);
+	delete private.sandboxes[id];
+	delete private.clients[id];
+	setImmediate(cb, "Can't launch api, incorrect routes object of DApp " + id);
+
 }
 
 private.get = function (id, cb) {
