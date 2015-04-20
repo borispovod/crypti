@@ -286,7 +286,7 @@ function DApp() {
 			return cb("Incorrect dapp description length");
 		}
 
-		if (trs.asset.dapp.tags && trs.asset.tags.length > 160) {
+		if (trs.asset.dapp.tags && trs.asset.dapp.tags.length > 160) {
 			return cb("Incorrect dapp tags length");
 		}
 
