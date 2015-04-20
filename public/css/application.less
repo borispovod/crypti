@@ -89,6 +89,8 @@ html, body {
 }
 
 .height {
+  position: relative;
+  min-height: 100% !important;
   height: 100%;
 }
 
@@ -99,7 +101,7 @@ html, body {
 .partials-rules {
   position: absolute;
   top: 26px;
-  left: 25px;
+  left: 26px;
   right: 26px;
 }
 
@@ -443,6 +445,15 @@ p.description {
   color: #F24A65;
 }
 
+.no-select {
+  -webkit-user-select: none; /* Chrome/Safari */
+  -moz-user-select: none; /* Firefox */
+  -ms-user-select: none; /* IE10+ */
+  /* Rules below not implemented in browsers yet */
+  -o-user-select: none;
+  user-select: none;
+}
+
 /*END OF JOINT STYLES*/
 @import "variables";
 @import "sidebar";
@@ -457,3 +468,7 @@ p.description {
 @import "forging";
 @import "delegates";
 @import "ngtable";
+@import "media";
+@import "nav";
+@import "page";
+@import "elements";

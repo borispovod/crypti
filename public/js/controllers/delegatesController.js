@@ -1,8 +1,9 @@
 require('angular');
 
-angular.module('webApp').controller('delegatesController', ['$scope', '$rootScope', '$http', "userService", "$interval", "$timeout", "$filter", "ngTableParams", "delegateService", "voteModal",
-	function ($rootScope, $scope, $http, userService, $interval, $timeout, $filter, ngTableParams, delegateService, voteModal) {
-
+angular.module('webApp').controller('delegatesController', ['$scope', '$rootScope', '$http', "userService", "$interval", "$timeout", "$filter", "ngTableParams", "delegateService", "voteModal", "viewFactory",
+	function ($rootScope, $scope, $http, userService, $interval, $timeout, $filter, ngTableParams, delegateService, voteModal, viewFactory) {
+        $scope.view = viewFactory;
+        $scope.view.page = {title: 'Forging', previos: null};
 		$scope.allVotes = 100
 		* 1000
 		* 1000
@@ -110,7 +111,7 @@ angular.module('webApp').controller('delegatesController', ['$scope', '$rootScop
 		//Top deletates
 		$scope.tableTopDelegates = new ngTableParams({
 			page: 1,            // show first page
-			count: delegateService.topRate,
+			count: 5,
 			sorting: {
 				rate: 'asc'     // initial sorting
 			}
@@ -125,7 +126,7 @@ angular.module('webApp').controller('delegatesController', ['$scope', '$rootScop
 						$scope.delegates.getList(function () {
 							$scope.unconfirmedTransactions.getList();
 						});
-					}, 1);
+					}, 10000);
 				});
 			}
 		});
@@ -150,7 +151,7 @@ angular.module('webApp').controller('delegatesController', ['$scope', '$rootScop
 			}
 		}, {
 			total: 0,
-			counts: [1, 10, 25],
+			counts: [],
 			getData: function ($defer, params) {
 				delegateService.getStandbyList($defer, params, $scope.filter, function () {
 					$scope.countStandby = params.total();

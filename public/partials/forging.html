@@ -1,56 +1,118 @@
-<div id="mining">
-    <div class="row">
-        <h1 class="heading">Forging</h1>
+<div id="page-nav">
+    <ul class="nav nav-underline pull-left">
+        <li role="presentation" ui-sref-active="active"><a href="#" ui-sref="main.forging">Forging</a></li>
+        <li role="presentation" ui-sref-active="active"><a href="#" ui-sref="main.delegates">Delegates</a></li>
+        <li role="presentation" ui-sref-active="active"><a href="#" ui-sref="main.votes">My votes (8)</a></li>
+    </ul>
+</div>
 
-        <h2 class="account-id">Your account: {{ address }}</h2>
-    </div>
-    <div class="raw-buttons" style="min-width: initial;">
-        <button class="button static">Fee earned: <span>{{ totalForged / 100000000 | feeFilter }}</span></button>
-        <div id="forging">
-            <button class="button static" ng-show="delegateInRegistration">
-                <div id="spinn"></div>
-                Your account is being registered to be a delegate.
-            </button>
+<div class="top-margin">
+</div>
 
-            <h2 class="account-id" ng-show="delegate===undefined && forging===undefined">Loading forging status...</h2>
+<div class="row">
+    <div class="col-lg-8 col-md-12" style="margin: 0 -15px;">
+        <div class="col-md-12">
+            <div class="info-panel">
+            <span class="title">
+                Max Super Node
+            </span>
+               <span class="plain-text">
+              Registered on 27/03/2015 at 08:40:21
+            </span>
+            </div>
+        </div>
 
-            <button class="button green small" ng-show="!delegate && forging!=undefined  && !delegateInRegistration"
-                    ng-click="registrationDelegate()">
-                Delegate Registration
-            </button>
-            <button class="button red small" ng-show="delegate && forging  && delegate!=undefined"
-                    ng-click="disableForging()">Stop Forging
-            </button>
-            <button class="button green small"
-                    ng-show="delegate && !forging && forging!=undefined && delegate!=undefined"
-                    ng-click="enableForging()">Start Forging
-            </button>
+        <div class="col-lg-3 col-md-6 col-sm-6 col-xs-6">
+            <div class="light-graph">
+                <div class="light-graph-heading">XCR Earned</div>
+                <div class="light-graph-body">
+                    <div class="chart-legend">{{ totalForged / 100000000 | feeFilter }}<span
+                            class="small-text">XCR</span>
+                    </div>
+                    <canvas id="total-forged" class="chart chart-doughnut" data="graphs.totalForged.values"
+                            labels="graphs.totalForged.labels" options="graphs.totalForged.options"
+                            colours="graphs.totalForged.colours"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-3 col-md-6 col-sm-6 col-xs-6">
+            <div class="light-graph">
+                <div class="light-graph-heading">Rank</div>
+                <div class="light-graph-body">
+                    <div class="chart-legend">{{rank}}
+                    </div>
+                    <canvas id="rank" class="chart chart-doughnut" data="graphs.rank.values"
+                            labels="graphs.rank.labels" options="graphs.rank.options"
+                            colours="graphs.rank.colours"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="clearfix visible-md visible-sm visible-xs"></div>
+        <div class="col-lg-3 col-md-6 col-sm-6 col-xs-6">
+            <div class="light-graph">
+                <div class="light-graph-heading">Uptime</div>
+                <div class="light-graph-body">
+                    <div class="chart-legend">{{uptime}} %
+                    </div>
+                    <canvas id="uptime" class="chart chart-doughnut" data="graphs.uptime.values"
+                            labels="graphs.uptime.labels" options="graphs.uptime.options"
+                            colours="graphs.uptime.colours"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-3 col-md-6 col-sm-6 col-xs-6">
+            <div class="light-graph">
+                <div class="light-graph-heading">Approval</div>
+                <div class="light-graph-body">
+                    <div class="chart-legend">{{approval}} %
+                    </div>
+                    <canvas id="approval" class="chart chart-doughnut" data="graphs.approval.values"
+                            labels="graphs.approval.labels" options="graphs.approval.options"
+                            colours="graphs.approval.colours"></canvas>
+                </div>
+            </div>
         </div>
     </div>
-    <h1>Generated blocks</h1>
-    <table border="0" width="100%" cellpadding="0" cellspacing="0" id="blocks">
-        <tr>
-            <th>Block</th>
-            <th>Height</th>
-            <th>Fee</th>
-        </tr>
-        <tr ng-repeat="item in blocks">
-            <td>{{item.id}}</td>
-            <td>{{item.height}}</td>
-            <td>{{item.totalFee/100000000 | feeFilter}}</td>
-        </tr>
-        <tr ng-show="!loading && !blocks || blocks.length == 0">
-            <td colspan="3">
-                No blocks generated
-            </td>
-        </tr>
-        <tr ng-show="loading">
-            <td colspan="3">
-                Loading...
-            </td>
-        </tr>
-    </table>
-
-
+    <div class="col-lg-4 col-md-12"></div>
 </div>
+
+<div class="row">
+    <div class="col-md-12 col-sm-12 col-xs-12">
+        <div class="panel panel-default">
+            <div class="panel-heading"><h2>Forged Blocks</h2>
+            </div>
+            <table id="blocks">
+                <thead>
+                <tr class="head">
+                    <th>Height</th>
+                    <th>Block ID</th>
+                    <th>Time</th>
+                    <th>Total Fee</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr ng-repeat="item in blocks">
+                    <td>{{item.height}}</td>
+                    <td><a href="#" ng-click="blockInfo(item)">{{item.id}}</a></td>
+                    <td>{{item.timestamp | timestampFilter}}</td>
+                    <td>{{item.totalFee/100000000 | feeFilter}}</td>
+                </tr>
+                </tbody>
+                <tr ng-show="!loading && !blocks || blocks.length == 0">
+                    <td colspan="3">
+                        No blocks generated
+                    </td>
+                </tr>
+                <tr ng-show="loading">
+                    <td colspan="4">
+                        Loading...
+                    </td>
+                </tr>
+            </table>
+
+        </div>
+    </div>
 </div>
+

@@ -1,8 +1,9 @@
 require('angular');
 
-angular.module('webApp').controller('votedDelegatesController', ['$scope', '$rootScope', '$http', "userService", "$interval", "$timeout", "$filter", "ngTableParams", "delegateService", "voteModal",
-    function ($rootScope, $scope, $http, userService, $interval, $timeout, $filter, ngTableParams, delegateService, voteModal) {
-
+angular.module('webApp').controller('votedDelegatesController', ['$scope', '$rootScope', '$http', "userService", "$interval", "$timeout", "$filter", "ngTableParams", "delegateService", "voteModal", "viewFactory",
+    function ($rootScope, $scope, $http, userService, $interval, $timeout, $filter, ngTableParams, delegateService, voteModal, viewFactory) {
+        $scope.view = viewFactory;
+        $scope.view.page = {title: 'Forging', previos: null};
         $scope.allVotes = 100
         * 1000
         * 1000
@@ -88,7 +89,7 @@ angular.module('webApp').controller('votedDelegatesController', ['$scope', '$roo
                 rate: 'asc'     // initial sorting
             }
         }, {
-            counts: [5, 10, 25],
+            counts: [],
             total: 0,
             getData: function ($defer, params) {
                 delegateService.getMyDelegates($defer, params, $scope.filter, userService.address, function () {

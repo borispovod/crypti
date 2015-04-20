@@ -1,0 +1,21 @@
+<div class="app-modal" id="block-modal">
+    <div class="modal-content">
+        <div class="modal-header"><h2>Block ID: </h2>{{block.id}}<span class="blockchain-icon"></span><div class="close-modal" ng-click="close()"><span class="sr-only">Close modal</span></div></div>
+        <div class="modal-body">
+            <ul class="list-group">
+                <li class="list-group-item">Transactions<span class="pull-right small-text">{{block.numberOfTransactions}}</span></li>
+                <li class="list-group-item bordered">Confirmations<span class="pull-right small-text">some data</span></li>
+                <li class="list-group-item">Height<span
+                        class="pull-right small-text">{{block.height}}</span></li>
+                <li class="list-group-item bordered">Total Fee<span class="pull-right small-text">{{block.totalFee}}</span></li>
+                <li class="list-group-item">Total Amount<span class="pull-right small-text">{{block.totalAmount}}</span></li>
+                <li class="list-group-item">USD Equivalent<span class="pull-right small-text">$$$</span></li>
+                <li class="list-group-item bordered">Time<span class="pull-right small-text">{{block.timestamp | timestampFilter}}</span></li>
+                <li class="list-group-item">Previous Block<span class="pull-right small-text">{{block.previousBlock}}</span></li>
+                <li class="list-group-item">Generator<span
+                        class="pull-right small-text">{{block.generatorId}}</span></li>
+            </ul>
+        </div>
+    </div>
+
+</div>

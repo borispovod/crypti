@@ -1,9 +1,13 @@
 require('angular');
 
-angular.module('webApp').controller('transactionsController', ['$scope', '$rootScope', '$http', "userService", "$interval", "sendCryptiModal", "secondPassphraseModal", "delegateService", 'viewFactory',
-    function ($rootScope, $scope, $http, userService, $interval, sendCryptiModal, secondPassphraseModal, delegateService, viewFactory) {
+angular.module('webApp').controller('transactionsController', ['$scope', '$rootScope', '$http', "userService", "$interval", "sendCryptiModal", "secondPassphraseModal", "delegateService", 'viewFactory', 'transactionsService', 'ngTableParams', 'transactionInfo',
+    function ($rootScope, $scope, $http, userService, $interval, sendCryptiModal, secondPassphraseModal, delegateService, viewFactory, transactionsService, ngTableParams, transactionInfo) {
         $scope.view = viewFactory;
-        $scope.view.page = {title: 'Transactions', previos: 'main.account'};
+        $scope.view.page = {title: 'Transactions', previos: 'main.dashboard'};
+
+        $scope.transactionInfo = function (block) {
+            $scope.modal = transactionInfo.activate({block: block});
+        }
 
         $scope.getTransactions = function () {
             $http.get("/api/transactions", {
@@ -29,6 +33,30 @@ angular.module('webApp').controller('transactionsController', ['$scope', '$rootS
                         });
                 });
         }
+
+
+        //Blocks
+        $scope.tableTransactions = new ngTableParams({
+            page: 1,
+            count: 5
+        }, {
+            total: 0,
+            counts: [],
+            getData: function ($defer, params) {
+                $scope.loading = true;
+                transactionsService.getTransactions($defer, params, $scope.filter, function () {
+                    $scope.loading = false;
+                });
+            }
+        });
+
+        $scope.tableTransactions.settings().$scope = $scope;
+
+        $scope.$watch("filter.$", function () {
+            $scope.tableTransactions.reload();
+        });
+
+        //end Blocks
 
         $scope.getAccount = function () {
             $http.get("/api/accounts", {params: {address: userService.address}})
@@ -62,7 +90,6 @@ angular.module('webApp').controller('transactionsController', ['$scope', '$rootS
             $scope.transactionsInterval = null;
         });
 
-        debugger;
         $scope.getAccount();
         $scope.getTransactions();
 

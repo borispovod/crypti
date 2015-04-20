@@ -1,0 +1,96 @@
+.app-chekbox {
+  display: block;
+  width: 18px;
+  height: 18px;
+  margin: 0 -20px 0 20px;
+  background-image: url('@{images}/sprites/iconset.png');
+  background-position: 0 -20px;
+  &.checked {
+    background-position: -18px -20px;
+  }
+  &.unchecked {
+    background-position: -36px -20px;
+  }
+}
+
+.amount {
+  display: inline-block;
+  height: 14px;
+  width: 14px;
+  background-image: url('@{images}/sprites/iconset.png');
+  background-repeat: no-repeat;
+  background-position: -28px 0;
+  margin-right: 8px;
+  &.plus {
+    background-position: -42px 0;
+  }
+}
+
+.dropdown-more-group {
+  cursor: pointer;
+  display: block;
+  height: 46px;
+  width: 32px;
+  margin: -18px auto;
+  position: relative;
+  padding: 6px 0 0;
+  .list-group {
+    display: none;
+  }
+  &:hover {
+    .table-more-actions {
+      background-color: @light-grey;
+    }
+    .list-group {
+      -webkit-box-shadow: 4px 4px 6px 0px rgba(0, 0, 0, 0.25);
+      -moz-box-shadow: 4px 4px 6px 0px rgba(0, 0, 0, 0.25);
+      box-shadow: 4px 4px 6px 0px rgba(0, 0, 0, 0.25);
+      border-color: @border-grey;
+      border-radius: @border-radius;
+      padding: 10px 0;
+      min-width: 150px;
+      display: block;
+      position: absolute;
+      right: 6px;
+      top: 42px;
+      z-index: 99999;
+      background-color: @grey;
+      .list-group-item {
+        padding: 0;
+        background: none;
+        border: none;
+        &.bordered {
+          border-bottom: 1px solid @border-grey;
+        }
+        a {
+          display: block;
+          padding: 10px 16px;
+          width: 100%;;
+          color: @black;
+          font-size: @content-text;
+          text-decoration: none;
+          &:hover, &:active, &:focus {
+            color: @dark-meant;
+            text-decoration: none;
+          }
+        }
+      }
+    }
+  }
+  .table-more-actions {
+    display: block;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    padding: 14px 8px;
+    position: relative;
+
+    .dots {
+      display: block;
+      width: 16px;
+      height: 4px;
+      background-image: url('@{images}/sprites/iconset.png');
+      background-position: -28px -15px;
+    }
+  }
+}

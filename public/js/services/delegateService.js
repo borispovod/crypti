@@ -19,7 +19,7 @@ angular.module('webApp').service('delegateService', function ($http, $filter) {
     }
 
     var delegates = {
-        topRate: 11,
+        topRate: 20,
         gettingStandBy: false,
         gettingTop: false,
         gettingVoted: false,

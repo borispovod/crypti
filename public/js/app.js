@@ -3,11 +3,11 @@ require('angular-ui-router');
 require('angular-modal');
 require('angular-resource');
 require('browserify-angular-animate');
-
+require('../bower_components/angular-chart.js/dist/angular-chart.js');
 require('../node_modules/ng-table/ng-table.js');
 
 
-webApp = angular.module('webApp', ['ui.router', 'btford.modal', 'ngTable', 'ngAnimate']);
+webApp = angular.module('webApp', ['ui.router', 'btford.modal', 'ngTable', 'ngAnimate',  'chart.js']);
 
 webApp.config([
     "$locationProvider",
@@ -25,8 +25,8 @@ webApp.config([
                 templateUrl: "/partials/app-template.html",
                 controller: "templateController"
             })
-            .state('main.account', {
-                url: "/account",
+            .state('main.dashboard', {
+                url: "/dashboard",
                 templateUrl: "/partials/account.html",
                 controller: "accountController"
             })

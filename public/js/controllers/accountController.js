@@ -1,7 +1,7 @@
 require('angular');
 
-angular.module('webApp').controller('accountController', ['$scope', '$rootScope', '$http', "userService", "$interval", "sendCryptiModal", "secondPassphraseModal", "delegateService", 'viewFactory',
-    function ($rootScope, $scope, $http, userService, $interval, sendCryptiModal, secondPassphraseModal, delegateService, viewFactory) {
+angular.module('webApp').controller('accountController', ['$scope', '$rootScope', '$http', "userService", "$interval", "sendCryptiModal", "secondPassphraseModal", "delegateService", 'viewFactory', 'transactionInfo',
+    function ($rootScope, $scope, $http, userService, $interval, sendCryptiModal, secondPassphraseModal, delegateService, viewFactory, transactionInfo) {
         $scope.view = viewFactory;
         $scope.view.page = {title: 'Dashboard', previos: null};
         $scope.delegate = undefined;
@@ -18,6 +18,10 @@ angular.module('webApp').controller('accountController', ['$scope', '$rootScope'
         * 1000
         * 1000
         * 100;
+
+         $scope.transactionInfo = function (block) {
+            $scope.modal = transactionInfo.activate({block: block});
+        }
 
         $scope.getTransactions = function () {
             $http.get("/api/transactions", {
@@ -104,7 +108,7 @@ angular.module('webApp').controller('accountController', ['$scope', '$rootScope'
                 }
             });
         }
-debugger;
+
         $scope.getAccount();
         $scope.getTransactions();
         delegateService.getDelegate($scope.publicKey, function (response) {
