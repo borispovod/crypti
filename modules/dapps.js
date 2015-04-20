@@ -26,6 +26,8 @@ private.routes = {};
 private.createBasePath = function () {
 	var dAppPath = path.join(private.appPath, "dapps");
 
+	//need to add check for folder permissions
+
 	if (!fs.existsSync(dAppPath)) {
 		fs.mkdirSync(dAppPath);
 	}
@@ -252,11 +254,10 @@ private.get = function (id, cb) {
 	}, ['name', 'description', 'tags', 'git'], function (err, rows) {
 		if (err || rows.length == 0) {
 			return cb(err.toString() || "Can't find dapp with id " + id);
-		} else {
-			var dapp = rows[0];
-			dapp.id = id;
-			return cb(null, dapp);
 		}
+		var dapp = rows[0];
+		dapp.id = id;
+		cb(null, dapp);
 	})
 }
 
@@ -308,13 +309,12 @@ function DApp() {
 			}
 			if (rows.length) {
 				if (rows[0].git) {
-					cb("This git repository already using in DApp Store");
+					return cb("This git repository already using in DApp Store");
 				} else {
-					cb("This name already using in DApp Store");
+					return cb("This name already using in DApp Store");
 				}
-			} else {
-				cb();
 			}
+			cb();
 		});
 	}
 
@@ -544,9 +544,8 @@ function attachApi() {
 				private.launchDApp(dapp, function (err, sandbox) {
 					if (err) {
 						return res.json({success: false, error: err});
-					} else {
-						return res.json({success: true});
 					}
+					res.json({success: true});
 				});
 			});
 		});
