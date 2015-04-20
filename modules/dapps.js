@@ -90,7 +90,6 @@ private.initializeDAppRoutes = function (id, routes, cb) {
 		return cb("Invalid routes object");
 	}
 
-	console.log(routes);
 	routes.forEach(function (router) {
 		if (router.method == "get") {
 			private.routes[id].get(router.path, function (req, res) {
@@ -153,7 +152,7 @@ private.launchDApp = function (dApp, cb) {
 
 		args.push(callback);
 
-		switch(message.api) {
+		switch (message.api) {
 			case 'fs':
 				// Make absolute paths relative
 				// (They are absolute from the perspect of the sandboxed code)
@@ -164,10 +163,10 @@ private.launchDApp = function (dApp, cb) {
 				break;
 
 			case 'crypto':
-				switch(method) {
+				switch (method) {
 					case 'randomBytes':
 						// Convert the resulting buffer to hex
-					function randomBytesCallback(error, result){
+					function randomBytesCallback(error, result) {
 						if (error) {
 							callback(error);
 						} else if (Buffer.isBuffer(result)) {
@@ -190,7 +189,7 @@ private.launchDApp = function (dApp, cb) {
 
 	var sandbox = new Sandbox({
 		api: apiHandler,
-		enableGdb:  false,
+		enableGdb: false,
 		enableValgrind: false,
 		disableNacl: true
 	});
@@ -202,7 +201,7 @@ private.launchDApp = function (dApp, cb) {
 	sandbox.pipeStdout(process.stdout);
 	sandbox.pipeStderr(process.stderr);
 
-	sandbox.run(path.join("dapps", id, "index.js"),  { env: process.env });
+	sandbox.run(path.join("dapps", id, "index.js"), {env: process.env});
 
 	library.logger.info("DApp " + id + " launched");
 
@@ -252,7 +251,7 @@ private.launchDApp = function (dApp, cb) {
 
 private.get = function (id, cb) {
 	library.dbLite.query("SELECT name, description, tags, git FROM dapps WHERE transactionId=$id", {
-		id : id
+		id: id
 	}, ['name', 'description', 'tags', 'git'], function (err, rows) {
 		if (err || rows.length == 0) {
 			return cb(err.toString() || "Can't find dapp with id " + id);
@@ -283,71 +282,41 @@ function DApp() {
 	}
 
 	this.verify = function (trs, sender, cb) {
-		if (trs.asset.dapp.name.length == 0 || trs.asset.dapp.name > 16) {
+		if (!trs.asset.dapp.name || trs.asset.dapp.name.length > 16) {
 			return cb("Incorrect dapp name length");
 		}
 
-		if (trs.asset.dapp.description) {
-			if (trs.asset.dapp.description.length > 160) {
-				return cb("Incorrect dapp description length");
-			}
+		if (trs.asset.dapp.description && trs.asset.dapp.description.length > 160) {
+			return cb("Incorrect dapp description length");
 		}
 
-		if (trs.asset.tags) {
-			if (trs.asset.tags.length > 160) {
-				return cb("Incorrect dapp tags length");
-			}
+		if (trs.asset.dapp.tags && trs.asset.tags.length > 160) {
+			return cb("Incorrect dapp tags length");
 		}
 
-		////////////
-		// check that trs.asset.git link to git repo
-		// important!
-		////////////
+		if (!trs.asset.dapp.git || !(/^git:\/\/github.com\/.+.git$/.test(trs.asset.dapp.git))) {
+			return cb("Incorrect dapp git address");
+		}
 
 		if (trs.amount != 0) {
 			return cb("Invalid transaction amount");
 		}
 
-		async.parallel([
-			function (cb) {
-				library.dbLite.query("SELECT COUNT(transactionId) FROM dapps WHERE name = $name", {
-					name: trs.asset.dapp.name
-				}, ['count'], function (err, rows) {
-					if (err || rows.length == 0) {
-						cb("Sql error");
-					} else {
-						var count = parseInt(rows[0].count);
-
-						if (count > 0) {
-							cb("This name already using in DApp Store");
-						} else {
-							cb();
-						}
-					}
-				});
-			},
-			function (cb) {
-				library.dbLite.query("SELECT COUNT(transactionId) FROM dapps WHERE git = $git", {
-					git: trs.asset.dapp.git
-				}, ['count'], function (err, rows) {
-					if (err || rows.length == 0) {
-						cb("Sql error");
-					} else {
-						var count = parseInt(rows[0].count);
-
-						if (count > 0) {
-							cb("This git repository already using in DApp Store");
-						} else {
-							cb();
-						}
-					}
-				});
-			}
-		], function (err) {
+		library.dbLite.query("SELECT name, git FROM dapps WHERE name = $name or git = $git", {
+			name: trs.asset.dapp.name,
+			git: trs.asset.dapp.git
+		}, ['name', 'git'], function (err, rows) {
 			if (err) {
-				return cb(err);
+				return cb("Sql error");
+			}
+			if (rows.length) {
+				if (rows[0].git) {
+					cb("This git repository already using in DApp Store");
+				} else {
+					cb("This name already using in DApp Store");
+				}
 			} else {
-				return cb(null, trs);
+				cb();
 			}
 		});
 	}
@@ -374,8 +343,8 @@ function DApp() {
 	}
 
 	this.undo = function (trs, sender) {
-		sender.isDAppAccount = false;
 		sender.isUnconfirmedDAppAccount = true;
+		sender.isDAppAccount = false;
 		return true;
 	}
 
@@ -388,7 +357,7 @@ function DApp() {
 			return false;
 		}
 
-		if (sender.isDAppAccount || sender.isUnconfirmedDAppAccount)  {
+		if (sender.isDAppAccount || sender.isUnconfirmedDAppAccount) {
 			return false;
 		}
 
@@ -410,8 +379,8 @@ function DApp() {
 			object: true,
 			properties: {
 				name: "string!",
-				description: "string!",
-				tags: "string!",
+				description: "string",
+				tags: "string",
 				git: "string!"
 			}
 		});
@@ -445,8 +414,8 @@ function DApp() {
 		dbLite.query("INSERT INTO dapps(transactionId, name, description, tags, git) VALUES($transactionId, $name, $description, $tags, $git)", {
 			transactionId: trs.id,
 			name: trs.asset.dapp.name,
-			description: trs.asset.dapp.description? trs.asset.dapp.description : null,
-			tags: trs.asset.dapp.tags? trs.asset.dapp.tags : null,
+			description: trs.asset.dapp.description ? trs.asset.dapp.description : null,
+			tags: trs.asset.dapp.tags ? trs.asset.dapp.tags : null,
 			git: trs.asset.dapp.git
 		}, cb);
 	}
@@ -546,15 +515,13 @@ function attachApi() {
 			private.get(body.id, function (err, dapp) {
 				if (err) {
 					return res.json({success: false, error: err});
-				} else {
-					private.installDApp(dapp, function (err, path) {
-						if (err) {
-							return res.json({success:false, error: err});
-						} else {
-							return res.json({success:true, path: path});
-						}
-					});
 				}
+				private.installDApp(dapp, function (err, path) {
+					if (err) {
+						return res.json({success: false, error: err});
+					}
+					res.json({success: true, path: path});
+				});
 			})
 
 		});
@@ -576,15 +543,14 @@ function attachApi() {
 			private.get(body.id, function (err, dapp) {
 				if (err) {
 					return res.json({success: false, error: err});
-				} else {
-					private.launchDApp(dapp, function (err, sandbox) {
-						if (err) {
-							return res.json({success:false, error: err});
-						} else {
-							return res.json({success:true});
-						}
-					});
 				}
+				private.launchDApp(dapp, function (err, sandbox) {
+					if (err) {
+						return res.json({success: false, error: err});
+					} else {
+						return res.json({success: true});
+					}
+				});
 			});
 		});
 	});
