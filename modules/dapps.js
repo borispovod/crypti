@@ -39,7 +39,7 @@ private.installDApp = function (dApp, cb) {
 	var dAppPath = path.join(private.appPath, "dapps", id);
 
 	if (fs.existsSync(dAppPath)) {
-		return setImmediate(cb, "This DApp already installed");
+		return setImmediate(cb, "This DApp is already installed");
 	}
 
 	git.clone(dApp.git, dAppPath, function (err, repo) {
@@ -116,11 +116,58 @@ private.initializeDAppRoutes = function (id, routes) {
 	return true;
 }
 
+private.apiHandler = function (message, callback) {
+	var args;
+	if (typeof message.data === 'string') {
+		args = [message.data];
+	} else if (typeof message.data === 'object') {
+		args = message.data;
+	}
+
+	var method = (message.method || '').replace(/Sync$/, '');
+
+	args.push(callback);
+
+	switch (message.api) {
+		case 'fs':
+			// Make absolute paths relative
+			// (They are absolute from the perspect of the sandboxed code)
+			if (typeof args[0] === 'string' && args[0].indexOf('/') === 0) {
+				args[0] = '.' + args[0];
+			}
+			fs[method].apply(null, args);
+			break;
+
+		case 'crypto':
+			switch (method) {
+				case 'randomBytes':
+					// Convert the resulting buffer to hex
+				function randomBytesCallback(error, result) {
+					if (error) {
+						callback(error);
+					} else if (Buffer.isBuffer(result)) {
+						result = result.toString('hex');
+						callback(null, result);
+					}
+				}
+
+					args[args.length - 1] = randomBytesCallback;
+					crypto.randomBytes.apply(null, args);
+					break;
+				default:
+					callback(new Error('Unhandled net method: ' + message.method));
+			}
+			break;
+		default:
+			callback(new Error('Unhandled api type: ' + message.api));
+	}
+}
+
 private.launchDApp = function (dApp, cb) {
 	var id = dApp.id;
 
 	if (private.sandboxes[id]) {
-		return setImmediate(cb, "This dapp already launched");
+		return setImmediate(cb, "This dapp is already launched");
 	}
 
 	library.logger.info("Launching " + id + " DApp");
@@ -128,7 +175,7 @@ private.launchDApp = function (dApp, cb) {
 	var dAppPath = path.join(private.appPath, "dapps", id);
 
 	if (!fs.existsSync(dAppPath)) {
-		return setImmediate(cb, "This DApp not installed");
+		return setImmediate(cb, "This DApp is not installed");
 	}
 
 	var dAppConfig = null;
@@ -136,58 +183,11 @@ private.launchDApp = function (dApp, cb) {
 	try {
 		dAppConfig = require(path.join(dAppPath, "config.json"));
 	} catch (e) {
-		return setImmedaite(cb, "This DApp don't have config file, can't launch it");
-	}
-
-	function apiHandler(message, callback) {
-		var args;
-		if (typeof message.data === 'string') {
-			args = [message.data];
-		} else if (typeof message.data === 'object') {
-			args = message.data;
-		}
-
-		var method = (message.method || '').replace(/Sync$/, '');
-
-		args.push(callback);
-
-		switch (message.api) {
-			case 'fs':
-				// Make absolute paths relative
-				// (They are absolute from the perspect of the sandboxed code)
-				if (typeof args[0] === 'string' && args[0].indexOf('/') === 0) {
-					args[0] = '.' + args[0];
-				}
-				fs[method].apply(null, args);
-				break;
-
-			case 'crypto':
-				switch (method) {
-					case 'randomBytes':
-						// Convert the resulting buffer to hex
-					function randomBytesCallback(error, result) {
-						if (error) {
-							callback(error);
-						} else if (Buffer.isBuffer(result)) {
-							result = result.toString('hex');
-							callback(null, result);
-						}
-					}
-
-						args[args.length - 1] = randomBytesCallback;
-						crypto.randomBytes.apply(null, args);
-						break;
-					default:
-						callback(new Error('Unhandled net method: ' + message.method));
-				}
-				break;
-			default:
-				callback(new Error('Unhandled api type: ' + message.api));
-		}
+		return setImmedaite(cb, "This DApp has no config file, can't launch it");
 	}
 
 	var sandbox = new Sandbox({
-		api: apiHandler,
+		api: private.apiHandler,
 		enableGdb: false,
 		enableValgrind: false,
 		disableNacl: true
@@ -235,16 +235,15 @@ private.launchDApp = function (dApp, cb) {
 		return setImmediate(cb, "Can't connect to api of DApp " + id + " , routes file not found");
 	}
 
-	if (private.initializeDAppRoutes(id, dAppRoutes)) {
-		private.sandboxes[id] = sandbox;
-		return setImmediate(cb);
+	if (!private.initializeDAppRoutes(id, dAppRoutes)) {
+		sandbox.kill(0);
+		delete private.sandboxes[id];
+		delete private.clients[id];
+		return setImmediate(cb, "Can't launch api, incorrect routes object of DApp " + id);
 	}
 
-	sandbox.kill(0);
-	delete private.sandboxes[id];
-	delete private.clients[id];
-	setImmediate(cb, "Can't launch api, incorrect routes object of DApp " + id);
-
+	private.sandboxes[id] = sandbox;
+	setImmediate(cb);
 }
 
 private.get = function (id, cb) {
