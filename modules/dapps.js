@@ -235,7 +235,7 @@ private.launchDApp = function (dApp, cb) {
 	try {
 		var dAppRoutes = require(path.join(dAppPath, "api", "routes.js"));
 	} catch (e) {
-		return halt(cb, "Can't connect to api of DApp " + id + " , routes file not found");
+		return halt("Can't connect to api of DApp " + id + " , routes file not found");
 	}
 
 	if (!private.initializeDAppRoutes(id, dAppRoutes)) {
