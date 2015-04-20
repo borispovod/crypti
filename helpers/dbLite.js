@@ -23,6 +23,11 @@ module.exports.connect = function (connectString, cb) {
 		"CREATE INDEX IF NOT EXISTS trs_sender_id ON trs(senderId)",
 		"CREATE INDEX IF NOT EXISTS trs_recipient_id ON trs(recipientId)",
 		"CREATE INDEX IF NOT EXISTS signatures_trs_id ON signatures(transactionId)",
+		"CREATE INDEX IF NOT EXISTS usernames_trs_id ON usernames(transactionId)",
+		"CREATE INDEX IF NOT EXISTS votes_trs_id ON votes(transactionId)",
+		"CREATE INDEX IF NOT EXISTS delegates_trs_id ON delegates(transactionId)",
+		"CREATE INDEX IF NOT EXISTS contacts_trs_id ON contacts(transactionId)",
+		"CREATE INDEX IF NOT EXISTS multisignatures_trs_id ON multisignatures(transactionId)",
 		"CREATE INDEX IF NOT EXISTS dapps_trs_id ON dapps(transactionId)",
 		"PRAGMA foreign_keys = ON",
 		"UPDATE peers SET state = 1, clock = null where state != 0"

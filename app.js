@@ -66,6 +66,7 @@ var config = {
 		"peer": "./modules/peer.js",
 		"delegates": "./modules/delegates.js",
 		"round": "./modules/round.js",
+		"contacts": "./modules/contacts.js",
 		"multisignatures": "./modules/multisignatures.js",
 		"dapps": "./modules/dapps.js"
 	}

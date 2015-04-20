@@ -8,6 +8,7 @@ npm-debug.log
 .idea
 .ed25519-node
 blockchain.*
+*.zip
 addresses.txt
 public/bower_components/
 public/static/
@@ -25,4 +26,4 @@ Vagrantfile
 .npm
 .ssh
 .cache
-.node-gyp
+
