@@ -9,13 +9,18 @@ var constants = require("../helpers/constants.js"),
 	bignum = require('bignum'),
 	ed = require('ed25519'),
 	Router = require('../helpers/router.js'),
-	npm = require('npm');
+	npm = require('npm'),
+	Sandbox = require('codius-node-sandbox'),
+	jayson = require('jayson');
 
 var modules, library, self, private = {};
 
 private.unconfirmedNames = {};
 private.unconfirmedLinks = {};
-private.appPath = process.cwd()
+private.appPath = process.cwd();
+private.sandboxes = {};
+private.clients = {};
+private.routes = {};
 
 
 private.createBasePath = function () {
@@ -78,10 +83,49 @@ private.installDApp = function (dApp, cb) {
 	});
 }
 
+private.initializeDAppRoutes = function (id, routes, cb) {
+	private.routes[id] = new Router();
+
+	if (typeof routes != "object" || !routes.length) {
+		return cb("Invalid routes object");
+	}
+
+	console.log(routes);
+	routes.forEach(function (router) {
+		if (router.method == "get") {
+			private.routes[id].get(router.path, function (req, res) {
+				var body = req.query;
+				private.clients[id].request('api', [router.path, 'get', body], function (err, error, resp) {
+					if (err || error) {
+						return res.json({success: false, error: err || error});
+					} else if (typeof resp == "object") {
+						return res.json(resp);
+					} else {
+						return res.json({success: false, error: "Incorrect response from api call"});
+					}
+				});
+			});
+		}
+	});
+
+	library.network.app.use('/api/dapps/' + id + '/', private.routes[id]);
+	library.network.app.use(function (err, req, res, next) {
+		if (!err) return next();
+		library.logger.error(req.url, err.toString());
+		res.status(500).send({success: false, error: err.toString()});
+	});
+
+	return cb();
+}
+
 private.launchDApp = function (dApp, cb) {
 	var id = dApp.id;
 
-	library.logger.info("Installing " + id + " DApp");
+	if (private.sandboxes[id]) {
+		return setImmediate(cb, "This dapp already launched");
+	}
+
+	library.logger.info("Launching " + id + " DApp");
 
 	var dAppPath = path.join(private.appPath, "dapps", id);
 
@@ -89,11 +133,121 @@ private.launchDApp = function (dApp, cb) {
 		return setImmediate(cb, "This DApp not installed");
 	}
 
-	// launch runtime libs: accounts, transactions
+	var dAppConfig = null;
 
-	// launch scripts: transaction processing
+	try {
+		dAppConfig = require(path.join(dAppPath, "config.json"));
+	} catch (e) {
+		return setImmedaite(cb, "This DApp don't have config file, can't launch it");
+	}
 
-	// launch api
+	function apiHandler(message, callback) {
+		var args;
+		if (typeof message.data === 'string') {
+			args = [message.data];
+		} else if (typeof message.data === 'object') {
+			args = message.data;
+		}
+
+		var method = (message.method || '').replace(/Sync$/, '');
+
+		args.push(callback);
+
+		switch(message.api) {
+			case 'fs':
+				// Make absolute paths relative
+				// (They are absolute from the perspect of the sandboxed code)
+				if (typeof args[0] === 'string' && args[0].indexOf('/') === 0) {
+					args[0] = '.' + args[0];
+				}
+				fs[method].apply(null, args);
+				break;
+
+			case 'crypto':
+				switch(method) {
+					case 'randomBytes':
+						// Convert the resulting buffer to hex
+					function randomBytesCallback(error, result){
+						if (error) {
+							callback(error);
+						} else if (Buffer.isBuffer(result)) {
+							result = result.toString('hex');
+							callback(null, result);
+						}
+					}
+
+						args[args.length - 1] = randomBytesCallback;
+						crypto.randomBytes.apply(null, args);
+						break;
+					default:
+						callback(new Error('Unhandled net method: ' + message.method));
+				}
+				break;
+			default:
+				callback(new Error('Unhandled api type: ' + message.api));
+		}
+	}
+
+	var sandbox = new Sandbox({
+		api: apiHandler,
+		enableGdb:  false,
+		enableValgrind: false,
+		disableNacl: true
+	});
+
+	sandbox.on("exit", function () {
+		library.logger.info("DApp " + id + " closed");
+	});
+
+	sandbox.pipeStdout(process.stdout);
+	sandbox.pipeStderr(process.stderr);
+
+	sandbox.run(path.join("dapps", id, "index.js"),  { env: process.env });
+
+	library.logger.info("DApp " + id + " launched");
+
+	if (dAppConfig.jayson_port) {
+		library.logger.info("Connect to communicate server of DApp " + id);
+
+		var client = null;
+
+		try {
+			client = jayson.client.http({
+				port: dAppConfig.jayson_port,
+				hostname: 'localhost'
+			});
+		} catch (e) {
+			sandbox.kill(0);
+			delete private.sandboxes[id];
+			return setImmediate(cb, "Can't connect to communicate server of DApp " + id);
+		}
+
+		private.clients[id] = client;
+
+		try {
+			var dAppRoutes = require(path.join(dAppPath, "api", "routes.js"));
+		} catch (e) {
+			sandbox.kill(0);
+			delete private.sandboxes[id];
+			delete private.clients[id];
+			return setImmediate(cb, "Can't connect to api of DApp " + id + " , routes file not found");
+		}
+
+		private.initializeDAppRoutes(id, dAppRoutes, function (err) {
+			if (err) {
+				sandbox.kill(0);
+				delete private.sandboxes[id];
+				delete private.clients[id];
+				return setImmediate(cb, "Can't launch api, incorrect routes object of DApp " + id);
+			} else {
+				private.sandboxes[id] = sandbox;
+				return setImmediate(cb);
+			}
+		});
+	} else {
+		private.sandboxes[id] = sandbox;
+		return setImmediate(cb);
+	}
 }
 
 private.get = function (id, cb) {
@@ -407,7 +561,32 @@ function attachApi() {
 	});
 
 	router.post("/launch", function (req, res) {
-		// launch dapp
+		req.sanitize("body", {
+			id: "string!"
+		}, function (err, report, body) {
+			if (err) return next(err);
+			if (!report.isValid) return res.json({success: false, error: report.issues});
+
+			var ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+
+			if (library.config.dapps.access.whiteList.length > 0 && library.config.dapps.access.whiteList.indexOf(ip) < 0) {
+				return res.json({success: false, error: "Accesss denied"});
+			}
+
+			private.get(body.id, function (err, dapp) {
+				if (err) {
+					return res.json({success: false, error: err});
+				} else {
+					private.launchDApp(dapp, function (err, sandbox) {
+						if (err) {
+							return res.json({success:false, error: err});
+						} else {
+							return res.json({success:true});
+						}
+					});
+				}
+			});
+		});
 	});
 
 	library.network.app.use('/api/dapps', router);

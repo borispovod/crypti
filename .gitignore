@@ -19,3 +19,10 @@ public/webkitbuilds/
 public/build/
 bfg.jar
 dapps/
+.vagrant
+Vagrantfile
+.node-gyp
+.npm
+.ssh
+.cache
+.node-gyp

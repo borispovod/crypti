@@ -33,6 +33,7 @@
     "gift": "^0.6.0",
     "image-type": "^2.0.2",
     "ip": "^0.3.2",
+    "jayson": "^1.2.0",
     "js-nacl": "^0.6.0",
     "json-schema": "~0.2.2",
     "jsonschema": "^1.0.0",
