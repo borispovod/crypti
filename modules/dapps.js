@@ -227,7 +227,7 @@ private.launchDApp = function (dApp, cb) {
 			hostname: 'localhost'
 		});
 	} catch (e) {
-		halt("Can't connect to communicate server of DApp " + id);
+		return halt("Can't connect to communicate server of DApp " + id);
 	}
 
 	private.clients[id] = client;
@@ -235,11 +235,11 @@ private.launchDApp = function (dApp, cb) {
 	try {
 		var dAppRoutes = require(path.join(dAppPath, "api", "routes.js"));
 	} catch (e) {
-		halt(cb, "Can't connect to api of DApp " + id + " , routes file not found");
+		return halt(cb, "Can't connect to api of DApp " + id + " , routes file not found");
 	}
 
 	if (!private.initializeDAppRoutes(id, dAppRoutes)) {
-		halt("Can't launch api, incorrect routes object of DApp " + id);
+		return halt("Can't launch api, incorrect routes object of DApp " + id);
 	}
 
 	private.sandboxes[id] = sandbox;
