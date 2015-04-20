@@ -47,7 +47,7 @@ private.installDApp = function (dApp, cb) {
 	git.clone(dApp.git, dAppPath, function (err, repo) {
 		if (err) {
 			library.logger.error(err.toString());
-			return setImmediate(cb, "Git error of cloning repository " + dApp.git + " , " + id);
+			return setImmediate(cb, "Git error of cloning repository " + dApp.git + " at " + id);
 		}
 		var packageJson = path.join(dAppPath, "package.json");
 		var config = null;
