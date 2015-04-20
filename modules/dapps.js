@@ -290,7 +290,7 @@ function DApp() {
 			return cb("Incorrect dapp tags length");
 		}
 
-		if (!trs.asset.dapp.git || !(/^git:\/\/github.com\/.+.git$/.test(trs.asset.dapp.git))) {
+		if (!trs.asset.dapp.git || !(/^git\@github.com\:.+.git$/.test(trs.asset.dapp.git))) {
 			return cb("Incorrect dapp git address");
 		}
 
@@ -511,7 +511,9 @@ function attachApi() {
 				if (err) {
 					return res.json({success: false, error: err});
 				}
-				private.installDApp(dapp, function (err, path) {
+				library.sequence.add(function (cb) {
+					private.installDApp(dapp, cb);
+				}, function (err, path) {
 					if (err) {
 						return res.json({success: false, error: err});
 					}
@@ -539,7 +541,9 @@ function attachApi() {
 				if (err) {
 					return res.json({success: false, error: err});
 				}
-				private.launchDApp(dapp, function (err, sandbox) {
+				library.sequence.add(function (cb) {
+					private.launchDApp(dapp, cb);
+				}, function (err, sandbox) {
 					if (err) {
 						return res.json({success: false, error: err});
 					}
