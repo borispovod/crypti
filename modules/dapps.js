@@ -213,17 +213,21 @@ private.launchDApp = function (dApp, cb) {
 
 	library.logger.info("Connect to communicate server of DApp " + id);
 
-	var client = null;
+	function halt(message) {
+		sandbox.kill(0);
+		delete private.sandboxes[id];
+		delete private.clients[id];
+		setImmediate(cb, "Can't connect to api of DApp " + id + " , routes file not found");
+	}
 
+	var client = null;
 	try {
 		client = jayson.client.http({
 			port: dAppConfig.jayson_port,
 			hostname: 'localhost'
 		});
 	} catch (e) {
-		sandbox.kill(0);
-		delete private.sandboxes[id];
-		return setImmediate(cb, "Can't connect to communicate server of DApp " + id);
+		halt("Can't connect to communicate server of DApp " + id);
 	}
 
 	private.clients[id] = client;
@@ -231,17 +235,11 @@ private.launchDApp = function (dApp, cb) {
 	try {
 		var dAppRoutes = require(path.join(dAppPath, "api", "routes.js"));
 	} catch (e) {
-		sandbox.kill(0);
-		delete private.sandboxes[id];
-		delete private.clients[id];
-		return setImmediate(cb, "Can't connect to api of DApp " + id + " , routes file not found");
+		halt(cb, "Can't connect to api of DApp " + id + " , routes file not found");
 	}
 
 	if (!private.initializeDAppRoutes(id, dAppRoutes)) {
-		sandbox.kill(0);
-		delete private.sandboxes[id];
-		delete private.clients[id];
-		return setImmediate(cb, "Can't launch api, incorrect routes object of DApp " + id);
+		halt("Can't launch api, incorrect routes object of DApp " + id);
 	}
 
 	private.sandboxes[id] = sandbox;
