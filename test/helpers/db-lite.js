@@ -101,23 +101,5 @@ describe("Sqlite helper.", function(){
                 done();
             });
         });
-
-        it("Should have `input` table", function(done){
-            db.query("SELECT * FROM sqlite_master WHERE name='input';", function(err, result){
-                should(err).equal(null);
-
-                should(result).be.an.Array.and.have.length(1);
-                done();
-            });
-        });
-
-        it("Should have `scripts` table", function(done){
-            db.query("SELECT * FROM sqlite_master WHERE name='scripts';", function(err, result){
-                should(err).equal(null);
-
-                should(result).be.an.Array.and.have.length(1);
-                done();
-            });
-        });
     });
 });

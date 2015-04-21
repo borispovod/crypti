@@ -1,8 +1,10 @@
 var should = require('should');
+var deepEqual = require('assert').deepEqual;
 
 describe("Validator.", function(){
     var Validator;
     Validator = require("../../helpers/validator");
+    var utils = require("../../helpers/validator/utils");
 
     describe("Constructor object.", function(){
         it("Should be a function", function(){
@@ -69,5 +71,43 @@ describe("Validator.", function(){
                 done();
             });
         });
-    })
+    });
+
+    describe('Utils', function(){
+        describe('Extend()', function(){
+            it('Should add property', function(){
+                var a = {};
+                var b = {a:1};
+
+                utils.extend(a, b);
+
+                should(a).have.ownProperty('a');
+            });
+
+            it('Should add nested property', function(){
+                var a = {a:{}};
+                var b = {a:{c:1}};
+
+                utils.extend(a, b);
+
+                should(a).have.ownProperty('a').which.is.an.Object.and.equal(b.a);
+                deepEqual(a, b);
+                should(a.a).have.type('object').and.ownProperty('c').which.equal(1);
+            });
+        });
+
+        describe('Copy()', function(){
+            it('Should copy nested object', function(){
+                var a = utils.copy({n:1,b:true,o:{},a:[1,2,3]});
+
+                should(a).have.type('object').and.be.instanceOf(Object);
+                should(a.n).have.type('number').and.equal(1);
+                should(a.b).have.type('boolean').and.equal(true);
+                should(a.o).have.type('object');
+                deepEqual(a.o, {});
+                should(a.a).be.an.instanceOf(Array).and.have.lengthOf(3);
+
+            });
+        })
+    });
 });

@@ -33,6 +33,15 @@ RequestSanitizer.addRule("string", {
     }
 });
 
+RequestSanitizer.addRule("regexp", {
+    message : "value should match template",
+    validate : function(accept, value) {
+        if (typeof value !== 'string') return false;
+
+        return accept.test(value);
+    }
+});
+
 RequestSanitizer.addRule("boolean", {
     filter : function(accept, value, field){
         if (field.isEmpty() && field.rules.empty) return null;
@@ -79,12 +88,27 @@ RequestSanitizer.addRule("array", {
     filter: function (accept, value, field) {
         if (field.isEmpty() && field.rules.empty) return null;
 
-        if (typeof value === "string" && typeof accept === "string") {
+        if (typeof value === "string" && (typeof accept === "string" || accept instanceof RegExp )) {
             return value.length ? value.split(accept) : [];
         } else if (Array.isArray(value)) {
             return value;
         } else {
             return [];
+        }
+    }
+});
+
+RequestSanitizer.addRule("arrayOf", {
+    validate : function(accept, value, field) {
+        if (field.isEmpty() && field.rules.empty) return null;
+        if (! Array.isArray(value)) return false;
+
+        var l = value.length;
+        var i = -1;
+        var child;
+
+        while (++i < l) {
+            field.child(i, value[i], accept, value).validate();
         }
     }
 });

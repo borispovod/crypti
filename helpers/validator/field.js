@@ -47,9 +47,13 @@ Field.prototype.validate = function(callback) {
     var thisArg = this.thisArg;
     this.inProgress = true;
 
-    this.callback = callback;
-
-    //if (! stack.length) return;
+    if (typeof callback === 'function') {
+        this.callback = callback;
+        this.hasCallback = true;
+    } else {
+        this.callback = null;
+        this.hasCallback = false;
+    }
 
     var descriptor, result, accept, value;
     while (stack.length) {
@@ -125,7 +129,10 @@ Field.prototype.end = function(err) {
         this.validator.onValid(this);
     }
 
-    this.callback(err, this.report, this.value);
+    if (this.hasCallback) {
+        this.callback(err, this.report, this.value);
+        this.callback = null;
+    }
 };
 
 /**

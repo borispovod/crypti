@@ -2,12 +2,17 @@ var crypto = require('crypto'),
 	bignum = require('bignum'),
 	ed = require('ed25519'),
 	slots = require('../helpers/slots.js'),
-	Router = require('../helpers/router.js');
+	Router = require('../helpers/router.js'),
+	util = require('util'),
+	constants = require('../helpers/constants.js'),
+	RequestSanitizer = require('../helpers/request-sanitizer.js'),
+	TransactionTypes = require('../helpers/transaction-types.js');
 
 //private
-var modules, library, self;
+var modules, library, self, private = {};
 
-var accounts = {};
+private.accounts = {};
+private.username2address = {};
 
 function Account(address, publicKey, balance, unconfirmedBalance) {
 	this.address = address;
@@ -19,9 +24,16 @@ function Account(address, publicKey, balance, unconfirmedBalance) {
 	this.secondPublicKey = null;
 	this.delegates = null;
 	this.unconfirmedDelegates = null;
+	this.unconfirmedAvatar = false;
+	this.avatar = false;
+	this.username = null;
+	this.following = [];
+	this.unconfirmedFollowing = [];
 }
 
 function accountApplyDiff(account, diff) {
+	var tmp = account.delegates ? account.delegates.slice() : null
+
 	for (var i = 0; i < diff.length; i++) {
 		var math = diff[i][0];
 		var publicKey = diff[i].slice(1);
@@ -29,17 +41,30 @@ function accountApplyDiff(account, diff) {
 		if (math == "+") {
 			account.delegates = account.delegates || [];
 
-			var index = account.delegates.indexOf(publicKey);
+			var index = -1;
+			if (account.delegates) {
+				index = account.delegates.indexOf(publicKey);
+			}
 			if (index != -1) {
-				throw Error("delegate already added");
+				account.delegates = tmp;
+				return false;
+			}
+
+			if (account.delegates && account.delegates.length >= 101) {
+				account.delegates = tmp;
+				return false;
 			}
 
 			account.delegates.push(publicKey);
 		}
 		if (math == "-") {
-			var index = account.delegates.indexOf(publicKey);
+			var index = -1;
+			if (account.delegates) {
+				index = account.delegates.indexOf(publicKey);
+			}
 			if (index == -1) {
-				throw Error("delegate not found");
+				account.delegates = tmp;
+				return false;
 			}
 			account.delegates.splice(index, 1);
 			if (!account.delegates.length) {
@@ -47,9 +72,12 @@ function accountApplyDiff(account, diff) {
 			}
 		}
 	}
+	return true;
 }
 
 function accountApplyUnconfirmedDiff(account, diff) {
+	var tmp = account.unconfirmedDelegates ? account.unconfirmedDelegates.slice() : null
+
 	for (var i = 0; i < diff.length; i++) {
 		var math = diff[i][0];
 		var publicKey = diff[i].slice(1);
@@ -57,17 +85,30 @@ function accountApplyUnconfirmedDiff(account, diff) {
 		if (math == "+") {
 			account.unconfirmedDelegates = account.unconfirmedDelegates || [];
 
-			var index = account.unconfirmedDelegates.indexOf(publicKey);
+			var index = -1;
+			if (account.unconfirmedDelegates) {
+				index = account.unconfirmedDelegates.indexOf(publicKey);
+			}
 			if (index != -1) {
-				throw Error("delegate already added");
+				account.unconfirmedDelegates = tmp;
+				return false;
+			}
+
+			if (account.unconfirmedDelegates && account.unconfirmedDelegates.length >= 101) {
+				account.unconfirmedDelegates = tmp;
+				return false;
 			}
 
 			account.unconfirmedDelegates.push(publicKey);
 		}
 		if (math == "-") {
-			var index = account.unconfirmedDelegates.indexOf(publicKey);
+			var index = -1;
+			if (account.unconfirmedDelegates) {
+				index = account.unconfirmedDelegates.indexOf(publicKey);
+			}
 			if (index == -1) {
-				throw Error("delegate not found");
+				account.unconfirmedDelegates = tmp;
+				return false;
 			}
 			account.unconfirmedDelegates.splice(index, 1);
 			if (!account.unconfirmedDelegates.length) {
@@ -75,6 +116,7 @@ function accountApplyUnconfirmedDiff(account, diff) {
 			}
 		}
 	}
+	return true;
 }
 
 Account.prototype.setUnconfirmedSignature = function (unconfirmedSignature) {
@@ -100,10 +142,11 @@ Account.prototype.addToUnconfirmedBalance = function (amount) {
 
 Account.prototype.applyUnconfirmedDelegateList = function (diff) {
 	if (diff === null) return;
-	accountApplyUnconfirmedDiff(this, diff);
+	var isValid = accountApplyUnconfirmedDiff(this, diff);
 
-	// what we most do here?
-	library.bus.message('changeUnconfirmedDelegates', this.balance, diff);
+	isValid && library.bus.message('changeUnconfirmedDelegates', this.balance, diff);
+
+	return isValid;
 }
 
 Account.prototype.undoUnconfirmedDelegateList = function (diff) {
@@ -114,17 +157,20 @@ Account.prototype.undoUnconfirmedDelegateList = function (diff) {
 		copyDiff[i] = math + copyDiff[i].slice(1);
 	}
 
-	accountApplyUnconfirmedDiff(this, copyDiff);
+	var isValid = accountApplyUnconfirmedDiff(this, copyDiff);
 
-	// and here?
-	library.bus.message('changeUnconfirmedDelegates', this.balance, copyDiff);
+	isValid && library.bus.message('changeUnconfirmedDelegates', this.balance, copyDiff);
+
+	return isValid;
 }
 
 Account.prototype.applyDelegateList = function (diff) {
 	if (diff === null) return;
-	accountApplyDiff(this, diff);
+	var isValid = accountApplyDiff(this, diff);
 
-	library.bus.message('changeDelegates', this.balance, diff);
+	isValid && library.bus.message('changeDelegates', this.balance, diff);
+
+	return isValid;
 }
 
 Account.prototype.undoDelegateList = function (diff) {
@@ -135,17 +181,267 @@ Account.prototype.undoDelegateList = function (diff) {
 		copyDiff[i] = math + copyDiff[i].slice(1);
 	}
 
-	accountApplyDiff(this, copyDiff);
+	var isValid = accountApplyDiff(this, copyDiff);
 
-	library.bus.message('changeDelegates', this.balance, copyDiff);
+	isValid && library.bus.message('changeDelegates', this.balance, copyDiff);
+
+	return isValid;
+}
+
+Account.prototype.applyUsername = function (username) {
+	private.username2address[username.toLowerCase()] = this.address;
+}
+
+Account.prototype.undoUsername = function (username) {
+	delete private.username2address[username.toLowerCase()];
+}
+
+Account.prototype.applyContact = function (address) {
+	var index = this.following.indexOf(address);
+	if (index != -1) {
+		return false;
+	}
+	this.following.push(address);
+	return true;
+}
+
+Account.prototype.undoContact = function (address) {
+	var index = this.following.indexOf(address);
+	if (index == -1) {
+		return false;
+	}
+	this.following.splice(index, 1);
+}
+
+Account.prototype.applyUnconfirmedContact = function (address) {
+	var index = this.unconfirmedFollowing.indexOf(address);
+	if (index != -1) {
+		return false;
+	}
+	this.unconfirmedFollowing.push(address);
+	return true;
+}
+
+Account.prototype.undoUnconfirmedContact = function (address) {
+	var index = this.unconfirmedFollowing.indexOf(address);
+	if (index == -1) {
+		return false;
+	}
+	this.unconfirmedFollowing.splice(index, 1);
+}
+
+function Vote() {
+	this.create = function (data, trs) {
+		trs.recipientId = data.sender.address;
+		trs.asset.votes = data.votes;
+
+		return trs;
+	}
+
+	this.calculateFee = function (trs) {
+		return 1 * constants.fixedPoint;
+	}
+
+	this.verify = function (trs, sender, cb) {
+		if (trs.recipientId != trs.senderId) {
+			return cb("Incorrect recipient: " + trs.id);
+		}
+
+		if (trs.asset.votes && trs.asset.votes.length > 33) {
+			return cb("You can only vote for a maximum of 33 delegates at any one time.: " + trs.id);
+		}
+
+		if (!modules.delegates.checkUnconfirmedDelegates(trs.senderPublicKey, trs.asset.votes)) {
+			return cb("Can't verify votes, you already voted for this delegate: " + trs.id);
+		}
+
+		if (!modules.delegates.checkDelegates(trs.senderPublicKey, trs.asset.votes)) {
+			return cb("Can't verify votes, you already voted for this delegate: " + trs.id);
+		}
+
+		cb(null, trs);
+	}
+
+	this.getBytes = function (trs) {
+		return trs.asset.votes ? new Buffer(trs.asset.votes.join(''), 'utf8') : null;
+	}
+
+	this.apply = function (trs, sender) {
+		sender.applyDelegateList(trs.asset.votes);
+
+		return true;
+	}
+
+	this.undo = function (trs, sender) {
+		sender.undoDelegateList(trs.asset.votes);
+
+		return true;
+	}
+
+	this.applyUnconfirmed = function (trs, sender) {
+		return sender.applyUnconfirmedDelegateList(trs.asset.votes);
+	}
+
+	this.undoUnconfirmed = function (trs, sender) {
+		return sender.undoUnconfirmedDelegateList(trs.asset.votes);
+	}
+
+	this.objectNormalize = function (trs) {
+		trs.asset.votes = RequestSanitizer.array(trs.asset.votes, true);
+
+		return trs;
+	}
+
+	this.dbRead = function (raw) {
+		if (!raw.v_votes) {
+			return null
+		} else {
+			var votes = raw.v_votes.split(',');
+
+			return {votes: votes};
+		}
+	}
+
+	this.dbSave = function (dbLite, trs, cb) {
+		dbLite.query("INSERT INTO votes(votes, transactionId) VALUES($votes, $transactionId)", {
+			votes: util.isArray(trs.asset.votes) ? trs.asset.votes.join(',') : null,
+			transactionId: trs.id
+		}, cb);
+	}
+
+	this.ready = function (trs) {
+		return true;
+	}
+}
+
+function Username() {
+	this.create = function (data, trs) {
+		trs.recipientId = null;
+		trs.amount = 0;
+		trs.asset.username = {
+			alias: data.username,
+			publicKey: data.sender.publicKey
+		};
+
+		return trs;
+	}
+
+	this.calculateFee = function (trs) {
+		return 1 * constants.fixedPoint;
+	}
+
+	this.verify = function (trs, sender, cb) {
+		if (trs.recipientId) {
+			return cb("Invalid recipientId: " + trs.id);
+		}
+
+		if (trs.amount != 0) {
+			return cb("Invalid amount: " + trs.id);
+		}
+
+		if (!trs.asset.username.alias) {
+			return cb("Empty transaction asset for username transaction: " + trs.id);
+		}
+
+		var allowSymbols = /^[a-z0-9!@$&_.]+$/g;
+		if (!allowSymbols.test(trs.asset.username.alias.toLowerCase())) {
+			return cb("username can only contain alphanumeric characters with the exception of !@$&_.: " + trs.id);
+		}
+
+		//if (trs.asset.username.alias.search(/(admin|genesis|delegate|crypti)/i) > -1) {
+		//	return cb("username containing the words Admin, Genesis, Delegate or Crypti cannot be claimed");
+		//}
+
+		var isAddress = /^[0-9]+[C|c]$/g;
+		if (isAddress.test(trs.asset.username.alias.toLowerCase())) {
+			return cb("username can't be like an address: " + trs.id);
+		}
+
+		if (trs.asset.username.alias.length == 0 || trs.asset.username.alias.length > 20) {
+			return cb("Incorrect username length: " + trs.id);
+		}
+
+		if (modules.delegates.existsName(trs.asset.username.alias)) {
+			return cb("The username you entered is already in use. Please try a different name.: " + trs.id);
+		}
+
+		cb(null, trs);
+	}
+
+	this.getBytes = function (trs) {
+		return new Buffer(trs.asset.username.alias, 'utf8');
+	}
+
+	this.apply = function (trs, sender) {
+		sender.applyUsername(trs.asset.username);
+
+		return true;
+	}
+
+	this.undo = function (trs, sender) {
+		sender.undoUsername(trs.asset.username);
+
+		return true;
+	}
+
+	this.applyUnconfirmed = function (trs, sender) {
+		sender.applyUnconfirmedUsername(trs.asset.username);
+
+		return true;
+	}
+
+	this.undoUnconfirmed = function (trs, sender) {
+		sender.undoUnconfirmedUsername(trs.asset.username);
+
+		return true;
+	}
+
+	this.objectNormalize = function (trs) {
+		trs.asset.delegate = RequestSanitizer.validate(trs.asset.username, {
+			object: true,
+			properties: {
+				alias: "string!",
+				publicKey: "hex!"
+			}
+		}).value;
+
+		return trs;
+	}
+
+	this.dbRead = function (raw) {
+		if (!raw.u_alias) {
+			return null
+		} else {
+			var username = {
+				alias: raw.u_alias,
+				publicKey: raw.t_senderPublicKey
+			}
+
+			return {username: username};
+		}
+	}
+
+	this.dbSave = function (dbLite, trs, cb) {
+		dbLite.query("INSERT INTO usernames(username, transactionId) VALUES($username, $transactionId)", {
+			username: trs.asset.username.alias,
+			transactionId: trs.id
+		}, cb);
+	}
+
+	this.ready = function (trs) {
+		return true;
+	}
 }
 
 //constructor
 function Accounts(cb, scope) {
 	library = scope;
 	self = this;
-
+	self.__private = private;
 	attachApi();
+
+	library.logic.transaction.attachAssetType(TransactionTypes.VOTE, new Vote());
+	library.logic.transaction.attachAssetType(TransactionTypes.USERNAME, new Username());
 
 	setImmediate(cb, null, self);
 }
@@ -161,12 +457,12 @@ function attachApi() {
 
 	router.post('/open', function (req, res, next) {
 		req.sanitize(req.body, {
-			secret: "string"
+			secret: "string!"
 		}, function (err, report, body) {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
 
-			var account = openAccount(body.secret);
+			var account = private.openAccount(body.secret);
 
 			res.json({
 				success: true,
@@ -202,14 +498,14 @@ function attachApi() {
 	if (process.env.DEBUG && process.env.DEBUG.toUpperCase() == "TRUE") {
 		// for sebastian
 		router.get('/getAllAccounts', function (req, res) {
-			return res.json({success: true, accounts: accounts});
+			return res.json({success: true, accounts: private.accounts});
 		});
 	}
 
 	if (process.env.TOP && process.env.TOP.toUpperCase() == "TRUE") {
 		router.get('/top', function (req, res) {
-			var arr = Object.keys(accounts).map(function (key) {
-				return accounts[key]
+			var arr = Object.keys(private.accounts).map(function (key) {
+				return private.accounts[key]
 			});
 
 			arr.sort(function (a, b) {
@@ -243,13 +539,13 @@ function attachApi() {
 	});
 
 	router.post("/generatePublicKey", function (req, res, next) {
-		req.sanitize("query", {
+		req.sanitize("body", {
 			secret: "string!"
 		}, function (err, report, query) {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
 
-			var account = openAccount(query.secret);
+			var account = private.openAccount(query.secret);
 			return res.json({success: true, publicKey: account.publicKey});
 		});
 
@@ -291,22 +587,13 @@ function attachApi() {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
 
-			var secret = body.secret,
-				publicKey = body.publicKey,
-				secondSecret = body.secondSecret,
-				delegates = body.delegates;
-
-			var hash = crypto.createHash('sha256').update(secret, 'utf8').digest();
+			var hash = crypto.createHash('sha256').update(body.secret, 'utf8').digest();
 			var keypair = ed.MakeKeypair(hash);
 
-			if (publicKey) {
-				if (keypair.publicKey.toString('hex') != publicKey) {
+			if (body.publicKey) {
+				if (keypair.publicKey.toString('hex') != body.publicKey) {
 					return res.json({success: false, error: "Please, provide valid secret key of your account"});
 				}
-			}
-
-			if (delegates && delegates.length > 33) {
-				return res.json({success: false, error: "Please, provide less 33 delegates"});
 			}
 
 			var account = self.getAccountByPublicKey(keypair.publicKey.toString('hex'));
@@ -319,29 +606,87 @@ function attachApi() {
 				return res.json({success: false, error: "Open account to make transaction"});
 			}
 
-			var transaction = {
-				type: 3,
-				amount: 0,
-				recipientId: account.address,
-				senderPublicKey: account.publicKey,
-				timestamp: slots.getTime(),
-				asset: {
-					votes: delegates
-				}
-			};
-
-			modules.transactions.sign(secret, transaction);
-
-			if (account.secondSignature) {
-				if (!secondSecret) {
-					return res.json({success: false, error: "Provide second secret key"});
-				}
-
-				modules.transactions.secondSign(secondSecret, transaction);
+			if (account.secondSignature && !body.secondSecret) {
+				return res.json({success: false, error: "Provide second secret key"});
 			}
 
+			var secondKeypair = null;
+
+			if (account.secondSignature) {
+				var secondHash = crypto.createHash('sha256').update(body.secondSecret, 'utf8').digest();
+				secondKeypair = ed.MakeKeypair(secondHash);
+			}
+
+			var transaction = library.logic.transaction.create({
+				type: TransactionTypes.VOTE,
+				votes: body.delegates,
+				sender: account,
+				keypair: keypair,
+				secondKeypair: secondKeypair
+			});
+
 			library.sequence.add(function (cb) {
-				modules.transactions.processUnconfirmedTransaction(transaction, true, cb);
+				modules.transactions.receiveTransactions([transaction], cb);
+			}, function (err) {
+				if (err) {
+					return res.json({success: false, error: err});
+				}
+
+				res.json({success: true, transaction: transaction});
+			});
+		});
+	});
+
+	router.put("/username", function (req, res, next) {
+		req.sanitize("body", {
+			secret: "string!",
+			publicKey: "hex?",
+			secondSecret: "string?",
+			username: "string!"
+		}, function (err, report, body) {
+			if (err) return next(err);
+			if (!report.isValid) return res.json({success: false, error: report.issues});
+
+			var hash = crypto.createHash('sha256').update(body.secret, 'utf8').digest();
+			var keypair = ed.MakeKeypair(hash);
+
+			if (body.publicKey) {
+				if (keypair.publicKey.toString('hex') != body.publicKey) {
+					return res.json({success: false, error: "Please, provide valid secret key of your account"});
+				}
+			}
+
+			var account = self.getAccountByPublicKey(keypair.publicKey.toString('hex'));
+
+			if (!account) {
+				return res.json({success: false, error: "Account doesn't has balance"});
+			}
+
+			if (!account.publicKey) {
+				return res.json({success: false, error: "Open account to make transaction"});
+			}
+
+			if (account.secondSignature && !body.secondSecret) {
+				return res.json({success: false, error: "Provide second secret key"});
+			}
+
+			var secondKeypair = null;
+
+			if (account.secondSignature) {
+				var secondHash = crypto.createHash('sha256').update(body.secondSecret, 'utf8').digest();
+				secondKeypair = ed.MakeKeypair(secondHash);
+			}
+
+			var transaction = library.logic.transaction.create({
+				type: TransactionTypes.USERNAME,
+				username: body.username,
+				sender: account,
+				keypair: keypair,
+				secondKeypair: secondKeypair
+			});
+
+			library.sequence.add(function (cb) {
+				modules.transactions.receiveTransactions([transaction], cb);
 			}, function (err) {
 				if (err) {
 					return res.json({success: false, error: err});
@@ -385,21 +730,21 @@ function attachApi() {
 		res.status(500).send({success: false, error: 'api not found'});
 	});
 
-	library.app.use('/api/accounts', router);
-	library.app.use(function (err, req, res, next) {
+	library.network.app.use('/api/accounts', router);
+	library.network.app.use(function (err, req, res, next) {
 		if (!err) return next();
-		library.logger.error('/api/accounts', err)
+		library.logger.error(req.url, err.toString());
 		res.status(500).send({success: false, error: err.toString()});
 	});
 }
 
-function addAccount(account) {
-	if (!accounts[account.address]) {
-		accounts[account.address] = account;
+private.addAccount = function (account) {
+	if (!private.accounts[account.address]) {
+		private.accounts[account.address] = account;
 	}
 }
 
-function openAccount(secret) {
+private.openAccount = function (secret) {
 	var hash = crypto.createHash('sha256').update(secret, 'utf8').digest();
 	var keypair = ed.MakeKeypair(hash);
 
@@ -408,12 +753,18 @@ function openAccount(secret) {
 
 //public methods
 Accounts.prototype.getAccount = function (id) {
-	return accounts[id];
+	return private.accounts[id];
 }
 
 Accounts.prototype.getAccountByPublicKey = function (publicKey) {
 	var address = self.getAddressByPublicKey(publicKey);
-	return self.getAccount(address);
+	var account = self.getAccount(address);
+
+	if (account && !account.publicKey) {
+		account.publicKey = publicKey;
+	}
+
+	return account;
 }
 
 Accounts.prototype.getAddressByPublicKey = function (publicKey) {
@@ -427,6 +778,12 @@ Accounts.prototype.getAddressByPublicKey = function (publicKey) {
 	return address;
 }
 
+Accounts.prototype.getAccountByUsername = function (username) {
+	var address = private.username2address[username.toLowerCase()];
+
+	return this.getAccount(address);
+}
+
 Accounts.prototype.getAccountOrCreateByPublicKey = function (publicKey) {
 	var address = self.getAddressByPublicKey(publicKey);
 	var account = self.getAccount(address);
@@ -437,7 +794,7 @@ Accounts.prototype.getAccountOrCreateByPublicKey = function (publicKey) {
 
 	if (!account) {
 		account = new Account(address, publicKey);
-		addAccount(account);
+		private.addAccount(account);
 	}
 	return account;
 }
@@ -447,19 +804,18 @@ Accounts.prototype.getAccountOrCreateByAddress = function (address) {
 
 	if (!account) {
 		account = new Account(address);
-		addAccount(account);
+		private.addAccount(account);
 	}
 	return account;
 }
 
 Accounts.prototype.getAllAccounts = function () {
-	return accounts;
+	return private.accounts;
 }
 
 Accounts.prototype.getDelegates = function (publicKey) {
 	var account = self.getAccountByPublicKey(publicKey);
 	return account.delegates;
-
 }
 
 //events

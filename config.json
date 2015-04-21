@@ -1,5 +1,5 @@
 {
-	"port": 7040,
+	"port": 4060,
 	"address": "0.0.0.0",
 	"serveHttpAPI": true,
 	"serveHttpWallet": true,
@@ -15,8 +15,8 @@
 	"peers": {
 		"list": [
 			{
-				"ip": "130.211.104.33",
-				"port": 7040
+				"ip": "104.155.50.49",
+				"port": 4060
 			}
 		],
 		"blackList": []
@@ -24,7 +24,7 @@
 	"forging": {
 		"secret": "",
 		"access": {
-			"whiteList": []
+			"whiteList": ["127.0.0.1"]
 		}
 	},
 	"loading": {

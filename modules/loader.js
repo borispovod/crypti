@@ -4,24 +4,23 @@ var async = require('async'),
 	genesisBlock = require("../helpers/genesisblock.js"),
 	ip = require("ip"),
 	bignum = require('bignum'),
-	RequestSanitizer = require('../helpers/request-sanitizer'),
-	normalize = require('../helpers/normalize.js');
+	RequestSanitizer = require('../helpers/request-sanitizer');
 require('colors');
 
 //private fields
-var modules, library, self;
+var modules, library, self, private = {};
 
-var loaded = false;
-var sync = false;
-var loadingLastBlock = genesisBlock;
-var total = 0;
-var blocksToSync = 0;
+private.loaded = false;
+private.sync = false;
+private.loadingLastBlock = genesisBlock;
+private.total = 0;
+private.blocksToSync = 0;
 
 //constructor
 function Loader(cb, scope) {
 	library = scope;
 	self = this;
-
+	self.__private = private;
 	attachApi();
 
 	setImmediate(cb, null, self);
@@ -34,9 +33,9 @@ function attachApi() {
 	router.get('/status', function (req, res) {
 		res.json({
 			success: true,
-			loaded: loaded,
-			now: loadingLastBlock.height,
-			blocksCount: total
+			loaded: private.loaded,
+			now: private.loadingLastBlock.height,
+			blocksCount: private.total
 		});
 	});
 
@@ -44,21 +43,142 @@ function attachApi() {
 		res.json({
 			success: true,
 			sync: self.syncing(),
-			blocks: blocksToSync,
+			blocks: private.blocksToSync,
 			height: modules.blocks.getLastBlock().height
 		});
 	});
 
-	library.app.use('/api/loader', router);
-	library.app.use(function (err, req, res, next) {
+	library.network.app.use('/api/loader', router);
+	library.network.app.use(function (err, req, res, next) {
 		if (!err) return next();
-		library.logger.error('/api/loader', err)
+		library.logger.error(req.url, err.toString());
 		res.status(500).send({success: false, error: err.toString()});
 	});
 }
 
-function loadBlocks(lastBlock, cb) {
-	modules.transport.getFromRandomPeer('/height', function (err, data) {
+private.loadFullDb = function(peer, cb) {
+	var peerStr = peer ? ip.fromLong(peer.ip) + ":" + peer.port : 'unknown';
+
+	var commonBlockId = genesisBlock.block.id;
+
+	library.logger.debug("Load blocks from genesis from " + peerStr);
+
+	modules.blocks.loadBlocksFromPeer(peer, commonBlockId, cb);
+}
+
+private.findUpdate = function(lastBlock, peer, cb) {
+	var peerStr = peer ? ip.fromLong(peer.ip) + ":" + peer.port : 'unknown';
+
+	library.logger.info("Looking for common block with " + peerStr);
+
+	modules.blocks.getCommonBlock(peer, lastBlock.height, function (err, commonBlock) {
+		if (err || !commonBlock) {
+			return cb(err);
+		}
+
+		library.logger.info("Found common block " + commonBlock.id + " (at " + commonBlock.height + ")" + " with peer " + peerStr);
+
+		if (lastBlock.height - commonBlock.height > 1440) {
+			library.logger.log("long fork, ban 60 min", peerStr);
+			modules.peer.state(peer.ip, peer.port, 0, 3600);
+			return cb();
+		}
+
+		var overTransactionList = [];
+		var unconfirmedList = modules.transactions.undoUnconfirmedList();
+		for (var i = 0; i < unconfirmedList.length; i++) {
+			var transaction = modules.transactions.getUnconfirmedTransaction(unconfirmedList[i]);
+			overTransactionList.push(transaction);
+			modules.transactions.removeUnconfirmedTransaction(unconfirmedList[i]);
+		}
+
+		if (commonBlock.id != lastBlock.id) {
+			modules.round.directionSwap('backward');
+		}
+
+		modules.blocks.deleteBlocksBefore(commonBlock, function (err, backupBlocks) {
+			if (commonBlock.id != lastBlock.id) {
+				modules.round.directionSwap('forward');
+			}
+			if (err) {
+				library.logger.fatal('delete blocks before', err);
+				process.exit(1);
+			}
+
+			library.logger.debug("Load blocks from peer " + peerStr);
+
+			modules.blocks.loadBlocksFromPeer(peer, commonBlock.id, function (err) {
+				if (err) {
+					modules.transactions.deleteHiddenTransaction();
+					library.logger.error(err);
+					library.logger.log("can't load blocks, ban 60 min", peerStr);
+					modules.peer.state(peer.ip, peer.port, 0, 3600);
+
+					library.logger.info("Remove blocks again until " + commonBlock.id + " (at " + commonBlock.height + ")");
+					if (commonBlock.id != lastBlock.id) {
+						modules.round.directionSwap('backward');
+					}
+
+					// fix 1000 blocks and check, if you need to remove more 1000 blocks - ban node
+
+					modules.blocks.deleteBlocksBefore(commonBlock, function (err) {
+						if (commonBlock.id != lastBlock.id) {
+							modules.round.directionSwap('forward');
+						}
+						if (err) {
+							library.logger.fatal('delete blocks before', err);
+							process.exit(1);
+						}
+
+						if (backupBlocks.length) {
+							library.logger.info("Restore stored blocks until " + backupBlocks[backupBlocks.length - 1].height);
+							async.series([
+								function (cb) {
+									async.eachSeries(backupBlocks, function (block, cb) {
+										modules.blocks.processBlock(block, false, cb);
+									}, cb)
+								}, function (cb) {
+									async.eachSeries(overTransactionList, function (trs, cb) {
+										modules.transactions.processUnconfirmedTransaction(trs, false, function () {
+											cb()
+										});
+									}, cb);
+								}
+							], cb);
+						} else {
+							async.eachSeries(overTransactionList, function (trs, cb) {
+								modules.transactions.processUnconfirmedTransaction(trs, false, cb);
+							}, cb);
+						}
+					});
+				} else {
+					for (var i = 0; i < overTransactionList.length; i++) {
+						modules.transactions.pushHiddenTransaction(overTransactionList[i]);
+					}
+
+					var trs = modules.transactions.shiftHiddenTransaction();
+					async.whilst(
+						function () {
+							return trs
+						},
+						function (next) {
+							modules.transactions.processUnconfirmedTransaction(trs, true, function () {
+								trs = modules.transactions.shiftHiddenTransaction();
+								next();
+							});
+						}, cb);
+				}
+			});
+		});
+
+	});
+}
+
+private.loadBlocks = function(lastBlock, cb) {
+	modules.transport.getFromRandomPeer({
+		api: '/height',
+		method: 'GET'
+	}, function (err, data) {
 		var peerStr = data && data.peer ? ip.fromLong(data.peer.ip) + ":" + data.peer.port : 'unknown';
 		if (err || !data.body) {
 			library.logger.log("Fail request at " + peerStr);
@@ -67,68 +187,13 @@ function loadBlocks(lastBlock, cb) {
 
 		library.logger.info("Check blockchain on " + peerStr);
 
-		if (bignum(modules.blocks.getLastBlock().height).lt(RequestSanitizer.string(data.body.height))) {
-			sync = true;
-			blocksToSync = RequestSanitizer.int(data.body.height);
+		if (bignum(modules.blocks.getLastBlock().height).lt(RequestSanitizer.string(data.body.height || 0))) { //diff in chainbases
+			private.blocksToSync = RequestSanitizer.int(data.body.height);
 
 			if (lastBlock.id != genesisBlock.block.id) { //have to found common block
-				library.logger.info("Looking for common block with " + peerStr);
-				modules.blocks.getCommonBlock(data.peer, lastBlock.height, function (err, commonBlock) {
-					if (err) {
-						return cb(err);
-					}
-
-					if (!commonBlock) {
-						return cb();
-					}
-
-					library.logger.info("Found common block " + commonBlock.id + " (at " + commonBlock.height + ")" + " with peer " + peerStr);
-
-					modules.round.directionSwap('backward');
-					modules.blocks.deleteBlocksBefore(commonBlock, function (err, backupBlocks) {
-						modules.round.directionSwap('forward');
-						if (err) {
-							library.logger.fatal('delete blocks before', err);
-							return setImmediate(cb, err);
-						}
-
-						library.logger.debug("Load blocks from peer " + peerStr);
-
-						modules.blocks.loadBlocksFromPeer(data.peer, commonBlock.id, function (err) {
-							if (err) {
-								library.logger.error(err);
-								library.logger.log('ban 60 min', peerStr);
-								modules.peer.state(data.peer.ip, data.peer.port, 0, 3600);
-
-								library.logger.info("Remove blocks again until " + commonBlock.id + " (at " + commonBlock.height + ")");
-								modules.round.directionSwap('backward');
-								modules.blocks.deleteBlocksBefore(commonBlock, function (err) {
-									modules.round.directionSwap('forward');
-									if (err) {
-										library.logger.fatal('delete blocks before', err);
-										return setImmediate(cb);
-									}
-
-									if (backupBlocks.length) {
-										library.logger.info("Restore stored blocks until " + backupBlocks[backupBlocks.length - 1].height);
-										async.eachSeries(backupBlocks, function (block, cb) {
-											modules.blocks.processBlock(block, false, cb);
-										}, cb);
-									} else {
-										setImmediate(cb);
-									}
-								});
-							} else {
-								setImmediate(cb);
-							}
-						});
-					});
-
-				});
+				private.findUpdate(lastBlock, data.peer, cb);
 			} else { //have to load full db
-				var commonBlockId = genesisBlock.block.id;
-				library.logger.debug("Load blocks from genesis from " + peerStr);
-				modules.blocks.loadBlocksFromPeer(data.peer, commonBlockId, cb);
+				private.loadFullDb(data.peer, cb);
 			}
 		} else {
 			cb();
@@ -136,8 +201,11 @@ function loadBlocks(lastBlock, cb) {
 	});
 }
 
-function loadUnconfirmedTransactions(cb) {
-	modules.transport.getFromRandomPeer('/transactions', function (err, data) {
+private.loadUnconfirmedTransactions = function(cb) {
+	modules.transport.getFromRandomPeer({
+		api: '/transactions',
+		method: 'GET'
+	}, function (err, data) {
 		if (err) {
 			return cb()
 		}
@@ -146,20 +214,19 @@ function loadUnconfirmedTransactions(cb) {
 
 		for (var i = 0; i < transactions.length; i++) {
 			try {
-				transactions[i] = normalize.transaction(transactions[i]);
+				transactions[i] = library.logic.transaction.objectNormalize(transactions[i]);
 			} catch (e) {
 				var peerStr = data.peer ? ip.fromLong(data.peer.ip) + ":" + data.peer.port : 'unknown';
-				library.logger.log('ban 60 min', peerStr);
+				library.logger.log('transaction ' + (transactions[i] ? transactions[i].id : 'null') + ' is not valid, ban 60 min', peerStr);
 				modules.peer.state(data.peer.ip, data.peer.port, 0, 3600);
 				return setImmediate(cb);
 			}
 		}
-		library.bus.message('receiveTransaction', transactions);
-		cb();
+		modules.transactions.receiveTransactions(transactions, cb);
 	});
 }
 
-function loadBlockChain() {
+private.loadBlockChain = function() {
 	var offset = 0, limit = library.config.loading.loadPerIteration;
 
 	modules.blocks.count(function (err, count) {
@@ -167,7 +234,7 @@ function loadBlockChain() {
 			return library.logger.error('blocks.count', err)
 		}
 
-		total = count;
+		private.total = count;
 		library.logger.info('blocks ' + count);
 		async.until(
 			function () {
@@ -181,7 +248,7 @@ function loadBlockChain() {
 						}
 
 						offset = offset + limit;
-						loadingLastBlock = lastBlockOffset;
+						private.loadingLastBlock = lastBlockOffset;
 
 						cb()
 					});
@@ -207,27 +274,31 @@ function loadBlockChain() {
 
 //public methods
 Loader.prototype.syncing = function () {
-	return sync;
+	return private.sync;
 }
 
 //events
 Loader.prototype.onPeerReady = function () {
 	process.nextTick(function nextLoadBlock() {
 		library.sequence.add(function (cb) {
+			private.sync = true;
 			var lastBlock = modules.blocks.getLastBlock();
-			loadBlocks(lastBlock, cb);
+			private.loadBlocks(lastBlock, cb);
 		}, function (err) {
 			err && library.logger.error('loadBlocks timer', err);
-			sync = false;
-			blocksToSync = 0;
+			private.sync = false;
+			private.blocksToSync = 0;
 
 			setTimeout(nextLoadBlock, 10 * 1000)
 		});
 	});
 
 	process.nextTick(function nextLoadUnconfirmedTransactions() {
-		loadUnconfirmedTransactions(function (err) {
+		library.sequence.add(function (cb) {
+			private.loadUnconfirmedTransactions(cb);
+		}, function (err) {
 			err && library.logger.error('loadUnconfirmedTransactions timer', err);
+
 			setTimeout(nextLoadUnconfirmedTransactions, 15 * 1000)
 		})
 	});
@@ -236,11 +307,11 @@ Loader.prototype.onPeerReady = function () {
 Loader.prototype.onBind = function (scope) {
 	modules = scope;
 
-	loadBlockChain();
+	private.loadBlockChain();
 }
 
 Loader.prototype.onBlockchainReady = function () {
-	loaded = true;
+	private.loaded = true;
 }
 
 //export
