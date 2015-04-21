@@ -343,8 +343,6 @@ private.launchDApp = function (dApp, cb) {
 		//env.instance_id = env.CODIUS_SELF;
 		env.PORT = 8000;
 
-		console.log(env);
-
 		sandbox.run(path.join("dapps", id, "index.js"), {env: env, instance_id: env['CODIUS_SELF']});
 
 		library.logger.info("DApp " + id + " launched");
@@ -460,7 +458,7 @@ function DApp() {
 			return cb("Incorrect dapp tags length");
 		}
 
-		if (!trs.asset.dapp.git || !(/^git\@github.com\:.+.git$/.test(trs.asset.dapp.git))) {
+		if (!trs.asset.dapp.git || !(/^git:\/\/git\@github.com\:.+.git$/.test(trs.asset.dapp.git))) {
 			return cb("Incorrect dapp git address");
 		}
 
