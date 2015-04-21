@@ -26,5 +26,6 @@ Vagrantfile
 .npm
 .ssh
 .cache
+.bash_history
 
 codius-cli
