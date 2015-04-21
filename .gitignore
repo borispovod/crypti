@@ -27,3 +27,4 @@ Vagrantfile
 .ssh
 .cache
 
+codius-cli

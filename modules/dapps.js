@@ -11,7 +11,10 @@ var constants = require("../helpers/constants.js"),
 	Router = require('../helpers/router.js'),
 	npm = require('npm'),
 	Sandbox = require('codius-node-sandbox'),
-	jayson = require('jayson');
+	jayson = require('jayson'),
+	extend = require('extend'),
+	net = require('net'),
+	ProxiedSocket = require('../helpers/ProxiedSocket.js');
 
 var modules, library, self, private = {};
 
@@ -21,6 +24,7 @@ private.appPath = process.cwd();
 private.sandboxes = {};
 private.clients = {};
 private.routes = {};
+private.connections = {};
 
 
 private.createBasePath = function () {
@@ -31,6 +35,25 @@ private.createBasePath = function () {
 	if (!fs.existsSync(dAppPath)) {
 		fs.mkdirSync(dAppPath);
 	}
+}
+
+private.initializeServer = function (port, cb) {
+	var server = net.createServer();
+
+	server.on('error', function (err) {
+		if (err.code === 'EADDRINUSE') {
+			return cb(err);
+		} else {
+			library.logger.error(err.toString());
+		}
+	});
+
+	server.on('listening', function () {
+		library.logger.info("Port opened at " + port);
+		return cb(null, server);
+	});
+
+	server.listen(port);
 }
 
 private.installDApp = function (dApp, cb) {
@@ -131,6 +154,63 @@ private.apiHandler = function (message, callback) {
 	args.push(callback);
 
 	switch (message.api) {
+		case 'net':
+			var sock;
+			switch (method) {
+				case 'socket':
+					var sock = new ProxiedSocket(message.data[0], message.data[1], message.data[2]);
+					var connectionId = Object.keys(private.connections).length;
+					private.connections[connectionId] = sock;
+					callback(null, connectionId);
+					break;
+				case 'accept':
+					break;
+				case 'write':
+					break;
+				case 'connect':
+					var connectionId = message.data[0],
+						family = message.data[1],
+						address = message.data[2],
+						port = message.data[3]
+
+					var sock = private.connections[connectionId];
+					if (sock) {
+						sock.connect(family, address, port, callback);
+					} else {
+						throw new Error('Invalid connection ID');
+					}
+					break;
+				case 'read':
+					var connectionId = message.data[0],
+						maxBytes = message.data[1];
+
+					var sock = private.connections[connectionId];
+					if (sock) {
+						sock.read(maxBytes, callback);
+					} else {
+						throw new Error('Invalid connection ID');
+					}
+					break;
+				case 'close':
+					break;
+				case 'bind':
+					var connectionId = message.data[0],
+						family = message.data[1],
+						address = message.data[2],
+						port = message.data[3];
+
+					var sock = private.connections[connectionId];
+					if (sock) {
+						sock.bind(this, family, address, port, callback);
+					} else {
+						throw new Error('Invalid connection ID');
+					}
+					break;
+				default:
+					callback(new Error('Unhandled net method: ' + message.method));
+			}
+			break;
+
 		case 'fs':
 			// Make absolute paths relative
 			// (They are absolute from the perspect of the sandboxed code)
@@ -160,6 +240,55 @@ private.apiHandler = function (message, callback) {
 					callback(new Error('Unhandled net method: ' + message.method));
 			}
 			break;
+
+		case 'net':
+			var sock;
+			switch (method) {
+				case 'socket':
+					sock = new FakeSocket(args[0], args[1], args[2]);
+
+					args[3](null, connectionId);
+					break;
+				case 'accept':
+					sock = socket_connections[args[0]];
+					var peer = sock.accept();
+					if (peer) {
+						var peer_sock = new FakeSocket(FakeSocket.AF_INET, FakeSocket.SOCK_STREAM, 0);
+						peer_sock._socket = peer;
+						peer_sock._socket.on('data', function(data) {
+							peer_sock._buffer.push(data);
+						});
+						peer_sock._socket.on('end', function () {
+							peer_sock._eof = true;
+						});
+						var connectionId = socket_connections.length;
+						socket_connections.push(peer_sock);
+						callback(null, connectionId);
+					} else {
+						// EAGAIN (no data, try again later)
+						callback(null, -11);
+					}
+				case 'write':
+					if (args[2]==="hex") {
+						args[1] = new Buffer(args[1], "hex");
+						args.splice(2, 1);
+					}
+					sock = socket_connections[args[0]];
+					sock[method].apply(sock, args.slice(1));
+					break;
+				case 'connect':
+				case 'read':
+				case 'close':
+				case 'bind':
+					//TODO-CODIUS: If 'close', remove socket from _connections array
+					sock = socket_connections[args[0]];
+					sock[method].apply(sock, args.slice(1));
+					break;
+				default:
+					callback(new Error('Unhandled net method: ' + message.method));
+			}
+			break;
+
 		default:
 			callback(new Error('Unhandled api type: ' + message.api));
 	}
@@ -185,7 +314,7 @@ private.launchDApp = function (dApp, cb) {
 	try {
 		dAppConfig = require(path.join(dAppPath, "config.json"));
 	} catch (e) {
-		return setImmedaite(cb, "This DApp has no config file, can't launch it");
+		return setImmediate(cb, "This DApp has no config file, can't launch it");
 	}
 
 	var sandbox = new Sandbox({
@@ -202,48 +331,89 @@ private.launchDApp = function (dApp, cb) {
 	sandbox.pipeStdout(process.stdout);
 	sandbox.pipeStderr(process.stderr);
 
-	sandbox.run(path.join("dapps", id, "index.js"), {env: process.env});
+	var env = extend({}, env);
 
-	library.logger.info("DApp " + id + " launched");
+	private.initializeServer(dAppConfig.jayson_port, function (err, socket) {
+		if (err) {
+			return setImmediate(cb, err);
+		}
 
-	if (!dAppConfig.jayson_port) {
+		env.CODIUS_SELF = 'localhost:'+socket.address().port;
+		env.CODIUS_GROUP = env.CODIUS_SELF;
+		//env.instance_id = env.CODIUS_SELF;
+		env.PORT = 8000;
+
+		console.log(env);
+
+		sandbox.run(path.join("dapps", id, "index.js"), {env: env, instance_id: env['CODIUS_SELF']});
+
+		library.logger.info("DApp " + id + " launched");
+
+		if (!dAppConfig.jayson_port) {
+			private.sandboxes[id] = sandbox;
+			return setImmediate(cb);
+		}
+
+		library.logger.info("Connect to communicate server of DApp " + id);
+
+		function halt(message) {
+			sandbox.kill(0);
+			delete private.sandboxes[id];
+			delete private.clients[id];
+			setImmediate(cb, "Can't connect to api of DApp " + id + " , routes file not found");
+		}
+
+		function handleRequest (stream) {
+			console.log("here");
+			/*var listener;
+			if (listener = sandbox.getPortListener(dAppConfig.jayson_port)) {
+				listener(stream);
+			} else {
+				function handleListener(event) {
+					if (event.port !== dAppConfig.jayson_port) return;
+
+					sandbox.removeListener('portListener', handleListener);
+
+					// Pass socket stream to contract
+					event.listener(stream);
+				}
+				sandbox.on('portListener', handleListener);
+			}
+
+			stream.on('end', function () {
+				library.logger.info('Connection ended');
+			});*/
+		}
+
+		socket.on('connection', handleRequest);
+
+		var client = null;
+		try {
+			client = jayson.client.http({
+				port: dAppConfig.jayson_port,
+				hostname: 'localhost'
+			});
+		 } catch (e) {
+			return halt("Can't connect to communicate server of DApp " + id);
+		 }
+
+		 private.clients[id] = client;
+
+		try {
+			var dAppRoutes = require(path.join(dAppPath, "api", "routes.js"));
+		} catch (e) {
+			return halt("Can't connect to api of DApp " + id + " , routes file not found");
+		}
+
+		if (!private.initializeDAppRoutes(id, dAppRoutes)) {
+		 return halt("Can't launch api, incorrect routes object of DApp " + id);
+		 }
+
+		library.logger.info("Connected to api");
+
 		private.sandboxes[id] = sandbox;
-		return setImmediate(cb);
-	}
-
-	library.logger.info("Connect to communicate server of DApp " + id);
-
-	function halt(message) {
-		sandbox.kill(0);
-		delete private.sandboxes[id];
-		delete private.clients[id];
-		setImmediate(cb, "Can't connect to api of DApp " + id + " , routes file not found");
-	}
-
-	var client = null;
-	try {
-		client = jayson.client.http({
-			port: dAppConfig.jayson_port,
-			hostname: 'localhost'
-		});
-	} catch (e) {
-		return halt("Can't connect to communicate server of DApp " + id);
-	}
-
-	private.clients[id] = client;
-
-	try {
-		var dAppRoutes = require(path.join(dAppPath, "api", "routes.js"));
-	} catch (e) {
-		return halt("Can't connect to api of DApp " + id + " , routes file not found");
-	}
-
-	if (!private.initializeDAppRoutes(id, dAppRoutes)) {
-		return halt("Can't launch api, incorrect routes object of DApp " + id);
-	}
-
-	private.sandboxes[id] = sandbox;
-	setImmediate(cb);
+		setImmediate(cb);
+	});
 }
 
 private.get = function (id, cb) {
