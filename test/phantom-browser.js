@@ -16,6 +16,9 @@ var inherits = require('util').inherits;
 var Url = require('url');
 
 module.exports = Browser;
+module.exports.create = function(plugins) {
+    return new Browser(plugins);
+};
 
 /**
  * Phantom browser-like wrapper
@@ -69,6 +72,8 @@ inherits(Browser, EventEmitter);
  * @private
  */
 Browser.prototype._createTab = function(id) {
+    if (id && this._tabs.hasOwnProperty(id)) return this._tabs[id];
+
     id = id || ('tab' + ++ this._tabId);
     var self = this;
     var tab = {
@@ -82,9 +87,9 @@ Browser.prototype._createTab = function(id) {
         get id() {
             return id;
         },
-        page : null,
-        loaded : false,
-        scope : {}
+        page: null,
+        loaded: false,
+        scope: {}
     };
 
     extend(tab, EventEmitter.prototype);
@@ -140,6 +145,7 @@ Browser.prototype._initializeTab = function(tabId, page) {
                 tab.emit.apply(tab, args);
             });
         });
+    page.tabId = tabId;
 };
 
 /**
@@ -347,6 +353,7 @@ Browser.prototype.currentTab = function() {
  * @returns {Browser}
  */
 Browser.prototype.openTab = function(id) {
+    // TODO Trigger error on duplicate tab Id
     var tab = this._createTab(id);
     this._currentTabId = tab.id;
 
@@ -368,17 +375,53 @@ Browser.prototype.openTab = function(id) {
  * Close tab action.
  * @returns {Browser}
  */
-Browser.prototype.closeTab = function() {
-    var  tab = this.currentTab();
+Browser.prototype.closeTab = function(tabId) {
+    var self = this;
+    var tab;
+
+    if (tabId) {
+        if (! tabId in this._tabs) return this;
+
+        tab = this._tabs[tabId];
+    } else {
+        tabId = this._currentTabId;
+        tab = this.currentTab();
+    }
+
+
+    var openTabs = Object.keys(this._tabs).filter(function(tabId){
+        return ! self._tabs[tabId].isClosing;
+    });
+
+    var nextTabId, index;
+
+    if (openTabs.length > 1) {
+        index = openTabs.indexOf(tabId);
+        if (index === openTabs.length - 1) {
+            nextTabId = openTabs[index - 1];
+        } else {
+            nextTabId = openTabs[index + 1];
+        }
+    }
+
+    tab.isClosing = true;
+
 
     this.addAction(function(){
-        return new Promise(function(resolve, reject){
+        return new Promise(function(resolve){
             tab.scope = {};
             tab.page.close();
+
+            delete self._tabs[tabId];
 
             resolve();
         });
     });
+
+    if (nextTabId) {
+        this.switchTab(nextTabId);
+    }
+
     return this;
 };
 
@@ -392,6 +435,10 @@ Browser.prototype.switchTab = function(tabId) {
 
     if (tabId in this._tabs === false) {
         throw new Error("Unknown tab '" + tabId + "'.");
+    }
+
+    if (this._tabs[tabId].isClosing) {
+        throw new Error("Switching to closing tab '" + tabId + "'.");
     }
 
     this._tabSwitches.push(this._currentTabId);
@@ -458,7 +505,7 @@ Browser.prototype.exec = function(callback){
             B._currentTabId = tab.id;
             B._actions = [];
 
-            callback.call(B, value, function(err, value){
+            var result = callback.call(B, value, function(err, value){
                 err ? reject(err) : resolve(value);
             });
 
@@ -468,6 +515,8 @@ Browser.prototype.exec = function(callback){
                 });
                 // Pass value to next promise
                 resolve(value);
+            } else if (callback.length < 2) {
+                resolve(result);
             }
         });
     });
