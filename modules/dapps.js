@@ -106,7 +106,7 @@ private.initializeDAppRoutes = function (id, routes) {
 		}
 	});
 
-	library.network.app.use('/api/dapps/' + id + '/', private.routes[id]);
+	library.network.app.use('/api/dapps/' + id + '/api/', private.routes[id]);
 	library.network.app.use(function (err, req, res, next) {
 		if (!err) return next();
 		library.logger.error(req.url, err.toString());
