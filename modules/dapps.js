@@ -11,7 +11,8 @@ var constants = require("../helpers/constants.js"),
 	Router = require('../helpers/router.js'),
 	npm = require('npm'),
 	Sandbox = require('codius-node-sandbox'),
-	extend = require('extend');
+	extend = require('extend'),
+	rmdir = require('rimraf').sync;
 
 var modules, library, self, private = {};
 
@@ -20,7 +21,6 @@ private.unconfirmedLinks = {};
 private.appPath = process.cwd();
 private.sandboxes = {};
 private.routes = {};
-private.links = {};
 
 private.createBasePathes = function () {
 	var dAppPath = path.join(private.appPath, "dapps");
@@ -35,6 +35,53 @@ private.createBasePathes = function () {
 	if (!fs.existsSync(dAppPublic)) {
 		fs.mkdirSync(dAppPublic);
 	}
+}
+
+private.resumeDApp = function (dApp, cb) {
+	var id = dApp.id;
+
+	library.logger.info("Resume " + id + " DApp");
+
+	if (private.sandboxes[id]) {
+		private.sandboxes[id].kill(0);
+		delete private.sandboxes[id];
+		delete private.routes[id];
+		library.logger.info("DApp " + id + " resumed");
+		return setImmediate(cb);
+	} else {
+		library.logger.info("DApp " + id + " not launched");
+		return setImmediate(cb, "This DApp not launched");
+	}
+}
+
+private.uninstallDApp = function (dApp, cb) {
+	var id = dApp.id;
+
+	private.resumeDApp(dApp, function () {
+		var dAppPath = path.join(private.appPath, "dapps", id);
+
+		if (fs.existsSync(dAppPath)) {
+			library.logger.info("Removing DApp " + id);
+
+			var dAppPathLink = path.join(private.appPath, "public", "dapps", id);
+
+			if (fs.existsSync(dAppPathLink)) {
+				library.logger.info("Removing public folder of dapp " + id);
+
+				fs.unlinkSync(dAppPathLink);
+
+				library.logger.info("Removed DApp " + id + " public path");
+			}
+
+			rmdir(dAppPath);
+			library.logger.info("Deleted DApp " + id + " path");
+
+			setImmediate(cb);
+		} else {
+			library.logger.info("DApp " + id + " not installed");
+			return setImmediate(cb, "DApp " + id + " not installed");
+		}
+	});
 }
 
 private.installDApp = function (dApp, cb) {
@@ -551,6 +598,65 @@ function attachApi() {
 				}
 				library.sequence.add(function (cb) {
 					private.launchDApp(dapp, cb);
+				}, function (err, sandbox) {
+					if (err) {
+						return res.json({success: false, error: err});
+					}
+					res.json({success: true});
+				});
+			});
+		});
+	});
+
+	router.post("/resume", function (req, res) {
+		req.sanitize("body", {
+			id: "string!"
+		}, function (err, report, body) {
+			if (err) return next(err);
+			if (!report.isValid) return res.json({success: false, error: report.issues});
+
+			var ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+
+			if (library.config.dapps.access.whiteList.length > 0 && library.config.dapps.access.whiteList.indexOf(ip) < 0) {
+				return res.json({success: false, error: "Accesss denied"});
+			}
+
+			private.get(body.id, function (err, dapp) {
+				if (err) {
+					return res.json({success: false, error: err});
+				}
+				library.sequence.add(function (cb) {
+					private.resumeDApp(dapp, cb);
+				}, function (err, sandbox) {
+					if (err) {
+						return res.json({success: false, error: err});
+					}
+					res.json({success: true});
+				});
+			});
+
+		});
+	});
+
+	router.post("/uninstall", function (req, res) {
+		req.sanitize("body", {
+			id: "string!"
+		}, function (err, report, body) {
+			if (err) return next(err);
+			if (!report.isValid) return res.json({success: false, error: report.issues});
+
+			var ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+
+			if (library.config.dapps.access.whiteList.length > 0 && library.config.dapps.access.whiteList.indexOf(ip) < 0) {
+				return res.json({success: false, error: "Accesss denied"});
+			}
+
+			private.get(body.id, function (err, dapp) {
+				if (err) {
+					return res.json({success: false, error: err});
+				}
+				library.sequence.add(function (cb) {
+					private.uninstallDApp(dapp, cb);
 				}, function (err, sandbox) {
 					if (err) {
 						return res.json({success: false, error: err});
