@@ -20,14 +20,20 @@ private.unconfirmedLinks = {};
 private.appPath = process.cwd();
 private.sandboxes = {};
 private.routes = {};
+private.links = {};
 
-private.createBasePath = function () {
+private.createBasePathes = function () {
 	var dAppPath = path.join(private.appPath, "dapps");
+	var dAppPublic = path.join(private.appPath, "public", "dapps");
 
 	//need to add check for folder permissions
 
 	if (!fs.existsSync(dAppPath)) {
 		fs.mkdirSync(dAppPath);
+	}
+
+	if (!fs.existsSync(dAppPublic)) {
+		fs.mkdirSync(dAppPublic);
 	}
 }
 
@@ -69,6 +75,22 @@ private.installDApp = function (dApp, cb) {
 						library.logger.error(err.toString());
 						setImmediate(cb, "Can't install dependencies of " + id + " DApp");
 					} else {
+						library.logger.info("DApp " + id + " dependencies installed");
+
+						var dAppPublicPath = path.join(dAppPath, "public");
+
+						if (fs.existsSync(dAppPublicPath)) {
+							library.logger.info("Initialize public html/js/css folder");
+
+							var dAppPublicLink = path.join(private.appPath, "public", "dapps", id);
+
+							if (fs.existsSync(dAppPublicLink)) {
+								fs.unlinkSync(dAppPublicLink);
+							}
+
+							fs.symlinkSync(dAppPublicPath, dAppPublicLink);
+						}
+
 						library.logger.info("DApp " + id + " succesfull installed");
 						setImmediate(cb, null, dAppPath);
 					}
@@ -82,6 +104,7 @@ private.installDApp = function (dApp, cb) {
 	});
 }
 
+
 private.initializeDAppRoutes = function (id, routes) {
 	private.routes[id] = new Router();
 
@@ -92,16 +115,7 @@ private.initializeDAppRoutes = function (id, routes) {
 	routes.forEach(function (router) {
 		if (router.method == "get") {
 			private.routes[id].get(router.path, function (req, res) {
-				private.clients[id].request('api', [router.path, 'get', req.query], function (err, error, resp) {
-					if (err || error) {
-						return res.json({success: false, error: err || error});
-					}
-					if (typeof resp == "object") {
-						res.json(resp);
-					} else {
-						res.json({success: false, error: "Incorrect response from api call"});
-					}
-				});
+				return res.json({success: true});
 			});
 		}
 	});
@@ -245,7 +259,7 @@ private.get = function (id, cb) {
 		id: id
 	}, ['name', 'description', 'tags', 'git'], function (err, rows) {
 		if (err || rows.length == 0) {
-			return cb(err.toString() || "Can't find dapp with id " + id);
+			return cb(err || "Can't find dapp with id " + id);
 		}
 		var dapp = rows[0];
 		dapp.id = id;
@@ -284,9 +298,9 @@ function DApp() {
 			return cb("Incorrect dapp tags length");
 		}
 
-		if (!trs.asset.dapp.git || !(/^git:\/\/git\@github.com\:.+.git$/.test(trs.asset.dapp.git))) {
+		/*if (!trs.asset.dapp.git || !(/^git:\/\/git\@github.com\:.+.git$/.test(trs.asset.dapp.git))) {
 			return cb("Incorrect dapp git address");
-		}
+		}*/
 
 		if (trs.amount != 0) {
 			return cb("Invalid transaction amount");
@@ -561,7 +575,7 @@ function DApps(cb, scope) {
 	self.__private = private;
 	attachApi();
 
-	private.createBasePath();
+	private.createBasePathes();
 
 	library.logic.transaction.attachAssetType(TransactionTypes.DAPP, new DApp());
 
