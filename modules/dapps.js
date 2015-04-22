@@ -284,7 +284,7 @@ function DApp() {
 			return cb("Incorrect dapp tags length");
 		}
 
-		if (!trs.asset.dapp.git || !(/^git\@github.com\:.+.git$/.test(trs.asset.dapp.git))) {
+		if (!trs.asset.dapp.git || !(/^git:\/\/git\@github.com\:.+.git$/.test(trs.asset.dapp.git))) {
 			return cb("Incorrect dapp git address");
 		}
 
