@@ -6,7 +6,8 @@ var crypto = require('crypto'),
 	util = require('util'),
 	constants = require('../helpers/constants.js'),
 	RequestSanitizer = require('../helpers/request-sanitizer.js'),
-	TransactionTypes = require('../helpers/transaction-types.js');
+	TransactionTypes = require('../helpers/transaction-types.js'),
+	sandboxHelper = require('../helpers/sandboxApi.js').applySandboxApi;
 
 //private
 var modules, library, self, private = {};
@@ -824,6 +825,20 @@ Accounts.prototype.getAllAccounts = function () {
 Accounts.prototype.getDelegates = function (publicKey) {
 	var account = self.getAccountByPublicKey(publicKey);
 	return account.delegates;
+}
+
+var sandboxApi = {
+	'test' : function (message, cb) {
+		console.log(message);
+		setImmediate(cb);
+	}
+}
+
+Accounts.prototype.sandbox = function (message, callback) {
+	var data = message.data || [];
+	data.push(callback);
+
+	return sandboxHelper.applySandboxApi(message, sandboxApi, callback);
 }
 
 //events

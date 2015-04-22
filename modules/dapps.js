@@ -191,8 +191,6 @@ private.apiHandler = function (message, callback) {
 
 	switch (message.api) {
 		case 'fs':
-			// Make absolute paths relative
-			// (They are absolute from the perspect of the sandboxed code)
 			if (typeof args[0] === 'string' && args[0].indexOf('/') === 0) {
 				args[0] = '.' + args[0];
 			}
@@ -202,7 +200,6 @@ private.apiHandler = function (message, callback) {
 		case 'crypto':
 			switch (method) {
 				case 'randomBytes':
-					// Convert the resulting buffer to hex
 				function randomBytesCallback(error, result) {
 					if (error) {
 						callback(error);
@@ -221,7 +218,14 @@ private.apiHandler = function (message, callback) {
 			break;
 
 		default:
-			callback(new Error('Unhandled api type: ' + message.api));
+			var module = modules[message.api];
+
+			if (module) {
+				module.sandbox(message, callback);
+			} else {
+				callback(new Error('Unhandled api type: ' + message.api));
+			}
+			break;
 	}
 }
 
