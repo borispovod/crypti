@@ -66,7 +66,7 @@ private.uninstallDApp = function (dApp, cb) {
 			var dAppPathLink = path.join(private.appPath, "public", "dapps", id);
 
 			if (fs.existsSync(dAppPathLink)) {
-				library.logger.info("Removing public folder of dapp " + id);
+				library.logger.info("Removing public folder of DApp " + id);
 
 				fs.unlinkSync(dAppPathLink);
 
