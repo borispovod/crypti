@@ -4,24 +4,23 @@ var async = require('async'),
     genesisBlock = require("../helpers/genesisblock.js"),
     ip = require("ip"),
     bignum = require('bignum'),
-    params = require('../helpers/params.js'),
-    normalize = require('../helpers/normalize.js');
+    RequestSanitizer = require('../helpers/request-sanitizer');
 require('colors');
 
 //private fields
-var modules, library, self;
+var modules, library, self, private = {};
 
-var loaded = false;
-var sync = false;
-var loadingLastBlock = genesisBlock;
-var total = 0;
-var blocksToSync = 0;
+private.loaded = false;
+private.sync = false;
+private.loadingLastBlock = genesisBlock;
+private.total = 0;
+private.blocksToSync = 0;
 
 //constructor
 function Loader(cb, scope) {
     library = scope;
     self = this;
-
+    self.__private = private;
     attachApi();
 
     setImmediate(cb, null, self);
@@ -34,9 +33,9 @@ function attachApi() {
     router.get('/status', function (req, res) {
         res.json({
             success: true,
-            loaded: loaded,
-            now: loadingLastBlock.height,
-            blocksCount: total
+            loaded: private.loaded,
+            now: private.loadingLastBlock.height,
+            blocksCount: private.total
         });
     });
 
@@ -44,7 +43,7 @@ function attachApi() {
         res.json({
             success: true,
             sync: self.syncing(),
-            blocks: blocksToSync,
+            blocks: private.blocksToSync,
             height: modules.blocks.getLastBlock().height
         });
     });
@@ -52,12 +51,12 @@ function attachApi() {
     library.app.use('/api/loader', router);
     library.app.use(function (err, req, res, next) {
         if (!err) return next();
-        library.logger.error('/api/loader', err)
+        library.logger.error(req.url, err.toString());
         res.status(500).send({success: false, error: err.toString()});
     });
 }
 
-function loadfullDb(peer, cb) {
+private.loadFullDb = function (peer, cb) {
     var peerStr = peer ? ip.fromLong(peer.ip) + ":" + peer.port : 'unknown';
 
     var commonBlockId = genesisBlock.block.id;
@@ -67,7 +66,7 @@ function loadfullDb(peer, cb) {
     modules.blocks.loadBlocksFromPeer(peer, commonBlockId, cb);
 }
 
-function findUpdate(lastBlock, peer, cb) {
+private.findUpdate = function (lastBlock, peer, cb) {
     var peerStr = peer ? ip.fromLong(peer.ip) + ":" + peer.port : 'unknown';
 
     library.logger.info("Looking for common block with " + peerStr);
@@ -175,8 +174,11 @@ function findUpdate(lastBlock, peer, cb) {
     });
 }
 
-function loadBlocks(lastBlock, cb) {
-    modules.transport.getFromRandomPeer('/height', function (err, data) {
+private.loadBlocks = function (lastBlock, cb) {
+    modules.transport.getFromRandomPeer({
+        api: '/height',
+        method: 'GET'
+    }, function (err, data) {
         var peerStr = data && data.peer ? ip.fromLong(data.peer.ip) + ":" + data.peer.port : 'unknown';
         if (err || !data.body) {
             library.logger.log("Fail request at " + peerStr);
@@ -185,13 +187,13 @@ function loadBlocks(lastBlock, cb) {
 
         library.logger.info("Check blockchain on " + peerStr);
 
-        if (bignum(modules.blocks.getLastBlock().height).lt(params.string(data.body.height || 0))) { //diff in chainbases
-            blocksToSync = params.int(data.body.height);
+        if (bignum(modules.blocks.getLastBlock().height).lt(RequestSanitizer.string(data.body.height || 0))) { //diff in chainbases
+            private.blocksToSync = RequestSanitizer.int(data.body.height);
 
             if (lastBlock.id != genesisBlock.block.id) { //have to found common block
-                findUpdate(lastBlock, data.peer, cb);
+                private.findUpdate(lastBlock, data.peer, cb);
             } else { //have to load full db
-                loadfullDb(data.peer, cb);
+                private.loadFullDb(data.peer, cb);
             }
         } else {
             cb();
@@ -199,17 +201,20 @@ function loadBlocks(lastBlock, cb) {
     });
 }
 
-function loadUnconfirmedTransactions(cb) {
-    modules.transport.getFromRandomPeer('/transactions', function (err, data) {
+private.loadUnconfirmedTransactions = function (cb) {
+    modules.transport.getFromRandomPeer({
+        api: '/transactions',
+        method: 'GET'
+    }, function (err, data) {
         if (err) {
             return cb()
         }
 
-        var transactions = params.array(data.body.transactions);
+        var transactions = RequestSanitizer.array(data.body.transactions);
 
         for (var i = 0; i < transactions.length; i++) {
             try {
-                transactions[i] = normalize.transaction(transactions[i]);
+                transactions[i] = library.logic.transaction.objectNormalize(transactions[i]);
             } catch (e) {
                 var peerStr = data.peer ? ip.fromLong(data.peer.ip) + ":" + data.peer.port : 'unknown';
                 library.logger.log('transaction ' + (transactions[i] ? transactions[i].id : 'null') + ' is not valid, ban 60 min', peerStr);
@@ -221,7 +226,7 @@ function loadUnconfirmedTransactions(cb) {
     });
 }
 
-function loadBlockChain() {
+private.loadBlockChain = function () {
     var offset = 0, limit = library.config.loading.loadPerIteration;
 
     modules.blocks.count(function (err, count) {
@@ -229,7 +234,7 @@ function loadBlockChain() {
             return library.logger.error('blocks.count', err)
         }
 
-        total = count;
+        private.total = count;
         library.logger.info('blocks ' + count);
         async.until(
             function () {
@@ -243,7 +248,7 @@ function loadBlockChain() {
                         }
 
                         offset = offset + limit;
-                        loadingLastBlock = lastBlockOffset;
+                        private.loadingLastBlock = lastBlockOffset;
 
                         cb()
                     });
@@ -269,20 +274,20 @@ function loadBlockChain() {
 
 //public methods
 Loader.prototype.syncing = function () {
-    return sync;
+    return private.sync;
 }
 
 //events
 Loader.prototype.onPeerReady = function () {
     process.nextTick(function nextLoadBlock() {
         library.sequence.add(function (cb) {
-            sync = true;
+            private.sync = true;
             var lastBlock = modules.blocks.getLastBlock();
-            loadBlocks(lastBlock, cb);
+            private.loadBlocks(lastBlock, cb);
         }, function (err) {
             err && library.logger.error('loadBlocks timer', err);
-            sync = false;
-            blocksToSync = 0;
+            private.sync = false;
+            private.blocksToSync = 0;
 
             setTimeout(nextLoadBlock, 10 * 1000)
         });
@@ -290,7 +295,7 @@ Loader.prototype.onPeerReady = function () {
 
     process.nextTick(function nextLoadUnconfirmedTransactions() {
         library.sequence.add(function (cb) {
-            loadUnconfirmedTransactions(cb);
+            private.loadUnconfirmedTransactions(cb);
         }, function (err) {
             err && library.logger.error('loadUnconfirmedTransactions timer', err);
 
@@ -302,11 +307,11 @@ Loader.prototype.onPeerReady = function () {
 Loader.prototype.onBind = function (scope) {
     modules = scope;
 
-    loadBlockChain();
+    private.loadBlockChain();
 }
 
 Loader.prototype.onBlockchainReady = function () {
-    loaded = true;
+    private.loaded = true;
 }
 
 //export

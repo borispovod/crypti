@@ -20,5 +20,6 @@ require('../../js/controllers/modals/voteController');
 require('../../js/controllers/modals/registrationDelegateModalController');
 require('../../js/controllers/modals/blockInfoController');
 require('../../js/controllers/modals/transactionInfoController');
+require('../../js/controllers/modals/userInfoController');
 
 

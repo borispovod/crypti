@@ -62,8 +62,8 @@
                 <tbody>
                 <tr ng-repeat="transaction in transactions">
                     <td><a href="#" ng-click="transactionInfo(transaction)">{{transaction.id}}</a></td>
-                    <td><a href="#">{{transaction.senderId}}</a></td>
-                    <td ng-show="transaction.type <= 1"><a href="#">{{ transaction.recipientId }}</a></td>
+                    <td><a href="#" ng-click="userInfo(transaction.senderId)">{{transaction.senderId}}</a></td>
+                    <td ng-show="transaction.type <= 1"><a href="#" ng-click="userInfo(transaction.recipientId)">{{transaction.recipientId}}</a></td>
                     <td ng-show="transaction.type > 1"></td>
                     <td>{{transaction.timestamp | timestampFilter}}</td>
                     <td>{{transaction.amount / 100000000 | feeFilter}}</td>

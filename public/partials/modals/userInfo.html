@@ -1,0 +1,77 @@
+<div class="app-modal" id="transaction-modal">
+    <div class="modal-content">
+        <div class="modal-header clearfix">
+            <div class="pull-left multiline"><h2>Account: </h2>{{userId}}<span class="blockchain-icon"></span>
+            </div>
+            <div class="pull-left multiline">User description
+            </div>
+            <div class="close-modal" ng-click="close()"><span class="sr-only">Close modal</span></div>
+        </div>
+        <div class="modal-nav">
+            <ul class="nav nav-justified nav-actions">
+                <li><a href="#">Send XCR</a></li>
+                <li><a href="#">Send Message</a></li>
+                <li><a href="#">Add Favorite</a></li>
+                <li><a href="#">Contact Request</a></li>
+            </ul>
+        </div>
+        <div class="modal-body">
+            <ul class="list-group">
+                <li class="list-group-item bordered">Total Balance<span
+                        class="pull-right small-text">%%% XCR</span></li>
+                <li class="list-group-item">USD Equivalent<span class="pull-right small-text">$$$</span></li>
+            </ul>
+        </div>
+        <div class="modal-chapter clearfix">
+            <div class="multiline">
+                <h2>Transactions </h2>
+
+                <div class="chapter-more pull-right" ng-class="{'open': transactions.view}"
+                     ng-click="toggleTransactions()">6 Transactions
+                </div>
+            </div>
+        </div>
+        <div ng-repeat="transaction in transactions.list" ng-show="transactions.view">
+        <div class="modal-header"><h2>Transaction ID: </h2>
+            {{transaction.id}}<span class="blockchain-icon"></span>
+        </div>
+        <div class="modal-body">
+            <ul class="list-group">
+                <li class="list-group-item bordered">Confirmations<span class="pull-right small-text">{{transaction.confirmations}}</span>
+                </li>
+                <li class="list-group-item">Amount<span class="pull-right small-text">{{block.amount}} XCR</span></li>
+                <li class="list-group-item bordered">Fee<span
+                        class="pull-right small-text">{{transaction.fee}} XCR</span></li>
+                <li class="list-group-item">USD Equivalent<span class="pull-right small-text">$$$</span></li>
+                <li class="list-group-item bordered">Time<span class="pull-right small-text">{{transaction.timestamp | timestampFilter}}</span>
+                </li>
+            </ul>
+            <ul class="list-group transactions">
+                <!-- ngRepeat: transaction in transactions -->
+                <li class="list-group-item">
+                    <div class="transaction-data">{{transaction.id}} <span class="pull-right">{{transaction.timestamp | timestampFilter}}</span>
+                    </div>
+                    <div class="transaction-path">
+                        <div class="transaction-part pull-left"><a href="#">{{transaction.senderId}}</a> <span
+                                class="xcr">{{transaction.amount / 100000000 | feeFilter}} XCR</span></div>
+                        <div class="transaction-direction"></div>
+                        <div class="transaction-part pull-right"><a href="#">{{transaction.recipientId || "-"}}</a><span
+                                class="xcr">{{transaction.amount / 100000000 | feeFilter}} XCR</span></div>
+                    </div>
+                    <div class="transaction-bottom">
+                        <div class="fee">FEE: {{transaction.fee / 100000000 | feeFilter}} XCR
+                        </div>
+                        <div class="xcr">{{transaction.amount / 100000000 | feeFilter}} XCR
+                        </div>
+                        <div class="confirmations">{{transaction.confirmations}} CONFIRMATIONS
+                        </div>
+                    </div>
+                </li>
+                <!-- end ngRepeat: transaction in transactions -->
+
+            </ul>
+        </div>
+        </div>
+    </div>
+
+</div>

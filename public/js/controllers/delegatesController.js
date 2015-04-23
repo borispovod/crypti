@@ -48,7 +48,7 @@ angular.module('webApp').controller('delegatesController', ['$scope', '$rootScop
 			}
 		};
 
-		$scope.vote = function (publicKey) {
+		$scope.vote = function () {
 			$scope.showVotes = false;
 			$scope.voteModal = voteModal.activate({
 				totalBalance: $scope.unconfirmedBalance,

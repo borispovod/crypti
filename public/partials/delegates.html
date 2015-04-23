@@ -16,6 +16,20 @@
             <span class="plain-text pull-left">
              {{voteList.list.toServer.length}} out of {{countStandby + countTop}} Delegates selected
             </span>
+            <ul class="nav nav-info pull-right">
+                <li class="list-delegate">
+                    <a href="#"><span class="selection-icon"></span>View selection
+
+                    </a>
+                    <ul class="list-group" ng-class="{'empty': voteList.list.toServer.length < 1}">
+                        <li class="list-group-item" ng-repeat="item in voteList.list.toShow"
+                            ng-click="voteList.vote(null, item)">{{item}}</li>
+
+                    </ul>
+                </li>
+                <li><a href="#" ng-click="vote()"><span class="vote-icon"></span>vote</a></li>
+            </ul>
+
         </div>
     </div>
 
@@ -24,7 +38,9 @@
 <div class="row">
     <div class="col-xs-12">
         <div class="panel panel-default paginated">
-            <div class="panel-heading"><h2>Top Delegates</h2><div class="plain-text">{{countTop}} in Total</div>
+            <div class="panel-heading"><h2>Top Delegates</h2>
+
+                <div class="plain-text">{{countTop}} in Total</div>
             </div>
             <table ng-table="tableTopDelegates" border="0" width="100%" cellpadding="0" cellspacing="0">
                 <tr ng-repeat="delegate in $data"
@@ -41,14 +57,19 @@
                     <td data-title="'Crypti Address'"><a href="#">{{delegate.address}}</a></td>
                     <td data-title="'Uptime'">{{(delegate.productivity)}}%</td>
                     <td data-title="'Approval'">{{getApproval(delegate.vote) | number: 2}}%</td>
-                    <td data-title=""><div class="dropdown-more-group"> <span class="table-more-actions"><span class="dots"></span></span><ul class="list-group">
-                        <li class="list-group-item"><a htef="#">Send XCR</a></li>
-                        <li class="list-group-item bordered"><a htef="#">Send Message</a></li>
-                        <li class="list-group-item"><a htef="#">Copy Address</a></li>
-                        <li class="list-group-item bordered"><a htef="#">Copy Name</a></li>
-                        <li class="list-group-item"><a htef="#">Add as Favorite</a></li>
-                        <li class="list-group-item"><a htef="#">See Voters</a></li>
-                    </ul></div></td>
+                    <td data-title="">
+                        <div class="dropdown-more-group"><span class="table-more-actions"><span
+                                class="dots"></span></span>
+                            <ul class="list-group">
+                                <li class="list-group-item"><a htef="#">Send XCR</a></li>
+                                <li class="list-group-item bordered"><a htef="#">Send Message</a></li>
+                                <li class="list-group-item"><a htef="#">Copy Address</a></li>
+                                <li class="list-group-item bordered"><a htef="#">Copy Name</a></li>
+                                <li class="list-group-item"><a htef="#">Add as Favorite</a></li>
+                                <li class="list-group-item"><a htef="#">See Voters</a></li>
+                            </ul>
+                        </div>
+                    </td>
                 </tr>
                 <tr ng-show="!loadingTop && (!$data || $data.length == 0)">
                     <td colspan="7">
@@ -116,31 +137,4 @@
 
         </div>
     </div>
-</div>
-
-
-
-<div id="account">
-    <div class="clearfix">
-        <h1 class="heading">Forging > Delegates</h1>
-
-        <div class="vote-delegates"><h2>{{voteList.list.toServer.length
-            }}/{{countStandby + countTop}} Delegates
-            selected</h2>
-
-            <div class="vote-navigation" ng-class="{'active': showVotes}">
-                <button class="button green" id="delegates-list" ng-disabled="voteList.list.toServer.length==0"
-                        ng-click="voteList.toggle()">View Selection
-                </button>
-                <button class="button green" ng-click="vote()" ng-disabled="voteList.list.toServer.length==0">Vote
-                </button>
-                <div class="overlay" ng-click="voteList.toggle()">
-                </div>
-                <ul>
-                    <li ng-repeat="vote in voteList.list.toShow">{{vote}}</li>
-                </ul>
-            </div>
-        </div>
-    </div>
-
 </div>
