@@ -944,26 +944,52 @@ Browser.prototype.fill = function(query, values) {
         }
 
         if (! target) return false;
-        var fireEvent = function() {
+
+        function fireEvent(element) {
             var evt = document.createEvent("HTMLEvents");
             evt.initEvent("change", false, true);
-            target.dispatchEvent(evt);
-        };
+            element.dispatchEvent(evt);
+        }
 
-        if (target.tagName === 'INPUT') {
-            if (target.type === 'checkbox' || target.type === 'radio') {
-                if (value) {
-                    target.setAttribute('checked', 'checked');
+        function fillElement(element, value) {
+            if (element.tagName === 'INPUT') {
+                if (element.type === 'checkbox' || element.type === 'radio') {
+                    if (value) {
+                        element.setAttribute('checked', 'checked');
+                    } else {
+                        element.removeAttribute('checked');
+                    }
                 } else {
-                    target.removeAttribute('checked');
+                    element.value = value;
                 }
-            } else {
-                target.value = v;
+                fireEvent(element);
+            } else if (element.tagName === 'TEXTAREA') {
+                element.innerText = value;
+                fireEvent(element);
             }
-            fireEvent();
-        } else if (target.tagName === 'TEXTAREA') {
-            target.innerText = v;
-            fireEvent();
+        }
+
+        if (target.tagName === 'FORM') {
+            if (typeof v !== 'object') return false;
+
+            Object.keys(v).forEach(function(name){
+                var element = target.querySelector("[name='" + name + "']");
+                if (! element) return;
+
+                if (element.type === 'radio') {
+                    var elements = target.querySelectorAll("[name='" + name + "']");
+                    for (var i = 0, l = elements.length; i < l; i++) {
+                        if (elements[i].value === v[name].toString()) {
+                            element = elements[i];
+                        }
+                    }
+                }
+
+                fillElement(element, v[name]);
+            });
+
+        } else {
+            fillElement(target, v);
         }
 
         return true;
