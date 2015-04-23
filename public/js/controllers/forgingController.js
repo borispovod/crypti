@@ -11,7 +11,7 @@ angular.module('webApp').controller('forgingController', ['$scope', '$rootScope'
         * 1000
         * 100;
 
-         $scope.graphs = {
+        $scope.graphs = {
             totalForged: {
                 labels: ['Total Forged'],
                 values: [1],

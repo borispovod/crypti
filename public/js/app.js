@@ -4,10 +4,12 @@ require('angular-modal');
 require('angular-resource');
 require('browserify-angular-animate');
 require('../bower_components/angular-chart.js/dist/angular-chart.js');
+require('../bower_components/angular-socket-io/socket.js');
+
 require('../node_modules/ng-table/ng-table.js');
 
 
-webApp = angular.module('webApp', ['ui.router', 'btford.modal', 'ngTable', 'ngAnimate',  'chart.js']);
+webApp = angular.module('webApp', ['ui.router', 'btford.modal', 'ngTable', 'ngAnimate',  'chart.js', 'btford.socket-io']);
 
 webApp.config([
     "$locationProvider",

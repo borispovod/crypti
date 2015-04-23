@@ -171,12 +171,12 @@ Round.prototype.tick = function (block) {
 }
 
 Round.prototype.runOnFinish = function (task) {
-    private.tasks.push(task);
+	private.tasks.push(task);
 }
 
 //events
 Round.prototype.onBind = function (scope) {
-    modules = scope;
+	modules = scope;
 }
 
 //export

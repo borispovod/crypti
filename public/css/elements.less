@@ -12,8 +12,79 @@
     background-position: -36px -20px;
   }
 }
-.input-group{
-  &.app-addon{
+
+.input-group-addon {
+  &.search {
+    &:hover {
+      cursor: auto;
+    }
+    &:before {
+      width: 20px;
+      height: 20px;
+      content: '';
+      display: block;
+      background-image: url('@{images}/sprites/iconset.png');
+      background-repeat: no-repeat;
+      background-position: -36px -48px;
+    }
+  }
+  &.clear {
+    cursor: pointer;
+    &:before {
+      width: 20px;
+      height: 20px;
+      content: '';
+      display: block;
+      background-image: url('@{images}/sprites/iconset.png');
+      background-repeat: no-repeat;
+
+      background-position: -57px -48px;
+    }
+  }
+}
+
+.send-info-text {
+  position: relative;
+  display: block;
+  padding: 30px 84px;
+  font-size: @content-text;
+  color: @placeholder-text;
+  &:before {
+    position: absolute;
+    content: '';
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    background-image: url('@{images}/sprites/iconset.png');
+    background-position: -77px -48px;
+    left: 40px;
+    top: 34px;
+  }
+}
+
+.input-group {
+  &.send-xcr {
+    width: 100%;
+    padding: 30px 40px 50px;
+    .form-control {
+      border-top-width: 0px;
+      border-left-style: none;
+      border-right-style: none;
+      -webkit-box-shadow: none;
+      box-shadow: none;
+      -webkit-transition: none;
+      transition: none;
+      cursor: auto;
+      background-color: rgb(250, 250, 250);
+
+      &:focus {
+        border-bottom: 1px solid @border-grey;
+      }
+    }
+  }
+  &.app-addon {
+    padding: 0 20px;
+    background-color: @white;
     margin: -1px;
     border-radius: 0;
     box-shadow: 0px 0px 4px rgba(0, 0, 0, 0.2);
@@ -21,7 +92,6 @@
     -moz-box-shadow: 0px 0px 4px rgba(0, 0, 0, 0.2);
     border: 1px solid @border-grey;
     & .input-group-addon {
-
       background: #fff;
       border: none;
       box-shadow: none;
@@ -32,7 +102,7 @@
       &:-moz-placeholder, &::-webkit-input-placeholder, ::-moz-placeholder, &:-ms-input-placeholder {
         color: @border-grey;
         opacity: 1;
-        }
+      }
 
       box-shadow: none;
       padding: 26px 14px;

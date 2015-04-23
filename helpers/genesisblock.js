@@ -3,7 +3,7 @@ module.exports = {
         "version": 0,
         "totalAmount": 10000000000000000,
         "totalFee": 0,
-        "payloadHash": "8118904fd8df54167c104aa3a8e6416ba032e2486751036825d6dda28e0b0716",
+        "payloadHash": "2f610e2264967df42f048806348599b80fb880545d508eae3d21f2500bbb4ed2",
         "timestamp": 0,
         "numberOfTransactions": 103,
         "payloadLength": 20326,
@@ -27,15 +27,15 @@ module.exports = {
                 "fee": 0,
                 "timestamp": 0,
                 "recipientId": null,
-                "senderId": "14270066843430683515C",
-                "senderPublicKey": "708b04bd45cf1c2503c14c4465433de46f6461647b2e352c96d7bfa7ba32e124",
+                "senderId": "16567862767866377660C",
+                "senderPublicKey": "e36063e0d3be04332fcade1890e6e9bc289557faf99e695be91702e769f5278d",
                 "asset": {
                     "delegate": {
-                        "username": "genesisDelegate1"
+                        "username": "genesisDelegate51"
                     }
                 },
-                "signature": "b9434988d7932bc24e7807ea90af2c80b45f1e988103901c0ea44ac278c2e1910606e4a764f1dbb86c8e194f5e5e7c311177a3fda080bacec5d28e95cf0b5d0d",
-                "id": "14816299744002842293"
+                "signature": "dc04d8f85ff12d95071a94c1c033ad3d8e2c2b6191266d33303b9ee742630181f2571c703d7b34fc132ca8fee710735ff95d80feeeee4ab08b732ebf26ff250f",
+                "id": "3969231863660932910"
             },
             {
                 "type": 2,
@@ -827,15 +827,15 @@ module.exports = {
                 "fee": 0,
                 "timestamp": 0,
                 "recipientId": null,
-                "senderId": "16567862767866377660C",
-                "senderPublicKey": "e36063e0d3be04332fcade1890e6e9bc289557faf99e695be91702e769f5278d",
+                "senderId": "14270066843430683515C",
+                "senderPublicKey": "708b04bd45cf1c2503c14c4465433de46f6461647b2e352c96d7bfa7ba32e124",
                 "asset": {
                     "delegate": {
-                        "username": "genesisDelegate51"
+                        "username": "genesisDelegate1"
                     }
                 },
-                "signature": "dc04d8f85ff12d95071a94c1c033ad3d8e2c2b6191266d33303b9ee742630181f2571c703d7b34fc132ca8fee710735ff95d80feeeee4ab08b732ebf26ff250f",
-                "id": "3969231863660932910"
+                "signature": "b9434988d7932bc24e7807ea90af2c80b45f1e988103901c0ea44ac278c2e1910606e4a764f1dbb86c8e194f5e5e7c311177a3fda080bacec5d28e95cf0b5d0d",
+                "id": "14816299744002842293"
             },
             {
                 "type": 2,
@@ -1642,8 +1642,8 @@ module.exports = {
                 "amount": 0,
                 "fee": 0,
                 "timestamp": 0,
-                "recipientId": null,
-                "senderId": "",
+                "recipientId": "2334212999465599568C",
+                "senderId": "2334212999465599568C",
                 "senderPublicKey": "631b91fa537f74e23addccd30555fbc7729ea267c7e0517cbf1bfcc46354abc3",
                 "asset": {
                     "votes": [
@@ -1750,12 +1750,12 @@ module.exports = {
                         "+f143730cbb5c42a9a02f183f8ee7b4b2ade158cb179b12777714edf27b4fcf3e"
                     ]
                 },
-                "signature": "05bbdc275fe1965f6bf7dd84fee88d58c49fce11d99df707dd6e62ca253afae89f46252183f425774174fa58f91f4c302c6e1d6e59fe3153592bf41504ec120c",
-                "id": "6357979051638929474"
+                "signature": "edda5cd2a3ef26bacd70dd95603cf0d2d5740b75e2fc4953e8c2777f71e5abf16c28206cb9969c8dfae2e85b1c176b006ebd147bcc236eac714b93c03f32d803",
+                "id": "8542535171626863279"
             }
         ],
         "height": 1,
-        "blockSignature": "950a38a07edd7559c20f452fb6595efe2e5ec919f6ecd88bfb3b514f7a7f959c8b5f3f038223d0e836d5033cc5039bf74b963635e9a899e7d268afba911f570d",
-        "id": "15003175896497424894"
+        "blockSignature": "0bc4696e5ace3b2c5f6aa0a526c96ae6ca6d7747833142b4c2f8dbba0fae65149adb5e6849579bc2197cc8b0f3d86b8127be43cf55927ec08b4d71994b681800",
+        "id": "5157408957444690862"
     }
 }

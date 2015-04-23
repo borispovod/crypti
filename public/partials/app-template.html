@@ -69,15 +69,15 @@
                 <button class="btn send-button" ng-click="sendCrypti()">
                     <span>SEND</span>
                 </button>
+                <div class="mini-chart" ng-show="sync">
+                    <div class="mini-chart-label">{{sync | number:0}}%</div>
+                    <canvas id="total-forged" class="chart chart-doughnut" data="loading.values"
+                            labels="loading.labels" options="loading.options"
+                            colours="loading.colours"></canvas></div>
             </div>
         </div>
         <div class="container-fluid" ui-view></div>
-        <div ng-show="sync == true" class="syncLabel" title="Synchronization running...">
-            <p ng-show="heightToSync > 0">Synchronization: {{ height }}/{{ heightToSync }}, wait
-                please...</p>
 
-            <p ng-show="heightToSync <= 0">Synchronization: {{ height }}, wait please...</p>
-        </div>
     </div>
 </div>
 <!-- /#page-content-wrapper -->
