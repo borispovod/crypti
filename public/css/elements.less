@@ -48,7 +48,7 @@
   display: block;
   padding: 30px 84px;
   font-size: @content-text;
-  color: @placeholder-text;
+  color: @grey-text;
   &:before {
     position: absolute;
     content: '';
@@ -107,6 +107,23 @@
       box-shadow: none;
       padding: 26px 14px;
       border: none;
+    }
+  }
+}
+
+.nav.modal-buttons {
+  padding-right: 20px;
+  & > li {
+    padding: 20px 0;
+    display: inline-block;
+    & > a {
+      font-size: @content-text;
+      text-transform: uppercase;
+      color: @black;
+      &:hover, &:active, &:focus {
+        background-color: @grey;
+        color: @dark-meant;
+      }
     }
   }
 }
