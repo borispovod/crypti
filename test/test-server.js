@@ -4,7 +4,7 @@ var path = require('path');
 var ejs = require('ejs');
 var mime = require('mime');
 
-module.exports = function(dir) {
+module.exports = function(dir, routes) {
     var app = express();
 
     app.use(function(req, res, next){
@@ -50,6 +50,22 @@ module.exports = function(dir) {
             res.end(content);
         });
     });
+
+    if (routes) {
+        Object.keys(routes).forEach(function(key){
+            var parts = key.split(' ');
+            var method = 'get';
+            var route;
+
+            if (parts.length > 1) {
+                method = parts.shift().toLowerCase();
+            }
+
+            route = parts.join(' ');
+
+            app[method](route, routes[key]);
+        });
+    }
 
     return app;
 };
