@@ -119,9 +119,9 @@ Browser.prototype._initializeTab = function(tabId, page) {
         tab.loaded = true;
         tab.emit('onLoadFinished', status);
         page.evaluate(function(scope){
-            window.PHSESSION = {};
+            nodejs = {};
             for(var name in scope) {
-                window.PHSESSION[name] = scope[name];
+                nodejs[name] = scope[name];
             }
             return scope;
         }, function(scope){
@@ -407,14 +407,14 @@ Browser.prototype.closeTab = function(tabId) {
     tab.isClosing = true;
 
 
-    this.addAction(function(){
+    this.addAction(function(self, value){
         return new Promise(function(resolve){
             tab.scope = {};
             tab.page.close();
 
             delete self._tabs[tabId];
 
-            resolve();
+            resolve(value);
         });
     });
 
@@ -422,6 +422,20 @@ Browser.prototype.closeTab = function(tabId) {
         this.switchTab(nextTabId);
     }
 
+    return this;
+};
+
+/**
+ * Close all opened tabs
+ * @returns {Browser}
+ */
+Browser.prototype.closeAll = function() {
+    var self = this;
+    Object.keys(this._tabs).forEach(function(id){
+        if (self._tabs[id].isClosing) return;
+
+        self.closeTab(id);
+    });
     return this;
 };
 
@@ -448,11 +462,44 @@ Browser.prototype.switchTab = function(tabId) {
 
 /**
  * Repeat actions till get the True.
- * @param {number} repeat Max repeat count
- * @param {function} callback
+ * @param {number|function} repeat Max repeat count
+ * @param {function=} callback
+ * @returns {Browser}
+ */
+Browser.prototype.till = function(repeat, callback) {
+    if (arguments.length === 1) {
+        callback = repeat;
+        repeat = Infinity;
+    }
+
+    this
+        .actions(callback)
+        .exec(function(value, done){
+            if (value) {
+                if (--repeat) {
+                    this.till(repeat, callback);
+                } else {
+                    done(null, false);
+                }
+            } else {
+                done(null, true);
+            }
+        });
+    return this;
+};
+
+/**
+ * Repeat actions till get the True.
+ * @param {number|function} repeat Max repeat count
+ * @param {function=} callback
  * @returns {Browser}
  */
 Browser.prototype.until = function(repeat, callback) {
+    if (arguments.length === 1) {
+        callback = repeat;
+        repeat = Infinity;
+    }
+
     this
         .actions(callback)
         .exec(function(value, done){
@@ -472,19 +519,56 @@ Browser.prototype.until = function(repeat, callback) {
 /**
  * Wait for event or timeout.
  * @param {string|Number=} await Timeout delay or event name. Optional. Default is `onLoadFinished`
+ * @param {string} period Time period seconds, minutes, hours. Used if the first argument is number
  * @returns {Browser}
+ * @example
+ * borwser
+ *  .goto('http://google.com')
+ *  .wait() // wait loading
+ *
+ *  .wait(10, 'm')
  */
-Browser.prototype.wait = function(await) {
+Browser.prototype.wait = function(await, period) {
     var tab = this.currentTab();
+    if (typeof await === 'number' && period) {
+        switch (period.toLowerCase()) {
+            case 's':
+            case 'sec':
+            case 'second':
+            case 'seconds':
+                await *= 1000;
+                break;
+            case 'm':
+            case 'min':
+            case 'mins':
+            case 'minute':
+            case 'minutes':
+                await *= 60 * 1000;
+                break;
+            case 'h':
+            case 'hour':
+            case 'hours':
+                await *= 36e5;
+                break;
+            case 'd':
+            case 'day':
+            case 'days':
+                await *= 24 * 36e5;
+                break;
+            default:
+                throw new Error('Unknown time period "' + period + '".');
+        }
+    }
     this.addAction(function(){
         return new Promise(function(resolve, reject){
             if (typeof await === "number") {
                 return setTimeout(resolve, await);
+            } else {
+                tab.once(await || 'onLoadFinished', resolve);
+                // Reject after 20 seconds
+                setTimeout(reject.bind(null, new Error('Timed out')), 20000);
             }
 
-            tab.once(await || 'onLoadFinished', resolve);
-            // Reject after 20 seconds
-            setTimeout(reject, 20000);
         });
     });
     return this;
@@ -502,7 +586,7 @@ Browser.prototype.exec = function(callback){
         return new Promise(function(resolve, reject){
             var B = Object.create(self);
 
-            B._currentTabId = tab.id;
+            B._currentTabId = tab && tab.id;
             B._actions = [];
 
             var result = callback.call(B, value, function(err, value){
@@ -608,13 +692,20 @@ Browser.prototype.evalAsync = function(code) {
  * @returns {Browser}
  */
 Browser.prototype.goto = function(url) {
+    if (! this._currentTabId) {
+        this.openTab();
+    }
+
     var tab = this.currentTab();
+
+    if (typeof url === "object") {
+        if (! url.hasOwnProperty('protocol')) url.protocol = 'http';
+        url = Url.format(url);
+    }
+
     this.addAction(function(self){
         tab.loaded = false;
         return new Promise(function(resolve, reject){
-            if (typeof url === "object") {
-                url = Url.format(url);
-            }
             tab.page.open(url, function(status){
                 if (status === "failed") return reject("Page not loaded");
 
@@ -628,6 +719,8 @@ Browser.prototype.goto = function(url) {
     });
     return this;
 };
+
+
 
 /**
  * Reload current tab action.
@@ -644,24 +737,66 @@ Browser.prototype.reload = function() {
     return this;
 };
 
+/**
+ * Go to previous page in history
+ * @param {Number=} n Steps in history to skip
+ * @returns {Browser}
+ */
+Browser.prototype.goBack = function(n) {
+    var tab = this.currentTab();
+    n = n || 1;
+    for (var i = 0; i < n; i++) {
+        this.addAction(function(self, value){
+            tab.page.goBack();
+
+            return value;
+        }).wait();
+    }
+    return this;
+};
 
 /**
- * Define internal variable action. This value will be passed to each tab page. All values accessible from window.PHSESSION.
+ * Go to next page in history
+ * @param {Number=} n Steps in history to skip
+ * @returns {Browser}
+ */
+Browser.prototype.goForward = function(n) {
+    var tab = this.currentTab();
+    n = n || 1;
+    for (var i = 0; i < n; i++) {
+        this.addAction(function(self, value){
+            tab.page.goForward();
+
+            return value;
+        }).wait();
+    }
+    return this;
+};
+
+
+/**
+ * Define internal variable action. This value will be passed to each tab page. All values accessible from nodejs.
  * @param {string} name Internal variable name.
  * @param {*|!function} value Any value to pass into the browser scope.
  * @returns {Browser}
  */
-Browser.prototype.set = function(name, value) {
+Browser.prototype.setGlobal = function(name, value) {
     var tab = this.currentTab();
 
     this.exec(function(result, done){
         tab.scope[name] = value;
         done();
     }).eval(name, value, function(name, value){
-        if (! window.PHSESSION) window.PHSESSION = {};
-        window.PHSESSION[name] = value;
+        if (! window.nodejs) Object.defineProperty(window, 'nodejs', {value:{}});
+        
+        nodejs[name] = value;
     });
     return this;
+};
+
+Browser.prototype.set = function(name, value) {
+    console.error((new Error('Deprecated')).stack);
+    return this.setGlobal(name, value);
 };
 
 /**
@@ -669,11 +804,16 @@ Browser.prototype.set = function(name, value) {
  * @param {string} name Variable name.
  * @returns {Browser}
  */
-Browser.prototype.get = function(name) {
+Browser.prototype.getGlobal = function(name) {
     this.eval(name, function(name){
-        return window.PHSESSION[name];
+        return nodejs[name];
     });
     return this;
+};
+
+Browser.prototype.get = function(name, value) {
+    console.error((new Error('Deprecated')).stack);
+    return this.getGlobal(name, value);
 };
 
 /**
@@ -772,7 +912,7 @@ Browser.prototype.select = function(query) {
         if (! target) return false;
 
         target.focus();
-        PHSESSION.$target = target;
+        nodejs.$target = target;
         return true;
     });
     return this;
@@ -800,7 +940,7 @@ Browser.prototype.fill = function(query, values) {
         if (q) {
             target = document.querySelector(q);
         } else {
-            target = PHSESSION.$target;
+            target = nodejs.$target;
         }
 
         if (! target) return false;
@@ -840,7 +980,7 @@ Browser.prototype.fill = function(query, values) {
 Browser.prototype.click = function(query) {
     this.eval(query, function(query){
 
-        var target = query ? document.querySelector(query) : PHSESSION.$target;
+        var target = query ? document.querySelector(query) : nodejs.$target;
 
         if (! target) return false;
 
@@ -860,9 +1000,12 @@ Browser.prototype.click = function(query) {
  */
 Browser.prototype.submit = function(query) {
     this.eval(query, function(query){
-        var form = query ? document.querySelector(query) : PHSESSION.$target;
+        var form = query ? document.querySelector(query) : nodejs.$target;
+
+        if (! form) return false;
 
         form.submit();
+        return true;
     });
     return this;
 };
@@ -874,7 +1017,7 @@ Browser.prototype.submit = function(query) {
  */
 Browser.prototype.text = function(query) {
     this.eval(query, function(query){
-        var target = query ? document.querySelector(query) : PHSESSION.$target;
+        var target = query ? document.querySelector(query) : nodejs.$target;
 
         if (! target) return null;
 
@@ -891,7 +1034,7 @@ Browser.prototype.text = function(query) {
  */
 Browser.prototype.html = function(query) {
     this.eval(query, function(query){
-        var target = query ? document.querySelector(query) : PHSESSION.$target;
+        var target = query ? document.querySelector(query) : nodejs.$target;
 
         if (! target) return null;
 
