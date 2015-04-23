@@ -8,6 +8,7 @@ npm-debug.log
 .idea
 .ed25519-node
 blockchain.*
+*.zip
 addresses.txt
 public/bower_components/
 public/static/
@@ -18,4 +19,11 @@ __MACOSX/
 public/webkitbuilds/
 public/build/
 bfg.jar
-*.zip
+dapps/
+.vagrant
+Vagrantfile
+.node-gyp
+.npm
+.ssh
+.cache
+.bash_history
