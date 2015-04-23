@@ -308,6 +308,10 @@ function Vote() {
             transactionId: trs.id
         }, cb);
     }
+
+    this.ready = function (trs) {
+        return true;
+    }
 }
 
 function Username() {
@@ -328,7 +332,7 @@ function Username() {
 
     this.verify = function (trs, sender, cb) {
         if (trs.recipientId) {
-            return cb("Invalid recipient: " + trs.id);
+            return cb("Invalid recipientId: " + trs.id);
         }
 
         if (trs.amount != 0) {
@@ -393,13 +397,19 @@ function Username() {
     }
 
     this.objectNormalize = function (trs) {
-        trs.asset.delegate = RequestSanitizer.validate(trs.asset.username, {
+        var report = RequestSanitizer.validate(trs.asset.username, {
             object: true,
             properties: {
                 alias: "string!",
                 publicKey: "hex!"
             }
-        }).value;
+        });
+
+        if (!report.isValid) {
+            throw Error(report.issues);
+        }
+
+        trs.asset.delegate = report.value;
 
         return trs;
     }
@@ -422,6 +432,10 @@ function Username() {
             username: trs.asset.username.alias,
             transactionId: trs.id
         }, cb);
+    }
+
+    this.ready = function (trs) {
+        return true;
     }
 }
 
@@ -531,7 +545,7 @@ function attachApi() {
     });
 
     router.post("/generatePublicKey", function (req, res, next) {
-        req.sanitize("query", {
+        req.sanitize("body", {
             secret: "string!"
         }, function (err, report, query) {
             if (err) return next(err);
@@ -722,8 +736,8 @@ function attachApi() {
         res.status(500).send({success: false, error: 'api not found'});
     });
 
-    library.app.use('/api/accounts', router);
-    library.app.use(function (err, req, res, next) {
+    library.network.app.use('/api/accounts', router);
+    library.network.app.use(function (err, req, res, next) {
         if (!err) return next();
         library.logger.error(req.url, err.toString());
         res.status(500).send({success: false, error: err.toString()});
@@ -750,7 +764,13 @@ Accounts.prototype.getAccount = function (id) {
 
 Accounts.prototype.getAccountByPublicKey = function (publicKey) {
     var address = self.getAddressByPublicKey(publicKey);
-    return self.getAccount(address);
+    var account = self.getAccount(address);
+
+    if (account && !account.publicKey) {
+        account.publicKey = publicKey;
+    }
+
+    return account;
 }
 
 Accounts.prototype.getAddressByPublicKey = function (publicKey) {
