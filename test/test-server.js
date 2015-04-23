@@ -3,9 +3,16 @@ var fs = require('fs');
 var path = require('path');
 var ejs = require('ejs');
 var mime = require('mime');
+var bodyParser = require('body-parser');
 
 module.exports = function(dir, routes) {
     var app = express();
+
+    app.use(bodyParser.urlencoded({
+        extended: true
+    }));
+
+    app.use(bodyParser.json());
 
     app.use(function(req, res, next){
         var file = req.file = {
