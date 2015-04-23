@@ -52,6 +52,7 @@ program.command('rm <name>')
     .description('Remove preset')
     .option('-b, --blockchain [n...]', 'Remove blockchains only')
     .option('-e,--except <value>', 'Except blockchains')
+    .option('-f,--force','Remove without asking questions')
     .action(function(name, cmd){
         var config = getConfig(program.config);
         var rimraf = require('rimraf');
@@ -103,7 +104,7 @@ program.command('rm <name>')
             }
         }
 
-        countDown('Remove after %d second(s).', DEBUG ? 1:3, remove);
+        cmd.force ? remove () : countDown('Remove after %d second(s).', (DEBUG ? 1:3), remove);
     });
 
 
@@ -234,31 +235,40 @@ function generateSchema(preset) {
     var delegates;
     var accounts;
     var account;
-    var i;
-    if (typeof preset.delegates === 'number') {
-        delegates = [];
+    var balance;
+
+    balance = preset.totalBalance;
+    if (typeof balance === 'string') {
+        balance = toNumber(balance);
+    }
+
+    delegates = schema.delegates = [];
+
+    if (preset.delegates) {
+        var i;
         for (i = 0; i < preset.delegates; i++) {
             account = generateAccount('delegate-' + i);
             account.username = 'genesisDelegate' + i;
             delegates.push(account);
         }
+    }
 
-    } else {
-        delegates = preset.delegates.map(function(account, i){
+    if (preset.customDelegates){
+        preset.customDelegates.forEach(function(account, i){
             var secret = account.secret || ('delegate-' + i);
             var secondSecret = account.secondSecret;
             var account = generateAccount(account.secret, secondSecret);
 
             account.username = account.username || secret;
-            return account;
+            delegates.push(account);
         });
     }
 
-    schema.delegates = delegates;
 
-    if (typeof preset.accounts === 'number') {
-        accounts = [];
-        for (i = 0; i < preset.delegates; i++) {
+    accounts = schema.accounts = [];
+
+    if (preset.accounts) {
+        for (i = 0; i < preset.accounts; i++) {
             account = generateAccount('peer-' + i);
             account.username = 'usualPeer' + i;
             //account.balance = Math.round(preset.balance / preset.accounts);
@@ -266,20 +276,21 @@ function generateSchema(preset) {
             accounts.push(account);
         }
 
-    } else {
-        accounts = preset.accounts.map(function(delegate, i){
-            var secret = delegate.secret || ('peer-' + i);
-            var secondSecret = delegate.secondSecret;
-            var account = generateAccount(delegate.secret, secondSecret);
+    }
 
-            account.balance = preset.balance / preset.accounts.length;
-            account.username = delegate.username || secret;
+    if (preset.customAccounts){
+        preset.customAccounts.forEach(function(peer, i){
+            var secret = peer.secret || ('peer-' + i);
+            var secondSecret = peer.secondSecret;
+            var account = generateAccount(peer.secret, secondSecret);
 
-            return account;
+            account.balance = peer.balance ? toNumber(peer.balance) : Math.round(balance / preset.accounts.length);
+            account.username = peer.username || secret;
+
+            schema.accounts.push(account);
         });
     }
 
-    schema.accounts = accounts;
 
     schema.votes = {
         publicKeys : delegates.map(function(item){
@@ -293,6 +304,10 @@ function generateSchema(preset) {
     };
 
     return schema;
+}
+
+function toNumber(value) {
+    return typeof value === "number" ? value : parseInt(value.replace(/\s|_/g, ''));
 }
 
 function getRange(value) {

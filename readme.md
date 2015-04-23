@@ -83,6 +83,11 @@ require('./ui/login.js');
 
 Note to use semantic names to avoid mess of files. Try to name it similarly to testing module or functionality name.
 
+## Test coverage
+
+Coverage library for Crypti is `blanket.js`. To generate coverage report use npm command: `npm run cov` which will
+generate coverage report in local tmp directory `tmp/coverage.html`.
+
 ### Start ###
 Run:
 ```

@@ -17,7 +17,13 @@ var presetDir = path.join(tmpDir, preset);
 var port = program.port || 7040;
 var instances = program.instances || 2;
 var delegates = program.delegates;
+var customArgs = [];
 
+var argsPos = process.argv.indexOf('--');
+if (argsPos > -1) {
+    customArgs = process.argv.splice(argsPos + 1, process.argv.length - argsPos + 1);
+    process.argv.pop();
+}
 
 var configuration = produce(instances, function(i){
     var peers = [];
@@ -63,6 +69,8 @@ async.map(configuration, function(instance, done){
             args.push('--' + key + '=' + value);
         }
     });
+
+    args = args.concat(customArgs);
 
     var child = spawn(process.env.NODE || process.execPath, args, {
         env: {
