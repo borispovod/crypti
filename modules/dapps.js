@@ -274,6 +274,8 @@ private.launchDApp = function (dApp, cb) {
 
 	private.sandboxes[id] = sandbox;
 
+	sandbox.postMessage("Hello, world!");
+
 	library.logger.info("DApp " + id + " launched");
 
 	library.logger.info("Connect to communicate server of DApp " + id);
@@ -301,6 +303,8 @@ private.launchDApp = function (dApp, cb) {
 	}
 
 	library.logger.info("Connected to api");
+
+
 
 	setImmediate(cb);
 }
