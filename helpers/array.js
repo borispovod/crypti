@@ -13,9 +13,9 @@
  * @public
  */
 function hash2array(hash) {
-    var array = Object.keys(hash).map(function (v) {
-        return hash[v];
-    });
+	var array = Object.keys(hash).map(function (v) {
+		return hash[v];
+	});
 
     return array || [];
 }
