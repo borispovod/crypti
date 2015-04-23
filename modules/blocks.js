@@ -829,7 +829,7 @@ Blocks.prototype.loadBlocksFromPeer = function (peer, lastCommonBlockId, cb) {
 					blocks = dblite.parseCSV(blocks);
 				}
 
-				blocks = blocks.map(dblite.row2object, private.blocksDataFields);
+				blocks = blocks.map(dblite.row2object, dblite.parseFields(private.blocksDataFields));
 				blocks = private.readDbRows(blocks);
 
 				// not working of data.body is empty....
