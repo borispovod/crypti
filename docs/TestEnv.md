@@ -26,8 +26,8 @@ node test/batch.js <preset> -n <instances> -p <port> -l <level> -o <instance> --
 
 If delegates are specified they will use delegates configuration from preset directory:
 ```
-bash test/batch.js -n 2 -d 2 # Network of two delegates
-bash test/batch.js -n 3 -d 2 # Network of two delegates and one usual peer
+bash test/batch.js testnet -n 2 -d 2 # Network of two delegates
+bash test/batch.js testnet  -n 3 -d 2 # Network of two delegates and one usual peer
 ```
 
 If `-n` is 3 and `-d` is 2 then there will run 3 process. The first and the second processes will be delegates,
