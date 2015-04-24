@@ -105,7 +105,7 @@ angular.module('webApp').controller('forgingController', ['$scope', '$rootScope'
                 $scope.delegate = response;
                 userService.setDelegate($scope.delegate);
                 var totalDelegates = 108;
-                var rank = response ? (response.rate || 45) : 45;
+                var rank = response.rate;
 
                 $scope.graphs.rank.values = [totalDelegates - rank, totalDelegates - 1 - (totalDelegates - rank)];
                 if (($scope.rank == 0 && rank != 0) || ($scope.rank > 50 && rank <= 50) || ($scope.rank > 101 && rank <= 101) || ($scope.rank <= 50 && rank > 50)) {
@@ -114,7 +114,7 @@ angular.module('webApp').controller('forgingController', ['$scope', '$rootScope'
                 $scope.rank = rank;
 
 
-                var uptime = parseFloat(response.productivity) || 10;
+                var uptime = parseFloat(response.productivity);
 
                 $scope.graphs.uptime.values = [uptime, 100 - uptime];
                 if (($scope.uptime == 0 && uptime > 0) || ($scope.uptime >= 95 && uptime < 95) || ($scope.uptime >= 50 && uptime < 50)) {
@@ -123,7 +123,7 @@ angular.module('webApp').controller('forgingController', ['$scope', '$rootScope'
                 $scope.uptime = response.productivity;
 
 
-                var approval = $scope.getApproval(response.vote) || 1000;
+                var approval = $scope.getApproval(response.vote);
 
                 $scope.graphs.approval.values = [approval, $scope.getApproval($scope.allVotes) - approval];
                 if (($scope.approval == 0 && approval > 0) || ($scope.approval >= 95 && approval < 95) || ($scope.approval >= 50 && approval < 50)) {
@@ -139,7 +139,6 @@ angular.module('webApp').controller('forgingController', ['$scope', '$rootScope'
                 .then(function (resp) {
                     $scope.forging = resp.data.enabled;
                     userService.setForging($scope.forging);
-                    $scope.view.forgingState = 'Enabled';
                 });
         }
 

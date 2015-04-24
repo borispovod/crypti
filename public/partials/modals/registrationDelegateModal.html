@@ -41,8 +41,9 @@
             <div class="modal-body">
 
                 <div class="input-group send-xcr">
-                    <input type="password" class="form-control" placeholder="Your Passphrase" ng-model="secretPhrase"
+                    <input type="password" class="form-control" placeholder="Your Passphrase" ng-model="secretPhrase" ng-class="{'error':error}"
                            ng-trim="false">
+                    <span class="error-text" ng-show="error">{{error}}</span>
                 </div>
             </div>
 

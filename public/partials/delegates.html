@@ -2,7 +2,7 @@
     <ul class="nav nav-underline pull-left">
         <li role="presentation" ui-sref-active="active"><a href="#" ui-sref="main.forging">Forging</a></li>
         <li role="presentation" ui-sref-active="active"><a href="#" ui-sref="main.delegates">Delegates</a></li>
-        <li role="presentation" ui-sref-active="active"><a href="#" ui-sref="main.votes">My votes (8)</a></li>
+        <li role="presentation" ui-sref-active="active"><a href="#" ui-sref="main.votes">My votes</a></li>
     </ul>
 </div>
 
@@ -14,16 +14,16 @@
     <div class="col-xs-12">
         <div class="info-panel">
             <span class="plain-text pull-left">
-             {{voteList.list.toServer.length}} out of {{countStandby + countTop}} Delegates selected
+             {{voteList.length}} out of {{countStandby + countTop}} Delegates selected
             </span>
             <ul class="nav nav-info pull-right">
                 <li class="list-delegate">
                     <a href="#"><span class="selection-icon"></span>View selection
 
                     </a>
-                    <ul class="list-group" ng-class="{'empty': voteList.list.toServer.length < 1}">
-                        <li class="list-group-item" ng-repeat="item in voteList.list.toShow"
-                            ng-click="voteList.vote(null, item)">{{item}}</li>
+                    <ul class="list-group" ng-class="{'empty': voteList.length < 1}">
+                        <li class="list-group-item" ng-repeat="(key,item) in voteList.list"
+                            ng-click="voteList.vote(key, item)">{{item}}</li>
 
                     </ul>
                 </li>
