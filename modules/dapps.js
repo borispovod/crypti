@@ -191,6 +191,7 @@ private.apiHandler = function (message, callback) {
 
 	switch (message.api) {
 		case 'fs':
+			console.log("here");
 			if (typeof args[0] === 'string' && args[0].indexOf('/') === 0) {
 				args[0] = '.' + args[0];
 			}
@@ -271,10 +272,17 @@ private.launchDApp = function (dApp, cb) {
 	var env = extend({}, env);
 
 	sandbox.run(path.join("dapps", id, "index.js"), {env: env, instance_id : id});
+	setTimeout(function () {
+		console.log("sent...");
+		sandbox.postMessage({
+			api: "routes",
+			method: "test"
+		});
+	}, 10000);
 
 	private.sandboxes[id] = sandbox;
 
-	sandbox.postMessage("Hello, world!");
+	//sandbox.postMessage("Hello, world!");
 
 	library.logger.info("DApp " + id + " launched");
 
