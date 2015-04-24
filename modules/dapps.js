@@ -10,7 +10,7 @@ var constants = require("../helpers/constants.js"),
 	ed = require('ed25519'),
 	Router = require('../helpers/router.js'),
 	npm = require('npm'),
-	Sandbox = require('codius-node-sandbox'),
+	Sandbox = require('crypti-node-sandbox'),
 	extend = require('extend'),
 	rmdir = require('rimraf').sync;
 
@@ -190,8 +190,19 @@ private.apiHandler = function (message, callback) {
 	args.push(callback);
 
 	switch (message.api) {
+		case 'message':
+			var msg = null;
+			try {
+				msg = JSON.parse(message.data[0]);
+			} catch (e) {
+				callback('incorrect json');
+			}
+			if (method == 'output') {
+				console.log('crypti recieved', msg);
+			}
+			callback();
+			break;
 		case 'fs':
-			console.log("here");
 			if (typeof args[0] === 'string' && args[0].indexOf('/') === 0) {
 				args[0] = '.' + args[0];
 			}
@@ -271,14 +282,11 @@ private.launchDApp = function (dApp, cb) {
 
 	var env = extend({}, env);
 
-	sandbox.run(path.join("dapps", id, "index.js"), {env: env, instance_id : id});
+	sandbox.run(path.join("dapps", id, "index.js"), {env: env, instance_id: id});
 	setTimeout(function () {
-		console.log("sent...");
-		sandbox.postMessage({
-			api: "routes",
-			method: "test"
-		});
-	}, 10000);
+		console.log("crypti sending...");
+		sandbox.postMessage({"test": 1});
+	}, 2000);
 
 	private.sandboxes[id] = sandbox;
 
@@ -311,7 +319,6 @@ private.launchDApp = function (dApp, cb) {
 	}
 
 	library.logger.info("Connected to api");
-
 
 
 	setImmediate(cb);
@@ -362,8 +369,8 @@ function DApp() {
 		}
 
 		/*if (!trs.asset.dapp.git || !(/^git:\/\/git\@github.com\:.+.git$/.test(trs.asset.dapp.git))) {
-			return cb("Incorrect dapp git address");
-		}*/
+		 return cb("Incorrect dapp git address");
+		 }*/
 
 		if (trs.amount != 0) {
 			return cb("Invalid transaction amount");
