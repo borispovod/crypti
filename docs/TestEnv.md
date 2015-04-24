@@ -16,13 +16,13 @@ Example:
 node test/batch.js <preset> -n <instances> -p <port> -l <level> -o <instance> -- [args]
 ```
 
-`preset` is an existing environment name stored in `./tmp` folder usually.
-`-n <processes>` is a number of processes to run. Default is 2.
-`-d <delegates>` is a number of instances which should became delegates.
-`-p <port>` is the first instance port. Default is 7040.
-`-l <level>` specify instance log level value.
-`-o <instance>` instance to capture output and print to stdout or stderr.
-`-x <peers...>` peers list which will be added to process options.
+* `preset` is an existing environment name stored in `./tmp` folder usually.
+* `-n <processes>` is a number of processes to run. Default is 2.
+* `-d <delegates>` is a number of instances which should became delegates.
+* `-p <port>` is the first instance port. Default is 7040.
+* `-l <level>` specify instance log level value.
+* `-o <instance>` instance to capture output and print to stdout or stderr.
+* `-x <peers...>` peers list which will be added to process options.
 
 If delegates are specified they will use delegates configuration from preset directory:
 ```
