@@ -19,7 +19,7 @@ angular.module('webApp').controller('accountController', ['$scope', '$rootScope'
         * 1000
         * 100;
 
-         $scope.transactionInfo = function (block) {
+        $scope.transactionInfo = function (block) {
             $scope.modal = transactionInfo.activate({block: block});
         }
 
@@ -67,19 +67,14 @@ angular.module('webApp').controller('accountController', ['$scope', '$rootScope'
                 });
         }
 
-        $scope.delegateInterval = $interval(function () {
+        $scope.$on('socket:transactions', function (ev, data) {
             delegateService.getDelegate($scope.publicKey, function (response) {
                 $scope.delegate = response;
             });
-        }, 1000 * 10);
-
-        $scope.balanceInterval = $interval(function () {
             $scope.getAccount();
-        }, 1000 * 10);
-
-        $scope.transactionsInterval = $interval(function () {
             $scope.getTransactions();
-        }, 1000 * 10);
+        });
+
 
         $scope.$on('$destroy', function () {
             $interval.cancel($scope.balanceInterval);
