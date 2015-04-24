@@ -105,7 +105,7 @@ angular.module('webApp').controller('forgingController', ['$scope', '$rootScope'
                 $scope.delegate = response;
                 userService.setDelegate($scope.delegate);
                 var totalDelegates = 108;
-                var rank = response.rate || 45;
+                var rank = response ? (response.rate || 45) : 45;
 
                 $scope.graphs.rank.values = [totalDelegates - rank, totalDelegates - 1 - (totalDelegates - rank)];
                 if (($scope.rank == 0 && rank != 0) || ($scope.rank > 50 && rank <= 50) || ($scope.rank > 101 && rank <= 101) || ($scope.rank <= 50 && rank > 50)) {
@@ -118,14 +118,14 @@ angular.module('webApp').controller('forgingController', ['$scope', '$rootScope'
 
                 $scope.graphs.uptime.values = [uptime, 100 - uptime];
                 if (($scope.uptime == 0 && uptime > 0) || ($scope.uptime >= 95 && uptime < 95) || ($scope.uptime >= 50 && uptime < 50)) {
-                    $scope.graphs.uptime.colours = [uptime >= 95 ? '#7cb342' :(uptime >= 50 ? '#ffa000' : '#d32f2f'), '#f5f5f5'];
+                    $scope.graphs.uptime.colours = [uptime >= 95 ? '#7cb342' : (uptime >= 50 ? '#ffa000' : '#d32f2f'), '#f5f5f5'];
                 }
                 $scope.uptime = response.productivity;
 
 
                 var approval = $scope.getApproval(response.vote) || 1000;
 
-                $scope.graphs.approval.values = [approval, $scope.getApproval($scope.allVotes)-approval];
+                $scope.graphs.approval.values = [approval, $scope.getApproval($scope.allVotes) - approval];
                 if (($scope.approval == 0 && approval > 0) || ($scope.approval >= 95 && approval < 95) || ($scope.approval >= 50 && approval < 50)) {
                     $scope.graphs.approval.colours = [approval >= 95 ? '#7cb342' : (approval >= 50 ? '#ffa000' : '#d32f2f'), '#f5f5f5'];
                 }

@@ -47,6 +47,7 @@
   position: relative;
   display: block;
   padding: 30px 84px;
+  line-height: @content-text + 2;
   font-size: @content-text;
   color: @grey-text;
   &:before {
@@ -61,12 +62,32 @@
     top: 34px;
   }
 }
+.error-text {
+  font-size: @small-text;
+  color: @error-red;
+  display: block;
+  padding-top: 40px;
+  position: relative;
+  &:after {
+    content: '';
+    height: 15px;
+    width: 17px;
+    display: block;
+    position: absolute;
+    background-image: url('@{images}/sprites/iconset.png');
+    background-position: 0 -69px;
+    top: 40px;
+    right: 0;
+
+  }
+}
 
 .input-group {
   &.send-xcr {
     width: 100%;
     padding: 30px 40px 50px;
     .form-control {
+      border-radius: 0;
       border-top-width: 0px;
       border-left-style: none;
       border-right-style: none;
@@ -76,9 +97,14 @@
       transition: none;
       cursor: auto;
       background-color: rgb(250, 250, 250);
-
+      &.error {
+        border-bottom: 2px solid @error-red;
+      }
       &:focus {
         border-bottom: 1px solid @border-grey;
+        &.error {
+          border-bottom: 2px solid @error-red;
+        }
       }
     }
   }

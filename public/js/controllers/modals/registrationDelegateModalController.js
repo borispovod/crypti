@@ -5,7 +5,8 @@ angular.module('webApp').controller('registrationDelegateModalController', ["$sc
         $scope.error = null;
         $scope.delegate = userService.delegate;
         $scope.action = false;
-		$scope.isSecondPassphrase = userService.secondPassphrase;
+        $scope.isSecondPassphrase = userService.secondPassphrase;
+        $scope.passmode = false;
 
         $scope.close = function () {
             if ($scope.destroy) {
@@ -15,11 +16,22 @@ angular.module('webApp').controller('registrationDelegateModalController', ["$sc
             registrationDelegateModal.deactivate();
         }
 
+        $scope.passcheck = function () {
+            $scope.passmode = !$scope.passmode;
+            $scope.pass = '';
+        }
+
         $scope.registrationDelegate = function () {
+
             $scope.action = true;
             $scope.error = null;
 
-            $http.put("/api/delegates/", {secret: $scope.secretPhrase, secondSecret : $scope.secondPassphrase, username: $scope.username, publicKey : userService.publicKey})
+            $http.put("/api/delegates/", {
+                secret: $scope.secretPhrase,
+                secondSecret: $scope.secondPassphrase,
+                username: $scope.username,
+                publicKey: userService.publicKey
+            })
                 .then(function (resp) {
                     $scope.action = false;
                     userService.setDelegateProcess(resp.data.success);
