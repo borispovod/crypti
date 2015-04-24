@@ -9,7 +9,8 @@ program.option('-p,--port <number>', 'Listening port number', Number);
 program.option('-n,--instances <number>', 'Instances number', Number);
 program.option('-d,--delegates <number>', 'Delegate instances number', Number);
 program.option('-l,--log <level>', 'Define log level');
-program.option('-o,--output <number>', 'Instance number to print output', Number);
+program.option('-o,--output [number..]', 'Instance number to print output', Number);
+program.option('-x,--peers <peers..>', 'Extra peers');
 program.parse(process.argv);
 
 var preset = process.argv[2];
@@ -17,16 +18,19 @@ var presetDir = path.join(tmpDir, preset);
 var port = program.port || 7040;
 var instances = program.instances || 2;
 var delegates = program.delegates;
+var peers = program.peers;
 var customArgs = [];
+
+peers = peers ? peers.split(',') : [];
 
 var argsPos = process.argv.indexOf('--');
 if (argsPos > -1) {
-    customArgs = process.argv.splice(argsPos + 1, process.argv.length - argsPos + 1);
-    process.argv.pop();
+    customArgs = process.argv.slice(argsPos + 1, process.argv.length - argsPos + 1);
+    process.argv.splice(argsPos);
 }
 
+// Build test network configuration
 var configuration = produce(instances, function(i){
-    var peers = [];
     var c = instances;
     while(c--) {
         if (i === c)  continue;
@@ -37,7 +41,9 @@ var configuration = produce(instances, function(i){
     var output = true;
 
     if (typeof program.output === 'number') {
-        output = (program.output === i);
+        output = (program.output === i + 1);
+    } else if (program.output === true) {
+        output = (i === 0);
     }
 
     var instance = {
@@ -58,8 +64,11 @@ var configuration = produce(instances, function(i){
     return instance;
 });
 
-async.map(configuration, function(instance, done){
+// Run child processes
+async.map(configuration, function(instance, done, i){
     var args = ['app.js'];
+
+    // Add instance args to
     Object.keys(instance.args).forEach(function(key){
         var value = instance.args[key];
 
@@ -78,14 +87,18 @@ async.map(configuration, function(instance, done){
         },
         stdio: instance.output ? 'inherit' : 'ignore'
     });
+
+    child.on('error', function(error){
+        console.error('Instance #%s: %s', i, error.stack || error);
+        process.exit(1);
+    });
+
     setImmediate(done, null, child);
 }, function(err){
     if (err) {
         console.error(err);
         process.exit(1);
     }
-
-    console.log("started");
 });
 
 function produce(count, factory) {

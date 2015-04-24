@@ -13,21 +13,25 @@ it's value for each instance. If you have 4 instances and port number is 7000, t
 Example:
 
 ```bash
-node test/batch.js <preset> -n <instances> -p <port> -l <level> -c <instance> -- [args]
+node test/batch.js <preset> -n <instances> -p <port> -l <level> -o <instance> -- [args]
 ```
 
 `preset` is an existing environment name stored in `./tmp` folder usually.
-`-n <instances>` is a number of instances to run.
+`-n <processes>` is a number of processes to run. Default is 2.
 `-d <delegates>` is a number of instances which should became delegates.
 `-p <port>` is the first instance port. Default is 7040.
 `-l <level>` specify instance log level value.
-`-o <instance>` instance to capture output and print to stdout or stderr
+`-o <instance>` instance to capture output and print to stdout or stderr.
+`-x <peers...>` peers list which will be added to process options.
 
 If delegates are specified they will use delegates configuration from preset directory:
 ```
 bash test/batch.js -n 2 -d 2 # Network of two delegates
 bash test/batch.js -n 3 -d 2 # Network of two delegates and one usual peer
 ```
+
+If `-n` is 3 and `-d` is 2 then there will run 3 process. The first and the second processes will be delegates,
+and the third will be usual peer.
 
 ### Control network
 
@@ -38,11 +42,37 @@ node test/batch.js testnet -p 7000 -n 2 # Used ports are 7000 and 7001
 
 ### Control output
 
-There is several options to control instances output: log level and speaking instance number:
+There is several options to control instances output: log level `-l` and number of instances which could print to stdout `-o`.
+The first instance is 1. If no number passed then only the first instance will be captured.
+
+Example.
+
 ```bash
-node test/batch.js -l debug # Output all instances debug info
-node test/batch.js -l debug -o 1,2 # Output debug info from 1 and 2 instances
+node test/batch.js testnet -l debug # Output all instances debug info
+node test/batch.js testnet -l debug -o # Output the first instance debug info
+node test/batch.js testnet -l debug -o 1,2 # Output debug info from 1 and 2 instances
 ```
+
+### Custom arguments
+
+To pass some extra arguments to crypti processes use double hyphen `--` as arguments separator.
+
+```bash
+node test/batch.js testnet -- -c test/config.json
+```
+
+### Summary
+
+To run `testnet` network of 5 processes with 2 delegates with one remote peer at 192.168.0.2:7044 output the first
+delegate `stdout` and `stderr` type this into shell:
+
+ ```bash
+ node test/batch.js testnet -n 5 -d 2 -x 192.168.0.2:7044 -o
+ ```
+
+Each process will use it's own blockchain stored in preset directory. Blockchains are stored in files named by template:
+ `blockchain-${instance_index}.db`. So the first instance will use file `blockchain-0.db`, the second `blockchain-1.db` and so.
+
 
 ## Generate configuration
 
