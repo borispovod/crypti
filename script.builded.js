@@ -1,1 +1,0 @@
-function main(done){done(null,"TRUE")}
