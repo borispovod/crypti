@@ -355,14 +355,14 @@ Transport.prototype.onBlockchainReady = function () {
 Transport.prototype.onUnconfirmedTransaction = function (transaction, broadcast) {
 	if (broadcast){
 		self.broadcast(100, {api: '/transactions', data: {transaction: transaction}, method: "POST"});
-		library.network.io.sockets.emit('transactions', {transaction: transaction});
+		library.network.io.sockets.emit('transactions/change', {});
 	}
 }
 
 Transport.prototype.onNewBlock = function (block, broadcast) {
 	if(broadcast){
 		self.broadcast(100, {api: '/blocks', data: {block: block}, method: "POST"});
-		library.network.io.sockets.emit('blocks', {block: block});
+		library.network.io.sockets.emit('blocks/change', {});
 	}
 }
 

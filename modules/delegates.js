@@ -780,6 +780,8 @@ Delegates.prototype.cache = function (delegate) {
 	private.namesIndex[delegate.username.toLowerCase()] = index;
 	private.publicKeyIndex[delegate.publicKey] = index;
 	private.transactionIdIndex[delegate.transactionId] = index;
+
+	library.network.io.sockets.emit('delegates/change', {});
 }
 
 Delegates.prototype.uncache = function (delegate) {
@@ -792,6 +794,8 @@ Delegates.prototype.uncache = function (delegate) {
 	delete private.namesIndex[delegate.username.toLowerCase()];
 	delete private.transactionIdIndex[delegate.transactionId];
 	private.delegates[index] = false;
+
+	library.network.io.sockets.emit('delegates/change', {});
 }
 
 Delegates.prototype.validateBlockSlot = function (block) {

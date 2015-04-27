@@ -11,10 +11,10 @@ require('colors');
 var modules, library, self, private = {};
 
 private.loaded = false;
-private.sync = false;
 private.loadingLastBlock = genesisBlock;
 private.total = 0;
 private.blocksToSync = 0;
+private.syncIntervalId = null;
 
 //constructor
 function Loader(cb, scope) {
@@ -42,7 +42,7 @@ function attachApi() {
 	router.get('/status/sync', function (req, res) {
 		res.json({
 			success: true,
-			sync: self.syncing(),
+			sync: !!private.syncIntervalId,
 			blocks: private.blocksToSync,
 			height: modules.blocks.getLastBlock().height
 		});
@@ -54,6 +54,22 @@ function attachApi() {
 		library.logger.error(req.url, err.toString());
 		res.status(500).send({success: false, error: err.toString()});
 	});
+}
+
+private.syncTrigger = function(turnOn){
+	if (turnOn === false && private.syncIntervalId) {
+		clearTimeout(private.syncIntervalId);
+		private.syncIntervalId = null;
+	}
+	if (turnOn === true && !private.syncIntervalId) {
+		process.nextTick(function nextSyncTrigger() {
+			library.network.io.sockets.emit('loader/sync', {
+				blocks: private.blocksToSync,
+				height: modules.blocks.getLastBlock().height
+			});
+			private.syncIntervalId = setTimeout(nextSyncTrigger, 1000);
+		});
+	}
 }
 
 private.loadFullDb = function(peer, cb) {
@@ -273,20 +289,17 @@ private.loadBlockChain = function() {
 }
 
 //public methods
-Loader.prototype.syncing = function () {
-	return private.sync;
-}
 
 //events
 Loader.prototype.onPeerReady = function () {
 	process.nextTick(function nextLoadBlock() {
 		library.sequence.add(function (cb) {
-			private.sync = true;
+			private.syncTrigger(true);
 			var lastBlock = modules.blocks.getLastBlock();
 			private.loadBlocks(lastBlock, cb);
 		}, function (err) {
 			err && library.logger.error('loadBlocks timer', err);
-			private.sync = false;
+			private.syncTrigger(false);
 			private.blocksToSync = 0;
 
 			setTimeout(nextLoadBlock, 10 * 1000)
