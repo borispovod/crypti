@@ -495,7 +495,6 @@ function attachApi() {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
 
-
 			var account = self.getAccount(query.address);
 			var balance = account ? account.balance : 0;
 			var unconfirmedBalance = account ? account.unconfirmedBalance : 0;

@@ -170,6 +170,10 @@ Round.prototype.tick = function (block) {
 	}
 }
 
+Round.prototype.onFinishRound = function(round){
+	library.network.io.sockets.emit('rounds/change', {number: round});
+}
+
 Round.prototype.runOnFinish = function (task) {
 	private.tasks.push(task);
 }
