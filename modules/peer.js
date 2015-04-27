@@ -171,6 +171,8 @@ private.banManager = function (cb) {
 }
 
 private.getByFilter = function (filter, cb) {
+	var sortFields = ["ip", "port", "state", "os", "sharePort", "version"];
+	var sortMethod = '', sortBy = ''
 	var limit = filter.limit || null;
 	var offset = filter.offset || null;
 	delete filter.limit;
@@ -209,6 +211,22 @@ private.getByFilter = function (filter, cb) {
 		params.port = filter.port;
 	}
 
+	if (filter.hasOwnProperty('orderBy')) {
+		var sort = filter.orderBy.split(':');
+		sortBy = sort[0].replace(/[^\w\s]/gi, '');
+		if (sort.length == 2) {
+			sortMethod = sort[1] == 'desc' ? 'desc' : 'asc'
+		} else {
+			sortMethod = 'desc';
+		}
+	}
+
+	if (sortBy) {
+		if (sortFields.indexOf(sortBy) < 0) {
+			return cb("Invalid field to sort");
+		}
+	}
+
 	if (limit !== null) {
 		if (limit > 100) {
 			return cb("Maximum limit is 100");
@@ -220,16 +238,21 @@ private.getByFilter = function (filter, cb) {
 		params['offset'] = offset;
 	}
 
-	library.dbLite.query("select ip, port, state, os, sharePort, version from peers" + (where.length ? (' where ' + where.join(' and ')) : '') + (limit ? ' limit $limit' : '') + (offset ? ' offset $offset ' : ''), params, {
-		"ip": String,
-		"port": Number,
-		"state": Number,
-		"os": String,
-		"sharePort": Number,
-		"version": String
-	}, function (err, rows) {
-		cb(err, rows);
-	});
+	library.dbLite.query("select ip, port, state, os, sharePort, version from peers" +
+		(where.length ? (' where ' + where.join(' and ')) : '') +
+		(sortBy ? 'order by ' + sortBy + ' ' + sortMethod : '') + " " +
+		(limit ? ' limit $limit' : '') +
+		(offset ? ' offset $offset ' : ''),
+		params, {
+			"ip": String,
+			"port": Number,
+			"state": Number,
+			"os": String,
+			"sharePort": Number,
+			"version": String
+		}, function (err, rows) {
+			cb(err, rows);
+		});
 }
 
 //public methods

@@ -19,3 +19,5 @@ public/webkitbuilds/
 public/build/
 bfg.jar
 *.zip
+.directory
+public
