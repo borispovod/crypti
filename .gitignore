@@ -9,15 +9,9 @@ npm-debug.log
 .ed25519-node
 blockchain.*
 addresses.txt
-public/bower_components/
-public/static/
-public/node_modules/
 builded
 tmp
 __MACOSX/
-public/webkitbuilds/
-public/build/
 bfg.jar
 *.zip
 .directory
-public
