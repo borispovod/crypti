@@ -51,7 +51,6 @@
     "underscore": "https://github.com/crypti/underscore/tarball/master",
     "usage": "^0.6.0",
     "util-extend": "*",
-    "codius-node-sandbox": "git://github.com/codius/codius-node-sandbox#v1.2.0",
     "rimraf": "~2.3.2"
   },
   "devDependencies": {
