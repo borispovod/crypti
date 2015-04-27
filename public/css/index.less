@@ -148,7 +148,9 @@ span.menu-text {
 #header {
   background-color: @blue;
   height: 60px;
-  padding: 20px 40px;
+  padding: 20px 30px;
+  -webkit-box-shadow: 0 2px 5px rgba(0, 0, 0, 0.26);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.26);
   .forging-state {
     display: block;
     float: left;
@@ -214,9 +216,9 @@ span.menu-text {
   #title {
     display: block;
     float: left;
-    font-weight: normal !important;
+    font-weight: normal;
     color: @white;
-    letter-spacing: 0.01rem;
+    opacity: @font-opacity;
   }
   .title-icon {
     background-image: url('@{images}/sprites/iconset.png');

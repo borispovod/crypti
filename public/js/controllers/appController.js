@@ -15,7 +15,7 @@ angular.module('webApp').controller('appController', ['$scope', '$rootScope', '$
             }
         };
         $scope.view = viewFactory;
-        $scope.appUser = userService;
+
         $scope.modules = [
             'main.dashboard',
             'main.delegates',
@@ -26,6 +26,21 @@ angular.module('webApp').controller('appController', ['$scope', '$rootScope', '$
             'passphrase'
 
         ];
+
+        $scope.getAccount = function () {
+            $http.get("/api/accounts", {params: {address: userService.address}})
+                .then(function (resp) {
+                    var account = resp.data.account;
+                    userService.balance = account.balance / 100000000;
+                    userService.unconfirmedBalance = account.unconfirmedBalance / 100000000;
+                    userService.secondPassphrase = account.secondSignature;
+                    userService.unconfirmedPassphrase = account.unconfirmedSignature;
+                    $scope.balance = userService.balance;
+                    $scope.unconfirmedBalance = userService.unconfirmedBalance;
+                    $scope.secondPassphrase = userService.secondPassphrase;
+                    $scope.unconfirmedPassphrase = userService.unconfirmedPassphrase;
+                });
+        }
 
         $scope.sendCrypti = function () {
             $scope.sendCryptiModal = sendCryptiModal.activate({
@@ -67,7 +82,9 @@ angular.module('webApp').controller('appController', ['$scope', '$rootScope', '$
 
             });
 
-        $scope.$on('socket:hello', function (ev, data) {
-            console.log('socket:hello', data);
+        $scope.$on('socket:transactions', function (ev, data) {
+            $scope.getAccount();
         });
+
+        $scope.getAccount();
     }]);

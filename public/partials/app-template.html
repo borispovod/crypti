@@ -64,7 +64,7 @@
 
             <div id="top-menu">
                 <span id="balance">
-                {{balance}} XCR
+                {{unconfirmedBalance | feeFilter}} XCR
             </span>
                 <button class="btn send-button" ng-click="sendCrypti()">
                     <span>SEND</span>
