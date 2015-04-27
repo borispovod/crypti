@@ -1,33 +1,51 @@
-<div class="modal">
-	<div class="modal-content">
-		<div class="clearfix">
-			<h1 class="heading">Vote</h1>
-		</div>
-		<div class="clearfix">
-			<p class="lead">
-				Your current voting weight is {{totalBalance}} XCR. It will cost you 1 XCR to vote.
-			</p>
-		</div>
-		<form class="form" autocomplete="off">
-			<input class="input-text" type="password" ng-model="secretPhrase" placeholder="Your secretPhrase"
-				   ng-trim="false">
-			<input class="input-text" type="password" ng-model="secondPhrase" placeholder="Your second secretPhrase"
-				   ng-show="secondPassphrase" ng-trim="false">
+<div class="app-modal">
+    <div class="modal-content" ng-show="!passmode">
+        <div class="modal-header"><h2>Vote for Delegates:</h2> this action will cost 100XCR</h2>
 
-			<p class="error">{{fromServer}}.</p>
+            <div class="close-modal" ng-click="close()"><span class="sr-only">Close modal</span></div>
+        </div>
+        <div class="modal-nav">
+            <ul class="nav nav-vote">
+                <li><a href="#" ng-click="passcheck()"><span class="vote-icon"></span>CONFIRM VOTE</a></li>
+                <li><a href="#" ng-click="close()"><span class="cancel-icon"></span>CANCEL</a></li>
 
-			<div class="pull-right">
-				<button type="submit" class="button green small"
-						ng-show="adding" ng-disabled="voting  || !secretPhrase || (secondPassphrase && !secondPhrase)" ng-click="vote()">
-					Vote
-				</button>
-				<button type="submit" class="button green small"
-						ng-show="!adding" ng-disabled="voting  || !secretPhrase || (secondPassphrase && !secondPhrase)"
-						ng-click="vote()">
-					Remove vote
-				</button>
-				<button class="button small" ng-click="close()">Close</button>
-			</div>
-		</form>
-	</div>
+            </ul>
+        </div>
+        <div class="modal-body">
+            <ul class="list-group">
+                <li class="list-group-item" ng-repeat="(key, item) in voteList">{{item}}<span class="pull-right"></span>
+                </li>
+            </ul>
+        </div>
+
+    </div>
+    <div class="modal-content" ng-show="passmode">
+        <div class="modal-header modal-iconed">
+            <div class="close-modal" ng-click="passcheck()"><span class="sr-only">Close modal</span></div>
+        </div>
+        <div class="modal-header clearfix">
+            <div><h2>Account Verification</h2>
+            </div>
+            <div>Please enter your passphrase below
+            </div>
+        </div>
+        <div class="modal-body">
+
+            <div class="input-group send-xcr">
+                <input type="password" class="form-control" placeholder="Your Passphrase" ng-model="secretPhrase"
+                       ng-trim="false" ng-class="{'error':fromServer}">
+                <span class="error-text" ng-show="fromServer">{{fromServer}}</span>
+            </div>
+        </div>
+
+        <div class="modal-body">
+            <ul class="nav modal-buttons pull-right">
+                <li>
+                    <a href="#" ng-click="passcheck()">Cancel
+                    </a>
+                </li>
+                <li><a href="#" ng-click="vote()">Confirm Vote</a></li>
+            </ul>
+        </div>
+    </div>
 </div>

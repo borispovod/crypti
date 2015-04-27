@@ -1,3 +1,83 @@
+.paginated {
+  .ng-table-pager {
+    border-bottom: 1px solid @border-grey;
+    background-color: @background;
+  }
+  .ng-table {
+    border-bottom: 1px solid @border-grey;
+    border-right: 1px solid @border-grey;
+    border-left: 1px solid @border-grey;
+    -webkit-box-shadow: 0 1px 0 #dbdcdd;
+    -moz-box-shadow: 0 1px 0 #dbdcdd;
+    box-shadow: 0 1px 0 #dbdcdd;
+    thead {
+      border-bottom: 2px solid #cecece;
+    }
+  }
+  .pagination > li > a, .pagination > li > span {
+    position: relative;
+    float: left;
+    text-align: center;
+    height: 32px;
+    width: 32px;
+    padding: 5px 0;
+    line-height: 32px;
+    border-radius: 50%;
+    margin-right: 12px;
+    line-height: 1.42857143;
+    color: @grey-text;
+    text-decoration: none;
+    background-color: @background;
+    border: none;
+    font-size: @content-text;
+  }
+
+  .pagination > li:first-child > a, .pagination > li:first-child > span {
+    content: '';
+
+  }
+
+  .pagination > li:last-child > a, .pagination > li:last-child > span {
+    content: '';
+
+  }
+
+  .pagination > li:first-child > a:hover, .pagination > li:first-child > a:focus, .pagination > li:first-child > span:hover, .pagination > li:first-child > span:focus {
+    content: '';
+
+  }
+
+  .pagination > li:last-child > a:hover, .pagination > li:last-child > a:focus, .pagination > li:last-child > span:hover, .pagination > li:last-child > span:focus {
+    content: '';
+
+  }
+
+
+  .pagination > li > a:hover, .pagination > li > span:hover, .pagination > li > a:focus, .pagination > li > span:focus {
+    color: @white;
+    font-weight: 600;
+    background-color: @blue;
+  }
+
+  .pagination > .active > a, .pagination > .active > span, .pagination > .active > a:hover, .pagination > .active > span:hover, .pagination > .active > a:focus, .pagination > .active > span:focus {
+    z-index: 2;
+    color: @grey-text;
+    font-weight: 600;
+    cursor: default;
+    background: none;
+    border-color: none
+  }
+
+  .pagination > .disabled > span, .pagination > .disabled > span:hover, .pagination > .disabled > span:focus, .pagination > .disabled > a, .pagination > .disabled > a:hover, .pagination > .disabled > a:focus {
+    color: @border-grey;
+    font-weight: normal;
+    cursor: auto;
+    background-color: none;
+    border-color: none
+  }
+
+}
+
 .ng-table-label {
   min-width: 986px;
   margin-top: 22px;
@@ -9,34 +89,48 @@
 }
 
 .ng-table th.sortable.sort-desc, .ng-table th.sortable.sort-asc {
-  background-color: #ffffff;
+  background-color: @grey;
   text-shadow: none;
+  opacity: 0.6;
 }
 
 .ng-table th.sortable div:after, .ng-table th.sortable div:before {
-  border-color: #50955c transparent;
+  border: none;
+  width: 7px;
+  height: 5px;
+  background-image: url('@{images}/sprites/iconset.png');
+
 }
 
 .ng-table th.sortable div:before {
-  border-top: 4px solid #50955c;
+  background-position: -70px -9px;
+  border: none;
+
+}
+
+.ng-table th.sortable div:after {
+  background-position: -70px -0;
+  border: none;
+
 }
 
 .ng-table th.sortable.sort-asc div:before {
-  border-top: 4px solid #50955c;
+  background-position: -70px 0;
+  border: none;
+  opacity: 1 !important;
 }
 
 .ng-table th.sortable.sort-desc div:after {
-  border-top: 4px solid #50955c;
+  background-position: -70px -9px;
+  border: none;
+  opacity: 1 !important;
 }
 
 .ng-table tr.voted {
-  background-color: rgba(97, 178, 110, 0.02);
-}
-
-.ng-table-pager {
-  margin-top: 15px;
-  margin-bottom: 15px;
-  padding-bottom: 26px;
+  background-color: @meant;
+  &:hover {
+    background-color: @meant;
+  }
 }
 
 .btn {
@@ -94,68 +188,57 @@
   }
 }
 
-.pagination {
-  display: inline-block;
-  padding-left: 0;
-  border-radius: 3px
+.ng-table thead tr th {
+  background-color: @grey;
+  text-align: left;
+  font-size: @content-text;
+  color: @black;
+  font-weight: 600;
+  &:first-child {
+    padding-left: 16px;
+  }
+  &.sortable.sort-desc, &.sortable.sort-asc {
+    background-color: @grey;
+    text-align: left;
+    font-size: @content-text;
+    color: @black;
+    font-weight: 600;
+    opacity: 1;
+  }
+  &:hover {
+    cursor: auto;
+    background-color: @grey;
+  }
 }
 
-.pagination > li {
-  display: inline
+tbody {
+  tr:nth-child(even) {
+    background-color: @grey;
+  }
 }
 
-.pagination > li > a, .pagination > li > span {
-  position: relative;
-  float: left;
-  padding: 8px 12px;
-  margin-left: -1px;
-  line-height: 1.42857143;
-  color: #9b9d9e;
-  text-decoration: none;
-  background-color: #fff;
-  border: none;
-  -webkit-box-shadow: 0px 3px 0px #d4d5d6;
-  -moz-box-shadow: 0px 3px 0px #d4d5d6;
-  box-shadow: 0px 3px 0px #d4d5d6;
+td {
+  a {
+    text-decoration: underline;
+    line-height: 1.5rem;
+  }
+  font-weight: 500 !important;
+  &.username {
+    .favorite &:before {
+      content: "";
+      display: block;
+      width: 14px;
+      height: 12px;
+      background-image: url('@{images}/sprites/iconset.png');
+      background-position: -77px 0;
+      float: left;
+      margin-right: 8px;
+    }
+  }
 }
 
-.pagination > li:first-child > a, .pagination > li:first-child > span {
-  margin-left: 0;
-  border-top-left-radius: 3px;
-  border-bottom-left-radius: 3px
-}
 
-.pagination > li:last-child > a, .pagination > li:last-child > span {
-  border-top-right-radius: 3px;
-  border-bottom-right-radius: 3px
-}
 
-.pagination > li > a:focus, .pagination > li > a:hover, .pagination > li > span:focus, .pagination > li > span:hover {
-  background-color: #61b26e;
-  color: #fff;
-  -webkit-box-shadow: 0px 3px 0px #50955c;
-  -moz-box-shadow: 0px 3px 0px #50955c;
-  box-shadow: 0px 3px 0px #50955c;
-}
-
-.pagination > .active > a, .pagination > .active > a:focus, .pagination > .active > a:hover, .pagination > .active > span, .pagination > .active > span:focus, .pagination > .active > span:hover {
-  background-color: #61b26e;
-  color: #fff;
-  -webkit-box-shadow: 0px 3px 0px #50955c;
-  -moz-box-shadow: 0px 3px 0px #50955c;
-  box-shadow: 0px 3px 0px #50955c;
-}
-
-.pagination > .disabled > a, .pagination > .disabled > a:focus, .pagination > .disabled > a:hover, .pagination > .disabled > span, .pagination > .disabled > span:focus, .pagination > .disabled > span:hover {
-  top: 0px;
-  color: #9b9d9e;
-  text-decoration: none;
-  background-color: #e4e5e6;
-  border: none;
-  -webkit-box-shadow: 0px 3px 0px #d4d5d6;
-  -moz-box-shadow: 0px 3px 0px #d4d5d6;
-  box-shadow: 0px 3px 0px #d4d5d6;
-}
 
 
 

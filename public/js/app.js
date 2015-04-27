@@ -2,9 +2,14 @@ require('angular');
 require('angular-ui-router');
 require('angular-modal');
 require('angular-resource');
-require('../node_modules/ng-table/dist/ng-table.js');
+require('browserify-angular-animate');
+require('../bower_components/angular-chart.js/dist/angular-chart.js');
+require('../bower_components/angular-socket-io/socket.js');
 
-webApp = angular.module('webApp', ['ui.router', 'btford.modal', 'ngTable']);
+require('../node_modules/ng-table/ng-table.js');
+
+
+webApp = angular.module('webApp', ['ui.router', 'btford.modal', 'ngTable', 'ngAnimate',  'chart.js', 'btford.socket-io']);
 
 webApp.config([
     "$locationProvider",
@@ -22,10 +27,15 @@ webApp.config([
                 templateUrl: "/partials/app-template.html",
                 controller: "templateController"
             })
-            .state('main.account', {
-                url: "/account",
+            .state('main.dashboard', {
+                url: "/dashboard",
                 templateUrl: "/partials/account.html",
                 controller: "accountController"
+            })
+            .state('main.transactions', {
+                url: "/transactions",
+                templateUrl: "/partials/transactions.html",
+                controller: "transactionsController"
             })
             .state('main.delegates', {
                 url: "/delegates",

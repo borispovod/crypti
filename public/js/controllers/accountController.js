@@ -1,7 +1,9 @@
 require('angular');
 
-angular.module('webApp').controller('accountController', ['$scope', '$rootScope', '$http', "userService", "$interval", "sendCryptiModal", "secondPassphraseModal", "delegateService",
-    function ($rootScope, $scope, $http, userService, $interval, sendCryptiModal, secondPassphraseModal, delegateService) {
+angular.module('webApp').controller('accountController', ['$scope', '$rootScope', '$http', "userService", "$interval", "sendCryptiModal", "secondPassphraseModal", "delegateService", 'viewFactory', 'transactionInfo', 'userInfo',
+    function ($rootScope, $scope, $http, userService, $interval, sendCryptiModal, secondPassphraseModal, delegateService, viewFactory, transactionInfo, userInfo) {
+        $scope.view = viewFactory;
+        $scope.view.page = {title: 'Dashboard', previos: null};
         $scope.delegate = undefined;
         $scope.address = userService.address;
         $scope.publicKey = userService.publicKey;
@@ -16,6 +18,14 @@ angular.module('webApp').controller('accountController', ['$scope', '$rootScope'
         * 1000
         * 1000
         * 100;
+
+        $scope.transactionInfo = function (block) {
+            $scope.modal = transactionInfo.activate({block: block});
+        }
+
+        $scope.userInfo = function (userId) {
+            $scope.modal = userInfo.activate({userId: userId});
+        }
 
         $scope.getTransactions = function () {
             $http.get("/api/transactions", {
@@ -57,19 +67,14 @@ angular.module('webApp').controller('accountController', ['$scope', '$rootScope'
                 });
         }
 
-        $scope.delegateInterval = $interval(function () {
+        $scope.$on('socket:transactions', function (ev, data) {
             delegateService.getDelegate($scope.publicKey, function (response) {
                 $scope.delegate = response;
             });
-        }, 1000 * 10);
-
-        $scope.balanceInterval = $interval(function () {
             $scope.getAccount();
-        }, 1000 * 10);
-
-        $scope.transactionsInterval = $interval(function () {
             $scope.getTransactions();
-        }, 1000 * 10);
+        });
+
 
         $scope.$on('$destroy', function () {
             $interval.cancel($scope.balanceInterval);

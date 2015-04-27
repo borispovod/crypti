@@ -1,0 +1,193 @@
+.panel-default {
+  border-radius: @border-radius;
+  border-color: @border-grey;
+  &.paginated {
+    border: none;
+    -webkit-box-shadow: none;
+    box-shadow: none;
+    .panel-heading {
+      border-top: 1px solid @border-grey;
+      border-right: 1px solid @border-grey;
+      border-left: 1px solid @border-grey;
+    }
+  }
+  .panel-heading {
+    background-color: @grey;
+    padding: 16px 16px;
+    border-bottom: 2px solid @border-grey;
+    .plain-text {
+      position: absolute;
+      font-size: 14px;
+      color: #393939;
+      top: 20px;
+      font-weight: 600;
+      right: 32px;
+    }
+    .more {
+      position: absolute;
+      top: 20px;
+      right: 32px;
+      cursor: pointer;
+      background-image: url('@{images}/sprites/iconset.png');
+      background-position: 0 0;
+      background-repeat: no-repeat;
+      height: 12px;
+      width: 7px;
+    }
+    h2 {
+      font-size: @widget-text;
+      font-weight: bold;
+    }
+  }
+  table {
+    border: 0;
+    width: 100%;
+    cellpadding: 0;
+    cellspacing: 0;
+    margin-top: 0;
+    .head {
+      th {
+        padding: 20px 0;
+        &:first-child {
+          padding-left: 16px;
+        }
+        color: @black;
+        font-size: @normal-text;
+        font-weight: bold;
+        background-color: @grey;
+        border-bottom: 1px solid @border-grey;
+      }
+
+    }
+    tr {
+      &:hover {
+        background-color: @background;
+      }
+    }
+    td {
+      padding: 18px 0;
+      color: @black;
+      font-weight: normal;
+      &:first-child {
+        padding-left: 16px;
+      }
+      text-align: left;
+    }
+  }
+}
+
+.widget {
+  border-color: @light-cloud;
+  position: relative;
+  &.green {
+    color: @green;
+    border-top: 4px solid @green;
+  }
+  &.blue {
+    color: @blue;
+    border-top: 4px solid @blue;
+  }
+  &.violet {
+    color: @violet;
+    border-top: 4px solid @violet;
+  }
+  &.cloud {
+    color: @cloud;
+    border-top: 4px solid @cloud;
+  }
+
+  .wg-label {
+    display: block;
+    font-size: @big-text;
+    padding: 10px 0 20px;
+  }
+  .wg-data {
+    padding: 20px 0;
+    display: block;
+    font-size: @widget-text;
+    .strong {
+      font-size: 30px;
+    }
+  }
+  .wg-legend {
+    font-size: @normal-text;
+    color: @black;
+    float: right;
+    padding-top: 16px;
+  }
+}
+
+.light-graph {
+  background-color: @white;
+  border-color: @light-cloud;
+  border-radius: @border-radius;
+  margin-bottom: 20px;
+  &-heading {
+    padding: 20px 0;
+    color: @grey-text;
+    text-align: center;
+    font-size: @graph-heading;
+    width: 100%;
+  }
+  &-body {
+    width: 100%;
+    padding: 20px 0;
+    position: relative;
+    .chart-legend {
+      position: absolute;
+      top: 50%;
+      left: 0;
+      right: 0;
+      margin-top: -20px;
+
+      font-size: 32px;
+      color: #404040;
+      .small-text {
+        display: block;
+        font-size: @normal-text;
+        color: #616161;
+      }
+    }
+    .chart-container {
+      margin: 0 -60px;
+    }
+  }
+}
+
+.info-panel {
+  height: 50px;
+  line-height: 50px;
+  background-color: @white;
+  border-color: @light-cloud;
+  border-radius: @border-radius;
+  padding: 0 26px;
+  margin-bottom: 20px;
+
+  .title {
+    font-size: @widget-text;
+    display: block;
+    float: left;
+    vertical-align: middle;
+  }
+  .plain-text {
+    font-size: @content-text;
+    display: block;
+    float: right;
+    vertical-align: middle;
+  }
+  @media (max-width: @screen-xs-max) {
+    height: inherit;
+    line-height: inherit;
+    span {
+      width: 100%;
+      float: left;
+      padding: 18px 0;
+      vertical-align: baseline;
+    }
+
+    .plain-text {
+      padding-top: 18px;
+    }
+
+  }
+}

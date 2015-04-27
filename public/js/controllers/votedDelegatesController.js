@@ -1,8 +1,9 @@
 require('angular');
 
-angular.module('webApp').controller('votedDelegatesController', ['$scope', '$rootScope', '$http', "userService", "$interval", "$timeout", "$filter", "ngTableParams", "delegateService", "voteModal",
-    function ($rootScope, $scope, $http, userService, $interval, $timeout, $filter, ngTableParams, delegateService, voteModal) {
-
+angular.module('webApp').controller('votedDelegatesController', ['$scope', '$rootScope', '$http', "userService", "$interval", "$timeout", "$filter", "ngTableParams", "delegateService", "voteModal", "viewFactory",
+    function ($rootScope, $scope, $http, userService, $interval, $timeout, $filter, ngTableParams, delegateService, voteModal, viewFactory) {
+        $scope.view = viewFactory;
+        $scope.view.page = {title: 'Forging', previos: null};
         $scope.allVotes = 100
         * 1000
         * 1000
@@ -21,21 +22,27 @@ angular.module('webApp').controller('votedDelegatesController', ['$scope', '$roo
         };
 
         $scope.voteList = {
-            list: {toServer: [], toShow: []},
+            list: {},
+            length: 0,
+            recalcLength: function () {
+                var size = 0, key;
+                for (key in this.list) {
+                    if (this.list.hasOwnProperty(key)) size++;
+                }
+                this.length = size;
+            },
             inList: function (publicKey) {
-                return this.list.toServer.indexOf('-' + publicKey) != -1;
+                return !!this.list[publicKey];
             },
             vote: function (publicKey, username) {
                 if (this.inList(publicKey)) {
-                    this.list.toServer.splice(this.list.toServer.indexOf('-' + publicKey), 1);
-                    this.list.toShow.splice(this.list.toShow.indexOf(username), 1);
-
+                    delete this.list[publicKey];
                 }
                 else {
-                    this.list.toServer.push('-' + publicKey);
-                    this.list.toShow.push(username);
+                    this.list[publicKey] = username;
                 }
-                if (this.list.toServer.length == 0) {
+                this.recalcLength();
+                if (this.list == {}) {
                     $scope.showVotes = false;
                 }
             },
@@ -48,10 +55,10 @@ angular.module('webApp').controller('votedDelegatesController', ['$scope', '$roo
             $scope.showVotes = false;
             $scope.voteModal = voteModal.activate({
                 totalBalance: $scope.unconfirmedBalance,
-                voteList: $scope.voteList.list.toServer,
+                voteList: $scope.voteList.list,
                 adding: false,
                 destroy: function () {
-                    $scope.voteList.list = {toServer: [], toShow: []};
+                    $scope.voteList.list = {};
                     $scope.unconfirmedTransactions.getList();
                 }
             });
@@ -88,7 +95,7 @@ angular.module('webApp').controller('votedDelegatesController', ['$scope', '$roo
                 rate: 'asc'     // initial sorting
             }
         }, {
-            counts: [5, 10, 25],
+            counts: [],
             total: 0,
             getData: function ($defer, params) {
                 delegateService.getMyDelegates($defer, params, $scope.filter, userService.address, function () {

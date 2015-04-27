@@ -1,39 +1,34 @@
-<div class="modal" id="block-modal">
+<div class="app-modal" id="block-modal">
     <div class="modal-content">
-        <h1 class="heading">Transactions</h1>
-        <div class="row-table">
-        <table class="transactions" border="0" width="100%" cellpadding="0" cellspacing="0">
-            <thead>
-            <tr>
-                <th>ID</th>
-                <th>Sender</th>
-                <th>Recipient</th>
-                <th>Fee</th>
-                <th>Amount</th>
-            </tr>
-            </thead>
-            <tbody>
-            <tr ng-repeat="transaction in transactions">
-                <td>{{transaction.id}}</td>
-                <td>{{transaction.senderId}}</td>
-                <td>{{transaction.recipientId || "-"}}</td>
-                <td>{{transaction.fee / 100000000 | feeFilter}}</td>
-                <td>{{transaction.amount / 100000000 | feeFilter}}</td>
-            </tr>
-            <tr ng-show="!transactions || transactions.length == 0">
-                <td colspan="5">
-                    No transactions
-                </td>
-            </tr>
-            <tr ng-show="loading">
-                <td colspan="5">
-                    Loading...
-                </td>
-            </tr>
-            </tbody>
-        </table>
+        <div class="modal-header"><h2>Transactions ({{block.numberOfTransactions}})</h2>
+
+            <div class="close-modal" ng-click="close()"><span class="sr-only">Close modal</span></div>
         </div>
-        <button class="button small close-modal" ng-click="close()">Close</button>
+        <div class="modal-body">
+
+            <ul class="list-group transactions">
+                <!-- ngRepeat: transaction in transactions -->
+                <li class="list-group-item" ng-repeat="transaction in transactions">
+                    <div class="transaction-data">{{transaction.id}} <span class="pull-right">{{transaction.timestamp | timestampFilter}}</span>
+                    </div>
+                    <div class="transaction-path">
+                        <div class="transaction-part pull-left"><a href="#">{{transaction.senderId}}</a> <span class="xcr">{{transaction.amount / 100000000 | feeFilter}} XCR</span></div>
+                        <div class="transaction-direction"></div>
+                        <div class="transaction-part pull-right"><a href="#">{{transaction.recipientId || "-"}}</a><span class="xcr">{{transaction.amount / 100000000 | feeFilter}} XCR</span></div>
+                    </div>
+                    <div  class="transaction-bottom">
+                        <div class="fee">FEE: {{transaction.fee / 100000000 | feeFilter}} XCR
+                        </div>
+                        <div class="xcr">{{transaction.amount / 100000000 | feeFilter}} XCR
+                        </div>
+                        <div class="confirmations">{{transaction.confirmations}} CONFIRMATIONS
+                        </div>
+                    </div>
+                </li>
+                <!-- end ngRepeat: transaction in transactions -->
+
+            </ul>
+        </div>
     </div>
 
 </div>

@@ -1,38 +1,87 @@
-<div id="left-nav">
-    <a ui-sref="main.account">
-        <div id="logo"></div>
-    </a>
-    <ul id="menu">
-        <li ui-sref-active="active"><a ui-sref="main.account">
-            <div id="account-icon"></div>
-            <span class="menu-text">Account</span></a></li>
-        <li ui-sref-active="active"><a ui-sref="main.forging">
-            <div id="forging-icon"></div>
-            <span class="menu-text">Forging</span></a></li>
-        <ul id="submenu">
-            <li ui-sref-active="active"><a ui-sref="main.delegates">
-                <div id="delegates-icon"></div>
-                <span class="menu-text">Delegates</span></a></li>
-            <li ui-sref-active="active">
-                <div id="votes-icon"></div>
-                <a ui-sref="main.votes">
-                    <span class="menu-text">My Votes</span></a>
-            </li>
-        </ul>
-        <li ui-sref-active="active"><a ui-sref="main.blockchain">
-            <div id="blockchain-icon"></div>
-            <span class="menu-text">Blockchain</span></a></li>
-    </ul>
-    <li id="logout-item"><a href="/" id="logout">
-        <div id="logout-icon"></div>
-        <span class="menu-text">Logout</span></a></li>
-    <div id="inc"></div>
-</div>
-<div id="right-part">
-    <div ui-view class="partials-rules"></div>
-</div>
-<div ng-show="sync == true" class="syncLabel" title="Synchronization running...">
-    <p ng-show="heightToSync > 0">Synchronization: {{ height }}/{{ heightToSync }}, wait please...</p>
+<div id="wrapper" ng-controller="appController">
 
-    <p ng-show="heightToSync <= 0">Synchronization: {{ height }}, wait please...</p>
+    <!-- Sidebar -->
+    <div id="sidebar-wrapper">
+        <a ui-sref="main.account">
+            <div id="logo"></div>
+        </a>
+
+        <div class="account-block">
+            <div class="icon">
+                <img src="images/samples/account.png">
+            </div>
+            <span class="name">Welcome back, %usernname%</span>
+            <span class="address">{{address}}</span>
+        </div>
+        <ul id="menu">
+            <li ng-show="showMenuItem('main.dashboard')" ui-sref-active="active"><a ui-sref="main.dashboard">
+                <div class="nav-icon" id="dashboard-icon"></div>
+                <span class="menu-text">Dashboard</span></a></li>
+            <li ng-show="showMenuItem('main.contacts')" ui-sref-active="active"><a ui-sref="main.contacts">
+                <div class="nav-icon" id="contacts-icon"></div>
+                <span class="menu-text">Contacts</span></a></li>
+            <li ng-show="showMenuItem('main.conversations')" ui-sref-active="active"><a ui-sref="main.conversations">
+                <div class="nav-icon" id="conversations-icon"></div>
+                <span class="menu-text">Conversations</span></a></li>
+            <li ng-show="showMenuItem('main.dappstore')" ui-sref-active="active"><a ui-sref="main.dappstore">
+                <div class="nav-icon" id="dappstore-icon"></div>
+                <span class="menu-text">Dapp Store</span></a></li>
+            <li ng-show="showMenuItem('main.forging')" ui-sref-active="active"><a ui-sref="main.forging">
+                <div class="nav-icon" id="forging-icon"></div>
+                <span class="menu-text">Forging</span></a></li>
+            <ul id="submenu">
+                <li ng-show="showMenuItem('main.delegates')" ui-sref-active="active"><a ui-sref="main.delegates">
+                    <div class="nav-icon" id="delegates-icon"></div>
+                    <span class="menu-text">Delegates</span></a></li>
+                <li ng-show="showMenuItem('main.votes')" ui-sref-active="active">
+                    <div class="nav-icon" id="myvotes-icon"></div>
+                    <a ui-sref="main.votes">
+                        <span class="menu-text">My Votes</span></a>
+                </li>
+            </ul>
+            <li ng-show="showMenuItem('main.blockchain')" ui-sref-active="active"><a ui-sref="main.blockchain">
+                <div class="nav-icon" id="blockchain-icon"></div>
+                <span class="menu-text">Blockchain</span></a></li>
+            <li ng-show="showMenuItem('main.network')" ui-sref-active="active"><a ui-sref="main.network">
+                <div class="nav-icon" id="network-icon"></div>
+                <span class="menu-text">Network</span></a></li>
+            <li><a href="/" id="logout">
+                <div id="logout-icon"></div>
+                <span class="menu-text">Logout</span></a></li>
+        </ul>
+
+        <div id="inc"></div>
+    </div>
+    <!-- /#sidebar-wrapper -->
+
+    <!-- Page Content -->
+    <div id="page-content-wrapper">
+        <div class="nav-bar" id="header">
+
+            <h1 id="title"><span class="title-icon" ng-show="view.page.previos" ng-click="goToPrevios()">
+            <span class="sr-only">Go to previos page</span></span>{{view.page.title}}</h1>
+            <span class="forging-state" ng-show="view.forgingState">{{view.forgingState}}</span>
+
+            <div id="top-menu">
+                <span id="balance">
+                {{unconfirmedBalance | feeFilter}} XCR
+            </span>
+                <button class="btn send-button" ng-click="sendCrypti()">
+                    <span>SEND</span>
+                </button>
+                <div class="mini-chart" ng-show="sync">
+                    <div class="mini-chart-label">{{sync | number:0}}%</div>
+                    <canvas id="total-forged" class="chart chart-doughnut" data="loading.values"
+                            labels="loading.labels" options="loading.options"
+                            colours="loading.colours"></canvas></div>
+            </div>
+        </div>
+        <div class="container-fluid" ui-view></div>
+
+    </div>
 </div>
+<!-- /#page-content-wrapper -->
+
+</div>
+
+

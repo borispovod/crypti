@@ -1,0 +1,26 @@
+#page-nav {
+  height: 60px;
+  background-color: @white;
+  margin: 0 -15px 20px;
+}
+
+.nav-underline {
+  padding: 0 40px;
+  & > li {
+    float: left;
+     &.active a {
+      font-weight: bold;
+      border-bottom: solid 4px @blue;
+    }
+    & > a {
+      text-transform: uppercase;
+      font-size: 14px;
+      padding: 21px 30px;
+      color: @black;
+      &:hover, &:focus, &:active {
+        background-color: transparent;
+        text-decoration: none;
+      }
+    }
+  }
+}

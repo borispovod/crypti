@@ -1,15 +1,14 @@
 #block-modal {
   .modal-content {
+    overflow: auto;
+    overflow-x: hidden;
     position: fixed;
     top: 10%;
     left: 50%;
-    width: 1000px;
-    margin-left: -500px;
-    background: #ffffff;
-    padding: 25px;
-    border-radius: 8px;
+    width: 800px;
+    margin-left: -324px;
+    border-radius: 2px;
     max-height: 600px;
-    height: 600px;
 
     .row-table {
       overflow: auto;
@@ -17,5 +16,19 @@
       height: 500px;
       max-height: 500px;
     }
+  }
+}
+
+#transaction-modal {
+  .modal-content {
+    overflow: auto;
+    overflow-x: hidden;
+    position: fixed;
+    top: 10%;
+    left: 50%;
+    width: 800px;
+    margin-left: -324px;
+    border-radius: 2px;
+    max-height: 800px;
   }
 }

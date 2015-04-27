@@ -2,7 +2,7 @@ require('angular');
 
 angular.module('webApp').controller('blockModalController', ["$scope", "$http", "blockModal", function ($scope, $http, blockModal) {
 	$scope.loading = true;
-
+    $scope.transactions = [];
 	$scope.getTransactionsOfBlock = function (blockId) {
 		$http.get("/api/transactions/", { params : { blockId : blockId }})
 			.then(function (resp) {

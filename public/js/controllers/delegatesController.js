@@ -25,20 +25,27 @@ angular.module('webApp').controller('delegatesController', ['$scope', '$rootScop
 		};
 
 		$scope.voteList = {
-			list: {toServer: [], toShow: []},
+            list: {},
+            length: 0,
+            recalcLength: function () {
+                var size = 0, key;
+                for (key in this.list) {
+                    if (this.list.hasOwnProperty(key)) size++;
+                }
+                this.length = size;
+            },
 			inList: function (publicKey) {
-				return this.list.toServer.indexOf('+' + publicKey) != -1;
+                return !!this.list[publicKey];
 			},
 			vote: function (publicKey, username) {
 				if (this.inList(publicKey)) {
-					this.list.toServer.splice(this.list.toServer.indexOf('+' + publicKey), 1);
-					this.list.toShow.splice(this.list.toShow.indexOf(username), 1);
+                    delete this.list[publicKey];
 				}
 				else {
-					this.list.toServer.push('+' + publicKey);
-					this.list.toShow.push(username);
+                    this.list[publicKey] = username;
 				}
-				if (this.list.toServer.length == 0) {
+                this.recalcLength();
+                if (this.list == {}) {
 					$scope.showVotes = false;
 				}
 			},
@@ -47,14 +54,15 @@ angular.module('webApp').controller('delegatesController', ['$scope', '$rootScop
 			}
 		};
 
-		$scope.vote = function (publicKey) {
+        $scope.vote = function () {
 			$scope.showVotes = false;
 			$scope.voteModal = voteModal.activate({
 				totalBalance: $scope.unconfirmedBalance,
-				voteList: $scope.voteList.list.toServer,
+                voteList: $scope.voteList.list,
 				adding: true,
 				destroy: function () {
-					$scope.voteList.list = {toServer: [], toShow: []};
+                    $scope.voteList.list = {};
+                    $scope.voteList.recalcLength();
 					$scope.delegates.getList(function () {
 						$scope.unconfirmedTransactions.getList();
 					});
@@ -125,7 +133,7 @@ angular.module('webApp').controller('delegatesController', ['$scope', '$rootScop
 						$scope.delegates.getList(function () {
 							$scope.unconfirmedTransactions.getList();
 						});
-					}, 1);
+                    }, 10000);
 				});
 			}
 		});
@@ -150,7 +158,7 @@ angular.module('webApp').controller('delegatesController', ['$scope', '$rootScop
 			}
 		}, {
 			total: 0,
-			counts: [1, 10, 25],
+            counts: [],
 			getData: function ($defer, params) {
 				delegateService.getStandbyList($defer, params, $scope.filter, function () {
 					$scope.countStandby = params.total();
