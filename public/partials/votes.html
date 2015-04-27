@@ -1,52 +1,86 @@
-<div id="account">
-    <div class="clearfix">
-        <h1 class="heading">Forging > My Votes</h1>
+<div id="page-nav">
+    <ul class="nav nav-underline pull-left">
+        <li role="presentation" ui-sref-active="active"><a href="#" ui-sref="main.forging">Forging</a></li>
+        <li role="presentation" ui-sref-active="active"><a href="#" ui-sref="main.delegates">Delegates</a></li>
+        <li role="presentation" ui-sref-active="active"><a href="#" ui-sref="main.votes">My votes</a></li>
+    </ul>
+</div>
 
-        <div class="vote-delegates">
-            <h2>{{voteList.list.toServer.length}}/{{count}} Delegates selected</h2>
-            <div class="vote-navigation" ng-class="{'active': showVotes}">
-                <button class="button green" id="delegates-list" ng-disabled="voteList.list.toServer.length==0"
-                        ng-click="voteList.toggle()">View Selection
-                </button>
-                <button class="button green" ng-click="vote()" ng-disabled="voteList.list.toServer.length==0">Remove
-                    Votes
-                </button>
-                <div class="overlay" ng-click="voteList.toggle()">
-                </div>
-                <ul>
-                    <li ng-repeat="vote in voteList.list.toShow">{{vote}}</li>
-                </ul>
-            </div>
+<div class="top-margin">
+</div>
+
+<div class="row">
+    <div class="col-xs-12">
+        <div class="info-panel">
+            <span class="plain-text pull-left">
+             {{voteList.length}} out of {{countStandby + countTop}} Delegates selected
+            </span>
+            <ul class="nav nav-info pull-right">
+                <li class="list-delegate">
+                    <a href="#"><span class="selection-icon"></span>View selection
+
+                    </a>
+                    <ul class="list-group" ng-class="{'empty': voteList.length < 1}">
+                        <li class="list-group-item" ng-repeat="(key,item) in voteList.list"
+                            ng-click="voteList.vote(key, item)">{{item}}
+                        </li>
+
+                    </ul>
+                </li>
+                <li><a href="#" ng-click="vote()"><span class="vote-icon"></span>remove vote</a></li>
+            </ul>
         </div>
     </div>
-    <table ng-table="tableMyDelegates" border="0" width="100%" cellpadding="0" cellspacing="0">
-        <tr ng-repeat="delegate in $data">
-            <td data-title="'Rank'" sortable="'rate'">{{delegate.rate}}</td>
-            <td data-title="'Name'" sortable="'username'">{{delegate.username}}</td>
-            <td data-title="'Crypti Address'">{{delegate.address}}</td>
-            <td data-title="'Uptime'">{{(delegate.productivity)}}%</td>
-            <td data-title="'Approval'">{{getApproval(delegate.vote) | number: 2}}%</td>
-            <td data-title="'Vote'">
-                <button class="button button-vote small green" ng-if="!voteList.inList(delegate.publicKey)"
-                        ng-click="voteList.vote(delegate.publicKey, delegate.username)"
-                        ng-disabled="unconfirmedTransactions.inList(delegate.publicKey)">
-                    Select
-                </button>
-                <button class="button button-vote small red" ng-if="voteList.inList(delegate.publicKey)"
-                        ng-click="voteList.vote(delegate.publicKey, delegate.username)">
-                    Selected
-                </button>
-            </td>
-        </tr>
-        <tr ng-show="!loading && (!$data || $data.length == 0)">
-            <td colspan="6">
-                No delegates
-            </td>
-        </tr>
-        <tr ng-show="loading">
-            <td colspan="6">
-                Loading...
-            </td>
-        </tr>
-    </table>
+
+</div>
+
+<div class="row">
+    <div class="col-xs-12">
+        <div class="panel panel-default paginated">
+            <div class="panel-heading"><h2>My Votes</h2>
+
+                <div class="plain-text">{{count}} in Total</div>
+            </div>
+            <table ng-table="tableMyDelegates" border="0" width="100%" cellpadding="0" cellspacing="0">
+                <tr ng-repeat="delegate in $data">
+                    <td data-title="''" class="no-select">
+
+                        <span class="app-chekbox" ng-click="voteList.vote(delegate.publicKey, delegate.username)"
+                              ng-class="{'unchecked':!voteList.inList(delegate.publicKey), 'checked':voteList.inList(delegate.publicKey)}"></span>
+                    </td>
+                    <td data-title="'Rank'" sortable="'rate'">{{delegate.rate}}</td>
+                    <td data-title="'Name'" sortable="'username'" class="username">{{delegate.username}}</td>
+                    <td data-title="'Crypti Address'"><a href="#">{{delegate.address}}</a></td>
+                    <td data-title="'Uptime'">{{(delegate.productivity)}}%</td>
+                    <td data-title="'Approval'">{{getApproval(delegate.vote) | number: 2}}%</td>
+                    <td data-title="">
+                        <div class="dropdown-more-group"><span class="table-more-actions"><span
+                                class="dots"></span></span>
+                            <ul class="list-group">
+                                <li class="list-group-item"><a htef="#">Send XCR</a></li>
+                                <li class="list-group-item bordered"><a htef="#">Send Message</a></li>
+                                <li class="list-group-item"><a htef="#">Copy Address</a></li>
+                                <li class="list-group-item bordered"><a htef="#">Copy Name</a></li>
+                                <li class="list-group-item"><a htef="#">Add as Favorite</a></li>
+                                <li class="list-group-item"><a htef="#">See Voters</a></li>
+                            </ul>
+                        </div>
+                    </td>
+                </tr>
+                <tr ng-show="!loadingTop && (!$data || $data.length == 0)">
+                    <td colspan="7">
+                        No delegates
+                    </td>
+                </tr>
+                <tr ng-show="loadingTop">
+                    <td colspan="7">
+                        Loading...
+                    </td>
+                </tr>
+            </table>
+
+        </div>
+    </div>
+</div>
+
 

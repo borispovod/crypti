@@ -13,7 +13,8 @@ html, body, div, span, object, iframe, h1, h2, h3, h4, h5, h6, p, blockquote, pr
 }
 
 body {
-  line-height: 1
+  line-height: 1;
+  background-color: @background;
 }
 
 article, aside, details, figcaption, figure, footer, header, hgroup, menu, nav, section {
@@ -83,26 +84,30 @@ input, select {
 html, body {
   height: 100%;
   position: relative;
-  font-family: "HelveticaNeue-Light", "Helvetica Neue Light", "Helvetica Neue", Helvetica, Arial, "Lucida Grande", sans-serif;
+  font-family: 'Roboto', sans-serif;
+  overflow-x: hidden;
 }
 
 .height {
+  position: relative;
+  min-height: 100% !important;
   height: 100%;
 }
 
+.container-fluid {
+  position: relative;
+}
+
 .partials-rules {
-  padding: 26px 25px 0 25px;
+  position: absolute;
+  top: 26px;
+  left: 26px;
+  right: 26px;
 }
 
 h1 {
-  font-size: 18px;
+  font-size: 20px;
   font-weight: bold;
-  color: #4f5051;
-  margin-top: 5px;
-
-  &.heading {
-    float: left;
-  }
 }
 
 h2.account-id {
@@ -440,8 +445,19 @@ p.description {
   color: #F24A65;
 }
 
-/*END OF JOINT STYLES*/
+.no-select {
+  -webkit-user-select: none; /* Chrome/Safari */
+  -moz-user-select: none; /* Firefox */
+  -ms-user-select: none; /* IE10+ */
+  /* Rules below not implemented in browsers yet */
+  -o-user-select: none;
+  user-select: none;
+}
 
+/*END OF JOINT STYLES*/
+@import "variables";
+@import "sidebar";
+@import "panels";
 @import "index";
 @import "account";
 @import "blockchain";
@@ -452,3 +468,8 @@ p.description {
 @import "forging";
 @import "delegates";
 @import "ngtable";
+@import "media";
+@import "nav";
+@import "page";
+@import "elements";
+@import "grid";

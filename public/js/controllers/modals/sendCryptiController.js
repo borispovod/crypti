@@ -2,6 +2,7 @@ require('angular');
 
 angular.module('webApp').controller('sendCryptiController', ["$scope", "sendCryptiModal", "$http", "userService", "$timeout", function ($scope, sendCryptiModal, $http, userService, $timeout) {
 	$scope.sending = false;
+    $scope.passmode = false;
 	$scope.accountValid = true;
 	$scope.errorMessage = "";
 	$scope.onlyNumbers = /^-?\d*(\.\d+)?$/;
@@ -32,6 +33,10 @@ angular.module('webApp').controller('sendCryptiController', ["$scope", "sendCryp
 		return number.roundTo(digitsCount).valueOf();
 	}
 
+    $scope.passcheck = function () {
+        $scope.passmode = !$scope.passmode;
+        $scope.pass = '';
+    }
 	$scope.close = function () {
 		if ($scope.destroy) {
 			$scope.destroy();
@@ -184,6 +189,7 @@ angular.module('webApp').controller('sendCryptiController', ["$scope", "sendCryp
 	}
 
 	$scope.sendCrypti = function () {
+        $scope.errorMessage = "";
 		if (($scope.amount + '').indexOf('.') != -1) {
 			$scope.lengthError = $scope.amount.split('.')[1].length > 8;
 			$scope.errorMessage = "More than 8 numbers in decimal part";

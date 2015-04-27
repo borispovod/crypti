@@ -1,0 +1,39 @@
+<div class="app-modal" id="transaction-modal">
+    <div class="modal-content">
+        <div class="modal-header"><h2>Transaction ID: </h2>{{block.id}}<span class="blockchain-icon"></span><div class="close-modal" ng-click="close()"><span class="sr-only">Close modal</span></div></div>
+        <div class="modal-body">
+            <ul class="list-group">
+                <li class="list-group-item bordered">Confirmations<span class="pull-right small-text">{{block.confirmations}}</span></li>
+                <li class="list-group-item">Amount<span class="pull-right small-text">{{block.amount}} XCR</span></li>
+                <li class="list-group-item bordered">Fee<span
+                        class="pull-right small-text">{{block.fee}} XCR</span></li>
+                <li class="list-group-item">USD Equivalent<span class="pull-right small-text">$$$</span></li>
+                <li class="list-group-item bordered">Time<span class="pull-right small-text">{{block.timestamp | timestampFilter}}</span></li>
+            </ul>
+            <ul class="list-group transactions">
+                <li class="list-group-item">
+                    <div class="transaction-data">{{block.id}} <span class="pull-right">{{block.timestamp | timestampFilter}}</span>
+                    </div>
+                    <div class="transaction-path">
+                        <div class="transaction-part pull-left"><a href="#">{{block.senderId}}</a> <span
+                                class="xcr">{{block.amount / 100000000 | feeFilter}} XCR</span></div>
+                        <div class="transaction-direction"></div>
+                        <div class="transaction-part pull-right"><a href="#">{{block.recipientId || "-"}}</a><span
+                                class="xcr">{{block.amount / 100000000 | feeFilter}} XCR</span></div>
+                    </div>
+                    <div class="transaction-bottom">
+                        <div class="fee">FEE: {{block.fee / 100000000 | feeFilter}} XCR
+                        </div>
+                        <div class="xcr">{{block.amount / 100000000 | feeFilter}} XCR
+                        </div>
+                        <div class="confirmations">{{block.confirmations}} CONFIRMATIONS
+                        </div>
+                    </div>
+                </li>
+                <!-- end ngRepeat: transaction in transactions -->
+
+            </ul>
+        </div>
+    </div>
+
+</div>

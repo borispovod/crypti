@@ -1,30 +1,33 @@
-<div id="blockchain">
-    <div class="row">
-        <h1 class="heading">Blockchain</h1>
+<div class="top-margin"></div>
 
-        <h2 class="account-id">Your account: {{ address }}</h2>
+<div class="row">
+    <div class="col-xs-12">
+        <div class="panel panel-default paginated">
+
+            <table ng-table="tableBlocks" border="0" width="100%" cellpadding="0" cellspacing="0">
+                <tr ng-repeat="block in $data" ng-class="{'voted': address == block.generatorId}">
+                    <td data-title="'Height'">{{block.height}}</td>
+                    <td data-title="'Block ID'" ng-click="blockInfo(block)" class="pointer"><a href="#">{{block.id}}</a></td>
+                    <td data-title="'Generator'"><a href="#">{{block.generatorId}}</a></td>
+                    <td data-title="'Date & Time'"><span
+                            ng-show="block.timestamp > 0">{{block.timestamp | timestampFilter}}</span>
+                        <span ng-show="block.timestamp == 0">-</span></td>
+                    <td data-title="'Transactions'" ng-click="showBlock(block)" class="pointer"><a href="#">{{block.numberOfTransactions}}</a></td>
+                    <td data-title="'Amount'">{{block.totalAmount / 100000000 | feeFilter}}</td>
+                    <td data-title="'Fee'">{{block.totalFee / 100000000 | feeFilter}}</td>
+
+                </tr>
+                <tr ng-show="!loading && (!$data || $data.length == 0)">
+                    <td colspan="6">
+                        No blockchain
+                    </td>
+                </tr>
+                <tr ng-show="loading">
+                    <td colspan="6">
+                        Loading...
+                    </td>
+                </tr>
+            </table>
+        </div>
     </div>
-    <table ng-table="tableBlocks" border="0" width="100%" cellpadding="0" cellspacing="0">
-        <tr ng-repeat="block in $data" ng-class="{'green': address == block.generatorId}">
-            <td data-title="'ID'">{{block.id}}</td>
-            <td data-title="'Height'">{{block.height}}</td>
-            <td data-title="'Date & Time'"><span
-					ng-show="block.timestamp > 0">{{block.timestamp | timestampFilter}}</span>
-				<span ng-show="block.timestamp == 0">-</span></td>
-            <td data-title="'Amount'">{{block.totalAmount / 100000000 | feeFilter}}</td>
-            <td data-title="'Fee'">{{block.totalFee / 100000000 | feeFilter}}</td>
-            <td data-title="'Generator'">{{block.generatorId}}</td>
-            <td data-title="'Transactions'" ng-click="showBlock(block)" class="pointer">Click to see</td>
-        </tr>
-		<tr ng-show="!loading && (!$data || $data.length == 0)">
-                <td colspan="6">
-                    No blockchain
-                </td>
-        </tr>
-		<tr ng-show="loading">
-                <td colspan="6">
-                    Loading...
-                </td>
-        </tr>
-    </table>
 </div>

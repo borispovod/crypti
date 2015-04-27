@@ -1,13 +1,69 @@
-<div id="pass">
-    <div id="center">
-        <div id="logo-grey"><sup>testnet</sup></div>
-        <div id="login-form">
-            <form autocomplete="off">
-                <input type="password" id="enter" placeholder="Your secret passphrase here" ng-model="pass" ng-trim="false" autofocus>
-                <p id="message-error">Don't use your real passphrase! It can be dangerous in testnet.</p>
-                <p id="message">For security reasons, please use long passphrases. We recommend passphrases as long as 50 characters.</p>
-                <button type="submit" class="button green" id="login" ng-click="login(pass)">Login</button>
+<div id="pass" class="ng-scope">
+    <div style="
+    background-image: url('images/banner.png');
+    background-repeat: no-repeat;
+    background-size: cover;
+    width: 100%;
+    height: 40%;
+"></div>
+    <div style="
+    /* margin-bottom: 100px; */
+    width: 100%;
+    height: 60%;
+    position: relative;
+">
+        <div style="
+    width: 372px;
+    background-color: #ffffff;
+    border: solid 1px #cecece;
+    margin: -100px auto 0;
+    /* height: 324px; */
+    border-radius: 4px;
+">
+            <div style="
+     background-repeat: no-repeat;
+  height: 100px;
+  background-color: #263238;
+  background-image: url('images/logo-white.png');
+  /* border-color: #263238; */
+  margin: -1px;
+  border-radius: 4px 4px 0 0;
+  background-position: center;"></div>
+
+            <form class="clearfix" style="
+    padding: 25px;
+    /* height: 242px; */
+    /* position: relative; */
+" _lpchecked="1">
+                <div class="input-group" style="
+    width: 100%;
+">
+
+                    <input type="password" class="form-control" placeholder="Your Passphrase" style="
+    border-top: 0;
+    border-left: none;
+    border-right: none;
+    /* width: 100%; */
+    -webkit-box-shadow: none;
+    box-shadow: none;
+    -webkit-transition: none;    -o-transition: border-color ease-in-out .15s,box-shadow ease-in-out .15s;
+    /* transition: border-color ease-in-out .15s,box-shadow ease-in-out .15s; */
+" ng-model="pass" ng-trim="false" autofocus>
+                </div>
+                <button type="submit" class="sign-in-button pull-right" ng-click="login(pass)">Sign in
+                </button>
             </form>
+
+        </div>
+        <div style="
+    position: absolute;
+    bottom: -80px;
+    /* margin: 0 auto; */
+    text-align: center;
+    width: 100%;
+    color: #6d6d6d;
+    font-size: 14px;
+">Crypti © 2015. All Rights Reserved.
         </div>
     </div>
 </div>

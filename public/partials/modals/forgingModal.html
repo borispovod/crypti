@@ -1,15 +1,33 @@
-<div class="modal">
+<div class="app-modal">
     <div class="modal-content">
-        <h1 class="heading" ng-show="!forging">Start Forging</h1>
-        <h1 class="heading" ng-show="forging">Stop Forging</h1>
-		<form class="form" autocomplete="off">
-            <input class="input-text" type="password" ng-model="secretPhrase" placeholder="Your SecretPhrase" autofocus>
-            <p class="red" ng-show="error">{{error}}.</p>
-            <div class="pull-right">
-				<button type="submit"  ng-show="!forging" class="button green small" ng-disabled="!secretPhrase" ng-click="startForging()">Start</button>
-                <button type="submit"  ng-show="forging" class="button green small" ng-disabled="!secretPhrase" ng-click="stopForging()">Stop</button>
-                <button class="button small" ng-click="close()">Close</button>
+
+        <div class="modal-content">
+            <div class="modal-header modal-iconed">
+                <div class="close-modal" ng-click="passcheck()"><span class="sr-only">Close modal</span></div>
             </div>
-        </form>
+            <div class="modal-header clearfix">
+                <div><h2>Start Forging</h2>
+                </div>
+                <div>Please enter your passphrase below
+                </div>
+            </div>
+            <div class="modal-body">
+
+                <div class="input-group send-xcr">
+                    <input type="password" class="form-control" placeholder="Your Passphrase" ng-model="secretPhrase"
+                           ng-trim="false">
+                </div>
+            </div>
+
+            <div class="modal-body">
+                <ul class="nav modal-buttons pull-right">
+                    <li>
+                        <a href="#" ng-click="passcheck()">Cancel
+                        </a>
+                    </li>
+                    <li><a href="#" ng-click="sendCrypti()">send xcr</a></li>
+                </ul>
+            </div>
+        </div>
     </div>
 </div>

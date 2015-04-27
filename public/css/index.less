@@ -17,30 +17,19 @@
 }
 
 #menu {
-  padding-top: 62px;
+  padding-top: 26px;
 
   li {
     position: relative;
-    height: 30px;
-    margin-bottom: 26px;
     list-style: none;
-    padding-left: 26px;
     color: #fff;
-    opacity: 0.2;
+    padding: 18px 0 18px 26px;
+    height: inherit;
     &:hover {
-      opacity: 0.5;
     }
     &.active {
       opacity: 1;
-    }
-    &.active:before {
-      content: "";
-      position: absolute;
-      left: 0;
-      top: 0;
-      width: 4px;
-      height: 30px;
-      background-color: #62b670;
+      background-color: @active-menu;
     }
     a {
       color: #fff;
@@ -57,56 +46,78 @@ span.menu-text {
   display: inline-block;
   padding-top: 6px;
   padding-left: 16px;
-  font-weight: bold;
-  font-size: 15px;
+  font-weight: 600;
+  font-size: @content-text;
 }
 
-#account-icon {
-  background-image: url('@{images}/account.png');
-  background-repeat: no-repeat;
-  height: 30px;
-  width: 38px;
+.nav-icon {
+  background-image: url('@{images}/sprites/navicons.png');
+  height: 22px;
+  width: 22px;
   float: left;
+}
+
+#dashboard-icon {
+  background-position: -88px 0;
+  .active & {
+    background-position: -88px -22px;
+  }
+}
+
+#contacts-icon {
+  background-position: -22px -44px;
+  .active & {
+    background-position: -22px -66px;
+  }
+}
+
+#conversations-icon {
+  background-position: 0 -44px;
+  .active & {
+    background-position: 0 -66px;
+  }
+}
+
+#dappstore-icon {
+  background-position: -44px 0;
+  .active & {
+    background-position: -44px -22px;
+  }
 }
 
 #forging-icon {
-  background-image: url('@{images}/forging.png');
-  background-repeat: no-repeat;
-  height: 30px;
-  width: 38px;
-  float: left;
-}
-
-#blockchain-icon {
-  background-image: url('@{images}/blockchain.png');
-  background-repeat: no-repeat;
-  height: 30px;
-  width: 38px;
-  float: left;
-}
-
-#logout-icon {
-  background-image: url('@{images}/logout.png');
-  background-repeat: no-repeat;
-  height: 30px;
-  width: 38px;
-  float: left;
+  background-position: -66px 0;
+  .active & {
+    background-position: -66px -22px;
+  }
 }
 
 #delegates-icon {
-  background-image: url('@{images}/delegates.png');
-  background-repeat: no-repeat;
-  height: 30px;
-  width: 38px;
-  float: left;
+  background-position: -44px -44px;
+  .active & {
+    background-position: -44px -66px;
+  }
 }
 
-#votes-icon {
-  background-image: url('@{images}/votes.png');
-  background-repeat: no-repeat;
-  height: 30px;
-  width: 38px;
-  float: left;
+#myvotes-icon {
+  background-position: -66px -44px;
+  .active & {
+    background-position: -66px -66px;
+  }
+}
+
+#blockchain-icon {
+  background-position: 0 0;
+  .active & {
+    background-position: 0 -22px;
+  }
+}
+
+#network-icon {
+  background-position: -22px 0;
+  .active & {
+    background-position: -22px -22px;
+  }
 }
 
 #logout-item {
@@ -134,6 +145,244 @@ span.menu-text {
   }
 }
 
+#header {
+  background-color: @blue;
+  height: 60px;
+  padding: 20px 30px;
+  -webkit-box-shadow: 0 2px 5px rgba(0, 0, 0, 0.26);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.26);
+  .forging-state {
+    display: block;
+    float: left;
+    margin-left: 10px;
+    margin-top: -4px;
+    padding: 6px 10px;
+    background-color: @green;
+    color: @white;
+    border-radius: 16px;
+    font-size: @content-text;
+  }
+  .mini-chart {
+    display: inline-block;
+    width: 80px;
+    float: right;
+    position: relative;
+    opacity: 0.8;
+    .mini-chart-label {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      color: @white;
+      text-align: center;
+      padding-top: 14px;
+      font-size: @small-text;
+    }
+  }
+  .send-button {
+    padding: 8px 14px;
+    margin: 0 0 0 20px;
+    background-color: @sky-blue;
+    color: #fff;
+    font-size: 14px;
+    font-weight: normal;
+    -webkit-border-radius: 3px;
+    -moz-border-radius: 3px;
+    border-radius: 3px;
+    -webkit-box-shadow: none;
+    -moz-box-shadow: none;
+    box-shadow: none;
+    span:before {
+      content: "";
+      display: block;
+      float: left;
+      margin-top: 4px;
+      width: 14px;
+      height: 12px;
+      background-image: url('@{images}/sprites/iconset.png');
+      background-position: -56px 0;
+      margin-right: 14px;
+    }
+    &:active {
+      top: 0;
+      background-image: none;
+      outline: 0;
+      -webkit-box-shadow: inset 0 3px 5px rgba(0, 0, 0, .3);
+      box-shadow: inset 0 3px 5px rgba(0, 0, 0, .3);
+    }
+
+  }
+  #title {
+    display: block;
+    float: left;
+    font-weight: normal;
+    color: @white;
+    opacity: @font-opacity;
+  }
+  .title-icon {
+    background-image: url('@{images}/sprites/iconset.png');
+    background-position: -8px 0;
+    background-repeat: no-repeat;
+    height: 20px;
+    width: 20px;
+    float: left;
+    margin-right: 20px;
+    cursor: pointer;
+  }
+  #top-menu {
+    float: right;
+    margin-top: -10px;
+  }
+  #balance {
+    border-radius: @border-radius;
+    color: @white;
+    font-size: @normal-text;
+    background-color: @navy;
+    padding: 10px;
+    min-width: 60px;
+    text-align: right;
+    display: inline-block;
+  }
+}
+
+/*[ui-view].child-slider.ng-enter, [ui-view].child-slider.ng-leave, [ui-view].ng-enter, [ui-view].ng-leave {
+  -webkit-animation-duration: 1s;
+  animation-duration: 1s;
+  -webkit-animation-fill-mode: both;
+  animation-fill-mode: both
+}*/
+
+@-webkit-keyframes fadeInRight {
+  0% {
+    opacity: 0;
+    -webkit-transform: translate3d(100%, 0, 0);
+    transform: translate3d(100%, 0, 0)
+  }
+
+  100% {
+    opacity: 1;
+    -webkit-transform: none;
+    transform: none
+  }
+}
+
+@keyframes fadeInRight {
+  0% {
+    opacity: 0;
+    -webkit-transform: translate3d(100%, 0, 0);
+    -ms-transform: translate3d(100%, 0, 0);
+    transform: translate3d(100%, 0, 0)
+  }
+
+  100% {
+    opacity: 1;
+    -webkit-transform: none;
+    -ms-transform: none;
+    transform: none
+  }
+}
+
+@-webkit-keyframes fadeOutRight {
+  0% {
+    opacity: 1
+  }
+
+  100% {
+    opacity: 0;
+    -webkit-transform: translate3d(100%, 0, 0);
+    transform: translate3d(100%, 0, 0)
+  }
+}
+
+@keyframes fadeOutRight {
+  0% {
+    opacity: 1
+  }
+
+  100% {
+    opacity: 0;
+    -webkit-transform: translate3d(100%, 0, 0);
+    -ms-transform: translate3d(100%, 0, 0);
+    transform: translate3d(100%, 0, 0)
+  }
+}
+
+@-webkit-keyframes fadeOutLeft {
+  0% {
+    opacity: 1
+  }
+
+  100% {
+    opacity: 0;
+    -webkit-transform: translate3d(-100%, 0, 0);
+    transform: translate3d(-100%, 0, 0)
+  }
+}
+
+@keyframes fadeOutLeft {
+  0% {
+    opacity: 1
+  }
+
+  100% {
+    opacity: 0;
+    -webkit-transform: translate3d(-100%, 0, 0);
+    -ms-transform: translate3d(-100%, 0, 0);
+    transform: translate3d(-100%, 0, 0)
+  }
+}
+
+@-webkit-keyframes fadeInLeft {
+  0% {
+    opacity: 0;
+    -webkit-transform: translate3d(-100%, 0, 0);
+    transform: translate3d(-100%, 0, 0)
+  }
+
+  100% {
+    opacity: 1;
+    -webkit-transform: none;
+    transform: none
+  }
+}
+
+@keyframes fadeInLeft {
+  0% {
+    opacity: 0;
+    -webkit-transform: translate3d(-100%, 0, 0);
+    -ms-transform: translate3d(-100%, 0, 0);
+    transform: translate3d(-100%, 0, 0)
+  }
+
+  100% {
+    opacity: 1;
+    -webkit-transform: none;
+    -ms-transform: none;
+    transform: none
+  }
+}
+
+/*[ui-view].ng-enter {
+  -webkit-animation-name: fadeInLeft;
+  animation-name: fadeInLeft
+}
+
+[ui-view].child-slider.ng-enter-active{
+  -webkit-animation-name: fadeInRight;
+  animation-name: fadeInRight
+}
+
+[ui-view].ng-leave {
+  -webkit-animation-name: fadeOutLeft;
+  animation-name: fadeOutLeft
+}
+
+[ui-view].child-slider.ng-leave-active {
+  -webkit-animation-name: fadeOutRight;
+  animation-name: fadeOutRight
+}*/
+
 #inc {
   font-size: 14px;
   width: 198px;
@@ -147,6 +396,43 @@ span.menu-text {
 #right-part {
   background-color: #ebeced;
   height: 100%;
-  overflow-y: scroll;
 }
 
+.crypti-icon {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 80px;
+  height: 84px;
+  background: url('@{images}/sprites/widgets.png');
+  background-color: white;
+  background-size: 240px 84px;
+  background-repeat: no-repeat;
+  background-position: 0 0;
+}
+
+.contacts-icon {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 80px;
+  height: 84px;
+  background: url('@{images}/sprites/widgets.png');
+  background-color: white;
+  background-size: 240px 84px;
+  background-repeat: no-repeat;
+  background-position: -80px 0;
+}
+
+.dapp-icon {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 80px;
+  height: 84px;
+  background: url('@{images}/sprites/widgets.png');
+  background-color: white;
+  background-size: 240px 84px;
+  background-repeat: no-repeat;
+  background-position: -160px 0;
+}

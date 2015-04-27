@@ -19,7 +19,7 @@ angular.module('webApp').controller('passphraseController', ['$scope', '$rootSco
 							userService.unconfirmedPassphrase = resp.data.account.unconfirmedSignature;
 
 							//angular.element(document.getElementById("forgingButton")).hide();
-							$state.go('main.account');
+							$state.go('main.dashboard');
 						} else {
 							alert("Something wrong. Restart server please.");
 						}

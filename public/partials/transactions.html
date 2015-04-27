@@ -1,0 +1,35 @@
+<div class="top-margin"></div>
+
+<div class="row">
+    <div class="col-xs-12">
+        <div class="panel panel-default paginated">
+
+            <table ng-table="tableTransactions" border="0" width="100%" cellpadding="0" cellspacing="0">
+                <tr ng-repeat="block in $data" ng-class="{'voted': address == block.generatorId}">
+                    <td data-title="'Transaction ID'" class="pointer"><a href="#" ng-click="transactionInfo(block)">{{block.id}}</a>
+                    </td>
+                    <td data-title="'Sender'" class="pointer"><a href="#">{{block.senderId}}</a>
+                    </td>
+                    <td data-title="'Reciient'" class="pointer"><a href="#">{{block.recipientId}}</a>
+                    </td>
+                    <td data-title="'Time'">{{block.timestamp | timestampFilter}}
+                    </td>
+                    <td data-title="'Amount'"><span class="amount" ng-class="{'plus' : block.recipientId==appUser.address}"></span>{{block.amount | feeFilter}}
+                    </td>
+                    <td data-title="'Fee'">{{block.fee | feeFilter}}
+                    </td>
+                </tr>
+                <tr ng-show="!loading && (!$data || $data.length == 0)">
+                    <td colspan="6">
+                        No blockchain
+                    </td>
+                </tr>
+                <tr ng-show="loading">
+                    <td colspan="6">
+                        Loading...
+                    </td>
+                </tr>
+            </table>
+        </div>
+    </div>
+</div>

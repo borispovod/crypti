@@ -3,6 +3,11 @@ require('angular');
 angular.module('webApp').controller('voteController', ["$scope", "voteModal", "$http", "userService", "$timeout", function ($scope, voteModal, $http, userService, $timeout) {
     $scope.voting = false;
     $scope.fromServer = '';
+    $scope.passmode = false;
+    $scope.passcheck = function () {
+        $scope.passmode = !$scope.passmode;
+        $scope.pass = '';
+    }
     $scope.secondPassphrase = userService.secondPassphrase;
 
     Number.prototype.roundTo = function (digitsCount) {
@@ -40,25 +45,27 @@ angular.module('webApp').controller('voteController', ["$scope", "voteModal", "$
 
         var data = {
             secret: $scope.secretPhrase,
-            delegates: $scope.voteList,
+            delegates: Object.keys($scope.voteList).map(function (key) {
+                return ($scope.adding ? '+' : '-') + key;
+            }),
             publicKey: userService.publicKey
         };
 
         if ($scope.secondPassphrase) {
             data.secondSecret = $scope.secondPhrase;
         }
+        $scope.voting = !$scope.voting;
+        $http.put("/api/accounts/delegates", data).then(function (resp) {
             $scope.voting = !$scope.voting;
-            $http.put("/api/accounts/delegates", data).then(function (resp) {
-                $scope.voting = !$scope.voting;
-                if (resp.data.error) {
-                    $scope.fromServer = resp.data.error;
+            if (resp.data.error) {
+                $scope.fromServer = resp.data.error;
+            }
+            else {
+                if ($scope.destroy) {
+                    $scope.destroy();
                 }
-                else {
-                    if ($scope.destroy) {
-                        $scope.destroy();
-                    }
-                    voteModal.deactivate();
-                }
-            });
-        }
+                voteModal.deactivate();
+            }
+        });
+    }
 }]);
