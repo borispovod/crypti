@@ -9,7 +9,8 @@ var ed = require('ed25519'),
 	Router = require('../helpers/router.js'),
 	async = require('async'),
 	RequestSanitizer = require('../helpers/request-sanitizer.js'),
-	TransactionTypes = require('../helpers/transaction-types.js');
+	TransactionTypes = require('../helpers/transaction-types.js'),
+	errorCode = require('../helpers/errorCodes.js').error;
 
 // private fields
 var modules, library, self, private = {};
@@ -34,11 +35,11 @@ function Transfer() {
 	this.verify = function (trs, sender, cb) {
 		var isAddress = /^[0-9]+[C|c]$/g;
 		if (!isAddress.test(trs.recipientId.toLowerCase())) {
-			return cb("Invalid recipientId: " + trs.id);
+			return cb(errorCode("TRANSACTIONS.INVALID_RECIPIENT", trs));
 		}
 
 		if (trs.amount <= 0) {
-			return cb("Invalid transaction amount: " + trs.id);
+			return cb(errorCode("TRANSACTIONS.INVALID_AMOUNT", trs));
 		}
 
 		cb(null, trs);
@@ -127,7 +128,7 @@ function attachApi() {
 
 			private.list(query, function (err, transactions) {
 				if (err) {
-					return res.json({success: false, error: "Transactions not found"});
+					return res.json({success: false, error: errorCode("TRANSACTIONS.TRANSACTIONS_NOT_FOUND")});
 				}
 
 				res.json({success: true, transactions: transactions});
@@ -142,7 +143,7 @@ function attachApi() {
 
 			private.getById(query.id, function (err, transaction) {
 				if (!transaction || err) {
-					return res.json({success: false, error: "Transaction not found"});
+					return res.json({success: false, error: errorCode("TRANSACTIONS.TRANSACTION_NOT_FOUND")});
 				}
 				res.json({success: true, transaction: transaction});
 			});
@@ -157,7 +158,7 @@ function attachApi() {
 			var unconfirmedTransaction = self.getUnconfirmedTransaction(query.id);
 
 			if (!unconfirmedTransaction) {
-				return res.json({success: false, error: "Transaction not found"});
+				return res.json({success: false, error: errorCode("TRANSACTIONS.TRANSACTION_NOT_FOUND")});
 			}
 
 			res.json({success: true, transaction: unconfirmedTransaction});
@@ -209,7 +210,7 @@ function attachApi() {
 			} else {
 				var recipient = modules.accounts.getAccountByUsername(body.recipientId);
 				if (!recipient) {
-					return res.json({success: false, error: "Recipient is not found"});
+					return res.json({success: false, error: errorCode("TRANSACTIONS.RECIPIENT_NOT_FOUND")});
 				}
 				recipientId = recipient.address;
 			}
@@ -219,22 +220,19 @@ function attachApi() {
 
 			if (body.publicKey) {
 				if (keypair.publicKey.toString('hex') != body.publicKey) {
-					return res.json({success: false, error: "Please, provide valid secret key of your account"});
+					return res.json({success: false, error: errorCode("COMMON.INVALID_SECRET_KEY")});
 				}
 			}
 
 			var account = modules.accounts.getAccountByPublicKey(keypair.publicKey.toString('hex'));
 
-			if (!account) {
-				return res.json({success: false, error: "Account doesn't has balance"});
+			if (!account || !account.publicKey) {
+				return res.json({success: false, error: errorCode("COMMON.OPEN_ACCOUNT")});
 			}
 
-			if (!account.publicKey) {
-				return res.json({success: false, error: "Open account to make transaction"});
-			}
 
 			if (account.secondSignature && !body.secondSecret) {
-				return res.json({success: false, error: "Provide second secret key"});
+				return res.json({success: false, error: errorCode("COMMON.SECOND_SECRET_KEY")});
 			}
 
 			var secondKeypair = null;
