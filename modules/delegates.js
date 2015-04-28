@@ -8,7 +8,8 @@ var crypto = require('crypto'),
 	util = require('util'),
 	constants = require('../helpers/constants.js'),
 	RequestSanitizer = require('../helpers/request-sanitizer'),
-	TransactionTypes = require('../helpers/transaction-types.js');
+	TransactionTypes = require('../helpers/transaction-types.js'),
+	errorCode = require('../helpers/errorCodes.js').error;
 
 require('array.prototype.find'); //old node fix
 
@@ -48,20 +49,20 @@ function Delegate() {
 
 	this.verify = function (trs, sender, cb) {
 		if (trs.recipientId) {
-			return cb("Invalid recipientId: " + trs.id);
+			return cb(errorCode("DELEGATES.INVALID_RECIPIENT", trs));
 		}
 
 		if (trs.amount != 0) {
-			return cb("Invalid amount: " + trs.id);
+			return cb(errorCode("DELEGATES.INVALID_AMOUNT", trs));
 		}
 
 		if (!trs.asset.delegate.username) {
-			return cb("Empty transaction asset for delegate transaction: " + trs.id);
+			return cb(errorCode("DELEGATES.EMPTY_TRANSACTION_ASSET", trs));
 		}
 
 		var allowSymbols = /^[a-z0-9!@$&_.]+$/g;
 		if (!allowSymbols.test(trs.asset.delegate.username.toLowerCase())) {
-			return cb("Username can only contain alphanumeric characters with the exception of !@$&_.: " + trs.id);
+			return cb(errorCode("DELEGATES.USERNAME_CHARS", trs));
 		}
 
 		//if (trs.asset.delegate.username.search(/(admin|genesis|delegate|crypti|support)/i) > -1) {
@@ -70,23 +71,23 @@ function Delegate() {
 
 		var isAddress = /^[0-9]+c$/g;
 		if (isAddress.test(trs.asset.delegate.username.toLowerCase())) {
-			return cb("Username can't be like an address: " + trs.id);
+			return cb(errorCode("DELEGATES.USERNAME_LIKE_ADDRESS", trs));
 		}
 
 		if (trs.asset.delegate.username.length < 1) {
-			return cb("Delegate name is too short: " + trs.id);
+			return cb(errorCode("DELEGATES.USERNAME_IS_TOO_SHORT", trs));
 		}
 
 		if (trs.asset.delegate.username.length > 20) {
-			return cb("Delegate name is longer then 20 chars: " + trs.id);
+			return cb(errorCode("DELEGATES.USERNAME_IS_TOO_LONG", trs));
 		}
 
 		if (self.existsName(trs.asset.delegate.username)) {
-			return cb("The delegate name you entered is already in use. Please try a different name.: " + trs.id);
+			return cb(errorCode("DELEGATES.EXISTS_USERNAME", trs));
 		}
 
 		if (self.existsDelegate(trs.senderPublicKey)) {
-			return cb("Your account are delegate already: " + trs.id);
+			return cb(errorCode("DELEGATES.EXISTS_DELEGATE"));
 		}
 
 
@@ -310,7 +311,7 @@ function attachApi() {
 			if (delegate) {
 				res.json({success: true, delegate: delegate});
 			} else {
-				res.json({success: false, error: 'Delegate not found'});
+				res.json({success: false, error: errorCode("DELEGATES.DELEGATE_NOT_FOUND")});
 			}
 		});
 	});
@@ -319,11 +320,11 @@ function attachApi() {
 		var publicKey = RequestSanitizer.string(req.query.generatorPublicKey);
 
 		if (!publicKey) {
-			return res.json({success: false, error: "Provide generatorPublicKey in request"});
+			return res.json({success: false, error: errorCode("DELEGATES.FORGER_PUBLIC_KEY")});
 		}
 
 		if (private.fees[publicKey] === undefined) {
-			return res.json({success: false, error: "Fees not found"});
+			return res.json({success: true, fees: 0});
 		}
 
 		res.json({success: true, fees: private.fees[publicKey]});
@@ -333,14 +334,14 @@ function attachApi() {
 		var ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
 
 		if (library.config.forging.access.whiteList.length > 0 && library.config.forging.access.whiteList.indexOf(ip) < 0) {
-			return res.json({success: false, error: "Accesss denied"});
+			return res.json({success: false, error: errorCode("COMMON.ACCESS_DENIED")});
 		}
 
 		var secret = RequestSanitizer.string(req.body.secret);
 		var publicKey = RequestSanitizer.string(req.body.publicKey);
 
 		if (!secret) {
-			return res.json({success: false, error: "Provide secret in request"});
+			return res.json({success: false, error: errorCode("COMMON.INVALID_SECRET_KEY")});
 		}
 
 		var keypair = ed.MakeKeypair(crypto.createHash('sha256').update(secret, 'utf8').digest());
@@ -349,12 +350,12 @@ function attachApi() {
 
 		if (publicKey) {
 			if (keypair.publicKey.toString('hex') != publicKey) {
-				return res.json({success: false, error: "Wrong secret key"});
+				return res.json({success: false, error: errorCode("COMMON.INVALID_SECRET_KEY")});
 			}
 		}
 
 		if (private.keypairs[keypair.publicKey.toString('hex')]) {
-			return res.json({success: false, error: "Forging on this account already enabled"});
+			return res.json({success: false, error: errorCode("COMMON.FORGING_ALREADY_ENABLED")});
 		}
 
 		if (account && self.existsDelegate(keypair.publicKey.toString('hex'))) {
@@ -362,11 +363,7 @@ function attachApi() {
 			res.json({success: true, address: address});
 			library.logger.info("Forging enabled on account: " + address);
 		} else {
-			if (account) {
-				res.json({success: false, error: "Account for this secret " + secret + " not found"});
-			} else {
-				res.json({success: false, error: "Delegate for this secrect " + secret + " not found"});
-			}
+				res.json({success: false, error: errorCode("DELEGATES.DELEGATE_NOT_FOUND")});
 		}
 	});
 
@@ -374,14 +371,14 @@ function attachApi() {
 		var ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
 
 		if (library.config.forging.access.whiteList.length > 0 && library.config.forging.access.whiteList.indexOf(ip) < 0) {
-			return res.json({success: false, error: "Accesss denied"});
+			return res.json({success: false, error: errorCode("COMMON.ACCESS_DENIED")});
 		}
 
 		var secret = RequestSanitizer.string(req.body.secret);
 		var publicKey = RequestSanitizer.string(req.body.publicKey);
 
 		if (!secret) {
-			return res.json({success: false, error: "Provide secret in request"});
+			return res.json({success: false, error: errorCode("COMMON.INVALID_SECRET_KEY")});
 		}
 
 		var keypair = ed.MakeKeypair(crypto.createHash('sha256').update(secret, 'utf8').digest());
@@ -390,12 +387,12 @@ function attachApi() {
 
 		if (publicKey) {
 			if (keypair.publicKey.toString('hex') != publicKey) {
-				return res.json({success: false, error: "Wrong secret key"});
+				return res.json({success: false,error: errorCode("COMMON.INVALID_SECRET_KEY")});
 			}
 		}
 
 		if (!private.keypairs[keypair.publicKey.toString('hex')]) {
-			return res.json({success: false, error: "Forger with this public key not found"});
+			return res.json({success: false, error: errorCode("DELEGATES.FORGER_NOT_FOUND")});
 		}
 
 		if (account && self.existsDelegate(keypair.publicKey.toString('hex'))) {
@@ -411,7 +408,7 @@ function attachApi() {
 		var publicKey = req.query.publicKey;
 
 		if (!publicKey) {
-			return res.json({success: false, error: "Provide public key of account"});
+			return res.json({success: false, error: errorCode("COMMON.INVALID_SECRET_KEY")});
 		}
 
 		return res.json({success: true, enabled: !!private.keypairs[publicKey]});
@@ -432,22 +429,18 @@ function attachApi() {
 
 			if (body.publicKey) {
 				if (keypair.publicKey.toString('hex') != body.publicKey) {
-					return res.json({success: false, error: "Please, provide valid secret key of your account"});
+					return res.json({success: false, error: errorCode("COMMON.INVALID_SECRET_KEY")});
 				}
 			}
 
 			var account = modules.accounts.getAccountByPublicKey(keypair.publicKey.toString('hex'));
 
-			if (!account) {
-				return res.json({success: false, error: "Account doesn't has balance"});
-			}
-
-			if (!account.publicKey) {
-				return res.json({success: false, error: "Open account to make transaction"});
+			if (!account || !account.publicKey) {
+				return res.json({success: false, error: errorCode("COMMON.OPEN_ACCOUNT")});
 			}
 
 			if (account.secondSignature && !body.secondSecret) {
-				return res.json({success: false, error: "Provide second secret key"});
+				return res.json({success: false, error: errorCode("COMMON.SECOND_SECRET_KEY")});
 			}
 
 			var secondKeypair = null;
