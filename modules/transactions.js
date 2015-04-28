@@ -1,5 +1,4 @@
 var ed = require('ed25519'),
-	bignum = require('bignum'),
 	util = require('util'),
 	ByteBuffer = require("bytebuffer"),
 	crypto = require('crypto'),

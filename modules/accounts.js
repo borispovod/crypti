@@ -1,5 +1,5 @@
 var crypto = require('crypto'),
-	bignum = require('bignum'),
+	bignum = require('../helpers/bignum.js'),
 	ed = require('ed25519'),
 	slots = require('../helpers/slots.js'),
 	Router = require('../helpers/router.js'),
