@@ -1,7 +1,6 @@
 var crypto = require('crypto'),
 	ed = require('ed25519'),
 	ip = require('ip'),
-	bignum = require('bignum'),
 	ByteBuffer = require("bytebuffer"),
 	constants = require("../helpers/constants.js"),
 	genesisblock = require("../helpers/genesisblock.js"),

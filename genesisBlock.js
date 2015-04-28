@@ -43,8 +43,8 @@ function Transfer() {
 		return true;
 	}
 
-	this.applyUnconfirmed = function (trs, sender) {
-		return true;
+	this.applyUnconfirmed = function (trs, sender, cb) {
+		cb();
 	}
 
 	this.undoUnconfirmed = function (trs, sender) {
@@ -105,8 +105,8 @@ function Signature() {
 		return true;
 	}
 
-	this.applyUnconfirmed = function (trs, sender) {
-		return true;
+	this.applyUnconfirmed = function (trs, sender, cb) {
+		cb();
 	}
 
 	this.undoUnconfirmed = function (trs, sender) {
@@ -155,8 +155,8 @@ function Delegate() {
 		return true;
 	}
 
-	this.applyUnconfirmed = function (trs, sender) {
-		return true;
+	this.applyUnconfirmed = function (trs, sender, cb) {
+		cb();
 	}
 
 	this.undoUnconfirmed = function (trs, sender) {
@@ -205,8 +205,8 @@ function Vote() {
 		return true;
 	}
 
-	this.applyUnconfirmed = function (trs, sender) {
-		return true;
+	this.applyUnconfirmed = function (trs, sender, cb) {
+		cb();
 	}
 
 	this.undoUnconfirmed = function (trs, sender) {

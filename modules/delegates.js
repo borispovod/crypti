@@ -1,5 +1,4 @@
 var crypto = require('crypto'),
-	bignum = require('bignum'),
 	ed = require('ed25519'),
 	shuffle = require('knuth-shuffle').knuthShuffle,
 	Router = require('../helpers/router.js'),
@@ -48,20 +47,20 @@ function Delegate() {
 
 	this.verify = function (trs, sender, cb) {
 		if (trs.recipientId) {
-			return cb("Invalid recipientId: " + trs.id);
+			return setImmediate(cb, "Invalid recipientId: " + trs.id);
 		}
 
 		if (trs.amount != 0) {
-			return cb("Invalid amount: " + trs.id);
+			return setImmediate(cb, "Invalid amount: " + trs.id);
 		}
 
 		if (!trs.asset.delegate.username) {
-			return cb("Empty transaction asset for delegate transaction: " + trs.id);
+			return setImmediate(cb, "Empty transaction asset for delegate transaction: " + trs.id);
 		}
 
 		var allowSymbols = /^[a-z0-9!@$&_.]+$/g;
 		if (!allowSymbols.test(trs.asset.delegate.username.toLowerCase())) {
-			return cb("Username can only contain alphanumeric characters with the exception of !@$&_.: " + trs.id);
+			return setImmediate(cb, "Username can only contain alphanumeric characters with the exception of !@$&_.: " + trs.id);
 		}
 
 		//if (trs.asset.delegate.username.search(/(admin|genesis|delegate|crypti|support)/i) > -1) {
@@ -70,27 +69,27 @@ function Delegate() {
 
 		var isAddress = /^[0-9]+c$/g;
 		if (isAddress.test(trs.asset.delegate.username.toLowerCase())) {
-			return cb("Username can't be like an address: " + trs.id);
+			return setImmediate(cb, "Username can't be like an address: " + trs.id);
 		}
 
 		if (trs.asset.delegate.username.length < 1) {
-			return cb("Delegate name is too short: " + trs.id);
+			return setImmediate(cb, "Delegate name is too short: " + trs.id);
 		}
 
 		if (trs.asset.delegate.username.length > 20) {
-			return cb("Delegate name is longer then 20 chars: " + trs.id);
+			return setImmediate(cb, "Delegate name is longer then 20 chars: " + trs.id);
 		}
 
 		if (self.existsName(trs.asset.delegate.username)) {
-			return cb("The delegate name you entered is already in use. Please try a different name.: " + trs.id);
+			return setImmediate(cb, "The delegate name you entered is already in use. Please try a different name.: " + trs.id);
 		}
 
 		if (self.existsDelegate(trs.senderPublicKey)) {
-			return cb("Your account are delegate already: " + trs.id);
+			return setImmediate(cb, "Your account are delegate already: " + trs.id);
 		}
 
 
-		cb(null, trs);
+		setImmediate(cb, null, trs);
 	}
 
 	this.getBytes = function (trs) {
@@ -111,18 +110,18 @@ function Delegate() {
 		return true;
 	}
 
-	this.applyUnconfirmed = function (trs, sender) {
+	this.applyUnconfirmed = function (trs, sender, cb) {
 		if (modules.delegates.getUnconfirmedDelegate(trs.asset.delegate)) {
-			return false;
+			return setImmediate(cb, "Can't apply delegate: " + trs.id);
 		}
 
 		if (modules.delegates.getUnconfirmedName(trs.asset.delegate)) {
-			return false;
+			return setImmediate(cb, "Can't apply username: " + trs.id);
 		}
 
 		modules.delegates.addUnconfirmedDelegate(trs.asset.delegate);
 
-		return true;
+		setImmediate(cb);
 	}
 
 	this.undoUnconfirmed = function (trs, sender) {
@@ -316,105 +315,105 @@ function attachApi() {
 	});
 
 	router.get('/forging/getForgedByAccount', function (req, res) {
-		var publicKey = RequestSanitizer.string(req.query.generatorPublicKey);
+		req.sanitize("query", {generatorPublicKey: "string!"}, function (err, report, query) {
+			if (err) return next(err);
+			if (!report.isValid) return res.json({success: false, error: report.issues});
 
-		if (!publicKey) {
-			return res.json({success: false, error: "Provide generatorPublicKey in request"});
-		}
+			if (private.fees[query.generatorPublicKey] === undefined) {
+				return res.json({success: false, error: "Fees not found"});
+			}
 
-		if (private.fees[publicKey] === undefined) {
-			return res.json({success: false, error: "Fees not found"});
-		}
-
-		res.json({success: true, fees: private.fees[publicKey]});
+			res.json({success: true, fees: private.fees[query.generatorPublicKey]});
+		});
 	});
 
 	router.post('/forging/enable', function (req, res) {
-		var ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+		req.sanitize("body", {
+			secret: "string!",
+			publicKey: "string?"
+		}, function (err, report, body) {
+			if (err) return next(err);
+			if (!report.isValid) return res.json({success: false, error: report.issues});
 
-		if (library.config.forging.access.whiteList.length > 0 && library.config.forging.access.whiteList.indexOf(ip) < 0) {
-			return res.json({success: false, error: "Accesss denied"});
-		}
+			var ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
 
-		var secret = RequestSanitizer.string(req.body.secret);
-		var publicKey = RequestSanitizer.string(req.body.publicKey);
-
-		if (!secret) {
-			return res.json({success: false, error: "Provide secret in request"});
-		}
-
-		var keypair = ed.MakeKeypair(crypto.createHash('sha256').update(secret, 'utf8').digest());
-		var address = modules.accounts.getAddressByPublicKey(keypair.publicKey.toString('hex'));
-		var account = modules.accounts.getAccount(address);
-
-		if (publicKey) {
-			if (keypair.publicKey.toString('hex') != publicKey) {
-				return res.json({success: false, error: "Wrong secret key"});
+			if (library.config.forging.access.whiteList.length > 0 && library.config.forging.access.whiteList.indexOf(ip) < 0) {
+				return res.json({success: false, error: "Accesss denied"});
 			}
-		}
 
-		if (private.keypairs[keypair.publicKey.toString('hex')]) {
-			return res.json({success: false, error: "Forging on this account already enabled"});
-		}
+			var keypair = ed.MakeKeypair(crypto.createHash('sha256').update(body.secret, 'utf8').digest());
+			var address = modules.accounts.getAddressByPublicKey(keypair.publicKey.toString('hex'));
+			var account = modules.accounts.getAccount(address);
 
-		if (account && self.existsDelegate(keypair.publicKey.toString('hex'))) {
-			private.keypairs[keypair.publicKey.toString('hex')] = keypair;
-			res.json({success: true, address: address});
-			library.logger.info("Forging enabled on account: " + address);
-		} else {
-			if (account) {
-				res.json({success: false, error: "Account for this secret " + secret + " not found"});
+			if (body.publicKey) {
+				if (keypair.publicKey.toString('hex') != body.publicKey) {
+					return res.json({success: false, error: "Wrong secret key"});
+				}
+			}
+
+			if (private.keypairs[keypair.publicKey.toString('hex')]) {
+				return res.json({success: false, error: "Forging on this account already enabled"});
+			}
+
+			if (account && self.existsDelegate(keypair.publicKey.toString('hex'))) {
+				private.keypairs[keypair.publicKey.toString('hex')] = keypair;
+				res.json({success: true, address: address});
+				library.logger.info("Forging enabled on account: " + address);
 			} else {
-				res.json({success: false, error: "Delegate for this secrect " + secret + " not found"});
+				if (account) {
+					res.json({success: false, error: "Account for this secret not found"});
+				} else {
+					res.json({success: false, error: "Delegate for this secret not found"});
+				}
 			}
-		}
+		});
 	});
 
 	router.post('/forging/disable', function (req, res) {
-		var ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+		req.sanitize("body", {
+			secret: "string!",
+			publicKey: "string?"
+		}, function (err, report, body) {
+			if (err) return next(err);
+			if (!report.isValid) return res.json({success: false, error: report.issues});
 
-		if (library.config.forging.access.whiteList.length > 0 && library.config.forging.access.whiteList.indexOf(ip) < 0) {
-			return res.json({success: false, error: "Accesss denied"});
-		}
+			var ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
 
-		var secret = RequestSanitizer.string(req.body.secret);
-		var publicKey = RequestSanitizer.string(req.body.publicKey);
-
-		if (!secret) {
-			return res.json({success: false, error: "Provide secret in request"});
-		}
-
-		var keypair = ed.MakeKeypair(crypto.createHash('sha256').update(secret, 'utf8').digest());
-		var address = modules.accounts.getAddressByPublicKey(keypair.publicKey.toString('hex'));
-		var account = modules.accounts.getAccount(address);
-
-		if (publicKey) {
-			if (keypair.publicKey.toString('hex') != publicKey) {
-				return res.json({success: false, error: "Wrong secret key"});
+			if (library.config.forging.access.whiteList.length > 0 && library.config.forging.access.whiteList.indexOf(ip) < 0) {
+				return res.json({success: false, error: "Accesss denied"});
 			}
-		}
 
-		if (!private.keypairs[keypair.publicKey.toString('hex')]) {
-			return res.json({success: false, error: "Forger with this public key not found"});
-		}
+			var keypair = ed.MakeKeypair(crypto.createHash('sha256').update(body.secret, 'utf8').digest());
+			var address = modules.accounts.getAddressByPublicKey(keypair.publicKey.toString('hex'));
+			var account = modules.accounts.getAccount(address);
 
-		if (account && self.existsDelegate(keypair.publicKey.toString('hex'))) {
-			delete private.keypairs[keypair.publicKey.toString('hex')];
-			res.json({success: true, address: address});
-			library.logger.info("Forging disabled on account: " + address);
-		} else {
-			res.json({success: false});
-		}
+			if (body.publicKey) {
+				if (keypair.publicKey.toString('hex') != body.publicKey) {
+					return res.json({success: false, error: "Wrong secret key"});
+				}
+			}
+
+			if (!private.keypairs[keypair.publicKey.toString('hex')]) {
+				return res.json({success: false, error: "Forger with this public key not found"});
+			}
+
+			if (account && self.existsDelegate(keypair.publicKey.toString('hex'))) {
+				delete private.keypairs[keypair.publicKey.toString('hex')];
+				res.json({success: true, address: address});
+				library.logger.info("Forging disabled on account: " + address);
+			} else {
+				res.json({success: false});
+			}
+		});
 	});
 
 	router.get('/forging/status', function (req, res) {
-		var publicKey = req.query.publicKey;
+		req.sanitize("query", {publicKey: "string!"}, function (err, report, query) {
+			if (err) return next(err);
+			if (!report.isValid) return res.json({success: false, error: report.issues});
 
-		if (!publicKey) {
-			return res.json({success: false, error: "Provide public key of account"});
-		}
-
-		return res.json({success: true, enabled: !!private.keypairs[publicKey]});
+			return res.json({success: true, enabled: !!private.keypairs[query.publicKey]});
+		});
 	});
 
 	router.put('/', function (req, res, next) {
@@ -486,7 +485,7 @@ function attachApi() {
 	});
 }
 
-private.getDelegate = function(filter, rateSort) {
+private.getDelegate = function (filter, rateSort) {
 	var index;
 
 	if (filter.transactionId) {
@@ -531,7 +530,7 @@ private.getDelegate = function(filter, rateSort) {
 	};
 }
 
-private.getKeysSortByVote = function(keys, votes) {
+private.getKeysSortByVote = function (keys, votes) {
 	return keys.sort(function compare(a, b) {
 		if (votes[a] > votes[b]) return -1;
 		if (votes[a] < votes[b]) return 1;
@@ -541,7 +540,7 @@ private.getKeysSortByVote = function(keys, votes) {
 	});
 }
 
-private.getBlockSlotData = function(slot, height) {
+private.getBlockSlotData = function (slot, height) {
 	var activeDelegates = self.generateDelegateList(height);
 
 	var currentSlot = slot;
@@ -559,7 +558,7 @@ private.getBlockSlotData = function(slot, height) {
 	return null;
 }
 
-private.loop = function(cb) {
+private.loop = function (cb) {
 	setImmediate(cb);
 
 	if (!Object.keys(private.keypairs).length) {
@@ -607,7 +606,7 @@ private.loop = function(cb) {
 	});
 }
 
-private.loadMyDelegates = function() {
+private.loadMyDelegates = function () {
 	var secrets = null;
 	if (library.config.forging.secret) {
 		secrets = util.isArray(library.config.forging.secret) ? library.config.forging.secret : [library.config.forging.secret];

@@ -1,5 +1,4 @@
 var ed = require('ed25519'),
-	bignum = require('bignum'),
 	ByteBuffer = require("bytebuffer"),
 	crypto = require('crypto'),
 	constants = require("../helpers/constants.js"),
@@ -29,22 +28,22 @@ function Signature() {
 
 	this.verify = function (trs, sender, cb) {
 		if (!trs.asset.signature) {
-			return cb("Empty transaction asset for signature transaction: " + trs.id)
+			return setImmediate(cb, "Empty transaction asset for signature transaction: " + trs.id)
 		}
 
 		if (trs.amount != 0) {
-			return cb("Invalid amount: " + trs.id);
+			return setImmediate(cb, "Invalid amount: " + trs.id);
 		}
 
 		try {
 			if (new Buffer(trs.asset.signature.publicKey, 'hex').length != 32) {
-				return cb("Invalid length for signature public key: " + trs.id);
+				return setImmediate(cb, "Invalid length for signature public key: " + trs.id);
 			}
 		} catch (e) {
-			return cb("Invalid hex in signature public key: " + trs.id);
+			return setImmediate(cb, "Invalid hex in signature public key: " + trs.id);
 		}
 
-		return cb(null, trs);
+		setImmediate(cb, null, trs);
 	}
 
 	this.getBytes = function (trs) {
@@ -79,14 +78,14 @@ function Signature() {
 		return true;
 	}
 
-	this.applyUnconfirmed = function (trs, sender) {
+	this.applyUnconfirmed = function (trs, sender, cb) {
 		if (sender.unconfirmedSignature || sender.secondSignature) {
-			return false;
+			return setImmediate(cb, "Failed secondSignature: " + trs.id);
 		}
 
 		sender.unconfirmedSignature = true;
 
-		return true;
+		setImmediate(cb);
 	}
 
 	this.undoUnconfirmed = function (trs, sender) {

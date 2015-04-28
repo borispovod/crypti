@@ -24,27 +24,27 @@ function Contact() {
 
 	this.verify = function (trs, sender, cb) {
 		if (!trs.asset.contact) {
-			return cb("Invalid asset: " + trs.id);
+			return setImmediate(cb, "Invalid asset: " + trs.id);
 		}
 
 		if (!trs.asset.contact.address) {
-			return cb("Invalid following: " + trs.id);
+			return setImmediate(cb, "Invalid following: " + trs.id);
 		}
 
 		var isAddress = /^[0-9]+[C|c]$/g;
 		if (!isAddress.test(trs.asset.contact.address.toLowerCase())) {
-			return cb("Invalid following: " + trs.id);
+			return setImmediate(cb, "Invalid following: " + trs.id);
 		}
 
 		if (trs.amount != 0) {
-			return cb("Invalid amount: " + trs.id);
+			return setImmediate(cb, "Invalid amount: " + trs.id);
 		}
 
 		if (trs.recipientId != trs.senderId) {
-			return cb("Invalid recipientId: " + trs.id);
+			return setImmediate(cb, "Invalid recipientId: " + trs.id);
 		}
 
-		return cb(null, trs);
+		setImmediate(cb, null, trs);
 	}
 
 	this.getBytes = function (trs) {
@@ -72,8 +72,9 @@ function Contact() {
 		return sender.undoContact(trs.asset.contact.address);
 	}
 
-	this.applyUnconfirmed = function (trs, sender) {
-		return sender.applyUnconfirmedContact(trs.asset.contact.address);
+	this.applyUnconfirmed = function (trs, sender, cb) {
+		var res = sender.applyUnconfirmedContact(trs.asset.contact.address);
+		setImmediate(cb, !res ? "Can't apply contact: " + trs.id : null);
 	}
 
 	this.undoUnconfirmed = function (trs, sender) {
