@@ -1,5 +1,4 @@
 var crypto = require('crypto'),
-	bignum = require('bignum'),
 	ed = require('ed25519'),
 	shuffle = require('knuth-shuffle').knuthShuffle,
 	Router = require('../helpers/router.js'),

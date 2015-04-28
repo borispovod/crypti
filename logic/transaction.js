@@ -4,7 +4,7 @@ var slots = require('../helpers/slots.js'),
 	genesisblock = require("../helpers/genesisblock.js"),
 	constants = require('../helpers/constants.js'),
 	ByteBuffer = require("bytebuffer"),
-	bignum = require('bignum'),
+	bignum = require('../helpers/bignum.js'),
 	extend = require('util-extend'),
 	RequestSanitizer = require('../helpers/request-sanitizer.js');
 

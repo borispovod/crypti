@@ -1,5 +1,4 @@
 var ed = require('ed25519'),
-	bignum = require('bignum'),
 	ByteBuffer = require("bytebuffer"),
 	crypto = require('crypto'),
 	constants = require("../helpers/constants.js"),
