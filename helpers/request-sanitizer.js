@@ -1,4 +1,4 @@
-var Validator = require('./validator');
+var Validator = require('./validator/validator.js');
 var extend = require('extend');
 var inherits = require('util').inherits;
 

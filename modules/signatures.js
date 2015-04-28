@@ -6,7 +6,8 @@ var ed = require('ed25519'),
 	RequestSanitizer = require('../helpers/request-sanitizer.js'),
 	Router = require('../helpers/router.js'),
 	async = require('async'),
-	TransactionTypes = require('../helpers/transaction-types.js');
+	TransactionTypes = require('../helpers/transaction-types.js'),
+	errorCode = require('../helpers/errorCodes.js').error;
 
 // private fields
 var modules, library, self, private = {};
@@ -28,19 +29,19 @@ function Signature() {
 
 	this.verify = function (trs, sender, cb) {
 		if (!trs.asset.signature) {
-			return setImmediate(cb, "Empty transaction asset for signature transaction: " + trs.id)
+			return setImmediate(cb, errorCode("SIGNATURES.INVALID_ASSET", trs))
 		}
 
 		if (trs.amount != 0) {
-			return setImmediate(cb, "Invalid amount: " + trs.id);
+			return setImmediate(cb, errorCode("SIGNATURES.INVALID_AMOUNT", trs));
 		}
 
 		try {
 			if (new Buffer(trs.asset.signature.publicKey, 'hex').length != 32) {
-				return setImmediate(cb, "Invalid length for signature public key: " + trs.id);
+				return setImmediate(cb, errorCode("SIGNATURES.INVALID_LENGTH", trs));
 			}
 		} catch (e) {
-			return setImmediate(cb, "Invalid hex in signature public key: " + trs.id);
+			return setImmediate(cb, errorCode("SIGNATURES.INVALID_HEX", trs));
 		}
 
 		setImmediate(cb, null, trs);
@@ -171,22 +172,18 @@ function attachApi() {
 
 			if (body.publicKey) {
 				if (keypair.publicKey.toString('hex') != body.publicKey) {
-					return res.json({success: false, error: "Please, provide valid secret key of your account"});
+					return res.json({success: false, error: errorCode("COMMON.INVALID_SECRET_KEY")});
 				}
 			}
 
 			var account = modules.accounts.getAccountByPublicKey(keypair.publicKey.toString('hex'));
 
-			if (!account) {
-				return res.json({success: false, error: "Account doesn't has balance"});
-			}
-
-			if (!account.publicKey) {
-				return res.json({success: false, error: "Open account to make transaction"});
+			if (!account || !account.publicKey) {
+				return res.json({success: false, error: errorCode("COMMON.OPEN_ACCOUNT")});
 			}
 
 			if (account.secondSignature || account.unconfirmedSignature) {
-				return res.json({success: false, error: "Second signature already enabled"});
+				return res.json({success: false, error: errorCode("COMMON.SECOND_SECRET_KEY")});
 			}
 
 			var secondHash = crypto.createHash('sha256').update(body.secondSecret, 'utf8').digest();

@@ -11,7 +11,8 @@ var crypto = require('crypto'),
 	util = require('util'),
 	async = require('async'),
 	dblite = require('dblite'),
-	TransactionTypes = require('../helpers/transaction-types.js');
+	TransactionTypes = require('../helpers/transaction-types.js'),
+	errorCode = require('../helpers/errorCodes.js').error;
 
 //private fields
 var modules, library, self, private = {};
@@ -57,7 +58,7 @@ function attachApi() {
 
 			private.getById(query.id, function (err, block) {
 				if (!block || err) {
-					return res.json({success: false, error: "Block not found"});
+					return res.json({success: false, error: errorCode("BLOCKS.BLOCK_NOT_FOUND")});
 				}
 				res.json({success: true, block: block});
 			});
@@ -80,7 +81,7 @@ function attachApi() {
 
 			private.list(query, function (err, blocks) {
 				if (err) {
-					return res.json({success: false, error: "Blocks not found"});
+					return res.json({success: false, error: errorCode("BLOCKS.BLOCK_NOT_FOUND")});
 				}
 				res.json({success: true, blocks: blocks});
 			});
@@ -213,7 +214,7 @@ private.getById = function (id, cb) {
 	"from blocks b " +
 	"where b.id = $id", {id: id}, ['b_id', 'b_version', 'b_timestamp', 'b_height', 'b_previousBlock', 'b_numberOfTransactions', 'b_totalAmount', 'b_totalFee', 'b_payloadLength', 'b_payloadHash', 'b_generatorPublicKey', 'b_blockSignature'], function (err, rows) {
 		if (err || !rows.length) {
-			return cb(err || "Can't find block: " + id);
+			return cb(err || errorCode("BLOCKS.BLOCK_NOT_FOUND"));
 		}
 
 		var block = library.logic.block.dbRead(rows[0]);
