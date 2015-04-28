@@ -22,7 +22,7 @@
 		"blackList": []
 	},
 	"forging": {
-		"secret": "",
+		"secret": [],
 		"access": {
 			"whiteList": ["127.0.0.1"]
 		}
