@@ -68,8 +68,8 @@ function Transfer() {
 		return true;
 	}
 
-	this.applyUnconfirmed = function (trs, sender) {
-		return true;
+	this.applyUnconfirmed = function (trs, sender, cb) {
+		setImmediate(cb);
 	}
 
 	this.undoUnconfirmed = function (trs, sender) {
@@ -138,28 +138,25 @@ function attachApi() {
 	});
 
 	router.get('/get', function (req, res) {
-		var id = RequestSanitizer.string(req.query.id);
+		req.sanitize("query", {id: "string!"}, function (err, report, query) {
+			if (err) return next(err);
+			if (!report.isValid) return res.json({success: false, error: report.issues});
 
-		if (!id) {
-			return res.json({success: false, error: "Provide id in url"});
-		}
-
-		private.getById(id, function (err, transaction) {
+			private.getById(query.id, function (err, transaction) {
 			if (!transaction || err) {
 				return res.json({success: false, error: errorCode("TRANSACTIONS.TRANSACTION_NOT_FOUND")});
 			}
 			res.json({success: true, transaction: transaction});
 		});
 	});
+	});
 
 	router.get('/unconfirmed/get', function (req, res) {
-		var id = RequestSanitizer.string(req.query.id);
+		req.sanitize("query", {id: "string!"}, function (err, report, query) {
+			if (err) return next(err);
+			if (!report.isValid) return res.json({success: false, error: report.issues});
 
-		if (!id) {
-			return res.json({success: false, error: "Provide id in url"});
-		}
-
-		var unconfirmedTransaction = self.getUnconfirmedTransaction(id);
+			var unconfirmedTransaction = self.getUnconfirmedTransaction(query.id);
 
 		if (!unconfirmedTransaction) {
 			return res.json({success: false, error: errorCode("TRANSACTIONS.TRANSACTION_NOT_FOUND")});
@@ -167,17 +164,22 @@ function attachApi() {
 
 		res.json({success: true, transaction: unconfirmedTransaction});
 	});
+	});
 
 	router.get('/unconfirmed/', function (req, res) {
+		req.sanitize("query", {
+			senderPublicKey: "hex?",
+			address: "string?"
+		}, function (err, report, query) {
+			if (err) return next(err);
+			if (!report.isValid) return res.json({success: false, error: report.issues});
+
 		var transactions = self.getUnconfirmedTransactionList(true),
 			toSend = [];
 
-		var senderPublicKey = RequestSanitizer.hex(req.query.senderPublicKey || null, true),
-			address = RequestSanitizer.string(req.query.address, true);
-
-		if (senderPublicKey || address) {
+			if (query.senderPublicKey || query.address) {
 			for (var i = 0; i < transactions.length; i++) {
-				if (transactions[i].senderPublicKey == senderPublicKey || transactions[i].recipientId == address) {
+					if (transactions[i].senderPublicKey == query.senderPublicKey || transactions[i].recipientId == query.address) {
 					toSend.push(transactions[i]);
 				}
 			}
@@ -188,6 +190,7 @@ function attachApi() {
 		}
 
 		res.json({success: true, transactions: toSend});
+	});
 	});
 
 	router.put('/', function (req, res) {
@@ -354,17 +357,19 @@ private.getById = function (id, cb) {
 	});
 }
 
-private.addUnconfirmedTransaction = function (transaction) {
-	if (!self.applyUnconfirmed(transaction)) {
+private.addUnconfirmedTransaction = function (transaction, cb) {
+	self.applyUnconfirmed(transaction, function (err) {
+		if (err) {
 		self.addDoubleSpending(transaction);
-		return false;
+			return setImmediate(cb, err);
 	}
 
 	private.unconfirmedTransactions.push(transaction);
 	var index = private.unconfirmedTransactions.length - 1;
 	private.unconfirmedTransactionsIdIndex[transaction.id] = index;
 
-	return true;
+		setImmediate(cb);
+	});
 }
 
 //public methods
@@ -410,49 +415,52 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 	var txId = library.logic.transaction.getId(transaction);
 
 	if (transaction.id && transaction.id != txId) {
-		cb && cb("Invalid transaction id");
-		return;
+		return cb("Invalid transaction id");
 	} else {
 		transaction.id = txId;
 	}
 
 	library.dbLite.query("SELECT count(id) FROM trs WHERE id=$id", {id: transaction.id}, {"count": Number}, function (err, rows) {
 		if (err) {
-			return cb && cb("Internal sql error");
+			return cb("Internal sql error");
 		}
 
 		var res = rows.length && rows[0];
 
 		if (res.count) {
-			return cb && cb("Can't process transaction, transaction already confirmed");
+			return cb("Can't process transaction, transaction already confirmed");
 		} else {
 			// check in confirmed transactions
 			if (private.unconfirmedTransactionsIdIndex[transaction.id] !== undefined || private.doubleSpendingTransactions[transaction.id]) {
-				return cb && cb("This transaction already exists");
+				return cb("This transaction already exists");
 			}
 
 			var sender = modules.accounts.getAccountByPublicKey(transaction.senderPublicKey);
 
 			if (!sender) {
-				return cb && cb("Can't process transaction, sender not found");
+				return cb("Can't process transaction, sender not found");
 			}
 
 			transaction.senderId = sender.address;
 
 			if (!library.logic.transaction.verifySignature(transaction, transaction.senderPublicKey, transaction.signature)) {
-				return cb && cb("Can't verify signature");
+				return cb("Can't verify signature");
 			}
 
 			function done(err) {
-				if (err) return cb && cb(err);
+				if (err) {
+					return cb(err);
+				}
 
-				if (!private.addUnconfirmedTransaction(transaction)) {
-					return cb && cb("Can't apply transaction: " + transaction.id);
+				private.addUnconfirmedTransaction(transaction, function (err) {
+					if (err) {
+						return cb(err);
 				}
 
 				library.bus.message('unconfirmedTransaction', transaction, broadcast);
 
-				cb && cb();
+					cb();
+				});
 			}
 
 			if (!library.logic.transaction.ready(transaction)) {
@@ -497,16 +505,16 @@ Transactions.prototype.undo = function (transaction) {
 	return library.logic.transaction.undo(transaction, sender);
 }
 
-Transactions.prototype.applyUnconfirmed = function (transaction) {
+Transactions.prototype.applyUnconfirmed = function (transaction, cb) {
 	var sender = modules.accounts.getAccountByPublicKey(transaction.senderPublicKey);
 
 	if (!sender && transaction.blockId != genesisblock.block.id) {
-		return false;
+		return setImmediate(cb, 'Failed account: ' + transaction.id);
 	} else {
 		sender = modules.accounts.getAccountOrCreateByPublicKey(transaction.senderPublicKey);
 	}
 
-	return library.logic.transaction.applyUnconfirmed(transaction, sender);
+	return library.logic.transaction.applyUnconfirmed(transaction, sender, cb);
 }
 
 Transactions.prototype.undoUnconfirmed = function (transaction) {

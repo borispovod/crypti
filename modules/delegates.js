@@ -49,20 +49,20 @@ function Delegate() {
 
 	this.verify = function (trs, sender, cb) {
 		if (trs.recipientId) {
-			return cb(errorCode("DELEGATES.INVALID_RECIPIENT", trs));
+			return setImmediate(cb, errorCode("DELEGATES.INVALID_RECIPIENT", trs));
 		}
 
 		if (trs.amount != 0) {
-			return cb(errorCode("DELEGATES.INVALID_AMOUNT", trs));
+			return setImmediate(cb, errorCode("DELEGATES.INVALID_AMOUNT", trs));
 		}
 
 		if (!trs.asset.delegate.username) {
-			return cb(errorCode("DELEGATES.EMPTY_TRANSACTION_ASSET", trs));
+			return setImmediate(cb, errorCode("DELEGATES.EMPTY_TRANSACTION_ASSET", trs));
 		}
 
 		var allowSymbols = /^[a-z0-9!@$&_.]+$/g;
 		if (!allowSymbols.test(trs.asset.delegate.username.toLowerCase())) {
-			return cb(errorCode("DELEGATES.USERNAME_CHARS", trs));
+			return setImmediate(cb, errorCode("DELEGATES.USERNAME_CHARS", trs));
 		}
 
 		//if (trs.asset.delegate.username.search(/(admin|genesis|delegate|crypti|support)/i) > -1) {
@@ -71,27 +71,27 @@ function Delegate() {
 
 		var isAddress = /^[0-9]+c$/g;
 		if (isAddress.test(trs.asset.delegate.username.toLowerCase())) {
-			return cb(errorCode("DELEGATES.USERNAME_LIKE_ADDRESS", trs));
+			return setImmediate(cb, errorCode("DELEGATES.USERNAME_LIKE_ADDRESS", trs));
 		}
 
 		if (trs.asset.delegate.username.length < 1) {
-			return cb(errorCode("DELEGATES.USERNAME_IS_TOO_SHORT", trs));
+			return setImmediate(cb, errorCode("DELEGATES.USERNAME_IS_TOO_SHORT", trs));
 		}
 
 		if (trs.asset.delegate.username.length > 20) {
-			return cb(errorCode("DELEGATES.USERNAME_IS_TOO_LONG", trs));
+			return setImmediate(cb, errorCode("DELEGATES.USERNAME_IS_TOO_LONG", trs));
 		}
 
 		if (self.existsName(trs.asset.delegate.username)) {
-			return cb(errorCode("DELEGATES.EXISTS_USERNAME", trs));
+			return setImmediate(cb, errorCode("DELEGATES.EXISTS_USERNAME", trs));
 		}
 
 		if (self.existsDelegate(trs.senderPublicKey)) {
-			return cb(errorCode("DELEGATES.EXISTS_DELEGATE"));
+			return setImmediate(cb, errorCode("DELEGATES.EXISTS_DELEGATE"));
 		}
 
 
-		cb(null, trs);
+		setImmediate(cb, null, trs);
 	}
 
 	this.getBytes = function (trs) {
@@ -112,18 +112,18 @@ function Delegate() {
 		return true;
 	}
 
-	this.applyUnconfirmed = function (trs, sender) {
+	this.applyUnconfirmed = function (trs, sender, cb) {
 		if (modules.delegates.getUnconfirmedDelegate(trs.asset.delegate)) {
-			return false;
+			return setImmediate(cb, "Can't apply delegate: " + trs.id);
 		}
 
 		if (modules.delegates.getUnconfirmedName(trs.asset.delegate)) {
-			return false;
+			return setImmediate(cb, "Can't apply username: " + trs.id);
 		}
 
 		modules.delegates.addUnconfirmedDelegate(trs.asset.delegate);
 
-		return true;
+		setImmediate(cb);
 	}
 
 	this.undoUnconfirmed = function (trs, sender) {
@@ -317,39 +317,38 @@ function attachApi() {
 	});
 
 	router.get('/forging/getForgedByAccount', function (req, res) {
-		var publicKey = RequestSanitizer.string(req.query.generatorPublicKey);
+		req.sanitize("query", {generatorPublicKey: "string!"}, function (err, report, query) {
+			if (err) return next(err);
+			if (!report.isValid) return res.json({success: false, error: report.issues});
 
-		if (!publicKey) {
-			return res.json({success: false, error: errorCode("DELEGATES.FORGER_PUBLIC_KEY")});
-		}
-
-		if (private.fees[publicKey] === undefined) {
+		if (private.fees[query.generatorPublicKey] === undefined) {
 			return res.json({success: true, fees: 0});
 		}
 
-		res.json({success: true, fees: private.fees[publicKey]});
+			res.json({success: true, fees: private.fees[query.generatorPublicKey]});
+	});
 	});
 
 	router.post('/forging/enable', function (req, res) {
+		req.sanitize("body", {
+			secret: "string!",
+			publicKey: "string?"
+		}, function (err, report, body) {
+			if (err) return next(err);
+			if (!report.isValid) return res.json({success: false, error: report.issues});
+
 		var ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
 
 		if (library.config.forging.access.whiteList.length > 0 && library.config.forging.access.whiteList.indexOf(ip) < 0) {
 			return res.json({success: false, error: errorCode("COMMON.ACCESS_DENIED")});
 		}
 
-		var secret = RequestSanitizer.string(req.body.secret);
-		var publicKey = RequestSanitizer.string(req.body.publicKey);
-
-		if (!secret) {
-			return res.json({success: false, error: errorCode("COMMON.INVALID_SECRET_KEY")});
-		}
-
-		var keypair = ed.MakeKeypair(crypto.createHash('sha256').update(secret, 'utf8').digest());
+			var keypair = ed.MakeKeypair(crypto.createHash('sha256').update(body.secret, 'utf8').digest());
 		var address = modules.accounts.getAddressByPublicKey(keypair.publicKey.toString('hex'));
 		var account = modules.accounts.getAccount(address);
 
-		if (publicKey) {
-			if (keypair.publicKey.toString('hex') != publicKey) {
+			if (body.publicKey) {
+				if (keypair.publicKey.toString('hex') != body.publicKey) {
 				return res.json({success: false, error: errorCode("COMMON.INVALID_SECRET_KEY")});
 			}
 		}
@@ -366,27 +365,28 @@ function attachApi() {
 				res.json({success: false, error: errorCode("DELEGATES.DELEGATE_NOT_FOUND")});
 		}
 	});
+	});
 
 	router.post('/forging/disable', function (req, res) {
+		req.sanitize("body", {
+			secret: "string!",
+			publicKey: "string?"
+		}, function (err, report, body) {
+			if (err) return next(err);
+			if (!report.isValid) return res.json({success: false, error: report.issues});
+
 		var ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
 
 		if (library.config.forging.access.whiteList.length > 0 && library.config.forging.access.whiteList.indexOf(ip) < 0) {
 			return res.json({success: false, error: errorCode("COMMON.ACCESS_DENIED")});
 		}
 
-		var secret = RequestSanitizer.string(req.body.secret);
-		var publicKey = RequestSanitizer.string(req.body.publicKey);
-
-		if (!secret) {
-			return res.json({success: false, error: errorCode("COMMON.INVALID_SECRET_KEY")});
-		}
-
-		var keypair = ed.MakeKeypair(crypto.createHash('sha256').update(secret, 'utf8').digest());
+			var keypair = ed.MakeKeypair(crypto.createHash('sha256').update(body.secret, 'utf8').digest());
 		var address = modules.accounts.getAddressByPublicKey(keypair.publicKey.toString('hex'));
 		var account = modules.accounts.getAccount(address);
 
-		if (publicKey) {
-			if (keypair.publicKey.toString('hex') != publicKey) {
+			if (body.publicKey) {
+				if (keypair.publicKey.toString('hex') != body.publicKey) {
 				return res.json({success: false,error: errorCode("COMMON.INVALID_SECRET_KEY")});
 			}
 		}
@@ -403,15 +403,15 @@ function attachApi() {
 			res.json({success: false});
 		}
 	});
+	});
 
 	router.get('/forging/status', function (req, res) {
-		var publicKey = req.query.publicKey;
+		req.sanitize("query", {publicKey: "string!"}, function (err, report, query) {
+			if (err) return next(err);
+			if (!report.isValid) return res.json({success: false, error: report.issues});
 
-		if (!publicKey) {
-			return res.json({success: false, error: errorCode("COMMON.INVALID_SECRET_KEY")});
-		}
-
-		return res.json({success: true, enabled: !!private.keypairs[publicKey]});
+			return res.json({success: true, enabled: !!private.keypairs[query.publicKey]});
+	});
 	});
 
 	router.put('/', function (req, res, next) {

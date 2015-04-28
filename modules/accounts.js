@@ -245,22 +245,22 @@ function Vote() {
 
 	this.verify = function (trs, sender, cb) {
 		if (trs.recipientId != trs.senderId) {
-			return cb(errorCode("VOTES.INCORRECT_RECIPIENT", trs));
+			return setImmediate(cb, errorCode("VOTES.INCORRECT_RECIPIENT", trs));
 		}
 
 		if (trs.asset.votes && trs.asset.votes.length > 33) {
-			return cb(errorCode("VOTES.MAXIMUM_DELEGATES_VOTE", trs));
+			return setImmediate(cb, errorCode("VOTES.MAXIMUM_DELEGATES_VOTE", trs));
 		}
 
 		if (!modules.delegates.checkUnconfirmedDelegates(trs.senderPublicKey, trs.asset.votes)) {
-			return cb(errorCode("VOTES.ALREADY_VOTED_UNCONFIRMED", trs));
+			return setImmediate(cb, errorCode("VOTES.ALREADY_VOTED_UNCONFIRMED", trs));
 		}
 
 		if (!modules.delegates.checkDelegates(trs.senderPublicKey, trs.asset.votes)) {
-			return cb(errorCode("VOTES.ALREADY_VOTED_CONFIRMED", trs));
+			return setImmediate(cb, errorCode("VOTES.ALREADY_VOTED_CONFIRMED", trs));
 		}
 
-		cb(null, trs);
+		setImmediate(cb, null, trs);
 	}
 
 	this.getBytes = function (trs) {
@@ -279,8 +279,10 @@ function Vote() {
 		return true;
 	}
 
-	this.applyUnconfirmed = function (trs, sender) {
-		return sender.applyUnconfirmedDelegateList(trs.asset.votes);
+	this.applyUnconfirmed = function (trs, sender, cb) {
+		var res = sender.applyUnconfirmedDelegateList(trs.asset.votes);
+
+		setImmediate(cb, !res ? "Can't apply delegates: " + trs.id : null);
 	}
 
 	this.undoUnconfirmed = function (trs, sender) {
@@ -333,20 +335,20 @@ function Username() {
 
 	this.verify = function (trs, sender, cb) {
 		if (trs.recipientId) {
-			return cb(errorCode("USERNAMES.INCORRECT_RECIPIENT", trs));
+			return setImmediate(cb, errorCode("USERNAMES.INCORRECT_RECIPIENT", trs));
 		}
 
 		if (trs.amount != 0) {
-			return cb(errorCode("USERNAMES.INVALID_AMOUNT", trs));
+			return setImmediate(cb, errorCode("USERNAMES.INVALID_AMOUNT", trs));
 		}
 
 		if (!trs.asset.username.alias) {
-			return cb(errorCode("USERNAMES.EMPTY_ASSET", trs));
+			return setImmediate(cb, errorCode("USERNAMES.EMPTY_ASSET", trs));
 		}
 
 		var allowSymbols = /^[a-z0-9!@$&_.]+$/g;
 		if (!allowSymbols.test(trs.asset.username.alias.toLowerCase())) {
-			return cb(errorCode("USERNAMES.ALLOW_CHARS", trs));
+			return setImmediate(cb, errorCode("USERNAMES.ALLOW_CHARS", trs));
 		}
 
 		//if (trs.asset.username.alias.search(/(admin|genesis|delegate|crypti)/i) > -1) {
@@ -355,18 +357,18 @@ function Username() {
 
 		var isAddress = /^[0-9]+[C|c]$/g;
 		if (isAddress.test(trs.asset.username.alias.toLowerCase())) {
-			return cb(errorCode("USERNAMES.USERNAME_LIKE_ADDRESS", trs));
+			return setImmediate(cb, errorCode("USERNAMES.USERNAME_LIKE_ADDRESS", trs));
 		}
 
 		if (trs.asset.username.alias.length == 0 || trs.asset.username.alias.length > 20) {
-			return cb(errorCode("USERNAMES.INCORRECT_USERNAME_LENGTH", trs));
+			return setImmediate(cb, errorCode("USERNAMES.INCORRECT_USERNAME_LENGTH", trs));
 		}
 
 		if (modules.delegates.existsName(trs.asset.username.alias)) {
-			return cb(errorCode("USERNAMES.EXISTS_USERNAME", trs));
+			return setImmediate(cb, errorCode("USERNAMES.EXISTS_USERNAME", trs));
 		}
 
-		cb(null, trs);
+		setImmediate(cb, null, trs);
 	}
 
 	this.getBytes = function (trs) {
@@ -385,10 +387,10 @@ function Username() {
 		return true;
 	}
 
-	this.applyUnconfirmed = function (trs, sender) {
+	this.applyUnconfirmed = function (trs, sender, cb) {
 		sender.applyUnconfirmedUsername(trs.asset.username);
 
-		return true;
+		setImmediate(cb);
 	}
 
 	this.undoUnconfirmed = function (trs, sender) {
