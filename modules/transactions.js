@@ -142,12 +142,12 @@ function attachApi() {
 			if (!report.isValid) return res.json({success: false, error: report.issues});
 
 			private.getById(query.id, function (err, transaction) {
-			if (!transaction || err) {
-				return res.json({success: false, error: errorCode("TRANSACTIONS.TRANSACTION_NOT_FOUND")});
-			}
-			res.json({success: true, transaction: transaction});
+				if (!transaction || err) {
+					return res.json({success: false, error: errorCode("TRANSACTIONS.TRANSACTION_NOT_FOUND")});
+				}
+				res.json({success: true, transaction: transaction});
+			});
 		});
-	});
 	});
 
 	router.get('/unconfirmed/get', function (req, res) {
@@ -157,12 +157,12 @@ function attachApi() {
 
 			var unconfirmedTransaction = self.getUnconfirmedTransaction(query.id);
 
-		if (!unconfirmedTransaction) {
-			return res.json({success: false, error: errorCode("TRANSACTIONS.TRANSACTION_NOT_FOUND")});
-		}
+			if (!unconfirmedTransaction) {
+				return res.json({success: false, error: errorCode("TRANSACTIONS.TRANSACTION_NOT_FOUND")});
+			}
 
-		res.json({success: true, transaction: unconfirmedTransaction});
-	});
+			res.json({success: true, transaction: unconfirmedTransaction});
+		});
 	});
 
 	router.get('/unconfirmed/', function (req, res) {
@@ -173,23 +173,23 @@ function attachApi() {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
 
-		var transactions = self.getUnconfirmedTransactionList(true),
-			toSend = [];
+			var transactions = self.getUnconfirmedTransactionList(true),
+				toSend = [];
 
 			if (query.senderPublicKey || query.address) {
-			for (var i = 0; i < transactions.length; i++) {
+				for (var i = 0; i < transactions.length; i++) {
 					if (transactions[i].senderPublicKey == query.senderPublicKey || transactions[i].recipientId == query.address) {
+						toSend.push(transactions[i]);
+					}
+				}
+			} else {
+				for (var i = 0; i < transactions.length; i++) {
 					toSend.push(transactions[i]);
 				}
 			}
-		} else {
-			for (var i = 0; i < transactions.length; i++) {
-				toSend.push(transactions[i]);
-			}
-		}
 
-		res.json({success: true, transactions: toSend});
-	});
+			res.json({success: true, transactions: toSend});
+		});
 	});
 
 	router.put('/', function (req, res) {
@@ -359,13 +359,13 @@ private.getById = function (id, cb) {
 private.addUnconfirmedTransaction = function (transaction, cb) {
 	self.applyUnconfirmed(transaction, function (err) {
 		if (err) {
-		self.addDoubleSpending(transaction);
+			self.addDoubleSpending(transaction);
 			return setImmediate(cb, err);
-	}
+		}
 
-	private.unconfirmedTransactions.push(transaction);
-	var index = private.unconfirmedTransactions.length - 1;
-	private.unconfirmedTransactionsIdIndex[transaction.id] = index;
+		private.unconfirmedTransactions.push(transaction);
+		var index = private.unconfirmedTransactions.length - 1;
+		private.unconfirmedTransactionsIdIndex[transaction.id] = index;
 
 		setImmediate(cb);
 	});
@@ -454,9 +454,9 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 				private.addUnconfirmedTransaction(transaction, function (err) {
 					if (err) {
 						return cb(err);
-				}
+					}
 
-				library.bus.message('unconfirmedTransaction', transaction, broadcast);
+					library.bus.message('unconfirmedTransaction', transaction, broadcast);
 
 					cb();
 				});

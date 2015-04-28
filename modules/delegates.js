@@ -320,12 +320,12 @@ function attachApi() {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
 
-		if (private.fees[query.generatorPublicKey] === undefined) {
-			return res.json({success: true, fees: 0});
-		}
+			if (private.fees[query.generatorPublicKey] === undefined) {
+				return res.json({success: true, fees: 0});
+			}
 
 			res.json({success: true, fees: private.fees[query.generatorPublicKey]});
-	});
+		});
 	});
 
 	router.post('/forging/enable', function (req, res) {
@@ -336,34 +336,34 @@ function attachApi() {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
 
-		var ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+			var ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
 
-		if (library.config.forging.access.whiteList.length > 0 && library.config.forging.access.whiteList.indexOf(ip) < 0) {
-			return res.json({success: false, error: errorCode("COMMON.ACCESS_DENIED")});
-		}
+			if (library.config.forging.access.whiteList.length > 0 && library.config.forging.access.whiteList.indexOf(ip) < 0) {
+				return res.json({success: false, error: errorCode("COMMON.ACCESS_DENIED")});
+			}
 
 			var keypair = ed.MakeKeypair(crypto.createHash('sha256').update(body.secret, 'utf8').digest());
-		var address = modules.accounts.getAddressByPublicKey(keypair.publicKey.toString('hex'));
-		var account = modules.accounts.getAccount(address);
+			var address = modules.accounts.getAddressByPublicKey(keypair.publicKey.toString('hex'));
+			var account = modules.accounts.getAccount(address);
 
 			if (body.publicKey) {
 				if (keypair.publicKey.toString('hex') != body.publicKey) {
-				return res.json({success: false, error: errorCode("COMMON.INVALID_SECRET_KEY")});
+					return res.json({success: false, error: errorCode("COMMON.INVALID_SECRET_KEY")});
+				}
 			}
-		}
 
-		if (private.keypairs[keypair.publicKey.toString('hex')]) {
-			return res.json({success: false, error: errorCode("COMMON.FORGING_ALREADY_ENABLED")});
-		}
+			if (private.keypairs[keypair.publicKey.toString('hex')]) {
+				return res.json({success: false, error: errorCode("COMMON.FORGING_ALREADY_ENABLED")});
+			}
 
-		if (account && self.existsDelegate(keypair.publicKey.toString('hex'))) {
-			private.keypairs[keypair.publicKey.toString('hex')] = keypair;
-			res.json({success: true, address: address});
-			library.logger.info("Forging enabled on account: " + address);
-		} else {
+			if (account && self.existsDelegate(keypair.publicKey.toString('hex'))) {
+				private.keypairs[keypair.publicKey.toString('hex')] = keypair;
+				res.json({success: true, address: address});
+				library.logger.info("Forging enabled on account: " + address);
+			} else {
 				res.json({success: false, error: errorCode("DELEGATES.DELEGATE_NOT_FOUND")});
-		}
-	});
+			}
+		});
 	});
 
 	router.post('/forging/disable', function (req, res) {
@@ -374,34 +374,34 @@ function attachApi() {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
 
-		var ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+			var ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
 
-		if (library.config.forging.access.whiteList.length > 0 && library.config.forging.access.whiteList.indexOf(ip) < 0) {
-			return res.json({success: false, error: errorCode("COMMON.ACCESS_DENIED")});
-		}
+			if (library.config.forging.access.whiteList.length > 0 && library.config.forging.access.whiteList.indexOf(ip) < 0) {
+				return res.json({success: false, error: errorCode("COMMON.ACCESS_DENIED")});
+			}
 
 			var keypair = ed.MakeKeypair(crypto.createHash('sha256').update(body.secret, 'utf8').digest());
-		var address = modules.accounts.getAddressByPublicKey(keypair.publicKey.toString('hex'));
-		var account = modules.accounts.getAccount(address);
+			var address = modules.accounts.getAddressByPublicKey(keypair.publicKey.toString('hex'));
+			var account = modules.accounts.getAccount(address);
 
 			if (body.publicKey) {
 				if (keypair.publicKey.toString('hex') != body.publicKey) {
-				return res.json({success: false,error: errorCode("COMMON.INVALID_SECRET_KEY")});
+					return res.json({success: false, error: errorCode("COMMON.INVALID_SECRET_KEY")});
+				}
 			}
-		}
 
-		if (!private.keypairs[keypair.publicKey.toString('hex')]) {
-			return res.json({success: false, error: errorCode("DELEGATES.FORGER_NOT_FOUND")});
-		}
+			if (!private.keypairs[keypair.publicKey.toString('hex')]) {
+				return res.json({success: false, error: errorCode("DELEGATES.FORGER_NOT_FOUND")});
+			}
 
-		if (account && self.existsDelegate(keypair.publicKey.toString('hex'))) {
-			delete private.keypairs[keypair.publicKey.toString('hex')];
-			res.json({success: true, address: address});
-			library.logger.info("Forging disabled on account: " + address);
-		} else {
-			res.json({success: false});
-		}
-	});
+			if (account && self.existsDelegate(keypair.publicKey.toString('hex'))) {
+				delete private.keypairs[keypair.publicKey.toString('hex')];
+				res.json({success: true, address: address});
+				library.logger.info("Forging disabled on account: " + address);
+			} else {
+				res.json({success: false});
+			}
+		});
 	});
 
 	router.get('/forging/status', function (req, res) {
@@ -410,7 +410,7 @@ function attachApi() {
 			if (!report.isValid) return res.json({success: false, error: report.issues});
 
 			return res.json({success: true, enabled: !!private.keypairs[query.publicKey]});
-	});
+		});
 	});
 
 	router.put('/', function (req, res, next) {
@@ -478,7 +478,7 @@ function attachApi() {
 	});
 }
 
-private.getDelegate = function(filter, rateSort) {
+private.getDelegate = function (filter, rateSort) {
 	var index;
 
 	if (filter.transactionId) {
@@ -523,7 +523,7 @@ private.getDelegate = function(filter, rateSort) {
 	};
 }
 
-private.getKeysSortByVote = function(keys, votes) {
+private.getKeysSortByVote = function (keys, votes) {
 	return keys.sort(function compare(a, b) {
 		if (votes[a] > votes[b]) return -1;
 		if (votes[a] < votes[b]) return 1;
@@ -533,7 +533,7 @@ private.getKeysSortByVote = function(keys, votes) {
 	});
 }
 
-private.getBlockSlotData = function(slot, height) {
+private.getBlockSlotData = function (slot, height) {
 	var activeDelegates = self.generateDelegateList(height);
 
 	var currentSlot = slot;
@@ -551,7 +551,7 @@ private.getBlockSlotData = function(slot, height) {
 	return null;
 }
 
-private.loop = function(cb) {
+private.loop = function (cb) {
 	setImmediate(cb);
 
 	if (!Object.keys(private.keypairs).length) {
@@ -599,7 +599,7 @@ private.loop = function(cb) {
 	});
 }
 
-private.loadMyDelegates = function() {
+private.loadMyDelegates = function () {
 	var secrets = null;
 	if (library.config.forging.secret) {
 		secrets = util.isArray(library.config.forging.secret) ? library.config.forging.secret : [library.config.forging.secret];
