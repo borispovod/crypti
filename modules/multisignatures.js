@@ -35,31 +35,31 @@ function Multisignature() {
 	this.verify = function (trs, sender, cb) {
 		var isAddress = /^[0-9]+[C|c]$/g;
 		if (!isAddress.test(trs.recipientId.toLowerCase())) {
-			return cb("Invalid recipientId: " + trs.id);
+			return setImmediate(cb, "Invalid recipientId: " + trs.id);
 		}
 
 		if (trs.amount <= 0) {
-			return cb("Invalid transaction amount: " + trs.id);
+			return setImmediate(cb, "Invalid transaction amount: " + trs.id);
 		}
 
 		if (!util.isArray(trs.asset.multisignature.dependence)) {
-			return cb("Wrong transaction asset for multisignature transaction: " + trs.id);
+			return setImmediate(cb, "Wrong transaction asset for multisignature transaction: " + trs.id);
 		}
 
 		if (!util.isArray(trs.asset.multisignature.signatures)) {
-			return cb("Wrong transaction asset for multisignature transaction: " + trs.id);
+			return setImmediate(cb, "Wrong transaction asset for multisignature transaction: " + trs.id);
 		}
 
 		if (trs.asset.multisignature.min < 2 || trs.asset.multisignature.min > trs.asset.multisignature.dependence.length) {
-			return cb("Min should be less dependence keys and more then 1: " + trs.id);
+			return setImmediate(cb, "Min should be less dependence keys and more then 1: " + trs.id);
 		}
 
 		if (trs.asset.multisignature.lifetime < 1 || trs.asset.multisignature.lifetime > 72) {
-			return cb("lifetime should be less 72h keys and more then 1h: " + trs.id);
+			return setImmediate(cb, "lifetime should be less 72h keys and more then 1h: " + trs.id);
 		}
 
 		if (trs.asset.multisignature.signatures.length < trs.asset.multisignature.min) {
-			return cb("Count signatures less min: " + trs.id);
+			return setImmediate(cb, "Count signatures less min: " + trs.id);
 		}
 
 		for (var s = 0; s < trs.asset.multisignature.signatures.length; s++) {
@@ -70,11 +70,11 @@ function Multisignature() {
 				}
 			}
 			if (!verify) {
-				return cb("Failed multisignature: " + trs.id);
+				return setImmediate(cb, "Failed multisignature: " + trs.id);
 			}
 		}
 
-		cb(null, trs);
+		setImmediate(cb, null, trs);
 	}
 
 	this.getBytes = function (trs, skip) {
@@ -123,8 +123,8 @@ function Multisignature() {
 		return true;
 	}
 
-	this.applyUnconfirmed = function (trs, sender) {
-		return true;
+	this.applyUnconfirmed = function (trs, sender, cb) {
+		 setImmediate(cb);
 	}
 
 	this.undoUnconfirmed = function (trs, sender) {

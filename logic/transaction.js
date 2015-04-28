@@ -158,41 +158,41 @@ Transaction.prototype.ready = function (trs) {
 
 Transaction.prototype.verify = function (trs, sender, cb) { //inheritance
 	if (!private.types[trs.type]) {
-		return cb('Unknown transaction type ' + trs.type);
+		return setImmediate(cb, 'Unknown transaction type ' + trs.type);
 	}
 
 	//check sender
 	if (!sender) {
-		return cb("Can't find sender");
+		return setImmediate(cb, "Can't find sender");
 	}
 
 	//verify signature
 	if (!this.verifySignature(trs, trs.senderPublicKey, trs.signature)) {
-		return cb("Can't verify signature");
+		return setImmediate(cb, "Can't verify signature");
 	}
 
 	//verify second signature
 	if (sender.secondSignature && !this.verifySignature(trs, sender.secondPublicKey, trs.signSignature)) {
-		return cb("Can't verify second signature: " + trs.id);
+		return setImmediate(cb, "Can't verify second signature: " + trs.id);
 	}
 
 	//check sender
 	if (trs.senderId != sender.address) {
-		return cb("Invalid sender id: " + trs.id);
+		return setImmediate(cb, "Invalid sender id: " + trs.id);
 	}
 
 	//calc fee
 	var fee = private.types[trs.type].calculateFee(trs) || false;
 	if (!fee || trs.fee != fee) {
-		return cb("Invalid transaction type/fee: " + trs.id);
+		return setImmediate(cb, "Invalid transaction type/fee: " + trs.id);
 	}
 	//check amount
 	if (trs.amount < 0 || trs.amount > 100000000 * constants.fixedPoint || String(trs.amount).indexOf('.') >= 0 || trs.amount.toString().indexOf('e') >= 0) {
-		return cb("Invalid transaction amount: " + trs.id);
+		return setImmediate(cb, "Invalid transaction amount: " + trs.id);
 	}
 	//check timestamp
 	if (slots.getSlotNumber(trs.timestamp) > slots.getSlotNumber()) {
-		return cb("Invalid transaction timestamp");
+		return setImmediate(cb, "Invalid transaction timestamp");
 	}
 
 	//spec
@@ -262,29 +262,29 @@ Transaction.prototype.undo = function (trs, sender) {
 	return true;
 }
 
-Transaction.prototype.applyUnconfirmed = function (trs, sender) {
+Transaction.prototype.applyUnconfirmed = function (trs, sender, cb) {
 	if (!private.types[trs.type]) {
-		throw Error('Unknown transaction type ' + trs.type);
+		return setImmediate(cb, 'Unknown transaction type ' + trs.type);
 	}
 
 	if (sender.secondSignature && !trs.signSignature) {
-		return false;
+		return setImmediate(cb, 'Failed second signature: ' + trs.id);
 	}
 
 	var amount = trs.amount + trs.fee;
 
 	if (sender.unconfirmedBalance < amount && trs.blockId != genesisblock.block.id) {
-		return false;
+		return setImmediate(cb, 'Account has no balance: ' + trs.id);
 	}
 
 	sender.addToUnconfirmedBalance(-amount);
 
-	if (!private.types[trs.type].applyUnconfirmed(trs, sender)) {
-		sender.addToUnconfirmedBalance(amount);
-		return false;
-	}
-
-	return true;
+	private.types[trs.type].applyUnconfirmed(trs, sender, function (err) {
+		if (!err) {
+			sender.addToUnconfirmedBalance(amount);
+		}
+		setImmediate(cb, err);
+	});
 }
 
 Transaction.prototype.undoUnconfirmed = function (trs, sender) {

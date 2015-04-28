@@ -244,22 +244,22 @@ function Vote() {
 
 	this.verify = function (trs, sender, cb) {
 		if (trs.recipientId != trs.senderId) {
-			return cb("Incorrect recipient: " + trs.id);
+			return setImmediate(cb, "Incorrect recipient: " + trs.id);
 		}
 
 		if (trs.asset.votes && trs.asset.votes.length > 33) {
-			return cb("You can only vote for a maximum of 33 delegates at any one time.: " + trs.id);
+			return setImmediate(cb, "You can only vote for a maximum of 33 delegates at any one time.: " + trs.id);
 		}
 
 		if (!modules.delegates.checkUnconfirmedDelegates(trs.senderPublicKey, trs.asset.votes)) {
-			return cb("Can't verify votes, you already voted for this delegate: " + trs.id);
+			return setImmediate(cb, "Can't verify votes, you already voted for this delegate: " + trs.id);
 		}
 
 		if (!modules.delegates.checkDelegates(trs.senderPublicKey, trs.asset.votes)) {
-			return cb("Can't verify votes, you already voted for this delegate: " + trs.id);
+			return setImmediate(cb, "Can't verify votes, you already voted for this delegate: " + trs.id);
 		}
 
-		cb(null, trs);
+		setImmediate(cb, null, trs);
 	}
 
 	this.getBytes = function (trs) {
@@ -278,8 +278,10 @@ function Vote() {
 		return true;
 	}
 
-	this.applyUnconfirmed = function (trs, sender) {
-		return sender.applyUnconfirmedDelegateList(trs.asset.votes);
+	this.applyUnconfirmed = function (trs, sender, cb) {
+		var res = sender.applyUnconfirmedDelegateList(trs.asset.votes);
+
+		setImmediate(cb, !res ? "Can't apply delegates: " + trs.id : null);
 	}
 
 	this.undoUnconfirmed = function (trs, sender) {
@@ -332,20 +334,20 @@ function Username() {
 
 	this.verify = function (trs, sender, cb) {
 		if (trs.recipientId) {
-			return cb("Invalid recipientId: " + trs.id);
+			return setImmediate(cb, "Invalid recipientId: " + trs.id);
 		}
 
 		if (trs.amount != 0) {
-			return cb("Invalid amount: " + trs.id);
+			return setImmediate(cb, "Invalid amount: " + trs.id);
 		}
 
 		if (!trs.asset.username.alias) {
-			return cb("Empty transaction asset for username transaction: " + trs.id);
+			return setImmediate(cb, "Empty transaction asset for username transaction: " + trs.id);
 		}
 
 		var allowSymbols = /^[a-z0-9!@$&_.]+$/g;
 		if (!allowSymbols.test(trs.asset.username.alias.toLowerCase())) {
-			return cb("username can only contain alphanumeric characters with the exception of !@$&_.: " + trs.id);
+			return setImmediate(cb, "username can only contain alphanumeric characters with the exception of !@$&_.: " + trs.id);
 		}
 
 		//if (trs.asset.username.alias.search(/(admin|genesis|delegate|crypti)/i) > -1) {
@@ -354,18 +356,18 @@ function Username() {
 
 		var isAddress = /^[0-9]+[C|c]$/g;
 		if (isAddress.test(trs.asset.username.alias.toLowerCase())) {
-			return cb("username can't be like an address: " + trs.id);
+			return setImmediate(cb, "username can't be like an address: " + trs.id);
 		}
 
 		if (trs.asset.username.alias.length == 0 || trs.asset.username.alias.length > 20) {
-			return cb("Incorrect username length: " + trs.id);
+			return setImmediate(cb, "Incorrect username length: " + trs.id);
 		}
 
 		if (modules.delegates.existsName(trs.asset.username.alias)) {
-			return cb("The username you entered is already in use. Please try a different name.: " + trs.id);
+			return setImmediate(cb, "The username you entered is already in use. Please try a different name.: " + trs.id);
 		}
 
-		cb(null, trs);
+		setImmediate(cb, null, trs);
 	}
 
 	this.getBytes = function (trs) {
@@ -384,10 +386,10 @@ function Username() {
 		return true;
 	}
 
-	this.applyUnconfirmed = function (trs, sender) {
+	this.applyUnconfirmed = function (trs, sender, cb) {
 		sender.applyUnconfirmedUsername(trs.asset.username);
 
-		return true;
+		setImmediate(cb);
 	}
 
 	this.undoUnconfirmed = function (trs, sender) {
