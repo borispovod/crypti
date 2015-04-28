@@ -539,10 +539,7 @@ function attachApi() {
 			var account = self.getAccount(query.address);
 
 			if (!account || !account.publicKey) {
-				return res.json({
-					success: false,
-					error: errorCode("ACCOUNTS.ACCOUNT_PUBLIC_KEY_NOT_FOUND", {address: query.address})
-				});
+				return res.json({success: false, error: errorCode("ACCOUNTS.ACCOUNT_PUBLIC_KEY_NOT_FOUND", {address: query.address})});
 			}
 
 			return res.json({success: true, publicKey: account.publicKey});
@@ -573,10 +570,7 @@ function attachApi() {
 			var account = self.getAccount(query.address);
 
 			if (!account) {
-				return res.json({
-					success: false,
-					error: errorCode("ACCOUNTS.ACCOUNT_DOESNT_FOUND", {address: query.address})
-				});
+				return res.json({success: false, error: errorCode("ACCOUNTS.ACCOUNT_DOESNT_FOUND", {address: query.address})});
 			}
 
 			var delegates = null;
