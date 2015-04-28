@@ -266,7 +266,7 @@ private.loadBlockChain = function() {
 						offset = offset + limit;
 						private.loadingLastBlock = lastBlockOffset;
 
-						cb()
+						cb();
 					});
 				})
 			}, function (err) {

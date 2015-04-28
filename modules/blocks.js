@@ -14,6 +14,8 @@ var crypto = require('crypto'),
 	TransactionTypes = require('../helpers/transaction-types.js'),
 	errorCode = require('../helpers/errorCodes.js').error;
 
+require('array.prototype.findindex'); //old node fix
+
 //private fields
 var modules, library, self, private = {};
 
@@ -333,6 +335,28 @@ private.readDbRows = function (rows) {
 	return blocks;
 }
 
+private.applyTransaction = function (block, transaction, cb) {
+	modules.transactions.applyUnconfirmed(transaction, function (err) {
+		if (err) {
+			return setImmediate(cb, {
+				message: err,
+				transaction: transaction,
+				block: block
+			});
+		}
+
+		if (!modules.transactions.apply(transaction)) {
+			return setImmediate(cb, {
+				message: "Can't apply transaction: " + transaction.id,
+				transaction: transaction,
+				block: block
+			});
+		}
+
+		setImmediate(cb);
+	});
+}
+
 //public methods
 Blocks.prototype.getCommonBlock = function (peer, height, cb) {
 	var commonBlock = null;
@@ -484,135 +508,78 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 
 		var blocks = private.readDbRows(rows);
 
-		for (var i = 0, i_length = blocks.length; i < i_length; i++) {
-			if (blocks[i].id != genesisblock.block.id) {
-				if (blocks[i].previousBlock != private.lastBlock.id) {
-					err = {
+		async.eachSeries(blocks, function (block, cb) {
+			if (block.id != genesisblock.block.id) {
+				if (block.previousBlock != private.lastBlock.id) {
+					return cb({
 						message: "Can't verify previous block",
-						block: blocks[i]
-					}
-					break;
+						block: block
+					});
 				}
 
-				if (verify && !library.logic.block.verifySignature(blocks[i])) {
+				if (verify && !library.logic.block.verifySignature(block)) {
 					// need to break cicle and delete this block and blocks after this block
-					err = {
+					return cb({
 						message: "Can't verify signature",
-						block: blocks[i]
-					};
-					break;
+						block: block
+					});
 				}
 
-				if (verify && !modules.delegates.validateBlockSlot(blocks[i])) {
-					err = {
+				if (verify && !modules.delegates.validateBlockSlot(block)) {
+					return cb({
 						message: "Can't verify slot",
-						block: blocks[i]
-					};
-					break;
+						block: block
+					});
 				}
 			}
 
-			//verify block's transactions
-			if (blocks[i].id != genesisblock.block.id) {
-				blocks[i].transactions = blocks[i].transactions.sort(function (a, b) {
+			if (block.id != genesisblock.block.id) {
+				block.transactions = block.transactions.sort(function (a, b) {
 					if (a.type == TransactionTypes.SIGNATURE)
 						return 1;
 					return 0;
 				});
 			}
 
-			for (var n = 0, n_length = blocks[i].transactions.length; n < n_length; n++) {
-				if (blocks[i].id != genesisblock.block.id) {
-					if (verify && !library.logic.transaction.verifySignature(blocks[i].transactions[n], blocks[i].transactions[n].senderPublicKey, blocks[i].transactions[n].signature)) {
-						err = {
-							message: "Can't verify transaction: " + blocks[i].transactions[n].id,
-							transaction: blocks[i].transactions[n],
-							rollbackTransactionsUntil: n > 0 ? (n - 1) : null,
-							block: blocks[i]
-						};
-						break;
-					}
+			async.eachSeries(block.transactions, function (transaction, cb) {
+				var sender = modules.accounts.getAccountOrCreateByPublicKey(transaction.senderPublicKey);
 
-					var sender = modules.accounts.getAccountByPublicKey(blocks[i].transactions[n].senderPublicKey);
-
-					if (sender.secondSignature) {
-						if (verify && !library.logic.transaction.verifySignature(blocks[i].transactions[n], sender.secondPublicKey, blocks[i].transactions[n].signSignature)) {
-							err = {
-								message: "Can't verify second signature transaction: " + blocks[i].transactions[n].id,
-								transaction: blocks[i].transactions[n],
-								rollbackTransactionsUntil: n > 0 ? (n - 1) : null,
-								block: blocks[i]
-							};
-							break;
+				if (verify && block.id != genesisblock.block.id) {
+					library.logic.transaction.verify(transaction, sender, function (err) {
+						if (err) {
+							return setImmediate(cb, {
+								message: err,
+								transaction: transaction,
+								block: block
+							});
 						}
+
+						private.applyTransaction(block, transaction, cb);
+					});
+				} else {
+					private.applyTransaction(block, transaction, cb);
+				}
+			}, function (err) {
+				if (err) {
+					var lastValidTransaction = block.transactions.findIndex(function (trs) {
+						return trs.id == err.transaction.id;
+					});
+					for (var n = lastValidTransaction - 1; n > -1; n--) {
+						modules.transactions.undo(block.transactions[n]);
+						modules.transactions.undoUnconfirmed(block.transactions[n])
 					}
+					return setImmediate(cb, err);
 				}
 
-				if (blocks[i].transactions[n].type == TransactionTypes.VOTE) {
-					if (blocks[i].transactions[n].recipientId != blocks[i].transactions[n].senderId) {
-						err = {
-							message: "Can't verify transaction, has another recipient: " + transaction.id,
-							transaction: blocks[i].transactions[n],
-							rollbackTransactionsUntil: n > 0 ? (n - 1) : null,
-							block: blocks[i]
-						};
-						break;
-					}
-					if (!modules.delegates.checkUnconfirmedDelegates(blocks[i].transactions[n].senderPublicKey, blocks[i].transactions[n].asset.votes)) {
-						err = {
-							message: "Can't verify unconfirmed votes, you already voted for this delegate: " + blocks[i].transactions[n].id,
-							transaction: blocks[i].transactions[n],
-							rollbackTransactionsUntil: n > 0 ? (n - 1) : null,
-							block: blocks[i]
-						};
-						break;
-					}
-					if (!modules.delegates.checkDelegates(blocks[i].transactions[n].senderPublicKey, blocks[i].transactions[n].asset.votes)) {
-						err = {
-							message: "Can't verify votes, you already voted for this delegate: " + blocks[i].transactions[n].id,
-							transaction: blocks[i].transactions[n],
-							rollbackTransactionsUntil: n > 0 ? (n - 1) : null,
-							block: blocks[i]
-						};
-						break;
-					}
-				}
+				private.lastBlock = block;
 
-				if (!modules.transactions.applyUnconfirmed(blocks[i].transactions[n])) {
-					err = {
-						message: "Can't apply transaction: " + blocks[i].transactions[n].id,
-						transaction: blocks[i].transactions[n],
-						rollbackTransactionsUntil: n > 0 ? (n - 1) : null,
-						block: blocks[i]
-					};
-					break;
-				}
+				modules.round.tick(private.lastBlock);
 
-				if (!modules.transactions.apply(blocks[i].transactions[n])) {
-					err = {
-						message: "Can't apply transaction: " + blocks[i].transactions[n].id,
-						transaction: blocks[i].transactions[n],
-						rollbackTransactionsUntil: n > 0 ? (n - 1) : null,
-						block: blocks[i]
-					};
-					break;
-				}
-			}
-
-			if (err) {
-				for (var n = err.rollbackTransactionsUntil; n > -1; n--) {
-					modules.transactions.undo(blocks[i].transactions[n]);
-					modules.transactions.undoUnconfirmed(blocks[i].transactions[n])
-				}
-				break;
-			}
-
-			private.lastBlock = blocks[i] //fast way
-
-			modules.round.tick(private.lastBlock);
-		}
-
-		cb(err, private.lastBlock);
+				setImmediate(cb);
+			});
+		}, function (err) {
+			cb(err, private.lastBlock);
+		});
 	});
 }
 
@@ -627,8 +594,9 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 	var unconfirmedTransactions = modules.transactions.undoUnconfirmedList();
 
 	function done(err) {
-		modules.transactions.applyUnconfirmedList(unconfirmedTransactions);
-		setImmediate(cb, err);
+		modules.transactions.applyUnconfirmedList(unconfirmedTransactions, function () {
+			setImmediate(cb, err);
+		});
 	}
 
 	library.dbLite.query("SELECT id FROM blocks WHERE id=$id", {id: block.id}, ['id'], function (err, rows) {
@@ -696,35 +664,37 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 				if (tId) {
 					//fork transactions already exist
 					modules.delegates.fork(block, 2);
-					cb("Transaction already exists: " + transaction.id);
+					setImmediate(cb, "Transaction already exists: " + transaction.id);
 				} else {
 					if (appliedTransactions[transaction.id]) {
-						return cb("Dublicated transaction in block: " + transaction.id);
+						return setImmediate(cb, "Dublicated transaction in block: " + transaction.id);
 					}
 
 					var sender = modules.accounts.getAccountByPublicKey(transaction.senderPublicKey);
 
 					library.logic.transaction.verify(transaction, sender, function (err) {
 						if (err) {
-							return cb(err);
+							return setImmediate(cb, err);
 						}
 
-						if (!modules.transactions.applyUnconfirmed(transaction)) {
-							return cb("Can't apply transaction: " + transaction.id);
-						}
+						modules.transactions.applyUnconfirmed(transaction, function (err) {
+							if (err) {
+								return setImmediate(cb, "Can't apply transaction: " + transaction.id);
+							}
 
-						appliedTransactions[transaction.id] = transaction;
+							appliedTransactions[transaction.id] = transaction;
 
-						var index = unconfirmedTransactions.indexOf(transaction.id);
-						if (index >= 0) {
-							unconfirmedTransactions.splice(index, 1);
-						}
+							var index = unconfirmedTransactions.indexOf(transaction.id);
+							if (index >= 0) {
+								unconfirmedTransactions.splice(index, 1);
+							}
 
-						payloadHash.update(library.logic.transaction.getBytes(transaction, false));
-						totalAmount += transaction.amount;
-						totalFee += transaction.fee;
+							payloadHash.update(library.logic.transaction.getBytes(transaction, false));
+							totalAmount += transaction.amount;
+							totalFee += transaction.fee;
 
-						cb();
+							setImmediate(cb);
+						});
 					});
 				}
 			});
