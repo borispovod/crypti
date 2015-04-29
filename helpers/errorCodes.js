@@ -117,7 +117,33 @@ var errorCodes = {
 			args: []
 		}
 	},
+	PEERS: {
+		PEER_NOT_FOUND: {
+			message: "Peers not found",
+			args: []
+		},
+		LIMIT: {
+			message: "Max limit is %i",
+			args: ['limit']
+		},
+		INVALID_PEER: {
+			message: "Engine is starting",
+			args: []
+		}
+	},
 	COMMON: {
+		LOADIND: {
+			message: "Engine is starting",
+			args: []
+		},
+		DB_ERR: {
+			message: "DB system error",
+			args: []
+		},
+		INVALID_API: {
+			message: "Api not found",
+			args: []
+		},
 		INVALID_SECRET_KEY: {
 			message: "Please, provide valid secret key of your account",
 			args: []
@@ -138,6 +164,10 @@ var errorCodes = {
 	BLOCKS: {
 		BLOCK_NOT_FOUND: {
 			message: "Block not found",
+			args: []
+		},
+		WRONG_ID_SEQUENCE: {
+			message: "Invalid ids sequence",
 			args: []
 		}
 	},
@@ -179,6 +209,26 @@ var errorCodes = {
 		INVALID_HEX: {
 			message: "Invalid hex in signature public key: %s",
 			args: ["id"]
+		}
+	},
+	CONTACTS: {
+		USERNAME_DOESNT_FOUND: {
+			message: "Account doesn't found: %s",
+			args: ["following"]
+		}
+	},
+	MULTISIGNATURES: {
+		SIGN_NOT_ALLOWED: {
+			message: "You can't sign this transaction: %s",
+			args: ["id"]
+		},
+		NOT_UNIQUE_SET: {
+			message: "publicKeys array is not unique",
+			args: []
+		},
+		SELF_SIGN: {
+			message: "Prohibited to use self publicKey to sign",
+			args: []
 		}
 	}
 }

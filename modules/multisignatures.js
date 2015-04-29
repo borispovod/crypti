@@ -9,7 +9,8 @@ var ed = require('ed25519'),
 	Router = require('../helpers/router.js'),
 	async = require('async'),
 	RequestSanitizer = require('../helpers/request-sanitizer.js'),
-	TransactionTypes = require('../helpers/transaction-types.js');
+	TransactionTypes = require('../helpers/transaction-types.js'),
+	errorCode = require('../helpers/errorCodes.js').error;
 
 // private fields
 var modules, library, self, private = {};
@@ -209,7 +210,7 @@ function attachApi() {
 
 	router.use(function (req, res, next) {
 		if (modules) return next();
-		res.status(500).send({success: false, error: 'loading'});
+		res.status(500).send({success: false, error: errorCode('COMMON.LOADING')});
 	});
 
 	router.post('/sign/', function (req, res) {
@@ -224,7 +225,7 @@ function attachApi() {
 			var transaction = modules.transactions.getUnconfirmedTransaction(body.transactionId);
 
 			if (!transaction) {
-				return res.json({success: false, error: "Transaction not found"});
+				return res.json({success: false, error: errorCode("TRANSACTIONS.TRANSACTION_NOT_FOUND")});
 			}
 
 			var hash = crypto.createHash('sha256').update(body.secret, 'utf8').digest();
@@ -232,23 +233,19 @@ function attachApi() {
 
 			if (body.publicKey) {
 				if (keypair.publicKey.toString('hex') != body.publicKey) {
-					return res.json({success: false, error: "Please, provide valid secret key of your account"});
+					return res.json({success: false, error: errorCode("COMMON.INVALID_SECRET_KEY")});
 				}
 			}
 
 			var sign = library.logic.transaction.sign(keypair, transaction);
 			if (transaction.type != TransactionTypes.MULTI || transaction.asset.multisignature.dependence.indexOf(keypair.publicKey.toString('hex')) == -1 || transaction.asset.multisignature.signatures.indexOf(sign) != -1) {
-				return res.json({success: false, error: "You can't sign this transaction"});
+				return res.json({success: false, error: errorCode("MULTISIGNATURES.SIGN_NOT_ALLOWED", transaction)});
 			}
 
 			var account = modules.accounts.getAccountByPublicKey(keypair.publicKey.toString('hex'));
 
-			if (!account) {
-				return res.json({success: false, error: "Account doesn't has balance"});
-			}
-
-			if (!account.publicKey) {
-				return res.json({success: false, error: "Open account to make transaction"});
+			if (!account || !account.publicKey) {
+				return res.json({success: false, error: errorCode("COMMON.OPEN_ACCOUNT")});
 			}
 
 			library.sequence.add(function (cb) {
@@ -294,7 +291,7 @@ function attachApi() {
 			} else {
 				var recipient = modules.accounts.getAccountByUsername(body.recipientId);
 				if (!recipient) {
-					return res.json({success: false, error: "Recipient is not found"});
+					return res.json({success: false, error: errorCode("TRANSACTIONS.RECIPIENT_NOT_FOUND")});
 				}
 				recipientId = recipient.address;
 			}
@@ -304,12 +301,12 @@ function attachApi() {
 
 			if (body.publicKey) {
 				if (keypair.publicKey.toString('hex') != body.publicKey) {
-					return res.json({success: false, error: "Please, provide valid secret key of your account"});
+					return res.json({success: false, error: errorCode("COMMON.INVALID_SECRET_KEY")});
 				}
 			}
 
 			if (body.dependence.indexOf(keypair.publicKey.toString('hex')) != -1){
-				return res.json({success: false, error: "Your public key in key set"});
+				return res.json({success: false, error: errorCode("MULTISIGNATURES.SELF_SIGN")});
 			}
 
 			var dependence = body.dependence.reduce(function (p, c) {
@@ -318,21 +315,17 @@ function attachApi() {
 			}, []);
 
 			if (dependence.length != body.dependence.length) {
-				return res.json({success: false, error: "Provide unique set of public keys"});
+				return res.json({success: false, error: errorCode("MULTISIGNATURES.NOT_UNIQUE_SET")});
 			}
 
 			var account = modules.accounts.getAccountByPublicKey(keypair.publicKey.toString('hex'));
 
-			if (!account) {
-				return res.json({success: false, error: "Account doesn't has balance"});
-			}
-
-			if (!account.publicKey) {
-				return res.json({success: false, error: "Open account to make transaction"});
+			if (!account || !account.publicKey) {
+				return res.json({success: false, error: errorCode("COMMON.OPEN_ACCOUNT")});
 			}
 
 			if (account.secondSignature && !body.secondSecret) {
-				return res.json({success: false, error: "Provide second secret key"});
+				return res.json({success: false, error: errorCode("COMMON.SECOND_SECRET_KEY")});
 			}
 
 			var secondKeypair = null;
@@ -367,7 +360,7 @@ function attachApi() {
 	});
 
 	router.use(function (req, res, next) {
-		res.status(500).send({success: false, error: 'api not found'});
+		res.status(500).send({success: false, error: errorCode('COMMON.INVALID_API')});
 	});
 
 	library.network.app.use('/api/multisignatures', router);
