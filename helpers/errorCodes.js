@@ -235,21 +235,28 @@ var errorCodes = {
 
 function error(code, object) {
 	var codes = code.split('.');
-	var errorObj = errorCodes[codes[0]][codes[1]];
+	var errorRoot = errorCodes[codes[0]];
+	if (!errorRoot) return code;
+	var errorObj = errorRoot[codes[1]];
+	if (!errorObj) return code;
 
 	var args = [errorObj.message];
 	errorObj.args.forEach(function (el) {
 		var value = null;
 
-		if (el.indexOf('.') > 0) {
-			var els = el.split('.');
-			value = object;
+		try {
+			if (el.indexOf('.') > 0) {
+				var els = el.split('.');
+				value = object;
 
-			els.forEach(function (subel) {
-				value = value[subel];
-			});
-		} else {
-			value = object[el];
+				els.forEach(function (subel) {
+					value = value[subel];
+				});
+			} else {
+				value = object[el];
+			}
+		} catch (e) {
+			value = 0
 		}
 
 		args.push(value);
