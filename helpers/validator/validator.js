@@ -1,10 +1,10 @@
 // Dependencies
-var utils = require('./utils');
+var utils = require('./utils.js');
 
 var extend = utils.extend;
 
 // Implementation
-var Field = require('./field');
+var Field = require('./field.js');
 
 module.exports = Validator;
 exports.Field = Field;

@@ -16,7 +16,6 @@
 		"async": "*",
 		"basic-auth": "*",
 		"basic-auth-connect": "^1.0.0",
-		"bignum": "*",
 		"body-parser": "*",
 		"bytebuffer": "*",
 		"change-case": "*",

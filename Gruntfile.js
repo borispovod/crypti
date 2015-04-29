@@ -3,8 +3,9 @@ var moment = require('moment');
 module.exports = function (grunt) {
 	var files = [
 		'logger.js',
-		'helpers/*.js',
+		'helpers/**/*.js',
 		'modules/*.js',
+		'logic/*.js',
 		'app.js'
 	];
 
