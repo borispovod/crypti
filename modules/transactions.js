@@ -471,14 +471,17 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 	});
 }
 
-Transactions.prototype.applyUnconfirmedList = function (ids) {
-	for (var i = 0; i < ids.length; i++) {
-		var transaction = self.getUnconfirmedTransaction(ids[i])
-		if (!self.applyUnconfirmed(transaction)) {
-			self.removeUnconfirmedTransaction(ids[i]);
-			self.addDoubleSpending(transaction);
-		}
-	}
+Transactions.prototype.applyUnconfirmedList = function (ids, cb) {
+	async.eachSeries(ids, function (id, cb) {
+		var transaction = self.getUnconfirmedTransaction(id)
+		self.applyUnconfirmed(transaction, function (err) {
+			if (err) {
+				self.removeUnconfirmedTransaction(id);
+				self.addDoubleSpending(transaction);
+			}
+			setImmediate(cb);
+		});
+	}, cb);
 }
 
 Transactions.prototype.undoUnconfirmedList = function () {
