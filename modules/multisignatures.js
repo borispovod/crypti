@@ -21,9 +21,8 @@ function Multisignature() {
 		trs.amount = data.amount;
 		trs.asset.multisignature = {
 			min: data.min,
-			dependence: data.dependence,
-			lifetime: data.lifetime,
-			signatures: []
+			keysgroup: data.keysgroup,
+			lifetime: data.lifetime
 		};
 
 		return trs;
@@ -43,55 +42,29 @@ function Multisignature() {
 			return setImmediate(cb, "Invalid transaction amount: " + trs.id);
 		}
 
-		if (!util.isArray(trs.asset.multisignature.dependence)) {
+		if (!util.isArray(trs.asset.multisignature.keysgroup)) {
 			return setImmediate(cb, "Wrong transaction asset for multisignature transaction: " + trs.id);
 		}
 
-		if (!util.isArray(trs.asset.multisignature.signatures)) {
+		if (!trs.asset.multisignature.min) {
 			return setImmediate(cb, "Wrong transaction asset for multisignature transaction: " + trs.id);
 		}
 
-		if (trs.asset.multisignature.min < 2 || trs.asset.multisignature.min > trs.asset.multisignature.dependence.length) {
-			return setImmediate(cb, "Min should be less dependence keys and more then 1: " + trs.id);
-		}
-
-		if (trs.asset.multisignature.lifetime < 1 || trs.asset.multisignature.lifetime > 72) {
-			return setImmediate(cb, "lifetime should be less 72h keys and more then 1h: " + trs.id);
-		}
-
-		if (trs.asset.multisignature.signatures.length < trs.asset.multisignature.min) {
-			return setImmediate(cb, "Count signatures less min: " + trs.id);
-		}
-
-		for (var s = 0; s < trs.asset.multisignature.signatures.length; s++) {
-			var verify = false;
-			for (var d = 0; d < trs.asset.multisignature.dependence.length && !verify; d++) {
-				if (library.logic.transaction.verifySignature(trs, trs.asset.multisignature.dependence[d], trs.asset.multisignature.signatures[s])) {
-					verify = true;
-				}
-			}
-			if (!verify) {
-				return setImmediate(cb, "Failed multisignature: " + trs.id);
-			}
+		if (!trs.asset.multisignature.lifetime) {
+			return setImmediate(cb, "Wrong transaction asset for multisignature transaction: " + trs.id);
 		}
 
 		setImmediate(cb, null, trs);
 	}
 
 	this.getBytes = function (trs, skip) {
-		var dependenceBuffer = new Buffer(trs.asset.multisignature.dependence.join(''), 'utf8');
-		var signaturesBuffer = [];
-		if (!skip) {
-			signaturesBuffer = new Buffer(trs.asset.multisignature.signatures.join(''), 'utf8');
-		}
-		var bb = new ByteBuffer(1 + 1 + dependenceBuffer.length + signaturesBuffer.length, true);
+		var keysgroupBuffer = new Buffer(trs.asset.multisignature.keysgroup.join(''), 'utf8');
+
+		var bb = new ByteBuffer(1 + 1 + keysgroupBuffer.length, true);
 		bb.writeByte(trs.asset.multisignature.min);
 		bb.writeByte(trs.asset.multisignature.lifetime);
-		for (var i = 0; i < dependenceBuffer.length; i++) {
-			bb.writeByte(dependenceBuffer[i]);
-		}
-		for (var i = 0; i < signaturesBuffer.length; i++) {
-			bb.writeByte(signaturesBuffer[i]);
+		for (var i = 0; i < keysgroupBuffer.length; i++) {
+			bb.writeByte(keysgroupBuffer[i]);
 		}
 		bb.flip();
 
@@ -99,14 +72,7 @@ function Multisignature() {
 	}
 
 	this.apply = function (trs, sender) {
-		if (trs.asset.multisignature.signatures.length < trs.asset.multisignature.min) {
-			return false
-		}
-
-		var recipient = modules.accounts.getAccountOrCreateByAddress(trs.recipientId);
-
-		recipient.addToUnconfirmedBalance(trs.amount);
-		recipient.addToBalance(trs.amount);
+		sender.multisignature = trs.asset.multisignature;
 
 		return true;
 	}
@@ -125,6 +91,7 @@ function Multisignature() {
 	}
 
 	this.applyUnconfirmed = function (trs, sender, cb) {
+		sender.unconfirmedMultisignature = trs.asset.multisignature.signatures;
 		 setImmediate(cb);
 	}
 
@@ -143,13 +110,7 @@ function Multisignature() {
 					minLength: 2,
 					maxLength: 10
 				},
-				lifetime: "int!",
-				signatures: {
-					required: true,
-					array: true,
-					minLength: 2,
-					maxLength: 10
-				}
+				lifetime: "int!"
 			}
 		});
 
@@ -169,8 +130,7 @@ function Multisignature() {
 			var multisignature = {
 				min: raw.m_min,
 				lifetime: raw.m_lifetime,
-				dependence: raw.m_dependence.split(','),
-				signatures: raw.m_signatures.split(',')
+				keysgroup: raw.m_keysgroup.split(',')
 			}
 
 			return {multisignature: multisignature};
@@ -178,17 +138,16 @@ function Multisignature() {
 	}
 
 	this.dbSave = function (dbLite, trs, cb) {
-		dbLite.query("INSERT INTO multisignatures(min, lifetime, dependence, signatures, transactionId) VALUES($min, $lifetime, $dependence, $signatures, $transactionId)", {
+		dbLite.query("INSERT INTO multisignatures(min, lifetime, keysgroup, transactionId) VALUES($min, $lifetime, $keysgroup, $transactionId)", {
 			min: trs.asset.multisignature.min,
 			lifetime: trs.asset.multisignature.lifetime,
-			dependence: trs.asset.multisignature.dependence.join(','),
-			signatures: trs.asset.multisignature.signatures.join(','),
+			keysgroup: trs.asset.multisignature.keysgroup.join(','),
 			transactionId: trs.id
 		}, cb);
 	}
 
 	this.ready = function (trs) {
-		return trs.asset.multisignature.signatures.length >= trs.asset.multisignature.min;
+		return true;
 	}
 }
 
@@ -274,7 +233,7 @@ function attachApi() {
 			secondSecret: "string?",
 			min: "int!",
 			lifetime: "int!",
-			dependence: {
+			keysgroup: {
 				required: true,
 				array: true,
 				minLength: 2,
@@ -337,13 +296,11 @@ function attachApi() {
 
 			var transaction = library.logic.transaction.create({
 				type: TransactionTypes.MULTI,
-				amount: body.amount,
 				sender: account,
-				recipientId: recipientId,
 				keypair: keypair,
 				secondKeypair: secondKeypair,
 				min: body.min,
-				dependence: body.dependence,
+				keysgroup: body.keysgroup,
 				lifetime: body.lifetime
 			});
 
