@@ -1,5 +1,4 @@
 var ed = require('ed25519'),
-	bignum = require('bignum'),
 	util = require('util'),
 	ByteBuffer = require("bytebuffer"),
 	crypto = require('crypto'),
@@ -10,7 +9,8 @@ var ed = require('ed25519'),
 	Router = require('../helpers/router.js'),
 	async = require('async'),
 	RequestSanitizer = require('../helpers/request-sanitizer.js'),
-	TransactionTypes = require('../helpers/transaction-types.js');
+	TransactionTypes = require('../helpers/transaction-types.js'),
+	errorCode = require('../helpers/errorCodes.js').error;
 
 // private fields
 var modules, library, self, private = {};
@@ -35,11 +35,11 @@ function Transfer() {
 	this.verify = function (trs, sender, cb) {
 		var isAddress = /^[0-9]+[C|c]$/g;
 		if (!isAddress.test(trs.recipientId.toLowerCase())) {
-			return cb("Invalid recipientId: " + trs.id);
+			return cb(errorCode("TRANSACTIONS.INVALID_RECIPIENT", trs));
 		}
 
 		if (trs.amount <= 0) {
-			return cb("Invalid transaction amount: " + trs.id);
+			return cb(errorCode("TRANSACTIONS.INVALID_AMOUNT", trs));
 		}
 
 		cb(null, trs);
@@ -67,8 +67,8 @@ function Transfer() {
 		return true;
 	}
 
-	this.applyUnconfirmed = function (trs, sender) {
-		return true;
+	this.applyUnconfirmed = function (trs, sender, cb) {
+		setImmediate(cb);
 	}
 
 	this.undoUnconfirmed = function (trs, sender) {
@@ -110,7 +110,7 @@ function attachApi() {
 
 	router.use(function (req, res, next) {
 		if (modules) return next();
-		res.status(500).send({success: false, error: 'loading'});
+		res.status(500).send({success: false, error: errorCode('COMMON.LOADING')});
 	});
 
 	router.get('/', function (req, res) {
@@ -128,7 +128,7 @@ function attachApi() {
 
 			private.list(query, function (err, transactions) {
 				if (err) {
-					return res.json({success: false, error: "Transactions not found"});
+					return res.json({success: false, error: errorCode("TRANSACTIONS.TRANSACTIONS_NOT_FOUND")});
 				}
 
 				res.json({success: true, transactions: transactions});
@@ -137,56 +137,59 @@ function attachApi() {
 	});
 
 	router.get('/get', function (req, res) {
-		var id = RequestSanitizer.string(req.query.id);
+		req.sanitize("query", {id: "string!"}, function (err, report, query) {
+			if (err) return next(err);
+			if (!report.isValid) return res.json({success: false, error: report.issues});
 
-		if (!id) {
-			return res.json({success: false, error: "Provide id in url"});
-		}
-
-		private.getById(id, function (err, transaction) {
-			if (!transaction || err) {
-				return res.json({success: false, error: "Transaction not found"});
-			}
-			res.json({success: true, transaction: transaction});
+			private.getById(query.id, function (err, transaction) {
+				if (!transaction || err) {
+					return res.json({success: false, error: errorCode("TRANSACTIONS.TRANSACTION_NOT_FOUND")});
+				}
+				res.json({success: true, transaction: transaction});
+			});
 		});
 	});
 
 	router.get('/unconfirmed/get', function (req, res) {
-		var id = RequestSanitizer.string(req.query.id);
+		req.sanitize("query", {id: "string!"}, function (err, report, query) {
+			if (err) return next(err);
+			if (!report.isValid) return res.json({success: false, error: report.issues});
 
-		if (!id) {
-			return res.json({success: false, error: "Provide id in url"});
-		}
+			var unconfirmedTransaction = self.getUnconfirmedTransaction(query.id);
 
-		var unconfirmedTransaction = self.getUnconfirmedTransaction(id);
+			if (!unconfirmedTransaction) {
+				return res.json({success: false, error: errorCode("TRANSACTIONS.TRANSACTION_NOT_FOUND")});
+			}
 
-		if (!unconfirmedTransaction) {
-			return res.json({success: false, error: "Transaction not found"});
-		}
-
-		res.json({success: true, transaction: unconfirmedTransaction});
+			res.json({success: true, transaction: unconfirmedTransaction});
+		});
 	});
 
 	router.get('/unconfirmed/', function (req, res) {
-		var transactions = self.getUnconfirmedTransactionList(true),
-			toSend = [];
+		req.sanitize("query", {
+			senderPublicKey: "hex?",
+			address: "string?"
+		}, function (err, report, query) {
+			if (err) return next(err);
+			if (!report.isValid) return res.json({success: false, error: report.issues});
 
-		var senderPublicKey = RequestSanitizer.hex(req.query.senderPublicKey || null, true),
-			address = RequestSanitizer.string(req.query.address, true);
+			var transactions = self.getUnconfirmedTransactionList(true),
+				toSend = [];
 
-		if (senderPublicKey || address) {
-			for (var i = 0; i < transactions.length; i++) {
-				if (transactions[i].senderPublicKey == senderPublicKey || transactions[i].recipientId == address) {
+			if (query.senderPublicKey || query.address) {
+				for (var i = 0; i < transactions.length; i++) {
+					if (transactions[i].senderPublicKey == query.senderPublicKey || transactions[i].recipientId == query.address) {
+						toSend.push(transactions[i]);
+					}
+				}
+			} else {
+				for (var i = 0; i < transactions.length; i++) {
 					toSend.push(transactions[i]);
 				}
 			}
-		} else {
-			for (var i = 0; i < transactions.length; i++) {
-				toSend.push(transactions[i]);
-			}
-		}
 
-		res.json({success: true, transactions: toSend});
+			res.json({success: true, transactions: toSend});
+		});
 	});
 
 	router.put('/', function (req, res) {
@@ -207,7 +210,7 @@ function attachApi() {
 			} else {
 				var recipient = modules.accounts.getAccountByUsername(body.recipientId);
 				if (!recipient) {
-					return res.json({success: false, error: "Recipient is not found"});
+					return res.json({success: false, error: errorCode("TRANSACTIONS.RECIPIENT_NOT_FOUND")});
 				}
 				recipientId = recipient.address;
 			}
@@ -217,22 +220,19 @@ function attachApi() {
 
 			if (body.publicKey) {
 				if (keypair.publicKey.toString('hex') != body.publicKey) {
-					return res.json({success: false, error: "Please, provide valid secret key of your account"});
+					return res.json({success: false, error: errorCode("COMMON.INVALID_SECRET_KEY")});
 				}
 			}
 
 			var account = modules.accounts.getAccountByPublicKey(keypair.publicKey.toString('hex'));
 
-			if (!account) {
-				return res.json({success: false, error: "Account doesn't has balance"});
+			if (!account || !account.publicKey) {
+				return res.json({success: false, error: errorCode("COMMON.OPEN_ACCOUNT")});
 			}
 
-			if (!account.publicKey) {
-				return res.json({success: false, error: "Open account to make transaction"});
-			}
 
 			if (account.secondSignature && !body.secondSecret) {
-				return res.json({success: false, error: "Provide second secret key"});
+				return res.json({success: false, error: errorCode("COMMON.SECOND_SECRET_KEY")});
 			}
 
 			var secondKeypair = null;
@@ -264,7 +264,7 @@ function attachApi() {
 	});
 
 	router.use(function (req, res, next) {
-		res.status(500).send({success: false, error: 'api not found'});
+		res.status(500).send({success: false, error: errorCode('COMMON.INVALID_API')});
 	});
 
 	library.network.app.use('/api/transactions', router);
@@ -356,17 +356,19 @@ private.getById = function (id, cb) {
 	});
 }
 
-private.addUnconfirmedTransaction = function (transaction) {
-	if (!self.applyUnconfirmed(transaction)) {
-		self.addDoubleSpending(transaction);
-		return false;
-	}
+private.addUnconfirmedTransaction = function (transaction, cb) {
+	self.applyUnconfirmed(transaction, function (err) {
+		if (err) {
+			self.addDoubleSpending(transaction);
+			return setImmediate(cb, err);
+		}
 
-	private.unconfirmedTransactions.push(transaction);
-	var index = private.unconfirmedTransactions.length - 1;
-	private.unconfirmedTransactionsIdIndex[transaction.id] = index;
+		private.unconfirmedTransactions.push(transaction);
+		var index = private.unconfirmedTransactions.length - 1;
+		private.unconfirmedTransactionsIdIndex[transaction.id] = index;
 
-	return true;
+		setImmediate(cb);
+	});
 }
 
 //public methods
@@ -412,49 +414,52 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 	var txId = library.logic.transaction.getId(transaction);
 
 	if (transaction.id && transaction.id != txId) {
-		cb && cb("Invalid transaction id");
-		return;
+		return cb("Invalid transaction id");
 	} else {
 		transaction.id = txId;
 	}
 
 	library.dbLite.query("SELECT count(id) FROM trs WHERE id=$id", {id: transaction.id}, {"count": Number}, function (err, rows) {
 		if (err) {
-			return cb && cb("Internal sql error");
+			return cb("Internal sql error");
 		}
 
 		var res = rows.length && rows[0];
 
 		if (res.count) {
-			return cb && cb("Can't process transaction, transaction already confirmed");
+			return cb("Can't process transaction, transaction already confirmed");
 		} else {
 			// check in confirmed transactions
 			if (private.unconfirmedTransactionsIdIndex[transaction.id] !== undefined || private.doubleSpendingTransactions[transaction.id]) {
-				return cb && cb("This transaction already exists");
+				return cb("This transaction already exists");
 			}
 
 			var sender = modules.accounts.getAccountByPublicKey(transaction.senderPublicKey);
 
 			if (!sender) {
-				return cb && cb("Can't process transaction, sender not found");
+				return cb("Can't process transaction, sender not found");
 			}
 
 			transaction.senderId = sender.address;
 
 			if (!library.logic.transaction.verifySignature(transaction, transaction.senderPublicKey, transaction.signature)) {
-				return cb && cb("Can't verify signature");
+				return cb("Can't verify signature");
 			}
 
 			function done(err) {
-				if (err) return cb && cb(err);
-
-				if (!private.addUnconfirmedTransaction(transaction)) {
-					return cb && cb("Can't apply transaction: " + transaction.id);
+				if (err) {
+					return cb(err);
 				}
 
-				library.bus.message('unconfirmedTransaction', transaction, broadcast);
+				private.addUnconfirmedTransaction(transaction, function (err) {
+					if (err) {
+						return cb(err);
+					}
 
-				cb && cb();
+					library.bus.message('unconfirmedTransaction', transaction, broadcast);
+
+					cb();
+				});
 			}
 
 			if (!library.logic.transaction.ready(transaction)) {
@@ -466,14 +471,17 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 	});
 }
 
-Transactions.prototype.applyUnconfirmedList = function (ids) {
-	for (var i = 0; i < ids.length; i++) {
-		var transaction = self.getUnconfirmedTransaction(ids[i])
-		if (!self.applyUnconfirmed(transaction)) {
-			self.removeUnconfirmedTransaction(ids[i]);
-			self.addDoubleSpending(transaction);
-		}
-	}
+Transactions.prototype.applyUnconfirmedList = function (ids, cb) {
+	async.eachSeries(ids, function (id, cb) {
+		var transaction = self.getUnconfirmedTransaction(id)
+		self.applyUnconfirmed(transaction, function (err) {
+			if (err) {
+				self.removeUnconfirmedTransaction(id);
+				self.addDoubleSpending(transaction);
+			}
+			setImmediate(cb);
+		});
+	}, cb);
 }
 
 Transactions.prototype.undoUnconfirmedList = function () {
@@ -499,16 +507,16 @@ Transactions.prototype.undo = function (transaction) {
 	return library.logic.transaction.undo(transaction, sender);
 }
 
-Transactions.prototype.applyUnconfirmed = function (transaction) {
+Transactions.prototype.applyUnconfirmed = function (transaction, cb) {
 	var sender = modules.accounts.getAccountByPublicKey(transaction.senderPublicKey);
 
 	if (!sender && transaction.blockId != genesisblock.block.id) {
-		return false;
+		return setImmediate(cb, 'Failed account: ' + transaction.id);
 	} else {
 		sender = modules.accounts.getAccountOrCreateByPublicKey(transaction.senderPublicKey);
 	}
 
-	return library.logic.transaction.applyUnconfirmed(transaction, sender);
+	return library.logic.transaction.applyUnconfirmed(transaction, sender, cb);
 }
 
 Transactions.prototype.undoUnconfirmed = function (transaction) {

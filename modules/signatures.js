@@ -1,5 +1,4 @@
 var ed = require('ed25519'),
-	bignum = require('bignum'),
 	ByteBuffer = require("bytebuffer"),
 	crypto = require('crypto'),
 	constants = require("../helpers/constants.js"),
@@ -7,7 +6,8 @@ var ed = require('ed25519'),
 	RequestSanitizer = require('../helpers/request-sanitizer.js'),
 	Router = require('../helpers/router.js'),
 	async = require('async'),
-	TransactionTypes = require('../helpers/transaction-types.js');
+	TransactionTypes = require('../helpers/transaction-types.js'),
+	errorCode = require('../helpers/errorCodes.js').error;
 
 // private fields
 var modules, library, self, private = {};
@@ -29,22 +29,22 @@ function Signature() {
 
 	this.verify = function (trs, sender, cb) {
 		if (!trs.asset.signature) {
-			return cb("Empty transaction asset for signature transaction: " + trs.id)
+			return setImmediate(cb, errorCode("SIGNATURES.INVALID_ASSET", trs))
 		}
 
 		if (trs.amount != 0) {
-			return cb("Invalid amount: " + trs.id);
+			return setImmediate(cb, errorCode("SIGNATURES.INVALID_AMOUNT", trs));
 		}
 
 		try {
 			if (new Buffer(trs.asset.signature.publicKey, 'hex').length != 32) {
-				return cb("Invalid length for signature public key: " + trs.id);
+				return setImmediate(cb, errorCode("SIGNATURES.INVALID_LENGTH", trs));
 			}
 		} catch (e) {
-			return cb("Invalid hex in signature public key: " + trs.id);
+			return setImmediate(cb, errorCode("SIGNATURES.INVALID_HEX", trs));
 		}
 
-		return cb(null, trs);
+		setImmediate(cb, null, trs);
 	}
 
 	this.getBytes = function (trs) {
@@ -79,14 +79,14 @@ function Signature() {
 		return true;
 	}
 
-	this.applyUnconfirmed = function (trs, sender) {
+	this.applyUnconfirmed = function (trs, sender, cb) {
 		if (sender.unconfirmedSignature || sender.secondSignature) {
-			return false;
+			return setImmediate(cb, "Failed secondSignature: " + trs.id);
 		}
 
 		sender.unconfirmedSignature = true;
 
-		return true;
+		setImmediate(cb);
 	}
 
 	this.undoUnconfirmed = function (trs, sender) {
@@ -155,7 +155,7 @@ function attachApi() {
 
 	router.use(function (req, res, next) {
 		if (modules) return next();
-		res.status(500).send({success: false, error: 'loading'});
+		res.status(500).send({success: false, error: errorCode('COMMON.LOADING')});
 	});
 
 	router.put('/', function (req, res) {
@@ -172,22 +172,18 @@ function attachApi() {
 
 			if (body.publicKey) {
 				if (keypair.publicKey.toString('hex') != body.publicKey) {
-					return res.json({success: false, error: "Please, provide valid secret key of your account"});
+					return res.json({success: false, error: errorCode("COMMON.INVALID_SECRET_KEY")});
 				}
 			}
 
 			var account = modules.accounts.getAccountByPublicKey(keypair.publicKey.toString('hex'));
 
-			if (!account) {
-				return res.json({success: false, error: "Account doesn't has balance"});
-			}
-
-			if (!account.publicKey) {
-				return res.json({success: false, error: "Open account to make transaction"});
+			if (!account || !account.publicKey) {
+				return res.json({success: false, error: errorCode("COMMON.OPEN_ACCOUNT")});
 			}
 
 			if (account.secondSignature || account.unconfirmedSignature) {
-				return res.json({success: false, error: "Second signature already enabled"});
+				return res.json({success: false, error: errorCode("COMMON.SECOND_SECRET_KEY")});
 			}
 
 			var secondHash = crypto.createHash('sha256').update(body.secondSecret, 'utf8').digest();
@@ -212,7 +208,7 @@ function attachApi() {
 	});
 
 	router.use(function (req, res, next) {
-		res.status(500).send({success: false, error: 'api not found'});
+		res.status(500).send({success: false, error: errorCode('COMMON.INVALID_API')});
 	});
 
 	library.network.app.use('/api/signatures', router);

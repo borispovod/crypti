@@ -1,5 +1,5 @@
 var crypto = require('crypto'),
-	bignum = require('bignum'),
+	bignum = require('../helpers/bignum.js'),
 	ed = require('ed25519'),
 	slots = require('../helpers/slots.js'),
 	Router = require('../helpers/router.js'),
@@ -7,7 +7,7 @@ var crypto = require('crypto'),
 	constants = require('../helpers/constants.js'),
 	RequestSanitizer = require('../helpers/request-sanitizer.js'),
 	TransactionTypes = require('../helpers/transaction-types.js'),
-	sandboxHelper = require('../helpers/sandboxApi.js').applySandboxApi;
+	errorCode = require('../helpers/errorCodes.js').error;
 
 //private
 var modules, library, self, private = {};
@@ -247,22 +247,22 @@ function Vote() {
 
 	this.verify = function (trs, sender, cb) {
 		if (trs.recipientId != trs.senderId) {
-			return cb("Incorrect recipient: " + trs.id);
+			return setImmediate(cb, errorCode("VOTES.INCORRECT_RECIPIENT", trs));
 		}
 
 		if (trs.asset.votes && trs.asset.votes.length > 33) {
-			return cb("You can only vote for a maximum of 33 delegates at any one time.: " + trs.id);
+			return setImmediate(cb, errorCode("VOTES.MAXIMUM_DELEGATES_VOTE", trs));
 		}
 
 		if (!modules.delegates.checkUnconfirmedDelegates(trs.senderPublicKey, trs.asset.votes)) {
-			return cb("Can't verify votes, you already voted for this delegate: " + trs.id);
+			return setImmediate(cb, errorCode("VOTES.ALREADY_VOTED_UNCONFIRMED", trs));
 		}
 
 		if (!modules.delegates.checkDelegates(trs.senderPublicKey, trs.asset.votes)) {
-			return cb("Can't verify votes, you already voted for this delegate: " + trs.id);
+			return setImmediate(cb, errorCode("VOTES.ALREADY_VOTED_CONFIRMED", trs));
 		}
 
-		cb(null, trs);
+		setImmediate(cb, null, trs);
 	}
 
 	this.getBytes = function (trs) {
@@ -281,8 +281,10 @@ function Vote() {
 		return true;
 	}
 
-	this.applyUnconfirmed = function (trs, sender) {
-		return sender.applyUnconfirmedDelegateList(trs.asset.votes);
+	this.applyUnconfirmed = function (trs, sender, cb) {
+		var res = sender.applyUnconfirmedDelegateList(trs.asset.votes);
+
+		setImmediate(cb, !res ? "Can't apply delegates: " + trs.id : null);
 	}
 
 	this.undoUnconfirmed = function (trs, sender) {
@@ -335,20 +337,20 @@ function Username() {
 
 	this.verify = function (trs, sender, cb) {
 		if (trs.recipientId) {
-			return cb("Invalid recipientId: " + trs.id);
+			return setImmediate(cb, errorCode("USERNAMES.INCORRECT_RECIPIENT", trs));
 		}
 
 		if (trs.amount != 0) {
-			return cb("Invalid amount: " + trs.id);
+			return setImmediate(cb, errorCode("USERNAMES.INVALID_AMOUNT", trs));
 		}
 
 		if (!trs.asset.username.alias) {
-			return cb("Empty transaction asset for username transaction: " + trs.id);
+			return setImmediate(cb, errorCode("USERNAMES.EMPTY_ASSET", trs));
 		}
 
 		var allowSymbols = /^[a-z0-9!@$&_.]+$/g;
 		if (!allowSymbols.test(trs.asset.username.alias.toLowerCase())) {
-			return cb("username can only contain alphanumeric characters with the exception of !@$&_.: " + trs.id);
+			return setImmediate(cb, errorCode("USERNAMES.ALLOW_CHARS", trs));
 		}
 
 		//if (trs.asset.username.alias.search(/(admin|genesis|delegate|crypti)/i) > -1) {
@@ -357,18 +359,18 @@ function Username() {
 
 		var isAddress = /^[0-9]+[C|c]$/g;
 		if (isAddress.test(trs.asset.username.alias.toLowerCase())) {
-			return cb("username can't be like an address: " + trs.id);
+			return setImmediate(cb, errorCode("USERNAMES.USERNAME_LIKE_ADDRESS", trs));
 		}
 
 		if (trs.asset.username.alias.length == 0 || trs.asset.username.alias.length > 20) {
-			return cb("Incorrect username length: " + trs.id);
+			return setImmediate(cb, errorCode("USERNAMES.INCORRECT_USERNAME_LENGTH", trs));
 		}
 
 		if (modules.delegates.existsName(trs.asset.username.alias)) {
-			return cb("The username you entered is already in use. Please try a different name.: " + trs.id);
+			return setImmediate(cb, errorCode("USERNAMES.EXISTS_USERNAME", trs));
 		}
 
-		cb(null, trs);
+		setImmediate(cb, null, trs);
 	}
 
 	this.getBytes = function (trs) {
@@ -387,10 +389,10 @@ function Username() {
 		return true;
 	}
 
-	this.applyUnconfirmed = function (trs, sender) {
+	this.applyUnconfirmed = function (trs, sender, cb) {
 		sender.applyUnconfirmedUsername(trs.asset.username);
 
-		return true;
+		setImmediate(cb);
 	}
 
 	this.undoUnconfirmed = function (trs, sender) {
@@ -461,7 +463,7 @@ function attachApi() {
 
 	router.use(function (req, res, next) {
 		if (modules) return next();
-		res.status(500).send({success: false, error: 'loading'});
+		res.status(500).send({success: false, error: errorCode('COMMON.LOADING')});
 	});
 
 	router.post('/open', function (req, res, next) {
@@ -539,7 +541,7 @@ function attachApi() {
 			var account = self.getAccount(query.address);
 
 			if (!account || !account.publicKey) {
-				return res.json({success: false, error: "Account public key can't be found "});
+				return res.json({success: false, error: errorCode("ACCOUNTS.ACCOUNT_PUBLIC_KEY_NOT_FOUND", {address: query.address})});
 			}
 
 			return res.json({success: true, publicKey: account.publicKey});
@@ -570,7 +572,7 @@ function attachApi() {
 			var account = self.getAccount(query.address);
 
 			if (!account) {
-				return res.json({success: false, error: "Account doesn't found"});
+				return res.json({success: false, error: errorCode("ACCOUNTS.ACCOUNT_DOESNT_FOUND", {address: query.address})});
 			}
 
 			var delegates = null;
@@ -600,22 +602,18 @@ function attachApi() {
 
 			if (body.publicKey) {
 				if (keypair.publicKey.toString('hex') != body.publicKey) {
-					return res.json({success: false, error: "Please, provide valid secret key of your account"});
+					return res.json({success: false, error: errorCode("COMMON.INVALID_SECRET_KEY")});
 				}
 			}
 
 			var account = self.getAccountByPublicKey(keypair.publicKey.toString('hex'));
 
-			if (!account) {
-				return res.json({success: false, error: "Account doesn't has balance"});
-			}
-
-			if (!account.publicKey) {
-				return res.json({success: false, error: "Open account to make transaction"});
+			if (!account || !account.publicKey) {
+				return res.json({success: false, error: errorCode("COMMON.OPEN_ACCOUNT")});
 			}
 
 			if (account.secondSignature && !body.secondSecret) {
-				return res.json({success: false, error: "Provide second secret key"});
+				return res.json({success: false, error: errorCode("COMMON.SECOND_SECRET_KEY")});
 			}
 
 			var secondKeypair = null;
@@ -660,22 +658,18 @@ function attachApi() {
 
 			if (body.publicKey) {
 				if (keypair.publicKey.toString('hex') != body.publicKey) {
-					return res.json({success: false, error: "Please, provide valid secret key of your account"});
+					return res.json({success: false, error: errorCode("COMMON.INVALID_SECRET_KEY")});
 				}
 			}
 
 			var account = self.getAccountByPublicKey(keypair.publicKey.toString('hex'));
 
-			if (!account) {
-				return res.json({success: false, error: "Account doesn't has balance"});
-			}
-
-			if (!account.publicKey) {
-				return res.json({success: false, error: "Open account to make transaction"});
+			if (!account || !account.publicKey) {
+				return res.json({success: false, error: errorCode("COMMON.OPEN_ACCOUNT")});
 			}
 
 			if (account.secondSignature && !body.secondSecret) {
-				return res.json({success: false, error: "Provide second secret key"});
+				return res.json({success: false, error: errorCode("COMMON.SECOND_SECRET_KEY")});
 			}
 
 			var secondKeypair = null;
@@ -716,7 +710,7 @@ function attachApi() {
 			var account = self.getAccount(query.address);
 
 			if (!account) {
-				return res.json({success: false, error: "Account not found"});
+				return res.json({success: false, error: errorCode("ACCOUNTS.ACCOUNT_DOESNT_FOUND")});
 			}
 
 			return res.json({
@@ -735,7 +729,7 @@ function attachApi() {
 	});
 
 	router.use(function (req, res, next) {
-		res.status(500).send({success: false, error: 'api not found'});
+		res.status(500).send({success: false, error: errorCode('COMMON.INVALID_API')});
 	});
 
 	library.network.app.use('/api/accounts', router);

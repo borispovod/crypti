@@ -2,7 +2,8 @@ var encryptHelper = require('../helpers/encrypt.js'),
 	TransactionTypes = require('../helpers/transaction-types.js'),
 	RequestSanitizer = require('../helpers/request-sanitizer.js'),
 	Router = require('../helpers/router.js'),
-	constants = require('../helpers/constants.js');
+	constants = require('../helpers/constants.js'),
+	errorCode = require('../helpers/errorCodes.js').error;
 
 var modules, library, self, private = {};
 
@@ -24,27 +25,27 @@ function Contact() {
 
 	this.verify = function (trs, sender, cb) {
 		if (!trs.asset.contact) {
-			return cb("Invalid asset: " + trs.id);
+			return setImmediate(cb, "Invalid asset: " + trs.id);
 		}
 
 		if (!trs.asset.contact.address) {
-			return cb("Invalid following: " + trs.id);
+			return setImmediate(cb, "Invalid following: " + trs.id);
 		}
 
 		var isAddress = /^[0-9]+[C|c]$/g;
 		if (!isAddress.test(trs.asset.contact.address.toLowerCase())) {
-			return cb("Invalid following: " + trs.id);
+			return setImmediate(cb, "Invalid following: " + trs.id);
 		}
 
 		if (trs.amount != 0) {
-			return cb("Invalid amount: " + trs.id);
+			return setImmediate(cb, "Invalid amount: " + trs.id);
 		}
 
 		if (trs.recipientId != trs.senderId) {
-			return cb("Invalid recipientId: " + trs.id);
+			return setImmediate(cb, "Invalid recipientId: " + trs.id);
 		}
 
-		return cb(null, trs);
+		setImmediate(cb, null, trs);
 	}
 
 	this.getBytes = function (trs) {
@@ -72,8 +73,9 @@ function Contact() {
 		return sender.undoContact(trs.asset.contact.address);
 	}
 
-	this.applyUnconfirmed = function (trs, sender) {
-		return sender.applyUnconfirmedContact(trs.asset.contact.address);
+	this.applyUnconfirmed = function (trs, sender, cb) {
+		var res = sender.applyUnconfirmedContact(trs.asset.contact.address);
+		setImmediate(cb, !res ? "Can't apply contact: " + trs.id : null);
 	}
 
 	this.undoUnconfirmed = function (trs, sender) {
@@ -127,7 +129,7 @@ function attachApi() {
 
 	router.use(function (req, res, next) {
 		if (modules) return next();
-		res.status(500).send({success: false, error: 'loading'});
+		res.status(500).send({success: false, error: errorCode('COMMON.LOADING')});
 	});
 
 	router.get("/", function (req, res) {
@@ -144,18 +146,14 @@ function attachApi() {
 
 			if (query.publicKey) {
 				if (keypair.publicKey.toString('hex') != query.publicKey) {
-					return res.json({success: false, error: "Please, provide valid secret key of your account"});
+					return res.json({success: false, error: errorCode("COMMON.INVALID_SECRET_KEY")});
 				}
 			}
 
 			var account = modules.accounts.getAccountByPublicKey(keypair.publicKey.toString('hex'));
 
-			if (!account) {
-				return res.json({success: false, error: "Account doesn't has balance"});
-			}
-
-			if (!account.publicKey) {
-				return res.json({success: false, error: "Open account to make transaction"});
+			if (!account || !account.publicKey) {
+				return res.json({success: false, error: errorCode("COMMON.OPEN_ACCOUNT")});
 			}
 
 			res.json({success: true, following: account.following});
@@ -177,22 +175,18 @@ function attachApi() {
 
 			if (body.publicKey) {
 				if (keypair.publicKey.toString('hex') != body.publicKey) {
-					return res.json({success: false, error: "Please, provide valid secret key of your account"});
+					return res.json({success: false, error: errorCode("COMMON.INVALID_SECRET_KEY")});
 				}
 			}
 
 			var account = modules.accounts.getAccountByPublicKey(keypair.publicKey.toString('hex'));
 
-			if (!account) {
-				return res.json({success: false, error: "Account doesn't has balance"});
-			}
-
-			if (!account.publicKey) {
-				return res.json({success: false, error: "Open account to make transaction"});
+			if (!account || !account.publicKey) {
+				return res.json({success: false, error: errorCode("COMMON.OPEN_ACCOUNT")});
 			}
 
 			if (account.secondSignature && !body.secondSecret) {
-				return res.json({success: false, error: "Provide second secret key"});
+				return res.json({success: false, error: errorCode("COMMON.SECOND_SECRET_KEY")});
 			}
 
 			if (account.secondSignature && body.secondSecret) {
@@ -207,7 +201,7 @@ function attachApi() {
 			} else {
 				var following = modules.accounts.getAccountByUsername(body.following);
 				if (!following) {
-					return res.json({success: false, error: "Invalid following"});
+					return res.json({success: false, error: errorCode("CONTACTS.USERNAME_DOESNT_FOUND", body)});
 				}
 				followingAddress = following.address;
 			}
@@ -233,7 +227,7 @@ function attachApi() {
 	});
 
 	router.use(function (req, res) {
-		res.status(500).send({success: false, error: 'api not found'});
+		res.status(500).send({success: false, error: errorCode('COMMON.INVALID_API')});
 	});
 
 	library.network.app.use('/api/contacts', router);

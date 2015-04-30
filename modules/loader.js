@@ -3,7 +3,7 @@ var async = require('async'),
 	util = require('util'),
 	genesisBlock = require("../helpers/genesisblock.js"),
 	ip = require("ip"),
-	bignum = require('bignum'),
+	bignum = require('../helpers/bignum.js'),
 	RequestSanitizer = require('../helpers/request-sanitizer');
 require('colors');
 
@@ -42,7 +42,7 @@ function attachApi() {
 	router.get('/status/sync', function (req, res) {
 		res.json({
 			success: true,
-			sync: !!private.syncIntervalId,
+			sync: self.syncing(),
 			blocks: private.blocksToSync,
 			height: modules.blocks.getLastBlock().height
 		});
@@ -266,7 +266,7 @@ private.loadBlockChain = function() {
 						offset = offset + limit;
 						private.loadingLastBlock = lastBlockOffset;
 
-						cb()
+						cb();
 					});
 				})
 			}, function (err) {
@@ -289,6 +289,9 @@ private.loadBlockChain = function() {
 }
 
 //public methods
+Loader.prototype.syncing = function(){
+ return !!private.syncIntervalId;
+}
 
 //events
 Loader.prototype.onPeerReady = function () {
