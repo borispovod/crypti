@@ -12,7 +12,8 @@ var constants = require("../helpers/constants.js"),
 	npm = require('npm'),
 	Sandbox = require('crypti-node-sandbox'),
 	extend = require('extend'),
-	rmdir = require('rimraf').sync;
+	rmdir = require('rimraf').sync,
+	errorCode = require('../helpers/errorCodes.js').error;
 
 var modules, library, self, private = {};
 
@@ -421,23 +422,24 @@ function DApp() {
 		return true;
 	}
 
-	this.applyUnconfirmed = function (trs, sender) {
+	this.applyUnconfirmed = function (trs, sender, cb) {
 		if (private.unconfirmedNames[trs.asset.dapp.name]) {
-			return false;
+			return setImmediate(cb, "dapp name exists");
 		}
 
 		if (private.unconfirmedLinks[trs.asset.dapp.git]) {
-			return false;
+			return setImmediate(cb, "dapp link exists");
 		}
 
 		if (sender.isDAppAccount || sender.isUnconfirmedDAppAccount) {
-			return false;
+			return setImmediate(cb, "account is not dapp");
 		}
 
 		private.unconfirmedNames[trs.asset.dapp.name] = true;
 		private.unconfirmedLinks[trs.asset.dapp.git] = true;
 		sender.isUnconfirmedDAppAccount = true;
-		return true;
+
+		setImmediate(cb);
 	}
 
 	this.undoUnconfirmed = function (trs, sender) {
@@ -503,7 +505,7 @@ function attachApi() {
 
 	router.use(function (req, res, next) {
 		if (modules) return next();
-		res.status(500).send({success: false, error: 'loading'});
+		res.status(500).send({success: false, error: errorCode('COMMON.LOADING')});
 	});
 
 	router.put('/', function (req, res) {
@@ -524,22 +526,18 @@ function attachApi() {
 
 			if (body.publicKey) {
 				if (keypair.publicKey.toString('hex') != body.publicKey) {
-					return res.json({success: false, error: "Please, provide valid secret key of your account"});
+					return res.json({success: false, error: errorCode("COMMON.INVALID_SECRET_KEY")});
 				}
 			}
 
 			var account = modules.accounts.getAccountByPublicKey(keypair.publicKey.toString('hex'));
 
-			if (!account) {
-				return res.json({success: false, error: "Account doesn't has balance"});
-			}
-
-			if (!account.publicKey) {
-				return res.json({success: false, error: "Open account to make transaction"});
+			if (!account || !account.publicKey) {
+				return res.json({success: false, error: errorCode("COMMON.OPEN_ACCOUNT")});
 			}
 
 			if (account.secondSignature && !body.secondSecret) {
-				return res.json({success: false, error: "Provide second password"});
+				return res.json({success: false, error: errorCode("COMMON.SECOND_SECRET_KEY")});
 			}
 
 			var secondKeypair = null;
@@ -582,7 +580,7 @@ function attachApi() {
 			var ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
 
 			if (library.config.dapps.access.whiteList.length > 0 && library.config.dapps.access.whiteList.indexOf(ip) < 0) {
-				return res.json({success: false, error: "Accesss denied"});
+				return res.json({success: false, error: errorCode("COMMON.ACCESS_DENIED")});
 			}
 
 			private.get(body.id, function (err, dapp) {
@@ -612,7 +610,7 @@ function attachApi() {
 			var ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
 
 			if (library.config.dapps.access.whiteList.length > 0 && library.config.dapps.access.whiteList.indexOf(ip) < 0) {
-				return res.json({success: false, error: "Accesss denied"});
+				return res.json({success: false, error: errorCode("COMMON.ACCESS_DENIED")});
 			}
 
 			private.get(body.id, function (err, dapp) {
@@ -641,7 +639,7 @@ function attachApi() {
 			var ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
 
 			if (library.config.dapps.access.whiteList.length > 0 && library.config.dapps.access.whiteList.indexOf(ip) < 0) {
-				return res.json({success: false, error: "Accesss denied"});
+				return res.json({success: false, error: errorCode("COMMON.ACCESS_DENIED")});
 			}
 
 			private.get(body.id, function (err, dapp) {
@@ -671,7 +669,7 @@ function attachApi() {
 			var ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
 
 			if (library.config.dapps.access.whiteList.length > 0 && library.config.dapps.access.whiteList.indexOf(ip) < 0) {
-				return res.json({success: false, error: "Accesss denied"});
+				return res.json({success: false, error: errorCode("COMMON.ACCESS_DENIED")});
 			}
 
 			private.get(body.id, function (err, dapp) {
