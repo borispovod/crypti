@@ -5,7 +5,8 @@ var async = require('async'),
 	RequestSanitizer = require('../helpers/request-sanitizer'),
 	extend = require('extend'),
 	fs = require('fs'),
-	path = require('path');
+	path = require('path'),
+	errorCode = require('../helpers/errorCodes.js').error;
 
 require('array.prototype.find'); //old node fix
 
@@ -28,7 +29,7 @@ function attachApi() {
 
 	router.use(function (req, res, next) {
 		if (modules) return next();
-		res.status(500).send({success: false, error: 'loading'});
+		res.status(500).send({success: false, error: errorCode('COMMON.LOADING')});
 	});
 
 	router.get('/', function (req, res, next) {
@@ -46,12 +47,12 @@ function attachApi() {
 			if (!report.isValid) return res.json({success: false, error: report.issues});
 
 			if (query.limit < 0 || query.limit > 100) {
-				return res.json({success: false, error: "Max limit is 100"});
+				return res.json({success: false, error: errorCode("PEERS.LIMIT", query)});
 			}
 
 			private.getByFilter(query, function (err, peers) {
 				if (err) {
-					return res.json({success: false, error: "Peers not found"});
+					return res.json({success: false, error: errorCode("PEERS.PEER_NOT_FOUND")});
 				}
 
 				for (var i = 0; i < peers.length; i++) {
@@ -82,7 +83,7 @@ function attachApi() {
 			try {
 				var ip_str = ip.toLong(query.ip_str);
 			} catch (e) {
-				return res.json({success: false, error: "Provide valid ip"});
+				return res.json({success: false, error: errorCode("PEERS.INVALID_PEER")});
 			}
 
 			private.getByFilter({
@@ -90,7 +91,7 @@ function attachApi() {
 				port: port
 			}, function (err, peers) {
 				if (err) {
-					return res.json({success: false, error: "Peers not found"});
+					return res.json({success: false, error: errorCode("PEERS.PEER_NOT_FOUND")});
 				}
 
 				var peer = peers.length ? peers[0] : null;
@@ -105,7 +106,7 @@ function attachApi() {
 	});
 
 	router.use(function (req, res) {
-		res.status(500).send({success: false, error: 'api not found'});
+		res.status(500).send({success: false, error: errorCode('COMMON.INVALID_API')});
 	});
 
 	library.network.app.use('/api/peers', router);

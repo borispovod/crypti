@@ -1,7 +1,8 @@
 var util = require('util'),
 	async = require('async'),
 	path = require('path'),
-	Router = require('../helpers/router.js');
+	Router = require('../helpers/router.js'),
+	errorCode = require('../helpers/errorCodes.js').error;
 
 //private fields
 var modules, library, self, private = {};
@@ -24,7 +25,7 @@ function attachApi() {
 
 	router.use(function (req, res, next) {
 		if (modules) return next();
-		res.status(500).send({success: false, error: 'loading'});
+		res.status(500).send({success: false, error: errorCode('COMMON.LOADING')});
 	});
 
 	router.get('/', function (req, res) {

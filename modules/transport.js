@@ -5,7 +5,8 @@ var Router = require('../helpers/router.js'),
 	util = require('util'),
 	_ = require('underscore'),
 	zlib = require('zlib'),
-	RequestSanitizer = require('../helpers/request-sanitizer.js');
+	RequestSanitizer = require('../helpers/request-sanitizer.js'),
+	errorCode = require('../helpers/errorCodes.js').error;
 
 //private fields
 var modules, library, self, private = {};
@@ -29,7 +30,7 @@ function attachApi() {
 
 	router.use(function (req, res, next) {
 		if (modules && private.loaded) return next();
-		res.status(500).send({success: false, error: 'loading'});
+		res.status(500).send({success: false, error: errorCode('COMMON.LOADING')});
 	});
 
 	router.use(function (req, res, next) {
@@ -110,7 +111,7 @@ function attachApi() {
 				var peerStr = peerIp ? peerIp + ":" + RequestSanitizer.int(req.headers['port']) : 'unknown';
 				library.logger.log('common block request is not valid, ban 60 min', peerStr);
 				modules.peer.state(ip.toLong(peerIp), RequestSanitizer.int(req.headers['port']), 0, 3600);
-				return res.json({success: false, error: "ids is invalid"});
+				return res.json({success: false, error: errorCode("BLOCKS.WRONG_ID_SEQUENCE")});
 			}
 
 			library.dbLite.query("select max(height), id, previousBlock, timestamp, lower(hex(blockSignature)) from blocks where id in (" + escapedIds.join(',') + ") and height >= $min and height <= $max", {
@@ -124,7 +125,7 @@ function attachApi() {
 				"blockSignature": String
 			}, function (err, rows) {
 				if (err) {
-					return res.json({success: false, error: "Error in db"});
+					return res.json({success: false, error: errorCode("COMMON.DB_ERR")});
 				}
 
 				var commonBlock = rows.length ? rows[0] : null;
@@ -214,7 +215,7 @@ function attachApi() {
 	});
 
 	router.use(function (req, res, next) {
-		res.status(500).send({success: false, error: 'api not found'});
+		res.status(500).send({success: false, error: errorCode('COMMON.INVALID_API')});
 	});
 
 	library.network.app.use('/peer', router);
