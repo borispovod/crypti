@@ -245,15 +245,15 @@ private.getByFilter = function (filter, cb) {
 		(limit ? ' limit $limit' : '') +
 		(offset ? ' offset $offset ' : ''),
 		params, {
-		"ip": String,
-		"port": Number,
-		"state": Number,
-		"os": String,
-		"sharePort": Number,
-		"version": String
-	}, function (err, rows) {
-		cb(err, rows);
-	});
+			"ip": String,
+			"port": Number,
+			"state": Number,
+			"os": String,
+			"sharePort": Number,
+			"version": String
+		}, function (err, rows) {
+			cb(err, rows);
+		});
 }
 
 //public methods

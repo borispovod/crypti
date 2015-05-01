@@ -141,22 +141,22 @@ function attachApi() {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
 
-		// get 1400+ blocks with all data (joins) from provided block id
-		var blocksLimit = 1440;
+			// get 1400+ blocks with all data (joins) from provided block id
+			var blocksLimit = 1440;
 
-		modules.blocks.loadBlocksData({
-			limit: blocksLimit,
+			modules.blocks.loadBlocksData({
+				limit: blocksLimit,
 				lastId: query.lastBlockId
-		}, {plain: true}, function (err, data) {
-			res.status(200);
-			if (err) {
-				return res.json({blocks: ""});
-			}
+			}, {plain: true}, function (err, data) {
+				res.status(200);
+				if (err) {
+					return res.json({blocks: ""});
+				}
 
-			res.json({blocks: data});
+				res.json({blocks: data});
 
+			});
 		});
-	});
 	});
 
 	router.post("/blocks", function (req, res) {
@@ -358,14 +358,14 @@ Transport.prototype.onBlockchainReady = function () {
 }
 
 Transport.prototype.onUnconfirmedTransaction = function (transaction, broadcast) {
-	if (broadcast){
+	if (broadcast) {
 		self.broadcast(100, {api: '/transactions', data: {transaction: transaction}, method: "POST"});
 		library.network.io.sockets.emit('transactions/change', {});
 	}
 }
 
 Transport.prototype.onNewBlock = function (block, broadcast) {
-	if(broadcast){
+	if (broadcast) {
 		self.broadcast(100, {api: '/blocks', data: {block: block}, method: "POST"});
 		library.network.io.sockets.emit('blocks/change', {});
 	}
