@@ -148,17 +148,21 @@ Transaction.prototype.getBytes = function (trs, skipSignatures) {
 	return bb.toBuffer();
 }
 
-Transaction.prototype.ready = function (trs) {
+Transaction.prototype.ready = function (trs, sender) {
 	if (!private.types[trs.type]) {
 		throw Error('Unknown transaction type ' + trs.type);
 	}
 
-	return private.types[trs.type].ready(trs);
+	return private.types[trs.type].ready(trs, sender);
 }
 
 Transaction.prototype.verify = function (trs, sender, cb) { //inheritance
 	if (!private.types[trs.type]) {
 		return setImmediate(cb, 'Unknown transaction type ' + trs.type);
+	}
+
+	if (!this.ready(trs, sender)) {
+		return setImmediate(cb, "Transaction is not ready: " + trs.id);
 	}
 
 	//check sender
@@ -202,6 +206,10 @@ Transaction.prototype.verify = function (trs, sender, cb) { //inheritance
 Transaction.prototype.process = function (dbLite, trs, sender, cb) {
 	if (!private.types[trs.type]) {
 		return setImmediate(cb, 'Unknown transaction type ' + trs.type);
+	}
+
+	if (!this.ready(trs, sender)) {
+		return setImmediate(cb, "Transaction is not ready: " + trs.id);
 	}
 
 	var txId = this.getId(trs);
@@ -271,6 +279,10 @@ Transaction.prototype.verifySignature = function (trs, publicKey, signature) {
 Transaction.prototype.apply = function (trs, sender) {
 	if (!private.types[trs.type]) {
 		throw Error('Unknown transaction type ' + trs.type);
+	}
+
+	if (!this.ready(trs, sender)) {
+		return setImmediate(cb, "Transaction is not ready: " + trs.id);
 	}
 
 	var amount = trs.amount + trs.fee;

@@ -17,8 +17,8 @@ var modules, library, self, private = {};
 
 function Multisignature() {
 	this.create = function (data, trs) {
-		trs.recipientId = data.recipientId;
-		trs.amount = data.amount;
+		trs.recipientId = null;
+		trs.amount = 0;
 		trs.asset.multisignature = {
 			min: data.min,
 			keysgroup: data.keysgroup,
@@ -33,11 +33,6 @@ function Multisignature() {
 	}
 
 	this.verify = function (trs, sender, cb) {
-		var isAddress = /^[0-9]+[C|c]$/g;
-		if (!isAddress.test(trs.recipientId.toLowerCase())) {
-			return setImmediate(cb, "Invalid recipientId: " + trs.id);
-		}
-
 		if (trs.amount <= 0) {
 			return setImmediate(cb, "Invalid transaction amount: " + trs.id);
 		}
@@ -58,6 +53,26 @@ function Multisignature() {
 	}
 
 	this.process = function (dbLite, trs, sender, cb) {
+		if (trs.asset.multisignature.lifetime < 1 || trs.asset.multisignature.lifetime > 72) {
+			return setImmediate(cb, "lifetime should be less 72h keys and more then 1h: " + trs.id);
+		}
+
+		if (trs.asset.signatures.length < trs.asset.multisignature.min) {
+			return setImmediate(cb, "Count signatures less min: " + trs.id);
+		}
+
+		for (var s = 0; s < trs.asset.multisignature.keysgroup.length; s++) {
+			var verify = false;
+			for (var d = 0; d < trs.asset.signatures.length && !verify; d++) {
+				if (library.logic.transaction.verifySignature(trs, sender.multisignature.keysgroup[s], trs.asset.signatures[d])) {
+					verify = true;
+				}
+			}
+			if (!verify) {
+				return setImmediate(cb, "Failed multisignature: " + trs.id);
+			}
+		}
+
 		setImmediate(cb, null, trs);
 	}
 
@@ -96,7 +111,7 @@ function Multisignature() {
 
 	this.applyUnconfirmed = function (trs, sender, cb) {
 		sender.unconfirmedMultisignature = trs.asset.multisignature.signatures;
-		 setImmediate(cb);
+		setImmediate(cb);
 	}
 
 	this.undoUnconfirmed = function (trs, sender) {
@@ -150,8 +165,12 @@ function Multisignature() {
 		}, cb);
 	}
 
-	this.ready = function (trs) {
-		return true;
+	this.ready = function (trs, sender) {
+		if (!sender.multisignatures){
+			return trs.asset.signatures.length == trs.asset.multisignature.keysgroup.length;
+		}else {
+			return trs.asset.signatures.length >= trs.asset.multisignature.min;
+		}
 	}
 }
 
@@ -268,7 +287,7 @@ function attachApi() {
 				}
 			}
 
-			if (body.dependence.indexOf(keypair.publicKey.toString('hex')) != -1){
+			if (body.dependence.indexOf(keypair.publicKey.toString('hex')) != -1) {
 				return res.json({success: false, error: errorCode("MULTISIGNATURES.SELF_SIGN")});
 			}
 

@@ -173,8 +173,12 @@ function Delegate() {
 		}, cb);
 	}
 
-	this.ready = function (trs) {
-		return true;
+	this.ready = function (trs, sender) {
+		if (sender.multisignatures) {
+			return trs.asset.signatures.length >= trs.asset.multisignature.min;
+		} else {
+			return true;
+		}
 	}
 }
 

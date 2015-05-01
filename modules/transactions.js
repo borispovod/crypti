@@ -91,8 +91,12 @@ function Transfer() {
 		setImmediate(cb);
 	}
 
-	this.ready = function (trs) {
-		return true;
+	this.ready = function (trs, sender) {
+		if (sender.multisignatures) {
+			return trs.asset.signatures.length >= trs.asset.multisignature.min;
+		} else {
+			return true;
+		}
 	}
 }
 
@@ -417,30 +421,30 @@ Transactions.prototype.removeUnconfirmedTransaction = function (id) {
 Transactions.prototype.processUnconfirmedTransaction = function (transaction, broadcast, cb) {
 	var sender = modules.accounts.getAccountByPublicKey(transaction.senderPublicKey);
 
-	library.logic.transaction.process(library.dbLite, transaction, sender, function (err, transaction) {
-		// check in confirmed transactions
-		if (private.unconfirmedTransactionsIdIndex[transaction.id] !== undefined || private.doubleSpendingTransactions[transaction.id]) {
-			return cb("This transaction already exists");
+	function done(err) {
+		if (err) {
+			return cb(err);
 		}
 
-		function done(err) {
+		private.addUnconfirmedTransaction(transaction, function (err) {
 			if (err) {
 				return cb(err);
 			}
 
-			private.addUnconfirmedTransaction(transaction, function (err) {
-				if (err) {
-					return cb(err);
-				}
+			library.bus.message('unconfirmedTransaction', transaction, broadcast);
 
-				library.bus.message('unconfirmedTransaction', transaction, broadcast);
+			cb();
+		});
+	}
 
-				cb();
-			});
-		}
+	if (!library.logic.transaction.ready(transaction, sender)) {
+		return done();
+	}
 
-		if (!library.logic.transaction.ready(transaction)) {
-			return done();
+	library.logic.transaction.process(library.dbLite, transaction, sender, function (err, transaction) {
+		// check in confirmed transactions
+		if (private.unconfirmedTransactionsIdIndex[transaction.id] !== undefined || private.doubleSpendingTransactions[transaction.id]) {
+			return cb("This transaction already exists");
 		}
 
 		library.logic.transaction.verify(transaction, sender, done);
