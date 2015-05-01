@@ -57,6 +57,10 @@ function Multisignature() {
 		setImmediate(cb, null, trs);
 	}
 
+	this.process = function (dbLite, trs, sender, cb) {
+		setImmediate(cb, null, trs);
+	}
+
 	this.getBytes = function (trs, skip) {
 		var keysgroupBuffer = new Buffer(trs.asset.multisignature.keysgroup.join(''), 'utf8');
 

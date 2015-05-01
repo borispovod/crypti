@@ -93,6 +93,10 @@ function Delegate() {
 		setImmediate(cb, null, trs);
 	}
 
+	this.process = function (dbLite, trs, sender, cb) {
+		setImmediate(cb, null, trs);
+	}
+
 	this.getBytes = function (trs) {
 		return new Buffer(trs.asset.delegate.username, 'utf8');
 	}

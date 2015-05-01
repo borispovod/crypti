@@ -60,7 +60,7 @@ Transaction.prototype.attachAssetType = function (typeId, instance) {
 		typeof instance.objectNormalize == 'function' && typeof instance.dbRead == 'function' &&
 		typeof instance.apply == 'function' && typeof instance.undo == 'function' &&
 		typeof instance.applyUnconfirmed == 'function' && typeof instance.undoUnconfirmed == 'function' &&
-		typeof instance.ready == 'function'
+		typeof instance.ready == 'function' && typeof instance.process == 'function'
 	) {
 		private.types[typeId] = instance;
 	} else {
@@ -197,6 +197,50 @@ Transaction.prototype.verify = function (trs, sender, cb) { //inheritance
 
 	//spec
 	private.types[trs.type].verify(trs, sender, cb);
+}
+
+Transaction.prototype.process = function (dbLite, trs, sender, cb) {
+	if (!private.types[trs.type]) {
+		return setImmediate(cb, 'Unknown transaction type ' + trs.type);
+	}
+
+	var txId = this.getId(trs);
+
+	if (trs.id && trs.id != txId) {
+		return setImmediate(cb, "Invalid transaction id");
+	} else {
+		trs.id = txId;
+	}
+
+	if (!sender) {
+		return setImmediate(cb, "Can't process transaction, sender not found");
+	}
+
+	trs.senderId = sender.address;
+
+	if (!this.verifySignature(trs, trs.senderPublicKey, trs.signature)) {
+		return setImmediate(cb, "Can't verify signature");
+	}
+
+	private.types[trs.type].process(dbLite, trs, sender, function (err, trs) {
+		if (err) {
+			return setImmediate(cb, err);
+		}
+
+		dbLite.query("SELECT count(id) FROM trs WHERE id=$id", {id: trs.id}, {"count": Number}, function (err, rows) {
+			if (err) {
+				return cb("Internal sql error");
+			}
+
+			var res = rows.length && rows[0];
+
+			if (res.count) {
+				return cb("Can't process transaction, transaction already confirmed");
+			}
+
+			cb(null, trs);
+		});
+	});
 }
 
 Transaction.prototype.verifySignature = function (trs, publicKey, signature) {

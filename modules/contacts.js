@@ -48,6 +48,10 @@ function Contact() {
 		setImmediate(cb, null, trs);
 	}
 
+	this.process = function (dbLite, trs, sender, cb) {
+		setImmediate(cb, null, trs);
+	}
+
 	this.getBytes = function (trs) {
 		try {
 			var contactAddress = new Buffer(trs.asset.contact.address, 'hex');
