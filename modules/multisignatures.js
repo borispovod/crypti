@@ -78,6 +78,10 @@ function Multisignature() {
 		setImmediate(cb, null, trs);
 	}
 
+	this.process = function (dbLite, trs, sender, cb) {
+		setImmediate(cb, null, trs);
+	}
+
 	this.getBytes = function (trs, skip) {
 		var dependenceBuffer = new Buffer(trs.asset.multisignature.dependence.join(''), 'utf8');
 		var signaturesBuffer = [];

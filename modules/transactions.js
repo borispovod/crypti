@@ -45,6 +45,10 @@ function Transfer() {
 		cb(null, trs);
 	}
 
+	this.process = function (dbLite, trs, sender, cb) {
+		setImmediate(cb, null, trs);
+	}
+
 	this.getBytes = function (trs) {
 		return null;
 	}
@@ -411,63 +415,35 @@ Transactions.prototype.removeUnconfirmedTransaction = function (id) {
 }
 
 Transactions.prototype.processUnconfirmedTransaction = function (transaction, broadcast, cb) {
-	var txId = library.logic.transaction.getId(transaction);
+	var sender = modules.accounts.getAccountByPublicKey(transaction.senderPublicKey);
 
-	if (transaction.id && transaction.id != txId) {
-		return cb("Invalid transaction id");
-	} else {
-		transaction.id = txId;
-	}
-
-	library.dbLite.query("SELECT count(id) FROM trs WHERE id=$id", {id: transaction.id}, {"count": Number}, function (err, rows) {
-		if (err) {
-			return cb("Internal sql error");
+	library.logic.transaction.process(library.dbLite, transaction, sender, function (err, transaction) {
+		// check in confirmed transactions
+		if (private.unconfirmedTransactionsIdIndex[transaction.id] !== undefined || private.doubleSpendingTransactions[transaction.id]) {
+			return cb("This transaction already exists");
 		}
 
-		var res = rows.length && rows[0];
-
-		if (res.count) {
-			return cb("Can't process transaction, transaction already confirmed");
-		} else {
-			// check in confirmed transactions
-			if (private.unconfirmedTransactionsIdIndex[transaction.id] !== undefined || private.doubleSpendingTransactions[transaction.id]) {
-				return cb("This transaction already exists");
+		function done(err) {
+			if (err) {
+				return cb(err);
 			}
 
-			var sender = modules.accounts.getAccountByPublicKey(transaction.senderPublicKey);
-
-			if (!sender) {
-				return cb("Can't process transaction, sender not found");
-			}
-
-			transaction.senderId = sender.address;
-
-			if (!library.logic.transaction.verifySignature(transaction, transaction.senderPublicKey, transaction.signature)) {
-				return cb("Can't verify signature");
-			}
-
-			function done(err) {
+			private.addUnconfirmedTransaction(transaction, function (err) {
 				if (err) {
 					return cb(err);
 				}
 
-				private.addUnconfirmedTransaction(transaction, function (err) {
-					if (err) {
-						return cb(err);
-					}
+				library.bus.message('unconfirmedTransaction', transaction, broadcast);
 
-					library.bus.message('unconfirmedTransaction', transaction, broadcast);
-
-					cb();
-				});
-			}
-
-			if (!library.logic.transaction.ready(transaction)) {
-				return done();
-			}
-
-			library.logic.transaction.verify(transaction, sender, done);
+				cb();
+			});
 		}
+
+		if (!library.logic.transaction.ready(transaction)) {
+			return done();
+		}
+
+		library.logic.transaction.verify(transaction, sender, done);
 	});
 }
 

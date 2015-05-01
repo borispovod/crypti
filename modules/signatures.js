@@ -47,6 +47,10 @@ function Signature() {
 		setImmediate(cb, null, trs);
 	}
 
+	this.process = function (dbLite, trs, sender, cb) {
+		setImmediate(cb, null, trs);
+	}
+
 	this.getBytes = function (trs) {
 		try {
 			var bb = new ByteBuffer(32, true);

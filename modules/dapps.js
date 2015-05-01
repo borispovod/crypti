@@ -10,7 +10,7 @@ var constants = require("../helpers/constants.js"),
 	ed = require('ed25519'),
 	Router = require('../helpers/router.js'),
 	npm = require('npm'),
-	Sandbox = require('crypti-node-sandbox'),
+	Sandbox = require('codius-node-sandbox'),
 	extend = require('extend'),
 	rmdir = require('rimraf').sync,
 	errorCode = require('../helpers/errorCodes.js').error;
@@ -151,7 +151,6 @@ private.installDApp = function (dApp, cb) {
 		});
 	});
 }
-
 
 private.initializeDAppRoutes = function (id, routes) {
 	private.routes[id] = new Router();
@@ -377,7 +376,11 @@ function DApp() {
 			return cb("Invalid transaction amount");
 		}
 
-		library.dbLite.query("SELECT name, git FROM dapps WHERE name = $name or git = $git", {
+		cb(null, trs);
+	}
+
+	this.process = function (dbLite, trs, sender, cb) {
+		dbLite.query("SELECT name, git FROM dapps WHERE name = $name or git = $git", {
 			name: trs.asset.dapp.name,
 			git: trs.asset.dapp.git
 		}, ['name', 'git'], function (err, rows) {
@@ -391,7 +394,7 @@ function DApp() {
 					return cb("This name already using in DApp Store");
 				}
 			}
-			cb();
+			setImmediate(cb, null, trs);
 		});
 	}
 

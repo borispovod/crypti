@@ -31,6 +31,10 @@ function Transfer() {
 		cb(null, trs);
 	}
 
+	this.process = function (dbLite, trs, sender, cb) {
+		cb(null, trs);
+	}
+
 	this.getBytes = function (trs) {
 		return null;
 	}
@@ -78,6 +82,10 @@ function Signature() {
 	}
 
 	this.verify = function (trs, sender, cb) {
+		cb(null, trs);
+	}
+
+	this.process = function (dbLite, trs, sender, cb) {
 		cb(null, trs);
 	}
 
@@ -143,6 +151,10 @@ function Delegate() {
 		cb(null, trs);
 	}
 
+	this.process = function (dbLite, trs, sender, cb) {
+		cb(null, trs);
+	}
+
 	this.getBytes = function (trs) {
 		return new Buffer(trs.asset.delegate.username, 'utf8');
 	}
@@ -190,6 +202,10 @@ function Vote() {
 	}
 
 	this.verify = function (trs, sender, cb) {
+		cb(null, trs);
+	}
+
+	this.process = function (dbLite, trs, sender, cb) {
 		cb(null, trs);
 	}
 
