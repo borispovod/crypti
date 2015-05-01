@@ -57,14 +57,14 @@ function Multisignature() {
 			return setImmediate(cb, "lifetime should be less 72h keys and more then 1h: " + trs.id);
 		}
 
-		if (trs.asset.signatures.length < trs.asset.multisignature.min) {
+		if (trs.signatures.length < trs.asset.multisignature.min) {
 			return setImmediate(cb, "Count signatures less min: " + trs.id);
 		}
 
 		for (var s = 0; s < trs.asset.multisignature.keysgroup.length; s++) {
 			var verify = false;
-			for (var d = 0; d < trs.asset.signatures.length && !verify; d++) {
-				if (library.logic.transaction.verifySignature(trs, sender.multisignature.keysgroup[s], trs.asset.signatures[d])) {
+			for (var d = 0; d < trs.signatures.length && !verify; d++) {
+				if (library.logic.transaction.verifySignature(trs, sender.multisignature.keysgroup[s], trs.signatures[d])) {
 					verify = true;
 				}
 			}
@@ -166,10 +166,10 @@ function Multisignature() {
 	}
 
 	this.ready = function (trs, sender) {
-		if (!sender.multisignatures){
-			return trs.asset.signatures.length == trs.asset.multisignature.keysgroup.length;
-		}else {
-			return trs.asset.signatures.length >= trs.asset.multisignature.min;
+		if (!sender.multisignatures) {
+			return trs.signatures.length == trs.asset.multisignature.keysgroup.length;
+		} else {
+			return trs.signatures.length >= trs.asset.multisignature.min;
 		}
 	}
 }
@@ -235,7 +235,7 @@ function attachApi() {
 				if (!transaction) {
 					return cb("Transaction not found");
 				}
-				transaction.asset.multisignature.signatures.push(sign);
+				transaction.signatures.push(sign);
 				cb();
 			}, function (err) {
 				if (err) {
@@ -327,6 +327,7 @@ function attachApi() {
 				lifetime: body.lifetime
 			});
 
+			res.json({success: true, transaction: transaction});
 			library.sequence.add(function (cb) {
 				modules.transactions.receiveTransactions([transaction], cb);
 			}, function (err) {

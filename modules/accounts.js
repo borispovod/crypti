@@ -318,7 +318,7 @@ function Vote() {
 
 	this.ready = function (trs, sender) {
 		if (sender.multisignatures) {
-			return trs.asset.signatures.length >= trs.asset.multisignature.min;
+			return trs.signatures.length >= trs.asset.multisignature.min;
 		} else {
 			return true;
 		}
@@ -451,7 +451,7 @@ function Username() {
 
 	this.ready = function (trs, sender) {
 		if (sender.multisignatures) {
-			return trs.asset.signatures.length >= trs.asset.multisignature.min;
+			return trs.signatures.length >= trs.asset.multisignature.min;
 		} else {
 			return true;
 		}
