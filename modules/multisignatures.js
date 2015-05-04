@@ -41,24 +41,12 @@ function Multisignature() {
 			return setImmediate(cb, "Wrong transaction asset for multisignature transaction: " + trs.id);
 		}
 
-		if (!trs.asset.multisignature.min) {
+		if (!trs.asset.multisignature.min < 1 || trs.asset.multisignature.min > 10) {
 			return setImmediate(cb, "Wrong transaction asset for multisignature transaction: " + trs.id);
 		}
 
-		if (!trs.asset.multisignature.lifetime) {
-			return setImmediate(cb, "Wrong transaction asset for multisignature transaction: " + trs.id);
-		}
-
-		setImmediate(cb, null, trs);
-	}
-
-	this.process = function (dbLite, trs, sender, cb) {
 		if (trs.asset.multisignature.lifetime < 1 || trs.asset.multisignature.lifetime > 72) {
-			return setImmediate(cb, "lifetime should be less 72h keys and more then 1h: " + trs.id);
-		}
-
-		if (trs.signatures.length < trs.asset.multisignature.min) {
-			return setImmediate(cb, "Count signatures less min: " + trs.id);
+			return setImmediate(cb, "Wrong transaction asset for multisignature transaction: " + trs.id);
 		}
 
 		for (var s = 0; s < trs.asset.multisignature.keysgroup.length; s++) {
@@ -73,6 +61,11 @@ function Multisignature() {
 			}
 		}
 
+
+		setImmediate(cb, null, trs);
+	}
+
+	this.process = function (dbLite, trs, sender, cb) {
 		setImmediate(cb, null, trs);
 	}
 
@@ -91,31 +84,21 @@ function Multisignature() {
 	}
 
 	this.apply = function (trs, sender) {
-		sender.multisignature = trs.asset.multisignature;
-
-		return true;
+		return sender.applyMultisignature(trs.asset.multisignature);
 	}
 
 	this.undo = function (trs, sender) {
-		if (trs.asset.multisignature.signatures.length < trs.asset.multisignature.min) {
-			return false
-		}
-
-		var recipient = modules.accounts.getAccountOrCreateByAddress(trs.recipientId);
-
-		recipient.addToUnconfirmedBalance(-trs.amount);
-		recipient.addToBalance(-trs.amount);
-
-		return true;
+		return sender.undoMultisignature(trs.asset.multisignature);
 	}
 
 	this.applyUnconfirmed = function (trs, sender, cb) {
-		sender.unconfirmedMultisignature = trs.asset.multisignature.signatures;
-		setImmediate(cb);
+		var res = sender.applyUnconfirmedMultisignature(trs.asset.multisignature);
+		setImmediate(cb, res ? "can't confirm multisignature" : null);
 	}
 
 	this.undoUnconfirmed = function (trs, sender) {
-		return true;
+		var res = sender.undoUnconfirmedMultisignature(trs.asset.multisignature);
+		setImmediate(cb, res ? "can't confirm multisignature" : null);
 	}
 
 	this.objectNormalize = function (trs) {
@@ -249,6 +232,7 @@ function attachApi() {
 
 	router.put('/', function (req, res) {
 		req.sanitize("body", {
+			id: "string?",
 			secret: "string!",
 			amount: "int!",
 			recipientId: "string!",
@@ -259,7 +243,7 @@ function attachApi() {
 			keysgroup: {
 				required: true,
 				array: true,
-				minLength: 2,
+				minLength: 1,
 				maxLength: 10
 			}
 		}, function (err, report, body) {
@@ -287,16 +271,16 @@ function attachApi() {
 				}
 			}
 
-			if (body.dependence.indexOf(keypair.publicKey.toString('hex')) != -1) {
+			if (body.keysgroup.indexOf(keypair.publicKey.toString('hex')) != -1) {
 				return res.json({success: false, error: errorCode("MULTISIGNATURES.SELF_SIGN")});
 			}
 
-			var dependence = body.dependence.reduce(function (p, c) {
+			var keysgroup = body.keysgroup.reduce(function (p, c) {
 				if (p.indexOf(c) < 0) p.push(c);
 				return p;
 			}, []);
 
-			if (dependence.length != body.dependence.length) {
+			if (keysgroup.length != body.keysgroup.length) {
 				return res.json({success: false, error: errorCode("MULTISIGNATURES.NOT_UNIQUE_SET")});
 			}
 

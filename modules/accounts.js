@@ -30,94 +30,55 @@ function Account(address, publicKey, balance, unconfirmedBalance) {
 	this.username = null;
 	this.following = [];
 	this.unconfirmedFollowing = [];
+	this.unconfirmedMultisignature = null;
+	this.multisignature = null;
 }
 
-function accountApplyDiff(account, diff) {
-	var tmp = account.delegates ? account.delegates.slice() : null
+
+function reverseDiff(diff) {
+	var copyDiff = diff.slice();
+	for (var i = 0; i < copyDiff.length; i++) {
+		var math = copyDiff[i][0] == '-' ? '+' : '-';
+		copyDiff[i] = math + copyDiff[i].slice(1);
+	}
+	return copyDiff;
+}
+
+function applyDiff(source, diff) {
+	var res = source ? source.slice() : [];
 
 	for (var i = 0; i < diff.length; i++) {
 		var math = diff[i][0];
 		var publicKey = diff[i].slice(1);
 
 		if (math == "+") {
-			account.delegates = account.delegates || [];
+			res = res || [];
 
 			var index = -1;
-			if (account.delegates) {
-				index = account.delegates.indexOf(publicKey);
+			if (res) {
+				index = res.indexOf(publicKey);
 			}
 			if (index != -1) {
-				account.delegates = tmp;
 				return false;
 			}
 
-			if (account.delegates && account.delegates.length >= 101) {
-				account.delegates = tmp;
-				return false;
-			}
-
-			account.delegates.push(publicKey);
+			res.push(publicKey);
 		}
 		if (math == "-") {
 			var index = -1;
-			if (account.delegates) {
-				index = account.delegates.indexOf(publicKey);
+			if (res) {
+				index = res.indexOf(publicKey);
 			}
 			if (index == -1) {
-				account.delegates = tmp;
 				return false;
 			}
-			account.delegates.splice(index, 1);
-			if (!account.delegates.length) {
-				account.delegates = null;
+			res.splice(index, 1);
+			if (!res.length) {
+				res = null;
 			}
 		}
 	}
-	return true;
-}
-
-function accountApplyUnconfirmedDiff(account, diff) {
-	var tmp = account.unconfirmedDelegates ? account.unconfirmedDelegates.slice() : null
-
-	for (var i = 0; i < diff.length; i++) {
-		var math = diff[i][0];
-		var publicKey = diff[i].slice(1);
-
-		if (math == "+") {
-			account.unconfirmedDelegates = account.unconfirmedDelegates || [];
-
-			var index = -1;
-			if (account.unconfirmedDelegates) {
-				index = account.unconfirmedDelegates.indexOf(publicKey);
-			}
-			if (index != -1) {
-				account.unconfirmedDelegates = tmp;
-				return false;
-			}
-
-			if (account.unconfirmedDelegates && account.unconfirmedDelegates.length >= 101) {
-				account.unconfirmedDelegates = tmp;
-				return false;
-			}
-
-			account.unconfirmedDelegates.push(publicKey);
-		}
-		if (math == "-") {
-			var index = -1;
-			if (account.unconfirmedDelegates) {
-				index = account.unconfirmedDelegates.indexOf(publicKey);
-			}
-			if (index == -1) {
-				account.unconfirmedDelegates = tmp;
-				return false;
-			}
-			account.unconfirmedDelegates.splice(index, 1);
-			if (!account.unconfirmedDelegates.length) {
-				account.unconfirmedDelegates = null;
-			}
-		}
-	}
-	return true;
+	return res;
 }
 
 Account.prototype.setUnconfirmedSignature = function (unconfirmedSignature) {
@@ -143,50 +104,170 @@ Account.prototype.addToUnconfirmedBalance = function (amount) {
 
 Account.prototype.applyUnconfirmedDelegateList = function (diff) {
 	if (diff === null) return;
-	var isValid = accountApplyUnconfirmedDiff(this, diff);
 
-	isValid && library.bus.message('changeUnconfirmedDelegates', this.balance, diff);
+	var dest = applyDiff(this.unconfirmedDelegates, diff);
 
-	return isValid;
+	if (dest !== false) {
+		if (dest && dest.length > 101) {
+			return false;
+		}
+		this.unconfirmedDelegates = dest;
+		library.bus.message('changeUnconfirmedDelegates', this.balance, diff);
+		return true;
+	}
+
+	return false;
 }
 
 Account.prototype.undoUnconfirmedDelegateList = function (diff) {
 	if (diff === null) return;
-	var copyDiff = diff.slice();
-	for (var i = 0; i < copyDiff.length; i++) {
-		var math = copyDiff[i][0] == '-' ? '+' : '-';
-		copyDiff[i] = math + copyDiff[i].slice(1);
+
+	var copyDiff = reverseDiff(diff);
+
+	var dest = applyDiff(this.unconfirmedDelegates, copyDiff);
+
+	if (dest !== false) {
+		if (dest && dest.length > 101) {
+			return false;
+		}
+		this.unconfirmedDelegates = dest;
+		library.bus.message('changeUnconfirmedDelegates', this.balance, copyDiff);
+		return true;
 	}
 
-	var isValid = accountApplyUnconfirmedDiff(this, copyDiff);
-
-	isValid && library.bus.message('changeUnconfirmedDelegates', this.balance, copyDiff);
-
-	return isValid;
+	return false;
 }
 
 Account.prototype.applyDelegateList = function (diff) {
 	if (diff === null) return;
-	var isValid = accountApplyDiff(this, diff);
 
-	isValid && library.bus.message('changeDelegates', this.balance, diff);
+	var dest = applyDiff(this.delegates, diff);
 
-	return isValid;
+	if (dest !== false) {
+		if (dest && dest.length > 101) {
+			return false;
+		}
+		this.delegates = dest;
+		library.bus.message('changeDelegates', this.balance, diff);
+		return true;
+	}
+
+	return false;
 }
 
 Account.prototype.undoDelegateList = function (diff) {
 	if (diff === null) return;
-	var copyDiff = diff.slice();
-	for (var i = 0; i < copyDiff.length; i++) {
-		var math = copyDiff[i][0] == '-' ? '+' : '-';
-		copyDiff[i] = math + copyDiff[i].slice(1);
+
+	var copyDiff = reverseDiff(diff);
+
+	var dest = applyDiff(this.delegates, copyDiff);
+
+	if (dest !== false) {
+		if (dest && dest.length > 101) {
+			return false;
+		}
+		this.delegates = dest;
+		library.bus.message('changeDelegates', this.balance, copyDiff);
+		return true;
 	}
 
-	var isValid = accountApplyDiff(this, copyDiff);
+	return false;
+}
 
-	isValid && library.bus.message('changeDelegates', this.balance, copyDiff);
+Account.prototype.applyMultisignature = function (multisignature) {
+	var dest = applyDiff(this.multisignature.keysgroup, multisignature.keysgroup);
 
-	return isValid;
+	if (dest !== false) {
+		if (dest && dest.length > 10) {
+			return false;
+		}
+		var minRes = this.multisignature.min + multisignature.min;
+		if (minRes < 1 || minRes > 10) {
+			return false;
+		}
+		var lifetimeRes = this.multisignature.lifetime + multisignature.lifetime;
+		if (lifetimeRes < 1 || lifetimeRes > 72) {
+			return false;
+		}
+
+		this.multisignature = {min: minRes, lifetime: lifetimeRes, keysgroup: dest};
+		return true;
+	}
+
+	return false;
+}
+
+Account.prototype.undoMultisignature = function (multisignature) {
+	var copyDiff = reverseDiff(multisignature.keysgroup);
+
+	var dest = applyDiff(this.multisignature.keysgroup, copyDiff);
+
+	if (dest !== false) {
+		if (dest && dest.length > 10) {
+			return false;
+		}
+		var minRes = this.multisignature.min + multisignature.min;
+		if (minRes < 1 || minRes > 10) {
+			return false;
+		}
+		var lifetimeRes = this.multisignature.lifetime + multisignature.lifetime;
+		if (lifetimeRes < 1 || lifetimeRes > 72) {
+			return false;
+		}
+
+		this.multisignature = {min: minRes, lifetime: lifetimeRes, keysgroup: dest};
+		return true;
+	}
+
+	return false;
+}
+
+Account.prototype.applyUnconfirmedMultisignature = function (multisignature) {
+	var dest = applyDiff(this.unconfirmedMultisignature.keysgroup, multisignature.keysgroup);
+
+	if (dest !== false) {
+		if (dest && dest.length > 10) {
+			return false;
+		}
+		var minRes = this.unconfirmedMultisignature.min + multisignature.min;
+		if (minRes < 1 || minRes > 10) {
+			return false;
+		}
+		var lifetimeRes = this.unconfirmedMultisignature.lifetime + multisignature.lifetime;
+		if (lifetimeRes < 1 || lifetimeRes > 72) {
+			return false;
+		}
+
+		this.unconfirmedMultisignature = {min: minRes, lifetime: lifetimeRes, keysgroup: dest};
+		return true;
+	}
+
+	return false;
+}
+
+Account.prototype.undoUnconfirmedMultisignature = function (multisignature) {
+	var copyDiff = reverseDiff(multisignature.keysgroup);
+
+	var dest = applyDiff(this.unconfirmedMultisignature.keysgroup, copyDiff);
+
+	if (dest !== false) {
+		if (dest && dest.length > 10) {
+			return false;
+		}
+		var minRes = this.unconfirmedMultisignature.min + multisignature.min;
+		if (minRes < 1 || minRes > 10) {
+			return false;
+		}
+		var lifetimeRes = this.unconfirmedMultisignature.lifetime + multisignature.lifetime;
+		if (lifetimeRes < 1 || lifetimeRes > 72) {
+			return false;
+		}
+
+		this.unconfirmedMultisignature = {min: minRes, lifetime: lifetimeRes, keysgroup: dest};
+		return true;
+	}
+
+	return false;
 }
 
 Account.prototype.applyUsername = function (username) {
