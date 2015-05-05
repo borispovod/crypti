@@ -219,10 +219,6 @@ function Vote() {
 			return setImmediate(cb, errorCode("VOTES.MAXIMUM_DELEGATES_VOTE", trs));
 		}
 
-		if (!modules.delegates.checkUnconfirmedDelegates(trs.senderPublicKey, trs.asset.votes)) {
-			return setImmediate(cb, errorCode("VOTES.ALREADY_VOTED_UNCONFIRMED", trs));
-		}
-
 		if (!modules.delegates.checkDelegates(trs.senderPublicKey, trs.asset.votes)) {
 			return setImmediate(cb, errorCode("VOTES.ALREADY_VOTED_CONFIRMED", trs));
 		}
@@ -247,6 +243,10 @@ function Vote() {
 	}
 
 	this.applyUnconfirmed = function (trs, sender, cb) {
+		if (!modules.delegates.checkUnconfirmedDelegates(trs.senderPublicKey, trs.asset.votes)) {
+			return setImmediate(cb, errorCode("VOTES.ALREADY_VOTED_UNCONFIRMED", trs));
+		}
+
 		var res = sender.applyUnconfirmedDelegateList(trs.asset.votes);
 
 		setImmediate(cb, !res ? "Can't apply delegates: " + trs.id : null);
@@ -301,6 +301,8 @@ function Username() {
 	}
 
 	this.verify = function (trs, sender, cb) {
+		debugger;
+
 		if (trs.recipientId) {
 			return setImmediate(cb, errorCode("USERNAMES.INCORRECT_RECIPIENT", trs));
 		}
@@ -328,18 +330,6 @@ function Username() {
 		}
 
 		if (modules.delegates.existsName(trs.asset.username.alias)) {
-			return setImmediate(cb, errorCode("USERNAMES.EXISTS_USERNAME", trs));
-		}
-
-		if (modules.delegates.existsUnconfirmedDelegate(trs.senderPublicKey)) {
-			return setImmediate(cb, errorCode("USERNAMES.EXISTS_USERNAME", trs));
-		}
-
-		if (modules.delegates.existsUnconfirmedName(trs.asset.username.alias)) {
-			return setImmediate(cb, errorCode("USERNAMES.EXISTS_USERNAME", trs));
-		}
-
-		if (self.existsUnconfirmedUsername(trs.asset.username.alias)) {
 			return setImmediate(cb, errorCode("USERNAMES.EXISTS_USERNAME", trs));
 		}
 
@@ -371,6 +361,18 @@ function Username() {
 	}
 
 	this.applyUnconfirmed = function (trs, sender, cb) {
+		if (modules.delegates.existsUnconfirmedDelegate(trs.senderPublicKey)) {
+			return setImmediate(cb, errorCode("USERNAMES.EXISTS_USERNAME", trs));
+		}
+
+		if (modules.delegates.existsUnconfirmedName(trs.asset.username.alias)) {
+			return setImmediate(cb, errorCode("USERNAMES.EXISTS_USERNAME", trs));
+		}
+
+		if (self.existsUnconfirmedUsername(trs.asset.username.alias)) {
+			return setImmediate(cb, errorCode("USERNAMES.EXISTS_USERNAME", trs));
+		}
+
 		private.unconfirmedNames[trs.asset.username.alias.toLowerCase()] = true;
 
 		setImmediate(cb);
@@ -395,7 +397,7 @@ function Username() {
 			throw Error(report.issues);
 		}
 
-		trs.asset.delegate = report.value;
+		trs.asset.username = report.value;
 
 		return trs;
 	}
@@ -665,6 +667,8 @@ function attachApi() {
 				var secondHash = crypto.createHash('sha256').update(body.secondSecret, 'utf8').digest();
 				secondKeypair = ed.MakeKeypair(secondHash);
 			}
+
+			debugger;
 
 			var transaction = library.logic.transaction.create({
 				type: TransactionTypes.USERNAME,

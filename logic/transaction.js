@@ -280,7 +280,7 @@ Transaction.prototype.applyUnconfirmed = function (trs, sender, cb) {
 	sender.addToUnconfirmedBalance(-amount);
 
 	private.types[trs.type].applyUnconfirmed(trs, sender, function (err) {
-		if (!err) {
+		if (err) {
 			sender.addToUnconfirmedBalance(amount);
 		}
 		setImmediate(cb, err);

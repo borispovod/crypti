@@ -27,7 +27,8 @@ private.blocksDataFields = {
 	's_publicKey': String,
 	'd_username': String,
 	'v_votes': String,
-	'c_address': String
+	'c_address': String,
+	'u_alias': String
 };
 // @formatter:on
 
@@ -445,20 +446,21 @@ Blocks.prototype.loadBlocksData = function (filter, options, cb) {
 		method = 'query';
 	}
 
-
 	library.dbLite[method]("SELECT " +
 	"b.id, b.version, b.timestamp, b.height, b.previousBlock, b.numberOfTransactions, b.totalAmount, b.totalFee, b.payloadLength, lower(hex(b.payloadHash)), lower(hex(b.generatorPublicKey)), lower(hex(b.blockSignature)), " +
 	"t.id, t.type, t.timestamp, lower(hex(t.senderPublicKey)), t.senderId, t.recipientId, t.amount, t.fee, lower(hex(t.signature)), lower(hex(t.signSignature)), " +
 	"lower(hex(s.publicKey)), " +
 	"d.username, " +
 	"v.votes, " +
-	"c.address " +
+	"c.address, " +
+	"u.username " +
 	"FROM (select * from blocks " + (filter.id ? " where id = $id " : "") + (filter.lastId ? " where height > (SELECT height FROM blocks where id = $lastId) " : "") + " limit $limit) as b " +
 	"left outer join trs as t on t.blockId=b.id " +
 	"left outer join delegates as d on d.transactionId=t.id " +
 	"left outer join votes as v on v.transactionId=t.id " +
 	"left outer join signatures as s on s.transactionId=t.id " +
 	"left outer join contacts as c on c.transactionId=t.id " +
+	"left outer join usernames as u on u.transactionId=t.id " +
 	"ORDER BY b.height, t.rowid" +
 	"", params, fields, cb);
 };
@@ -490,13 +492,15 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 	"lower(hex(s.publicKey)), " +
 	"d.username, " +
 	"v.votes, " +
-	"c.address " +
+	"c.address, " +
+	"u.username " +
 	"FROM (select * from blocks limit $limit offset $offset) as b " +
 	"left outer join trs as t on t.blockId=b.id " +
 	"left outer join delegates as d on d.transactionId=t.id " +
 	"left outer join votes as v on v.transactionId=t.id " +
 	"left outer join signatures as s on s.transactionId=t.id " +
 	"left outer join contacts as c on c.transactionId=t.id " +
+	"left outer join usernames as u on u.transactionId=t.id " +
 	"ORDER BY b.height, t.rowid" +
 	"", params, private.blocksDataFields, function (err, rows) {
 		// Some notes:

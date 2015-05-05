@@ -85,18 +85,6 @@ function Delegate() {
 			return setImmediate(cb, errorCode("DELEGATES.EXISTS_DELEGATE"));
 		}
 
-		if (self.existsUnconfirmedDelegate(trs.asset.delegate.publicKey)) {
-			return setImmediate(cb, errorCode("DELEGATES.EXISTS_DELEGATE"));
-		}
-
-		if (self.existsUnconfirmedName(trs.asset.delegate.username)) {
-			return setImmediate(cb, errorCode("DELEGATES.EXISTS_DELEGATE"));
-		}
-
-		if (modules.accounts.existsUnconfirmedUsername(trs.asset.delegate.username)) {
-			return setImmediate(cb, errorCode("DELEGATES.EXISTS_DELEGATE"));
-		}
-
 		if (modules.accounts.existsUsername(trs.asset.delegate.username)) {
 			return setImmediate(cb, errorCode("DELEGATES.EXISTS_DELEGATE"));
 		}
@@ -123,6 +111,18 @@ function Delegate() {
 	}
 
 	this.applyUnconfirmed = function (trs, sender, cb) {
+		if (self.existsUnconfirmedDelegate(trs.asset.delegate.publicKey)) {
+			return setImmediate(cb, errorCode("DELEGATES.EXISTS_DELEGATE"));
+		}
+
+		if (self.existsUnconfirmedName(trs.asset.delegate.username)) {
+			return setImmediate(cb, errorCode("DELEGATES.EXISTS_DELEGATE"));
+		}
+
+		if (modules.accounts.existsUnconfirmedUsername(trs.asset.delegate.username)) {
+			return setImmediate(cb, errorCode("DELEGATES.EXISTS_DELEGATE"));
+		}
+
 		modules.delegates.addUnconfirmedDelegate(trs.asset.delegate);
 
 		setImmediate(cb);
