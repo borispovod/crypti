@@ -357,6 +357,7 @@ function Username() {
 	this.apply = function (trs, sender) {
 		delete private.unconfirmedNames[trs.asset.username.alias.toLowerCase()]
 		private.username2address[trs.asset.username.alias.toLowerCase()] = sender.address;
+		sender.username = trs.asset.username.alias;
 
 		return true;
 	}
@@ -364,6 +365,7 @@ function Username() {
 	this.undo = function (trs, sender) {
 		private.unconfirmedNames[trs.asset.username.alias.toLowerCase()] = true;
 		delete private.username2address[trs.asset.username.alias.toLowerCase()];
+		sender.username = null;
 
 		return true;
 	}
@@ -702,6 +704,7 @@ function attachApi() {
 				success: true,
 				account: {
 					address: account.address,
+					username: account.username,
 					unconfirmedBalance: account.unconfirmedBalance,
 					balance: account.balance,
 					publicKey: account.publicKey,
