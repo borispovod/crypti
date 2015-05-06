@@ -579,7 +579,7 @@ function attachApi() {
 			secret: "string!",
 			publicKey: "hex?",
 			secondSecret: "string?",
-			delegates: "array?"
+			delegates: "array!"
 		}, function (err, report, body) {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
