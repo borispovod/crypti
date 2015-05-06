@@ -82,11 +82,11 @@ function attachApi() {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
 
-			private.list(query, function (err, blocks) {
+			private.list(query, function (err, data) {
 				if (err) {
 					return res.json({success: false, error: errorCode("BLOCKS.BLOCK_NOT_FOUND")});
 				}
-				res.json({success: true, blocks: blocks});
+				res.json({success: true, blocks: data.blocks, count: data.count});
 			});
 		});
 	});
@@ -194,22 +194,37 @@ private.list = function (filter, cb) {
 		return cb('Maximum of limit is 100');
 	}
 
-	library.dbLite.query("select b.id, b.version, b.timestamp, b.height, b.previousBlock, b.numberOfTransactions, b.totalAmount, b.totalFee, b.payloadLength,  lower(hex(b.payloadHash)), lower(hex(b.generatorPublicKey)), lower(hex(b.blockSignature)) " +
+	library.dbLite.query("select count(b.id) " +
 	"from blocks b " +
-	(fields.length ? "where " + fields.join(' and ') : '') + " " +
-	(filter.orderBy ? 'order by ' + sortBy + ' ' + sortMethod : '') + " " +
-	(filter.limit ? 'limit $limit' : '') + " " +
-	(filter.offset ? 'offset $offset' : ''), params, ['b_id', 'b_version', 'b_timestamp', 'b_height', 'b_previousBlock', 'b_numberOfTransactions', 'b_totalAmount', 'b_totalFee', 'b_payloadLength', 'b_payloadHash', 'b_generatorPublicKey', 'b_blockSignature'], function (err, rows) {
+	(fields.length ? "where " + fields.join(' and ') : ''), params, {count: Number}, function (err, rows) {
 		if (err) {
-			return cb(err)
+			return cb(err);
 		}
 
-		var blocks = [];
-		for (var i = 0; i < rows.length; i++) {
-			blocks.push(library.logic.block.dbRead(rows[i]));
-		}
-		cb(null, blocks);
-	})
+		var count = rows.length ? rows[0].count : 0;
+
+		library.dbLite.query("select b.id, b.version, b.timestamp, b.height, b.previousBlock, b.numberOfTransactions, b.totalAmount, b.totalFee, b.payloadLength,  lower(hex(b.payloadHash)), lower(hex(b.generatorPublicKey)), lower(hex(b.blockSignature)) " +
+		"from blocks b " +
+		(fields.length ? "where " + fields.join(' and ') : '') + " " +
+		(filter.orderBy ? 'order by ' + sortBy + ' ' + sortMethod : '') + " " +
+		(filter.limit ? 'limit $limit' : '') + " " +
+		(filter.offset ? 'offset $offset' : ''), params, ['b_id', 'b_version', 'b_timestamp', 'b_height', 'b_previousBlock', 'b_numberOfTransactions', 'b_totalAmount', 'b_totalFee', 'b_payloadLength', 'b_payloadHash', 'b_generatorPublicKey', 'b_blockSignature'], function (err, rows) {
+			if (err) {
+				return cb(err);
+			}
+
+			var blocks = [];
+			for (var i = 0; i < rows.length; i++) {
+				blocks.push(library.logic.block.dbRead(rows[i]));
+			}
+
+			var data = {
+				blocks: blocks,
+				count: count
+			}
+			cb(null, data);
+		});
+	});
 }
 
 private.getById = function (id, cb) {

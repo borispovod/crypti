@@ -301,8 +301,6 @@ function Username() {
 	}
 
 	this.verify = function (trs, sender, cb) {
-		debugger;
-
 		if (trs.recipientId) {
 			return setImmediate(cb, errorCode("USERNAMES.INCORRECT_RECIPIENT", trs));
 		}
@@ -667,8 +665,6 @@ function attachApi() {
 				var secondHash = crypto.createHash('sha256').update(body.secondSecret, 'utf8').digest();
 				secondKeypair = ed.MakeKeypair(secondHash);
 			}
-
-			debugger;
 
 			var transaction = library.logic.transaction.create({
 				type: TransactionTypes.USERNAME,
