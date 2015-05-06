@@ -340,6 +340,7 @@ Transaction.prototype.objectNormalize = function (trs) {
 		object: true,
 		properties: {
 			id: "string",
+			height: "int?",
 			blockId: "string",
 			type: "int!",
 			timestamp: "int!",
@@ -375,6 +376,7 @@ Transaction.prototype.dbRead = function (raw) {
 	} else {
 		var tx = {
 			id: raw.t_id,
+			height: raw.b_height,
 			blockId: raw.b_id,
 			type: parseInt(raw.t_type),
 			timestamp: parseInt(raw.t_timestamp),
