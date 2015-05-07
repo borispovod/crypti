@@ -64,10 +64,6 @@ function Delegate() {
 			return setImmediate(cb, errorCode("DELEGATES.USERNAME_CHARS", trs));
 		}
 
-		//if (trs.asset.delegate.username.search(/(admin|genesis|delegate|crypti|support)/i) > -1) {
-		//	return cb("username containing the words Admin, Genesis, Delegate or Crypti cannot be claimed");
-		//}
-
 		var isAddress = /^[0-9]+c$/g;
 		if (isAddress.test(trs.asset.delegate.username.toLowerCase())) {
 			return setImmediate(cb, errorCode("DELEGATES.USERNAME_LIKE_ADDRESS", trs));
@@ -89,6 +85,9 @@ function Delegate() {
 			return setImmediate(cb, errorCode("DELEGATES.EXISTS_DELEGATE"));
 		}
 
+		if (modules.accounts.existsUsername(trs.asset.delegate.username)) {
+			return setImmediate(cb, errorCode("DELEGATES.EXISTS_DELEGATE"));
+		}
 
 		setImmediate(cb, null, trs);
 	}
@@ -112,12 +111,16 @@ function Delegate() {
 	}
 
 	this.applyUnconfirmed = function (trs, sender, cb) {
-		if (modules.delegates.getUnconfirmedDelegate(trs.asset.delegate)) {
-			return setImmediate(cb, "Can't apply delegate: " + trs.id);
+		if (self.existsUnconfirmedDelegate(trs.asset.delegate.publicKey)) {
+			return setImmediate(cb, errorCode("DELEGATES.EXISTS_DELEGATE"));
 		}
 
-		if (modules.delegates.getUnconfirmedName(trs.asset.delegate)) {
-			return setImmediate(cb, "Can't apply username: " + trs.id);
+		if (self.existsUnconfirmedName(trs.asset.delegate.username)) {
+			return setImmediate(cb, errorCode("DELEGATES.EXISTS_DELEGATE"));
+		}
+
+		if (modules.accounts.existsUnconfirmedUsername(trs.asset.delegate.username)) {
+			return setImmediate(cb, errorCode("DELEGATES.EXISTS_DELEGATE"));
 		}
 
 		modules.delegates.addUnconfirmedDelegate(trs.asset.delegate);
@@ -706,22 +709,17 @@ Delegates.prototype.checkUnconfirmedDelegates = function (publicKey, votes) {
 	}
 }
 
-// to remove
-Delegates.prototype.getUnconfirmedDelegates = function () {
-	return private.unconfirmedDelegates;
-}
-
 Delegates.prototype.addUnconfirmedDelegate = function (delegate) {
 	private.unconfirmedDelegates[delegate.publicKey] = true;
 	private.unconfirmedNames[delegate.username] = true;
 }
 
-Delegates.prototype.getUnconfirmedDelegate = function (delegate) {
-	return !!private.unconfirmedDelegates[delegate.publicKey];
+Delegates.prototype.existsUnconfirmedDelegate = function (publicKey) {
+	return !!private.unconfirmedDelegates[publicKey];
 }
 
-Delegates.prototype.getUnconfirmedName = function (delegate) {
-	return !!private.unconfirmedNames[delegate.username];
+Delegates.prototype.existsUnconfirmedName = function (username) {
+	return !!private.unconfirmedNames[username];
 }
 
 Delegates.prototype.removeUnconfirmedDelegate = function (delegate) {
@@ -748,6 +746,10 @@ Delegates.prototype.fork = function (block, cause) {
 
 Delegates.prototype.getDelegateByPublicKey = function (publicKey) {
 	return private.getDelegate({publicKey: publicKey});
+}
+
+Delegates.prototype.getDelegateByUsername = function (username) {
+	return private.getDelegate({username: username});
 }
 
 Delegates.prototype.addFee = function (publicKey, value) {

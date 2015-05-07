@@ -14,6 +14,7 @@ var modules, library, self, private = {};
 
 private.accounts = {};
 private.username2address = {};
+private.unconfirmedNames = {};
 
 function Account(address, publicKey, balance, unconfirmedBalance) {
 	this.address = address;
@@ -32,100 +33,50 @@ function Account(address, publicKey, balance, unconfirmedBalance) {
 	this.unconfirmedFollowing = [];
 }
 
-function accountApplyDiff(account, diff) {
-	var tmp = account.delegates ? account.delegates.slice() : null
+function reverseDiff(diff) {
+	var copyDiff = diff.slice();
+	for (var i = 0; i < copyDiff.length; i++) {
+		var math = copyDiff[i][0] == '-' ? '+' : '-';
+		copyDiff[i] = math + copyDiff[i].slice(1);
+	}
+	return copyDiff;
+}
+
+function applyDiff(source, diff) {
+	var res = source ? source.slice() : [];
 
 	for (var i = 0; i < diff.length; i++) {
 		var math = diff[i][0];
 		var publicKey = diff[i].slice(1);
 
 		if (math == "+") {
-			account.delegates = account.delegates || [];
+			res = res || [];
 
 			var index = -1;
-			if (account.delegates) {
-				index = account.delegates.indexOf(publicKey);
+			if (res) {
+				index = res.indexOf(publicKey);
 			}
 			if (index != -1) {
-				account.delegates = tmp;
 				return false;
 			}
 
-			if (account.delegates && account.delegates.length >= 101) {
-				account.delegates = tmp;
-				return false;
-			}
-
-			account.delegates.push(publicKey);
+			res.push(publicKey);
 		}
 		if (math == "-") {
 			var index = -1;
-			if (account.delegates) {
-				index = account.delegates.indexOf(publicKey);
+			if (res) {
+				index = res.indexOf(publicKey);
 			}
 			if (index == -1) {
-				account.delegates = tmp;
 				return false;
 			}
-			account.delegates.splice(index, 1);
-			if (!account.delegates.length) {
-				account.delegates = null;
+			res.splice(index, 1);
+			if (!res.length) {
+				res = null;
 			}
 		}
 	}
-	return true;
-}
-
-function accountApplyUnconfirmedDiff(account, diff) {
-	var tmp = account.unconfirmedDelegates ? account.unconfirmedDelegates.slice() : null
-
-	for (var i = 0; i < diff.length; i++) {
-		var math = diff[i][0];
-		var publicKey = diff[i].slice(1);
-
-		if (math == "+") {
-			account.unconfirmedDelegates = account.unconfirmedDelegates || [];
-
-			var index = -1;
-			if (account.unconfirmedDelegates) {
-				index = account.unconfirmedDelegates.indexOf(publicKey);
-			}
-			if (index != -1) {
-				account.unconfirmedDelegates = tmp;
-				return false;
-			}
-
-			if (account.unconfirmedDelegates && account.unconfirmedDelegates.length >= 101) {
-				account.unconfirmedDelegates = tmp;
-				return false;
-			}
-
-			account.unconfirmedDelegates.push(publicKey);
-		}
-		if (math == "-") {
-			var index = -1;
-			if (account.unconfirmedDelegates) {
-				index = account.unconfirmedDelegates.indexOf(publicKey);
-			}
-			if (index == -1) {
-				account.unconfirmedDelegates = tmp;
-				return false;
-			}
-			account.unconfirmedDelegates.splice(index, 1);
-			if (!account.unconfirmedDelegates.length) {
-				account.unconfirmedDelegates = null;
-			}
-		}
-	}
-	return true;
-}
-
-Account.prototype.setUnconfirmedSignature = function (unconfirmedSignature) {
-	this.unconfirmedSignature = unconfirmedSignature;
-}
-
-Account.prototype.setSecondSignature = function (secondSignature) {
-	this.secondSignature = secondSignature;
+	return res;
 }
 
 Account.prototype.addToBalance = function (amount) {
@@ -143,58 +94,74 @@ Account.prototype.addToUnconfirmedBalance = function (amount) {
 
 Account.prototype.applyUnconfirmedDelegateList = function (diff) {
 	if (diff === null) return;
-	var isValid = accountApplyUnconfirmedDiff(this, diff);
 
-	isValid && library.bus.message('changeUnconfirmedDelegates', this.balance, diff);
+	var dest = applyDiff(this.unconfirmedDelegates, diff);
 
-	return isValid;
+	if (dest !== false) {
+		if (dest && dest.length > 101) {
+			return false;
+		}
+		this.unconfirmedDelegates = dest;
+		library.bus.message('changeUnconfirmedDelegates', this.balance, diff);
+		return true;
+	}
+
+	return false;
 }
 
 Account.prototype.undoUnconfirmedDelegateList = function (diff) {
 	if (diff === null) return;
-	var copyDiff = diff.slice();
-	for (var i = 0; i < copyDiff.length; i++) {
-		var math = copyDiff[i][0] == '-' ? '+' : '-';
-		copyDiff[i] = math + copyDiff[i].slice(1);
+
+	var copyDiff = reverseDiff(diff);
+
+	var dest = applyDiff(this.unconfirmedDelegates, copyDiff);
+
+	if (dest !== false) {
+		if (dest && dest.length > 101) {
+			return false;
+		}
+		this.unconfirmedDelegates = dest;
+		library.bus.message('changeUnconfirmedDelegates', this.balance, copyDiff);
+		return true;
 	}
 
-	var isValid = accountApplyUnconfirmedDiff(this, copyDiff);
-
-	isValid && library.bus.message('changeUnconfirmedDelegates', this.balance, copyDiff);
-
-	return isValid;
+	return false;
 }
 
 Account.prototype.applyDelegateList = function (diff) {
 	if (diff === null) return;
-	var isValid = accountApplyDiff(this, diff);
 
-	isValid && library.bus.message('changeDelegates', this.balance, diff);
+	var dest = applyDiff(this.delegates, diff);
 
-	return isValid;
+	if (dest !== false) {
+		if (dest && dest.length > 101) {
+			return false;
+		}
+		this.delegates = dest;
+		library.bus.message('changeDelegates', this.balance, diff);
+		return true;
+	}
+
+	return false;
 }
 
 Account.prototype.undoDelegateList = function (diff) {
 	if (diff === null) return;
-	var copyDiff = diff.slice();
-	for (var i = 0; i < copyDiff.length; i++) {
-		var math = copyDiff[i][0] == '-' ? '+' : '-';
-		copyDiff[i] = math + copyDiff[i].slice(1);
+
+	var copyDiff = reverseDiff(diff);
+
+	var dest = applyDiff(this.delegates, copyDiff);
+
+	if (dest !== false) {
+		if (dest && dest.length > 101) {
+			return false;
+		}
+		this.delegates = dest;
+		library.bus.message('changeDelegates', this.balance, copyDiff);
+		return true;
 	}
 
-	var isValid = accountApplyDiff(this, copyDiff);
-
-	isValid && library.bus.message('changeDelegates', this.balance, copyDiff);
-
-	return isValid;
-}
-
-Account.prototype.applyUsername = function (username) {
-	private.username2address[username.toLowerCase()] = this.address;
-}
-
-Account.prototype.undoUsername = function (username) {
-	delete private.username2address[username.toLowerCase()];
+	return false;
 }
 
 Account.prototype.applyContact = function (address) {
@@ -252,10 +219,6 @@ function Vote() {
 			return setImmediate(cb, errorCode("VOTES.MAXIMUM_DELEGATES_VOTE", trs));
 		}
 
-		if (!modules.delegates.checkUnconfirmedDelegates(trs.senderPublicKey, trs.asset.votes)) {
-			return setImmediate(cb, errorCode("VOTES.ALREADY_VOTED_UNCONFIRMED", trs));
-		}
-
 		if (!modules.delegates.checkDelegates(trs.senderPublicKey, trs.asset.votes)) {
 			return setImmediate(cb, errorCode("VOTES.ALREADY_VOTED_CONFIRMED", trs));
 		}
@@ -280,6 +243,10 @@ function Vote() {
 	}
 
 	this.applyUnconfirmed = function (trs, sender, cb) {
+		if (!modules.delegates.checkUnconfirmedDelegates(trs.senderPublicKey, trs.asset.votes)) {
+			return setImmediate(cb, errorCode("VOTES.ALREADY_VOTED_UNCONFIRMED", trs));
+		}
+
 		var res = sender.applyUnconfirmedDelegateList(trs.asset.votes);
 
 		setImmediate(cb, !res ? "Can't apply delegates: " + trs.id : null);
@@ -351,10 +318,6 @@ function Username() {
 			return setImmediate(cb, errorCode("USERNAMES.ALLOW_CHARS", trs));
 		}
 
-		//if (trs.asset.username.alias.search(/(admin|genesis|delegate|crypti)/i) > -1) {
-		//	return cb("username containing the words Admin, Genesis, Delegate or Crypti cannot be claimed");
-		//}
-
 		var isAddress = /^[0-9]+[C|c]$/g;
 		if (isAddress.test(trs.asset.username.alias.toLowerCase())) {
 			return setImmediate(cb, errorCode("USERNAMES.USERNAME_LIKE_ADDRESS", trs));
@@ -368,6 +331,10 @@ function Username() {
 			return setImmediate(cb, errorCode("USERNAMES.EXISTS_USERNAME", trs));
 		}
 
+		if (self.existsUsername(trs.asset.username.alias)) {
+			return setImmediate(cb, errorCode("USERNAMES.EXISTS_USERNAME", trs));
+		}
+
 		setImmediate(cb, null, trs);
 	}
 
@@ -376,25 +343,41 @@ function Username() {
 	}
 
 	this.apply = function (trs, sender) {
-		sender.applyUsername(trs.asset.username);
+		delete private.unconfirmedNames[trs.asset.username.alias.toLowerCase()]
+		private.username2address[trs.asset.username.alias.toLowerCase()] = sender.address;
+		sender.username = trs.asset.username.alias;
 
 		return true;
 	}
 
 	this.undo = function (trs, sender) {
-		sender.undoUsername(trs.asset.username);
+		private.unconfirmedNames[trs.asset.username.alias.toLowerCase()] = true;
+		delete private.username2address[trs.asset.username.alias.toLowerCase()];
+		sender.username = null;
 
 		return true;
 	}
 
 	this.applyUnconfirmed = function (trs, sender, cb) {
-		sender.applyUnconfirmedUsername(trs.asset.username);
+		if (modules.delegates.existsUnconfirmedDelegate(trs.senderPublicKey)) {
+			return setImmediate(cb, errorCode("USERNAMES.EXISTS_USERNAME", trs));
+		}
+
+		if (modules.delegates.existsUnconfirmedName(trs.asset.username.alias)) {
+			return setImmediate(cb, errorCode("USERNAMES.EXISTS_USERNAME", trs));
+		}
+
+		if (self.existsUnconfirmedUsername(trs.asset.username.alias)) {
+			return setImmediate(cb, errorCode("USERNAMES.EXISTS_USERNAME", trs));
+		}
+
+		private.unconfirmedNames[trs.asset.username.alias.toLowerCase()] = true;
 
 		setImmediate(cb);
 	}
 
 	this.undoUnconfirmed = function (trs, sender) {
-		sender.undoUnconfirmedUsername(trs.asset.username);
+		delete private.unconfirmedNames[trs.asset.username.alias.toLowerCase()];
 
 		return true;
 	}
@@ -412,7 +395,7 @@ function Username() {
 			throw Error(report.issues);
 		}
 
-		trs.asset.delegate = report.value;
+		trs.asset.username = report.value;
 
 		return trs;
 	}
@@ -539,7 +522,10 @@ function attachApi() {
 			var account = self.getAccount(query.address);
 
 			if (!account || !account.publicKey) {
-				return res.json({success: false, error: errorCode("ACCOUNTS.ACCOUNT_PUBLIC_KEY_NOT_FOUND", {address: query.address})});
+				return res.json({
+					success: false,
+					error: errorCode("ACCOUNTS.ACCOUNT_PUBLIC_KEY_NOT_FOUND", {address: query.address})
+				});
 			}
 
 			return res.json({success: true, publicKey: account.publicKey});
@@ -570,7 +556,10 @@ function attachApi() {
 			var account = self.getAccount(query.address);
 
 			if (!account) {
-				return res.json({success: false, error: errorCode("ACCOUNTS.ACCOUNT_DOESNT_FOUND", {address: query.address})});
+				return res.json({
+					success: false,
+					error: errorCode("ACCOUNTS.ACCOUNT_DOESNT_FOUND", {address: query.address})
+				});
 			}
 
 			var delegates = null;
@@ -590,7 +579,7 @@ function attachApi() {
 			secret: "string!",
 			publicKey: "hex?",
 			secondSecret: "string?",
-			delegates: "array?"
+			delegates: "array!"
 		}, function (err, report, body) {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
@@ -715,6 +704,7 @@ function attachApi() {
 				success: true,
 				account: {
 					address: account.address,
+					username: account.username,
 					unconfirmedBalance: account.unconfirmedBalance,
 					balance: account.balance,
 					publicKey: account.publicKey,
@@ -780,6 +770,12 @@ Accounts.prototype.getAddressByPublicKey = function (publicKey) {
 
 Accounts.prototype.getAccountByUsername = function (username) {
 	var address = private.username2address[username.toLowerCase()];
+	if (!address) {
+		var delegate = modules.delegates.getDelegateByUsername(username.toLowerCase())
+		if (delegate) {
+			address = self.getAddressByPublicKey(delegate.publicKey);
+		}
+	}
 
 	return this.getAccount(address);
 }
@@ -817,6 +813,15 @@ Accounts.prototype.getDelegates = function (publicKey) {
 	var account = self.getAccountByPublicKey(publicKey);
 	return account.delegates;
 }
+
+Accounts.prototype.existsUnconfirmedUsername = function (username) {
+	return !!private.unconfirmedNames[username.toLowerCase()];
+}
+
+Accounts.prototype.existsUsername = function (username) {
+	return !!private.username2address[username.toLowerCase()];
+}
+
 
 //events
 Accounts.prototype.onBind = function (scope) {
