@@ -13,8 +13,7 @@
 		}
 	},
 	"peers": {
-		"list": [
-		],
+		"list": [],
 		"blackList": []
 	},
 	"forging": {
