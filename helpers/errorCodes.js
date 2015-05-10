@@ -6,6 +6,10 @@ var errorCodes = {
 			message: "Incorrect recipient %s, in vote transaction recipient is same that sender",
 			args: ['recipientId']
 		},
+		MINIMUM_DELEGATES_VOTE: {
+			message: "Empty votes: %s",
+			args: ["id"]
+		},
 		MAXIMUM_DELEGATES_VOTE: {
 			message: "You can only vote for a maximum of 33 delegates at any one time: %s",
 			args: ["id"]

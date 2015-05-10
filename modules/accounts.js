@@ -215,6 +215,10 @@ function Vote() {
 			return setImmediate(cb, errorCode("VOTES.INCORRECT_RECIPIENT", trs));
 		}
 
+		if (!trs.asset.votes || !trs.asset.votes.length) {
+			return setImmediate(cb, errorCode("VOTES.EMPTY_VOTES", trs));
+		}
+
 		if (trs.asset.votes && trs.asset.votes.length > 33) {
 			return setImmediate(cb, errorCode("VOTES.MAXIMUM_DELEGATES_VOTE", trs));
 		}
