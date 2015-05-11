@@ -137,7 +137,13 @@ function attachApi() {
 	});
 
 	router.get('/get', function (req, res) {
-		req.sanitize("query", {id: "string!"}, function (err, report, query) {
+		req.sanitize("query", {
+			id: {
+				required: true,
+				string: true,
+				minLength: 1
+			}
+		}, function (err, report, query) {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
 
@@ -151,7 +157,13 @@ function attachApi() {
 	});
 
 	router.get('/unconfirmed/get', function (req, res) {
-		req.sanitize("query", {id: "string!"}, function (err, report, query) {
+		req.sanitize("query", {
+			id: {
+				required: true,
+				string: true,
+				minLength: 1
+			}
+		}, function (err, report, query) {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
 
@@ -194,9 +206,17 @@ function attachApi() {
 
 	router.put('/', function (req, res) {
 		req.sanitize("body", {
-			secret: "string!",
+			secret: {
+				required: true,
+				string: true,
+				minLength: 1
+			},
 			amount: "int!",
-			recipientId: "string!",
+			recipientId: {
+				required: true,
+				string: true,
+				minLength: 1
+			},
 			publicKey: "hex?",
 			secondSecret: "string?"
 		}, function (err, report, body) {

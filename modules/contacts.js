@@ -86,7 +86,11 @@ function Contact() {
 		var report = RequestSanitizer.validate(trs.asset.contact, {
 			object: true,
 			properties: {
-				address: "string!"
+				address: {
+					required: true,
+					string: true,
+					minLength: 1
+				}
 			}
 		});
 
@@ -134,7 +138,11 @@ function attachApi() {
 
 	router.get("/", function (req, res) {
 		req.sanitize("query", {
-			secret: "string!",
+			secret: {
+				required: true,
+				string: true,
+				minLength: 1
+			},
 			secondSecret: "string?",
 			publicKey: "hex?"
 		}, function (err, report, query) {
@@ -162,10 +170,18 @@ function attachApi() {
 
 	router.put("/", function (req, res) {
 		req.sanitize("body", {
-			secret: "string!",
+			secret: {
+				required: true,
+				string: true,
+				minLength: 1
+			},
 			secondSecret: "string?",
 			publicKey: "hex?",
-			following: "string!"
+			following: {
+				required: true,
+				string: true,
+				minLength: 1
+			}
 		}, function (err, report, body) {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
