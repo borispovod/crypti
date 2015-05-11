@@ -46,7 +46,7 @@ var errorCodes = {
 		},
 		INCORRECT_USERNAME_LENGTH: {
 			message: "Incorrect username length: %s",
-			args: ["asset.username"]
+			args: ["asset.username.alias"]
 		},
 		EXISTS_USERNAME: {
 			message: "The username you entered is already in use. Please try a different name.: %s",
