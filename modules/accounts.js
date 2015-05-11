@@ -375,6 +375,10 @@ function Username() {
 			return setImmediate(cb, errorCode("USERNAMES.EXISTS_USERNAME", trs));
 		}
 
+		if (sender.username){
+			return setImmediate(cb, errorCode("USERNAMES.ALREADY_HAVE_USERNAME", trs));
+		}
+
 		private.unconfirmedNames[trs.asset.username.alias.toLowerCase()] = true;
 
 		setImmediate(cb);
