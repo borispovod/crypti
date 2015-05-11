@@ -51,6 +51,10 @@ var errorCodes = {
 		EXISTS_USERNAME: {
 			message: "The username you entered is already in use. Please try a different name.: %s",
 			args: ["id"]
+		},
+		ALREADY_HAVE_USERNAME: {
+			message: "The account already has username",
+			args: ["id"]
 		}
 	},
 	ACCOUNTS: {
