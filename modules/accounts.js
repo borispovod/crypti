@@ -390,7 +390,11 @@ function Username() {
 		var report = RequestSanitizer.validate(trs.asset.username, {
 			object: true,
 			properties: {
-				alias: "string!",
+				alias: {
+					required: true,
+					string: true,
+					minLength: 1
+				},
 				publicKey: "hex!"
 			}
 		});
@@ -453,7 +457,11 @@ function attachApi() {
 
 	router.post('/open', function (req, res, next) {
 		req.sanitize(req.body, {
-			secret: "string!"
+			secret: {
+				required: true,
+				string: true,
+				minLength: 1
+			}
 		}, function (err, report, body) {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
@@ -477,7 +485,11 @@ function attachApi() {
 
 	router.get('/getBalance', function (req, res) {
 		req.sanitize("query", {
-			address: "string!"
+			address: {
+				required: true,
+				string: true,
+				minLength: 1
+			}
 		}, function (err, report, query) {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
@@ -518,7 +530,11 @@ function attachApi() {
 
 	router.get('/getPublicKey', function (req, res) {
 		req.sanitize("query", {
-			address: "string!"
+			address: {
+				required: true,
+				string: true,
+				minLength: 1
+			}
 		}, function (err, report, query) {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
@@ -538,7 +554,11 @@ function attachApi() {
 
 	router.post("/generatePublicKey", function (req, res, next) {
 		req.sanitize("body", {
-			secret: "string!"
+			secret: {
+				required: true,
+				string: true,
+				minLength: 1
+			}
 		}, function (err, report, query) {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
@@ -551,7 +571,11 @@ function attachApi() {
 
 	router.get("/delegates", function (req, res, next) {
 		req.sanitize("query", {
-			address: "string!"
+			address: {
+				required: true,
+				string: true,
+				minLength: 1
+			}
 		}, function (err, report, query) {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
@@ -580,7 +604,11 @@ function attachApi() {
 
 	router.put("/delegates", function (req, res, next) {
 		req.sanitize("body", {
-			secret: "string!",
+			secret: {
+				required: true,
+				string: true,
+				minLength: 1
+			},
 			publicKey: "hex?",
 			secondSecret: "string?",
 			delegates: "array!"
@@ -636,10 +664,18 @@ function attachApi() {
 
 	router.put("/username", function (req, res, next) {
 		req.sanitize("body", {
-			secret: "string!",
+			secret: {
+				required: true,
+				string: true,
+				minLength: 1
+			},
 			publicKey: "hex?",
 			secondSecret: "string?",
-			username: "string!"
+			username: {
+				required: true,
+				string: true,
+				minLength: 1
+			}
 		}, function (err, report, body) {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
@@ -692,7 +728,11 @@ function attachApi() {
 
 	router.get("/", function (req, res, next) {
 		req.sanitize("query", {
-			address: "string!"
+			address: {
+				required: true,
+				string: true,
+				minLength: 1
+			}
 		}, function (err, report, query) {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});

@@ -137,7 +137,11 @@ function Delegate() {
 		var report = RequestSanitizer.validate(trs.asset.delegate, {
 			object: true,
 			properties: {
-				username: "string!",
+				username: {
+					required: true,
+					string: true,
+					minLength: 1
+				},
 				publicKey: "hex!"
 			}
 		});
@@ -319,7 +323,13 @@ function attachApi() {
 	});
 
 	router.get('/forging/getForgedByAccount', function (req, res) {
-		req.sanitize("query", {generatorPublicKey: "string!"}, function (err, report, query) {
+		req.sanitize("query", {
+			generatorPublicKey: {
+				required: true,
+				string: true,
+				minLength: 1
+			}
+		}, function (err, report, query) {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
 
@@ -333,7 +343,11 @@ function attachApi() {
 
 	router.post('/forging/enable', function (req, res) {
 		req.sanitize("body", {
-			secret: "string!",
+			secret: {
+				required: true,
+				string: true,
+				minLength: 1
+			},
 			publicKey: "string?"
 		}, function (err, report, body) {
 			if (err) return next(err);
@@ -371,7 +385,11 @@ function attachApi() {
 
 	router.post('/forging/disable', function (req, res) {
 		req.sanitize("body", {
-			secret: "string!",
+			secret: {
+				required: true,
+				string: true,
+				minLength: 1
+			},
 			publicKey: "string?"
 		}, function (err, report, body) {
 			if (err) return next(err);
@@ -408,7 +426,13 @@ function attachApi() {
 	});
 
 	router.get('/forging/status', function (req, res) {
-		req.sanitize("query", {publicKey: "string!"}, function (err, report, query) {
+		req.sanitize("query", {
+			publicKey: {
+				required: true,
+				string: true,
+				minLength: 1
+			}
+		}, function (err, report, query) {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
 
@@ -418,10 +442,18 @@ function attachApi() {
 
 	router.put('/', function (req, res, next) {
 		req.sanitize("body", {
-			secret: "string!",
+			secret: {
+				required: true,
+				string: true,
+				minLength: 1
+			},
 			publicKey: "hex?",
 			secondSecret: "string?",
-			username: "string!"
+			username: {
+				required: true,
+				string: true,
+				minLength: 1
+			}
 		}, function (err, report, body) {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});

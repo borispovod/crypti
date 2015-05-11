@@ -77,7 +77,11 @@ function attachApi() {
 
 	router.get('/get', function (req, res) {
 		req.sanitize("query", {
-			ip_str: "string!",
+			ip_str: {
+				required: true,
+				string: true,
+				minLength: 1
+			},
 			port: "int!"
 		}, function (err, report, query) {
 			try {
