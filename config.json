@@ -13,16 +13,11 @@
 		}
 	},
 	"peers": {
-		"list": [
-			{
-				"ip": "104.155.50.49",
-				"port": 4060
-			}
-		],
+		"list": [],
 		"blackList": []
 	},
 	"forging": {
-		"secret": "",
+		"secret": [],
 		"access": {
 			"whiteList": ["127.0.0.1"]
 		}

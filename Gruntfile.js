@@ -75,7 +75,10 @@ module.exports = function (grunt) {
 						"mkdir -p ./builded/" + config.version + "/public/bower_components &&" +
 						"mkdir -p ./builded/" + config.version + "/public/socket.io &&" +
 						"cp -rf ./public/bower_components/jquery  ./builded/" + config.version + "/public/bower_components/jquery/ &&" +
-						"cp -rf ./public/bower_components/materialize ./builded/" + config.version + "/public/bower_components/materialize"
+						"cp -rf ./public/bower_components/materialize ./builded/" + config.version + "/public/bower_components/materialize &&" +
+						"cp -rf ./public/bower_components/blob ./builded/" + config.version + "/public/bower_components/blob &&" +
+						"cp -rf ./public/bower_components/file-saver ./builded/" + config.version + "/public/bower_components/file-saver &&" +
+						"cp -rf ./public/node_modules/zeroclipboard ./builded/" + config.version + "/public/node_modules/zeroclipboard"
 				}
 			},
 			folder: {

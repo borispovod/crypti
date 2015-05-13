@@ -65,6 +65,10 @@ var errorCodes = {
 		ACCOUNT_DOESNT_FOUND: {
 			message: "Account doesn't found: %s",
 			args: ["address"]
+		},
+		INVALID_ADDRESS: {
+			message: "Invalid address: %s",
+			args: ["address"]
 		}
 	},
 	DELEGATES: {
