@@ -8,6 +8,7 @@ var crypto = require('crypto'),
 	constants = require('../helpers/constants.js'),
 	RequestSanitizer = require('../helpers/request-sanitizer'),
 	TransactionTypes = require('../helpers/transaction-types.js'),
+	MilestoneBlocks = require("../helpers/milestoneBlocks.js"),
 	errorCode = require('../helpers/errorCodes.js').error;
 
 require('array.prototype.find'); //old node fix
@@ -43,7 +44,11 @@ function Delegate() {
 	}
 
 	this.calculateFee = function (trs) {
-		return 10000 * constants.fixedPoint;
+		if (modules.blocks.getLastBlock().height >= MilestoneBlocks.FEE_BLOCK) {
+			return 100 * constants.fixedPoint;
+		} else {
+			return 10000 * constants.fixedPoint;
+		}
 	}
 
 	this.verify = function (trs, sender, cb) {
