@@ -499,8 +499,8 @@ function attachApi() {
 			if (!report.isValid) return res.json({success: false, error: report.issues});
 
 			var isAddress = /^[0-9]+c$/g;
-			if (isAddress.test(query.address.toLowerCase())) {
-				return  res.json({success: false, error: errorCode("ACCOUNTS.INVALID_ADDRESS", {address: query.address})});
+			if (!isAddress.test(query.address.toLowerCase())) {
+				return res.json({success: false, error: errorCode("ACCOUNTS.INVALID_ADDRESS", {address: query.address})});
 			}
 
 			var account = self.getAccount(query.address);

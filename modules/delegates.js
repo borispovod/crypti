@@ -42,7 +42,7 @@ function Delegate() {
 		return trs;
 	}
 
-	this.calculateFee = function (trs) {
+	this.calculateFee = function (trs, blockHeight) {
 		return 10000 * constants.fixedPoint;
 	}
 
