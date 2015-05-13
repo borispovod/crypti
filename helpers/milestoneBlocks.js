@@ -1,3 +1,3 @@
 module.exports = {
-	FEE_BLOCK : 100
+	FEE_BLOCK : 114000
 }
