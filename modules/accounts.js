@@ -1002,20 +1002,6 @@ Accounts.prototype.existsUsername = function (username) {
 	return !!private.username2address[username.toLowerCase()];
 }
 
-var sandboxApi = {
-	'test': function (message, cb) {
-		console.log(message);
-		setImmediate(cb);
-	}
-}
-
-Accounts.prototype.sandbox = function (message, callback) {
-	var data = message.data || [];
-	data.push(callback);
-
-	return sandboxHelper.applySandboxApi(message, sandboxApi, callback);
-}
-
 //events
 Accounts.prototype.onBind = function (scope) {
 	modules = scope;
