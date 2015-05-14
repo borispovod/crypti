@@ -14,6 +14,7 @@ var modules, library, self, private = {};
 
 private.accounts = {};
 private.username2address = {};
+private.unconfirmedNames = {};
 
 function Account(address, publicKey, balance, unconfirmedBalance) {
 	this.address = address;
@@ -33,7 +34,6 @@ function Account(address, publicKey, balance, unconfirmedBalance) {
 	this.unconfirmedMultisignature = null;
 	this.multisignature = null;
 }
-
 
 function reverseDiff(diff) {
 	var copyDiff = diff.slice();
@@ -270,14 +270,6 @@ Account.prototype.undoUnconfirmedMultisignature = function (multisignature) {
 	return false;
 }
 
-Account.prototype.applyUsername = function (username) {
-	private.username2address[username.toLowerCase()] = this.address;
-}
-
-Account.prototype.undoUsername = function (username) {
-	delete private.username2address[username.toLowerCase()];
-}
-
 Account.prototype.applyContact = function (address) {
 	var index = this.following.indexOf(address);
 	if (index != -1) {
@@ -329,12 +321,12 @@ function Vote() {
 			return setImmediate(cb, errorCode("VOTES.INCORRECT_RECIPIENT", trs));
 		}
 
-		if (trs.asset.votes && trs.asset.votes.length > 33) {
-			return setImmediate(cb, errorCode("VOTES.MAXIMUM_DELEGATES_VOTE", trs));
+		if (!trs.asset.votes || !trs.asset.votes.length) {
+			return setImmediate(cb, errorCode("VOTES.EMPTY_VOTES", trs));
 		}
 
-		if (!modules.delegates.checkUnconfirmedDelegates(trs.senderPublicKey, trs.asset.votes)) {
-			return setImmediate(cb, errorCode("VOTES.ALREADY_VOTED_UNCONFIRMED", trs));
+		if (trs.asset.votes && trs.asset.votes.length > 33) {
+			return setImmediate(cb, errorCode("VOTES.MAXIMUM_DELEGATES_VOTE", trs));
 		}
 
 		if (!modules.delegates.checkDelegates(trs.senderPublicKey, trs.asset.votes)) {
@@ -365,6 +357,10 @@ function Vote() {
 	}
 
 	this.applyUnconfirmed = function (trs, sender, cb) {
+		if (!modules.delegates.checkUnconfirmedDelegates(trs.senderPublicKey, trs.asset.votes)) {
+			return setImmediate(cb, errorCode("VOTES.ALREADY_VOTED_UNCONFIRMED", trs));
+		}
+
 		var res = sender.applyUnconfirmedDelegateList(trs.asset.votes);
 
 		setImmediate(cb, !res ? "Can't apply delegates: " + trs.id : null);
@@ -440,10 +436,6 @@ function Username() {
 			return setImmediate(cb, errorCode("USERNAMES.ALLOW_CHARS", trs));
 		}
 
-		//if (trs.asset.username.alias.search(/(admin|genesis|delegate|crypti)/i) > -1) {
-		//	return cb("username containing the words Admin, Genesis, Delegate or Crypti cannot be claimed");
-		//}
-
 		var isAddress = /^[0-9]+[C|c]$/g;
 		if (isAddress.test(trs.asset.username.alias.toLowerCase())) {
 			return setImmediate(cb, errorCode("USERNAMES.USERNAME_LIKE_ADDRESS", trs));
@@ -454,6 +446,10 @@ function Username() {
 		}
 
 		if (modules.delegates.existsName(trs.asset.username.alias)) {
+			return setImmediate(cb, errorCode("USERNAMES.EXISTS_USERNAME", trs));
+		}
+
+		if (self.existsUsername(trs.asset.username.alias)) {
 			return setImmediate(cb, errorCode("USERNAMES.EXISTS_USERNAME", trs));
 		}
 
@@ -469,25 +465,45 @@ function Username() {
 	}
 
 	this.apply = function (trs, sender) {
-		sender.applyUsername(trs.asset.username);
+		delete private.unconfirmedNames[trs.asset.username.alias.toLowerCase()]
+		private.username2address[trs.asset.username.alias.toLowerCase()] = sender.address;
+		sender.username = trs.asset.username.alias;
 
 		return true;
 	}
 
 	this.undo = function (trs, sender) {
-		sender.undoUsername(trs.asset.username);
+		private.unconfirmedNames[trs.asset.username.alias.toLowerCase()] = true;
+		delete private.username2address[trs.asset.username.alias.toLowerCase()];
+		sender.username = null;
 
 		return true;
 	}
 
 	this.applyUnconfirmed = function (trs, sender, cb) {
-		sender.applyUnconfirmedUsername(trs.asset.username);
+		if (modules.delegates.existsUnconfirmedDelegate(trs.senderPublicKey)) {
+			return setImmediate(cb, errorCode("USERNAMES.EXISTS_USERNAME", trs));
+		}
+
+		if (modules.delegates.existsUnconfirmedName(trs.asset.username.alias)) {
+			return setImmediate(cb, errorCode("USERNAMES.EXISTS_USERNAME", trs));
+		}
+
+		if (self.existsUnconfirmedUsername(trs.asset.username.alias)) {
+			return setImmediate(cb, errorCode("USERNAMES.EXISTS_USERNAME", trs));
+		}
+
+		if (sender.username){
+			return setImmediate(cb, errorCode("USERNAMES.ALREADY_HAVE_USERNAME", trs));
+		}
+
+		private.unconfirmedNames[trs.asset.username.alias.toLowerCase()] = true;
 
 		setImmediate(cb);
 	}
 
 	this.undoUnconfirmed = function (trs, sender) {
-		sender.undoUnconfirmedUsername(trs.asset.username);
+		delete private.unconfirmedNames[trs.asset.username.alias.toLowerCase()];
 
 		return true;
 	}
@@ -496,7 +512,11 @@ function Username() {
 		var report = RequestSanitizer.validate(trs.asset.username, {
 			object: true,
 			properties: {
-				alias: "string!",
+				alias: {
+					required: true,
+					string: true,
+					minLength: 1
+				},
 				publicKey: "hex!"
 			}
 		});
@@ -505,7 +525,7 @@ function Username() {
 			throw Error(report.issues);
 		}
 
-		trs.asset.delegate = report.value;
+		trs.asset.username = report.value;
 
 		return trs;
 	}
@@ -563,7 +583,11 @@ function attachApi() {
 
 	router.post('/open', function (req, res, next) {
 		req.sanitize(req.body, {
-			secret: "string!"
+			secret: {
+				required: true,
+				string: true,
+				minLength: 1
+			}
 		}, function (err, report, body) {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
@@ -587,10 +611,19 @@ function attachApi() {
 
 	router.get('/getBalance', function (req, res) {
 		req.sanitize("query", {
-			address: "string!"
+			address: {
+				required: true,
+				string: true,
+				minLength: 1
+			}
 		}, function (err, report, query) {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
+
+			var isAddress = /^[0-9]+c$/g;
+			if (isAddress.test(query.address.toLowerCase())) {
+				return  res.json({success: false, error: errorCode("ACCOUNTS.INVALID_ADDRESS", {address: query.address})});
+			}
 
 			var account = self.getAccount(query.address);
 			var balance = account ? account.balance : 0;
@@ -628,7 +661,11 @@ function attachApi() {
 
 	router.get('/getPublicKey', function (req, res) {
 		req.sanitize("query", {
-			address: "string!"
+			address: {
+				required: true,
+				string: true,
+				minLength: 1
+			}
 		}, function (err, report, query) {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
@@ -648,7 +685,11 @@ function attachApi() {
 
 	router.post("/generatePublicKey", function (req, res, next) {
 		req.sanitize("body", {
-			secret: "string!"
+			secret: {
+				required: true,
+				string: true,
+				minLength: 1
+			}
 		}, function (err, report, query) {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
@@ -661,7 +702,11 @@ function attachApi() {
 
 	router.get("/delegates", function (req, res, next) {
 		req.sanitize("query", {
-			address: "string!"
+			address: {
+				required: true,
+				string: true,
+				minLength: 1
+			}
 		}, function (err, report, query) {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
@@ -690,10 +735,14 @@ function attachApi() {
 
 	router.put("/delegates", function (req, res, next) {
 		req.sanitize("body", {
-			secret: "string!",
+			secret: {
+				required: true,
+				string: true,
+				minLength: 1
+			},
 			publicKey: "hex?",
 			secondSecret: "string?",
-			delegates: "array?"
+			delegates: "array!"
 		}, function (err, report, body) {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
@@ -746,10 +795,18 @@ function attachApi() {
 
 	router.put("/username", function (req, res, next) {
 		req.sanitize("body", {
-			secret: "string!",
+			secret: {
+				required: true,
+				string: true,
+				minLength: 1
+			},
 			publicKey: "hex?",
 			secondSecret: "string?",
-			username: "string!"
+			username: {
+				required: true,
+				string: true,
+				minLength: 1
+			}
 		}, function (err, report, body) {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
@@ -802,7 +859,11 @@ function attachApi() {
 
 	router.get("/", function (req, res, next) {
 		req.sanitize("query", {
-			address: "string!"
+			address: {
+				required: true,
+				string: true,
+				minLength: 1
+			}
 		}, function (err, report, query) {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
@@ -818,6 +879,7 @@ function attachApi() {
 				success: true,
 				account: {
 					address: account.address,
+					username: account.username,
 					unconfirmedBalance: account.unconfirmedBalance,
 					balance: account.balance,
 					publicKey: account.publicKey,
@@ -883,6 +945,12 @@ Accounts.prototype.getAddressByPublicKey = function (publicKey) {
 
 Accounts.prototype.getAccountByUsername = function (username) {
 	var address = private.username2address[username.toLowerCase()];
+	if (!address) {
+		var delegate = modules.delegates.getDelegateByUsername(username.toLowerCase())
+		if (delegate) {
+			address = self.getAddressByPublicKey(delegate.publicKey);
+		}
+	}
 
 	return this.getAccount(address);
 }
@@ -920,6 +988,15 @@ Accounts.prototype.getDelegates = function (publicKey) {
 	var account = self.getAccountByPublicKey(publicKey);
 	return account.delegates;
 }
+
+Accounts.prototype.existsUnconfirmedUsername = function (username) {
+	return !!private.unconfirmedNames[username.toLowerCase()];
+}
+
+Accounts.prototype.existsUsername = function (username) {
+	return !!private.username2address[username.toLowerCase()];
+}
+
 
 //events
 Accounts.prototype.onBind = function (scope) {
