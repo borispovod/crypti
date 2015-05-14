@@ -211,25 +211,25 @@ private.list = function (filter, cb) {
 
 		var count = rows.length ? rows[0].count : 0;
 
-	library.dbLite.query("select b.id, b.version, b.timestamp, b.height, b.previousBlock, b.numberOfTransactions, b.totalAmount, b.totalFee, b.payloadLength,  lower(hex(b.payloadHash)), lower(hex(b.generatorPublicKey)), lower(hex(b.blockSignature)) " +
-	"from blocks b " +
-	(fields.length ? "where " + fields.join(' and ') : '') + " " +
-	(filter.orderBy ? 'order by ' + sortBy + ' ' + sortMethod : '') + " " +
-	(filter.limit ? 'limit $limit' : '') + " " +
-	(filter.offset ? 'offset $offset' : ''), params, ['b_id', 'b_version', 'b_timestamp', 'b_height', 'b_previousBlock', 'b_numberOfTransactions', 'b_totalAmount', 'b_totalFee', 'b_payloadLength', 'b_payloadHash', 'b_generatorPublicKey', 'b_blockSignature'], function (err, rows) {
-		if (err) {
+		library.dbLite.query("select b.id, b.version, b.timestamp, b.height, b.previousBlock, b.numberOfTransactions, b.totalAmount, b.totalFee, b.payloadLength,  lower(hex(b.payloadHash)), lower(hex(b.generatorPublicKey)), lower(hex(b.blockSignature)) " +
+		"from blocks b " +
+		(fields.length ? "where " + fields.join(' and ') : '') + " " +
+		(filter.orderBy ? 'order by ' + sortBy + ' ' + sortMethod : '') + " " +
+		(filter.limit ? 'limit $limit' : '') + " " +
+		(filter.offset ? 'offset $offset' : ''), params, ['b_id', 'b_version', 'b_timestamp', 'b_height', 'b_previousBlock', 'b_numberOfTransactions', 'b_totalAmount', 'b_totalFee', 'b_payloadLength', 'b_payloadHash', 'b_generatorPublicKey', 'b_blockSignature'], function (err, rows) {
+			if (err) {
 				return cb(err);
-		}
+			}
 
-		var blocks = [];
-		for (var i = 0; i < rows.length; i++) {
-			blocks.push(library.logic.block.dbRead(rows[i]));
-		}
+			var blocks = [];
+			for (var i = 0; i < rows.length; i++) {
+				blocks.push(library.logic.block.dbRead(rows[i]));
+			}
 
 			var data = {
 				blocks: blocks,
 				count: count
-}
+			}
 			cb(null, data);
 		});
 	});
