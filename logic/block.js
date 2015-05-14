@@ -250,7 +250,8 @@ Block.prototype.dbRead = function (raw) {
 			payloadHash: raw.b_payloadHash,
 			generatorPublicKey: raw.b_generatorPublicKey,
 			generatorId: private.getAddressByPublicKey(raw.b_generatorPublicKey),
-			blockSignature: raw.b_blockSignature
+			blockSignature: raw.b_blockSignature,
+			confirmations: raw.b_confirmations
 		}
 
 		return block;
