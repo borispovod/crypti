@@ -91,8 +91,12 @@ function Transfer() {
 		setImmediate(cb);
 	}
 
-	this.ready = function (trs) {
-		return true;
+	this.ready = function (trs, sender) {
+		if (sender.multisignatures) {
+			return trs.signatures.length >= trs.asset.multisignature.min;
+		} else {
+			return true;
+		}
 	}
 }
 
@@ -130,18 +134,24 @@ function attachApi() {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
 
-			private.list(query, function (err, transactions) {
+			private.list(query, function (err, data) {
 				if (err) {
 					return res.json({success: false, error: errorCode("TRANSACTIONS.TRANSACTIONS_NOT_FOUND")});
 				}
 
-				res.json({success: true, transactions: transactions});
+				res.json({success: true, transactions: data.transactions, count: data.count});
 			});
 		});
 	});
 
 	router.get('/get', function (req, res) {
-		req.sanitize("query", {id: "string!"}, function (err, report, query) {
+		req.sanitize("query", {
+			id: {
+				required: true,
+				string: true,
+				minLength: 1
+			}
+		}, function (err, report, query) {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
 
@@ -155,7 +165,13 @@ function attachApi() {
 	});
 
 	router.get('/unconfirmed/get', function (req, res) {
-		req.sanitize("query", {id: "string!"}, function (err, report, query) {
+		req.sanitize("query", {
+			id: {
+				required: true,
+				string: true,
+				minLength: 1
+			}
+		}, function (err, report, query) {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
 
@@ -198,9 +214,17 @@ function attachApi() {
 
 	router.put('/', function (req, res) {
 		req.sanitize("body", {
-			secret: "string!",
+			secret: {
+				required: true,
+				string: true,
+				minLength: 1
+			},
 			amount: "int!",
-			recipientId: "string!",
+			recipientId: {
+				required: true,
+				string: true,
+				minLength: 1
+			},
 			publicKey: "hex?",
 			secondSecret: "string?"
 		}, function (err, report, body) {
@@ -280,7 +304,7 @@ function attachApi() {
 }
 
 private.list = function (filter, cb) {
-	var sortFields = ['t.id', 't.blockId', 't.type', 't.timestamp', 't.senderPublicKey', 't.senderId', 't.recipientId', 't.amount', 't.fee', 't.signature', 't.signSignature', 't.confirmations'];
+	var sortFields = ['t.id', 't.blockId', 't.type', 't.timestamp', 't.senderPublicKey', 't.senderId', 't.recipientId', 't.amount', 't.fee', 't.signature', 't.signSignature', 't.confirmations', 'b.height'];
 	var params = {}, fields = [];
 	if (filter.blockId) {
 		fields.push('blockId = $blockId')
@@ -307,8 +331,7 @@ private.list = function (filter, cb) {
 
 	if (filter.orderBy) {
 		var sort = filter.orderBy.split(':');
-		var sortBy = sort[0].replace(/[^\w\s]/gi, '');
-		sortBy = "t." + sortBy;
+		var sortBy = sort[0].replace(/[^\w_]/gi, '').replace('_', '.');
 		if (sort.length == 2) {
 			var sortMethod = sort[1] == 'desc' ? 'desc' : 'asc'
 		} else {
@@ -326,31 +349,46 @@ private.list = function (filter, cb) {
 		return cb('Maximum of limit is 100');
 	}
 
-	// need to fix 'or' or 'and' in query
-	library.dbLite.query("select t.id, t.blockId, t.type, t.timestamp, lower(hex(t.senderPublicKey)), t.senderId, t.recipientId, t.amount, t.fee, lower(hex(t.signature)), lower(hex(t.signSignature)), (select max(height) + 1 from blocks) - b.height " +
+	library.dbLite.query("select count(t.id) " +
 	"from trs t " +
 	"inner join blocks b on t.blockId = b.id " +
-	(fields.length ? "where " + fields.join(' or ') : '') + " " +
-	(filter.orderBy ? 'order by ' + sortBy + ' ' + sortMethod : '') + " " +
-	(filter.limit ? 'limit $limit' : '') + " " +
-	(filter.offset ? 'offset $offset' : ''), params, ['t_id', 't_blockId', 't_type', 't_timestamp', 't_senderPublicKey', 't_senderId', 't_recipientId', 't_amount', 't_fee', 't_signature', 't_signSignature', 'confirmations'], function (err, rows) {
+	(fields.length ? "where " + fields.join(' or ') : ''), params, {"count": Number}, function (err, rows) {
 		if (err) {
-			return cb(err)
+			return cb(err);
 		}
 
-		var transactions = [];
-		for (var i = 0; i < rows.length; i++) {
-			transactions.push(library.logic.transaction.dbRead(rows[i]));
-		}
-		cb(null, transactions);
+		var count = rows.length ? rows[0].count : 0;
+
+		// need to fix 'or' or 'and' in query
+		library.dbLite.query("select t.id, b.height, t.blockId, t.type, t.timestamp, lower(hex(t.senderPublicKey)), t.senderId, t.recipientId, t.amount, t.fee, lower(hex(t.signature)), lower(hex(t.signSignature)), (select max(height) + 1 from blocks) - b.height " +
+		"from trs t " +
+		"inner join blocks b on t.blockId = b.id " +
+		(fields.length ? "where " + fields.join(' or ') : '') + " " +
+		(filter.orderBy ? 'order by ' + sortBy + ' ' + sortMethod : '') + " " +
+		(filter.limit ? 'limit $limit' : '') + " " +
+		(filter.offset ? 'offset $offset' : ''), params, ['t_id', 'b_height', 't_blockId', 't_type', 't_timestamp', 't_senderPublicKey', 't_senderId', 't_recipientId', 't_amount', 't_fee', 't_signature', 't_signSignature', 'confirmations'], function (err, rows) {
+			if (err) {
+				return cb(err);
+			}
+
+			var transactions = [];
+			for (var i = 0; i < rows.length; i++) {
+				transactions.push(library.logic.transaction.dbRead(rows[i]));
+			}
+			var data = {
+				transactions: transactions,
+				count: count
+			}
+			cb(null, data);
+		});
 	});
 }
 
 private.getById = function (id, cb) {
-	library.dbLite.query("select t.id, t.blockId, t.type, t.timestamp, lower(hex(t.senderPublicKey)), t.senderId, t.recipientId, t.amount, t.fee, lower(hex(t.signature)), lower(hex(t.signSignature)), (select max(height) + 1 from blocks) - b.height " +
+	library.dbLite.query("select t.id, b.height, t.blockId, t.type, t.timestamp, lower(hex(t.senderPublicKey)), t.senderId, t.recipientId, t.amount, t.fee, lower(hex(t.signature)), lower(hex(t.signSignature)), (select max(height) + 1 from blocks) - b.height " +
 	"from trs t " +
 	"inner join blocks b on t.blockId = b.id " +
-	"where t.id = $id", {id: id}, ['t_id', 't_blockId', 't_type', 't_timestamp', 't_senderPublicKey', 't_senderId', 't_recipientId', 't_amount', 't_fee', 't_signature', 't_signSignature', 'confirmations'], function (err, rows) {
+	"where t.id = $id", {id: id}, ['t_id', 'b_height', 't_blockId', 't_type', 't_timestamp', 't_senderPublicKey', 't_senderId', 't_recipientId', 't_amount', 't_fee', 't_signature', 't_signSignature', 'confirmations'], function (err, rows) {
 		if (err || !rows.length) {
 			return cb(err || "Can't find transaction: " + id);
 		}
@@ -417,30 +455,30 @@ Transactions.prototype.removeUnconfirmedTransaction = function (id) {
 Transactions.prototype.processUnconfirmedTransaction = function (transaction, broadcast, cb) {
 	var sender = modules.accounts.getAccountByPublicKey(transaction.senderPublicKey);
 
-	library.logic.transaction.process(library.dbLite, transaction, sender, function (err, transaction) {
-		// check in confirmed transactions
-		if (private.unconfirmedTransactionsIdIndex[transaction.id] !== undefined || private.doubleSpendingTransactions[transaction.id]) {
-			return cb("This transaction already exists");
+	function done(err) {
+		if (err) {
+			return cb(err);
 		}
 
-		function done(err) {
+		private.addUnconfirmedTransaction(transaction, function (err) {
 			if (err) {
 				return cb(err);
 			}
 
-			private.addUnconfirmedTransaction(transaction, function (err) {
-				if (err) {
-					return cb(err);
-				}
+			library.bus.message('unconfirmedTransaction', transaction, broadcast);
 
-				library.bus.message('unconfirmedTransaction', transaction, broadcast);
+			cb();
+		});
+	}
 
-				cb();
-			});
-		}
+	if (!library.logic.transaction.ready(transaction, sender)) {
+		return done();
+	}
 
-		if (!library.logic.transaction.ready(transaction)) {
-			return done();
+	library.logic.transaction.process(library.dbLite, transaction, sender, function (err, transaction) {
+		// check in confirmed transactions
+		if (private.unconfirmedTransactionsIdIndex[transaction.id] !== undefined || private.doubleSpendingTransactions[transaction.id]) {
+			return cb("This transaction already exists");
 		}
 
 		library.logic.transaction.verify(transaction, sender, done);

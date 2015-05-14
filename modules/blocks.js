@@ -28,6 +28,7 @@ private.blocksDataFields = {
 	'd_username': String,
 	'v_votes': String,
 	'c_address': String,
+	'u_alias': String,
 	'm_min': Number, 'm_lifetime': Number, 'm_dependence': String, 'm_signatures': String,
 	'da_name': String, 'da_description': String, 'da_tags': String, 'da_git': String
 };
@@ -55,7 +56,13 @@ function attachApi() {
 	});
 
 	router.get('/get', function (req, res, next) {
-		req.sanitize("query", {id: "string!"}, function (err, report, query) {
+		req.sanitize("query", {
+			id: {
+				required: true,
+				string: true,
+				minLength: 1
+			}
+		}, function (err, report, query) {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
 
@@ -83,11 +90,11 @@ function attachApi() {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
 
-			private.list(query, function (err, blocks) {
+			private.list(query, function (err, data) {
 				if (err) {
 					return res.json({success: false, error: errorCode("BLOCKS.BLOCK_NOT_FOUND")});
 				}
-				res.json({success: true, blocks: blocks});
+				res.json({success: true, blocks: data.blocks, count: data.count});
 			});
 		});
 	});
@@ -195,6 +202,15 @@ private.list = function (filter, cb) {
 		return cb('Maximum of limit is 100');
 	}
 
+	library.dbLite.query("select count(b.id) " +
+	"from blocks b " +
+	(fields.length ? "where " + fields.join(' and ') : ''), params, {count: Number}, function (err, rows) {
+		if (err) {
+			return cb(err);
+		}
+
+		var count = rows.length ? rows[0].count : 0;
+
 	library.dbLite.query("select b.id, b.version, b.timestamp, b.height, b.previousBlock, b.numberOfTransactions, b.totalAmount, b.totalFee, b.payloadLength,  lower(hex(b.payloadHash)), lower(hex(b.generatorPublicKey)), lower(hex(b.blockSignature)) " +
 	"from blocks b " +
 	(fields.length ? "where " + fields.join(' and ') : '') + " " +
@@ -202,15 +218,21 @@ private.list = function (filter, cb) {
 	(filter.limit ? 'limit $limit' : '') + " " +
 	(filter.offset ? 'offset $offset' : ''), params, ['b_id', 'b_version', 'b_timestamp', 'b_height', 'b_previousBlock', 'b_numberOfTransactions', 'b_totalAmount', 'b_totalFee', 'b_payloadLength', 'b_payloadHash', 'b_generatorPublicKey', 'b_blockSignature'], function (err, rows) {
 		if (err) {
-			return cb(err)
+				return cb(err);
 		}
 
 		var blocks = [];
 		for (var i = 0; i < rows.length; i++) {
 			blocks.push(library.logic.block.dbRead(rows[i]));
 		}
-		cb(null, blocks);
-	})
+
+			var data = {
+				blocks: blocks,
+				count: count
+}
+			cb(null, data);
+		});
+	});
 }
 
 private.getById = function (id, cb) {
@@ -447,7 +469,6 @@ Blocks.prototype.loadBlocksData = function (filter, options, cb) {
 		method = 'query';
 	}
 
-
 	library.dbLite[method]("SELECT " +
 	"b.id, b.version, b.timestamp, b.height, b.previousBlock, b.numberOfTransactions, b.totalAmount, b.totalFee, b.payloadLength, lower(hex(b.payloadHash)), lower(hex(b.generatorPublicKey)), lower(hex(b.blockSignature)), " +
 	"t.id, t.type, t.timestamp, lower(hex(t.senderPublicKey)), t.senderId, t.recipientId, t.amount, t.fee, lower(hex(t.signature)), lower(hex(t.signSignature)), " +
@@ -455,6 +476,7 @@ Blocks.prototype.loadBlocksData = function (filter, options, cb) {
 	"d.username, " +
 	"v.votes, " +
 	"c.address, " +
+	"u.username, " +
 	"m.min, m.lifetime, m.dependence, m.signatures, " +
 	"da.name, da.description, da.tags, da.git " +
 	"FROM (select * from blocks " + (filter.id ? " where id = $id " : "") + (filter.lastId ? " where height > (SELECT height FROM blocks where id = $lastId) " : "") + " limit $limit) as b " +
@@ -463,6 +485,7 @@ Blocks.prototype.loadBlocksData = function (filter, options, cb) {
 	"left outer join votes as v on v.transactionId=t.id " +
 	"left outer join signatures as s on s.transactionId=t.id " +
 	"left outer join contacts as c on c.transactionId=t.id " +
+	"left outer join usernames as u on u.transactionId=t.id " +
 	"left outer join multisignatures as m on m.transactionId=t.id " +
 	"left outer join dapps as da on da.transactionId=t.id " +
 	"ORDER BY b.height, t.rowid" +
@@ -497,6 +520,7 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 	"d.username, " +
 	"v.votes, " +
 	"c.address, " +
+	"u.username, " +
 	"m.min, m.lifetime, m.dependence, m.signatures, " +
 	"da.name, da.description, da.tags, da.git " +
 	"FROM (select * from blocks limit $limit offset $offset) as b " +
@@ -505,6 +529,7 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 	"left outer join votes as v on v.transactionId=t.id " +
 	"left outer join signatures as s on s.transactionId=t.id " +
 	"left outer join contacts as c on c.transactionId=t.id " +
+	"left outer join usernames as u on u.transactionId=t.id " +
 	"left outer join multisignatures as m on m.transactionId=t.id " +
 	"left outer join dapps as da on da.transactionId=t.id " +
 	"ORDER BY b.height, t.rowid" +

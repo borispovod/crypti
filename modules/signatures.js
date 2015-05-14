@@ -7,6 +7,7 @@ var ed = require('ed25519'),
 	Router = require('../helpers/router.js'),
 	async = require('async'),
 	TransactionTypes = require('../helpers/transaction-types.js'),
+	MilestoneBlocks = require("../helpers/milestoneBlocks.js"),
 	errorCode = require('../helpers/errorCodes.js').error;
 
 // private fields
@@ -24,7 +25,11 @@ function Signature() {
 	}
 
 	this.calculateFee = function (trs) {
-		return 100 * constants.fixedPoint;
+		if (modules.blocks.getLastBlock().height >= MilestoneBlocks.FEE_BLOCK) {
+			return 5 * constants.fixedPoint;
+		} else {
+			return 100 * constants.fixedPoint;
+		}
 	}
 
 	this.verify = function (trs, sender, cb) {
@@ -136,8 +141,12 @@ function Signature() {
 		}, cb);
 	}
 
-	this.ready = function (trs) {
-		return true;
+	this.ready = function (trs, sender) {
+		if (sender.multisignatures) {
+			return trs.signatures.length >= trs.asset.multisignature.min;
+		} else {
+			return true;
+		}
 	}
 }
 
@@ -164,8 +173,16 @@ function attachApi() {
 
 	router.put('/', function (req, res) {
 		req.sanitize("body", {
-			secret: "string!",
-			secondSecret: "string!",
+			secret: {
+				required: true,
+				string: true,
+				minLength: 1
+			},
+			secondSecret: {
+				required: true,
+				string: true,
+				minLength: 1
+			},
 			publicKey: "hex?"
 		}, function (err, report, body) {
 			if (err) return next(err);
