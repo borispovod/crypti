@@ -3,6 +3,7 @@ var encryptHelper = require('../helpers/encrypt.js'),
 	RequestSanitizer = require('../helpers/request-sanitizer.js'),
 	Router = require('../helpers/router.js'),
 	constants = require('../helpers/constants.js'),
+	crypto = require('crypto'),
 	errorCode = require('../helpers/errorCodes.js').error;
 
 var modules, library, self, private = {};
