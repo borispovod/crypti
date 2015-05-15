@@ -3,6 +3,8 @@ var encryptHelper = require('../helpers/encrypt.js'),
 	RequestSanitizer = require('../helpers/request-sanitizer.js'),
 	Router = require('../helpers/router.js'),
 	constants = require('../helpers/constants.js'),
+	ed = require('ed25519'),
+	ByteBuffer = require("bytebuffer"),
 	crypto = require('crypto'),
 	errorCode = require('../helpers/errorCodes.js').error;
 
