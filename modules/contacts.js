@@ -138,27 +138,12 @@ function attachApi() {
 
 	router.get("/", function (req, res) {
 		req.sanitize("query", {
-			secret: {
-				required: true,
-				string: true,
-				minLength: 1
-			},
-			secondSecret: "string?",
-			publicKey: "hex?"
+			publicKey: "hex!"
 		}, function (err, report, query) {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
 
-			var hash = crypto.createHash('sha256').update(query.secret, 'utf8').digest();
-			var keypair = ed.MakeKeypair(hash);
-
-			if (query.publicKey) {
-				if (keypair.publicKey.toString('hex') != query.publicKey) {
-					return res.json({success: false, error: errorCode("COMMON.INVALID_SECRET_KEY")});
-				}
-			}
-
-			var account = modules.accounts.getAccountByPublicKey(keypair.publicKey.toString('hex'));
+			var account = modules.accounts.getAccountByPublicKey(query.publicKey);
 
 			if (!account || !account.publicKey) {
 				return res.json({success: false, error: errorCode("COMMON.OPEN_ACCOUNT")});
