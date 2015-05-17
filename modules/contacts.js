@@ -53,7 +53,7 @@ function Contact() {
 
 	this.getBytes = function (trs) {
 		try {
-			var contactAddress = new Buffer(trs.asset.contact.address, 'hex');
+			var contactAddress = new Buffer(trs.asset.contact.address, 'utf8');
 
 			var bb = new ByteBuffer(contactAddress.length, true);
 			for (var i = 0; i < contactAddress.length; i++) {
