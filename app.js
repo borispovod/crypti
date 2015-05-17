@@ -5,6 +5,8 @@ var appConfig = require("./config.json");
 var async = require('async');
 var extend = require('extend');
 var path = require('path');
+var https = require('https');
+var fs = require('fs');
 
 program
 	.version(packageJson.version)
@@ -184,6 +186,16 @@ d.run(function () {
 
 				cb(err, scope.network);
 			});
+
+			if (scope.config.ssl.enabled) {
+				var privateKey = fs.readFileSync(scope.config.ssl.options.key);
+				var certificate = fs.readFileSync(scope.config.ssl.options.cert);
+
+				https.createServer({
+					key: privateKey,
+					cert: certificate
+				}, scope.network.server).listen(scope.config.ssl.options.port);
+			}
 		}],
 
 		bus: function (cb) {
