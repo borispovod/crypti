@@ -165,37 +165,61 @@ Account.prototype.undoDelegateList = function (diff) {
 }
 
 Account.prototype.applyContact = function (address) {
-	var index = this.following.indexOf(address);
-	if (index != -1) {
-		return false;
+	if (diff === null) return;
+
+	var dest = applyDiff(this.following, [diff]);
+
+	if (dest !== false) {
+		this.following = dest;
+		library.network.io.sockets.emit('contacts/change', {address: this.address});
+		return true;
 	}
-	this.following.push(address);
-	return true;
+
+	return false;
 }
 
 Account.prototype.undoContact = function (address) {
-	var index = this.following.indexOf(address);
-	if (index == -1) {
-		return false;
+	if (diff === null) return;
+
+	var copyDiff = reverseDiff([diff]);
+
+	var dest = applyDiff(this.following, copyDiff);
+
+	if (dest !== false) {
+		this.following = dest;
+		library.network.io.sockets.emit('contacts/change', {address: this.address});
+		return true;
 	}
-	this.following.splice(index, 1);
+
+	return false;
 }
 
-Account.prototype.applyUnconfirmedContact = function (address) {
-	var index = this.unconfirmedFollowing.indexOf(address);
-	if (index != -1) {
-		return false;
+Account.prototype.applyUnconfirmedContact = function (diff) {
+	if (diff === null) return;
+
+	var dest = applyDiff(this.unconfirmedFollowing, [diff]);
+
+	if (dest !== false) {
+		this.unconfirmedFollowing = dest;
+		return true;
 	}
-	this.unconfirmedFollowing.push(address);
-	return true;
+
+	return false;
 }
 
-Account.prototype.undoUnconfirmedContact = function (address) {
-	var index = this.unconfirmedFollowing.indexOf(address);
-	if (index == -1) {
-		return false;
+Account.prototype.undoUnconfirmedContact = function (diff) {
+	if (diff === null) return;
+
+	var copyDiff = reverseDiff([diff]);
+
+	var dest = applyDiff(this.unconfirmedFollowing, copyDiff);
+
+	if (dest !== false) {
+		this.unconfirmedFollowing = dest;
+		return true;
 	}
-	this.unconfirmedFollowing.splice(index, 1);
+
+	return false;
 }
 
 function Vote() {
