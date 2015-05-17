@@ -5,7 +5,7 @@ logs.old.log
 .DS_Store
 node_modules
 npm-debug.log
-.idea
+.idea/
 .ed25519-node
 blockchain.*
 addresses.txt

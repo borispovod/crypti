@@ -164,7 +164,7 @@ Account.prototype.undoDelegateList = function (diff) {
 	return false;
 }
 
-Account.prototype.applyContact = function (address) {
+Account.prototype.applyContact = function (diff) {
 	if (diff === null) return;
 
 	var dest = applyDiff(this.following, [diff]);
@@ -178,7 +178,7 @@ Account.prototype.applyContact = function (address) {
 	return false;
 }
 
-Account.prototype.undoContact = function (address) {
+Account.prototype.undoContact = function (diff) {
 	if (diff === null) return;
 
 	var copyDiff = reverseDiff([diff]);
