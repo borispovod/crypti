@@ -44,7 +44,7 @@ function Contact() {
 			return setImmediate(cb, "Invalid amount: " + trs.id);
 		}
 
-		if (trs.recipientId != trs.senderId) {
+		if (trs.recipientId) {
 			return setImmediate(cb, "Invalid recipientId: " + trs.id);
 		}
 
