@@ -15,3 +15,4 @@ __MACOSX/
 bfg.jar
 *.zip
 .directory
+ssl/
