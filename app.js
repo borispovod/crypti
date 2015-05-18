@@ -5,6 +5,8 @@ var appConfig = require("./config.json");
 var async = require('async');
 var extend = require('extend');
 var path = require('path');
+var https = require('https');
+var fs = require('fs');
 
 program
 	.version(packageJson.version)
@@ -89,19 +91,33 @@ d.run(function () {
 			cb(null, logger);
 		},
 
-		network: function (cb) {
+		network: ['config', function (cb, scope) {
 			var express = require('express');
 			var app = express();
 			var server = require('http').createServer(app);
 			var io = require('socket.io')(server);
+
+			if (scope.config.ssl.enabled) {
+				var privateKey = fs.readFileSync(scope.config.ssl.options.key);
+				var certificate = fs.readFileSync(scope.config.ssl.options.cert);
+
+				var https = require('https').createServer({
+					key: privateKey,
+					cert: certificate
+				}, app);
+
+				var https_io = require('socket.io')(https);
+			}
+
 			cb(null, {
 				express: express,
 				app: app,
 				server: server,
-				io: io
+				io: io,
+				https: https,
+				https_io: https_io
 			});
-		},
-
+		}],
 		sequence: function (cb) {
 
 			var sequence = [];
@@ -183,8 +199,22 @@ d.run(function () {
 			scope.network.server.listen(scope.config.port, scope.config.address, function (err) {
 				scope.logger.log("Crypti started: " + scope.config.address + ":" + scope.config.port);
 
-				cb(err, scope.network);
+				if (!err) {
+					if (scope.config.ssl.enabled) {
+						scope.network.https.listen(scope.config.ssl.options.port, scope.config.ssl.options.address, function (err) {
+							scope.logger.log("Crypti https started: " + scope.config.ssl.options.address + ":" + scope.config.ssl.options.port);
+
+							cb(err, scope.network);
+						});
+					} else {
+						cb(null, scope.network);
+					}
+				} else {
+					cb(err, scope.network);
+				}
 			});
+
+
 		}],
 
 		bus: function (cb) {

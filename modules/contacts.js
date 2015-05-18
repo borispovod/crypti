@@ -3,6 +3,9 @@ var encryptHelper = require('../helpers/encrypt.js'),
 	RequestSanitizer = require('../helpers/request-sanitizer.js'),
 	Router = require('../helpers/router.js'),
 	constants = require('../helpers/constants.js'),
+	ed = require('ed25519'),
+	ByteBuffer = require("bytebuffer"),
+	crypto = require('crypto'),
 	errorCode = require('../helpers/errorCodes.js').error;
 
 var modules, library, self, private = {};
@@ -13,7 +16,7 @@ function Contact() {
 		trs.amount = 0;
 
 		trs.asset.contact = {
-			address: trs.contactAddress
+			address: data.contactAddress
 		}
 
 		return trs;
@@ -32,7 +35,7 @@ function Contact() {
 			return setImmediate(cb, "Invalid following: " + trs.id);
 		}
 
-		var isAddress = /^[0-9]+[C|c]$/g;
+		var isAddress = /^[\+|\-][0-9]+[C|c]$/g;
 		if (!isAddress.test(trs.asset.contact.address.toLowerCase())) {
 			return setImmediate(cb, "Invalid following: " + trs.id);
 		}
@@ -41,7 +44,7 @@ function Contact() {
 			return setImmediate(cb, "Invalid amount: " + trs.id);
 		}
 
-		if (trs.recipientId != trs.senderId) {
+		if (trs.recipientId) {
 			return setImmediate(cb, "Invalid recipientId: " + trs.id);
 		}
 
@@ -54,7 +57,7 @@ function Contact() {
 
 	this.getBytes = function (trs) {
 		try {
-			var contactAddress = new Buffer(trs.asset.contact.address, 'hex');
+			var contactAddress = new Buffer(trs.asset.contact.address, 'utf8');
 
 			var bb = new ByteBuffer(contactAddress.length, true);
 			for (var i = 0; i < contactAddress.length; i++) {
@@ -146,31 +149,16 @@ function attachApi() {
 
 	router.get("/", function (req, res) {
 		req.sanitize("query", {
-			secret: {
-				required: true,
-				string: true,
-				minLength: 1
-			},
-			secondSecret: "string?",
-			publicKey: "hex?"
+			publicKey: "hex!"
 		}, function (err, report, query) {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
 
-			var hash = crypto.createHash('sha256').update(query.secret, 'utf8').digest();
-			var keypair = ed.MakeKeypair(hash);
+			var account = modules.accounts.getAccountByPublicKey(query.publicKey);
 
-			if (query.publicKey) {
-				if (keypair.publicKey.toString('hex') != query.publicKey) {
-					return res.json({success: false, error: errorCode("COMMON.INVALID_SECRET_KEY")});
+			if (!account) {
+				return res.json({success: false, error: errorCode("ACCOUNTS.ACCOUNT_DOESNT_FOUND")});
 				}
-			}
-
-			var account = modules.accounts.getAccountByPublicKey(keypair.publicKey.toString('hex'));
-
-			if (!account || !account.publicKey) {
-				return res.json({success: false, error: errorCode("COMMON.OPEN_ACCOUNT")});
-			}
 
 			res.json({success: true, following: account.following});
 		});
@@ -218,16 +206,16 @@ function attachApi() {
 				var secondKeypair = ed.MakeKeypair(secondHash);
 			}
 
-			var followingAddress = null;
+			var followingAddress = body.following.substring(1, body.following.length);
 			var isAddress = /^[0-9]+[C|c]$/g;
-			if (isAddress.test(body.following.toLowerCase())) {
+			if (isAddress.test(followingAddress.toLowerCase())) {
 				followingAddress = body.following;
 			} else {
-				var following = modules.accounts.getAccountByUsername(body.following);
+				var following = modules.accounts.getAccountByUsername(followingAddress);
 				if (!following) {
 					return res.json({success: false, error: errorCode("CONTACTS.USERNAME_DOESNT_FOUND", body)});
 				}
-				followingAddress = following.address;
+				followingAddress = body.following[0] + following.address;
 			}
 
 			var transaction = library.logic.transaction.create({
