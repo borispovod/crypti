@@ -83,14 +83,6 @@ function applyDiff(source, diff) {
 	return res;
 }
 
-Account.prototype.setUnconfirmedSignature = function (unconfirmedSignature) {
-	this.unconfirmedSignature = unconfirmedSignature;
-}
-
-Account.prototype.setSecondSignature = function (secondSignature) {
-	this.secondSignature = secondSignature;
-}
-
 Account.prototype.addToBalance = function (amount) {
 	this.balance += amount;
 	var delegate = this.delegates ? this.delegates.slice() : null
@@ -272,39 +264,63 @@ Account.prototype.undoUnconfirmedMultisignature = function (multisignature) {
 	return false;
 }
 
-Account.prototype.applyContact = function (address) {
-	var index = this.following.indexOf(address);
-	if (index != -1) {
+Account.prototype.applyContact = function (diff) {
+	if (diff === null) return;
+
+	var dest = applyDiff(this.following, [diff]);
+
+	if (dest !== false) {
+		this.following = dest;
+		library.network.io.sockets.emit('contacts/change', {address: this.address});
+		return true;
+	}
+
 		return false;
 	}
-	this.following.push(address);
+
+Account.prototype.undoContact = function (diff) {
+	if (diff === null) return;
+
+	var copyDiff = reverseDiff([diff]);
+
+	var dest = applyDiff(this.following, copyDiff);
+
+	if (dest !== false) {
+		this.following = dest;
+		library.network.io.sockets.emit('contacts/change', {address: this.address});
 	return true;
 }
 
-Account.prototype.undoContact = function (address) {
-	var index = this.following.indexOf(address);
-	if (index == -1) {
 		return false;
 	}
-	this.following.splice(index, 1);
+
+Account.prototype.applyUnconfirmedContact = function (diff) {
+	if (diff === null) return;
+
+	var dest = applyDiff(this.unconfirmedFollowing, [diff]);
+
+	if (dest !== false) {
+		this.unconfirmedFollowing = dest;
+		return true;
 }
 
-Account.prototype.applyUnconfirmedContact = function (address) {
-	var index = this.unconfirmedFollowing.indexOf(address);
-	if (index != -1) {
 		return false;
 	}
-	this.unconfirmedFollowing.push(address);
+
+Account.prototype.undoUnconfirmedContact = function (diff) {
+	if (diff === null) return;
+
+	var copyDiff = reverseDiff([diff]);
+
+	var dest = applyDiff(this.unconfirmedFollowing, copyDiff);
+
+	if (dest !== false) {
+		this.unconfirmedFollowing = dest;
 	return true;
 }
 
-Account.prototype.undoUnconfirmedContact = function (address) {
-	var index = this.unconfirmedFollowing.indexOf(address);
-	if (index == -1) {
 		return false;
 	}
-	this.unconfirmedFollowing.splice(index, 1);
-}
 
 function Vote() {
 	this.create = function (data, trs) {
@@ -623,7 +639,7 @@ function attachApi() {
 			if (!report.isValid) return res.json({success: false, error: report.issues});
 
 			var isAddress = /^[0-9]+c$/g;
-			if (isAddress.test(query.address.toLowerCase())) {
+			if (!isAddress.test(query.address.toLowerCase())) {
 				return res.json({
 					success: false,
 					error: errorCode("ACCOUNTS.INVALID_ADDRESS", {address: query.address})
@@ -1001,6 +1017,7 @@ Accounts.prototype.existsUnconfirmedUsername = function (username) {
 Accounts.prototype.existsUsername = function (username) {
 	return !!private.username2address[username.toLowerCase()];
 }
+
 
 //events
 Accounts.prototype.onBind = function (scope) {
