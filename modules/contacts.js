@@ -160,7 +160,15 @@ function attachApi() {
 				return res.json({success: false, error: errorCode("ACCOUNTS.ACCOUNT_DOESNT_FOUND")});
 			}
 
-			res.json({success: true, following: account.following});
+			var following = [];
+			if (account.following && account.following.length){
+				following = account.following.map(function(item){
+					var account = modules.accounts.getAccount(item);
+					return {username: account.username, address: account.address};
+				});
+			}
+
+			res.json({success: true, following: following});
 		});
 	});
 
