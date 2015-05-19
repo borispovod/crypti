@@ -13,7 +13,8 @@ var constants = require("../helpers/constants.js"),
 	sandbox = require('../helpers/sandbox.js'),
 	extend = require('extend'),
 	rmdir = require('rimraf').sync,
-	errorCode = require('../helpers/errorCodes.js').error;
+	errorCode = require('../helpers/errorCodes.js').error,
+	Sandbox = require("crypti-sandbox");
 
 var modules, library, self, private = {};
 
@@ -160,9 +161,15 @@ private.initializeDAppRoutes = function (id, routes) {
 	}
 
 	routes.forEach(function (router) {
-		if (router.method == "get") {
-			private.routes[id].get(router.path, function (req, res) {
-				return res.json({success: true});
+		if (router.method == "get" || router.method == "post" || router.method == "put") {
+			private.routes[id][router.method](router.path, function (req, res) {
+				debugger
+				private.sandboxes[id].sendMessage({method: router.method, path: router.path, query: req.query}, function (err, body) {
+					debugger
+					body = (typeof body != "object" ? {} : body);
+					var resultBody = extend(body, {success: !err});
+					res.json(resultBody);
+				});
 			});
 		}
 	});
@@ -264,12 +271,7 @@ private.launchDApp = function (dApp, cb) {
 		return setImmediate(cb, "This DApp has no config file, can't launch it");
 	}
 
-	var sandbox = new Sandbox({
-		api: private.apiHandler,
-		enableGdb: false,
-		enableValgrind: false,
-		disableNacl: true
-	});
+	var sandbox = private.sandboxes[id] = new Sandbox(path.join("dapps", id, "index.js"), null);
 
 	sandbox.on("exit", function () {
 		delete private.sandboxes[id];
@@ -277,24 +279,15 @@ private.launchDApp = function (dApp, cb) {
 		library.logger.info("DApp " + id + " closed");
 	});
 
-	sandbox.pipeStdout(process.stdout);
-	sandbox.pipeStderr(process.stderr);
+	sandbox.on("error", function (err) {
+		delete private.sandboxes[id];
+		delete private.routes[id];
+		library.logger.info("Error in DApp " + id + " " + err.toString());
+	});
 
-	var env = extend({}, env);
-
-	sandbox.run(path.join("dapps", id, "index.js"), {env: env, instance_id: id});
-	setTimeout(function () {
-		console.log("crypti sending...");
-		sandbox.postMessage({"test": 1});
-	}, 2000);
-
-	private.sandboxes[id] = sandbox;
-
-	//sandbox.postMessage("Hello, world!");
+	sandbox.run();
 
 	library.logger.info("DApp " + id + " launched");
-
-	library.logger.info("Connect to communicate server of DApp " + id);
 
 	function halt(message) {
 		sandbox.kill(0);
@@ -319,7 +312,6 @@ private.launchDApp = function (dApp, cb) {
 	}
 
 	library.logger.info("Connected to api");
-
 
 	setImmediate(cb);
 }
