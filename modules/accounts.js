@@ -14,6 +14,7 @@ var modules, library, self, private = {};
 
 private.accounts = {};
 private.username2address = {};
+private.unconfirmedNames = {};
 
 function Account(address, publicKey, balance, unconfirmedBalance) {
 	this.address = address;
@@ -30,104 +31,56 @@ function Account(address, publicKey, balance, unconfirmedBalance) {
 	this.username = null;
 	this.following = [];
 	this.unconfirmedFollowing = [];
+	this.unconfirmedMultisignature = null;
+	this.multisignature = null;
 	this.isDAppAccount = false;
 	this.isUnconfirmedDAppAccount = false;
 }
 
-function accountApplyDiff(account, diff) {
-	var tmp = account.delegates ? account.delegates.slice() : null
+function reverseDiff(diff) {
+	var copyDiff = diff.slice();
+	for (var i = 0; i < copyDiff.length; i++) {
+		var math = copyDiff[i][0] == '-' ? '+' : '-';
+		copyDiff[i] = math + copyDiff[i].slice(1);
+	}
+	return copyDiff;
+}
+
+function applyDiff(source, diff) {
+	var res = source ? source.slice() : [];
 
 	for (var i = 0; i < diff.length; i++) {
 		var math = diff[i][0];
 		var publicKey = diff[i].slice(1);
 
 		if (math == "+") {
-			account.delegates = account.delegates || [];
+			res = res || [];
 
 			var index = -1;
-			if (account.delegates) {
-				index = account.delegates.indexOf(publicKey);
+			if (res) {
+				index = res.indexOf(publicKey);
 			}
 			if (index != -1) {
-				account.delegates = tmp;
 				return false;
 			}
 
-			if (account.delegates && account.delegates.length >= 101) {
-				account.delegates = tmp;
-				return false;
-			}
-
-			account.delegates.push(publicKey);
+			res.push(publicKey);
 		}
 		if (math == "-") {
 			var index = -1;
-			if (account.delegates) {
-				index = account.delegates.indexOf(publicKey);
+			if (res) {
+				index = res.indexOf(publicKey);
 			}
 			if (index == -1) {
-				account.delegates = tmp;
 				return false;
 			}
-			account.delegates.splice(index, 1);
-			if (!account.delegates.length) {
-				account.delegates = null;
+			res.splice(index, 1);
+			if (!res.length) {
+				res = null;
 			}
 		}
 	}
-	return true;
-}
-
-function accountApplyUnconfirmedDiff(account, diff) {
-	var tmp = account.unconfirmedDelegates ? account.unconfirmedDelegates.slice() : null
-
-	for (var i = 0; i < diff.length; i++) {
-		var math = diff[i][0];
-		var publicKey = diff[i].slice(1);
-
-		if (math == "+") {
-			account.unconfirmedDelegates = account.unconfirmedDelegates || [];
-
-			var index = -1;
-			if (account.unconfirmedDelegates) {
-				index = account.unconfirmedDelegates.indexOf(publicKey);
-			}
-			if (index != -1) {
-				account.unconfirmedDelegates = tmp;
-				return false;
-			}
-
-			if (account.unconfirmedDelegates && account.unconfirmedDelegates.length >= 101) {
-				account.unconfirmedDelegates = tmp;
-				return false;
-			}
-
-			account.unconfirmedDelegates.push(publicKey);
-		}
-		if (math == "-") {
-			var index = -1;
-			if (account.unconfirmedDelegates) {
-				index = account.unconfirmedDelegates.indexOf(publicKey);
-			}
-			if (index == -1) {
-				account.unconfirmedDelegates = tmp;
-				return false;
-			}
-			account.unconfirmedDelegates.splice(index, 1);
-			if (!account.unconfirmedDelegates.length) {
-				account.unconfirmedDelegates = null;
-			}
-		}
-	}
-	return true;
-}
-
-Account.prototype.setUnconfirmedSignature = function (unconfirmedSignature) {
-	this.unconfirmedSignature = unconfirmedSignature;
-}
-
-Account.prototype.setSecondSignature = function (secondSignature) {
-	this.secondSignature = secondSignature;
+	return res;
 }
 
 Account.prototype.addToBalance = function (amount) {
@@ -145,93 +98,229 @@ Account.prototype.addToUnconfirmedBalance = function (amount) {
 
 Account.prototype.applyUnconfirmedDelegateList = function (diff) {
 	if (diff === null) return;
-	var isValid = accountApplyUnconfirmedDiff(this, diff);
 
-	isValid && library.bus.message('changeUnconfirmedDelegates', this.balance, diff);
+	var dest = applyDiff(this.unconfirmedDelegates, diff);
 
-	return isValid;
+	if (dest !== false) {
+		if (dest && dest.length > 101) {
+			return false;
+		}
+		this.unconfirmedDelegates = dest;
+		library.bus.message('changeUnconfirmedDelegates', this.balance, diff);
+		return true;
+	}
+
+	return false;
 }
 
 Account.prototype.undoUnconfirmedDelegateList = function (diff) {
 	if (diff === null) return;
-	var copyDiff = diff.slice();
-	for (var i = 0; i < copyDiff.length; i++) {
-		var math = copyDiff[i][0] == '-' ? '+' : '-';
-		copyDiff[i] = math + copyDiff[i].slice(1);
+
+	var copyDiff = reverseDiff(diff);
+
+	var dest = applyDiff(this.unconfirmedDelegates, copyDiff);
+
+	if (dest !== false) {
+		if (dest && dest.length > 101) {
+			return false;
+		}
+		this.unconfirmedDelegates = dest;
+		library.bus.message('changeUnconfirmedDelegates', this.balance, copyDiff);
+		return true;
 	}
 
-	var isValid = accountApplyUnconfirmedDiff(this, copyDiff);
-
-	isValid && library.bus.message('changeUnconfirmedDelegates', this.balance, copyDiff);
-
-	return isValid;
+	return false;
 }
 
 Account.prototype.applyDelegateList = function (diff) {
 	if (diff === null) return;
-	var isValid = accountApplyDiff(this, diff);
 
-	isValid && library.bus.message('changeDelegates', this.balance, diff);
+	var dest = applyDiff(this.delegates, diff);
 
-	return isValid;
+	if (dest !== false) {
+		if (dest && dest.length > 101) {
+			return false;
+		}
+		this.delegates = dest;
+		library.bus.message('changeDelegates', this.balance, diff);
+		return true;
+	}
+
+	return false;
 }
 
 Account.prototype.undoDelegateList = function (diff) {
 	if (diff === null) return;
-	var copyDiff = diff.slice();
-	for (var i = 0; i < copyDiff.length; i++) {
-		var math = copyDiff[i][0] == '-' ? '+' : '-';
-		copyDiff[i] = math + copyDiff[i].slice(1);
+
+	var copyDiff = reverseDiff(diff);
+
+	var dest = applyDiff(this.delegates, copyDiff);
+
+	if (dest !== false) {
+		if (dest && dest.length > 101) {
+			return false;
+		}
+		this.delegates = dest;
+		library.bus.message('changeDelegates', this.balance, copyDiff);
+		return true;
 	}
 
-	var isValid = accountApplyDiff(this, copyDiff);
-
-	isValid && library.bus.message('changeDelegates', this.balance, copyDiff);
-
-	return isValid;
+	return false;
 }
 
-Account.prototype.applyUsername = function (username) {
-	private.username2address[username.toLowerCase()] = this.address;
+Account.prototype.applyMultisignature = function (multisignature) {
+	var dest = applyDiff(this.multisignature.keysgroup, multisignature.keysgroup);
+
+	if (dest !== false) {
+		if (dest && dest.length > 10) {
+			return false;
+		}
+		var minRes = this.multisignature.min + multisignature.min;
+		if (minRes < 1 || minRes > 10) {
+			return false;
+		}
+		var lifetimeRes = this.multisignature.lifetime + multisignature.lifetime;
+		if (lifetimeRes < 1 || lifetimeRes > 72) {
+			return false;
+		}
+
+		this.multisignature = {min: minRes, lifetime: lifetimeRes, keysgroup: dest};
+		return true;
+	}
+
+	return false;
 }
 
-Account.prototype.undoUsername = function (username) {
-	delete private.username2address[username.toLowerCase()];
+Account.prototype.undoMultisignature = function (multisignature) {
+	var copyDiff = reverseDiff(multisignature.keysgroup);
+
+	var dest = applyDiff(this.multisignature.keysgroup, copyDiff);
+
+	if (dest !== false) {
+		if (dest && dest.length > 10) {
+			return false;
+		}
+		var minRes = this.multisignature.min + multisignature.min;
+		if (minRes < 1 || minRes > 10) {
+			return false;
+		}
+		var lifetimeRes = this.multisignature.lifetime + multisignature.lifetime;
+		if (lifetimeRes < 1 || lifetimeRes > 72) {
+			return false;
+		}
+
+		this.multisignature = {min: minRes, lifetime: lifetimeRes, keysgroup: dest};
+		return true;
+	}
+
+	return false;
 }
 
-Account.prototype.applyContact = function (address) {
-	var index = this.following.indexOf(address);
-	if (index != -1) {
+Account.prototype.applyUnconfirmedMultisignature = function (multisignature) {
+	var dest = applyDiff(this.unconfirmedMultisignature.keysgroup, multisignature.keysgroup);
+
+	if (dest !== false) {
+		if (dest && dest.length > 10) {
+			return false;
+		}
+		var minRes = this.unconfirmedMultisignature.min + multisignature.min;
+		if (minRes < 1 || minRes > 10) {
+			return false;
+		}
+		var lifetimeRes = this.unconfirmedMultisignature.lifetime + multisignature.lifetime;
+		if (lifetimeRes < 1 || lifetimeRes > 72) {
+			return false;
+		}
+
+		this.unconfirmedMultisignature = {min: minRes, lifetime: lifetimeRes, keysgroup: dest};
+		return true;
+	}
+
+	return false;
+}
+
+Account.prototype.undoUnconfirmedMultisignature = function (multisignature) {
+	var copyDiff = reverseDiff(multisignature.keysgroup);
+
+	var dest = applyDiff(this.unconfirmedMultisignature.keysgroup, copyDiff);
+
+	if (dest !== false) {
+		if (dest && dest.length > 10) {
+			return false;
+		}
+		var minRes = this.unconfirmedMultisignature.min + multisignature.min;
+		if (minRes < 1 || minRes > 10) {
+			return false;
+		}
+		var lifetimeRes = this.unconfirmedMultisignature.lifetime + multisignature.lifetime;
+		if (lifetimeRes < 1 || lifetimeRes > 72) {
+			return false;
+		}
+
+		this.unconfirmedMultisignature = {min: minRes, lifetime: lifetimeRes, keysgroup: dest};
+		return true;
+	}
+
+	return false;
+}
+
+Account.prototype.applyContact = function (diff) {
+	if (diff === null) return;
+
+	var dest = applyDiff(this.following, [diff]);
+
+	if (dest !== false) {
+		this.following = dest;
+		library.network.io.sockets.emit('contacts/change', {address: this.address});
+		return true;
+	}
+
 		return false;
 	}
-	this.following.push(address);
+
+Account.prototype.undoContact = function (diff) {
+	if (diff === null) return;
+
+	var copyDiff = reverseDiff([diff]);
+
+	var dest = applyDiff(this.following, copyDiff);
+
+	if (dest !== false) {
+		this.following = dest;
+		library.network.io.sockets.emit('contacts/change', {address: this.address});
 	return true;
 }
 
-Account.prototype.undoContact = function (address) {
-	var index = this.following.indexOf(address);
-	if (index == -1) {
 		return false;
 	}
-	this.following.splice(index, 1);
+
+Account.prototype.applyUnconfirmedContact = function (diff) {
+	if (diff === null) return;
+
+	var dest = applyDiff(this.unconfirmedFollowing, [diff]);
+
+	if (dest !== false) {
+		this.unconfirmedFollowing = dest;
+		return true;
 }
 
-Account.prototype.applyUnconfirmedContact = function (address) {
-	var index = this.unconfirmedFollowing.indexOf(address);
-	if (index != -1) {
 		return false;
 	}
-	this.unconfirmedFollowing.push(address);
+
+Account.prototype.undoUnconfirmedContact = function (diff) {
+	if (diff === null) return;
+
+	var copyDiff = reverseDiff([diff]);
+
+	var dest = applyDiff(this.unconfirmedFollowing, copyDiff);
+
+	if (dest !== false) {
+		this.unconfirmedFollowing = dest;
 	return true;
 }
 
-Account.prototype.undoUnconfirmedContact = function (address) {
-	var index = this.unconfirmedFollowing.indexOf(address);
-	if (index == -1) {
 		return false;
 	}
-	this.unconfirmedFollowing.splice(index, 1);
-}
 
 function Vote() {
 	this.create = function (data, trs) {
@@ -250,18 +339,22 @@ function Vote() {
 			return setImmediate(cb, errorCode("VOTES.INCORRECT_RECIPIENT", trs));
 		}
 
-		if (trs.asset.votes && trs.asset.votes.length > 33) {
-			return setImmediate(cb, errorCode("VOTES.MAXIMUM_DELEGATES_VOTE", trs));
+		if (!trs.asset.votes || !trs.asset.votes.length) {
+			return setImmediate(cb, errorCode("VOTES.EMPTY_VOTES", trs));
 		}
 
-		if (!modules.delegates.checkUnconfirmedDelegates(trs.senderPublicKey, trs.asset.votes)) {
-			return setImmediate(cb, errorCode("VOTES.ALREADY_VOTED_UNCONFIRMED", trs));
+		if (trs.asset.votes && trs.asset.votes.length > 33) {
+			return setImmediate(cb, errorCode("VOTES.MAXIMUM_DELEGATES_VOTE", trs));
 		}
 
 		if (!modules.delegates.checkDelegates(trs.senderPublicKey, trs.asset.votes)) {
 			return setImmediate(cb, errorCode("VOTES.ALREADY_VOTED_CONFIRMED", trs));
 		}
 
+		setImmediate(cb, null, trs);
+	}
+
+	this.process = function (dbLite, trs, sender, cb) {
 		setImmediate(cb, null, trs);
 	}
 
@@ -282,6 +375,10 @@ function Vote() {
 	}
 
 	this.applyUnconfirmed = function (trs, sender, cb) {
+		if (!modules.delegates.checkUnconfirmedDelegates(trs.senderPublicKey, trs.asset.votes)) {
+			return setImmediate(cb, errorCode("VOTES.ALREADY_VOTED_UNCONFIRMED", trs));
+		}
+
 		var res = sender.applyUnconfirmedDelegateList(trs.asset.votes);
 
 		setImmediate(cb, !res ? "Can't apply delegates: " + trs.id : null);
@@ -314,8 +411,12 @@ function Vote() {
 		}, cb);
 	}
 
-	this.ready = function (trs) {
-		return true;
+	this.ready = function (trs, sender) {
+		if (sender.multisignatures) {
+			return trs.signatures.length >= trs.asset.multisignature.min;
+		} else {
+			return true;
+		}
 	}
 }
 
@@ -353,10 +454,6 @@ function Username() {
 			return setImmediate(cb, errorCode("USERNAMES.ALLOW_CHARS", trs));
 		}
 
-		//if (trs.asset.username.alias.search(/(admin|genesis|delegate|crypti)/i) > -1) {
-		//	return cb("username containing the words Admin, Genesis, Delegate or Crypti cannot be claimed");
-		//}
-
 		var isAddress = /^[0-9]+[C|c]$/g;
 		if (isAddress.test(trs.asset.username.alias.toLowerCase())) {
 			return setImmediate(cb, errorCode("USERNAMES.USERNAME_LIKE_ADDRESS", trs));
@@ -370,6 +467,14 @@ function Username() {
 			return setImmediate(cb, errorCode("USERNAMES.EXISTS_USERNAME", trs));
 		}
 
+		if (self.existsUsername(trs.asset.username.alias)) {
+			return setImmediate(cb, errorCode("USERNAMES.EXISTS_USERNAME", trs));
+		}
+
+		setImmediate(cb, null, trs);
+	}
+
+	this.process = function (dbLite, trs, sender, cb) {
 		setImmediate(cb, null, trs);
 	}
 
@@ -378,25 +483,45 @@ function Username() {
 	}
 
 	this.apply = function (trs, sender) {
-		sender.applyUsername(trs.asset.username);
+		delete private.unconfirmedNames[trs.asset.username.alias.toLowerCase()]
+		private.username2address[trs.asset.username.alias.toLowerCase()] = sender.address;
+		sender.username = trs.asset.username.alias;
 
 		return true;
 	}
 
 	this.undo = function (trs, sender) {
-		sender.undoUsername(trs.asset.username);
+		private.unconfirmedNames[trs.asset.username.alias.toLowerCase()] = true;
+		delete private.username2address[trs.asset.username.alias.toLowerCase()];
+		sender.username = null;
 
 		return true;
 	}
 
 	this.applyUnconfirmed = function (trs, sender, cb) {
-		sender.applyUnconfirmedUsername(trs.asset.username);
+		if (modules.delegates.existsUnconfirmedDelegate(trs.senderPublicKey)) {
+			return setImmediate(cb, errorCode("USERNAMES.EXISTS_USERNAME", trs));
+		}
+
+		if (modules.delegates.existsUnconfirmedName(trs.asset.username.alias)) {
+			return setImmediate(cb, errorCode("USERNAMES.EXISTS_USERNAME", trs));
+		}
+
+		if (self.existsUnconfirmedUsername(trs.asset.username.alias)) {
+			return setImmediate(cb, errorCode("USERNAMES.EXISTS_USERNAME", trs));
+		}
+
+		if (sender.username) {
+			return setImmediate(cb, errorCode("USERNAMES.ALREADY_HAVE_USERNAME", trs));
+		}
+
+		private.unconfirmedNames[trs.asset.username.alias.toLowerCase()] = true;
 
 		setImmediate(cb);
 	}
 
 	this.undoUnconfirmed = function (trs, sender) {
-		sender.undoUnconfirmedUsername(trs.asset.username);
+		delete private.unconfirmedNames[trs.asset.username.alias.toLowerCase()];
 
 		return true;
 	}
@@ -405,7 +530,11 @@ function Username() {
 		var report = RequestSanitizer.validate(trs.asset.username, {
 			object: true,
 			properties: {
-				alias: "string!",
+				alias: {
+					required: true,
+					string: true,
+					minLength: 1
+				},
 				publicKey: "hex!"
 			}
 		});
@@ -414,7 +543,7 @@ function Username() {
 			throw Error(report.issues);
 		}
 
-		trs.asset.delegate = report.value;
+		trs.asset.username = report.value;
 
 		return trs;
 	}
@@ -439,8 +568,12 @@ function Username() {
 		}, cb);
 	}
 
-	this.ready = function (trs) {
-		return true;
+	this.ready = function (trs, sender) {
+		if (sender.multisignatures) {
+			return trs.signatures.length >= trs.asset.multisignature.min;
+		} else {
+			return true;
+		}
 	}
 }
 
@@ -468,7 +601,11 @@ function attachApi() {
 
 	router.post('/open', function (req, res, next) {
 		req.sanitize(req.body, {
-			secret: "string!"
+			secret: {
+				required: true,
+				string: true,
+				minLength: 1
+			}
 		}, function (err, report, body) {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
@@ -492,10 +629,22 @@ function attachApi() {
 
 	router.get('/getBalance', function (req, res) {
 		req.sanitize("query", {
-			address: "string!"
+			address: {
+				required: true,
+				string: true,
+				minLength: 1
+			}
 		}, function (err, report, query) {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
+
+			var isAddress = /^[0-9]+c$/g;
+			if (!isAddress.test(query.address.toLowerCase())) {
+				return res.json({
+					success: false,
+					error: errorCode("ACCOUNTS.INVALID_ADDRESS", {address: query.address})
+				});
+			}
 
 			var account = self.getAccount(query.address);
 			var balance = account ? account.balance : 0;
@@ -533,7 +682,11 @@ function attachApi() {
 
 	router.get('/getPublicKey', function (req, res) {
 		req.sanitize("query", {
-			address: "string!"
+			address: {
+				required: true,
+				string: true,
+				minLength: 1
+			}
 		}, function (err, report, query) {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
@@ -541,7 +694,10 @@ function attachApi() {
 			var account = self.getAccount(query.address);
 
 			if (!account || !account.publicKey) {
-				return res.json({success: false, error: errorCode("ACCOUNTS.ACCOUNT_PUBLIC_KEY_NOT_FOUND", {address: query.address})});
+				return res.json({
+					success: false,
+					error: errorCode("ACCOUNTS.ACCOUNT_PUBLIC_KEY_NOT_FOUND", {address: query.address})
+				});
 			}
 
 			return res.json({success: true, publicKey: account.publicKey});
@@ -550,7 +706,11 @@ function attachApi() {
 
 	router.post("/generatePublicKey", function (req, res, next) {
 		req.sanitize("body", {
-			secret: "string!"
+			secret: {
+				required: true,
+				string: true,
+				minLength: 1
+			}
 		}, function (err, report, query) {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
@@ -563,7 +723,11 @@ function attachApi() {
 
 	router.get("/delegates", function (req, res, next) {
 		req.sanitize("query", {
-			address: "string!"
+			address: {
+				required: true,
+				string: true,
+				minLength: 1
+			}
 		}, function (err, report, query) {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
@@ -572,7 +736,10 @@ function attachApi() {
 			var account = self.getAccount(query.address);
 
 			if (!account) {
-				return res.json({success: false, error: errorCode("ACCOUNTS.ACCOUNT_DOESNT_FOUND", {address: query.address})});
+				return res.json({
+					success: false,
+					error: errorCode("ACCOUNTS.ACCOUNT_DOESNT_FOUND", {address: query.address})
+				});
 			}
 
 			var delegates = null;
@@ -589,10 +756,14 @@ function attachApi() {
 
 	router.put("/delegates", function (req, res, next) {
 		req.sanitize("body", {
-			secret: "string!",
+			secret: {
+				required: true,
+				string: true,
+				minLength: 1
+			},
 			publicKey: "hex?",
 			secondSecret: "string?",
-			delegates: "array?"
+			delegates: "array!"
 		}, function (err, report, body) {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
@@ -645,10 +816,18 @@ function attachApi() {
 
 	router.put("/username", function (req, res, next) {
 		req.sanitize("body", {
-			secret: "string!",
+			secret: {
+				required: true,
+				string: true,
+				minLength: 1
+			},
 			publicKey: "hex?",
 			secondSecret: "string?",
-			username: "string!"
+			username: {
+				required: true,
+				string: true,
+				minLength: 1
+			}
 		}, function (err, report, body) {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
@@ -701,7 +880,11 @@ function attachApi() {
 
 	router.get("/", function (req, res, next) {
 		req.sanitize("query", {
-			address: "string!"
+			address: {
+				required: true,
+				string: true,
+				minLength: 1
+			}
 		}, function (err, report, query) {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
@@ -717,6 +900,7 @@ function attachApi() {
 				success: true,
 				account: {
 					address: account.address,
+					username: account.username,
 					unconfirmedBalance: account.unconfirmedBalance,
 					balance: account.balance,
 					publicKey: account.publicKey,
@@ -782,6 +966,12 @@ Accounts.prototype.getAddressByPublicKey = function (publicKey) {
 
 Accounts.prototype.getAccountByUsername = function (username) {
 	var address = private.username2address[username.toLowerCase()];
+	if (!address) {
+		var delegate = modules.delegates.getDelegateByUsername(username.toLowerCase())
+		if (delegate) {
+			address = self.getAddressByPublicKey(delegate.publicKey);
+		}
+	}
 
 	return this.getAccount(address);
 }
@@ -820,19 +1010,14 @@ Accounts.prototype.getDelegates = function (publicKey) {
 	return account.delegates;
 }
 
-var sandboxApi = {
-	'test' : function (message, cb) {
-		console.log(message);
-		setImmediate(cb);
-	}
+Accounts.prototype.existsUnconfirmedUsername = function (username) {
+	return !!private.unconfirmedNames[username.toLowerCase()];
 }
 
-Accounts.prototype.sandbox = function (message, callback) {
-	var data = message.data || [];
-	data.push(callback);
-
-	return sandboxHelper.applySandboxApi(message, sandboxApi, callback);
+Accounts.prototype.existsUsername = function (username) {
+	return !!private.username2address[username.toLowerCase()];
 }
+
 
 //events
 Accounts.prototype.onBind = function (scope) {

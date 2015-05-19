@@ -6,6 +6,10 @@ var errorCodes = {
 			message: "Incorrect recipient %s, in vote transaction recipient is same that sender",
 			args: ['recipientId']
 		},
+		MINIMUM_DELEGATES_VOTE: {
+			message: "Empty votes: %s",
+			args: ["id"]
+		},
 		MAXIMUM_DELEGATES_VOTE: {
 			message: "You can only vote for a maximum of 33 delegates at any one time: %s",
 			args: ["id"]
@@ -42,10 +46,14 @@ var errorCodes = {
 		},
 		INCORRECT_USERNAME_LENGTH: {
 			message: "Incorrect username length: %s",
-			args: ["asset.username"]
+			args: ["asset.username.alias"]
 		},
 		EXISTS_USERNAME: {
 			message: "The username you entered is already in use. Please try a different name.: %s",
+			args: ["id"]
+		},
+		ALREADY_HAVE_USERNAME: {
+			message: "The account already has username",
 			args: ["id"]
 		}
 	},
@@ -56,6 +64,10 @@ var errorCodes = {
 		},
 		ACCOUNT_DOESNT_FOUND: {
 			message: "Account doesn't found: %s",
+			args: ["address"]
+		},
+		INVALID_ADDRESS: {
+			message: "Invalid address: %s",
 			args: ["address"]
 		}
 	},

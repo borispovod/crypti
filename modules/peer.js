@@ -77,7 +77,11 @@ function attachApi() {
 
 	router.get('/get', function (req, res) {
 		req.sanitize("query", {
-			ip_str: "string!",
+			ip_str: {
+				required: true,
+				string: true,
+				minLength: 1
+			},
 			port: "int!"
 		}, function (err, report, query) {
 			try {
@@ -245,15 +249,15 @@ private.getByFilter = function (filter, cb) {
 		(limit ? ' limit $limit' : '') +
 		(offset ? ' offset $offset ' : ''),
 		params, {
-		"ip": String,
-		"port": Number,
-		"state": Number,
-		"os": String,
-		"sharePort": Number,
-		"version": String
-	}, function (err, rows) {
-		cb(err, rows);
-	});
+			"ip": String,
+			"port": Number,
+			"state": Number,
+			"os": String,
+			"sharePort": Number,
+			"version": String
+		}, function (err, rows) {
+			cb(err, rows);
+		});
 }
 
 //public methods

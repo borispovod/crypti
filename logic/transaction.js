@@ -60,7 +60,7 @@ Transaction.prototype.attachAssetType = function (typeId, instance) {
 		typeof instance.objectNormalize == 'function' && typeof instance.dbRead == 'function' &&
 		typeof instance.apply == 'function' && typeof instance.undo == 'function' &&
 		typeof instance.applyUnconfirmed == 'function' && typeof instance.undoUnconfirmed == 'function' &&
-		typeof instance.ready == 'function'
+		typeof instance.ready == 'function' && typeof instance.process == 'function'
 	) {
 		private.types[typeId] = instance;
 	} else {
@@ -148,17 +148,21 @@ Transaction.prototype.getBytes = function (trs, skipSignatures) {
 	return bb.toBuffer();
 }
 
-Transaction.prototype.ready = function (trs) {
+Transaction.prototype.ready = function (trs, sender) {
 	if (!private.types[trs.type]) {
 		throw Error('Unknown transaction type ' + trs.type);
 	}
 
-	return private.types[trs.type].ready(trs);
+	return private.types[trs.type].ready(trs, sender);
 }
 
 Transaction.prototype.verify = function (trs, sender, cb) { //inheritance
 	if (!private.types[trs.type]) {
 		return setImmediate(cb, 'Unknown transaction type ' + trs.type);
+	}
+
+	if (!this.ready(trs, sender)) {
+		return setImmediate(cb, "Transaction is not ready: " + trs.id);
 	}
 
 	//check sender
@@ -199,6 +203,54 @@ Transaction.prototype.verify = function (trs, sender, cb) { //inheritance
 	private.types[trs.type].verify(trs, sender, cb);
 }
 
+Transaction.prototype.process = function (dbLite, trs, sender, cb) {
+	if (!private.types[trs.type]) {
+		return setImmediate(cb, 'Unknown transaction type ' + trs.type);
+	}
+
+	if (!this.ready(trs, sender)) {
+		return setImmediate(cb, "Transaction is not ready: " + trs.id);
+	}
+
+	var txId = this.getId(trs);
+
+	if (trs.id && trs.id != txId) {
+		return setImmediate(cb, "Invalid transaction id");
+	} else {
+		trs.id = txId;
+	}
+
+	if (!sender) {
+		return setImmediate(cb, "Can't process transaction, sender not found");
+	}
+
+	trs.senderId = sender.address;
+
+	if (!this.verifySignature(trs, trs.senderPublicKey, trs.signature)) {
+		return setImmediate(cb, "Can't verify signature");
+	}
+
+	private.types[trs.type].process(dbLite, trs, sender, function (err, trs) {
+		if (err) {
+			return setImmediate(cb, err);
+		}
+
+		dbLite.query("SELECT count(id) FROM trs WHERE id=$id", {id: trs.id}, {"count": Number}, function (err, rows) {
+			if (err) {
+				return cb("Internal sql error");
+			}
+
+			var res = rows.length && rows[0];
+
+			if (res.count) {
+				return cb("Can't process transaction, transaction already confirmed");
+			}
+
+			cb(null, trs);
+		});
+	});
+}
+
 Transaction.prototype.verifySignature = function (trs, publicKey, signature) {
 	if (!private.types[trs.type]) {
 		throw Error('Unknown transaction type ' + trs.type);
@@ -227,6 +279,10 @@ Transaction.prototype.verifySignature = function (trs, publicKey, signature) {
 Transaction.prototype.apply = function (trs, sender) {
 	if (!private.types[trs.type]) {
 		throw Error('Unknown transaction type ' + trs.type);
+	}
+
+	if (!this.ready(trs, sender)) {
+		return setImmediate(cb, "Transaction is not ready: " + trs.id);
 	}
 
 	var amount = trs.amount + trs.fee;
@@ -280,7 +336,7 @@ Transaction.prototype.applyUnconfirmed = function (trs, sender, cb) {
 	sender.addToUnconfirmedBalance(-amount);
 
 	private.types[trs.type].applyUnconfirmed(trs, sender, function (err) {
-		if (!err) {
+		if (err) {
 			sender.addToUnconfirmedBalance(amount);
 		}
 		setImmediate(cb, err);
@@ -340,6 +396,7 @@ Transaction.prototype.objectNormalize = function (trs) {
 		object: true,
 		properties: {
 			id: "string",
+			height: "int?",
 			blockId: "string",
 			type: "int!",
 			timestamp: "int!",
@@ -375,6 +432,7 @@ Transaction.prototype.dbRead = function (raw) {
 	} else {
 		var tx = {
 			id: raw.t_id,
+			height: raw.b_height,
 			blockId: raw.b_id,
 			type: parseInt(raw.t_type),
 			timestamp: parseInt(raw.t_timestamp),

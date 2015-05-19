@@ -17,13 +17,12 @@ var modules, library, self, private = {};
 
 function Multisignature() {
 	this.create = function (data, trs) {
-		trs.recipientId = data.recipientId;
-		trs.amount = data.amount;
+		trs.recipientId = null;
+		trs.amount = 0;
 		trs.asset.multisignature = {
 			min: data.min,
-			dependence: data.dependence,
-			lifetime: data.lifetime,
-			signatures: []
+			keysgroup: data.keysgroup,
+			lifetime: data.lifetime
 		};
 
 		return trs;
@@ -34,39 +33,26 @@ function Multisignature() {
 	}
 
 	this.verify = function (trs, sender, cb) {
-		var isAddress = /^[0-9]+[C|c]$/g;
-		if (!isAddress.test(trs.recipientId.toLowerCase())) {
-			return setImmediate(cb, "Invalid recipientId: " + trs.id);
-		}
-
 		if (trs.amount <= 0) {
 			return setImmediate(cb, "Invalid transaction amount: " + trs.id);
 		}
 
-		if (!util.isArray(trs.asset.multisignature.dependence)) {
+		if (!util.isArray(trs.asset.multisignature.keysgroup)) {
 			return setImmediate(cb, "Wrong transaction asset for multisignature transaction: " + trs.id);
 		}
 
-		if (!util.isArray(trs.asset.multisignature.signatures)) {
+		if (!trs.asset.multisignature.min < 1 || trs.asset.multisignature.min > 10) {
 			return setImmediate(cb, "Wrong transaction asset for multisignature transaction: " + trs.id);
-		}
-
-		if (trs.asset.multisignature.min < 2 || trs.asset.multisignature.min > trs.asset.multisignature.dependence.length) {
-			return setImmediate(cb, "Min should be less dependence keys and more then 1: " + trs.id);
 		}
 
 		if (trs.asset.multisignature.lifetime < 1 || trs.asset.multisignature.lifetime > 72) {
-			return setImmediate(cb, "lifetime should be less 72h keys and more then 1h: " + trs.id);
+			return setImmediate(cb, "Wrong transaction asset for multisignature transaction: " + trs.id);
 		}
 
-		if (trs.asset.multisignature.signatures.length < trs.asset.multisignature.min) {
-			return setImmediate(cb, "Count signatures less min: " + trs.id);
-		}
-
-		for (var s = 0; s < trs.asset.multisignature.signatures.length; s++) {
+		for (var s = 0; s < trs.asset.multisignature.keysgroup.length; s++) {
 			var verify = false;
-			for (var d = 0; d < trs.asset.multisignature.dependence.length && !verify; d++) {
-				if (library.logic.transaction.verifySignature(trs, trs.asset.multisignature.dependence[d], trs.asset.multisignature.signatures[s])) {
+			for (var d = 0; d < trs.signatures.length && !verify; d++) {
+				if (library.logic.transaction.verifySignature(trs, sender.multisignature.keysgroup[s], trs.signatures[d])) {
 					verify = true;
 				}
 			}
@@ -75,23 +61,22 @@ function Multisignature() {
 			}
 		}
 
+
+		setImmediate(cb, null, trs);
+	}
+
+	this.process = function (dbLite, trs, sender, cb) {
 		setImmediate(cb, null, trs);
 	}
 
 	this.getBytes = function (trs, skip) {
-		var dependenceBuffer = new Buffer(trs.asset.multisignature.dependence.join(''), 'utf8');
-		var signaturesBuffer = [];
-		if (!skip) {
-			signaturesBuffer = new Buffer(trs.asset.multisignature.signatures.join(''), 'utf8');
-		}
-		var bb = new ByteBuffer(1 + 1 + dependenceBuffer.length + signaturesBuffer.length, true);
+		var keysgroupBuffer = new Buffer(trs.asset.multisignature.keysgroup.join(''), 'utf8');
+
+		var bb = new ByteBuffer(1 + 1 + keysgroupBuffer.length, true);
 		bb.writeByte(trs.asset.multisignature.min);
 		bb.writeByte(trs.asset.multisignature.lifetime);
-		for (var i = 0; i < dependenceBuffer.length; i++) {
-			bb.writeByte(dependenceBuffer[i]);
-		}
-		for (var i = 0; i < signaturesBuffer.length; i++) {
-			bb.writeByte(signaturesBuffer[i]);
+		for (var i = 0; i < keysgroupBuffer.length; i++) {
+			bb.writeByte(keysgroupBuffer[i]);
 		}
 		bb.flip();
 
@@ -99,37 +84,21 @@ function Multisignature() {
 	}
 
 	this.apply = function (trs, sender) {
-		if (trs.asset.multisignature.signatures.length < trs.asset.multisignature.min) {
-			return false
-		}
-
-		var recipient = modules.accounts.getAccountOrCreateByAddress(trs.recipientId);
-
-		recipient.addToUnconfirmedBalance(trs.amount);
-		recipient.addToBalance(trs.amount);
-
-		return true;
+		return sender.applyMultisignature(trs.asset.multisignature);
 	}
 
 	this.undo = function (trs, sender) {
-		if (trs.asset.multisignature.signatures.length < trs.asset.multisignature.min) {
-			return false
-		}
-
-		var recipient = modules.accounts.getAccountOrCreateByAddress(trs.recipientId);
-
-		recipient.addToUnconfirmedBalance(-trs.amount);
-		recipient.addToBalance(-trs.amount);
-
-		return true;
+		return sender.undoMultisignature(trs.asset.multisignature);
 	}
 
 	this.applyUnconfirmed = function (trs, sender, cb) {
-		setImmediate(cb);
+		var res = sender.applyUnconfirmedMultisignature(trs.asset.multisignature);
+		setImmediate(cb, res ? "can't confirm multisignature" : null);
 	}
 
 	this.undoUnconfirmed = function (trs, sender) {
-		return true;
+		var res = sender.undoUnconfirmedMultisignature(trs.asset.multisignature);
+		setImmediate(cb, res ? "can't confirm multisignature" : null);
 	}
 
 	this.objectNormalize = function (trs) {
@@ -143,13 +112,7 @@ function Multisignature() {
 					minLength: 2,
 					maxLength: 10
 				},
-				lifetime: "int!",
-				signatures: {
-					required: true,
-					array: true,
-					minLength: 2,
-					maxLength: 10
-				}
+				lifetime: "int!"
 			}
 		});
 
@@ -169,8 +132,7 @@ function Multisignature() {
 			var multisignature = {
 				min: raw.m_min,
 				lifetime: raw.m_lifetime,
-				dependence: raw.m_dependence.split(','),
-				signatures: raw.m_signatures.split(',')
+				keysgroup: raw.m_keysgroup.split(',')
 			}
 
 			return {multisignature: multisignature};
@@ -178,17 +140,20 @@ function Multisignature() {
 	}
 
 	this.dbSave = function (dbLite, trs, cb) {
-		dbLite.query("INSERT INTO multisignatures(min, lifetime, dependence, signatures, transactionId) VALUES($min, $lifetime, $dependence, $signatures, $transactionId)", {
+		dbLite.query("INSERT INTO multisignatures(min, lifetime, keysgroup, transactionId) VALUES($min, $lifetime, $keysgroup, $transactionId)", {
 			min: trs.asset.multisignature.min,
 			lifetime: trs.asset.multisignature.lifetime,
-			dependence: trs.asset.multisignature.dependence.join(','),
-			signatures: trs.asset.multisignature.signatures.join(','),
+			keysgroup: trs.asset.multisignature.keysgroup.join(','),
 			transactionId: trs.id
 		}, cb);
 	}
 
-	this.ready = function (trs) {
-		return trs.asset.multisignature.signatures.length >= trs.asset.multisignature.min;
+	this.ready = function (trs, sender) {
+		if (!sender.multisignatures) {
+			return trs.signatures.length == trs.asset.multisignature.keysgroup.length;
+		} else {
+			return trs.signatures.length >= trs.asset.multisignature.min;
+		}
 	}
 }
 
@@ -253,7 +218,7 @@ function attachApi() {
 				if (!transaction) {
 					return cb("Transaction not found");
 				}
-				transaction.asset.multisignature.signatures.push(sign);
+				transaction.signatures.push(sign);
 				cb();
 			}, function (err) {
 				if (err) {
@@ -267,6 +232,7 @@ function attachApi() {
 
 	router.put('/', function (req, res) {
 		req.sanitize("body", {
+			id: "string?",
 			secret: "string!",
 			amount: "int!",
 			recipientId: "string!",
@@ -274,10 +240,10 @@ function attachApi() {
 			secondSecret: "string?",
 			min: "int!",
 			lifetime: "int!",
-			dependence: {
+			keysgroup: {
 				required: true,
 				array: true,
-				minLength: 2,
+				minLength: 1,
 				maxLength: 10
 			}
 		}, function (err, report, body) {
@@ -305,16 +271,16 @@ function attachApi() {
 				}
 			}
 
-			if (body.dependence.indexOf(keypair.publicKey.toString('hex')) != -1) {
+			if (body.keysgroup.indexOf(keypair.publicKey.toString('hex')) != -1) {
 				return res.json({success: false, error: errorCode("MULTISIGNATURES.SELF_SIGN")});
 			}
 
-			var dependence = body.dependence.reduce(function (p, c) {
+			var keysgroup = body.keysgroup.reduce(function (p, c) {
 				if (p.indexOf(c) < 0) p.push(c);
 				return p;
 			}, []);
 
-			if (dependence.length != body.dependence.length) {
+			if (keysgroup.length != body.keysgroup.length) {
 				return res.json({success: false, error: errorCode("MULTISIGNATURES.NOT_UNIQUE_SET")});
 			}
 
@@ -337,16 +303,15 @@ function attachApi() {
 
 			var transaction = library.logic.transaction.create({
 				type: TransactionTypes.MULTI,
-				amount: body.amount,
 				sender: account,
-				recipientId: recipientId,
 				keypair: keypair,
 				secondKeypair: secondKeypair,
 				min: body.min,
-				dependence: body.dependence,
+				keysgroup: body.keysgroup,
 				lifetime: body.lifetime
 			});
 
+			res.json({success: true, transaction: transaction});
 			library.sequence.add(function (cb) {
 				modules.transactions.receiveTransactions([transaction], cb);
 			}, function (err) {
