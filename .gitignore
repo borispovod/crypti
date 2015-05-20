@@ -18,3 +18,5 @@ bfg.jar
 ssl/
 dapps/
 codius-cli
+Vagrantfile
+.vagrant/
