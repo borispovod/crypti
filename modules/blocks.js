@@ -30,7 +30,8 @@ private.blocksDataFields = {
 	'c_address': String,
 	'u_alias': String,
 	'm_min': Number, 'm_lifetime': Number, 'm_dependence': String, 'm_signatures': String,
-	'da_name': String, 'da_description': String, 'da_tags': String, 'da_git': String
+	'da_name': String, 'da_description': String, 'da_tags': String, 'da_git': String,
+	'ch_hash' : String, 'ch_previousHashId' : String
 };
 // @formatter:on
 
@@ -478,7 +479,8 @@ Blocks.prototype.loadBlocksData = function (filter, options, cb) {
 	"c.address, " +
 	"u.username, " +
 	"m.min, m.lifetime, m.dependence, m.signatures, " +
-	"da.name, da.description, da.tags, da.git " +
+	"da.name, da.description, da.tags, da.git, " +
+	"ch.hash, ch.previousHashId " +
 	"FROM (select * from blocks " + (filter.id ? " where id = $id " : "") + (filter.lastId ? " where height > (SELECT height FROM blocks where id = $lastId) " : "") + " limit $limit) as b " +
 	"left outer join trs as t on t.blockId=b.id " +
 	"left outer join delegates as d on d.transactionId=t.id " +
@@ -488,6 +490,7 @@ Blocks.prototype.loadBlocksData = function (filter, options, cb) {
 	"left outer join usernames as u on u.transactionId=t.id " +
 	"left outer join multisignatures as m on m.transactionId=t.id " +
 	"left outer join dapps as da on da.transactionId=t.id " +
+	"left outer join chains as ch on ch.transactionId=t.id " +
 	"ORDER BY b.height, t.rowid" +
 	"", params, fields, cb);
 };
@@ -522,7 +525,8 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 	"c.address, " +
 	"u.username, " +
 	"m.min, m.lifetime, m.dependence, m.signatures, " +
-	"da.name, da.description, da.tags, da.git " +
+	"da.name, da.description, da.tags, da.git, " +
+	"ch.hash, ch.previousHashId " +
 	"FROM (select * from blocks limit $limit offset $offset) as b " +
 	"left outer join trs as t on t.blockId=b.id " +
 	"left outer join delegates as d on d.transactionId=t.id " +
@@ -532,6 +536,7 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 	"left outer join usernames as u on u.transactionId=t.id " +
 	"left outer join multisignatures as m on m.transactionId=t.id " +
 	"left outer join dapps as da on da.transactionId=t.id " +
+	"left outer join chains as ch on ch.transactionId=t.id " +
 	"ORDER BY b.height, t.rowid" +
 	"", params, private.blocksDataFields, function (err, rows) {
 		// Some notes:
@@ -896,6 +901,7 @@ Blocks.prototype.generateBlock = function (keypair, timestamp, cb) {
 		if (library.logic.transaction.ready(transaction, sender)) {
 			library.logic.transaction.verify(transaction, sender, function (err) {
 				if (err) {
+					console.log(err);
 					return cb();
 				}
 				ready.push(transaction);
@@ -912,6 +918,7 @@ Blocks.prototype.generateBlock = function (keypair, timestamp, cb) {
 				previousBlock: private.lastBlock,
 				transactions: ready
 			});
+			console.log(block);
 		} catch (e) {
 			return setImmediate(cb, e);
 		}

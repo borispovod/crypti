@@ -144,7 +144,7 @@ var errorCodes = {
 		}
 	},
 	COMMON: {
-		LOADIND: {
+		LOADING: {
 			message: "Engine is starting",
 			args: []
 		},
