@@ -137,7 +137,10 @@
 	"ssl": {
 		"enabled": false,
 		"options": {
-
+			"port": 443,
+			"address": "0.0.0.0",
+			"key": "path_to_key",
+			"cert": "path_to_cert"
 		}
 	}
 }
