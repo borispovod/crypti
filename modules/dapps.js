@@ -164,7 +164,11 @@ private.initializeDAppRoutes = function (id, routes) {
 		if (router.method == "get" || router.method == "post" || router.method == "put") {
 			private.routes[id][router.method](router.path, function (req, res) {
 				debugger
-				private.sandboxes[id].sendMessage({method: router.method, path: router.path, query: req.query}, function (err, body) {
+				private.sandboxes[id].sendMessage({
+					method: router.method,
+					path: router.path,
+					query: req.query
+				}, function (err, body) {
 					debugger
 					console.log(err, body);
 					body = (typeof body != "object" ? {} : body);
@@ -231,6 +235,13 @@ private.launchDApp = function (dApp, cb) {
 	});
 
 	sandbox.run();
+
+	setInterval(function () {
+		console.log("send inside", {test: 3})
+		sandbox.sendMessage({test: 3}, function (err, body) {
+			console.log("callback inside", err, body)
+		});
+	}, 1000);
 
 	library.logger.info("DApp " + id + " launched");
 
@@ -305,7 +316,7 @@ function DApp() {
 		}
 
 		if (!trs.asset.dapp.git || !(/^git\@github.com\:.+.git$/.test(trs.asset.dapp.git))) {
-		return cb("Incorrect dapp git address, example git@github.com:author/project.git");
+			return cb("Incorrect dapp git address, example git@github.com:author/project.git");
 		}
 
 		if (trs.amount != 0) {
