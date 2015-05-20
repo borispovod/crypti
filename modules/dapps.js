@@ -166,6 +166,7 @@ private.initializeDAppRoutes = function (id, routes) {
 				debugger
 				private.sandboxes[id].sendMessage({method: router.method, path: router.path, query: req.query}, function (err, body) {
 					debugger
+					console.log(err, body);
 					body = (typeof body != "object" ? {} : body);
 					var resultBody = extend(body, {success: !err});
 					res.json(resultBody);
@@ -185,67 +186,9 @@ private.initializeDAppRoutes = function (id, routes) {
 }
 
 private.apiHandler = function (message, callback) {
-	var args;
-	if (typeof message.data === 'string') {
-		args = [message.data];
-	} else if (typeof message.data === 'object') {
-		args = message.data;
-	}
-
-	var method = (message.method || '').replace(/Sync$/, '');
-
-	args.push(callback);
-
-	switch (message.api) {
-		case 'message':
-			var msg = null;
-			try {
-				msg = JSON.parse(message.data[0]);
-			} catch (e) {
-				callback('incorrect json');
-			}
-			if (method == 'output') {
-				console.log('crypti recieved', msg);
-			}
-			callback();
-			break;
-		case 'fs':
-			if (typeof args[0] === 'string' && args[0].indexOf('/') === 0) {
-				args[0] = '.' + args[0];
-			}
-			fs[method].apply(null, args);
-			break;
-
-		case 'crypto':
-			switch (method) {
-				case 'randomBytes':
-				function randomBytesCallback(error, result) {
-					if (error) {
-						callback(error);
-					} else if (Buffer.isBuffer(result)) {
-						result = result.toString('hex');
-						callback(null, result);
-					}
-				}
-
-					args[args.length - 1] = randomBytesCallback;
-					crypto.randomBytes.apply(null, args);
-					break;
-				default:
-					callback(new Error('Unhandled net method: ' + message.method));
-			}
-			break;
-
-		default:
-			var module = modules[message.api];
-
-			if (module) {
-				module.sandbox(message, callback);
-			} else {
-				callback(new Error('Unhandled api type: ' + message.api));
-			}
-			break;
-	}
+	debugger
+	console.log(message);
+	cb();
 }
 
 private.launchDApp = function (dApp, cb) {
@@ -271,18 +214,17 @@ private.launchDApp = function (dApp, cb) {
 		return setImmediate(cb, "This DApp has no config file, can't launch it");
 	}
 
-	var sandbox = private.sandboxes[id] = new Sandbox(path.join("dapps", id, "index.js"), function(message, cb){
-		console.log("crypti", message);
-		cb();
-	}, true);
+	var sandbox = private.sandboxes[id] = new Sandbox(path.join("dapps", id, "index.js"), private.apiHandler, true);
 
 	sandbox.on("exit", function () {
+		debugger
 		delete private.sandboxes[id];
 		delete private.routes[id];
 		library.logger.info("DApp " + id + " closed");
 	});
 
 	sandbox.on("error", function (err) {
+		debugger
 		delete private.sandboxes[id];
 		delete private.routes[id];
 		library.logger.info("Error in DApp " + id + " " + err.toString());
@@ -293,6 +235,7 @@ private.launchDApp = function (dApp, cb) {
 	library.logger.info("DApp " + id + " launched");
 
 	function halt(message) {
+		debugger
 		sandbox.kill(0);
 		delete private.sandboxes[id];
 		delete private.routes[id];
