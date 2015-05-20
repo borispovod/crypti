@@ -133,5 +133,11 @@
 	"loading": {
 		"verifyOnLoading": true,
 		"loadPerIteration": 5000
+	},
+	"ssl": {
+		"enabled": false,
+		"options": {
+
+		}
 	}
 }
