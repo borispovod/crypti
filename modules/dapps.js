@@ -271,7 +271,10 @@ private.launchDApp = function (dApp, cb) {
 		return setImmediate(cb, "This DApp has no config file, can't launch it");
 	}
 
-	var sandbox = private.sandboxes[id] = new Sandbox(path.join("dapps", id, "index.js"), null);
+	var sandbox = private.sandboxes[id] = new Sandbox(path.join("dapps", id, "index.js"), function(message, cb){
+		console.log("crypti", message);
+		cb();
+	}, true);
 
 	sandbox.on("exit", function () {
 		delete private.sandboxes[id];
@@ -310,8 +313,6 @@ private.launchDApp = function (dApp, cb) {
 	if (dAppRoutes && !private.initializeDAppRoutes(id, dAppRoutes)) {
 		return halt("Can't launch api, incorrect routes object of DApp " + id);
 	}
-
-	library.logger.info("Connected to api");
 
 	setImmediate(cb);
 }

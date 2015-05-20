@@ -891,8 +891,9 @@ Blocks.prototype.generateBlock = function (keypair, timestamp, cb) {
 	var ready = []
 
 	async.eachSeries(transactions, function (transaction, cb) {
-		if (library.logic.transaction.ready(transaction)) {
-			var sender = modules.accounts.getAccountByPublicKey(transaction.senderPublicKey);
+		var sender = modules.accounts.getAccountByPublicKey(transaction.senderPublicKey);
+
+		if (library.logic.transaction.ready(transaction, sender)) {
 			library.logic.transaction.verify(transaction, sender, function (err) {
 				if (err) {
 					return cb();
