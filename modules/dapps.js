@@ -360,9 +360,9 @@ function DApp() {
 			return cb("Incorrect dapp tags length");
 		}
 
-		/*if (!trs.asset.dapp.git || !(/^git:\/\/git\@github.com\:.+.git$/.test(trs.asset.dapp.git))) {
-		 return cb("Incorrect dapp git address");
-		 }*/
+		if (!trs.asset.dapp.git || !(/^git\@github.com\:.+.git$/.test(trs.asset.dapp.git))) {
+		return cb("Incorrect dapp git address, example git@github.com:author/project.git");
+		}
 
 		if (trs.amount != 0) {
 			return cb("Invalid transaction amount");
