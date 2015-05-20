@@ -8,5 +8,6 @@ module.exports = {
 	MESSAGE : 6,
 	AVATAR : 7,
 	MULTI: 8,
-	DAPP: 9
+	DAPP: 9,
+	CHAIN: 10
 }
