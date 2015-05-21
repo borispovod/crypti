@@ -163,15 +163,12 @@ private.initializeDAppRoutes = function (id, routes) {
 	routes.forEach(function (router) {
 		if (router.method == "get" || router.method == "post" || router.method == "put") {
 			private.routes[id][router.method](router.path, function (req, res) {
-				debugger
 				private.sandboxes[id].sendMessage({
 					method: router.method,
 					path: router.path,
 					query: req.query
 				}, function (err, body) {
-					debugger
-					console.log(err, body);
-					body = (typeof body != "object" ? {} : body);
+					body = ((err || typeof body != "object") ? {error: err} : body);
 					var resultBody = extend(body, {success: !err});
 					res.json(resultBody);
 				});
@@ -236,12 +233,12 @@ private.launchDApp = function (dApp, cb) {
 
 	sandbox.run();
 
-	setInterval(function () {
-		console.log("send inside", {test: 3})
-		sandbox.sendMessage({test: 3}, function (err, body) {
-			console.log("callback inside", err, body)
-		});
-	}, 1000);
+	//setInterval(function () {
+	//	console.log("send inside", {test: 3})
+	//	sandbox.sendMessage({test: 3}, function (err, body) {
+	//		console.log("callback inside", err, body)
+	//	});
+	//}, 1000);
 
 	library.logger.info("DApp " + id + " launched");
 
