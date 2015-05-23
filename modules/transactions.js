@@ -23,6 +23,7 @@ private.doubleSpendingTransactions = {};
 function Transfer() {
 	this.create = function (data, trs) {
 		trs.recipientId = data.recipientId;
+		trs.recipientUsername = data.recipientUsername;
 		trs.amount = data.amount;
 
 		return trs;
@@ -121,7 +122,9 @@ function attachApi() {
 			offset: {default: 0, int: true},
 			senderPublicKey: "hex?",
 			senderId: "string?",
-			recipientId: "string?"
+			recipientId: "string?",
+			senderUsername: "string?",
+			recipientUsername: "string?"
 		}, function (err, report, query) {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
@@ -224,15 +227,19 @@ function attachApi() {
 			if (!report.isValid) return res.json({success: false, error: report.issues});
 
 			var recipientId = null;
+			var recipientUsername = null;
 			var isAddress = /^[0-9]+[C|c]$/g;
 			if (isAddress.test(body.recipientId)) {
-				recipientId = body.recipientId;
+				var recipient = modules.accounts.getAccount(body.recipientId);
+				recipientId = recipient.address;
+				recipientUsername = recipient.username;
 			} else {
 				var recipient = modules.accounts.getAccountByUsername(body.recipientId);
 				if (!recipient) {
 					return res.json({success: false, error: errorCode("TRANSACTIONS.RECIPIENT_NOT_FOUND")});
 				}
 				recipientId = recipient.address;
+				recipientUsername = recipient.username;
 			}
 
 			var hash = crypto.createHash('sha256').update(body.secret, 'utf8').digest();
@@ -250,7 +257,6 @@ function attachApi() {
 				return res.json({success: false, error: errorCode("COMMON.OPEN_ACCOUNT")});
 			}
 
-
 			if (account.secondSignature && !body.secondSecret) {
 				return res.json({success: false, error: errorCode("COMMON.SECOND_SECRET_KEY")});
 			}
@@ -267,6 +273,7 @@ function attachApi() {
 				amount: body.amount,
 				sender: account,
 				recipientId: recipientId,
+				recipientUsername: recipientUsername,
 				keypair: keypair,
 				secondKeypair: secondKeypair
 			});
@@ -296,7 +303,7 @@ function attachApi() {
 }
 
 private.list = function (filter, cb) {
-	var sortFields = ['t.id', 't.blockId', 't.type', 't.timestamp', 't.senderPublicKey', 't.senderId', 't.recipientId', 't.amount', 't.fee', 't.signature', 't.signSignature', 't.confirmations', 'b.height'];
+	var sortFields = ['t.id', 't.blockId', 't.type', 't.timestamp', 't.senderPublicKey', 't.senderId', 't.recipientId', 't.senderUsername', 't.recipientUsername', 't.amount', 't.fee', 't.signature', 't.signSignature', 't.confirmations', 'b.height'];
 	var params = {}, fields = [];
 	if (filter.blockId) {
 		fields.push('blockId = $blockId')
@@ -313,6 +320,14 @@ private.list = function (filter, cb) {
 	if (filter.recipientId) {
 		fields.push('recipientId = $recipientId')
 		params.recipientId = filter.recipientId;
+	}
+	if (filter.senderUsername) {
+		fields.push('senderUsername = $senderUsername');
+		params.senderUsername = filter.senderUsername;
+	}
+	if (filter.recipientUsername) {
+		fields.push('recipientUsername = $recipientUsername')
+		params.recipientUsername = filter.recipientUsername;
 	}
 	if (filter.limit) {
 		params.limit = filter.limit;
@@ -352,13 +367,13 @@ private.list = function (filter, cb) {
 		var count = rows.length ? rows[0].count : 0;
 
 		// need to fix 'or' or 'and' in query
-		library.dbLite.query("select t.id, b.height, t.blockId, t.type, t.timestamp, lower(hex(t.senderPublicKey)), t.senderId, t.recipientId, t.amount, t.fee, lower(hex(t.signature)), lower(hex(t.signSignature)), (select max(height) + 1 from blocks) - b.height " +
+		library.dbLite.query("select t.id, b.height, t.blockId, t.type, t.timestamp, lower(hex(t.senderPublicKey)), t.senderId, t.recipientId, t.senderUsername, t.recipientUsername, t.amount, t.fee, lower(hex(t.signature)), lower(hex(t.signSignature)), (select max(height) + 1 from blocks) - b.height " +
 		"from trs t " +
 		"inner join blocks b on t.blockId = b.id " +
 		(fields.length ? "where " + fields.join(' or ') : '') + " " +
 		(filter.orderBy ? 'order by ' + sortBy + ' ' + sortMethod : '') + " " +
 		(filter.limit ? 'limit $limit' : '') + " " +
-		(filter.offset ? 'offset $offset' : ''), params, ['t_id', 'b_height', 't_blockId', 't_type', 't_timestamp', 't_senderPublicKey', 't_senderId', 't_recipientId', 't_amount', 't_fee', 't_signature', 't_signSignature', 'confirmations'], function (err, rows) {
+		(filter.offset ? 'offset $offset' : ''), params, ['t_id', 'b_height', 't_blockId', 't_type', 't_timestamp', 't_senderPublicKey', 't_senderId', 't_recipientId', 't_senderUsername', 't_recipientUsername', 't_amount', 't_fee', 't_signature', 't_signSignature', 'confirmations'], function (err, rows) {
 			if (err) {
 				return cb(err);
 			}
@@ -377,10 +392,10 @@ private.list = function (filter, cb) {
 }
 
 private.getById = function (id, cb) {
-	library.dbLite.query("select t.id, b.height, t.blockId, t.type, t.timestamp, lower(hex(t.senderPublicKey)), t.senderId, t.recipientId, t.amount, t.fee, lower(hex(t.signature)), lower(hex(t.signSignature)), (select max(height) + 1 from blocks) - b.height " +
+	library.dbLite.query("select t.id, b.height, t.blockId, t.type, t.timestamp, lower(hex(t.senderPublicKey)), t.senderId, t.recipientId, t.senderUsername, t.recipientUsername, t.amount, t.fee, lower(hex(t.signature)), lower(hex(t.signSignature)), (select max(height) + 1 from blocks) - b.height " +
 	"from trs t " +
 	"inner join blocks b on t.blockId = b.id " +
-	"where t.id = $id", {id: id}, ['t_id', 'b_height', 't_blockId', 't_type', 't_timestamp', 't_senderPublicKey', 't_senderId', 't_recipientId', 't_amount', 't_fee', 't_signature', 't_signSignature', 'confirmations'], function (err, rows) {
+	"where t.id = $id", {id: id}, ['t_id', 'b_height', 't_blockId', 't_type', 't_timestamp', 't_senderPublicKey', 't_senderId', 't_recipientId', 't_senderUsername', 't_recipientUsername', 't_amount', 't_fee', 't_signature', 't_signSignature', 'confirmations'], function (err, rows) {
 		if (err || !rows.length) {
 			return cb(err || "Can't find transaction: " + id);
 		}
@@ -475,6 +490,7 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 			}
 
 			transaction.senderId = sender.address;
+			transaction.senderUsername = sender.username;
 
 			if (!library.logic.transaction.verifySignature(transaction, transaction.senderPublicKey, transaction.signature)) {
 				return cb("Can't verify signature");

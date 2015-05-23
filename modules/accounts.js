@@ -225,6 +225,7 @@ Account.prototype.undoUnconfirmedContact = function (diff) {
 function Vote() {
 	this.create = function (data, trs) {
 		trs.recipientId = data.sender.address;
+		trs.recipientUsername = data.sender.username;
 		trs.asset.votes = data.votes;
 
 		return trs;
