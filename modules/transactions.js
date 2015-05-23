@@ -231,8 +231,10 @@ function attachApi() {
 			var isAddress = /^[0-9]+[C|c]$/g;
 			if (isAddress.test(body.recipientId)) {
 				var recipient = modules.accounts.getAccount(body.recipientId);
-				recipientId = recipient.address;
-				recipientUsername = recipient.username;
+				recipientId = body.recipientId;
+				if (recipient) {
+					recipientUsername = recipient.username;
+				}
 			} else {
 				var recipient = modules.accounts.getAccountByUsername(body.recipientId);
 				if (!recipient) {
