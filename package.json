@@ -21,6 +21,7 @@
     "change-case": "*",
     "colors": "*",
     "commander": "~2.6.0",
+    "crypti-sandbox": "git+ssh://git@github.com:crypti/crypti-sandbox.git",
     "cycle": "^1.0.3",
     "dblite": "https://github.com/crypti/dblite/tarball/master",
     "ed25519": "https://github.com/crypti/Ed25519/tarball/master",
@@ -44,14 +45,14 @@
     "npm": "^2.8.3",
     "pkginfo": "^0.3.0",
     "request": "*",
+    "rimraf": "~2.3.2",
     "socket.io": "*",
     "stack-trace": "0.0.9",
     "strftime": "*",
     "toposort": "~0.2.10",
     "underscore": "https://github.com/crypti/underscore/tarball/master",
     "usage": "^0.6.0",
-    "util-extend": "*",
-    "rimraf": "~2.3.2"
+    "util-extend": "*"
   },
   "devDependencies": {
     "cli-table": "~0.3.1",

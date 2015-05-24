@@ -29,7 +29,6 @@ private.createBasePathes = function () {
 	var dAppPublic = path.join(private.appPath, "public", "dapps");
 
 	//need to add check for folder permissions
-
 	if (!fs.existsSync(dAppPath)) {
 		fs.mkdirSync(dAppPath);
 	}
@@ -126,22 +125,58 @@ private.installDApp = function (dApp, cb) {
 					} else {
 						library.logger.info("DApp " + id + " dependencies installed");
 
-						var dAppPublicPath = path.join(dAppPath, "public");
+						async.series([
+							function (cb) {
+								var dAppBlockchainFile = path.join(dAppPath, "blockchain.json");
+								if (fs.existsSync(dAppBlockchainFile)) {
+									library.logger.info("DApp " + id + " database initializing");
 
-						if (fs.existsSync(dAppPublicPath)) {
-							library.logger.info("Initialize public html/js/css folder");
+									var file = fs.readFileSync(dAppBlockchainFile, 'utf8');
 
-							var dAppPublicLink = path.join(private.appPath, "public", "dapps", id);
+									try {
+										var sqlQueries = JSON.parse(file);
+									} catch (e) {
+										library.logger.error("Can't parse json from blockchain file of DApp " + id + ": " + e.toSring());
+									}
 
-							if (fs.existsSync(dAppPublicLink)) {
-								fs.unlinkSync(dAppPublicLink);
+									async.eachSeries(sqlQueries.tables, function (table, cb) {
+										var query = "CREATE TABLE " + id + "_" + table.name + " " + table.values + ";";
+										library.dbLite.query(query, cb);
+									}, function (err) {
+										if (err) {
+											setImmediate(cb, "Error when create blockchain of DApp " + id + ": " + err.toString());
+										} else {
+											library.logger.info("DApp " + id + " database initializing");
+										}
+									});
+								}
+							},
+							function (cb) {
+								var dAppPublicPath = path.join(dAppPath, "public");
+
+								if (fs.existsSync(dAppPublicPath)) {
+									library.logger.info("Initialize public html/js/css folder");
+
+									var dAppPublicLink = path.join(private.appPath, "public", "dapps", id);
+
+									if (fs.existsSync(dAppPublicLink)) {
+										fs.unlinkSync(dAppPublicLink);
+									}
+
+									fs.symlinkSync(dAppPublicPath, dAppPublicLink);
+									library.logger.info("DApp " + id + " public folder shared");
+								}
+
+								setImmediate(cb);
 							}
-
-							fs.symlinkSync(dAppPublicPath, dAppPublicLink);
-						}
-
-						library.logger.info("DApp " + id + " succesfull installed");
-						setImmediate(cb, null, dAppPath);
+						], function (err) {
+							if (err) {
+								return setImmediate(cb, err);
+							} else {
+								library.logger.info("DApp " + id + " succesfull installed");
+								setImmediate(cb, null, dAppPath);
+							}
+						});
 					}
 				});
 
