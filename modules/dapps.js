@@ -147,6 +147,7 @@ private.installDApp = function (dApp, cb) {
 											setImmediate(cb, "Error when create blockchain of DApp " + id + ": " + err.toString());
 										} else {
 											library.logger.info("DApp " + id + " database initializing");
+											setImmediate(cb);
 										}
 									});
 								}
