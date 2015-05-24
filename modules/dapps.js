@@ -64,20 +64,56 @@ private.uninstallDApp = function (dApp, cb) {
 		if (fs.existsSync(dAppPath)) {
 			library.logger.info("Removing DApp " + id);
 
-			var dAppPathLink = path.join(private.appPath, "public", "dapps", id);
+			async.series([
+				function (cb) {
+					var dAppBlockchainFile = path.join(dAppPath, "blockchain.json");
+					if (fs.existsSync(dAppBlockchainFile)) {
+						library.logger.info("DApp " + id + " database initializing");
 
-			if (fs.existsSync(dAppPathLink)) {
-				library.logger.info("Removing public folder of DApp " + id);
+						var file = fs.readFileSync(dAppBlockchainFile, 'utf8');
 
-				fs.unlinkSync(dAppPathLink);
+						try {
+							var sqlQueries = JSON.parse(file);
+						} catch (e) {
+							library.logger.error("Can't parse json from blockchain file of DApp " + id + ": " + e.toSring());
+						}
 
-				library.logger.info("Removed DApp " + id + " public path");
-			}
+						async.eachSeries(sqlQueries.tables, function (table, cb) {
+							var query = "DROP TABLE " + id + "_" + table.name + ";";
+							library.dbLite.query(query, cb);
+						}, function (err) {
+							if (err) {
+								setImmediate(cb, "Error when delete blockchain of DApp " + id + ": " + err.toString());
+							} else {
+								library.logger.info("DApp " + id + " blockchain deleted");
+								setImmediate(cb);
+							}
+						});
+					} else {
+						setImmediate(cb);
+					}
+				},
+				function (cb) {
+					var dAppPathLink = path.join(private.appPath, "public", "dapps", id);
 
-			rmdir(dAppPath);
-			library.logger.info("Deleted DApp " + id + " path");
+					if (fs.existsSync(dAppPathLink)) {
+						library.logger.info("Removing public folder of DApp " + id);
 
-			setImmediate(cb);
+						fs.unlinkSync(dAppPathLink);
+
+						library.logger.info("Removed DApp " + id + " public path");
+					}
+				}
+			], function (err) {
+				if (err) {
+					library.logger.error(err);
+				}
+
+				rmdir(dAppPath);
+				library.logger.info("Deleted DApp " + id + " path");
+
+				setImmediate(cb);
+			});
 		} else {
 			library.logger.info("DApp " + id + " not installed");
 			return setImmediate(cb, "DApp " + id + " not installed");
@@ -150,6 +186,8 @@ private.installDApp = function (dApp, cb) {
 											setImmediate(cb);
 										}
 									});
+								} else {
+									setImmediate(cb);
 								}
 							},
 							function (cb) {
