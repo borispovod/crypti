@@ -901,7 +901,6 @@ Blocks.prototype.generateBlock = function (keypair, timestamp, cb) {
 		if (library.logic.transaction.ready(transaction, sender)) {
 			library.logic.transaction.verify(transaction, sender, function (err) {
 				if (err) {
-					console.log(err);
 					return cb();
 				}
 				ready.push(transaction);
@@ -918,7 +917,6 @@ Blocks.prototype.generateBlock = function (keypair, timestamp, cb) {
 				previousBlock: private.lastBlock,
 				transactions: ready
 			});
-			console.log(block);
 		} catch (e) {
 			return setImmediate(cb, e);
 		}
