@@ -153,14 +153,22 @@ function attachApi() {
 			}
 
 			var following = [];
-			if (account.following && account.following.length){
-				following = account.following.map(function(item){
+			var followers = [];
+			if (account.following && account.following.length) {
+				following = account.following.map(function (item) {
 					var account = modules.accounts.getAccount(item);
 					return {username: account.username, address: account.address};
 				});
 			}
 
-			res.json({success: true, following: following});
+			if (account.followers && account.followers.length) {
+				followers = account.followers.map(function (item) {
+					var account = modules.accounts.getAccount(item);
+					return {username: account.username, address: account.address};
+				});
+			}
+
+			res.json({success: true, following: following, followers: followers});
 		});
 	});
 

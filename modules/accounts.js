@@ -31,6 +31,7 @@ function Account(address, publicKey, balance, unconfirmedBalance) {
 	this.username = null;
 	this.following = [];
 	this.unconfirmedFollowing = [];
+	this.followers = [];
 }
 
 function reverseDiff(diff) {
@@ -170,7 +171,17 @@ Account.prototype.applyContact = function (diff) {
 	var dest = applyDiff(this.following, [diff]);
 
 	if (dest !== false) {
-		this.following = dest;
+		var math = diff[0];
+		var address = diff.slice(1);
+		var friend = modules.accounts.getAccount(address);
+
+		if (math == "+") {
+			friend.applyFollower(this.address);
+		} else {
+			friend.undoFollower(this.address);
+		}
+		this.following = dest || [];
+		library.network.io.sockets.emit('followers/change', {address: address});
 		library.network.io.sockets.emit('contacts/change', {address: this.address});
 		return true;
 	}
@@ -186,7 +197,17 @@ Account.prototype.undoContact = function (diff) {
 	var dest = applyDiff(this.following, copyDiff);
 
 	if (dest !== false) {
-		this.following = dest;
+		var math = diff[0];
+		var address = diff.slice(1);
+		var friend = modules.accounts.getAccount(address);
+
+		if (math == "-") {
+			friend.undoFollower(this.address);
+		} else {
+			friend.applyFollower(this.address);
+		}
+		this.following = dest || [];
+		library.network.io.sockets.emit('followers/change', {address: address});
 		library.network.io.sockets.emit('contacts/change', {address: this.address});
 		return true;
 	}
@@ -200,7 +221,7 @@ Account.prototype.applyUnconfirmedContact = function (diff) {
 	var dest = applyDiff(this.unconfirmedFollowing, [diff]);
 
 	if (dest !== false) {
-		this.unconfirmedFollowing = dest;
+		this.unconfirmedFollowing = dest || [];
 		return true;
 	}
 
@@ -215,11 +236,29 @@ Account.prototype.undoUnconfirmedContact = function (diff) {
 	var dest = applyDiff(this.unconfirmedFollowing, copyDiff);
 
 	if (dest !== false) {
-		this.unconfirmedFollowing = dest;
+		this.unconfirmedFollowing = dest || [];
 		return true;
 	}
 
 	return false;
+}
+
+Account.prototype.applyFollower = function (address) {
+	var index = this.followers.indexOf(address);
+	if (index != -1) {
+		return false;
+	}
+	this.followers.push(address);
+	return true;
+}
+
+Account.prototype.undoFollower = function (address) {
+	var index = this.followers.indexOf(address);
+	if (index == -1) {
+		return false;
+	}
+	this.followers.splice(index, 1);
+	return true;
 }
 
 function Vote() {
@@ -400,7 +439,7 @@ function Username() {
 			return setImmediate(cb, errorCode("USERNAMES.EXISTS_USERNAME", trs));
 		}
 
-		if (sender.username){
+		if (sender.username) {
 			return setImmediate(cb, errorCode("USERNAMES.ALREADY_HAVE_USERNAME", trs));
 		}
 
@@ -525,7 +564,10 @@ function attachApi() {
 
 			var isAddress = /^[0-9]+c$/g;
 			if (!isAddress.test(query.address.toLowerCase())) {
-				return res.json({success: false, error: errorCode("ACCOUNTS.INVALID_ADDRESS", {address: query.address})});
+				return res.json({
+					success: false,
+					error: errorCode("ACCOUNTS.INVALID_ADDRESS", {address: query.address})
+				});
 			}
 
 			var account = self.getAccount(query.address);
