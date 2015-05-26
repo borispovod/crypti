@@ -37,6 +37,7 @@
     "jayson": "^1.2.0",
     "js-nacl": "^0.6.0",
     "json-schema": "~0.2.2",
+    "json-sql": "git+ssh://git@github.com:crypti/json-sql.git",
     "jsonschema": "^1.0.0",
     "knuth-shuffle": "~1.0.1",
     "long": "^1.1.5",
