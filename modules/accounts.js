@@ -175,10 +175,18 @@ Account.prototype.applyContact = function (diff) {
 		var address = diff.slice(1);
 		var friend = modules.accounts.getAccount(address);
 
-		if (math == "+") {
-			friend.applyFollower(this.address);
-		} else {
-			friend.undoFollower(this.address);
+		if (math == "+") { //follow
+			if (friend.following.indexOf(this.address) == -1) { //if I´m not his friend
+				friend.addPending(this.address); //will send request for a friendship
+			} else { //if we are friends (I confirmed request)
+				this.deletePending(address); //remove his request
+			}
+		} else { //unfollow
+			if (friend.following.indexOf(this.address) == -1) { //if I´m not his friend
+				friend.deletePending(this.address); //remove my request
+			} else { //if we are friends
+				this.addPending(address); // back his request to me
+			}
 		}
 		this.following = dest || [];
 		library.network.io.sockets.emit('followers/change', {address: address});
@@ -201,10 +209,18 @@ Account.prototype.undoContact = function (diff) {
 		var address = diff.slice(1);
 		var friend = modules.accounts.getAccount(address);
 
-		if (math == "-") {
-			friend.undoFollower(this.address);
-		} else {
-			friend.applyFollower(this.address);
+		if (math == "+") { //follow
+			if (friend.following.indexOf(this.address) == -1) { //if I´m not his friend
+				friend.deletePending(this.address); //will send request for a friendship
+			} else { //if we are friends (I confirmed request)
+				this.addPending(address); //remove his request
+			}
+		} else { //unfollow
+			if (friend.following.indexOf(this.address) == -1) { //if I´m not his friend
+				friend.addPending(this.address); //remove my request
+			} else { //if we are friends
+				this.deletePending(address); // back his request to me
+			}
 		}
 		this.following = dest || [];
 		library.network.io.sockets.emit('followers/change', {address: address});
@@ -243,7 +259,7 @@ Account.prototype.undoUnconfirmedContact = function (diff) {
 	return false;
 }
 
-Account.prototype.applyFollower = function (address) {
+Account.prototype.addPending = function (address) {
 	var index = this.followers.indexOf(address);
 	if (index != -1) {
 		return false;
@@ -252,7 +268,7 @@ Account.prototype.applyFollower = function (address) {
 	return true;
 }
 
-Account.prototype.undoFollower = function (address) {
+Account.prototype.deletePending = function (address) {
 	var index = this.followers.indexOf(address);
 	if (index == -1) {
 		return false;
