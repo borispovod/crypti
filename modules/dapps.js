@@ -14,7 +14,8 @@ var constants = require("../helpers/constants.js"),
 	extend = require('extend'),
 	rmdir = require('rimraf').sync,
 	errorCode = require('../helpers/errorCodes.js').error,
-	Sandbox = require("crypti-sandbox");
+	Sandbox = require("crypti-sandbox"),
+	jsonSql = require('json-sql');
 
 var modules, library, self, private = {};
 
@@ -36,6 +37,47 @@ private.createBasePathes = function () {
 	if (!fs.existsSync(dAppPublic)) {
 		fs.mkdirSync(dAppPublic);
 	}
+}
+
+private.createIndexes = function (id, config, cb) {
+	async.eachSeries(config.indexes, function (index, cb) {
+		var index = {
+			type: "index",
+			table: id + "_" + index.table,
+			name: id + "_" + index.name,
+			indexOn: index.indexOn
+		};
+
+		var sql = jsonSql.build(index);
+
+		library.dbLite.query(sql, function (err, result) {
+			cb(err, result);
+		});
+	});
+}
+
+private.createTables = function (id, config, cb) {
+	async.eachSeries(config.tables, function (table, cb) {
+		var command = {
+			type: "create",
+			table: id + "_" + table.table,
+			tableFields: table.tableFields
+		};
+
+		var sql = jsonSql.build(command);
+
+		library.dbLite.query(sql, function (err, result) {
+			cb(err, result);
+		});
+	});
+}
+
+private.destoryIndexes = function (id, config, cb) {
+
+}
+
+private.destroyTables = function (id, config, cb) {
+
 }
 
 private.resumeDApp = function (dApp, cb) {
