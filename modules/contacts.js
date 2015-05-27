@@ -158,17 +158,25 @@ function attachApi() {
 
 			if (!account) {
 				return res.json({success: false, error: errorCode("ACCOUNTS.ACCOUNT_DOESNT_FOUND")});
-				}
+			}
 
 			var following = [];
-			if (account.following && account.following.length){
-				following = account.following.map(function(item){
+			var followers = [];
+			if (account.following && account.following.length) {
+				following = account.following.map(function (item) {
 					var account = modules.accounts.getAccount(item);
 					return {username: account.username, address: account.address};
 				});
 			}
 
-			res.json({success: true, following: following});
+			if (account.followers && account.followers.length) {
+				followers = account.followers.map(function (item) {
+					var account = modules.accounts.getAccount(item);
+					return {username: account.username, address: account.address};
+				});
+			}
+
+			res.json({success: true, following: following, followers: followers});
 		});
 	});
 
@@ -216,15 +224,19 @@ function attachApi() {
 
 			var followingAddress = body.following.substring(1, body.following.length);
 			var isAddress = /^[0-9]+[C|c]$/g;
+			var following = null;
 			if (isAddress.test(followingAddress.toLowerCase())) {
-				followingAddress = body.following;
+				following = modules.accounts.getAccount(followingAddress);
 			} else {
-				var following = modules.accounts.getAccountByUsername(followingAddress);
-				if (!following) {
-					return res.json({success: false, error: errorCode("CONTACTS.USERNAME_DOESNT_FOUND", body)});
-				}
-				followingAddress = body.following[0] + following.address;
+				following = modules.accounts.getAccountByUsername(followingAddress);
 			}
+			if (!following) {
+				return res.json({success: false, error: errorCode("CONTACTS.USERNAME_DOESNT_FOUND", body)});
+			}
+			if (following.address == account.address) {
+				return res.json({success: false, error: errorCode("CONTACTS.SELF_FRIENDING")});
+			}
+			followingAddress = body.following[0] + following.address;
 
 			var transaction = library.logic.transaction.create({
 				type: TransactionTypes.FOLLOW,

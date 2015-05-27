@@ -31,6 +31,7 @@ function Account(address, publicKey, balance, unconfirmedBalance) {
 	this.username = null;
 	this.following = [];
 	this.unconfirmedFollowing = [];
+	this.followers = [];
 	this.unconfirmedMultisignature = null;
 	this.multisignature = null;
 }
@@ -164,6 +165,118 @@ Account.prototype.undoDelegateList = function (diff) {
 	}
 
 	return false;
+}
+
+Account.prototype.applyContact = function (diff) {
+	if (diff === null) return;
+
+	var dest = applyDiff(this.following, [diff]);
+
+	if (dest !== false) {
+		var math = diff[0];
+		var address = diff.slice(1);
+		var friend = modules.accounts.getAccount(address);
+
+		if (math == "+") { //follow
+			if (friend.following.indexOf(this.address) == -1) { //if I´m not his friend
+				friend.addPending(this.address); //will send request for a friendship
+			} else { //if we are friends (I confirmed request)
+				this.deletePending(address); //remove his request
+			}
+		} else { //unfollow
+			if (friend.following.indexOf(this.address) == -1) { //if I´m not his friend
+				friend.deletePending(this.address); //remove my request
+			} else { //if we are friends
+				this.addPending(address); // back his request to me
+			}
+		}
+		this.following = dest || [];
+		library.network.io.sockets.emit('followers/change', {address: address});
+		library.network.io.sockets.emit('contacts/change', {address: this.address});
+		return true;
+	}
+
+	return false;
+}
+
+Account.prototype.undoContact = function (diff) {
+	if (diff === null) return;
+
+	var copyDiff = reverseDiff([diff]);
+
+	var dest = applyDiff(this.following, copyDiff);
+
+	if (dest !== false) {
+		var math = diff[0];
+		var address = diff.slice(1);
+		var friend = modules.accounts.getAccount(address);
+
+		if (math == "+") { //follow
+			if (friend.following.indexOf(this.address) == -1) { //if I´m not his friend
+				friend.deletePending(this.address); //will send request for a friendship
+			} else { //if we are friends (I confirmed request)
+				this.addPending(address); //remove his request
+			}
+		} else { //unfollow
+			if (friend.following.indexOf(this.address) == -1) { //if I´m not his friend
+				friend.addPending(this.address); //remove my request
+			} else { //if we are friends
+				this.deletePending(address); // back his request to me
+			}
+		}
+		this.following = dest || [];
+		library.network.io.sockets.emit('followers/change', {address: address});
+		library.network.io.sockets.emit('contacts/change', {address: this.address});
+		return true;
+	}
+
+	return false;
+}
+
+Account.prototype.applyUnconfirmedContact = function (diff) {
+	if (diff === null) return;
+
+	var dest = applyDiff(this.unconfirmedFollowing, [diff]);
+
+	if (dest !== false) {
+		this.unconfirmedFollowing = dest || [];
+		return true;
+	}
+
+	return false;
+}
+
+Account.prototype.undoUnconfirmedContact = function (diff) {
+	if (diff === null) return;
+
+	var copyDiff = reverseDiff([diff]);
+
+	var dest = applyDiff(this.unconfirmedFollowing, copyDiff);
+
+	if (dest !== false) {
+		this.unconfirmedFollowing = dest || [];
+		return true;
+	}
+
+	return false;
+}
+
+Account.prototype.addPending = function (address) {
+	var index = this.followers.indexOf(address);
+	if (index != -1) {
+		return false;
+	}
+	this.followers.push(address);
+	return true;
+}
+
+Account.prototype.deletePending = function (address) {
+	var index = this.followers.indexOf(address);
+	if (index == -1) {
+		return false;
+	}
+	this.followers.splice(index, 1);
+	return true;
 }
 
 Account.prototype.applyMultisignature = function (multisignature) {
@@ -324,6 +437,7 @@ Account.prototype.undoUnconfirmedContact = function (diff) {
 function Vote() {
 	this.create = function (data, trs) {
 		trs.recipientId = data.sender.address;
+		trs.recipientUsername = data.sender.username;
 		trs.asset.votes = data.votes;
 
 		return trs;

@@ -3,8 +3,9 @@ var moment = require('moment');
 module.exports = function (grunt) {
 	var files = [
 		'logger.js',
-		'helpers/*.js',
+		'helpers/**/*.js',
 		'modules/*.js',
+		'logic/*.js',
 		'app.js'
 	];
 
@@ -68,7 +69,16 @@ module.exports = function (grunt) {
 						"cp ./public/loading.html ./builded/" + config.version + "/public/" + "&&" +
 						"cp -rf ./public/images ./builded/" + config.version + "/public/" + "&&" +
 						"cp -rf ./public/partials ./builded/" + config.version + "/public/" + "&&" +
-						"cp -rf ./public/static ./builded/" + config.version + "/public/"
+						"cp -rf ./public/static ./builded/" + config.version + "/public/" + "&&" +
+						"mkdir -p ./builded/" + config.version + "/public/node_modules" + "&&" +
+						"cp -rf ./public//node_modules/chart.js ./builded/" + config.version + "/public/node_modules/ &&" +
+						"mkdir -p ./builded/" + config.version + "/public/bower_components &&" +
+						"mkdir -p ./builded/" + config.version + "/public/socket.io &&" +
+						"cp -rf ./public/bower_components/jquery  ./builded/" + config.version + "/public/bower_components/jquery/ &&" +
+						"cp -rf ./public/bower_components/materialize ./builded/" + config.version + "/public/bower_components/materialize &&" +
+						"cp -rf ./public/bower_components/blob ./builded/" + config.version + "/public/bower_components/blob &&" +
+						"cp -rf ./public/bower_components/file-saver ./builded/" + config.version + "/public/bower_components/file-saver &&" +
+						"cp -rf ./public/node_modules/zeroclipboard ./builded/" + config.version + "/public/node_modules/zeroclipboard"
 				}
 			},
 			folder: {

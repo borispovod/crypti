@@ -365,7 +365,7 @@ Transaction.prototype.dbSave = function (dbLite, trs, cb) {
 		return cb('Unknown transaction type ' + trs.type);
 	}
 
-	dbLite.query("INSERT INTO trs(id, blockId, type, timestamp, senderPublicKey, senderId, recipientId, amount, fee, signature, signSignature) VALUES($id, $blockId, $type, $timestamp, $senderPublicKey, $senderId, $recipientId, $amount, $fee, $signature, $signSignature)", {
+	dbLite.query("INSERT INTO trs(id, blockId, type, timestamp, senderPublicKey, senderId, recipientId, senderUsername, recipientUsername, amount, fee, signature, signSignature) VALUES($id, $blockId, $type, $timestamp, $senderPublicKey, $senderId, $recipientId, $senderUsername, $recipientUsername, $amount, $fee, $signature, $signSignature)", {
 		id: trs.id,
 		blockId: trs.blockId,
 		type: trs.type,
@@ -373,6 +373,8 @@ Transaction.prototype.dbSave = function (dbLite, trs, cb) {
 		senderPublicKey: new Buffer(trs.senderPublicKey, 'hex'),
 		senderId: trs.senderId,
 		recipientId: trs.recipientId || null,
+		senderUsername: trs.senderUsername || null,
+		recipientUsername: trs.recipientUsername || null,
 		amount: trs.amount,
 		fee: trs.fee,
 		signature: new Buffer(trs.signature, 'hex'),
@@ -403,6 +405,8 @@ Transaction.prototype.objectNormalize = function (trs) {
 			senderPublicKey: "hex!",
 			senderId: "string",
 			recipientId: "string?",
+			senderUsername: "string?",
+			recipientUsername: "string?",
 			amount: "int",
 			fee: "int",
 			signature: "hex!",
@@ -439,6 +443,8 @@ Transaction.prototype.dbRead = function (raw) {
 			senderPublicKey: raw.t_senderPublicKey,
 			senderId: raw.t_senderId,
 			recipientId: raw.t_recipientId,
+			senderUsername: raw.t_senderUsername,
+			recipientUsername: raw.t_recipientUsername,
 			amount: parseInt(raw.t_amount),
 			fee: parseInt(raw.t_fee),
 			signature: raw.t_signature,

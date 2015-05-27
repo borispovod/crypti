@@ -23,7 +23,7 @@ private.lastBlock = {};
 // @formatter:off
 private.blocksDataFields = {
 	'b_id': String, 'b_version': String, 'b_timestamp': Number, 'b_height': Number, 'b_previousBlock': String, 'b_numberOfTransactions': String, 'b_totalAmount': String, 'b_totalFee': String, 'b_payloadLength': String, 'b_payloadHash': String, 'b_generatorPublicKey': String, 'b_blockSignature': String,
-	't_id': String, 't_type': Number, 't_timestamp': Number, 't_senderPublicKey': String, 't_senderId': String, 't_recipientId': String, 't_amount': String, 't_fee': String, 't_signature': String, 't_signSignature': String,
+	't_id': String, 't_type': Number, 't_timestamp': Number, 't_senderPublicKey': String, 't_senderId': String, 't_recipientId': String, 't_senderUsername': String, 't_recipientUsername': String, 't_amount': String, 't_fee': String, 't_signature': String, 't_signSignature': String,
 	's_publicKey': String,
 	'd_username': String,
 	'v_votes': String,
@@ -470,7 +470,7 @@ Blocks.prototype.loadBlocksData = function (filter, options, cb) {
 
 	library.dbLite[method]("SELECT " +
 	"b.id, b.version, b.timestamp, b.height, b.previousBlock, b.numberOfTransactions, b.totalAmount, b.totalFee, b.payloadLength, lower(hex(b.payloadHash)), lower(hex(b.generatorPublicKey)), lower(hex(b.blockSignature)), " +
-	"t.id, t.type, t.timestamp, lower(hex(t.senderPublicKey)), t.senderId, t.recipientId, t.amount, t.fee, lower(hex(t.signature)), lower(hex(t.signSignature)), " +
+	"t.id, t.type, t.timestamp, lower(hex(t.senderPublicKey)), t.senderId, t.recipientId, t.senderUsername, t.recipientUsername, t.amount, t.fee, lower(hex(t.signature)), lower(hex(t.signSignature)), " +
 	"lower(hex(s.publicKey)), " +
 	"d.username, " +
 	"v.votes, " +
@@ -512,7 +512,7 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 
 	library.dbLite.query("SELECT " +
 	"b.id, b.version, b.timestamp, b.height, b.previousBlock, b.numberOfTransactions, b.totalAmount, b.totalFee, b.payloadLength, lower(hex(b.payloadHash)), lower(hex(b.generatorPublicKey)), lower(hex(b.blockSignature)), " +
-	"t.id, t.type, t.timestamp, lower(hex(t.senderPublicKey)), t.senderId, t.recipientId, t.amount, t.fee, lower(hex(t.signature)), lower(hex(t.signSignature)), " +
+	"t.id, t.type, t.timestamp, lower(hex(t.senderPublicKey)), t.senderId, t.recipientId, t.senderUsername, t.recipientUsername, t.amount, t.fee, lower(hex(t.signature)), lower(hex(t.signSignature)), " +
 	"lower(hex(s.publicKey)), " +
 	"d.username, " +
 	"v.votes, " +
