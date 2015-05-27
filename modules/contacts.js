@@ -40,6 +40,10 @@ function Contact() {
 			return setImmediate(cb, "Invalid following: " + trs.id);
 		}
 
+		if (!modules.accounts.getAccount(trs.asset.contact.address)) {
+			return setImmediate(cb, "Invalid following: " + trs.id);
+		}
+
 		if (trs.amount != 0) {
 			return setImmediate(cb, "Invalid amount: " + trs.id);
 		}
