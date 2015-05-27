@@ -216,19 +216,19 @@ function attachApi() {
 
 			var followingAddress = body.following.substring(1, body.following.length);
 			var isAddress = /^[0-9]+[C|c]$/g;
+			var following = null;
 			if (isAddress.test(followingAddress.toLowerCase())) {
 				following = modules.accounts.getAccount(followingAddress);
-				if (!following) {
-					return res.json({success: false, error: errorCode("CONTACTS.USERNAME_DOESNT_FOUND", body)});
-				}
-				followingAddress = body.following[0] + following.address;
 			} else {
-				var following = modules.accounts.getAccountByUsername(followingAddress);
-				if (!following) {
-					return res.json({success: false, error: errorCode("CONTACTS.USERNAME_DOESNT_FOUND", body)});
-				}
-				followingAddress = body.following[0] + following.address;
+				following = modules.accounts.getAccountByUsername(followingAddress);
 			}
+			if (!following) {
+				return res.json({success: false, error: errorCode("CONTACTS.USERNAME_DOESNT_FOUND", body)});
+			}
+			if (following.address == account.address) {
+				return res.json({success: false, error: errorCode("CONTACTS.SELF_FRIENDING")});
+			}
+			followingAddress = body.following[0] + following.address;
 
 			var transaction = library.logic.transaction.create({
 				type: TransactionTypes.FOLLOW,
