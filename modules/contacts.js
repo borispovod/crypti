@@ -217,7 +217,11 @@ function attachApi() {
 			var followingAddress = body.following.substring(1, body.following.length);
 			var isAddress = /^[0-9]+[C|c]$/g;
 			if (isAddress.test(followingAddress.toLowerCase())) {
-				followingAddress = body.following;
+				following = modules.accounts.getAccount(followingAddress);
+				if (!following) {
+					return res.json({success: false, error: errorCode("CONTACTS.USERNAME_DOESNT_FOUND", body)});
+				}
+				followingAddress = body.following[0] + following.address;
 			} else {
 				var following = modules.accounts.getAccountByUsername(followingAddress);
 				if (!following) {
