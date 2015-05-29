@@ -8,6 +8,8 @@ var path = require('path');
 var https = require('https');
 var fs = require('fs');
 
+var versionBuild = fs.readFileSync(path.join(__dirname, 'build'), 'utf8');
+
 program
 	.version(packageJson.version)
 	.option('-c, --config <path>', 'Config file path')
@@ -88,6 +90,10 @@ d.run(function () {
 
 		logger: function (cb) {
 			cb(null, logger);
+		},
+
+		build: function (cb) {
+			cb(null, versionBuild);
 		},
 
 		network: ['config', function (cb, scope) {
