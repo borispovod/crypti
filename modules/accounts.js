@@ -879,7 +879,7 @@ private.openAccount = function (secret) {
 
 //public methods
 Accounts.prototype.getAccount = function (id) {
-	return private.accounts[id];
+	return private.accounts[id.toString().toUpperCase()];
 }
 
 Accounts.prototype.getAccountByPublicKey = function (publicKey) {

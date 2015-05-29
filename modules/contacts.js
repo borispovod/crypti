@@ -40,7 +40,7 @@ function Contact() {
 			return setImmediate(cb, "Following is not address: " + trs.id);
 		}
 
-		if (!modules.accounts.getAccount(trs.asset.contact.address)) {
+		if (!modules.accounts.getAccount(trs.asset.contact.address.slice(1))) {
 			return setImmediate(cb, "Following is not exists: " + trs.id);
 		}
 
