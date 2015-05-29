@@ -65,7 +65,7 @@ function attachApi() {
 	});
 
 	router.get('/version', function (req, res) {
-		fs.readFile(path.join(__dirname, '..', 'build'), 'utf8', function (err, data) {
+		fs.readFile(path.join(__dirname, 'build'), 'utf8', function (err, data) {
 			if (err) {
 				library.logger.error("Can't read build file: " + err);
 				return res.json({success: false, error: "Can't read 'build' file, see logs"});
