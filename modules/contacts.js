@@ -32,16 +32,16 @@ function Contact() {
 		}
 
 		if (!trs.asset.contact.address) {
-			return setImmediate(cb, "Invalid following: " + trs.id);
+			return setImmediate(cb, "Empty following: " + trs.id);
 		}
 
 		var isAddress = /^[\+|\-][0-9]+[C|c]$/g;
 		if (!isAddress.test(trs.asset.contact.address.toLowerCase())) {
-			return setImmediate(cb, "Invalid following: " + trs.id);
+			return setImmediate(cb, "Following is not address: " + trs.id);
 		}
 
 		if (!modules.accounts.getAccount(trs.asset.contact.address)) {
-			return setImmediate(cb, "Invalid following: " + trs.id);
+			return setImmediate(cb, "Following is not exists: " + trs.id);
 		}
 
 		if (trs.amount != 0) {
