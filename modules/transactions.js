@@ -30,7 +30,8 @@ function Transfer() {
 	}
 
 	this.calculateFee = function (trs) {
-		return parseInt(trs.amount / 100 * library.logic.block.calculateFee());
+		var fee = parseInt(trs.amount / 100 * library.logic.block.calculateFee());
+		return fee || 1;
 	}
 
 	this.verify = function (trs, sender, cb) {
