@@ -419,6 +419,10 @@ function Username() {
 			return setImmediate(cb, errorCode("USERNAMES.EXISTS_USERNAME", trs));
 		}
 
+		if (modules.delegates.existsDelegate(trs.senderPublicKey)) {
+			return setImmediate(cb, errorCode("USERNAMES.EXISTS_USERNAME", trs));
+		}
+
 		setImmediate(cb, null, trs);
 	}
 
