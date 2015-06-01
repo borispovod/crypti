@@ -90,8 +90,12 @@ function Delegate() {
 			return setImmediate(cb, errorCode("DELEGATES.EXISTS_DELEGATE"));
 		}
 
-		if (modules.accounts.existsUsername(trs.asset.delegate.username)) {
-			return setImmediate(cb, errorCode("DELEGATES.EXISTS_DELEGATE"));
+		if (modules.accounts.existsUsername(trs.asset.delegate.username) && sender.username != trs.asset.delegate.username) {
+			return setImmediate(cb, errorCode("DELEGATES.EXISTS_USERNAME", trs));
+		}
+
+		if (sender.username && sender.username != trs.asset.delegate.username) {
+			return setImmediate(cb, errorCode("DELEGATES.WRONG_USERNAME"));
 		}
 
 		setImmediate(cb, null, trs);
@@ -454,11 +458,7 @@ function attachApi() {
 			},
 			publicKey: "hex?",
 			secondSecret: "string?",
-			username: {
-				required: true,
-				string: true,
-				minLength: 1
-			}
+			username: "string?"
 		}, function (err, report, body) {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
@@ -489,9 +489,18 @@ function attachApi() {
 				secondKeypair = ed.MakeKeypair(secondHash);
 			}
 
+			var username = body.username;
+			if (!body.username) {
+				if (account.username) {
+					username = account.username;
+				} else {
+					return res.json({success: false, error: errorCode("DELEGATES.USERNAME_IS_TOO_SHORT")});
+				}
+			}
+
 			var transaction = library.logic.transaction.create({
 				type: TransactionTypes.DELEGATE,
-				username: body.username,
+				username: username,
 				sender: account,
 				keypair: keypair,
 				secondKeypair: secondKeypair
