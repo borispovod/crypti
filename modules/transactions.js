@@ -332,8 +332,10 @@ private.list = function (filter, cb) {
 		fields_or.push('recipientUsername = $recipientUsername')
 		params.recipientUsername = filter.recipientUsername;
 	}
-	if (filter.owner) {
-		params.owner = filter.owner;
+	if (filter.ownerAddress && filter.ownerPublicKey) {
+		fields_and.push('(lower(hex(senderPublicKey)) = $ownerPublicKey or recipientId = $ownerAddress)')
+		params.ownerPublicKey = filter.ownerPublicKey;
+		params.ownerAddress = filter.ownerAddress;
 	}
 	if (filter.limit) {
 		params.limit = filter.limit;
