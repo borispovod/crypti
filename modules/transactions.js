@@ -122,6 +122,8 @@ function attachApi() {
 			orderBy: "string?",
 			offset: {default: 0, int: true},
 			senderPublicKey: "hex?",
+			ownerPublicKey: "hex?",
+			ownerAddress: "string?",
 			senderId: "string?",
 			recipientId: "string?",
 			senderUsername: "string?",
@@ -307,7 +309,7 @@ function attachApi() {
 
 private.list = function (filter, cb) {
 	var sortFields = ['t.id', 't.blockId', 't.type', 't.timestamp', 't.senderPublicKey', 't.senderId', 't.recipientId', 't.senderUsername', 't.recipientUsername', 't.amount', 't.fee', 't.signature', 't.signSignature', 't.confirmations', 'b.height'];
-	var params = {}, fields_or = [], fields_and = [];
+	var params = {}, fields_or = [], owner = "";
 	if (filter.blockId) {
 		fields_or.push('blockId = $blockId')
 		params.blockId = filter.blockId;
@@ -333,7 +335,7 @@ private.list = function (filter, cb) {
 		params.recipientUsername = filter.recipientUsername;
 	}
 	if (filter.ownerAddress && filter.ownerPublicKey) {
-		fields_and.push('(lower(hex(senderPublicKey)) = $ownerPublicKey or recipientId = $ownerAddress)')
+		owner = '(lower(hex(senderPublicKey)) = $ownerPublicKey or recipientId = $ownerAddress)';
 		params.ownerPublicKey = filter.ownerPublicKey;
 		params.ownerAddress = filter.ownerAddress;
 	}
@@ -367,8 +369,8 @@ private.list = function (filter, cb) {
 	library.dbLite.query("select count(t.id) " +
 	"from trs t " +
 	"inner join blocks b on t.blockId = b.id " +
-	(fields_or.length || fields_and.length ? "where " : "") + " " +
-	fields_or.join(' or ') + " " + fields_and.join(' and '), params, {"count": Number}, function (err, rows) {
+	(fields_or.length || owner ? "where " : "") + " " +
+	(fields_or.length ? "(" + fields_or.join(' or ') + ") " : "") + (fields_or.length && owner ? " and " + owner : owner), params, {"count": Number}, function (err, rows) {
 		if (err) {
 			return cb(err);
 		}
@@ -379,7 +381,8 @@ private.list = function (filter, cb) {
 		library.dbLite.query("select t.id, b.height, t.blockId, t.type, t.timestamp, lower(hex(t.senderPublicKey)), t.senderId, t.recipientId, t.senderUsername, t.recipientUsername, t.amount, t.fee, lower(hex(t.signature)), lower(hex(t.signSignature)), (select max(height) + 1 from blocks) - b.height " +
 		"from trs t " +
 		"inner join blocks b on t.blockId = b.id " +
-		(fields_or.length ? "where " + fields_or.join(' or ') : '') + " " +
+		(fields_or.length || owner ? "where " : "") + " " +
+		(fields_or.length ? "(" + fields_or.join(' or ') + ") " : "") + (fields_or.length && owner ? " and " + owner : owner) + " " +
 		(filter.orderBy ? 'order by ' + sortBy + ' ' + sortMethod : '') + " " +
 		(filter.limit ? 'limit $limit' : '') + " " +
 		(filter.offset ? 'offset $offset' : ''), params, ['t_id', 'b_height', 't_blockId', 't_type', 't_timestamp', 't_senderPublicKey', 't_senderId', 't_recipientId', 't_senderUsername', 't_recipientUsername', 't_amount', 't_fee', 't_signature', 't_signSignature', 'confirmations'], function (err, rows) {
