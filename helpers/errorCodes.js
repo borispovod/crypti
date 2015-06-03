@@ -127,6 +127,10 @@ var errorCodes = {
 		FORGER_NOT_FOUND: {
 			message: "Forger with this public key not found",
 			args: []
+		},
+		WRONG_USERNAME: {
+			message: "Wrong username",
+			args: []
 		}
 	},
 	PEERS: {
