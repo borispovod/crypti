@@ -758,6 +758,10 @@ function attachApi() {
 		});
 	});
 
+	router.get('/username/fee', function (req, res) {
+		return res.json({success: true, fee: 1 * constants.fixedPoint});
+	});
+
 	router.put("/username", function (req, res, next) {
 		req.sanitize("body", {
 			secret: {

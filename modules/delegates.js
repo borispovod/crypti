@@ -47,7 +47,7 @@ function Delegate() {
 		if (modules.blocks.getLastBlock().height >= MilestoneBlocks.FEE_BLOCK) {
 			return 100 * constants.fixedPoint;
 		} else {
-			return 10000 * constants.fixedPoint;
+			return 100 * constants.fixedPoint;
 		}
 	}
 
@@ -209,6 +209,18 @@ function attachApi() {
 	router.use(function (req, res, next) {
 		if (modules && private.loaded) return next();
 		res.status(500).send({success: false, error: errorCode('COMMON.LOADING')});
+	});
+
+	router.get('/fee', function (req, res) {
+		var fee = null;
+
+		if (modules.blocks.getLastBlock().height >= MilestoneBlocks.FEE_BLOCK) {
+			fee = 100 * constants.fixedPoint;
+		} else {
+			fee = 100 * constants.fixedPoint;
+		}
+
+		return res.json({success: true, fee: fee})
 	});
 
 	router.get('/', function (req, res) {

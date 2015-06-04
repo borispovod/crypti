@@ -143,6 +143,10 @@ function attachApi() {
 		res.status(500).send({success: false, error: errorCode('COMMON.LOADING')});
 	});
 
+	router.get('/fee', function (req, res) {
+		return res.json({success: true, fee: 1 * constants.fixedPoint})
+	});
+
 	router.get("/", function (req, res) {
 		req.sanitize("query", {
 			publicKey: "hex!"
