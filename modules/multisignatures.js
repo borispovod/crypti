@@ -232,7 +232,6 @@ function attachApi() {
 
 	router.put('/', function (req, res) {
 		req.sanitize("body", {
-			id: "string?",
 			secret: "string!",
 			publicKey: "hex?",
 			secondSecret: "string?",
