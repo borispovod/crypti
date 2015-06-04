@@ -127,6 +127,10 @@ var errorCodes = {
 		FORGER_NOT_FOUND: {
 			message: "Forger with this public key not found",
 			args: []
+		},
+		WRONG_USERNAME: {
+			message: "Wrong username",
+			args: []
 		}
 	},
 	PEERS: {
@@ -226,7 +230,7 @@ var errorCodes = {
 	CONTACTS: {
 		USERNAME_DOESNT_FOUND: {
 			message: "Account doesn't found: %s",
-			args: ["following"]
+			args: []
 		},
 		SELF_FRIENDING: {
 			message: "Can´t add yourself in contacts",

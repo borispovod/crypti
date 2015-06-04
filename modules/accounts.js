@@ -584,6 +584,10 @@ function Username() {
 			return setImmediate(cb, errorCode("USERNAMES.EXISTS_USERNAME", trs));
 		}
 
+		if (modules.delegates.existsDelegate(trs.senderPublicKey)) {
+			return setImmediate(cb, errorCode("USERNAMES.EXISTS_USERNAME", trs));
+		}
+
 		setImmediate(cb, null, trs);
 	}
 
@@ -1052,7 +1056,7 @@ private.openAccount = function (secret) {
 
 //public methods
 Accounts.prototype.getAccount = function (id) {
-	return private.accounts[id];
+	return private.accounts[id.toString().toUpperCase()];
 }
 
 Accounts.prototype.getAccountByPublicKey = function (publicKey) {
@@ -1086,7 +1090,7 @@ Accounts.prototype.getAccountByUsername = function (username) {
 		}
 	}
 
-	return this.getAccount(address);
+	return address && this.getAccount(address);
 }
 
 Accounts.prototype.getAccountOrCreateByPublicKey = function (publicKey) {
