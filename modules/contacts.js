@@ -227,7 +227,7 @@ function attachApi() {
 				following = modules.accounts.getAccountByUsername(followingAddress);
 			}
 			if (!following) {
-				return res.json({success: false, error: errorCode("CONTACTS.USERNAME_DOESNT_FOUND", body)});
+				return res.json({success: false, error: errorCode("CONTACTS.USERNAME_DOESNT_FOUND")});
 			}
 			if (following.address == account.address) {
 				return res.json({success: false, error: errorCode("CONTACTS.SELF_FRIENDING")});
