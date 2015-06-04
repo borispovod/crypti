@@ -289,7 +289,7 @@ Transport.prototype.getFromPeer = function (peer, options, cb) {
 		method: options.method,
 		json: true,
 		headers: _.extend({}, private.headers, options.headers),
-		timeout: 5000
+		timeout: library.config.peers.options.timeout
 	};
 
 	if (Object.prototype.toString.call(options.data) === "[object Object]" || util.isArray(options.data)) {
