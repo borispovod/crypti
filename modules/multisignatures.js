@@ -218,6 +218,7 @@ function attachApi() {
 				if (!transaction) {
 					return cb("Transaction not found");
 				}
+				transaction.signatures = transaction.signatures || [];
 				transaction.signatures.push(sign);
 				cb();
 			}, function (err) {
