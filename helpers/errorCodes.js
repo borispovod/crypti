@@ -230,7 +230,7 @@ var errorCodes = {
 	CONTACTS: {
 		USERNAME_DOESNT_FOUND: {
 			message: "Account doesn't found: %s",
-			args: ["following"]
+			args: []
 		},
 		SELF_FRIENDING: {
 			message: "Can´t add yourself in contacts",

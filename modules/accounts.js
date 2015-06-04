@@ -917,7 +917,7 @@ Accounts.prototype.getAccountByUsername = function (username) {
 		}
 	}
 
-	return this.getAccount(address);
+	return address && this.getAccount(address);
 }
 
 Accounts.prototype.getAccountOrCreateByPublicKey = function (publicKey) {
