@@ -36,7 +36,8 @@ Transaction.prototype.create = function (data) {
 		amount: 0,
 		senderPublicKey: data.sender.publicKey,
 		timestamp: slots.getTime(),
-		asset: {}
+		asset: {},
+		signatures: []
 	};
 
 	trs = private.types[trs.type].create(data, trs);
@@ -178,6 +179,18 @@ Transaction.prototype.verify = function (trs, sender, cb) { //inheritance
 	//verify second signature
 	if (sender.secondSignature && !this.verifySignature(trs, sender.secondPublicKey, trs.signSignature)) {
 		return setImmediate(cb, "Can't verify second signature: " + trs.id);
+	}
+
+	for (var s = 0; s < sender.multisignature.keysgroup.length; s++) {
+		var verify = false;
+		for (var d = 0; d < trs.signatures.length && !verify; d++) {
+			if (this.verifySignature(trs, sender.multisignature.keysgroup[s], trs.signatures[d])) {
+				verify = true;
+			}
+		}
+		if (!verify) {
+			return setImmediate(cb, "Failed multisignature: " + trs.id);
+		}
 	}
 
 	//check sender
