@@ -149,10 +149,10 @@ function Multisignature() {
 	}
 
 	this.ready = function (trs, sender) {
-		if (!sender.multisignatures) {
+		if (!sender.multisignature.keysgroup.length) {
 			return trs.signatures.length == trs.asset.multisignature.keysgroup.length;
 		} else {
-			return trs.signatures.length >= trs.asset.multisignature.min;
+			return trs.signatures.length >= sender.multisignature.min;
 		}
 	}
 }

@@ -32,8 +32,8 @@ function Account(address, publicKey, balance, unconfirmedBalance) {
 	this.following = [];
 	this.unconfirmedFollowing = [];
 	this.followers = [];
-	this.unconfirmedMultisignature = null;
-	this.multisignature = null;
+	this.unconfirmedMultisignature = {min: 0, lifetime: 0, keysgroup: []};
+	this.multisignature = {min: 0, lifetime: 0, keysgroup: []};
 }
 
 function reverseDiff(diff) {
@@ -295,7 +295,9 @@ Account.prototype.applyMultisignature = function (multisignature) {
 			return false;
 		}
 
-		this.multisignature = {min: minRes, lifetime: lifetimeRes, keysgroup: dest};
+		this.multisignature.min = minRes;
+		this.multisignature.lifetime = lifetimeRes;
+		this.multisignature.keysgroup = dest;
 		return true;
 	}
 
@@ -320,7 +322,9 @@ Account.prototype.undoMultisignature = function (multisignature) {
 			return false;
 		}
 
-		this.multisignature = {min: minRes, lifetime: lifetimeRes, keysgroup: dest};
+		this.multisignature.min = minRes;
+		this.multisignature.lifetime = lifetimeRes;
+		this.multisignature.keysgroup = dest;
 		return true;
 	}
 
@@ -343,7 +347,9 @@ Account.prototype.applyUnconfirmedMultisignature = function (multisignature) {
 			return false;
 		}
 
-		this.unconfirmedMultisignature = {min: minRes, lifetime: lifetimeRes, keysgroup: dest};
+		this.unconfirmedMultisignature.min = minRes;
+		this.unconfirmedMultisignature.lifetime = lifetimeRes;
+		this.unconfirmedMultisignature.keysgroup = dest;
 		return true;
 	}
 
@@ -369,7 +375,9 @@ Account.prototype.undoUnconfirmedMultisignature = function (multisignature) {
 			return false;
 		}
 
-		this.unconfirmedMultisignature = {min: minRes, lifetime: lifetimeRes, keysgroup: dest};
+		this.unconfirmedMultisignature.min = minRes;
+		this.unconfirmedMultisignature.lifetime = lifetimeRes;
+		this.unconfirmedMultisignature.keysgroup = dest;
 		return true;
 	}
 
@@ -464,6 +472,18 @@ function Vote() {
 			return setImmediate(cb, errorCode("VOTES.ALREADY_VOTED_CONFIRMED", trs));
 		}
 
+		for (var s = 0; s < sender.multisignature.keysgroup.length; s++) {
+			var verify = false;
+			for (var d = 0; d < trs.signatures.length && !verify; d++) {
+				if (library.logic.transaction.verifySignature(trs, sender.multisignature.keysgroup[s], trs.signatures[d])) {
+					verify = true;
+				}
+			}
+			if (!verify) {
+				return setImmediate(cb, "Failed multisignature: " + trs.id);
+			}
+		}
+
 		setImmediate(cb, null, trs);
 	}
 
@@ -525,8 +545,8 @@ function Vote() {
 	}
 
 	this.ready = function (trs, sender) {
-		if (sender.multisignatures) {
-			return trs.signatures.length >= trs.asset.multisignature.min;
+		if (sender.multisignature.keysgroup.length) {
+			return trs.signatures.length >= sender.multisignature.min;
 		} else {
 			return true;
 		}
@@ -586,6 +606,18 @@ function Username() {
 
 		if (modules.delegates.existsDelegate(trs.senderPublicKey)) {
 			return setImmediate(cb, errorCode("USERNAMES.EXISTS_USERNAME", trs));
+		}
+
+		for (var s = 0; s < sender.multisignature.keysgroup.length; s++) {
+			var verify = false;
+			for (var d = 0; d < trs.signatures.length && !verify; d++) {
+				if (library.logic.transaction.verifySignature(trs, sender.multisignature.keysgroup[s], trs.signatures[d])) {
+					verify = true;
+				}
+			}
+			if (!verify) {
+				return setImmediate(cb, "Failed multisignature: " + trs.id);
+			}
 		}
 
 		setImmediate(cb, null, trs);
@@ -686,8 +718,8 @@ function Username() {
 	}
 
 	this.ready = function (trs, sender) {
-		if (sender.multisignatures) {
-			return trs.signatures.length >= trs.asset.multisignature.min;
+		if (sender.multisignature.keysgroup.length) {
+			return trs.signatures.length >= sender.multisignature.min;
 		} else {
 			return true;
 		}

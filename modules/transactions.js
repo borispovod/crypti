@@ -43,6 +43,18 @@ function Transfer() {
 			return cb(errorCode("TRANSACTIONS.INVALID_AMOUNT", trs));
 		}
 
+		for (var s = 0; s < sender.multisignature.keysgroup.length; s++) {
+			var verify = false;
+			for (var d = 0; d < trs.signatures.length && !verify; d++) {
+				if (library.logic.transaction.verifySignature(trs, sender.multisignature.keysgroup[s], trs.signatures[d])) {
+					verify = true;
+				}
+			}
+			if (!verify) {
+				return setImmediate(cb, "Failed multisignature: " + trs.id);
+			}
+		}
+
 		cb(null, trs);
 	}
 
@@ -93,8 +105,8 @@ function Transfer() {
 	}
 
 	this.ready = function (trs, sender) {
-		if (sender.multisignatures) {
-			return trs.signatures.length >= trs.asset.multisignature.min;
+		if (sender.multisignature.keysgroup.length) {
+			return trs.signatures.length >= sender.multisignature.min;
 		} else {
 			return true;
 		}
