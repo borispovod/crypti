@@ -234,8 +234,6 @@ function attachApi() {
 		req.sanitize("body", {
 			id: "string?",
 			secret: "string!",
-			amount: "int!",
-			recipientId: "string!",
 			publicKey: "hex?",
 			secondSecret: "string?",
 			min: "int!",
@@ -249,18 +247,6 @@ function attachApi() {
 		}, function (err, report, body) {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
-
-			var recipientId = null;
-			var isAddress = /^[0-9]+[C|c]$/g;
-			if (isAddress.test(body.recipientId)) {
-				recipientId = body.recipientId;
-			} else {
-				var recipient = modules.accounts.getAccountByUsername(body.recipientId);
-				if (!recipient) {
-					return res.json({success: false, error: errorCode("TRANSACTIONS.RECIPIENT_NOT_FOUND")});
-				}
-				recipientId = recipient.address;
-			}
 
 			var hash = crypto.createHash('sha256').update(body.secret, 'utf8').digest();
 			var keypair = ed.MakeKeypair(hash);
@@ -311,7 +297,6 @@ function attachApi() {
 				lifetime: body.lifetime
 			});
 
-			res.json({success: true, transaction: transaction});
 			library.sequence.add(function (cb) {
 				modules.transactions.receiveTransactions([transaction], cb);
 			}, function (err) {
