@@ -950,6 +950,7 @@ Accounts.prototype.getAccountOrCreateByAddress = function (address) {
 		account = new Account(address);
 		private.addAccount(account);
 	}
+
 	return account;
 }
 
