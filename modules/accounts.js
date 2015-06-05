@@ -698,6 +698,10 @@ function attachApi() {
 		});
 	});
 
+	router.get("/delegates/fee", function (req, res) {
+		return res.json({success: true, fee: 1 * constants.fixedPoint});
+	});
+
 	router.put("/delegates", function (req, res, next) {
 		req.sanitize("body", {
 			secret: {
