@@ -83,12 +83,16 @@ function Multisignature() {
 		return bb.toBuffer();
 	}
 
-	this.apply = function (trs, sender) {
-		return sender.applyMultisignature(trs.asset.multisignature);
+	this.apply = function (trs, sender, cb) {
+		var res = sender.applyMultisignature(trs.asset.multisignature);
+
+		setImmediate(cb, res ? null : true);
 	}
 
-	this.undo = function (trs, sender) {
-		return sender.undoMultisignature(trs.asset.multisignature);
+	this.undo = function (trs, sender, cb) {
+		var res = sender.undoMultisignature(trs.asset.multisignature);
+
+		setImmediate(cb, res ? null : true);
 	}
 
 	this.applyUnconfirmed = function (trs, sender, cb) {

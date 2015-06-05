@@ -105,18 +105,18 @@ function Delegate() {
 		return new Buffer(trs.asset.delegate.username, 'utf8');
 	}
 
-	this.apply = function (trs, sender) {
+	this.apply = function (trs, sender, cb) {
 		modules.delegates.removeUnconfirmedDelegate(trs.asset.delegate);
 		modules.delegates.cache(trs.asset.delegate);
 
-		return true;
+		setImmediate(cb);
 	}
 
-	this.undo = function (trs, sender) {
+	this.undo = function (trs, sender, cb) {
 		modules.delegates.uncache(trs.asset.delegate);
 		modules.delegates.addUnconfirmedDelegate(trs.asset.delegate);
 
-		return true;
+		setImmediate(cb);
 	}
 
 	this.applyUnconfirmed = function (trs, sender, cb) {

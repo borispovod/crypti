@@ -290,9 +290,9 @@ Transaction.prototype.verifySignature = function (trs, publicKey, signature) {
 	return res;
 }
 
-Transaction.prototype.apply = function (trs, sender) {
+Transaction.prototype.apply = function (trs, sender, cb) {
 	if (!private.types[trs.type]) {
-		throw Error('Unknown transaction type ' + trs.type);
+		return setImmediate(cb, 'Unknown transaction type ' + trs.type);
 	}
 
 	if (!this.ready(trs, sender)) {
@@ -302,34 +302,34 @@ Transaction.prototype.apply = function (trs, sender) {
 	var amount = trs.amount + trs.fee;
 
 	if (trs.blockId != genesisblock.block.id && sender.balance < amount) {
-		return false;
+		return setImmediate(cb, "Balance has no XCR: " + trs.id);
 	}
 
 	sender.addToBalance(-amount);
 
-	if (!private.types[trs.type].apply.call(this, trs, sender)) {
-		sender.addToBalance(amount);
-		return false;
-	}
-
-	return true;
+	private.types[trs.type].apply.call(this, trs, sender, function (err) {
+		if (err) {
+			sender.addToBalance(amount);
+		}
+		setImmediate(cb, err);
+	});
 }
 
-Transaction.prototype.undo = function (trs, sender) {
+Transaction.prototype.undo = function (trs, sender, cb) {
 	if (!private.types[trs.type]) {
-		throw Error('Unknown transaction type ' + trs.type);
+		return setImmediate(cb, 'Unknown transaction type ' + trs.type);
 	}
 
 	var amount = trs.amount + trs.fee;
 
 	sender.addToBalance(amount);
 
-	if (!private.types[trs.type].undo.call(this, trs, sender)) {
-		sender.addToBalance(-amount);
-		return false;
-	}
-
-	return true;
+	private.types[trs.type].undo.call(this, trs, sender, function (err) {
+		if (err) {
+			sender.addToBalance(-amount);
+		}
+		setImmediate(cb, err);
+	})
 }
 
 Transaction.prototype.applyUnconfirmed = function (trs, sender, cb) {
@@ -357,21 +357,21 @@ Transaction.prototype.applyUnconfirmed = function (trs, sender, cb) {
 	});
 }
 
-Transaction.prototype.undoUnconfirmed = function (trs, sender) {
+Transaction.prototype.undoUnconfirmed = function (trs, sender, cb) {
 	if (!private.types[trs.type]) {
-		throw Error('Unknown transaction type ' + trs.type);
+		return setImmediate(cb, 'Unknown transaction type ' + trs.type);
 	}
 
 	var amount = trs.amount + trs.fee;
 
 	sender.addToUnconfirmedBalance(amount);
 
-	if (!private.types[trs.type].undoUnconfirmed.call(this, trs, sender)) {
-		sender.addToUnconfirmedBalance(-amount);
-		return false;
-	}
-
-	return true;
+	private.types[trs.type].undoUnconfirmed.call(this, trs, sender, function (err) {
+		if (err) {
+			sender.addToUnconfirmedBalance(-amount);
+		}
+		setImmediate(cb, err);
+	});
 }
 
 Transaction.prototype.dbSave = function (trs, cb) {

@@ -76,12 +76,16 @@ function Contact() {
 		return bb.toBuffer()
 	}
 
-	this.apply = function (trs, sender) {
-		return sender.applyContact(trs.asset.contact.address);
+	this.apply = function (trs, sender, cb) {
+		var res = sender.applyContact(trs.asset.contact.address);
+
+		setImmediate(cb, res ? null : true);
 	}
 
-	this.undo = function (trs, sender) {
-		return sender.undoContact(trs.asset.contact.address);
+	this.undo = function (trs, sender, cb) {
+		var res = sender.undoContact(trs.asset.contact.address);
+
+		setImmediate(cb, res ? null : true);
 	}
 
 	this.applyUnconfirmed = function (trs, sender, cb) {

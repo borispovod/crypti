@@ -54,22 +54,22 @@ function Transfer() {
 		return null;
 	}
 
-	this.apply = function (trs, sender) {
+	this.apply = function (trs, sender, cb) {
 		var recipient = modules.accounts.getAccountOrCreateByAddress(trs.recipientId);
 
 		recipient.addToUnconfirmedBalance(trs.amount);
 		recipient.addToBalance(trs.amount);
 
-		return true;
+		setImmediate(cb);
 	}
 
-	this.undo = function (trs, sender) {
+	this.undo = function (trs, sender, cb) {
 		var recipient = modules.accounts.getAccountOrCreateByAddress(trs.recipientId);
 
 		recipient.addToUnconfirmedBalance(-trs.amount);
 		recipient.addToBalance(-trs.amount);
 
-		return true;
+		setImmediate(cb);
 	}
 
 	this.applyUnconfirmed = function (trs, sender, cb) {
@@ -519,27 +519,28 @@ Transactions.prototype.applyUnconfirmedList = function (ids, cb) {
 	}, cb);
 }
 
-Transactions.prototype.undoUnconfirmedList = function () {
+Transactions.prototype.undoUnconfirmedList = function (cb) {
 	var ids = [];
-	for (var i = 0; i < private.unconfirmedTransactions.length; i++) {
-		if (private.unconfirmedTransactions[i] !== false) {
-			ids.push(private.unconfirmedTransactions[i].id);
-			self.undoUnconfirmed(private.unconfirmedTransactions[i]);
+	async.eachSeries(private.unconfirmedTransactions, function (transaction, cb) {
+		if (transaction !== false) {
+			ids.push(transaction.id);
+			self.undoUnconfirmed(transaction, cb);
 		}
-	}
-	return ids;
+	}, function (err) {
+		cb(err, ids);
+	})
 }
 
-Transactions.prototype.apply = function (transaction) {
+Transactions.prototype.apply = function (transaction, cb) {
 	var sender = modules.accounts.getAccountByPublicKey(transaction.senderPublicKey);
 
-	return library.logic.transaction.apply(transaction, sender);
+	library.logic.transaction.apply(transaction, sender, cb);
 }
 
-Transactions.prototype.undo = function (transaction) {
+Transactions.prototype.undo = function (transaction, cb) {
 	var sender = modules.accounts.getAccountByPublicKey(transaction.senderPublicKey);
 
-	return library.logic.transaction.undo(transaction, sender);
+	library.logic.transaction.undo(transaction, sender, cb);
 }
 
 Transactions.prototype.applyUnconfirmed = function (transaction, cb) {
@@ -554,10 +555,10 @@ Transactions.prototype.applyUnconfirmed = function (transaction, cb) {
 	return library.logic.transaction.applyUnconfirmed(transaction, sender, cb);
 }
 
-Transactions.prototype.undoUnconfirmed = function (transaction) {
+Transactions.prototype.undoUnconfirmed = function (transaction, cb) {
 	var sender = modules.accounts.getAccountByPublicKey(transaction.senderPublicKey);
 
-	return library.logic.transaction.undoUnconfirmed(transaction, sender);
+	library.logic.transaction.undoUnconfirmed(transaction, sender, cb);
 }
 
 Transactions.prototype.receiveTransactions = function (transactions, cb) {

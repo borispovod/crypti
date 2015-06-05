@@ -72,20 +72,20 @@ function Signature() {
 		return bb.toBuffer();
 	}
 
-	this.apply = function (trs, sender) {
+	this.apply = function (trs, sender, cb) {
 		sender.unconfirmedSignature = false;
 		sender.secondSignature = true;
 		sender.secondPublicKey = trs.asset.signature.publicKey;
 
-		return true;
+		setImmediate(cb);
 	}
 
-	this.undo = function (trs, sender) {
+	this.undo = function (trs, sender, cb) {
 		sender.secondSignature = false;
 		sender.unconfirmedSignature = true;
 		sender.secondPublicKey = null;
 
-		return true;
+		setImmediate(cb);
 	}
 
 	this.applyUnconfirmed = function (trs, sender, cb) {

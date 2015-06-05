@@ -482,16 +482,16 @@ function Vote() {
 		return trs.asset.votes ? new Buffer(trs.asset.votes.join(''), 'utf8') : null;
 	}
 
-	this.apply = function (trs, sender) {
+	this.apply = function (trs, sender, cb) {
 		sender.applyDelegateList(trs.asset.votes);
 
-		return true;
+		setImmediate(cb);
 	}
 
-	this.undo = function (trs, sender) {
+	this.undo = function (trs, sender, cb) {
 		sender.undoDelegateList(trs.asset.votes);
 
-		return true;
+		setImmediate(cb);
 	}
 
 	this.applyUnconfirmed = function (trs, sender, cb) {
@@ -606,20 +606,20 @@ function Username() {
 		return new Buffer(trs.asset.username.alias, 'utf8');
 	}
 
-	this.apply = function (trs, sender) {
+	this.apply = function (trs, sender, cb) {
 		delete private.unconfirmedNames[trs.asset.username.alias.toLowerCase()]
 		private.username2address[trs.asset.username.alias.toLowerCase()] = sender.address;
 		sender.username = trs.asset.username.alias;
 
-		return true;
+		setImmediate(cb);
 	}
 
-	this.undo = function (trs, sender) {
+	this.undo = function (trs, sender, cb) {
 		private.unconfirmedNames[trs.asset.username.alias.toLowerCase()] = true;
 		delete private.username2address[trs.asset.username.alias.toLowerCase()];
 		sender.username = null;
 
-		return true;
+		setImmediate(cb);
 	}
 
 	this.applyUnconfirmed = function (trs, sender, cb) {
