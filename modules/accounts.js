@@ -356,7 +356,6 @@ Account.prototype.applyUnconfirmedMultisignature = function (multisignature) {
 	return false;
 }
 
-
 Account.prototype.undoUnconfirmedMultisignature = function (multisignature) {
 	var copyDiff = reverseDiff(multisignature.keysgroup);
 
@@ -475,7 +474,7 @@ function Vote() {
 		setImmediate(cb, null, trs);
 	}
 
-	this.process = function (dbLite, trs, sender, cb) {
+	this.process = function (trs, sender, cb) {
 		setImmediate(cb, null, trs);
 	}
 
@@ -525,8 +524,8 @@ function Vote() {
 		}
 	}
 
-	this.dbSave = function (dbLite, trs, cb) {
-		dbLite.query("INSERT INTO votes(votes, transactionId) VALUES($votes, $transactionId)", {
+	this.dbSave = function (trs, cb) {
+		library.dbLite.query("INSERT INTO votes(votes, transactionId) VALUES($votes, $transactionId)", {
 			votes: util.isArray(trs.asset.votes) ? trs.asset.votes.join(',') : null,
 			transactionId: trs.id
 		}, cb);
@@ -599,7 +598,7 @@ function Username() {
 		setImmediate(cb, null, trs);
 	}
 
-	this.process = function (dbLite, trs, sender, cb) {
+	this.process = function (trs, sender, cb) {
 		setImmediate(cb, null, trs);
 	}
 
@@ -686,8 +685,8 @@ function Username() {
 		}
 	}
 
-	this.dbSave = function (dbLite, trs, cb) {
-		dbLite.query("INSERT INTO usernames(username, transactionId) VALUES($username, $transactionId)", {
+	this.dbSave = function (trs, cb) {
+		library.dbLite.query("INSERT INTO usernames(username, transactionId) VALUES($username, $transactionId)", {
 			username: trs.asset.username.alias,
 			transactionId: trs.id
 		}, cb);

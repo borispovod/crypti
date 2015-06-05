@@ -55,7 +55,7 @@ function Contact() {
 		setImmediate(cb, null, trs);
 	}
 
-	this.process = function (dbLite, trs, sender, cb) {
+	this.process = function (trs, sender, cb) {
 		setImmediate(cb, null, trs);
 	}
 
@@ -127,8 +127,8 @@ function Contact() {
 		}
 	}
 
-	this.dbSave = function (dbLite, trs, cb) {
-		dbLite.query("INSERT INTO contacts(address, transactionId) VALUES($address, $transactionId)", {
+	this.dbSave = function (trs, cb) {
+		library.dbLite.query("INSERT INTO contacts(address, transactionId) VALUES($address, $transactionId)", {
 			address: trs.asset.contact.address,
 			transactionId: trs.id
 		}, cb);

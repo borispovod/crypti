@@ -250,7 +250,7 @@ private.getById = function (id, cb) {
 private.saveBlock = function (block, cb) {
 	library.dbLite.query('BEGIN TRANSACTION;');
 
-	library.logic.block.dbSave(library.dbLite, block, function (err) {
+	library.logic.block.dbSave(block, function (err) {
 		if (err) {
 			library.dbLite.query('ROLLBACK;', function (rollbackErr) {
 				cb(rollbackErr || err);
@@ -260,7 +260,7 @@ private.saveBlock = function (block, cb) {
 
 		async.eachSeries(block.transactions, function (transaction, cb) {
 			transaction.blockId = block.id;
-			library.logic.transaction.dbSave(library.dbLite, transaction, cb);
+			library.logic.transaction.dbSave(transaction, cb);
 		}, function (err) {
 			if (err) {
 				library.dbLite.query('ROLLBACK;', function (rollbackErr) {
@@ -886,8 +886,9 @@ Blocks.prototype.generateBlock = function (keypair, timestamp, cb) {
 	var ready = []
 
 	async.eachSeries(transactions, function (transaction, cb) {
-		if (library.logic.transaction.ready(transaction)) {
-			var sender = modules.accounts.getAccountByPublicKey(transaction.senderPublicKey);
+		var sender = modules.accounts.getAccountByPublicKey(transaction.senderPublicKey);
+
+		if (library.logic.transaction.ready(transaction, sender)) {
 			library.logic.transaction.verify(transaction, sender, function (err) {
 				if (err) {
 					return cb();

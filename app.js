@@ -240,22 +240,29 @@ d.run(function () {
 			dbLite.connect(config.db, cb);
 		},
 
-		logic: function (cb) {
+		logic: ['dbLite', function (cb, scope) {
 			var Transaction = require('./logic/transaction.js');
 			var Block = require('./logic/block.js');
+			var Account = require('./logic/account.js');
 
-			var block = new Block();
-			var transaction = new Transaction();
-
-			block.logic = {
-				transaction: transaction
-			}
-
-			cb(null, {
-				transaction: transaction,
-				block: block
-			});
-		},
+			async.auto({
+				block: function (cb) {
+					var block = new Block(scope.dbLite, cb);
+					cb(null, block);
+				},
+				transaction: ["block", function (cb, lscope) {
+					var transaction = new Transaction(scope.dbLite);
+					lscope.block.logic = {
+						transaction: transaction
+					}
+					cb(null, transaction);
+				}],
+				account: function (cb) {
+					var account = new Account(scope.dbLite);
+					cb(null, account);
+				}
+			}, cb);
+		}],
 
 		modules: ['network', 'connect', 'config', 'logger', 'bus', 'sequence', 'dbLite', function (cb, scope) {
 			var tasks = {};

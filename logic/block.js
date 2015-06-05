@@ -8,8 +8,9 @@ var slots = require('../helpers/slots.js'),
 	RequestSanitizer = require('../helpers/request-sanitizer.js');
 
 //constructor
-function Block() {
-
+function Block(dbLite, cb) {
+	this.dbLite = dbLite;
+	setImmediate(cb, null, this);
 }
 
 //private methods
@@ -160,8 +161,8 @@ Block.prototype.verifySignature = function (block) {
 	return res;
 }
 
-Block.prototype.dbSave = function (dbLite, block, cb) {
-	dbLite.query("INSERT INTO blocks(id, version, timestamp, height, previousBlock,  numberOfTransactions, totalAmount, totalFee, payloadLength, payloadHash, generatorPublicKey, blockSignature) VALUES($id, $version, $timestamp, $height, $previousBlock, $numberOfTransactions, $totalAmount, $totalFee, $payloadLength,  $payloadHash, $generatorPublicKey, $blockSignature)", {
+Block.prototype.dbSave = function (block, cb) {
+	this.dbLite.query("INSERT INTO blocks(id, version, timestamp, height, previousBlock,  numberOfTransactions, totalAmount, totalFee, payloadLength, payloadHash, generatorPublicKey, blockSignature) VALUES($id, $version, $timestamp, $height, $previousBlock, $numberOfTransactions, $totalAmount, $totalFee, $payloadLength,  $payloadHash, $generatorPublicKey, $blockSignature)", {
 		id: block.id,
 		version: block.version,
 		timestamp: block.timestamp,

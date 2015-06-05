@@ -97,7 +97,7 @@ function Delegate() {
 		setImmediate(cb, null, trs);
 	}
 
-	this.process = function (dbLite, trs, sender, cb) {
+	this.process = function (trs, sender, cb) {
 		setImmediate(cb, null, trs);
 	}
 
@@ -178,8 +178,8 @@ function Delegate() {
 		}
 	}
 
-	this.dbSave = function (dbLite, trs, cb) {
-		dbLite.query("INSERT INTO delegates(username, transactionId) VALUES($username, $transactionId)", {
+	this.dbSave = function (trs, cb) {
+		library.dbLite.query("INSERT INTO delegates(username, transactionId) VALUES($username, $transactionId)", {
 			username: trs.asset.delegate.username,
 			transactionId: trs.id
 		}, cb);

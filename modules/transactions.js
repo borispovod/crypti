@@ -46,7 +46,7 @@ function Transfer() {
 		cb(null, trs);
 	}
 
-	this.process = function (dbLite, trs, sender, cb) {
+	this.process = function (trs, sender, cb) {
 		setImmediate(cb, null, trs);
 	}
 
@@ -496,7 +496,7 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 		return done();
 	}
 
-	library.logic.transaction.process(library.dbLite, transaction, sender, function (err, transaction) {
+	library.logic.transaction.process(transaction, sender, function (err, transaction) {
 		// check in confirmed transactions
 		if (private.unconfirmedTransactionsIdIndex[transaction.id] !== undefined || private.doubleSpendingTransactions[transaction.id]) {
 			return cb("This transaction already exists");

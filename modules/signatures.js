@@ -52,7 +52,7 @@ function Signature() {
 		setImmediate(cb, null, trs);
 	}
 
-	this.process = function (dbLite, trs, sender, cb) {
+	this.process = function (trs, sender, cb) {
 		setImmediate(cb, null, trs);
 	}
 
@@ -134,8 +134,8 @@ function Signature() {
 		}
 	}
 
-	this.dbSave = function (dbLite, trs, cb) {
-		dbLite.query("INSERT INTO signatures(transactionId, publicKey) VALUES($transactionId, $publicKey)", {
+	this.dbSave = function (trs, cb) {
+		library.dbLite.query("INSERT INTO signatures(transactionId, publicKey) VALUES($transactionId, $publicKey)", {
 			transactionId: trs.id,
 			publicKey: new Buffer(trs.asset.signature.publicKey, 'hex')
 		}, cb);
