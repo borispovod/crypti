@@ -52,7 +52,7 @@ function Signature() {
 		setImmediate(cb, null, trs);
 	}
 
-	this.process = function (dbLite, trs, sender, cb) {
+	this.process = function (trs, sender, cb) {
 		setImmediate(cb, null, trs);
 	}
 
@@ -72,20 +72,20 @@ function Signature() {
 		return bb.toBuffer();
 	}
 
-	this.apply = function (trs, sender) {
+	this.apply = function (trs, sender, cb) {
 		sender.unconfirmedSignature = false;
 		sender.secondSignature = true;
 		sender.secondPublicKey = trs.asset.signature.publicKey;
 
-		return true;
+		setImmediate(cb);
 	}
 
-	this.undo = function (trs, sender) {
+	this.undo = function (trs, sender, cb) {
 		sender.secondSignature = false;
 		sender.unconfirmedSignature = true;
 		sender.secondPublicKey = null;
 
-		return true;
+		setImmediate(cb);
 	}
 
 	this.applyUnconfirmed = function (trs, sender, cb) {
@@ -134,16 +134,16 @@ function Signature() {
 		}
 	}
 
-	this.dbSave = function (dbLite, trs, cb) {
-		dbLite.query("INSERT INTO signatures(transactionId, publicKey) VALUES($transactionId, $publicKey)", {
+	this.dbSave = function (trs, cb) {
+		library.dbLite.query("INSERT INTO signatures(transactionId, publicKey) VALUES($transactionId, $publicKey)", {
 			transactionId: trs.id,
 			publicKey: new Buffer(trs.asset.signature.publicKey, 'hex')
 		}, cb);
 	}
 
 	this.ready = function (trs, sender) {
-		if (sender.multisignatures) {
-			return trs.signatures.length >= trs.asset.multisignature.min;
+		if (sender.multisignature.keysgroup.length) {
+			return trs.signatures.length >= sender.multisignature.min;
 		} else {
 			return true;
 		}

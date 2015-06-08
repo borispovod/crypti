@@ -97,7 +97,7 @@ function Delegate() {
 		setImmediate(cb, null, trs);
 	}
 
-	this.process = function (dbLite, trs, sender, cb) {
+	this.process = function (trs, sender, cb) {
 		setImmediate(cb, null, trs);
 	}
 
@@ -105,18 +105,18 @@ function Delegate() {
 		return new Buffer(trs.asset.delegate.username, 'utf8');
 	}
 
-	this.apply = function (trs, sender) {
+	this.apply = function (trs, sender, cb) {
 		modules.delegates.removeUnconfirmedDelegate(trs.asset.delegate);
 		modules.delegates.cache(trs.asset.delegate);
 
-		return true;
+		setImmediate(cb);
 	}
 
-	this.undo = function (trs, sender) {
+	this.undo = function (trs, sender, cb) {
 		modules.delegates.uncache(trs.asset.delegate);
 		modules.delegates.addUnconfirmedDelegate(trs.asset.delegate);
 
-		return true;
+		setImmediate(cb);
 	}
 
 	this.applyUnconfirmed = function (trs, sender, cb) {
@@ -178,16 +178,16 @@ function Delegate() {
 		}
 	}
 
-	this.dbSave = function (dbLite, trs, cb) {
-		dbLite.query("INSERT INTO delegates(username, transactionId) VALUES($username, $transactionId)", {
+	this.dbSave = function (trs, cb) {
+		library.dbLite.query("INSERT INTO delegates(username, transactionId) VALUES($username, $transactionId)", {
 			username: trs.asset.delegate.username,
 			transactionId: trs.id
 		}, cb);
 	}
 
 	this.ready = function (trs, sender) {
-		if (sender.multisignatures) {
-			return trs.signatures.length >= trs.asset.multisignature.min;
+		if (sender.multisignature.keysgroup.length) {
+			return trs.signatures.length >= sender.multisignature.min;
 		} else {
 			return true;
 		}

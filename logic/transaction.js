@@ -9,8 +9,9 @@ var slots = require('../helpers/slots.js'),
 	RequestSanitizer = require('../helpers/request-sanitizer.js');
 
 //constructor
-function Transaction() {
-	//Object.freeze(this);
+function Transaction(dbLite, cb) {
+	this.dbLite = dbLite;
+	setImmediate(cb, null, this);
 }
 
 //private methods
@@ -36,10 +37,11 @@ Transaction.prototype.create = function (data) {
 		amount: 0,
 		senderPublicKey: data.sender.publicKey,
 		timestamp: slots.getTime(),
-		asset: {}
+		asset: {},
+		signatures: []
 	};
 
-	trs = private.types[trs.type].create(data, trs);
+	trs = private.types[trs.type].create.call(this, data, trs);
 
 	trs.signature = this.sign(data.keypair, trs);
 
@@ -49,7 +51,7 @@ Transaction.prototype.create = function (data) {
 
 	trs.id = this.getId(trs);
 
-	trs.fee = private.types[trs.type].calculateFee(trs) || false;
+	trs.fee = private.types[trs.type].calculateFee.call(this, trs) || false;
 
 	return trs;
 }
@@ -94,7 +96,7 @@ Transaction.prototype.getBytes = function (trs, skipSignatures) {
 	}
 
 	try {
-		var assetBytes = private.types[trs.type].getBytes(trs, skipSignatures);
+		var assetBytes = private.types[trs.type].getBytes.call(this, trs, skipSignatures);
 		var assetSize = assetBytes ? assetBytes.length : 0;
 
 		var bb = new ByteBuffer(1 + 4 + 32 + 8 + 8 + 64 + 64 + assetSize, true);
@@ -153,7 +155,7 @@ Transaction.prototype.ready = function (trs, sender) {
 		throw Error('Unknown transaction type ' + trs.type);
 	}
 
-	return private.types[trs.type].ready(trs, sender);
+	return private.types[trs.type].ready.call(this, trs, sender);
 }
 
 Transaction.prototype.verify = function (trs, sender, cb) { //inheritance
@@ -180,13 +182,25 @@ Transaction.prototype.verify = function (trs, sender, cb) { //inheritance
 		return setImmediate(cb, "Can't verify second signature: " + trs.id);
 	}
 
+	for (var s = 0; s < sender.multisignature.keysgroup.length; s++) {
+		var verify = false;
+		for (var d = 0; d < trs.signatures.length && !verify; d++) {
+			if (this.verifySignature(trs, sender.multisignature.keysgroup[s], trs.signatures[d])) {
+				verify = true;
+			}
+		}
+		if (!verify) {
+			return setImmediate(cb, "Failed multisignature: " + trs.id);
+		}
+	}
+
 	//check sender
 	if (trs.senderId != sender.address) {
 		return setImmediate(cb, "Invalid sender id: " + trs.id);
 	}
 
 	//calc fee
-	var fee = private.types[trs.type].calculateFee(trs) || false;
+	var fee = private.types[trs.type].calculateFee.call(this, trs) || false;
 	if (!fee || trs.fee != fee) {
 		return setImmediate(cb, "Invalid transaction type/fee: " + trs.id);
 	}
@@ -200,10 +214,10 @@ Transaction.prototype.verify = function (trs, sender, cb) { //inheritance
 	}
 
 	//spec
-	private.types[trs.type].verify(trs, sender, cb);
+	private.types[trs.type].verify.call(this, trs, sender, cb);
 }
 
-Transaction.prototype.process = function (dbLite, trs, sender, cb) {
+Transaction.prototype.process = function (trs, sender, cb) {
 	if (!private.types[trs.type]) {
 		return setImmediate(cb, 'Unknown transaction type ' + trs.type);
 	}
@@ -230,12 +244,12 @@ Transaction.prototype.process = function (dbLite, trs, sender, cb) {
 		return setImmediate(cb, "Can't verify signature");
 	}
 
-	private.types[trs.type].process(dbLite, trs, sender, function (err, trs) {
+	private.types[trs.type].process.call(this, trs, sender, function (err, trs) {
 		if (err) {
 			return setImmediate(cb, err);
 		}
 
-		dbLite.query("SELECT count(id) FROM trs WHERE id=$id", {id: trs.id}, {"count": Number}, function (err, rows) {
+		this.dbLite.query("SELECT count(id) FROM trs WHERE id=$id", {id: trs.id}, {"count": Number}, function (err, rows) {
 			if (err) {
 				return cb("Internal sql error");
 			}
@@ -248,7 +262,7 @@ Transaction.prototype.process = function (dbLite, trs, sender, cb) {
 
 			cb(null, trs);
 		});
-	});
+	}.bind(this));
 }
 
 Transaction.prototype.verifySignature = function (trs, publicKey, signature) {
@@ -276,9 +290,9 @@ Transaction.prototype.verifySignature = function (trs, publicKey, signature) {
 	return res;
 }
 
-Transaction.prototype.apply = function (trs, sender) {
+Transaction.prototype.apply = function (trs, sender, cb) {
 	if (!private.types[trs.type]) {
-		throw Error('Unknown transaction type ' + trs.type);
+		return setImmediate(cb, 'Unknown transaction type ' + trs.type);
 	}
 
 	if (!this.ready(trs, sender)) {
@@ -288,34 +302,34 @@ Transaction.prototype.apply = function (trs, sender) {
 	var amount = trs.amount + trs.fee;
 
 	if (trs.blockId != genesisblock.block.id && sender.balance < amount) {
-		return false;
+		return setImmediate(cb, "Balance has no XCR: " + trs.id);
 	}
 
 	sender.addToBalance(-amount);
 
-	if (!private.types[trs.type].apply(trs, sender)) {
-		sender.addToBalance(amount);
-		return false;
-	}
-
-	return true;
+	private.types[trs.type].apply.call(this, trs, sender, function (err) {
+		if (err) {
+			sender.addToBalance(amount);
+		}
+		setImmediate(cb, err);
+	});
 }
 
-Transaction.prototype.undo = function (trs, sender) {
+Transaction.prototype.undo = function (trs, sender, cb) {
 	if (!private.types[trs.type]) {
-		throw Error('Unknown transaction type ' + trs.type);
+		return setImmediate(cb, 'Unknown transaction type ' + trs.type);
 	}
 
 	var amount = trs.amount + trs.fee;
 
 	sender.addToBalance(amount);
 
-	if (!private.types[trs.type].undo(trs, sender)) {
-		sender.addToBalance(-amount);
-		return false;
-	}
-
-	return true;
+	private.types[trs.type].undo.call(this, trs, sender, function (err) {
+		if (err) {
+			sender.addToBalance(-amount);
+		}
+		setImmediate(cb, err);
+	})
 }
 
 Transaction.prototype.applyUnconfirmed = function (trs, sender, cb) {
@@ -335,7 +349,7 @@ Transaction.prototype.applyUnconfirmed = function (trs, sender, cb) {
 
 	sender.addToUnconfirmedBalance(-amount);
 
-	private.types[trs.type].applyUnconfirmed(trs, sender, function (err) {
+	private.types[trs.type].applyUnconfirmed.call(this, trs, sender, function (err) {
 		if (err) {
 			sender.addToUnconfirmedBalance(amount);
 		}
@@ -343,29 +357,29 @@ Transaction.prototype.applyUnconfirmed = function (trs, sender, cb) {
 	});
 }
 
-Transaction.prototype.undoUnconfirmed = function (trs, sender) {
+Transaction.prototype.undoUnconfirmed = function (trs, sender, cb) {
 	if (!private.types[trs.type]) {
-		throw Error('Unknown transaction type ' + trs.type);
+		return setImmediate(cb, 'Unknown transaction type ' + trs.type);
 	}
 
 	var amount = trs.amount + trs.fee;
 
 	sender.addToUnconfirmedBalance(amount);
 
-	if (!private.types[trs.type].undoUnconfirmed(trs, sender)) {
-		sender.addToUnconfirmedBalance(-amount);
-		return false;
-	}
-
-	return true;
+	private.types[trs.type].undoUnconfirmed.call(this, trs, sender, function (err) {
+		if (err) {
+			sender.addToUnconfirmedBalance(-amount);
+		}
+		setImmediate(cb, err);
+	});
 }
 
-Transaction.prototype.dbSave = function (dbLite, trs, cb) {
+Transaction.prototype.dbSave = function (trs, cb) {
 	if (!private.types[trs.type]) {
 		return cb('Unknown transaction type ' + trs.type);
 	}
 
-	dbLite.query("INSERT INTO trs(id, blockId, type, timestamp, senderPublicKey, senderId, recipientId, senderUsername, recipientUsername, amount, fee, signature, signSignature) VALUES($id, $blockId, $type, $timestamp, $senderPublicKey, $senderId, $recipientId, $senderUsername, $recipientUsername, $amount, $fee, $signature, $signSignature)", {
+	this.dbLite.query("INSERT INTO trs(id, blockId, type, timestamp, senderPublicKey, senderId, recipientId, senderUsername, recipientUsername, amount, fee, signature, signSignature) VALUES($id, $blockId, $type, $timestamp, $senderPublicKey, $senderId, $recipientId, $senderUsername, $recipientUsername, $amount, $fee, $signature, $signSignature)", {
 		id: trs.id,
 		blockId: trs.blockId,
 		type: trs.type,
@@ -384,8 +398,8 @@ Transaction.prototype.dbSave = function (dbLite, trs, cb) {
 			return cb(err);
 		}
 
-		private.types[trs.type].dbSave(dbLite, trs, cb);
-	});
+		private.types[trs.type].dbSave.call(this, trs, cb);
+	}.bind(this));
 
 }
 
@@ -422,7 +436,7 @@ Transaction.prototype.objectNormalize = function (trs) {
 	trs = report.value;
 
 	try {
-		trs = private.types[trs.type].objectNormalize(trs);
+		trs = private.types[trs.type].objectNormalize.call(this, trs);
 	} catch (e) {
 		throw Error(e.toString());
 	}
@@ -457,7 +471,7 @@ Transaction.prototype.dbRead = function (raw) {
 			throw Error('Unknown transaction type ' + tx.type);
 		}
 
-		var asset = private.types[tx.type].dbRead(raw);
+		var asset = private.types[tx.type].dbRead.call(this, raw);
 
 		if (asset) {
 			tx.asset = extend(tx.asset, asset);

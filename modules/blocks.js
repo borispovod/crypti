@@ -250,7 +250,7 @@ private.getById = function (id, cb) {
 private.saveBlock = function (block, cb) {
 	library.dbLite.query('BEGIN TRANSACTION;');
 
-	library.logic.block.dbSave(library.dbLite, block, function (err) {
+	library.logic.block.dbSave(block, function (err) {
 		if (err) {
 			library.dbLite.query('ROLLBACK;', function (rollbackErr) {
 				cb(rollbackErr || err);
@@ -260,7 +260,7 @@ private.saveBlock = function (block, cb) {
 
 		async.eachSeries(block.transactions, function (transaction, cb) {
 			transaction.blockId = block.id;
-			library.logic.transaction.dbSave(library.dbLite, transaction, cb);
+			library.logic.transaction.dbSave(transaction, cb);
 		}, function (err) {
 			if (err) {
 				library.dbLite.query('ROLLBACK;', function (rollbackErr) {
@@ -281,20 +281,27 @@ private.popLastBlock = function (oldLastBlock, cb) {
 		}
 		previousBlock = previousBlock[0];
 
-		for (var i = oldLastBlock.transactions.length - 1; i > -1; i--) {
-			modules.transactions.undo(oldLastBlock.transactions[i]);
-			modules.transactions.undoUnconfirmed(oldLastBlock.transactions[i]);
-			modules.transactions.pushHiddenTransaction(oldLastBlock.transactions[i]);
-		}
+		async.eachSeries(oldLastBlock.transactions.reverse(), function (transaction, cb) {
+			async.series([
+				function (cb) {
+					modules.transactions.undo(transaction, cb);
+				}, function (cb) {
+					modules.transactions.undoUnconfirmed(transaction, cb);
+				}, function (cb) {
+					modules.transactions.pushHiddenTransaction(transaction);
+					setImmediate(cb);
+				}
+			], cb);
+		}, function (err) {
+			modules.round.backwardTick(oldLastBlock, previousBlock);
 
-		modules.round.backwardTick(oldLastBlock, previousBlock);
+			private.deleteBlock(oldLastBlock.id, function (err) {
+				if (err) {
+					return cb(err);
+				}
 
-		private.deleteBlock(oldLastBlock.id, function (err) {
-			if (err) {
-				return cb(err);
-			}
-
-			cb(null, previousBlock);
+				cb(null, previousBlock);
+			});
 		});
 	});
 }
@@ -368,15 +375,16 @@ private.applyTransaction = function (block, transaction, cb) {
 			});
 		}
 
-		if (!modules.transactions.apply(transaction)) {
-			return setImmediate(cb, {
-				message: "Can't apply transaction: " + transaction.id,
-				transaction: transaction,
-				block: block
-			});
-		}
-
-		setImmediate(cb);
+		modules.transactions.apply(transaction, function (err) {
+			if (err) {
+				return setImmediate(cb, {
+					message: "Can't apply transaction: " + transaction.id,
+					transaction: transaction,
+					block: block
+				});
+			}
+			setImmediate(cb);
+		});
 	});
 }
 
@@ -594,18 +602,23 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 					var lastValidTransaction = block.transactions.findIndex(function (trs) {
 						return trs.id == err.transaction.id;
 					});
-					for (var n = lastValidTransaction - 1; n > -1; n--) {
-						modules.transactions.undo(block.transactions[n]);
-						modules.transactions.undoUnconfirmed(block.transactions[n])
-					}
-					return setImmediate(cb, err);
+					var transactions = block.transactions.slice(0, lastValidTransaction + 1);
+					async.eachSeries(transactions.reverse(), function (transaction, cb) {
+						async.series([
+							function (cb) {
+								modules.transactions.undo(transaction, cb);
+							}, function (cb) {
+								modules.transactions.undoUnconfirmed(transaction, cb);
+							}
+						], cb);
+					}, cb);
+				} else {
+					private.lastBlock = block;
+
+					modules.round.tick(private.lastBlock);
+
+					setImmediate(cb);
 				}
-
-				private.lastBlock = block;
-
-				modules.round.tick(private.lastBlock);
-
-				setImmediate(cb);
 			});
 		}, function (err) {
 			cb(err, private.lastBlock);
@@ -621,177 +634,181 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 	block.id = library.logic.block.getId(block);
 	block.height = private.lastBlock.height + 1;
 
-	var unconfirmedTransactions = modules.transactions.undoUnconfirmedList();
-
-	function done(err) {
-		modules.transactions.applyUnconfirmedList(unconfirmedTransactions, function () {
-			setImmediate(cb, err);
-		});
-	}
-
-	library.dbLite.query("SELECT id FROM blocks WHERE id=$id", {id: block.id}, ['id'], function (err, rows) {
+	modules.transactions.undoUnconfirmedList(function (err, unconfirmedTransactions) {
 		if (err) {
-			return done(err);
+			return process.exit(0);
 		}
 
-		var bId = rows.length && rows[0].id;
-
-		if (bId) {
-			return done("Block already exists: " + block.id);
+		function done(err) {
+			modules.transactions.applyUnconfirmedList(unconfirmedTransactions, function () {
+				setImmediate(cb, err);
+			});
 		}
 
-		if (!library.logic.block.verifySignature(block)) {
-			return done("Can't verify signature: " + block.id);
-		}
+		library.dbLite.query("SELECT id FROM blocks WHERE id=$id", {id: block.id}, ['id'], function (err, rows) {
+			if (err) {
+				return done(err);
+			}
 
-		if (block.previousBlock != private.lastBlock.id) {
-			//fork same height and different previous block
-			modules.delegates.fork(block, 1);
-			return done("Can't verify previous block: " + block.id);
-		}
+			var bId = rows.length && rows[0].id;
 
-		if (block.version > 2 || block.version <= 0) {
-			return done("Invalid version of block: " + block.id)
-		}
+			if (bId) {
+				return done("Block already exists: " + block.id);
+			}
 
-		var blockSlotNumber = slots.getSlotNumber(block.timestamp);
-		var lastBlockSlotNumber = slots.getSlotNumber(private.lastBlock.timestamp);
+			if (!library.logic.block.verifySignature(block)) {
+				return done("Can't verify signature: " + block.id);
+			}
 
-		if (blockSlotNumber > slots.getSlotNumber() || blockSlotNumber <= lastBlockSlotNumber) {
-			return done("Can't verify block timestamp: " + block.id);
-		}
+			if (block.previousBlock != private.lastBlock.id) {
+				//fork same height and different previous block
+				modules.delegates.fork(block, 1);
+				return done("Can't verify previous block: " + block.id);
+			}
 
-		if (!modules.delegates.validateBlockSlot(block)) {
-			//fork another delegate's slot
-			modules.delegates.fork(block, 3);
-			return done("Can't verify slot: " + block.id);
-		}
+			if (block.version > 2 || block.version <= 0) {
+				return done("Invalid version of block: " + block.id)
+			}
 
-		if (block.payloadLength > constants.maxPayloadLength) {
-			return done("Can't verify payload length of block: " + block.id);
-		}
+			var blockSlotNumber = slots.getSlotNumber(block.timestamp);
+			var lastBlockSlotNumber = slots.getSlotNumber(private.lastBlock.timestamp);
 
-		if (block.transactions.length != block.numberOfTransactions || block.transactions.length > 100) {
-			return done("Invalid amount of block assets: " + block.id);
-		}
+			if (blockSlotNumber > slots.getSlotNumber() || blockSlotNumber <= lastBlockSlotNumber) {
+				return done("Can't verify block timestamp: " + block.id);
+			}
 
-		// check payload hash, transaction, number of confirmations
+			if (!modules.delegates.validateBlockSlot(block)) {
+				//fork another delegate's slot
+				modules.delegates.fork(block, 3);
+				return done("Can't verify slot: " + block.id);
+			}
 
-		var totalAmount = 0, totalFee = 0, payloadHash = crypto.createHash('sha256'), appliedTransactions = {}, acceptedRequests = {}, acceptedConfirmations = {};
+			if (block.payloadLength > constants.maxPayloadLength) {
+				return done("Can't verify payload length of block: " + block.id);
+			}
+
+			if (block.transactions.length != block.numberOfTransactions || block.transactions.length > 100) {
+				return done("Invalid amount of block assets: " + block.id);
+			}
+
+			// check payload hash, transaction, number of confirmations
+
+			var totalAmount = 0, totalFee = 0, payloadHash = crypto.createHash('sha256'), appliedTransactions = {}, acceptedRequests = {}, acceptedConfirmations = {};
 
 
-		async.eachSeries(block.transactions, function (transaction, cb) {
-			transaction.id = library.logic.transaction.getId(transaction);
-			transaction.blockId = block.id;
+			async.eachSeries(block.transactions, function (transaction, cb) {
+				transaction.id = library.logic.transaction.getId(transaction);
+				transaction.blockId = block.id;
 
-			library.dbLite.query("SELECT id FROM trs WHERE id=$id", {id: transaction.id}, ['id'], function (err, rows) {
-					if (err) {
-						return cb(err);
-					}
-
-					var tId = rows.length && rows[0].id;
-
-					if (tId) {
-						//fork transactions already exist
-						modules.delegates.fork(block, 2);
-						setImmediate(cb, "Transaction already exists: " + transaction.id);
-					} else {
-						if (appliedTransactions[transaction.id]) {
-							return setImmediate(cb, "Dublicated transaction in block: " + transaction.id);
+				library.dbLite.query("SELECT id FROM trs WHERE id=$id", {id: transaction.id}, ['id'], function (err, rows) {
+						if (err) {
+							return cb(err);
 						}
 
-						var sender = modules.accounts.getAccountByPublicKey(transaction.senderPublicKey);
+						var tId = rows.length && rows[0].id;
 
-						library.logic.transaction.verify(transaction, sender, function (err) {
-							if (err) {
-								return setImmediate(cb, err);
+						if (tId) {
+							//fork transactions already exist
+							modules.delegates.fork(block, 2);
+							setImmediate(cb, "Transaction already exists: " + transaction.id);
+						} else {
+							if (appliedTransactions[transaction.id]) {
+								return setImmediate(cb, "Dublicated transaction in block: " + transaction.id);
 							}
 
-							modules.transactions.applyUnconfirmed(transaction, function (err) {
+							var sender = modules.accounts.getAccountByPublicKey(transaction.senderPublicKey);
+
+							library.logic.transaction.verify(transaction, sender, function (err) {
 								if (err) {
-									return setImmediate(cb, "Can't apply transaction: " + transaction.id);
+									return setImmediate(cb, err);
 								}
 
-								appliedTransactions[transaction.id] = transaction;
+								modules.transactions.applyUnconfirmed(transaction, function (err) {
+									if (err) {
+										return setImmediate(cb, "Can't apply transaction: " + transaction.id);
+									}
 
-								var index = unconfirmedTransactions.indexOf(transaction.id);
-								if (index >= 0) {
-									unconfirmedTransactions.splice(index, 1);
-								}
+									appliedTransactions[transaction.id] = transaction;
 
-								payloadHash.update(library.logic.transaction.getBytes(transaction, false));
-								totalAmount += transaction.amount;
-								totalFee += transaction.fee;
+									var index = unconfirmedTransactions.indexOf(transaction.id);
+									if (index >= 0) {
+										unconfirmedTransactions.splice(index, 1);
+									}
 
-								setImmediate(cb);
+									payloadHash.update(library.logic.transaction.getBytes(transaction, false));
+									totalAmount += transaction.amount;
+									totalFee += transaction.fee;
+
+									setImmediate(cb);
+								});
 							});
+						}
+					}
+				)
+				;
+			}, function (err) {
+				var errors = [];
+
+				if (err) {
+					errors.push(err);
+				}
+
+				if (payloadHash.digest().toString('hex') !== block.payloadHash) {
+					errors.push("Invalid payload hash: " + block.id);
+				}
+
+				if (totalAmount != block.totalAmount) {
+					errors.push("Invalid total amount: " + block.id);
+				}
+
+				if (totalFee != block.totalFee) {
+					errors.push("Invalid total fee: " + block.id);
+				}
+
+				if (errors.length > 0) {
+					for (var i = 0; i < block.transactions.length; i++) {
+						var transaction = block.transactions[i];
+
+						if (appliedTransactions[transaction.id]) {
+							modules.transactions.undoUnconfirmed(transaction, function () {
+								setImmediate(done, errors[0]);
+							});
+						}
+					}
+				} else {
+					try {
+						block = library.logic.block.objectNormalize(block);
+					} catch (e) {
+						return setImmediate(done, e);
+					}
+
+					async.eachSeries(block.transactions, function (transaction, cb) {
+						modules.transactions.apply(transaction, function (err) {
+							if (err) {
+								library.logger.error("Can't apply transactions: " + transaction.id);
+								process.exit(0);
+							}
+							modules.transactions.removeUnconfirmedTransaction(transaction.id);
+							setImmediate(cb);
 						});
-					}
+					}, function (err) {
+						private.saveBlock(block, function (err) {
+							if (err) {
+								library.logger.error("Can't save block...");
+								library.logger.error(err);
+								process.exit(0);
+							}
+
+							library.bus.message('newBlock', block, broadcast);
+							private.lastBlock = block;
+
+							setImmediate(done);
+						});
+					});
 				}
-			)
-			;
-		}, function (err) {
-			var errors = [];
-
-			if (err) {
-				errors.push(err);
-			}
-
-			if (payloadHash.digest().toString('hex') !== block.payloadHash) {
-				errors.push("Invalid payload hash: " + block.id);
-			}
-
-			if (totalAmount != block.totalAmount) {
-				errors.push("Invalid total amount: " + block.id);
-			}
-
-			if (totalFee != block.totalFee) {
-				errors.push("Invalid total fee: " + block.id);
-			}
-
-			if (errors.length > 0) {
-				for (var i = 0; i < block.transactions.length; i++) {
-					var transaction = block.transactions[i];
-
-					if (appliedTransactions[transaction.id]) {
-						modules.transactions.undoUnconfirmed(transaction);
-					}
-				}
-
-				setImmediate(done, errors[0]);
-			} else {
-				try {
-					block = library.logic.block.objectNormalize(block);
-				} catch (e) {
-					return setImmediate(done, e);
-				}
-
-				for (var i = 0; i < block.transactions.length; i++) {
-					var transaction = block.transactions[i];
-
-					if (!modules.transactions.apply(transaction)) {
-						library.logger.error("Can't apply transactions: " + transaction.id);
-						process.exit(0);
-						return;
-					}
-					modules.transactions.removeUnconfirmedTransaction(transaction.id);
-				}
-
-				private.saveBlock(block, function (err) {
-					if (err) {
-						library.logger.error("Can't save block...");
-						library.logger.error(err);
-						process.exit(0);
-					}
-
-					library.bus.message('newBlock', block, broadcast);
-					private.lastBlock = block;
-
-					setImmediate(done);
-				});
-			}
-		});
-	})
+			});
+		})
+	});
 }
 
 Blocks.prototype.simpleDeleteAfterBlock = function (blockId, cb) {
@@ -886,8 +903,9 @@ Blocks.prototype.generateBlock = function (keypair, timestamp, cb) {
 	var ready = []
 
 	async.eachSeries(transactions, function (transaction, cb) {
-		if (library.logic.transaction.ready(transaction)) {
-			var sender = modules.accounts.getAccountByPublicKey(transaction.senderPublicKey);
+		var sender = modules.accounts.getAccountByPublicKey(transaction.senderPublicKey);
+
+		if (library.logic.transaction.ready(transaction, sender)) {
 			library.logic.transaction.verify(transaction, sender, function (err) {
 				if (err) {
 					return cb();

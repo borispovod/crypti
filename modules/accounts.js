@@ -32,8 +32,8 @@ function Account(address, publicKey, balance, unconfirmedBalance) {
 	this.following = [];
 	this.unconfirmedFollowing = [];
 	this.followers = [];
-	this.unconfirmedMultisignature = null;
-	this.multisignature = null;
+	this.unconfirmedMultisignature = {min: 0, lifetime: 0, keysgroup: []};
+	this.multisignature = {min: 0, lifetime: 0, keysgroup: []};
 }
 
 function reverseDiff(diff) {
@@ -295,7 +295,9 @@ Account.prototype.applyMultisignature = function (multisignature) {
 			return false;
 		}
 
-		this.multisignature = {min: minRes, lifetime: lifetimeRes, keysgroup: dest};
+		this.multisignature.min = minRes;
+		this.multisignature.lifetime = lifetimeRes;
+		this.multisignature.keysgroup = dest;
 		return true;
 	}
 
@@ -320,7 +322,9 @@ Account.prototype.undoMultisignature = function (multisignature) {
 			return false;
 		}
 
-		this.multisignature = {min: minRes, lifetime: lifetimeRes, keysgroup: dest};
+		this.multisignature.min = minRes;
+		this.multisignature.lifetime = lifetimeRes;
+		this.multisignature.keysgroup = dest;
 		return true;
 	}
 
@@ -343,13 +347,14 @@ Account.prototype.applyUnconfirmedMultisignature = function (multisignature) {
 			return false;
 		}
 
-		this.unconfirmedMultisignature = {min: minRes, lifetime: lifetimeRes, keysgroup: dest};
+		this.unconfirmedMultisignature.min = minRes;
+		this.unconfirmedMultisignature.lifetime = lifetimeRes;
+		this.unconfirmedMultisignature.keysgroup = dest;
 		return true;
 	}
 
 	return false;
 }
-
 
 Account.prototype.undoUnconfirmedMultisignature = function (multisignature) {
 	var copyDiff = reverseDiff(multisignature.keysgroup);
@@ -369,7 +374,9 @@ Account.prototype.undoUnconfirmedMultisignature = function (multisignature) {
 			return false;
 		}
 
-		this.unconfirmedMultisignature = {min: minRes, lifetime: lifetimeRes, keysgroup: dest};
+		this.unconfirmedMultisignature.min = minRes;
+		this.unconfirmedMultisignature.lifetime = lifetimeRes;
+		this.unconfirmedMultisignature.keysgroup = dest;
 		return true;
 	}
 
@@ -467,7 +474,7 @@ function Vote() {
 		setImmediate(cb, null, trs);
 	}
 
-	this.process = function (dbLite, trs, sender, cb) {
+	this.process = function (trs, sender, cb) {
 		setImmediate(cb, null, trs);
 	}
 
@@ -475,16 +482,16 @@ function Vote() {
 		return trs.asset.votes ? new Buffer(trs.asset.votes.join(''), 'utf8') : null;
 	}
 
-	this.apply = function (trs, sender) {
+	this.apply = function (trs, sender, cb) {
 		sender.applyDelegateList(trs.asset.votes);
 
-		return true;
+		setImmediate(cb);
 	}
 
-	this.undo = function (trs, sender) {
+	this.undo = function (trs, sender, cb) {
 		sender.undoDelegateList(trs.asset.votes);
 
-		return true;
+		setImmediate(cb);
 	}
 
 	this.applyUnconfirmed = function (trs, sender, cb) {
@@ -517,16 +524,16 @@ function Vote() {
 		}
 	}
 
-	this.dbSave = function (dbLite, trs, cb) {
-		dbLite.query("INSERT INTO votes(votes, transactionId) VALUES($votes, $transactionId)", {
+	this.dbSave = function (trs, cb) {
+		library.dbLite.query("INSERT INTO votes(votes, transactionId) VALUES($votes, $transactionId)", {
 			votes: util.isArray(trs.asset.votes) ? trs.asset.votes.join(',') : null,
 			transactionId: trs.id
 		}, cb);
 	}
 
 	this.ready = function (trs, sender) {
-		if (sender.multisignatures) {
-			return trs.signatures.length >= trs.asset.multisignature.min;
+		if (sender.multisignature.keysgroup.length) {
+			return trs.signatures.length >= sender.multisignature.min;
 		} else {
 			return true;
 		}
@@ -591,7 +598,7 @@ function Username() {
 		setImmediate(cb, null, trs);
 	}
 
-	this.process = function (dbLite, trs, sender, cb) {
+	this.process = function (trs, sender, cb) {
 		setImmediate(cb, null, trs);
 	}
 
@@ -599,20 +606,20 @@ function Username() {
 		return new Buffer(trs.asset.username.alias, 'utf8');
 	}
 
-	this.apply = function (trs, sender) {
+	this.apply = function (trs, sender, cb) {
 		delete private.unconfirmedNames[trs.asset.username.alias.toLowerCase()]
 		private.username2address[trs.asset.username.alias.toLowerCase()] = sender.address;
 		sender.username = trs.asset.username.alias;
 
-		return true;
+		setImmediate(cb);
 	}
 
-	this.undo = function (trs, sender) {
+	this.undo = function (trs, sender, cb) {
 		private.unconfirmedNames[trs.asset.username.alias.toLowerCase()] = true;
 		delete private.username2address[trs.asset.username.alias.toLowerCase()];
 		sender.username = null;
 
-		return true;
+		setImmediate(cb);
 	}
 
 	this.applyUnconfirmed = function (trs, sender, cb) {
@@ -678,16 +685,16 @@ function Username() {
 		}
 	}
 
-	this.dbSave = function (dbLite, trs, cb) {
-		dbLite.query("INSERT INTO usernames(username, transactionId) VALUES($username, $transactionId)", {
+	this.dbSave = function (trs, cb) {
+		library.dbLite.query("INSERT INTO usernames(username, transactionId) VALUES($username, $transactionId)", {
 			username: trs.asset.username.alias,
 			transactionId: trs.id
 		}, cb);
 	}
 
 	this.ready = function (trs, sender) {
-		if (sender.multisignatures) {
-			return trs.signatures.length >= trs.asset.multisignature.min;
+		if (sender.multisignature.keysgroup.length) {
+			return trs.signatures.length >= sender.multisignature.min;
 		} else {
 			return true;
 		}

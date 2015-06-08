@@ -65,7 +65,7 @@ function Multisignature() {
 		setImmediate(cb, null, trs);
 	}
 
-	this.process = function (dbLite, trs, sender, cb) {
+	this.process = function (trs, sender, cb) {
 		setImmediate(cb, null, trs);
 	}
 
@@ -83,12 +83,16 @@ function Multisignature() {
 		return bb.toBuffer();
 	}
 
-	this.apply = function (trs, sender) {
-		return sender.applyMultisignature(trs.asset.multisignature);
+	this.apply = function (trs, sender, cb) {
+		var res = sender.applyMultisignature(trs.asset.multisignature);
+
+		setImmediate(cb, res ? null : true);
 	}
 
-	this.undo = function (trs, sender) {
-		return sender.undoMultisignature(trs.asset.multisignature);
+	this.undo = function (trs, sender, cb) {
+		var res = sender.undoMultisignature(trs.asset.multisignature);
+
+		setImmediate(cb, res ? null : true);
 	}
 
 	this.applyUnconfirmed = function (trs, sender, cb) {
@@ -139,8 +143,8 @@ function Multisignature() {
 		}
 	}
 
-	this.dbSave = function (dbLite, trs, cb) {
-		dbLite.query("INSERT INTO multisignatures(min, lifetime, keysgroup, transactionId) VALUES($min, $lifetime, $keysgroup, $transactionId)", {
+	this.dbSave = function (trs, cb) {
+		library.dbLite.query("INSERT INTO multisignatures(min, lifetime, keysgroup, transactionId) VALUES($min, $lifetime, $keysgroup, $transactionId)", {
 			min: trs.asset.multisignature.min,
 			lifetime: trs.asset.multisignature.lifetime,
 			keysgroup: trs.asset.multisignature.keysgroup.join(','),
@@ -149,10 +153,10 @@ function Multisignature() {
 	}
 
 	this.ready = function (trs, sender) {
-		if (!sender.multisignatures) {
+		if (!sender.multisignature.keysgroup.length) {
 			return trs.signatures.length == trs.asset.multisignature.keysgroup.length;
 		} else {
-			return trs.signatures.length >= trs.asset.multisignature.min;
+			return trs.signatures.length >= sender.multisignature.min;
 		}
 	}
 }

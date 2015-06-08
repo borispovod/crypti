@@ -55,7 +55,7 @@ function Contact() {
 		setImmediate(cb, null, trs);
 	}
 
-	this.process = function (dbLite, trs, sender, cb) {
+	this.process = function (trs, sender, cb) {
 		setImmediate(cb, null, trs);
 	}
 
@@ -76,12 +76,16 @@ function Contact() {
 		return bb.toBuffer()
 	}
 
-	this.apply = function (trs, sender) {
-		return sender.applyContact(trs.asset.contact.address);
+	this.apply = function (trs, sender, cb) {
+		var res = sender.applyContact(trs.asset.contact.address);
+
+		setImmediate(cb, res ? null : true);
 	}
 
-	this.undo = function (trs, sender) {
-		return sender.undoContact(trs.asset.contact.address);
+	this.undo = function (trs, sender, cb) {
+		var res = sender.undoContact(trs.asset.contact.address);
+
+		setImmediate(cb, res ? null : true);
 	}
 
 	this.applyUnconfirmed = function (trs, sender, cb) {
@@ -127,16 +131,16 @@ function Contact() {
 		}
 	}
 
-	this.dbSave = function (dbLite, trs, cb) {
-		dbLite.query("INSERT INTO contacts(address, transactionId) VALUES($address, $transactionId)", {
+	this.dbSave = function (trs, cb) {
+		library.dbLite.query("INSERT INTO contacts(address, transactionId) VALUES($address, $transactionId)", {
 			address: trs.asset.contact.address,
 			transactionId: trs.id
 		}, cb);
 	}
 
 	this.ready = function (trs, sender) {
-		if (sender.multisignatures) {
-			return trs.signatures.length >= trs.asset.multisignature.min;
+		if (sender.multisignature.keysgroup.length) {
+			return trs.signatures.length >= sender.multisignature.min;
 		} else {
 			return true;
 		}
