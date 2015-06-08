@@ -504,8 +504,10 @@ function Vote() {
 		setImmediate(cb, !res ? "Can't apply delegates: " + trs.id : null);
 	}
 
-	this.undoUnconfirmed = function (trs, sender) {
-		return sender.undoUnconfirmedDelegateList(trs.asset.votes);
+	this.undoUnconfirmed = function (trs, sender, cb) {
+		var res = sender.undoUnconfirmedDelegateList(trs.asset.votes);
+
+		setImmediate(cb, !res ? "can't confirm delegates" : null);
 	}
 
 	this.objectNormalize = function (trs) {
@@ -644,10 +646,10 @@ function Username() {
 		setImmediate(cb);
 	}
 
-	this.undoUnconfirmed = function (trs, sender) {
+	this.undoUnconfirmed = function (trs, sender, cb) {
 		delete private.unconfirmedNames[trs.asset.username.alias.toLowerCase()];
 
-		return true;
+		setImmediate(cb);
 	}
 
 	this.objectNormalize = function (trs) {

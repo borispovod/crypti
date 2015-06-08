@@ -76,8 +76,8 @@ function Transfer() {
 		setImmediate(cb);
 	}
 
-	this.undoUnconfirmed = function (trs, sender) {
-		return true;
+	this.undoUnconfirmed = function (trs, sender, cb) {
+		setImmediate(cb);
 	}
 
 	this.objectNormalize = function (trs) {
