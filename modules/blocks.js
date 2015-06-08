@@ -10,7 +10,6 @@ var crypto = require('crypto'),
 	slots = require('../helpers/slots.js'),
 	util = require('util'),
 	async = require('async'),
-	dblite = require('dblite'),
 	TransactionTypes = require('../helpers/transaction-types.js'),
 	errorCode = require('../helpers/errorCodes.js').error;
 
@@ -835,13 +834,13 @@ Blocks.prototype.loadBlocksFromPeer = function (peer, lastCommonBlockId, cb) {
 
 				var blocks = data.body.blocks;
 				if (typeof blocks === "string") {
-					blocks = dblite.parseCSV(blocks);
+					blocks = library.dbLite.parseCSV(blocks);
 				}
 
 				// not working of data.body is empty....
 				blocks = RequestSanitizer.array(blocks);
 
-				blocks = blocks.map(dblite.row2parsed, dblite.parseFields(private.blocksDataFields));
+				blocks = blocks.map(library.dbLite.row2parsed, library.dbLite.parseFields(private.blocksDataFields));
 				blocks = private.readDbRows(blocks);
 
 				if (blocks.length == 0) {
