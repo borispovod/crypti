@@ -501,13 +501,13 @@ function Vote() {
 
 		var res = sender.applyUnconfirmedDelegateList(trs.asset.votes);
 
-		setImmediate(cb, !res ? "Can't apply delegates: " + trs.id : null);
+		setImmediate(cb, res ? null : "can't apply delegates: " + trs.id);
 	}
 
 	this.undoUnconfirmed = function (trs, sender, cb) {
 		var res = sender.undoUnconfirmedDelegateList(trs.asset.votes);
 
-		setImmediate(cb, !res ? "can't confirm delegates" : null);
+		setImmediate(cb, res ? null : "can't confirm delegates");
 	}
 
 	this.objectNormalize = function (trs) {

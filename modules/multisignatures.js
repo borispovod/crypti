@@ -97,13 +97,13 @@ function Multisignature() {
 
 	this.applyUnconfirmed = function (trs, sender, cb) {
 		var res = sender.applyUnconfirmedMultisignature(trs.asset.multisignature);
-		setImmediate(cb, res ? "can't confirm multisignature" : null);
+		setImmediate(cb, res ? null : "can't confirm multisignature");
 	}
 
 	this.undoUnconfirmed = function (trs, sender, cb) {
 		var res = sender.undoUnconfirmedMultisignature(trs.asset.multisignature);
 
-		setImmediate(cb, !res ? "can't confirm multisignature" : null);
+		setImmediate(cb, res ? null : "can't confirm multisignature");
 	}
 
 	this.objectNormalize = function (trs) {
