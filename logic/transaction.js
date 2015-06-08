@@ -309,20 +309,28 @@ Transaction.prototype.dbSave = function (dbLite, trs, cb) {
 		return cb('Unknown transaction type ' + trs.type);
 	}
 
+	try {
+		var senderPublicKey = new Buffer(trs.senderPublicKey, 'hex');
+		var signature = new Buffer(trs.signature, 'hex');
+		var signSignature = trs.signSignature ? new Buffer(trs.signSignature, 'hex') : null;
+	} catch (e) {
+		return cb(e.toString())
+	}
+
 	dbLite.query("INSERT INTO trs(id, blockId, type, timestamp, senderPublicKey, senderId, recipientId, senderUsername, recipientUsername, amount, fee, signature, signSignature) VALUES($id, $blockId, $type, $timestamp, $senderPublicKey, $senderId, $recipientId, $senderUsername, $recipientUsername, $amount, $fee, $signature, $signSignature)", {
 		id: trs.id,
 		blockId: trs.blockId,
 		type: trs.type,
 		timestamp: trs.timestamp,
-		senderPublicKey: new Buffer(trs.senderPublicKey, 'hex'),
+		senderPublicKey: senderPublicKey,
 		senderId: trs.senderId,
 		recipientId: trs.recipientId || null,
 		senderUsername: trs.senderUsername || null,
 		recipientUsername: trs.recipientUsername || null,
 		amount: trs.amount,
 		fee: trs.fee,
-		signature: new Buffer(trs.signature, 'hex'),
-		signSignature: trs.signSignature ? new Buffer(trs.signSignature, 'hex') : null
+		signature: signature,
+		signSignature: signSignature
 	}, function (err) {
 		if (err) {
 			return cb(err);

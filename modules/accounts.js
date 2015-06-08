@@ -311,7 +311,13 @@ function Vote() {
 	}
 
 	this.getBytes = function (trs) {
-		return trs.asset.votes ? new Buffer(trs.asset.votes.join(''), 'utf8') : null;
+		try {
+			var buf = trs.asset.votes ? new Buffer(trs.asset.votes.join(''), 'utf8') : null;
+		} catch (e) {
+			throw Error(e.toString());
+		}
+
+		return buf;
 	}
 
 	this.apply = function (trs, sender) {
@@ -427,7 +433,13 @@ function Username() {
 	}
 
 	this.getBytes = function (trs) {
-		return new Buffer(trs.asset.username.alias, 'utf8');
+		try {
+			var buf = new Buffer(trs.asset.username.alias, 'utf8');
+		} catch (e) {
+			throw Error(e.toString());
+		}
+
+		return buf;
 	}
 
 	this.apply = function (trs, sender) {

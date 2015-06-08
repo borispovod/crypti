@@ -131,9 +131,15 @@ function Signature() {
 	}
 
 	this.dbSave = function (dbLite, trs, cb) {
+		try {
+			var publicKey = new Buffer(trs.asset.signature.publicKey, 'hex')
+		} catch (e) {
+			return cb(e.toString())
+		}
+
 		dbLite.query("INSERT INTO signatures(transactionId, publicKey) VALUES($transactionId, $publicKey)", {
 			transactionId: trs.id,
-			publicKey: new Buffer(trs.asset.signature.publicKey, 'hex')
+			publicKey: publicKey
 		}, cb);
 	}
 

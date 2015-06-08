@@ -102,7 +102,13 @@ function Delegate() {
 	}
 
 	this.getBytes = function (trs) {
-		return new Buffer(trs.asset.delegate.username, 'utf8');
+		try {
+			var buf = new Buffer(trs.asset.delegate.username, 'utf8');
+		} catch (e) {
+			throw Error(e.toString());
+		}
+
+		return buf;
 	}
 
 	this.apply = function (trs, sender) {
