@@ -101,7 +101,6 @@ function Accounts(dbLite, cb) {
 	sqles.push(sql.query);
 
 	async.eachSeries(sqles, function (command, cb) {
-		console.log(command);
 		dbLite.query(command, function (err, data) {
 			cb(err, data);
 		});
@@ -119,7 +118,6 @@ Accounts.prototype.get = function (filter, cb) {
 			return field.name;
 		})
 	});
-	console.log(sql.query, sql.values);
 	this.dbLite(sql.query, sql.values, cb);
 }
 
@@ -137,7 +135,6 @@ Accounts.prototype.set = function (address, fields, cb) {
 		table: this.table,
 		values: fields
 	});
-	console.log(sql.query, sql.values)
 	this.dbLite(sql.query, sql.values, function (err, data) {
 		cb(err, data);
 	});
@@ -151,7 +148,6 @@ Accounts.prototype.remove = function (address, cb) {
 			address: address
 		}
 	});
-	console.log(sql.query, sql.values)
 	this.dbLite(sql.query, sql.values, function (err, data) {
 		cb(err, data);
 	});
