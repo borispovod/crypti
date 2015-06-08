@@ -118,6 +118,7 @@ d.run(function () {
 				https_io: https_io
 			});
 		}],
+
 		sequence: function (cb) {
 
 			var sequence = [];
@@ -246,25 +247,24 @@ d.run(function () {
 			var Account = require('./logic/account.js');
 
 			async.auto({
-				block: function (cb) {
-					var block = new Block(scope.dbLite, cb);
-					cb(null, block);
+				transaction: function (cb) {
+					new Transaction(scope.dbLite, cb);
 				},
-				transaction: ["block", function (cb, lscope) {
-					var transaction = new Transaction(scope.dbLite);
-					lscope.block.logic = {
-						transaction: transaction
-					}
-					cb(null, transaction);
+				block: ["transaction", function (cb, lscope) {
+					new Block(scope.dbLite, function (err, block) {
+						block.logic = {
+							transaction: lscope.transaction
+						}
+						cb(null, block);
+					});
 				}],
 				account: function (cb) {
-					var account = new Account(scope.dbLite);
-					cb(null, account);
+					new Account(scope.dbLite, cb);
 				}
 			}, cb);
 		}],
 
-		modules: ['network', 'connect', 'config', 'logger', 'bus', 'sequence', 'dbLite', function (cb, scope) {
+		modules: ['network', 'connect', 'config', 'logger', 'bus', 'sequence', 'dbLite', 'logic', function (cb, scope) {
 			var tasks = {};
 			Object.keys(config.modules).forEach(function (name) {
 				tasks[name] = function (cb) {
