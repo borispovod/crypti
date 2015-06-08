@@ -93,8 +93,10 @@ function Contact() {
 		setImmediate(cb, !res ? "Can't apply contact: " + trs.id : null);
 	}
 
-	this.undoUnconfirmed = function (trs, sender) {
-		return sender.undoUnconfirmedContact(trs.asset.contact.address);
+	this.undoUnconfirmed = function (trs, sender, cb) {
+		var res = sender.undoUnconfirmedContact(trs.asset.contact.address);
+
+		setImmediate(cb, !res ? "can't confirm contact" : null);
 	}
 
 	this.objectNormalize = function (trs) {

@@ -137,9 +137,10 @@ function Delegate() {
 		setImmediate(cb);
 	}
 
-	this.undoUnconfirmed = function (trs, sender) {
+	this.undoUnconfirmed = function (trs, sender, cb) {
 		modules.delegates.removeUnconfirmedDelegate(trs.asset.delegate);
-		return true;
+
+		setImmediate(cb);
 	}
 
 	this.objectNormalize = function (trs) {

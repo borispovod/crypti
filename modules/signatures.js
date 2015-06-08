@@ -98,10 +98,10 @@ function Signature() {
 		setImmediate(cb);
 	}
 
-	this.undoUnconfirmed = function (trs, sender) {
+	this.undoUnconfirmed = function (trs, sender, cb) {
 		sender.unconfirmedSignature = false;
 
-		return true;
+		setImmediate(cb);
 	}
 
 	this.objectNormalize = function (trs) {
