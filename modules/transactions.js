@@ -88,7 +88,7 @@ function Transfer() {
 		return null;
 	}
 
-	this.dbSave = function (dbLite, trs, cb) {
+	this.dbSave = function (trs, cb) {
 		setImmediate(cb);
 	}
 
