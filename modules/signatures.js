@@ -135,9 +135,15 @@ function Signature() {
 	}
 
 	this.dbSave = function (trs, cb) {
+		try {
+			var publicKey = new Buffer(trs.asset.signature.publicKey, 'hex')
+		} catch (e) {
+			return cb(e.toString())
+		}
+
 		library.dbLite.query("INSERT INTO signatures(transactionId, publicKey) VALUES($transactionId, $publicKey)", {
 			transactionId: trs.id,
-			publicKey: new Buffer(trs.asset.signature.publicKey, 'hex')
+			publicKey: publicKey
 		}, cb);
 	}
 
@@ -169,6 +175,18 @@ function attachApi() {
 	router.use(function (req, res, next) {
 		if (modules) return next();
 		res.status(500).send({success: false, error: errorCode('COMMON.LOADING')});
+	});
+
+	router.get('/fee', function (req, res, next) {
+		var fee = null;
+
+		if (modules.blocks.getLastBlock().height >= MilestoneBlocks.FEE_BLOCK) {
+			fee = 5 * constants.fixedPoint;
+		} else {
+			fee = 5 * constants.fixedPoint;
+		}
+
+		return res.json({success: true, fee: fee})
 	});
 
 	router.put('/', function (req, res) {

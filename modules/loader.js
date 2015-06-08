@@ -207,7 +207,7 @@ private.loadBlocks = function (lastBlock, cb) {
 
 		library.logger.info("Check blockchain on " + peerStr);
 
-		if (bignum(modules.blocks.getLastBlock().height).lt(RequestSanitizer.string(data.body.height || 0))) { //diff in chainbases
+		if (bignum(modules.blocks.getLastBlock().height).lt(RequestSanitizer.string(data.body.height || "0"))) { //diff in chainbases
 			private.blocksToSync = RequestSanitizer.int(data.body.height);
 
 			if (lastBlock.id != genesisBlock.block.id) { //have to found common block

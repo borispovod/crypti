@@ -479,7 +479,13 @@ function Vote() {
 	}
 
 	this.getBytes = function (trs) {
-		return trs.asset.votes ? new Buffer(trs.asset.votes.join(''), 'utf8') : null;
+		try {
+			var buf = trs.asset.votes ? new Buffer(trs.asset.votes.join(''), 'utf8') : null;
+		} catch (e) {
+			throw Error(e.toString());
+		}
+
+		return buf;
 	}
 
 	this.apply = function (trs, sender, cb) {
@@ -605,7 +611,13 @@ function Username() {
 	}
 
 	this.getBytes = function (trs) {
-		return new Buffer(trs.asset.username.alias, 'utf8');
+		try {
+			var buf = new Buffer(trs.asset.username.alias, 'utf8');
+		} catch (e) {
+			throw Error(e.toString());
+		}
+
+		return buf;
 	}
 
 	this.apply = function (trs, sender, cb) {
@@ -880,6 +892,10 @@ function attachApi() {
 		});
 	});
 
+	router.get("/delegates/fee", function (req, res) {
+		return res.json({success: true, fee: 1 * constants.fixedPoint});
+	});
+
 	router.put("/delegates", function (req, res, next) {
 		req.sanitize("body", {
 			secret: {
@@ -938,6 +954,10 @@ function attachApi() {
 				res.json({success: true, transaction: transaction});
 			});
 		});
+	});
+
+	router.get('/username/fee', function (req, res) {
+		return res.json({success: true, fee: 1 * constants.fixedPoint});
 	});
 
 	router.put("/username", function (req, res, next) {
@@ -1124,6 +1144,7 @@ Accounts.prototype.getAccountOrCreateByAddress = function (address) {
 		account = new Account(address);
 		private.addAccount(account);
 	}
+
 	return account;
 }
 

@@ -162,6 +162,14 @@ Block.prototype.verifySignature = function (block) {
 }
 
 Block.prototype.dbSave = function (block, cb) {
+	try {
+		var payloadHash = new Buffer(block.payloadHash, 'hex');
+		var generatorPublicKey = new Buffer(block.generatorPublicKey, 'hex');
+		var blockSignature = new Buffer(block.blockSignature, 'hex');
+	} catch (e) {
+		return cb(e.toString())
+	}
+
 	this.dbLite.query("INSERT INTO blocks(id, version, timestamp, height, previousBlock,  numberOfTransactions, totalAmount, totalFee, payloadLength, payloadHash, generatorPublicKey, blockSignature) VALUES($id, $version, $timestamp, $height, $previousBlock, $numberOfTransactions, $totalAmount, $totalFee, $payloadLength,  $payloadHash, $generatorPublicKey, $blockSignature)", {
 		id: block.id,
 		version: block.version,
@@ -172,9 +180,9 @@ Block.prototype.dbSave = function (block, cb) {
 		totalAmount: block.totalAmount,
 		totalFee: block.totalFee,
 		payloadLength: block.payloadLength,
-		payloadHash: new Buffer(block.payloadHash, 'hex'),
-		generatorPublicKey: new Buffer(block.generatorPublicKey, 'hex'),
-		blockSignature: new Buffer(block.blockSignature, 'hex')
+		payloadHash: payloadHash,
+		generatorPublicKey: generatorPublicKey,
+		blockSignature: blockSignature
 	}, cb);
 }
 

@@ -50,7 +50,7 @@ function attachApi() {
 			version: "string?"
 		}, function (err, report, headers) {
 			if (err) return next(err);
-			if (!report.isValid) return next({status: false, error: report.issues});
+			if (!report.isValid) return res.status(500).send({status: false, error: report.issues});
 
 
 			var peer = {
@@ -289,7 +289,7 @@ Transport.prototype.getFromPeer = function (peer, options, cb) {
 		method: options.method,
 		json: true,
 		headers: _.extend({}, private.headers, options.headers),
-		timeout: 5000
+		timeout: library.config.peers.options.timeout
 	};
 
 	if (Object.prototype.toString.call(options.data) === "[object Object]" || util.isArray(options.data)) {
