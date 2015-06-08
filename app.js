@@ -91,6 +91,10 @@ d.run(function () {
 			cb(null, logger);
 		},
 
+		build: function (cb) {
+			cb(null, fs.readFileSync('./build', 'utf8').trim());
+		},
+
 		network: ['config', function (cb, scope) {
 			var express = require('express');
 			var app = express();
@@ -148,7 +152,7 @@ d.run(function () {
 			});
 		},
 
-		connect: ['config', 'logger', 'network', function (cb, scope) {
+		connect: ['config', 'logger',  'build', 'network', function (cb, scope) {
 			var path = require('path');
 			var bodyParser = require('body-parser');
 			var methodOverride = require('method-override');
