@@ -183,6 +183,38 @@ function attachApi() {
 		res.status(500).send({success: false, error: errorCode('COMMON.LOADING')});
 	});
 
+	// return pending multisignature wallet
+	router.get('/pending', function (req, res) {
+		req.sanitize("query", {
+			publicKey: "hex!"
+		}, function (err, report, query) {
+			var transactions = modules.transactions.getUnconfirmedTransactionList();
+
+			var pendings = [];
+			async.forEach(transactions, function (item, cb) {
+				if (item.type != TransactionTypes.MULTI) {
+					return setImmediate(cb);
+				}
+
+				var signature = item.signatures.find(function (signature) {
+					return signature.publicKey == query.publicKey;
+				});
+
+				if (signature) {
+					return setImmediate(cb);
+				}
+
+				if (item.multisignature.keysgroup.indexOf("+" + publicKey) >= 0) {
+					pendings.push(item);
+				}
+
+				setImmediate(cb);
+			}, function () {
+				return res.json({success: true, transactions: pendings});
+			});
+		});
+	});
+
 	router.post('/sign/', function (req, res) {
 		req.sanitize("body", {
 			secret: "string!",
