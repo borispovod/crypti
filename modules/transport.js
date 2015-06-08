@@ -50,7 +50,7 @@ function attachApi() {
 			version: "string?"
 		}, function (err, report, headers) {
 			if (err) return next(err);
-			if (!report.isValid) return {status: false, error: report.issues};
+			if (!report.isValid) return res.status(500).send({status: false, error: report.issues});
 
 
 			var peer = {
