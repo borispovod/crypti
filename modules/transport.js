@@ -163,7 +163,7 @@ function attachApi() {
 		res.set(private.headers);
 
 		try {
-			var block = library.logic.block.objectNormalize(req.body.block)
+			var block = library.logic.block.objectNormalize(req.body.block);
 		} catch (e) {
 			var peerIp = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
 			var peerStr = peerIp ? peerIp + ":" + RequestSanitizer.int(req.headers['port']) : 'unknown';

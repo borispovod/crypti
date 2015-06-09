@@ -167,13 +167,25 @@ Transaction.prototype.verify = function (trs, sender, cb) { //inheritance
 	}
 
 	//verify signature
-	if (!this.verifySignature(trs, trs.senderPublicKey, trs.signature)) {
+	try {
+		var valid = this.verifySignature(trs, trs.senderPublicKey, trs.signature);
+	} catch (e) {
+		return setImmediate(cb, e.toString());
+	}
+	if (!valid) {
 		return setImmediate(cb, "Can't verify signature");
 	}
 
 	//verify second signature
-	if (sender.secondSignature && !this.verifySignature(trs, sender.secondPublicKey, trs.signSignature)) {
-		return setImmediate(cb, "Can't verify second signature: " + trs.id);
+	if (sender.secondSignature) {
+		try {
+			var valid = this.verifySignature(trs, sender.secondPublicKey, trs.signSignature);
+		} catch (e) {
+			return setImmediate(cb, e.toString());
+		}
+		if (!valid) {
+			return setImmediate(cb, "Can't verify second signature: " + trs.id);
+		}
 	}
 
 	//check sender

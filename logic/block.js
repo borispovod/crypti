@@ -141,14 +141,13 @@ Block.prototype.getBytes = function (block) {
 Block.prototype.verifySignature = function (block) {
 	var remove = 64;
 
-	var data = this.getBytes(block);
-	var data2 = new Buffer(data.length - remove);
-
-	for (var i = 0; i < data2.length; i++) {
-		data2[i] = data[i];
-	}
-
 	try {
+		var data = this.getBytes(block);
+		var data2 = new Buffer(data.length - remove);
+
+		for (var i = 0; i < data2.length; i++) {
+			data2[i] = data[i];
+		}
 		var hash = crypto.createHash('sha256').update(data2).digest();
 		var blockSignatureBuffer = new Buffer(block.blockSignature, 'hex');
 		var generatorPublicKeyBuffer = new Buffer(block.generatorPublicKey, 'hex');

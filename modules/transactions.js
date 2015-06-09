@@ -472,7 +472,11 @@ Transactions.prototype.removeUnconfirmedTransaction = function (id) {
 }
 
 Transactions.prototype.processUnconfirmedTransaction = function (transaction, broadcast, cb) {
-	var txId = library.logic.transaction.getId(transaction);
+	try {
+		var txId = library.logic.transaction.getId(transaction);
+	} catch (e) {
+		return setImmediate(cb, e.toString());
+	}
 
 	if (transaction.id && transaction.id != txId) {
 		return cb("Invalid transaction id");
@@ -481,56 +485,63 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 	}
 
 	library.dbLite.query("SELECT count(id) FROM trs WHERE id=$id", {id: transaction.id}, {"count": Number}, function (err, rows) {
-		if (err) {
-			return cb("Internal sql error");
-		}
-
-		var res = rows.length && rows[0];
-
-		if (res.count) {
-			return cb("Can't process transaction, transaction already confirmed");
-		} else {
-			// check in confirmed transactions
-			if (private.unconfirmedTransactionsIdIndex[transaction.id] !== undefined || private.doubleSpendingTransactions[transaction.id]) {
-				return cb("This transaction already exists");
+			if (err) {
+				return cb("Internal sql error");
 			}
 
-			var sender = modules.accounts.getAccountByPublicKey(transaction.senderPublicKey);
+			var res = rows.length && rows[0];
 
-			if (!sender) {
-				return cb("Can't process transaction, sender not found");
-			}
-
-			transaction.senderId = sender.address;
-			transaction.senderUsername = sender.username;
-
-			if (!library.logic.transaction.verifySignature(transaction, transaction.senderPublicKey, transaction.signature)) {
-				return cb("Can't verify signature");
-			}
-
-			function done(err) {
-				if (err) {
-					return cb(err);
+			if (res.count) {
+				return cb("Can't process transaction, transaction already confirmed");
+			} else {
+				// check in confirmed transactions
+				if (private.unconfirmedTransactionsIdIndex[transaction.id] !== undefined || private.doubleSpendingTransactions[transaction.id]) {
+					return cb("This transaction already exists");
 				}
 
-				private.addUnconfirmedTransaction(transaction, function (err) {
+				var sender = modules.accounts.getAccountByPublicKey(transaction.senderPublicKey);
+
+				if (!sender) {
+					return cb("Can't process transaction, sender not found");
+				}
+
+				transaction.senderId = sender.address;
+				transaction.senderUsername = sender.username;
+
+				try {
+					var valid = library.logic.transaction.verifySignature(transaction, transaction.senderPublicKey, transaction.signature);
+				} catch (e) {
+					return setImmediate(cb, e.toString());
+				}
+				if (!valid) {
+					return cb("Can't verify signature");
+				}
+
+				function done(err) {
 					if (err) {
 						return cb(err);
 					}
 
-					library.bus.message('unconfirmedTransaction', transaction, broadcast);
+					private.addUnconfirmedTransaction(transaction, function (err) {
+						if (err) {
+							return cb(err);
+						}
 
-					cb();
-				});
+						library.bus.message('unconfirmedTransaction', transaction, broadcast);
+
+						cb();
+					});
+				}
+
+				if (!library.logic.transaction.ready(transaction)) {
+					return done();
+				}
+
+				library.logic.transaction.verify(transaction, sender, done);
 			}
-
-			if (!library.logic.transaction.ready(transaction)) {
-				return done();
-			}
-
-			library.logic.transaction.verify(transaction, sender, done);
 		}
-	});
+	)
+	;
 }
 
 Transactions.prototype.applyUnconfirmedList = function (ids, cb) {
