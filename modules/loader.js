@@ -299,6 +299,10 @@ Loader.prototype.syncing = function () {
 
 //events
 Loader.prototype.onPeerReady = function () {
+	if (library.config.isolate) {
+		return;
+	}
+
 	process.nextTick(function nextLoadBlock() {
 		library.sequence.add(function (cb) {
 			private.syncTrigger(true);

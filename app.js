@@ -154,7 +154,7 @@ d.run(function () {
 			});
 		},
 
-		connect: ['config', 'logger',  'build', 'network', function (cb, scope) {
+		connect: ['config', 'logger', 'build', 'network', function (cb, scope) {
 			var path = require('path');
 			var bodyParser = require('body-parser');
 			var methodOverride = require('method-override');

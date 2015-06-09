@@ -531,6 +531,8 @@ Transactions.prototype.undoUnconfirmedList = function (cb) {
 		if (transaction !== false) {
 			ids.push(transaction.id);
 			self.undoUnconfirmed(transaction, cb);
+		} else {
+			setImmediate(cb);
 		}
 	}, function (err) {
 		cb(err, ids);
