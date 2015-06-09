@@ -90,8 +90,12 @@ function Delegate() {
 			return setImmediate(cb, errorCode("DELEGATES.EXISTS_DELEGATE"));
 		}
 
-		if (modules.accounts.existsUsername(trs.asset.delegate.username)) {
-			return setImmediate(cb, errorCode("DELEGATES.EXISTS_DELEGATE"));
+		if (modules.accounts.existsUsername(trs.asset.delegate.username) && sender.username != trs.asset.delegate.username) {
+			return setImmediate(cb, errorCode("DELEGATES.EXISTS_USERNAME", trs));
+		}
+
+		if (sender.username && sender.username != trs.asset.delegate.username) {
+			return setImmediate(cb, errorCode("DELEGATES.WRONG_USERNAME"));
 		}
 
 		setImmediate(cb, null, trs);
@@ -102,7 +106,13 @@ function Delegate() {
 	}
 
 	this.getBytes = function (trs) {
-		return new Buffer(trs.asset.delegate.username, 'utf8');
+		try {
+			var buf = new Buffer(trs.asset.delegate.username, 'utf8');
+		} catch (e) {
+			throw Error(e.toString());
+		}
+
+		return buf;
 	}
 
 	this.apply = function (trs, sender, cb) {
@@ -214,6 +224,18 @@ function attachApi() {
 	router.use(function (req, res, next) {
 		if (modules && private.loaded) return next();
 		res.status(500).send({success: false, error: errorCode('COMMON.LOADING')});
+	});
+
+	router.get('/fee', function (req, res) {
+		var fee = null;
+
+		if (modules.blocks.getLastBlock().height >= MilestoneBlocks.FEE_BLOCK) {
+			fee = 100 * constants.fixedPoint;
+		} else {
+			fee = 100 * constants.fixedPoint;
+		}
+
+		return res.json({success: true, fee: fee})
 	});
 
 	router.get('/', function (req, res) {
@@ -496,6 +518,15 @@ function attachApi() {
 			if (account.secondSignature) {
 				var secondHash = crypto.createHash('sha256').update(body.secondSecret, 'utf8').digest();
 				secondKeypair = ed.MakeKeypair(secondHash);
+			}
+
+			var username = body.username;
+			if (!body.username) {
+				if (account.username) {
+					username = account.username;
+				} else {
+					return res.json({success: false, error: errorCode("DELEGATES.USERNAME_IS_TOO_SHORT")});
+				}
 			}
 
 			var transaction = library.logic.transaction.create({
