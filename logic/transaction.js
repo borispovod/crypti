@@ -184,11 +184,13 @@ Transaction.prototype.verify = function (trs, sender, cb) { //inheritance
 
 	for (var s = 0; s < sender.multisignature.keysgroup.length; s++) {
 		var verify = false;
+
 		for (var d = 0; d < trs.signatures.length && !verify; d++) {
 			if (this.verifySignature(trs, sender.multisignature.keysgroup[s], trs.signatures[d])) {
 				verify = true;
 			}
 		}
+
 		if (!verify) {
 			return setImmediate(cb, "Failed multisignature: " + trs.id);
 		}
