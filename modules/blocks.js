@@ -623,6 +623,10 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 		});
 	}
 
+	if (!block.previousBlock && block.height != 1) {
+		return setImmediate(done, "Wrong previous block");
+	}
+
 	library.dbLite.query("SELECT id FROM blocks WHERE id=$id", {id: block.id}, ['id'], function (err, rows) {
 		if (err) {
 			return done(err);

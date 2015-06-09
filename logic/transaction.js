@@ -204,20 +204,20 @@ Transaction.prototype.verifySignature = function (trs, publicKey, signature) {
 		throw Error('Unknown transaction type ' + trs.type);
 	}
 
-	var bytes = this.getBytes(trs, true);
-	var data2 = new Buffer(bytes.length);
-
-	for (var i = 0; i < data2.length; i++) {
-		data2[i] = bytes[i];
-	}
-
-	var hash = crypto.createHash('sha256').update(data2).digest();
-
 	try {
+		var bytes = this.getBytes(trs, true);
+		var data2 = new Buffer(bytes.length);
+
+		for (var i = 0; i < data2.length; i++) {
+			data2[i] = bytes[i];
+		}
+
+		var hash = crypto.createHash('sha256').update(data2).digest();
 		var signatureBuffer = new Buffer(signature, 'hex');
 		var publicKeyBuffer = new Buffer(publicKey, 'hex');
 		var res = ed.Verify(hash, signatureBuffer || ' ', publicKeyBuffer || ' ');
 	} catch (e) {
+		console.log(trs, publicKey, signature, e.toString());
 		throw Error(e.toString());
 	}
 
