@@ -1074,6 +1074,9 @@ private.addAccount = function (account) {
 	if (!private.accounts[account.address]) {
 		private.accounts[account.address] = account;
 	}
+	//library.logic.account.set(account.address, account, function (err, res) {
+	//	console.log("set", err, res);
+	//});
 }
 
 private.openAccount = function (secret) {
@@ -1085,6 +1088,9 @@ private.openAccount = function (secret) {
 
 //public methods
 Accounts.prototype.getAccount = function (id) {
+	//library.logic.account.get({address: id.toString().toUpperCase()}, function (err, res) {
+	//	console.log("get", err, res);
+	//});
 	return private.accounts[id.toString().toUpperCase()];
 }
 
