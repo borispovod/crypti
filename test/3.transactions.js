@@ -484,7 +484,7 @@ describe('Transactions', function() {
 
             // CHANGE TO SUCCESS ONE BUG FIXED //
             test += 1;
-            it(test + '. We try to send VERY SMALL XCR NUMBER (0.00000001) from Account 1 to Account 2. We expect error',function(done){
+            it(test + '. We try to send VERY SMALL XCR NUMBER (0.00000001) from Account 1 to Account 2. We get success',function(done){
                 this.timeout(5000);
                 setTimeout(function(){
                     node.api.put('/transactions')
@@ -498,8 +498,8 @@ describe('Transactions', function() {
                         .expect(200)
                         .end(function (err, res) {
                             console.log(res.body);
-                            node.expect(res.body).to.have.property("success").to.be.false;
-                            node.expect(res.body).to.have.property("error");
+                            node.expect(res.body).to.have.property("success").to.be.true;
+							node.expect(res.body).to.have.property("transactionId");
                             done();
                         });
                 }, 1000);

@@ -20,8 +20,8 @@ var Fees = {
     usernameFee : 100000000,
     followFee : 100000000,
     transactionFee : 0.001,
-    secondPasswordFee : 10000000000,
-    delegateRegistrationFee : 1000000000000
+    secondPasswordFee : 500000000,
+    delegateRegistrationFee : 10000000000
 };
 
 // Account info for delegate to register manually.

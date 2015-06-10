@@ -519,7 +519,7 @@ describe('Delegates', function() {
         });
 
         test += 1;
-        it(test + '. We attempt to register as delegate from random account. We expect success',function(done){
+        it(test + '. We attempt to register as delegate from random account: ' + Raccount.password + '. We expect success',function(done){
             node.api.put('/delegates')
                 .set('Accept', 'application/json')
                 .send({
@@ -535,14 +535,14 @@ describe('Delegates', function() {
                     node.expect(res.body.transaction.fee).to.equal(node.Fees.delegateRegistrationFee);
                     node.expect(res.body.transaction.asset.delegate.username).to.equal(Raccount.delegateName);
                     node.expect(res.body.transaction.asset.delegate.publicKey).to.equal(Raccount.publicKey);
-                    node.expect(res.body.transaction.asset.delegate.type).to.equal(node.TxTypes.DELEGATE);
-                    node.expect(res.body.transaction.asset.delegate.amount).to.equal(0);
+                    node.expect(res.body.transaction.type).to.equal(node.TxTypes.DELEGATE);
+                    node.expect(res.body.transaction.amount).to.equal(0);
                     done();
                 });
         });
 
         test += 1;
-        it(test + '. We attempt to re-register as delegate from SAME random account. We expect error',function(done){
+        it(test + '. We attempt to re-register as delegate from SAME random account: ' + Raccount.password + '. We expect error',function(done){
             this.timeout(node.blockTimePlus);
             setTimeout(function(){
                 node.api.put('/delegates')

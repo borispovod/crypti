@@ -60,9 +60,11 @@ RequestSanitizer.addRule("int", {
     filter : function(accept, value , field) {
         if (field.isEmpty() && field.rules.empty) return null;
 
-        value = parseInt(value);
+		if (isNaN(value) || parseInt(value) != value || isNaN(parseInt(value, 10))) {
+			return 0;
+		}
 
-        return isNaN(value) ? 0 : value;
+		return parseInt(value);
     }
 });
 
