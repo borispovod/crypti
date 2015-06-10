@@ -17,3 +17,4 @@ bfg.jar
 .directory
 ssl/
 .vagrant/
+sqlite/
