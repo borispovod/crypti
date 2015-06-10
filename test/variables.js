@@ -160,5 +160,6 @@ module.exports = {
     randomTxAccount: randomTxAccount,
     randomUsername: randomUsername,
     expectedFee:expectedFee,
-	peers_config: config.mocha.peers
+	peers_config: config.mocha.peers,
+	config: config
 };
