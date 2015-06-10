@@ -14,6 +14,10 @@
 	},
 	"peers": {
 		"list": [
+			{
+				"ip" : "130.211.104.33",
+				"port": 10060
+			}
 		],
 		"blackList": [],
 		"options": {
