@@ -7,7 +7,7 @@
 	},
 	"scripts": {
 		"start": "node app.js",
-		"test": "mocha test/helpers test/logic",
+		"test": "mocha",
 		"cov": "mocha --require blanket -R html-cov test/helpers test/logic > tmp/coverage.html"
 	},
 	"dependencies": {
