@@ -554,19 +554,29 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 					});
 				}
 
-				if (verify && !library.logic.block.verifySignature(block)) {
-					// need to break cicle and delete this block and blocks after this block
-					return cb({
-						message: "Can't verify signature",
-						block: block
-					});
-				}
+				if (verify) {
+					try {
+						var valid = library.logic.block.verifySignature(block);
+					} catch (e) {
+						return setImmediate(cb, {
+							message: e.toString(),
+							block: block
+						});
+					}
+					if (!valid) {
+						// need to break cicle and delete this block and blocks after this block
+						return cb({
+							message: "Can't verify signature",
+							block: block
+						});
+					}
 
-				if (verify && !modules.delegates.validateBlockSlot(block)) {
-					return cb({
-						message: "Can't verify slot",
-						block: block
-					});
+					if (!modules.delegates.validateBlockSlot(block)) {
+						return cb({
+							message: "Can't verify slot",
+							block: block
+						});
+					}
 				}
 			}
 
@@ -630,7 +640,11 @@ Blocks.prototype.getLastBlock = function () {
 }
 
 Blocks.prototype.processBlock = function (block, broadcast, cb) {
-	block.id = library.logic.block.getId(block);
+	try {
+		block.id = library.logic.block.getId(block);
+	} catch (e) {
+		return setImmediate(cb, e.toString());
+	}
 	block.height = private.lastBlock.height + 1;
 
 	modules.transactions.undoUnconfirmedList(function (err, unconfirmedTransactions) {
@@ -644,6 +658,10 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 			});
 		}
 
+		if (!block.previousBlock && block.height != 1) {
+			return setImmediate(done, "Wrong previous block");
+		}
+
 		library.dbLite.query("SELECT id FROM blocks WHERE id=$id", {id: block.id}, ['id'], function (err, rows) {
 			if (err) {
 				return done(err);
@@ -655,7 +673,12 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 				return done("Block already exists: " + block.id);
 			}
 
-			if (!library.logic.block.verifySignature(block)) {
+			try {
+				var valid = library.logic.block.verifySignature(block);
+			} catch (e) {
+				return setImmediate(cb, e.toString());
+			}
+			if (!valid) {
 				return done("Can't verify signature: " + block.id);
 			}
 
@@ -696,7 +719,11 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 
 
 			async.eachSeries(block.transactions, function (transaction, cb) {
-				transaction.id = library.logic.transaction.getId(transaction);
+				try {
+					transaction.id = library.logic.transaction.getId(transaction);
+				} catch (e) {
+					return setImmediate(cb, e.toString());
+				}
 				transaction.blockId = block.id;
 
 				library.dbLite.query("SELECT id FROM trs WHERE id=$id", {id: transaction.id}, ['id'], function (err, rows) {
@@ -727,6 +754,12 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 										return setImmediate(cb, "Can't apply transaction: " + transaction.id);
 									}
 
+									try {
+										var bytes = library.logic.transaction.getBytes(transaction, false);
+									} catch (e) {
+										return setImmediate(cb, e.toString());
+									}
+
 									appliedTransactions[transaction.id] = transaction;
 
 									var index = unconfirmedTransactions.indexOf(transaction.id);
@@ -734,7 +767,8 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 										unconfirmedTransactions.splice(index, 1);
 									}
 
-									payloadHash.update(library.logic.transaction.getBytes(transaction, false));
+									payloadHash.update(bytes);
+
 									totalAmount += transaction.amount;
 									totalFee += transaction.fee;
 

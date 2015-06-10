@@ -76,7 +76,7 @@ Transaction.prototype.sign = function (keypair, trs) {
 }
 
 Transaction.prototype.getId = function (trs) {
-	var hash = this.getHash(trs);
+	var hash = crypto.createHash('sha256').update(this.getBytes(trs)).digest();
 	var temp = new Buffer(8);
 	for (var i = 0; i < 8; i++) {
 		temp[i] = hash[7 - i];
@@ -173,13 +173,25 @@ Transaction.prototype.verify = function (trs, sender, cb) { //inheritance
 	}
 
 	//verify signature
-	if (!this.verifySignature(trs, trs.senderPublicKey, trs.signature)) {
+	try {
+		var valid = this.verifySignature(trs, trs.senderPublicKey, trs.signature);
+	} catch (e) {
+		return setImmediate(cb, e.toString());
+	}
+	if (!valid) {
 		return setImmediate(cb, "Can't verify signature");
 	}
 
 	//verify second signature
-	if (sender.secondSignature && !this.verifySignature(trs, sender.secondPublicKey, trs.signSignature)) {
-		return setImmediate(cb, "Can't verify second signature: " + trs.id);
+	if (sender.secondSignature) {
+		try {
+			var valid = this.verifySignature(trs, sender.secondPublicKey, trs.signSignature);
+		} catch (e) {
+			return setImmediate(cb, e.toString());
+		}
+		if (!valid) {
+			return setImmediate(cb, "Can't verify second signature: " + trs.id);
+		}
 	}
 
 	for (var s = 0; s < sender.multisignature.keysgroup.length; s++) {
@@ -270,16 +282,15 @@ Transaction.prototype.verifySignature = function (trs, publicKey, signature) {
 		throw Error('Unknown transaction type ' + trs.type);
 	}
 
-	var bytes = this.getBytes(trs, true);
-	var data2 = new Buffer(bytes.length);
-
-	for (var i = 0; i < data2.length; i++) {
-		data2[i] = bytes[i];
-	}
-
-	var hash = crypto.createHash('sha256').update(data2).digest();
-
 	try {
+		var bytes = this.getBytes(trs, true);
+		var data2 = new Buffer(bytes.length);
+
+		for (var i = 0; i < data2.length; i++) {
+			data2[i] = bytes[i];
+		}
+
+		var hash = crypto.createHash('sha256').update(data2).digest();
 		var signatureBuffer = new Buffer(signature, 'hex');
 		var publicKeyBuffer = new Buffer(publicKey, 'hex');
 		var res = ed.Verify(hash, signatureBuffer || ' ', publicKeyBuffer || ' ');

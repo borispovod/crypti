@@ -313,7 +313,7 @@ Loader.prototype.onPeerReady = function () {
 			private.syncTrigger(false);
 			private.blocksToSync = 0;
 
-			setTimeout(nextLoadBlock, 10 * 1000)
+			setTimeout(nextLoadBlock, 9 * 1000)
 		});
 	});
 
@@ -323,7 +323,7 @@ Loader.prototype.onPeerReady = function () {
 		}, function (err) {
 			err && library.logger.error('loadUnconfirmedTransactions timer', err);
 
-			setTimeout(nextLoadUnconfirmedTransactions, 15 * 1000)
+			setTimeout(nextLoadUnconfirmedTransactions, 14 * 1000)
 		})
 	});
 }

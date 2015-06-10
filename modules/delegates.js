@@ -485,11 +485,7 @@ function attachApi() {
 			},
 			publicKey: "hex?",
 			secondSecret: "string?",
-			username: {
-				required: true,
-				string: true,
-				minLength: 1
-			}
+			username: "string?"
 		}, function (err, report, body) {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
@@ -531,7 +527,7 @@ function attachApi() {
 
 			var transaction = library.logic.transaction.create({
 				type: TransactionTypes.DELEGATE,
-				username: body.username,
+				username: username,
 				sender: account,
 				keypair: keypair,
 				secondKeypair: secondKeypair
