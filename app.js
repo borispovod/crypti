@@ -123,6 +123,7 @@ d.run(function () {
 				https_io : https_io
 			});
 		}],
+
 		sequence: function (cb) {
 
 			var sequence = [];
@@ -152,7 +153,7 @@ d.run(function () {
 			});
 		},
 
-		connect: ['config', 'logger', 'network', function (cb, scope) {
+		connect: ['config', 'logger', 'build', 'network', function (cb, scope) {
 			var path = require('path');
 			var bodyParser = require('body-parser');
 			var methodOverride = require('method-override');
@@ -262,7 +263,7 @@ d.run(function () {
 			});
 		},
 
-		modules: ['network', 'connect', 'config', 'logger', 'bus', 'sequence', 'dbLite', function (cb, scope) {
+		modules: ['network', 'connect', 'config', 'logger', 'bus', 'sequence', 'dbLite', 'logic', function (cb, scope) {
 			var tasks = {};
 			Object.keys(config.modules).forEach(function (name) {
 				tasks[name] = function (cb) {
