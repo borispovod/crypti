@@ -479,7 +479,7 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 	}
 
 	if (transaction.id && transaction.id != txId) {
-		return cb("Invalid transaction id");
+		return cb("Invalid transaction id: " + txId);
 	} else {
 		transaction.id = txId;
 	}

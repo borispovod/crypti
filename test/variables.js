@@ -9,7 +9,8 @@ var _ = require('lodash'),
 	config = require('./config.json'),
     expect = require('chai').expect,
     supertest = require('supertest'),
-    api = supertest('http://' + config.address + ':' + config.port + '/api'); // DEFINES THE NODE WE USE FOR THE TEST
+    api = supertest('http://' + config.address + ':' + config.port + '/api'),
+	peer = supertest('http://' + config.address + ':' + config.port + '/peer'); // DEFINES THE NODE WE USE FOR THE TEST
 
 var normalizer = 100000000; // Use this to convert XCR amount to normal value
 var blockTime = 10000; // Block time in miliseconds
@@ -139,6 +140,8 @@ function randomPassword(){
 
 module.exports = {
     api: api,
+	peer : peer,
+	crypti : require('./cryptijs'),
     supertest: supertest,
     expect: expect,
     XCR: XCR,
@@ -156,5 +159,6 @@ module.exports = {
     randomAccount: randomAccount,
     randomTxAccount: randomTxAccount,
     randomUsername: randomUsername,
-    expectedFee:expectedFee
+    expectedFee:expectedFee,
+	peers_config: config.mocha.peers
 };

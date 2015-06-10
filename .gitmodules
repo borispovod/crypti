@@ -4,3 +4,6 @@
 [submodule "frontend"]
 	path = frontend
 	url = git@github.com:crypti/frontend.git
+[submodule "test/cryptijs"]
+	path = test/cryptijs
+	url = git@github.com:crypti/crypti-js.git
