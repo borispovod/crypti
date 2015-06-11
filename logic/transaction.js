@@ -283,7 +283,7 @@ Transaction.prototype.applyUnconfirmed = function (trs, sender, cb) {
 		return setImmediate(cb, 'Failed second signature: ' + trs.id);
 	}
 
-	if (!sender.secondSignature && trs.signSignature) {
+	if (!sender.secondSignature && trs.signSignature.length > 0) {
 		return setImmediate(cb, "Account doesn't have second signature");
 	}
 

@@ -1,7 +1,7 @@
 var node = require('./variables.js'),
 	crypto = require('crypto');
 
-describe("Peers", function () {
+describe("Peers transactions", function () {
 	it("create transaction. should return ok", function (done) {
 		var transaction = node.crypti.transaction.createTransaction("1C", 1, node.peers_config.account);
 		node.peer.post('/transactions')
