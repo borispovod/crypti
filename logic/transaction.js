@@ -10,7 +10,7 @@ var slots = require('../helpers/slots.js'),
 
 //constructor
 function Transaction() {
-	//Object.freeze(this);
+
 }
 
 //private methods
