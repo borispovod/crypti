@@ -59,7 +59,7 @@ describe("Peers second signature transactions", function () {
 			});
 	});
 
-	it.skip("Test transaction with second signature. Should return ok", function (done) {
+	it("Test transaction with second signature. Should return ok", function (done) {
 		var transaction = node.crypti.transaction.createTransaction("1C", 1, account.password, account.secondPassword);
 		node.peer.post('/transactions')
 			.set('Accept', 'application/json')
