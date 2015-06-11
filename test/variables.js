@@ -120,7 +120,7 @@ function randomAccount(){
     account.password = randomPassword();
     account.secondPassword = randomPassword();
     account.delegateName = randomDelegateName();
-    account.username = randomUsername();
+    account.username =  '.' + randomUsername();
 
     return account;
 }

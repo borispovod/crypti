@@ -874,6 +874,7 @@ describe('Transactions', function() {
 
             test += 1;
             it(test + '. We try to REGISTER USERNAME. Valid data. We expect success',function(done){
+				console.log(Account1);
                 this.timeout(5000);
                 setTimeout(function(){
                     node.api.put('/accounts/username')
