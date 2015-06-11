@@ -352,6 +352,10 @@ Transaction.prototype.applyUnconfirmed = function (trs, sender, cb) {
 		return setImmediate(cb, 'Failed second signature: ' + trs.id);
 	}
 
+	if (!sender.secondSignature && trs.signSignature) {
+		return setImmediate(cb, "Account doesn't have second signature");
+	}
+
 	var amount = trs.amount + trs.fee;
 
 	if (sender.unconfirmedBalance < amount && trs.blockId != genesisblock.block.id) {
