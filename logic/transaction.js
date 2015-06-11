@@ -43,7 +43,7 @@ Transaction.prototype.create = function (data) {
 
 	trs.signature = this.sign(data.keypair, trs);
 
-	if (data.secondKeypair) {
+	if (data.sender.secondSignature && data.secondKeypair) {
 		trs.signSignature = this.sign(data.secondKeypair, trs);
 	}
 
@@ -283,7 +283,7 @@ Transaction.prototype.applyUnconfirmed = function (trs, sender, cb) {
 		return setImmediate(cb, 'Failed second signature: ' + trs.id);
 	}
 
-	if (!sender.secondSignature && trs.signSignature.length > 0) {
+	if (!sender.secondSignature && (trs.signSignature && trs.signSignature.length > 0)) {
 		return setImmediate(cb, "Account doesn't have second signature");
 	}
 
