@@ -27,7 +27,7 @@ console.log("Password for Account 2 is: " + Account2.password);
 
 // Starting tests //
 
-describe('Transactions', function() {
+describe.skip('Transactions', function() {
 
     before(function (done) {
         /*
