@@ -102,7 +102,26 @@ describe("Peers second signature transactions", function () {
 			.expect(200)
 			.end(function (err, res) {
 				node.expect(res.body).to.have.property("success").to.be.false;
-				done();
+				setTimeout(function () {
+					node.api.get('/transactions/get?id=' + transaction.id)
+						.set('Accept', 'application/json')
+						.expect('Content-Type', /json/)
+						.expect(200)
+						.end(function (err, res) {
+							node.expect(res.body).to.have.property('success').to.be.true;
+							node.expect(res.body).to.have.property('transaction');
+
+							node.api.get('/transactions/get?id=' + transaction.id)
+								.set('Accept', 'application/json')
+								.expect('Content-Type', /json/)
+								.expect(200)
+								.end(function (err, res) {
+									node.expect(res.body).to.have.property('success').to.be.false;
+
+									done();
+								});
+						});
+				}, 10000);
 			});
 	});
 
