@@ -42,7 +42,7 @@ function Signature() {
 		}
 
 		try {
-			if (new Buffer(trs.asset.signature.publicKey, 'hex').length != 32) {
+			if (!trs.asset.signature.publicKey || new Buffer(trs.asset.signature.publicKey, 'hex').length != 32) {
 				return setImmediate(cb, errorCode("SIGNATURES.INVALID_LENGTH", trs));
 			}
 		} catch (e) {
