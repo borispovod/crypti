@@ -926,11 +926,11 @@ Blocks.prototype.generateBlock = function (keypair, timestamp, cb) {
 		}
 	}, function () {
 		try {
-			ready = ready.sort(function (a, b) {
-				if (a.type == TransactionTypes.SIGNATURE)
-					return -1;
-				return 0;
-			});
+			//ready = ready.sort(function (a, b) {
+			//	if (a.type == TransactionTypes.SIGNATURE)
+			//		return -1;
+			//	return 0;
+			//});
 
 			var block = library.logic.block.create({
 				keypair: keypair,

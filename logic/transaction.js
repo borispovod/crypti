@@ -216,6 +216,8 @@ Transaction.prototype.verifySignature = function (trs, publicKey, signature) {
 		throw Error('Unknown transaction type ' + trs.type);
 	}
 
+	if (!signature) return false;
+
 	try {
 		var bytes = this.getBytes(trs, true, true);
 		var res = this.verifyBytes(bytes, publicKey, signature);
@@ -230,6 +232,8 @@ Transaction.prototype.verifySecondSignature = function (trs, publicKey, signatur
 	if (!private.types[trs.type]) {
 		throw Error('Unknown transaction type ' + trs.type);
 	}
+
+	if (!signature) return false;
 
 	try {
 		var bytes = this.getBytes(trs, false, true);
