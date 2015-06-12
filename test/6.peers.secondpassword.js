@@ -91,7 +91,7 @@ describe("Peers second signature transactions", function () {
 
 	it("Test transaction with fake second signature. Should return not ok", function (done) {
 		var transaction = node.crypti.transaction.createTransaction("1C", 1, account.password, account.secondPassword);
-		transaction.secondPassword = crypto.randomBytes(64).toString('hex');
+		transaction.signSignature = crypto.randomBytes(64).toString('hex');
 		transaction.id = node.crypti.crypto.getId(transaction);
 		node.peer.post('/transactions')
 			.set('Accept', 'application/json')
@@ -102,26 +102,7 @@ describe("Peers second signature transactions", function () {
 			.expect(200)
 			.end(function (err, res) {
 				node.expect(res.body).to.have.property("success").to.be.false;
-				setTimeout(function () {
-					node.api.get('/transactions/get?id=' + transaction.id)
-						.set('Accept', 'application/json')
-						.expect('Content-Type', /json/)
-						.expect(200)
-						.end(function (err, res) {
-							node.expect(res.body).to.have.property('success').to.be.true;
-							node.expect(res.body).to.have.property('transaction');
-
-							node.api.get('/transactions/get?id=' + transaction.id)
-								.set('Accept', 'application/json')
-								.expect('Content-Type', /json/)
-								.expect(200)
-								.end(function (err, res) {
-									node.expect(res.body).to.have.property('success').to.be.false;
-
-									done();
-								});
-						});
-				}, 10000);
+				done();
 			});
 	});
 
