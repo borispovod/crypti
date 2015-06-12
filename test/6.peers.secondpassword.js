@@ -106,7 +106,7 @@ describe("Peers second signature transactions", function () {
 			});
 	});
 
-	it("Create new account with second signature and send transaction without second signature. Should return ok", function (done) {
+	it("Create new account with second signature and send transaction without second signature. Should return not ok", function (done) {
 		node.api.post('/accounts/open')
 			.set('Accept', 'application/json')
 			.send({
@@ -145,18 +145,8 @@ describe("Peers second signature transactions", function () {
 										.expect('Content-Type', /json/)
 										.expect(200)
 										.end(function (err, res) {
-											node.expect(res.body).to.have.property('success').to.be.true;
-											setTimeout(function () {
-												node.api.get('/transactions/get?id=' + sendTransaction.id)
-													.set('Accept', 'application/json')
-													.expect('Content-Type', /json/)
-													.expect(200)
-													.end(function (err, res) {
-														node.expect(res.body).to.have.property('success').to.be.true;
-														node.expect(res.body).to.have.property('transaction');
-														done();
-													});
-											}, 10000);
+											node.expect(res.body).to.have.property('success').to.be.false;
+											done();
 										});
 								});
 						}, 10000);
