@@ -166,7 +166,7 @@ private.list = function (filter, cb) {
 		params.totalFee = filter.totalFee;
 	}
 
-	if (filter.height !== 0) {
+	if (filter.height === 0 || filter.height > 0) {
 		fields.push('height = $height');
 		params.height = filter.height;
 	}
