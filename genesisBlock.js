@@ -10,7 +10,7 @@ var crypto = require('crypto'),
 	Transaction = require('./logic/transaction.js'),
 	Block = require('./logic/block.js'),
 	constants = require('./helpers/constants.js'),
-	bignum = require('bignum'),
+	bignum = require('./helpers/bignum.js'),
 	ByteBuffer = require('bytebuffer'),
 	TransactionTypes = require('./helpers/transaction-types.js');
 
