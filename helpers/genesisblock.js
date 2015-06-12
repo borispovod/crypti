@@ -3,7 +3,7 @@ module.exports = {
         "version": 0,
         "totalAmount": 10000000000000000,
         "totalFee": 0,
-        "payloadHash": "2f610e2264967df42f048806348599b80fb880545d508eae3d21f2500bbb4ed2",
+        "payloadHash": "b9e1d87199f612acb3cd6705c688cfb366f80958c945645ab1834bf8f70a4af4",
         "timestamp": 0,
         "numberOfTransactions": 103,
         "payloadLength": 20326,
@@ -1647,8 +1647,8 @@ module.exports = {
                 "senderPublicKey": "631b91fa537f74e23addccd30555fbc7729ea267c7e0517cbf1bfcc46354abc3",
                 "asset": {
                     "votes": [
-                        "+db769b826286d86f23855eb86d1a0e2324f550a4933f22b8e6bc88bc9d329b59",
                         "+708b04bd45cf1c2503c14c4465433de46f6461647b2e352c96d7bfa7ba32e124",
+                        "+db769b826286d86f23855eb86d1a0e2324f550a4933f22b8e6bc88bc9d329b59",
                         "+76a9635f43ff40d131b61844c03c09e40d4dcc32cafda395f628b6a60e1dded6",
                         "+9299c51656d51502ef90b2dd713e40786043a01e67abe52a2609f042649dd21e",
                         "+8c1443415c8888f82f1c47975f26de4c0c76dd9f269d06c16667e9be2f7e6eb1",
@@ -1750,12 +1750,12 @@ module.exports = {
                         "+f143730cbb5c42a9a02f183f8ee7b4b2ade158cb179b12777714edf27b4fcf3e"
                     ]
                 },
-                "signature": "edda5cd2a3ef26bacd70dd95603cf0d2d5740b75e2fc4953e8c2777f71e5abf16c28206cb9969c8dfae2e85b1c176b006ebd147bcc236eac714b93c03f32d803",
-                "id": "8542535171626863279"
+                "signature": "ff82b6d48f56af0d38cc71d27a4f1ac91470e0d05430d9e9b936eaeb82cf1cf7b630d79502c8e7a6d293c07b564a8493ffa9c08ffb60e135197fb4b61ae2720a",
+                "id": "7805162760446993276"
             }
         ],
         "height": 1,
-        "blockSignature": "0bc4696e5ace3b2c5f6aa0a526c96ae6ca6d7747833142b4c2f8dbba0fae65149adb5e6849579bc2197cc8b0f3d86b8127be43cf55927ec08b4d71994b681800",
-        "id": "5157408957444690862"
+        "blockSignature": "47d84dc74eb6738b9a29c13f6e7fb882e60be4bb8b9eae6b8ee7ef7951f39c34a7c9b9f31d032893b71138fb10f761660a340b17ee2e0fc58cfe148f10462b0f",
+        "id": "480217675541140596"
     }
 }
