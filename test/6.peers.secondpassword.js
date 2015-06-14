@@ -5,9 +5,24 @@ var account = node.randomAccount();
 var account2 = node.randomAccount();
 var account3 = node.randomAccount();
 
-describe("Peers second signature transactions", function () {
+describe.skip("Peers second signature transactions", function () {
 	it("Send second signature from account that doesn't have it. Should return not ok", function (done) {
 		var transaction = node.crypti.transaction.createTransaction("1C", 1, node.peers_config.account, account.secondPassword);
+		node.peer.post('/transactions')
+			.set('Accept', 'application/json')
+			.send({
+				transaction: transaction
+			})
+			.expect('Content-Type', /json/)
+			.expect(200)
+			.end(function (err, res) {
+				node.expect(res.body).to.have.property("success").to.be.false;
+				done();
+			});
+	});
+
+	it("Send second signature from account that have no funds. Should return not ok", function (done) {
+		var transaction = node.crypti.signature.createSignature(node.randomPassword());
 		node.peer.post('/transactions')
 			.set('Accept', 'application/json')
 			.send({

@@ -10,7 +10,8 @@ var _ = require('lodash'),
     expect = require('chai').expect,
     supertest = require('supertest'),
     api = supertest('http://' + config.address + ':' + config.port + '/api'),
-	peer = supertest('http://' + config.address + ':' + config.port + '/peer'); // DEFINES THE NODE WE USE FOR THE TEST
+	peer = supertest('http://' + config.address + ':' + config.port + '/peer'),
+	async = require('async'); // DEFINES THE NODE WE USE FOR THE TEST
 
 var normalizer = 100000000; // Use this to convert XCR amount to normal value
 var blockTime = 10000; // Block time in miliseconds
@@ -82,6 +83,53 @@ function randomDelegateName()
 
 function randomizeXCR(){
     return Math.floor(Math.random() * (10000 * 100000000)) + 1;
+}
+
+function getHeight(cb) {
+	api.get('/blocks/getHeight')
+		.set('Accept', 'application/json')
+		.expect('Content-Type', /json/)
+		.expect(200)
+		.end(function (err, res) {
+			if (err) {
+				return cb(err);
+			} else {
+				return cb(null, res.body.height);
+			}
+		});
+}
+
+function waitForNewBlock(height, cb) {
+	var actualHeight = height;
+	async.doWhilst(
+		function (cb) {
+			api.get('/blocks/getHeight')
+				.set('Accept', 'application/json')
+				.expect('Content-Type', /json/)
+				.expect(200)
+				.end(function (err, res) {
+					if (err) {
+						return cb(err);
+					}
+
+					if (height < res.body.height) {
+						height = res.body.height;
+					}
+
+					setTimeout(cb, 1000);
+				});
+		},
+		function () {
+			return actualHeight < height;
+		},
+		function (err) {
+			if (err) {
+				return setImmediate(cb, err);
+			} else {
+				return setImmediate(cb, null, height);
+			}
+		}
+	)
 }
 
 /**
@@ -161,5 +209,7 @@ module.exports = {
     randomUsername: randomUsername,
     expectedFee:expectedFee,
 	peers_config: config.mocha.peers,
-	config: config
+	config: config,
+	waitForNewBlock: waitForNewBlock,
+	getHeight: getHeight
 };
