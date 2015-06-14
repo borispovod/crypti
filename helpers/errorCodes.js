@@ -193,7 +193,7 @@ var errorCodes = {
 			args: ["recipientId"]
 		},
 		INVALID_AMOUNT: {
-			message: "Invalid transaction amount: ",
+			message: "Invalid transaction amount: %i",
 			args: ["amount"]
 		},
 		TRANSACTION_NOT_FOUND: {

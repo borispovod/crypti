@@ -166,7 +166,7 @@ private.list = function (filter, cb) {
 		params.totalFee = filter.totalFee;
 	}
 
-	if (filter.height) {
+	if (filter.height === 0 || filter.height > 0) {
 		fields.push('height = $height');
 		params.height = filter.height;
 	}
@@ -734,7 +734,7 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 							}
 
 							try {
-								var bytes = library.logic.transaction.getBytes(transaction, false);
+								var bytes = library.logic.transaction.getBytes(transaction);
 							} catch (e) {
 								return setImmediate(cb, e.toString());
 							}
@@ -926,6 +926,12 @@ Blocks.prototype.generateBlock = function (keypair, timestamp, cb) {
 		}
 	}, function () {
 		try {
+			//ready = ready.sort(function (a, b) {
+			//	if (a.type == TransactionTypes.SIGNATURE)
+			//		return -1;
+			//	return 0;
+			//});
+
 			var block = library.logic.block.create({
 				keypair: keypair,
 				timestamp: timestamp,

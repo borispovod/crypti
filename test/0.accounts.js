@@ -11,7 +11,6 @@ var sleep = require('sleep');
 var spawn = require('child_process').spawn;
 var process = spawn('node', [path.join(__dirname, '..', 'app.js'), '-c', path.join(__dirname, 'config.json')]);
 
-
 process.on('close', function(code) {
     console.log('closing code: ' + code);
 });
