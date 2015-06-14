@@ -27,7 +27,7 @@ var Fees = {
     delegateRegistrationFee : 10000000000
 };
 
-// Account info for delegate to register manually.
+// Account info for delegate to register manually
 var Daccount = {
     'address': '9946841100442405851C',
     'publicKey': 'caf0f4c00cf9240771975e42b6672c88a832f98f01825dda6e001e2aab0bc0cc',
