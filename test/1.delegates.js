@@ -20,7 +20,7 @@ console.log("Random delegate name is: " + Raccount.name);
 
 // Starting tests //
 
-describe.skip('Delegates', function() {
+describe('Delegates', function() {
 
     describe('Vote and Register delegate attempts from account with 0 XCR', function() {
 

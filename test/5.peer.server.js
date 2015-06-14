@@ -10,7 +10,7 @@ app.use(methodOverride());
 
 var port = node.config.peers.list[0].port;
 
-describe.skip("Peer server", function () {
+describe("Peer server", function () {
 	before(function () {
 		app.listen(port, function (err) {
 			if (err) {

@@ -5,7 +5,7 @@ var account = node.randomAccount();
 var account2 = node.randomAccount();
 var account3 = node.randomAccount();
 
-describe.skip("Peers second signature transactions", function () {
+describe("Peers second signature transactions", function () {
 	it("Send second signature from account that doesn't have it. Should return not ok", function (done) {
 		var transaction = node.crypti.transaction.createTransaction("1C", 1, node.peers_config.account, account.secondPassword);
 		node.peer.post('/transactions')
@@ -22,7 +22,7 @@ describe.skip("Peers second signature transactions", function () {
 	});
 
 	it("Send second signature from account that have no funds. Should return not ok", function (done) {
-		var transaction = node.crypti.signature.createSignature(node.randomPassword());
+		var transaction = node.crypti.signature.createSignature(node.randomPassword(), node.randomPassword());
 		node.peer.post('/transactions')
 			.set('Accept', 'application/json')
 			.send({
