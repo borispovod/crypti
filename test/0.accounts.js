@@ -5,6 +5,7 @@
 'use strict';
 
 console.log("Please, wait 3s...");
+
 var path = require('path');
 var sleep = require('sleep');
 var spawn = require('child_process').spawn;
@@ -12,11 +13,10 @@ var process = spawn('node', [path.join(__dirname, '..', 'app.js'), '-c', path.jo
 
 
 process.on('close', function(code) {
-	console.log('closing code: ' + code);
+    console.log('closing code: ' + code);
 });
 
 sleep.sleep(3);
-
 // Requires and node configuration
 var node = require('./variables.js');
 var test = 0;

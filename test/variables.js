@@ -16,6 +16,7 @@ var normalizer = 100000000; // Use this to convert XCR amount to normal value
 var blockTime = 10000; // Block time in miliseconds
 var blockTimePlus = 12000; // Block time + 2 seconds in miliseconds
 
+// Holds Fee amounts for different transaction types.
 var Fees = {
     voteFee : 100000000,
     usernameFee : 100000000,
@@ -45,6 +46,7 @@ var Eaccount = {
     'delegateName': 'genesisDelegate100'
 };
 
+// List of all transaction types codes
 var TxTypes = {
     SEND : 0,
     SIGNATURE : 1,
@@ -68,6 +70,7 @@ var Faccount = {
 // Random XCR Amount
 var XCR = Math.floor(Math.random() * (100000 * 100000000)) + 1; // remove 1 x 0 for reduced fees (delegate + Tx)
 
+// Used to create random delegates names
 function randomDelegateName()
 {
     var size = randomNumber(1,20); // Min. delegate name size is 1, Max. delegate name is 20
@@ -80,21 +83,22 @@ function randomDelegateName()
     return delegateName;
 }
 
+// Randomizes XCR amount
 function randomizeXCR(){
     return Math.floor(Math.random() * (10000 * 100000000)) + 1;
 }
 
-/**
- * Returns a random number between min (inclusive) and max (exclusive)
- */
+// Returns a random number between min (inclusive) and max (exclusive)
 function randomNumber(min, max) {
     return Math.random() * (max - min) + min;
 }
 
+// Calculates the expected fee from a transaction
 function expectedFee(amount){
     return parseInt(amount * Fees.transactionFee);
 }
 
+// Used to create random usernames
 function randomUsername(){
     var size = randomNumber(1,16); // Min. username size is 1, Max. username size is 16
     var username = "";
@@ -106,6 +110,7 @@ function randomUsername(){
     return username;
 }
 
+// Used to create random basic accounts
 function randomAccount(){
     var account = {
         'address' : '',
@@ -125,6 +130,7 @@ function randomAccount(){
     return account;
 }
 
+// Used to create random transaction accounts (holds additional info to regular account)
 function randomTxAccount(){
     return _.defaults(randomAccount(), {
         sentAmount:'',
@@ -134,10 +140,12 @@ function randomTxAccount(){
     })
 }
 
+// Used to create random passwords
 function randomPassword(){
     return Math.random().toString(36).substring(7);
 }
 
+// Exports variables and functions for access from other files
 module.exports = {
     api: api,
 	peer : peer,

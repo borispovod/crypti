@@ -482,7 +482,6 @@ describe('Transactions', function() {
                 }, 1000);
             });
 
-            // CHANGE TO SUCCESS ONE BUG FIXED //
             test += 1;
             it(test + '. We try to send VERY SMALL XCR NUMBER (0.00000001) from Account 1 to Account 2. We get success',function(done){
                 this.timeout(5000);
@@ -505,7 +504,6 @@ describe('Transactions', function() {
                 }, 1000);
             });
 
-            // CHANGE TO SUCCESS ONE BUG FIXED //
             test += 1;
             it(test + '. We try to send VERY SMALL NEGATIVE XCR NUMBER (0.00000001) from Account 1 to Account 2. We expect error',function(done){
                 this.timeout(5000);
