@@ -3,7 +3,7 @@ var node = require('./variables.js'),
 
 var account = node.randomAccount();
 
-describe.skip("Peers votes", function () {
+describe("Peers votes", function () {
 	it("Double vote for delegate. Should be not ok", function (done) {
 		var transaction = node.crypti.vote.createVote(node.peers_config.account, ["+badf44a77df894ccad87fa62bac892e63e5e39fd972f6a3e6e850ed1a1708e98"]);
 		node.peer.post('/transactions')
