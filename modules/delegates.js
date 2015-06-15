@@ -98,6 +98,10 @@ function Delegate() {
 			return setImmediate(cb, errorCode("DELEGATES.WRONG_USERNAME"));
 		}
 
+		if (sender.unconfirmedUsername && sender.unconfirmedUsername != trs.asset.delegate.username) {
+			return setImmediate(cb, errorCode("USERNAMES.ALREADY_HAVE_USERNAME", trs));
+		}
+
 		setImmediate(cb, null, trs);
 	}
 

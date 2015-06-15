@@ -32,7 +32,7 @@ describe.skip("Peers usernames", function () {
 			});
 	});
 
-	it.skip("Register delegate and then username. Should return not ok", function (done) {
+	it("Register delegate and then username. Should return not ok", function (done) {
 		node.api.post('/accounts/open')
 			.set('Accept', 'application/json')
 			.send({
@@ -85,7 +85,7 @@ describe.skip("Peers usernames", function () {
 	});
 
 
-	it.skip("Register username and then register delegate. Should return not ok", function (done) {
+	it("Register username and then register delegate. Should return not ok", function (done) {
 		node.api.post('/accounts/open')
 			.set('Accept', 'application/json')
 			.send({
