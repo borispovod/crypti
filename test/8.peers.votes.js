@@ -65,7 +65,7 @@ describe("Peers votes", function () {
 	});
 
 	// not right test, because sometimes new block came and we don't have time to vote
-	it("Create new delegate and vote for this delegate. Should return be ok.", function (done) {
+	it("Create new delegate. Should return be ok.", function (done) {
 		node.api.post('/accounts/open')
 			.set('Accept', 'application/json')
 			.send({
@@ -98,19 +98,7 @@ describe("Peers votes", function () {
 								.expect(200)
 								.end(function (err, res) {
 									node.expect(res.body).to.have.property("success").to.be.true;
-
-									var transaction2 = node.crypti.vote.createVote(node.peers_config.account, ["+" + account.publicKey]);
-									node.peer.post('/transactions')
-										.set('Accept', 'application/json')
-										.send({
-											transaction: transaction2
-										})
-										.expect('Content-Type', /json/)
-										.expect(200)
-										.end(function (err, res) {
-											node.expect(res.body).to.have.property("success").to.be.true;
-											setTimeout(done, 10000);
-										});
+									done();
 								});
 						}, 10000);
 					});
@@ -128,7 +116,7 @@ describe("Peers votes", function () {
 				.expect('Content-Type', /json/)
 				.expect(200)
 				.end(function (err, res) {
-					node.expect(res.body).to.have.property("success").to.be.false;
+					node.expect(res.body).to.have.property("success").to.be.true;
 					done();
 				});
 		}, 10000);
