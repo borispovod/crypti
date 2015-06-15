@@ -29,6 +29,7 @@ function Account(address, publicKey, balance, unconfirmedBalance) {
 	this.unconfirmedAvatar = false;
 	this.avatar = false;
 	this.username = null;
+	this.unconfirmedUsername = null;
 	this.following = [];
 	this.unconfirmedFollowing = [];
 	this.followers = [];
@@ -471,16 +472,18 @@ function Username() {
 			return setImmediate(cb, errorCode("USERNAMES.EXISTS_USERNAME", trs));
 		}
 
-		if (sender.username) {
+		if (sender.username || sender.unconfirmedUsername) {
 			return setImmediate(cb, errorCode("USERNAMES.ALREADY_HAVE_USERNAME", trs));
 		}
 
+		sender.unconfirmedUsername = trs.asset.username.alias;
 		private.unconfirmedNames[trs.asset.username.alias.toLowerCase()] = true;
 
 		setImmediate(cb);
 	}
 
 	this.undoUnconfirmed = function (trs, sender) {
+		sender.unconfirmedUsername = null;
 		delete private.unconfirmedNames[trs.asset.username.alias.toLowerCase()];
 
 		return true;
