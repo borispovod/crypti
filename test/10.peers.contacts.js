@@ -82,7 +82,7 @@ describe("Peer contacts", function () {
 			});
 	});
 
-	it("Add existing contact to account again", function (done) {
+	it("Add existing contact to account again. Should return not ok", function (done) {
 		var transaction = node.crypti.contact.createContact(account.password, "+" + node.peers_config.address);
 		node.peer.post('/transactions')
 			.set('Accept', 'application/json')
