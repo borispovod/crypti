@@ -28,7 +28,7 @@ function Signature() {
 		if (modules.blocks.getLastBlock().height >= MilestoneBlocks.FEE_BLOCK) {
 			return 5 * constants.fixedPoint;
 		} else {
-			return 100 * constants.fixedPoint;
+			return 5 * constants.fixedPoint;
 		}
 	}
 
@@ -42,7 +42,7 @@ function Signature() {
 		}
 
 		try {
-			if (new Buffer(trs.asset.signature.publicKey, 'hex').length != 32) {
+			if (!trs.asset.signature.publicKey || new Buffer(trs.asset.signature.publicKey, 'hex').length != 32) {
 				return setImmediate(cb, errorCode("SIGNATURES.INVALID_LENGTH", trs));
 			}
 		} catch (e) {

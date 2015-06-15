@@ -47,7 +47,7 @@ function Delegate() {
 		if (modules.blocks.getLastBlock().height >= MilestoneBlocks.FEE_BLOCK) {
 			return 100 * constants.fixedPoint;
 		} else {
-			return 10000 * constants.fixedPoint;
+			return 100 * constants.fixedPoint;
 		}
 	}
 
@@ -848,6 +848,9 @@ Delegates.prototype.cache = function (delegate) {
 	private.publicKeyIndex[delegate.publicKey] = index;
 	private.transactionIdIndex[delegate.transactionId] = index;
 
+	var account = modules.accounts.getAccountByPublicKey(delegate.publicKey);
+	account.username = delegate.username;
+
 	library.network.io.sockets.emit('delegates/change', {});
 }
 
@@ -861,6 +864,9 @@ Delegates.prototype.uncache = function (delegate) {
 	delete private.namesIndex[delegate.username.toLowerCase()];
 	delete private.transactionIdIndex[delegate.transactionId];
 	private.delegates[index] = false;
+
+	var account = modules.accounts.getAccountByPublicKey(delegate.publicKey);
+	account.username = null;
 
 	library.network.io.sockets.emit('delegates/change', {});
 }

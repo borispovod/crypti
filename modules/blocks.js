@@ -167,7 +167,7 @@ private.list = function (filter, cb) {
 		params.totalFee = filter.totalFee;
 	}
 
-	if (filter.height) {
+	if (filter.height === 0 || filter.height > 0) {
 		fields.push('height = $height');
 		params.height = filter.height;
 	}
@@ -755,7 +755,7 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 									}
 
 									try {
-										var bytes = library.logic.transaction.getBytes(transaction, false);
+										var bytes = library.logic.transaction.getBytes(transaction);
 									} catch (e) {
 										return setImmediate(cb, e.toString());
 									}
