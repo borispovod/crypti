@@ -245,7 +245,7 @@ Transaction.prototype.verify = function (trs, sender, cb) { //inheritance
 	for (var s = 0; s < sender.multisignature.keysgroup.length; s++) {
 		var verify = false;
 		for (var d = 0; d < trs.signatures.length && !verify; d++) {
-			if (this.verifySignature(trs, sender.multisignature.keysgroup[s], trs.signatures[d])) {
+			if (this.verifySecondSignature(trs, sender.multisignature.keysgroup[s], trs.signatures[d])) {
 				verify = true;
 			}
 		}
@@ -431,7 +431,7 @@ Transaction.prototype.dbSave = function (trs, cb) {
 		return cb(e.toString())
 	}
 
-	this.dbLite.query("INSERT INTO trs(id, blockId, type, timestamp, senderPublicKey, senderId, recipientId, senderUsername, recipientUsername, amount, fee, signature, signSignature) VALUES($id, $blockId, $type, $timestamp, $senderPublicKey, $senderId, $recipientId, $senderUsername, $recipientUsername, $amount, $fee, $signature, $signSignature)", {
+	this.dbLite.query("INSERT INTO trs(id, blockId, type, timestamp, senderPublicKey, senderId, recipientId, senderUsername, recipientUsername, amount, fee, signature, signSignature, multisignatures) VALUES($id, $blockId, $type, $timestamp, $senderPublicKey, $senderId, $recipientId, $senderUsername, $recipientUsername, $amount, $fee, $signature, $signSignature, $multisignatures)", {
 		id: trs.id,
 		blockId: trs.blockId,
 		type: trs.type,
@@ -444,7 +444,8 @@ Transaction.prototype.dbSave = function (trs, cb) {
 		amount: trs.amount,
 		fee: trs.fee,
 		signature: signature,
-		signSignature: signSignature
+		signSignature: signSignature,
+		multisignatures: trs.signatures.join(',') || null
 	}, function (err) {
 		if (err) {
 			return cb(err);
@@ -477,6 +478,7 @@ Transaction.prototype.objectNormalize = function (trs) {
 			fee: "int",
 			signature: "hex!",
 			signSignature: "hex?",
+			signatures: "array?",
 			asset: "object"
 		}
 	});
@@ -515,6 +517,7 @@ Transaction.prototype.dbRead = function (raw) {
 			fee: parseInt(raw.t_fee),
 			signature: raw.t_signature,
 			signSignature: raw.t_signSignature,
+			signatures: raw.t_multisignatures ? raw.t_multisignatures.split(',') : null,
 			confirmations: raw.confirmations,
 			asset: {}
 		}
