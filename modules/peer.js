@@ -65,7 +65,7 @@ function attachApi() {
 	});
 
 	router.get('/version', function (req, res) {
-		return res.json({success: true, version: library.config.version, build: library.build.trim()});
+		return res.json({success: true, version: library.config.version, build: library.build});
 	})
 
 	router.get('/get', function (req, res) {

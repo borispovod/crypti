@@ -47,7 +47,7 @@ function Delegate() {
 		if (modules.blocks.getLastBlock().height >= MilestoneBlocks.FEE_BLOCK) {
 			return 100 * constants.fixedPoint;
 		} else {
-			return 10000 * constants.fixedPoint;
+			return 100 * constants.fixedPoint;
 		}
 	}
 
@@ -485,11 +485,7 @@ function attachApi() {
 			},
 			publicKey: "hex?",
 			secondSecret: "string?",
-			username: {
-				required: true,
-				string: true,
-				minLength: 1
-			}
+			username: "string?"
 		}, function (err, report, body) {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
@@ -531,7 +527,7 @@ function attachApi() {
 
 			var transaction = library.logic.transaction.create({
 				type: TransactionTypes.DELEGATE,
-				username: body.username,
+				username: username,
 				sender: account,
 				keypair: keypair,
 				secondKeypair: secondKeypair
@@ -852,6 +848,9 @@ Delegates.prototype.cache = function (delegate) {
 	private.publicKeyIndex[delegate.publicKey] = index;
 	private.transactionIdIndex[delegate.transactionId] = index;
 
+	var account = modules.accounts.getAccountByPublicKey(delegate.publicKey);
+	account.username = delegate.username;
+
 	library.network.io.sockets.emit('delegates/change', {});
 }
 
@@ -865,6 +864,9 @@ Delegates.prototype.uncache = function (delegate) {
 	delete private.namesIndex[delegate.username.toLowerCase()];
 	delete private.transactionIdIndex[delegate.transactionId];
 	private.delegates[index] = false;
+
+	var account = modules.accounts.getAccountByPublicKey(delegate.publicKey);
+	account.username = null;
 
 	library.network.io.sockets.emit('delegates/change', {});
 }

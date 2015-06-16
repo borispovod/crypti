@@ -45,7 +45,7 @@ Transaction.prototype.create = function (data) {
 
 	trs.signature = this.sign(data.keypair, trs);
 
-	if (data.secondKeypair) {
+	if (data.sender.secondSignature && data.secondKeypair) {
 		trs.signSignature = this.sign(data.secondKeypair, trs);
 	}
 
@@ -87,16 +87,16 @@ Transaction.prototype.getId = function (trs) {
 }
 
 Transaction.prototype.getHash = function (trs) {
-	return crypto.createHash('sha256').update(this.getBytes(trs, true)).digest();
+	return crypto.createHash('sha256').update(this.getBytes(trs)).digest();
 }
 
-Transaction.prototype.getBytes = function (trs, skipSignatures) {
+Transaction.prototype.getBytes = function (trs, skipSignature, skipSecondSignature) {
 	if (!private.types[trs.type]) {
 		throw Error('Unknown transaction type ' + trs.type);
 	}
 
 	try {
-		var assetBytes = private.types[trs.type].getBytes.call(this, trs, skipSignatures);
+		var assetBytes = private.types[trs.type].getBytes.call(this, trs, skipSignature, skipSecondSignature);
 		var assetSize = assetBytes ? assetBytes.length : 0;
 
 		var bb = new ByteBuffer(1 + 4 + 32 + 8 + 8 + 64 + 64 + assetSize, true);
@@ -129,14 +129,14 @@ Transaction.prototype.getBytes = function (trs, skipSignatures) {
 			}
 		}
 
-		if (!skipSignatures && trs.signature) {
+		if (!skipSignature && trs.signature) {
 			var signatureBuffer = new Buffer(trs.signature, 'hex');
 			for (var i = 0; i < signatureBuffer.length; i++) {
 				bb.writeByte(signatureBuffer[i]);
 			}
 		}
 
-		if (!skipSignatures && trs.signSignature) {
+		if (!skipSecondSignature && trs.signSignature) {
 			var signSignatureBuffer = new Buffer(trs.signSignature, 'hex');
 			for (var i = 0; i < signSignatureBuffer.length; i++) {
 				bb.writeByte(signSignatureBuffer[i]);
@@ -156,67 +156,6 @@ Transaction.prototype.ready = function (trs, sender) {
 	}
 
 	return private.types[trs.type].ready.call(this, trs, sender);
-}
-
-Transaction.prototype.verify = function (trs, sender, cb) { //inheritance
-	if (!private.types[trs.type]) {
-		return setImmediate(cb, 'Unknown transaction type ' + trs.type);
-	}
-
-	if (!this.ready(trs, sender)) {
-		return setImmediate(cb, "Transaction is not ready: " + trs.id);
-	}
-
-	//check sender
-	if (!sender) {
-		return setImmediate(cb, "Can't find sender");
-	}
-
-	//verify signature
-	if (!this.verifySignature(trs, trs.senderPublicKey, trs.signature)) {
-		return setImmediate(cb, "Can't verify signature");
-	}
-
-	//verify second signature
-	if (sender.secondSignature && !this.verifySignature(trs, sender.secondPublicKey, trs.signSignature)) {
-		return setImmediate(cb, "Can't verify second signature: " + trs.id);
-	}
-
-	for (var s = 0; s < sender.multisignature.keysgroup.length; s++) {
-		var verify = false;
-
-		for (var d = 0; d < trs.signatures.length && !verify; d++) {
-			if (this.verifySignature(trs, sender.multisignature.keysgroup[s], trs.signatures[d])) {
-				verify = true;
-			}
-		}
-
-		if (!verify) {
-			return setImmediate(cb, "Failed multisignature: " + trs.id);
-		}
-	}
-
-	//check sender
-	if (trs.senderId != sender.address) {
-		return setImmediate(cb, "Invalid sender id: " + trs.id);
-	}
-
-	//calc fee
-	var fee = private.types[trs.type].calculateFee.call(this, trs) || false;
-	if (!fee || trs.fee != fee) {
-		return setImmediate(cb, "Invalid transaction type/fee: " + trs.id);
-	}
-	//check amount
-	if (trs.amount < 0 || trs.amount > 100000000 * constants.fixedPoint || String(trs.amount).indexOf('.') >= 0 || trs.amount.toString().indexOf('e') >= 0) {
-		return setImmediate(cb, "Invalid transaction amount: " + trs.id);
-	}
-	//check timestamp
-	if (slots.getSlotNumber(trs.timestamp) > slots.getSlotNumber()) {
-		return setImmediate(cb, "Invalid transaction timestamp");
-	}
-
-	//spec
-	private.types[trs.type].verify.call(this, trs, sender, cb);
 }
 
 Transaction.prototype.process = function (trs, sender, cb) {
@@ -267,21 +206,122 @@ Transaction.prototype.process = function (trs, sender, cb) {
 	}.bind(this));
 }
 
+Transaction.prototype.verify = function (trs, sender, cb) { //inheritance
+	if (!private.types[trs.type]) {
+		return setImmediate(cb, 'Unknown transaction type ' + trs.type);
+	}
+
+	if (!this.ready(trs, sender)) {
+		return setImmediate(cb, "Transaction is not ready: " + trs.id);
+	}
+
+	//check sender
+	if (!sender) {
+		return setImmediate(cb, "Can't find sender");
+	}
+
+	//verify signature
+	try {
+		var valid = this.verifySignature(trs, trs.senderPublicKey, trs.signature);
+	} catch (e) {
+		return setImmediate(cb, e.toString());
+	}
+	if (!valid) {
+		return setImmediate(cb, "Can't verify signature");
+	}
+
+	//verify second signature
+	if (sender.secondSignature) {
+		try {
+			var valid = this.verifySecondSignature(trs, sender.secondPublicKey, trs.signSignature);
+		} catch (e) {
+			return setImmediate(cb, e.toString());
+		}
+		if (!valid) {
+			return setImmediate(cb, "Can't verify second signature: " + trs.id);
+		}
+	}
+
+	for (var s = 0; s < sender.multisignature.keysgroup.length; s++) {
+		var verify = false;
+
+		for (var d = 0; d < trs.signatures.length && !verify; d++) {
+			if (this.verifySecondSignature(trs, sender.multisignature.keysgroup[s], trs.signatures[d])) {
+				verify = true;
+			}
+		}
+
+		if (!verify) {
+			return setImmediate(cb, "Failed multisignature: " + trs.id);
+		}
+	}
+
+	//check sender
+	if (trs.senderId != sender.address) {
+		return setImmediate(cb, "Invalid sender id: " + trs.id);
+	}
+
+	//calc fee
+	var fee = private.types[trs.type].calculateFee.call(this, trs) || false;
+	if (!fee || trs.fee != fee) {
+		return setImmediate(cb, "Invalid transaction type/fee: " + trs.id);
+	}
+	//check amount
+	if (trs.amount < 0 || trs.amount > 100000000 * constants.fixedPoint || String(trs.amount).indexOf('.') >= 0 || trs.amount.toString().indexOf('e') >= 0) {
+		return setImmediate(cb, "Invalid transaction amount: " + trs.id);
+	}
+	//check timestamp
+	if (slots.getSlotNumber(trs.timestamp) > slots.getSlotNumber()) {
+		return setImmediate(cb, "Invalid transaction timestamp");
+	}
+
+	//spec
+	private.types[trs.type].verify.call(this, trs, sender, cb);
+}
+
 Transaction.prototype.verifySignature = function (trs, publicKey, signature) {
 	if (!private.types[trs.type]) {
 		throw Error('Unknown transaction type ' + trs.type);
 	}
 
-	var bytes = this.getBytes(trs, true);
-	var data2 = new Buffer(bytes.length);
-
-	for (var i = 0; i < data2.length; i++) {
-		data2[i] = bytes[i];
-	}
-
-	var hash = crypto.createHash('sha256').update(data2).digest();
+	if (!signature) return false;
 
 	try {
+		var bytes = this.getBytes(trs, true, true);
+		var res = this.verifyBytes(bytes, publicKey, signature);
+	} catch (e) {
+		throw Error(e.toString());
+	}
+
+	return res;
+}
+
+Transaction.prototype.verifySecondSignature = function (trs, publicKey, signature) {
+	if (!private.types[trs.type]) {
+		throw Error('Unknown transaction type ' + trs.type);
+	}
+
+	if (!signature) return false;
+
+	try {
+		var bytes = this.getBytes(trs, false, true);
+		var res = this.verifyBytes(bytes, publicKey, signature);
+	} catch (e) {
+		throw Error(e.toString());
+	}
+
+	return res;
+}
+
+Transaction.prototype.verifyBytes = function (bytes, publicKey, signature) {
+	try {
+		var data2 = new Buffer(bytes.length);
+
+		for (var i = 0; i < data2.length; i++) {
+			data2[i] = bytes[i];
+		}
+
+		var hash = crypto.createHash('sha256').update(data2).digest();
 		var signatureBuffer = new Buffer(signature, 'hex');
 		var publicKeyBuffer = new Buffer(publicKey, 'hex');
 		var res = ed.Verify(hash, signatureBuffer || ' ', publicKeyBuffer || ' ');
@@ -343,6 +383,10 @@ Transaction.prototype.applyUnconfirmed = function (trs, sender, cb) {
 		return setImmediate(cb, 'Failed second signature: ' + trs.id);
 	}
 
+	if (!sender.secondSignature && (trs.signSignature && trs.signSignature.length > 0)) {
+		return setImmediate(cb, "Account doesn't have second signature");
+	}
+
 	var amount = trs.amount + trs.fee;
 
 	if (sender.unconfirmedBalance < amount && trs.blockId != genesisblock.block.id) {
@@ -389,7 +433,7 @@ Transaction.prototype.dbSave = function (trs, cb) {
 		return cb(e.toString())
 	}
 
-	this.dbLite.query("INSERT INTO trs(id, blockId, type, timestamp, senderPublicKey, senderId, recipientId, senderUsername, recipientUsername, amount, fee, signature, signSignature) VALUES($id, $blockId, $type, $timestamp, $senderPublicKey, $senderId, $recipientId, $senderUsername, $recipientUsername, $amount, $fee, $signature, $signSignature)", {
+	this.dbLite.query("INSERT INTO trs(id, blockId, type, timestamp, senderPublicKey, senderId, recipientId, senderUsername, recipientUsername, amount, fee, signature, signSignature, multisignatures) VALUES($id, $blockId, $type, $timestamp, $senderPublicKey, $senderId, $recipientId, $senderUsername, $recipientUsername, $amount, $fee, $signature, $signSignature, $multisignatures)", {
 		id: trs.id,
 		blockId: trs.blockId,
 		type: trs.type,
@@ -402,7 +446,8 @@ Transaction.prototype.dbSave = function (trs, cb) {
 		amount: trs.amount,
 		fee: trs.fee,
 		signature: signature,
-		signSignature: signSignature
+		signSignature: signSignature,
+		multisignatures: trs.signatures.join(',') || null
 	}, function (err) {
 		if (err) {
 			return cb(err);
@@ -435,6 +480,7 @@ Transaction.prototype.objectNormalize = function (trs) {
 			fee: "int",
 			signature: "hex!",
 			signSignature: "hex?",
+			signatures: "array?",
 			asset: "object"
 		}
 	});
@@ -473,6 +519,7 @@ Transaction.prototype.dbRead = function (raw) {
 			fee: parseInt(raw.t_fee),
 			signature: raw.t_signature,
 			signSignature: raw.t_signSignature,
+			signatures: raw.t_multisignatures ? raw.t_multisignatures.split(',') : null,
 			confirmations: raw.confirmations,
 			asset: {}
 		}

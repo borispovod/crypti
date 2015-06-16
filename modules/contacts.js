@@ -157,6 +157,10 @@ function attachApi() {
 		res.status(500).send({success: false, error: errorCode('COMMON.LOADING')});
 	});
 
+	router.get('/fee', function (req, res) {
+		return res.json({success: true, fee: 1 * constants.fixedPoint})
+	});
+
 	router.get("/", function (req, res) {
 		req.sanitize("query", {
 			publicKey: "hex!"
@@ -241,7 +245,7 @@ function attachApi() {
 				following = modules.accounts.getAccountByUsername(followingAddress);
 			}
 			if (!following) {
-				return res.json({success: false, error: errorCode("CONTACTS.USERNAME_DOESNT_FOUND", body)});
+				return res.json({success: false, error: errorCode("CONTACTS.USERNAME_DOESNT_FOUND")});
 			}
 			if (following.address == account.address) {
 				return res.json({success: false, error: errorCode("CONTACTS.SELF_FRIENDING")});
