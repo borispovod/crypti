@@ -589,23 +589,30 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 			}
 
 			async.eachSeries(block.transactions, function (transaction, cb) {
-				var sender = modules.accounts.getAccountOrCreateByPublicKey(transaction.senderPublicKey);
+				modules.accounts.getAccountOrCreateByPublicKey(transaction.senderPublicKey, function (err, sender) {
+					if (err) {
+						return setImmediate(cb, {
+							message: err,
+							transaction: transaction,
+							block: block
+						});
+					}
+					if (verify && block.id != genesisblock.block.id) {
+						library.logic.transaction.verify(transaction, sender, function (err) {
+							if (err) {
+								return setImmediate(cb, {
+									message: err,
+									transaction: transaction,
+									block: block
+								});
+							}
 
-				if (verify && block.id != genesisblock.block.id) {
-					library.logic.transaction.verify(transaction, sender, function (err) {
-						if (err) {
-							return setImmediate(cb, {
-								message: err,
-								transaction: transaction,
-								block: block
-							});
-						}
-
+							private.applyTransaction(block, transaction, cb);
+						});
+					} else {
 						private.applyTransaction(block, transaction, cb);
-					});
-				} else {
-					private.applyTransaction(block, transaction, cb);
-				}
+					}
+				});
 			}, function (err) {
 				if (err) {
 					var lastValidTransaction = block.transactions.findIndex(function (trs) {

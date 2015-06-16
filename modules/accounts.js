@@ -757,19 +757,23 @@ function attachApi() {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
 
-			var account = private.openAccount(body.secret);
-
-			res.json({
-				success: true,
-				account: {
-					address: account.address,
-					unconfirmedBalance: account.unconfirmedBalance,
-					balance: account.balance,
-					publicKey: account.publicKey,
-					unconfirmedSignature: account.unconfirmedSignature,
-					secondSignature: account.secondSignature,
-					secondPublicKey: account.secondPublicKey
+			private.openAccount(body.secret, function (err, account) {
+				var accountData = null;
+				if (!err) {
+					accountData = {
+						address: account.address,
+						unconfirmedBalance: account.unconfirmedBalance,
+						balance: account.balance,
+						publicKey: account.publicKey,
+						unconfirmedSignature: account.unconfirmedSignature,
+						secondSignature: account.secondSignature,
+						secondPublicKey: account.secondPublicKey
+					};
 				}
+				res.json({
+					success: !err,
+					account: accountData
+				});
 			});
 		});
 	});
@@ -862,8 +866,16 @@ function attachApi() {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
 
-			var account = private.openAccount(query.secret);
-			return res.json({success: true, publicKey: account.publicKey});
+			private.openAccount(query.secret, function (err) {
+				var publicKey = null;
+				if (!err) {
+					publicKey = account.publicKey;
+				}
+				res.json({
+					success: !err,
+					publicKey: account.publicKey
+				});
+			});
 		});
 
 	});
@@ -1079,28 +1091,29 @@ function attachApi() {
 	});
 }
 
-private.addAccount = function (account) {
+private.addAccount = function (account, cb) {
 	if (!private.accounts[account.address]) {
 		private.accounts[account.address] = account;
 	}
+	setImmediate(cb);
 	//library.logic.account.set(account.address, account, function (err, res) {
 	//	console.log("set", err, res);
 	//});
 }
 
-private.openAccount = function (secret) {
+private.openAccount = function (secret, cb) {
 	var hash = crypto.createHash('sha256').update(secret, 'utf8').digest();
 	var keypair = ed.MakeKeypair(hash);
 
-	return self.getAccountOrCreateByPublicKey(keypair.publicKey.toString('hex'));
+	self.getAccountOrCreateByPublicKey(keypair.publicKey.toString('hex'), cb);
 }
 
 //public methods
-Accounts.prototype.getAccount = function (id) {
+Accounts.prototype.getAccount = function (id, cb) {
 	//library.logic.account.get({address: id.toString().toUpperCase()}, function (err, res) {
 	//	console.log("get", err, res);
 	//});
-	return private.accounts[id.toString().toUpperCase()];
+	setImmediate(cb, null, private.accounts[id.toString().toUpperCase()]);
 }
 
 Accounts.prototype.getAccountByPublicKey = function (publicKey) {
@@ -1137,7 +1150,7 @@ Accounts.prototype.getAccountByUsername = function (username) {
 	return address && this.getAccount(address);
 }
 
-Accounts.prototype.getAccountOrCreateByPublicKey = function (publicKey) {
+Accounts.prototype.getAccountOrCreateByPublicKey = function (publicKey, cb) {
 	var address = self.getAddressByPublicKey(publicKey);
 	var account = self.getAccount(address);
 
@@ -1147,24 +1160,25 @@ Accounts.prototype.getAccountOrCreateByPublicKey = function (publicKey) {
 
 	if (!account) {
 		account = new Account(address, publicKey);
-		private.addAccount(account);
+		private.addAccount(account, function (err) {
+			setImmediate(cb, null, account);
+		});
+	} else {
+		setImmediate(cb, null, account);
 	}
-	return account;
 }
 
-Accounts.prototype.getAccountOrCreateByAddress = function (address) {
+Accounts.prototype.getAccountOrCreateByAddress = function (address, cb) {
 	var account = self.getAccount(address);
 
 	if (!account) {
 		account = new Account(address);
-		private.addAccount(account);
+		private.addAccount(account, function (err) {
+			setImmediate(cb, null, account);
+		});
+	} else {
+		setImmediate(cb, null, account);
 	}
-
-	return account;
-}
-
-Accounts.prototype.getAllAccounts = function () {
-	return private.accounts;
 }
 
 Accounts.prototype.getDelegates = function (publicKey) {

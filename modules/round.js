@@ -80,7 +80,7 @@ Round.prototype.backwardTick = function (block, previousBlock) {
 				var leftover = diffFee - (delegatesFee * slots.delegates);
 
 				private.unDelegatesByRound[round].forEach(function (delegate, index) {
-					var recipient = modules.accounts.getAccountOrCreateByPublicKey(delegate);
+					var recipient = modules.accounts.getAccountOrCreateByPublicKey(delegate); //lost!
 					recipient.addToBalance(-delegatesFee);
 					recipient.addToUnconfirmedBalance(-delegatesFee);
 					modules.delegates.addFee(delegate, -delegatesFee);
@@ -146,7 +146,7 @@ Round.prototype.tick = function (block) {
 				var leftover = diffFee - (delegatesFee * slots.delegates);
 
 				private.delegatesByRound[round].forEach(function (delegate, index) {
-					var recipient = modules.accounts.getAccountOrCreateByPublicKey(delegate);
+					var recipient = modules.accounts.getAccountOrCreateByPublicKey(delegate); //lost!
 					recipient.addToUnconfirmedBalance(delegatesFee);
 					recipient.addToBalance(delegatesFee);
 					modules.delegates.addFee(delegate, delegatesFee);

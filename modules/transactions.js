@@ -56,21 +56,21 @@ function Transfer() {
 	}
 
 	this.apply = function (trs, sender, cb) {
-		var recipient = modules.accounts.getAccountOrCreateByAddress(trs.recipientId);
+		modules.accounts.getAccountOrCreateByAddress(trs.recipientId, function (err, recipient) {
+			recipient.addToUnconfirmedBalance(trs.amount);
+			recipient.addToBalance(trs.amount);
 
-		recipient.addToUnconfirmedBalance(trs.amount);
-		recipient.addToBalance(trs.amount);
-
-		setImmediate(cb);
+			setImmediate(cb);
+		});
 	}
 
 	this.undo = function (trs, sender, cb) {
-		var recipient = modules.accounts.getAccountOrCreateByAddress(trs.recipientId);
+		modules.accounts.getAccountOrCreateByAddress(trs.recipientId, function (err, recipient) {
+			recipient.addToUnconfirmedBalance(-trs.amount);
+			recipient.addToBalance(-trs.amount);
 
-		recipient.addToUnconfirmedBalance(-trs.amount);
-		recipient.addToBalance(-trs.amount);
-
-		setImmediate(cb);
+			setImmediate(cb);
+		});
 	}
 
 	this.applyUnconfirmed = function (trs, sender, cb) {
@@ -506,7 +506,7 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 	}
 
 	library.logic.transaction.process(transaction, sender, function (err, transaction) {
-		if (err){
+		if (err) {
 			return done(err);
 		}
 
@@ -559,15 +559,15 @@ Transactions.prototype.undo = function (transaction, cb) {
 }
 
 Transactions.prototype.applyUnconfirmed = function (transaction, cb) {
-	var sender = modules.accounts.getAccountByPublicKey(transaction.senderPublicKey);
+	var sender = modules.accounts.getAccountByPublicKey(transaction.senderPublicKey); //lost!
 
 	if (!sender && transaction.blockId != genesisblock.block.id) {
 		return setImmediate(cb, 'Failed account: ' + transaction.id);
 	} else {
-		sender = modules.accounts.getAccountOrCreateByPublicKey(transaction.senderPublicKey);
+		modules.accounts.getAccountOrCreateByPublicKey(transaction.senderPublicKey, function (err, sender) {
+			library.logic.transaction.applyUnconfirmed(transaction, sender, cb);
+		});
 	}
-
-	return library.logic.transaction.applyUnconfirmed(transaction, sender, cb);
 }
 
 Transactions.prototype.undoUnconfirmed = function (transaction, cb) {
