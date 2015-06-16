@@ -177,7 +177,7 @@ function Delegate() {
 
 	this.dbRead = function (raw) {
 		if (!raw.d_username) {
-			return null
+			return null;
 		} else {
 			var delegate = {
 				username: raw.d_username,

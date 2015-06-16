@@ -447,7 +447,7 @@ Transaction.prototype.dbSave = function (trs, cb) {
 		fee: trs.fee,
 		signature: signature,
 		signSignature: signSignature,
-		multisignatures: trs.signatures.join(',') || null
+		multisignatures: trs.signatures? trs.signatures.join(',') : null
 	}, function (err) {
 		if (err) {
 			return cb(err);
