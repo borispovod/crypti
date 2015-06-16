@@ -161,9 +161,6 @@ function attachApi() {
 
 	router.post("/blocks", function (req, res) {
 		res.set(private.headers);
-		if (library.config.isolate) {
-			res.sendStatus(200);
-		}
 
 		try {
 			var block = library.logic.block.objectNormalize(req.body.block);
@@ -188,9 +185,6 @@ function attachApi() {
 
 	router.post("/transactions", function (req, res) {
 		res.set(private.headers);
-		if (library.config.isolate) {
-			res.sendStatus(200);
-		}
 
 		try {
 			var transaction = library.logic.transaction.objectNormalize(req.body.transaction);
@@ -365,18 +359,14 @@ Transport.prototype.onBlockchainReady = function () {
 
 Transport.prototype.onUnconfirmedTransaction = function (transaction, broadcast) {
 	if (broadcast) {
-		if (!library.config.isolate) {
-			self.broadcast(100, {api: '/transactions', data: {transaction: transaction}, method: "POST"});
-		}
+		self.broadcast(100, {api: '/transactions', data: {transaction: transaction}, method: "POST"});
 		library.network.io.sockets.emit('transactions/change', {});
 	}
 }
 
 Transport.prototype.onNewBlock = function (block, broadcast) {
 	if (broadcast) {
-		if (!library.config.isolate) {
-			self.broadcast(100, {api: '/blocks', data: {block: block}, method: "POST"});
-		}
+		self.broadcast(100, {api: '/blocks', data: {block: block}, method: "POST"});
 		library.network.io.sockets.emit('blocks/change', {});
 	}
 }

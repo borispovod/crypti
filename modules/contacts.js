@@ -37,7 +37,7 @@ function Contact() {
 
 		var isAddress = /^[\+|\-][0-9]+[C|c]$/g;
 		if (!isAddress.test(trs.asset.contact.address.toLowerCase())) {
-			return setImmediate(cb, "Following is not address: " + trs.id);
+			return setImmediate(cb, "Following is not address: " + trs.asset.contact.address);
 		}
 
 		if (!modules.accounts.getAccount(trs.asset.contact.address.slice(1))) {
@@ -142,6 +142,9 @@ function Contact() {
 
 	this.ready = function (trs, sender) {
 		if (sender.multisignature.keysgroup.length) {
+			if (!trs.signatures) {
+				return false;
+			}
 			return trs.signatures.length >= sender.multisignature.min;
 		} else {
 			return true;

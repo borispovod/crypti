@@ -98,6 +98,10 @@ function Delegate() {
 			return setImmediate(cb, errorCode("DELEGATES.WRONG_USERNAME"));
 		}
 
+		if (sender.unconfirmedUsername && sender.unconfirmedUsername != trs.asset.delegate.username) {
+			return setImmediate(cb, errorCode("USERNAMES.ALREADY_HAVE_USERNAME", trs));
+		}
+
 		setImmediate(cb, null, trs);
 	}
 
@@ -198,6 +202,9 @@ function Delegate() {
 
 	this.ready = function (trs, sender) {
 		if (sender.multisignature.keysgroup.length) {
+			if (!trs.signatures) {
+				return false;
+			}
 			return trs.signatures.length >= sender.multisignature.min;
 		} else {
 			return true;

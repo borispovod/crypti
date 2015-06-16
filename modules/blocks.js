@@ -477,7 +477,7 @@ Blocks.prototype.loadBlocksData = function (filter, options, cb) {
 
 	library.dbLite[method]("SELECT " +
 	"b.id, b.version, b.timestamp, b.height, b.previousBlock, b.numberOfTransactions, b.totalAmount, b.totalFee, b.payloadLength, lower(hex(b.payloadHash)), lower(hex(b.generatorPublicKey)), lower(hex(b.blockSignature)), " +
-	"t.id, t.type, t.timestamp, lower(hex(t.senderPublicKey)), t.senderId, t.recipientId, t.senderUsername, t.recipientUsername, t.amount, t.fee, lower(hex(t.signature)), lower(hex(t.signSignature)), lower(hex(t.multisignatures)), " +
+	"t.id, t.type, t.timestamp, lower(hex(t.senderPublicKey)), t.senderId, t.recipientId, t.senderUsername, t.recipientUsername, t.amount, t.fee, lower(hex(t.signature)), lower(hex(t.signSignature)), t.multisignatures, " +
 	"lower(hex(s.publicKey)), " +
 	"d.username, " +
 	"v.votes, " +
@@ -519,7 +519,7 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 
 	library.dbLite.query("SELECT " +
 	"b.id, b.version, b.timestamp, b.height, b.previousBlock, b.numberOfTransactions, b.totalAmount, b.totalFee, b.payloadLength, lower(hex(b.payloadHash)), lower(hex(b.generatorPublicKey)), lower(hex(b.blockSignature)), " +
-	"t.id, t.type, t.timestamp, lower(hex(t.senderPublicKey)), t.senderId, t.recipientId, t.senderUsername, t.recipientUsername, t.amount, t.fee, lower(hex(t.signature)), lower(hex(t.signSignature)), lower(hex(t.multisignatures)), " +
+	"t.id, t.type, t.timestamp, lower(hex(t.senderPublicKey)), t.senderId, t.recipientId, t.senderUsername, t.recipientUsername, t.amount, t.fee, lower(hex(t.signature)), lower(hex(t.signSignature)), t.multisignatures, " +
 	"lower(hex(s.publicKey)), " +
 	"d.username, " +
 	"v.votes, " +

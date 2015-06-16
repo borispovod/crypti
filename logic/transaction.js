@@ -37,8 +37,7 @@ Transaction.prototype.create = function (data) {
 		amount: 0,
 		senderPublicKey: data.sender.publicKey,
 		timestamp: slots.getTime(),
-		asset: {},
-		signatures: []
+		asset: {}
 	};
 
 	trs = private.types[trs.type].create.call(this, data, trs);
@@ -155,6 +154,10 @@ Transaction.prototype.ready = function (trs, sender) {
 		throw Error('Unknown transaction type ' + trs.type);
 	}
 
+	if (!sender) {
+		return false;
+	}
+
 	return private.types[trs.type].ready.call(this, trs, sender);
 }
 
@@ -245,9 +248,11 @@ Transaction.prototype.verify = function (trs, sender, cb) { //inheritance
 	for (var s = 0; s < sender.multisignature.keysgroup.length; s++) {
 		var verify = false;
 
-		for (var d = 0; d < trs.signatures.length && !verify; d++) {
-			if (this.verifySecondSignature(trs, sender.multisignature.keysgroup[s], trs.signatures[d])) {
-				verify = true;
+		if (trs.signatures) {
+			for (var d = 0; d < trs.signatures.length && !verify; d++) {
+				if (this.verifySecondSignature(trs, sender.multisignature.keysgroup[s], trs.signatures[d])) {
+					verify = true;
+				}
 			}
 		}
 
@@ -447,7 +452,7 @@ Transaction.prototype.dbSave = function (trs, cb) {
 		fee: trs.fee,
 		signature: signature,
 		signSignature: signSignature,
-		multisignatures: trs.signatures? trs.signatures.join(',') : null
+		multisignatures: trs.signatures ? trs.signatures.join(',') : null
 	}, function (err) {
 		if (err) {
 			return cb(err);

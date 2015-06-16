@@ -95,6 +95,9 @@ function Transfer() {
 
 	this.ready = function (trs, sender) {
 		if (sender.multisignature.keysgroup.length) {
+			if (!trs.signatures) {
+				return false;
+			}
 			return trs.signatures.length >= sender.multisignature.min;
 		} else {
 			return true;
@@ -503,6 +506,10 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 	}
 
 	library.logic.transaction.process(transaction, sender, function (err, transaction) {
+		if (err){
+			return done(err);
+		}
+
 		// check in confirmed transactions
 		if (private.unconfirmedTransactionsIdIndex[transaction.id] !== undefined || private.doubleSpendingTransactions[transaction.id]) {
 			return cb("This transaction already exists");

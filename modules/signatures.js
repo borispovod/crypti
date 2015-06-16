@@ -149,6 +149,9 @@ function Signature() {
 
 	this.ready = function (trs, sender) {
 		if (sender.multisignature.keysgroup.length) {
+			if (!trs.signatures) {
+				return false;
+			}
 			return trs.signatures.length >= sender.multisignature.min;
 		} else {
 			return true;

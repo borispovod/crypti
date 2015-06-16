@@ -51,9 +51,11 @@ function Multisignature() {
 
 		for (var s = 0; s < trs.asset.multisignature.keysgroup.length; s++) {
 			var verify = false;
-			for (var d = 0; d < trs.signatures.length && !verify; d++) {
-				if (library.logic.transaction.verifySignature(trs, sender.multisignature.keysgroup[s], trs.signatures[d])) {
-					verify = true;
+			if (trs.signatures) {
+				for (var d = 0; d < trs.signatures.length && !verify; d++) {
+					if (library.logic.transaction.verifySignature(trs, sender.multisignature.keysgroup[s], trs.signatures[d])) {
+						verify = true;
+					}
 				}
 			}
 			if (!verify) {
@@ -154,6 +156,9 @@ function Multisignature() {
 	}
 
 	this.ready = function (trs, sender) {
+		if (!trs.signatures) {
+			return false;
+		}
 		if (!sender.multisignature.keysgroup.length) {
 			return trs.signatures.length == trs.asset.multisignature.keysgroup.length;
 		} else {
@@ -255,6 +260,7 @@ function attachApi() {
 				if (!transaction) {
 					return cb("Transaction not found");
 				}
+				transaction.signatures = transaction.signatures || [];
 				transaction.signatures.push(sign);
 				cb();
 			}, function (err) {
