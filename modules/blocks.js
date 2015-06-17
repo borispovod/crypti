@@ -568,19 +568,19 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 			}
 
 			//if (block.id != genesisblock.block.id) {
-				block.transactions = block.transactions.sort(function (a, b) {
-					if (block.id == genesisblock.block.id) {
-						if (a.type == TransactionTypes.VOTE)
-							return 1;
-					}
-
-					if (a.type == TransactionTypes.SIGNATURE) {
+			block.transactions = block.transactions.sort(function (a, b) {
+				if (block.id == genesisblock.block.id) {
+					if (a.type == TransactionTypes.VOTE)
 						return 1;
-					}
+				}
+
+				if (a.type == TransactionTypes.SIGNATURE) {
+					return 1;
+				}
 
 
-					return 0;
-				});
+				return 0;
+			});
 			//}
 
 			async.eachSeries(block.transactions, function (transaction, cb) {
@@ -859,7 +859,11 @@ Blocks.prototype.loadBlocksFromPeer = function (peer, lastCommonBlockId, cb) {
 				blocks = RequestSanitizer.array(blocks);
 
 				blocks = blocks.map(library.dbLite.row2parsed, library.dbLite.parseFields(private.blocksDataFields));
-				blocks = private.readDbRows(blocks);
+				try {
+					blocks = private.readDbRows(blocks);
+				} catch (e) {
+					blocks = [];
+				}
 
 				if (blocks.length == 0) {
 					loaded = true;
