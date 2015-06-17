@@ -90,7 +90,7 @@ function Delegate() {
 			return setImmediate(cb, errorCode("DELEGATES.EXISTS_DELEGATE"));
 		}
 
-		if (modules.accounts.existsUsername(trs.asset.delegate.username) && sender.username != trs.asset.delegate.username) {
+		if (modules.accounts.existsUsername(trs.asset.delegate.username).next().value && sender.username != trs.asset.delegate.username) {
 			return setImmediate(cb, errorCode("DELEGATES.EXISTS_USERNAME", trs));
 		}
 
@@ -142,7 +142,7 @@ function Delegate() {
 			return setImmediate(cb, errorCode("DELEGATES.EXISTS_DELEGATE"));
 		}
 
-		if (modules.accounts.existsUnconfirmedUsername(trs.asset.delegate.username)) {
+		if (modules.accounts.existsUnconfirmedUsername(trs.asset.delegate.username).next().value) {
 			return setImmediate(cb, errorCode("DELEGATES.EXISTS_DELEGATE"));
 		}
 
@@ -403,8 +403,8 @@ function attachApi() {
 			}
 
 			var keypair = ed.MakeKeypair(crypto.createHash('sha256').update(body.secret, 'utf8').digest());
-			var address = modules.accounts.getAddressByPublicKey(keypair.publicKey.toString('hex'));
-			var account = modules.accounts.getAccount(address);
+			var address = modules.accounts.getAddressByPublicKey(keypair.publicKey.toString('hex')).next().value;
+			var account = modules.accounts.getAccount(address).next().value;
 
 			if (body.publicKey) {
 				if (keypair.publicKey.toString('hex') != body.publicKey) {
@@ -445,8 +445,8 @@ function attachApi() {
 			}
 
 			var keypair = ed.MakeKeypair(crypto.createHash('sha256').update(body.secret, 'utf8').digest());
-			var address = modules.accounts.getAddressByPublicKey(keypair.publicKey.toString('hex'));
-			var account = modules.accounts.getAccount(address);
+			var address = modules.accounts.getAddressByPublicKey(keypair.publicKey.toString('hex')).next().value;
+			var account = modules.accounts.getAccount(address).next().value;
 
 			if (body.publicKey) {
 				if (keypair.publicKey.toString('hex') != body.publicKey) {
@@ -506,7 +506,7 @@ function attachApi() {
 				}
 			}
 
-			var account = modules.accounts.getAccountByPublicKey(keypair.publicKey.toString('hex'));
+			var account = modules.accounts.getAccountByPublicKey(keypair.publicKey.toString('hex')).next().value;
 
 			if (!account || !account.publicKey) {
 				return res.json({success: false, error: errorCode("COMMON.OPEN_ACCOUNT")});
@@ -691,8 +691,8 @@ private.loadMyDelegates = function () {
 	if (secrets) {
 		secrets.forEach(function (secret) {
 			var keypair = ed.MakeKeypair(crypto.createHash('sha256').update(secret, 'utf8').digest());
-			var address = modules.accounts.getAddressByPublicKey(keypair.publicKey.toString('hex'));
-			var account = modules.accounts.getAccount(address);
+			var address = modules.accounts.getAddressByPublicKey(keypair.publicKey.toString('hex')).next().value;
+			var account = modules.accounts.getAccount(address).next().value;
 			if (self.existsDelegate(keypair.publicKey.toString('hex'))) {
 				private.keypairs[keypair.publicKey.toString('hex')] = keypair;
 				library.logger.info("Forging enabled on account: " + address);
@@ -729,7 +729,7 @@ Delegates.prototype.checkDelegates = function (publicKey, votes) {
 	}
 
 	if (util.isArray(votes)) {
-		var account = modules.accounts.getAccountByPublicKey(publicKey);
+		var account = modules.accounts.getAccountByPublicKey(publicKey).next().value;
 		if (!account) {
 			return false;
 		}
@@ -762,7 +762,7 @@ Delegates.prototype.checkUnconfirmedDelegates = function (publicKey, votes) {
 	}
 
 	if (util.isArray(votes)) {
-		var account = modules.accounts.getAccountByPublicKey(publicKey);
+		var account = modules.accounts.getAccountByPublicKey(publicKey).next().value;
 		if (!account) {
 			return false;
 		}
@@ -855,7 +855,7 @@ Delegates.prototype.cache = function (delegate) {
 	private.publicKeyIndex[delegate.publicKey] = index;
 	private.transactionIdIndex[delegate.transactionId] = index;
 
-	var account = modules.accounts.getAccountByPublicKey(delegate.publicKey);
+	var account = modules.accounts.getAccountByPublicKey(delegate.publicKey).next().value;
 	account.username = delegate.username;
 
 	library.network.io.sockets.emit('delegates/change', {});
@@ -872,7 +872,7 @@ Delegates.prototype.uncache = function (delegate) {
 	delete private.transactionIdIndex[delegate.transactionId];
 	private.delegates[index] = false;
 
-	var account = modules.accounts.getAccountByPublicKey(delegate.publicKey);
+	var account = modules.accounts.getAccountByPublicKey(delegate.publicKey).next().value;
 	account.username = null;
 
 	library.network.io.sockets.emit('delegates/change', {});

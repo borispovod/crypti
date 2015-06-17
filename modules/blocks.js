@@ -742,7 +742,7 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 								return setImmediate(cb, "Dublicated transaction in block: " + transaction.id);
 							}
 
-							var sender = modules.accounts.getAccountByPublicKey(transaction.senderPublicKey);
+							var sender = modules.accounts.getAccountByPublicKey(transaction.senderPublicKey).next().value;
 
 							library.logic.transaction.verify(transaction, sender, function (err) {
 								if (err) {
@@ -936,7 +936,7 @@ Blocks.prototype.generateBlock = function (keypair, timestamp, cb) {
 	var ready = []
 
 	async.eachSeries(transactions, function (transaction, cb) {
-		var sender = modules.accounts.getAccountByPublicKey(transaction.senderPublicKey);
+		var sender = modules.accounts.getAccountByPublicKey(transaction.senderPublicKey).next().value;
 
 		if (library.logic.transaction.ready(transaction, sender)) {
 			library.logic.transaction.verify(transaction, sender, function (err) {

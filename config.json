@@ -15,7 +15,10 @@
 	"peers": {
 		"list": [
 		],
-		"blackList": []
+		"blackList": [],
+		"options": {
+			"timeout": 20000
+		}
 	},
 	"forging": {
 		"secret": [

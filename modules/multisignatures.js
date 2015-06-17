@@ -249,7 +249,7 @@ function attachApi() {
 				return res.json({success: false, error: errorCode("MULTISIGNATURES.SIGN_NOT_ALLOWED", transaction)});
 			}
 
-			var account = modules.accounts.getAccountByPublicKey(keypair.publicKey.toString('hex'));
+			var account = modules.accounts.getAccountByPublicKey(keypair.publicKey.toString('hex')).next().value;
 
 			if (!account || !account.publicKey) {
 				return res.json({success: false, error: errorCode("COMMON.OPEN_ACCOUNT")});
@@ -312,7 +312,7 @@ function attachApi() {
 				return res.json({success: false, error: errorCode("MULTISIGNATURES.NOT_UNIQUE_SET")});
 			}
 
-			var account = modules.accounts.getAccountByPublicKey(keypair.publicKey.toString('hex'));
+			var account = modules.accounts.getAccountByPublicKey(keypair.publicKey.toString('hex')).next().value;
 
 			if (!account || !account.publicKey) {
 				return res.json({success: false, error: errorCode("COMMON.OPEN_ACCOUNT")});

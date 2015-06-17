@@ -9,7 +9,7 @@ console.log("Please, wait 3s...");
 var path = require('path');
 var sleep = require('sleep');
 var spawn = require('child_process').spawn;
-var process = spawn('node', [path.join(__dirname, '..', 'app.js'), '-c', path.join(__dirname, 'config.json')]);
+var process = spawn('node', ['--harmony', path.join(__dirname, '..', 'app.js'), '-c', path.join(__dirname, 'config.json')]);
 
 process.on('close', function(code) {
     console.log('closing code: ' + code);

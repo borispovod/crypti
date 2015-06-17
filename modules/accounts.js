@@ -176,7 +176,7 @@ Account.prototype.applyContact = function (diff) {
 	if (dest !== false) {
 		var math = diff[0];
 		var address = diff.slice(1);
-		var friend = modules.accounts.getAccount(address);
+		var friend = modules.accounts.getAccount(address).next().value;
 
 		if (math == "+") { //follow
 			if (friend.following.indexOf(this.address) == -1) { //if I´m not his friend
@@ -210,7 +210,7 @@ Account.prototype.undoContact = function (diff) {
 	if (dest !== false) {
 		var math = diff[0];
 		var address = diff.slice(1);
-		var friend = modules.accounts.getAccount(address);
+		var friend = modules.accounts.getAccount(address).next().value;
 
 		if (math == "+") { //follow
 			if (friend.following.indexOf(this.address) == -1) { //if I´m not his friend
@@ -599,7 +599,7 @@ function Username() {
 			return setImmediate(cb, errorCode("USERNAMES.EXISTS_USERNAME", trs));
 		}
 
-		if (self.existsUsername(trs.asset.username.alias)) {
+		if (self.existsUsername(trs.asset.username.alias).next().value) {
 			return setImmediate(cb, errorCode("USERNAMES.EXISTS_USERNAME", trs));
 		}
 
@@ -649,7 +649,7 @@ function Username() {
 			return setImmediate(cb, errorCode("USERNAMES.EXISTS_USERNAME", trs));
 		}
 
-		if (self.existsUnconfirmedUsername(trs.asset.username.alias)) {
+		if (self.existsUnconfirmedUsername(trs.asset.username.alias).next().value) {
 			return setImmediate(cb, errorCode("USERNAMES.EXISTS_USERNAME", trs));
 		}
 
@@ -793,7 +793,7 @@ function attachApi() {
 				});
 			}
 
-			var account = self.getAccount(query.address);
+			var account = self.getAccount(query.address).next().value;
 			var balance = account ? account.balance : 0;
 			var unconfirmedBalance = account ? account.unconfirmedBalance : 0;
 
@@ -838,7 +838,7 @@ function attachApi() {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
 
-			var account = self.getAccount(query.address);
+			var account = self.getAccount(query.address).next().value;
 
 			if (!account || !account.publicKey) {
 				return res.json({
@@ -880,7 +880,7 @@ function attachApi() {
 			if (!report.isValid) return res.json({success: false, error: report.issues});
 
 
-			var account = self.getAccount(query.address);
+			var account = self.getAccount(query.address).next().value;
 
 			if (!account) {
 				return res.json({
@@ -928,7 +928,7 @@ function attachApi() {
 				}
 			}
 
-			var account = self.getAccountByPublicKey(keypair.publicKey.toString('hex'));
+			var account = self.getAccountByPublicKey(keypair.publicKey.toString('hex')).next().value;
 
 			if (!account || !account.publicKey) {
 				return res.json({success: false, error: errorCode("COMMON.OPEN_ACCOUNT")});
@@ -996,7 +996,7 @@ function attachApi() {
 				}
 			}
 
-			var account = self.getAccountByPublicKey(keypair.publicKey.toString('hex'));
+			var account = self.getAccountByPublicKey(keypair.publicKey.toString('hex')).next().value;
 
 			if (!account || !account.publicKey) {
 				return res.json({success: false, error: errorCode("COMMON.OPEN_ACCOUNT")});
@@ -1045,7 +1045,7 @@ function attachApi() {
 			if (!report.isValid) return res.json({success: false, error: report.issues});
 
 
-			var account = self.getAccount(query.address);
+			var account = self.getAccount(query.address).next().value;
 
 			if (!account) {
 				return res.json({success: false, error: errorCode("ACCOUNTS.ACCOUNT_DOESNT_FOUND")});
@@ -1096,25 +1096,25 @@ private.openAccount = function (secret) {
 }
 
 //public methods
-Accounts.prototype.getAccount = function (id) {
+Accounts.prototype.getAccount = function* (id) {
 	//library.logic.account.get({address: id.toString().toUpperCase()}, function (err, res) {
 	//	console.log("get", err, res);
 	//});
-	return private.accounts[id.toString().toUpperCase()];
+	yield private.accounts[id.toString().toUpperCase()];
 }
 
-Accounts.prototype.getAccountByPublicKey = function (publicKey) {
-	var address = self.getAddressByPublicKey(publicKey);
-	var account = self.getAccount(address);
+Accounts.prototype.getAccountByPublicKey = function* (publicKey) {
+	var address = self.getAddressByPublicKey(publicKey).next().value;
+	var account = self.getAccount(address).next().value;
 
 	if (account && !account.publicKey) {
 		account.publicKey = publicKey;
 	}
 
-	return account;
+	yield account;
 }
 
-Accounts.prototype.getAddressByPublicKey = function (publicKey) {
+Accounts.prototype.getAddressByPublicKey = function* (publicKey) {
 	var publicKeyHash = crypto.createHash('sha256').update(publicKey, 'hex').digest();
 	var temp = new Buffer(8);
 	for (var i = 0; i < 8; i++) {
@@ -1122,24 +1122,27 @@ Accounts.prototype.getAddressByPublicKey = function (publicKey) {
 	}
 
 	var address = bignum.fromBuffer(temp).toString() + "C";
-	return address;
+	yield address;
 }
 
-Accounts.prototype.getAccountByUsername = function (username) {
+Accounts.prototype.getAccountByUsername = function* (username) {
 	var address = private.username2address[username.toLowerCase()];
 	if (!address) {
 		var delegate = modules.delegates.getDelegateByUsername(username.toLowerCase())
 		if (delegate) {
-			address = self.getAddressByPublicKey(delegate.publicKey);
+			address = self.getAddressByPublicKey(delegate.publicKey).next().value;
 		}
 	}
 
-	return address && this.getAccount(address);
+	if (address) {
+		yield this.getAccount(address);
+	}
+	//return address && this.getAccount(address);
 }
 
 Accounts.prototype.getAccountOrCreateByPublicKey = function (publicKey) {
-	var address = self.getAddressByPublicKey(publicKey);
-	var account = self.getAccount(address);
+	var address = self.getAddressByPublicKey(publicKey).next().value;
+	var account = self.getAccount(address).next().value;
 
 	if (account && !account.publicKey) {
 		account.publicKey = publicKey;
@@ -1153,7 +1156,7 @@ Accounts.prototype.getAccountOrCreateByPublicKey = function (publicKey) {
 }
 
 Accounts.prototype.getAccountOrCreateByAddress = function (address) {
-	var account = self.getAccount(address);
+	var account = self.getAccount(address).next().value;
 
 	if (!account) {
 		account = new Account(address);
@@ -1167,17 +1170,17 @@ Accounts.prototype.getAllAccounts = function () {
 	return private.accounts;
 }
 
-Accounts.prototype.getDelegates = function (publicKey) {
-	var account = self.getAccountByPublicKey(publicKey);
-	return account.delegates;
+Accounts.prototype.getDelegates = function* (publicKey) {
+	var account = self.getAccountByPublicKey(publicKey).next().value;
+	yield account.delegates;
 }
 
-Accounts.prototype.existsUnconfirmedUsername = function (username) {
-	return !!private.unconfirmedNames[username.toLowerCase()];
+Accounts.prototype.existsUnconfirmedUsername = function* (username) {
+	yield !!private.unconfirmedNames[username.toLowerCase()];
 }
 
-Accounts.prototype.existsUsername = function (username) {
-	return !!private.username2address[username.toLowerCase()];
+Accounts.prototype.existsUsername = function* (username) {
+	yield !!private.username2address[username.toLowerCase()];
 }
 
 

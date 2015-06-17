@@ -218,7 +218,7 @@ function attachApi() {
 				}
 			}
 
-			var account = modules.accounts.getAccountByPublicKey(keypair.publicKey.toString('hex'));
+			var account = modules.accounts.getAccountByPublicKey(keypair.publicKey.toString('hex')).next().value;
 
 			if (!account || !account.publicKey) {
 				return res.json({success: false, error: errorCode("COMMON.OPEN_ACCOUNT")});

@@ -40,7 +40,7 @@ function Contact() {
 			return setImmediate(cb, "Following is not address: " + trs.asset.contact.address);
 		}
 
-		if (!modules.accounts.getAccount(trs.asset.contact.address.slice(1))) {
+		if (!modules.accounts.getAccount(trs.asset.contact.address.slice(1)).next().value) {
 			return setImmediate(cb, "Following is not exists: " + trs.id);
 		}
 
@@ -171,7 +171,7 @@ function attachApi() {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
 
-			var account = modules.accounts.getAccountByPublicKey(query.publicKey);
+			var account = modules.accounts.getAccountByPublicKey(query.publicKey).next().value;
 
 			if (!account) {
 				return res.json({success: false, error: errorCode("ACCOUNTS.ACCOUNT_DOESNT_FOUND")});
@@ -181,14 +181,14 @@ function attachApi() {
 			var followers = [];
 			if (account.following && account.following.length) {
 				following = account.following.map(function (item) {
-					var account = modules.accounts.getAccount(item);
+					var account = modules.accounts.getAccount(item).next().value;
 					return {username: account.username, address: account.address};
 				});
 			}
 
 			if (account.followers && account.followers.length) {
 				followers = account.followers.map(function (item) {
-					var account = modules.accounts.getAccount(item);
+					var account = modules.accounts.getAccount(item).next().value;
 					return {username: account.username, address: account.address};
 				});
 			}
@@ -224,7 +224,7 @@ function attachApi() {
 				}
 			}
 
-			var account = modules.accounts.getAccountByPublicKey(keypair.publicKey.toString('hex'));
+			var account = modules.accounts.getAccountByPublicKey(keypair.publicKey.toString('hex')).next().value;
 
 			if (!account || !account.publicKey) {
 				return res.json({success: false, error: errorCode("COMMON.OPEN_ACCOUNT")});
@@ -243,9 +243,9 @@ function attachApi() {
 			var isAddress = /^[0-9]+[C|c]$/g;
 			var following = null;
 			if (isAddress.test(followingAddress.toLowerCase())) {
-				following = modules.accounts.getAccount(followingAddress);
+				following = modules.accounts.getAccount(followingAddress).next().value;
 			} else {
-				following = modules.accounts.getAccountByUsername(followingAddress);
+				following = modules.accounts.getAccountByUsername(followingAddress).next().value;
 			}
 			if (!following) {
 				return res.json({success: false, error: errorCode("CONTACTS.USERNAME_DOESNT_FOUND")});
