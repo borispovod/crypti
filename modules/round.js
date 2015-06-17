@@ -109,7 +109,7 @@ Round.prototype.blocksStat = function (publicKey) {
 	}
 }
 
-Round.prototype.tick = function (block) {
+Round.prototype.tick = function (block, cb) {
 	private.forgedBlocks[block.generatorPublicKey] = (private.forgedBlocks[block.generatorPublicKey] || 0) + 1;
 	var round = self.calc(block.height);
 
@@ -138,24 +138,25 @@ Round.prototype.tick = function (block) {
 			var diffFee = private.feesByRound[round] - foundationFee;
 
 			if (foundationFee || diffFee) {
-				var recipient = modules.accounts.getAccountOrCreateByAddress("14225995638226006440C");
-				recipient.addToUnconfirmedBalance(foundationFee);
-				recipient.addToBalance(foundationFee);
+				modules.accounts.getAccountOrCreateByAddress("14225995638226006440C", function (err, recipient) {
+					recipient.addToUnconfirmedBalance(foundationFee);
+					recipient.addToBalance(foundationFee);
 
-				var delegatesFee = Math.floor(diffFee / slots.delegates);
-				var leftover = diffFee - (delegatesFee * slots.delegates);
+					var delegatesFee = Math.floor(diffFee / slots.delegates);
+					var leftover = diffFee - (delegatesFee * slots.delegates);
 
-				private.delegatesByRound[round].forEach(function (delegate, index) {
-					var recipient = modules.accounts.getAccountOrCreateByPublicKey(delegate); //lost!
-					recipient.addToUnconfirmedBalance(delegatesFee);
-					recipient.addToBalance(delegatesFee);
-					modules.delegates.addFee(delegate, delegatesFee);
+					private.delegatesByRound[round].forEach(function (delegate, index) {
+						var recipient = modules.accounts.getAccountOrCreateByPublicKey(delegate); //lost!
+						recipient.addToUnconfirmedBalance(delegatesFee);
+						recipient.addToBalance(delegatesFee);
+						modules.delegates.addFee(delegate, delegatesFee);
 
-					if (index === private.delegatesByRound[round].length - 1) {
-						recipient.addToUnconfirmedBalance(leftover);
-						recipient.addToBalance(leftover);
-						modules.delegates.addFee(delegate, leftover);
-					}
+						if (index === private.delegatesByRound[round].length - 1) {
+							recipient.addToUnconfirmedBalance(leftover);
+							recipient.addToBalance(leftover);
+							modules.delegates.addFee(delegate, leftover);
+						}
+					});
 				});
 			}
 			while (private.tasks.length) {
@@ -170,7 +171,7 @@ Round.prototype.tick = function (block) {
 	}
 }
 
-Round.prototype.onFinishRound = function(round){
+Round.prototype.onFinishRound = function (round) {
 	library.network.io.sockets.emit('rounds/change', {number: round});
 }
 

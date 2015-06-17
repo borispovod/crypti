@@ -176,7 +176,7 @@ Account.prototype.applyContact = function (diff) {
 	if (dest !== false) {
 		var math = diff[0];
 		var address = diff.slice(1);
-		var friend = modules.accounts.getAccount(address);
+		var friend = modules.accounts.getAccount(address); //lost!
 
 		if (math == "+") { //follow
 			if (friend.following.indexOf(this.address) == -1) { //if I´m not his friend
@@ -210,7 +210,7 @@ Account.prototype.undoContact = function (diff) {
 	if (dest !== false) {
 		var math = diff[0];
 		var address = diff.slice(1);
-		var friend = modules.accounts.getAccount(address);
+		var friend = modules.accounts.getAccount(address); //lost!
 
 		if (math == "+") { //follow
 			if (friend.following.indexOf(this.address) == -1) { //if I´m not his friend
@@ -468,11 +468,13 @@ function Vote() {
 			return setImmediate(cb, errorCode("VOTES.MAXIMUM_DELEGATES_VOTE", trs));
 		}
 
-		if (!modules.delegates.checkDelegates(trs.senderPublicKey, trs.asset.votes)) {
-			return setImmediate(cb, errorCode("VOTES.ALREADY_VOTED_CONFIRMED", trs));
-		}
+		modules.delegates.checkDelegates(trs.senderPublicKey, trs.asset.votes, function (err) {
+			if (err) {
+				return setImmediate(cb, errorCode("VOTES.ALREADY_VOTED_CONFIRMED", trs));
+			}
 
-		setImmediate(cb, null, trs);
+			setImmediate(cb, null, trs);
+		});
 	}
 
 	this.process = function (trs, sender, cb) {
@@ -502,13 +504,15 @@ function Vote() {
 	}
 
 	this.applyUnconfirmed = function (trs, sender, cb) {
-		if (!modules.delegates.checkUnconfirmedDelegates(trs.senderPublicKey, trs.asset.votes)) {
-			return setImmediate(cb, errorCode("VOTES.ALREADY_VOTED_UNCONFIRMED", trs));
-		}
+		modules.delegates.checkUnconfirmedDelegates(trs.senderPublicKey, trs.asset.votes, function (err) {
+			if (err) {
+				return setImmediate(cb, errorCode("VOTES.ALREADY_VOTED_UNCONFIRMED", trs));
+			}
 
-		var res = sender.applyUnconfirmedDelegateList(trs.asset.votes);
+			var res = sender.applyUnconfirmedDelegateList(trs.asset.votes);
 
-		setImmediate(cb, res ? null : "can't apply delegates: " + trs.id);
+			setImmediate(cb, res ? null : "can't apply delegates: " + trs.id);
+		});
 	}
 
 	this.undoUnconfirmed = function (trs, sender, cb) {
@@ -599,15 +603,16 @@ function Username() {
 			return setImmediate(cb, errorCode("USERNAMES.EXISTS_USERNAME", trs));
 		}
 
-		if (self.existsUsername(trs.asset.username.alias)) {
-			return setImmediate(cb, errorCode("USERNAMES.EXISTS_USERNAME", trs));
-		}
+		self.existsUsername(trs.asset.username.alias, function (err, found) {
+			if (found) {
+				return setImmediate(cb, errorCode("USERNAMES.EXISTS_USERNAME", trs));
+			}
+			if (modules.delegates.existsDelegate(trs.senderPublicKey)) {
+				return setImmediate(cb, errorCode("USERNAMES.EXISTS_USERNAME", trs));
+			}
 
-		if (modules.delegates.existsDelegate(trs.senderPublicKey)) {
-			return setImmediate(cb, errorCode("USERNAMES.EXISTS_USERNAME", trs));
-		}
-
-		setImmediate(cb, null, trs);
+			setImmediate(cb, null, trs);
+		});
 	}
 
 	this.process = function (trs, sender, cb) {
@@ -649,18 +654,20 @@ function Username() {
 			return setImmediate(cb, errorCode("USERNAMES.EXISTS_USERNAME", trs));
 		}
 
-		if (self.existsUnconfirmedUsername(trs.asset.username.alias)) {
-			return setImmediate(cb, errorCode("USERNAMES.EXISTS_USERNAME", trs));
-		}
+		self.existsUnconfirmedUsername(trs.asset.username.alias, function (err, found) {
+			if (found) {
+				return setImmediate(cb, errorCode("USERNAMES.EXISTS_USERNAME", trs));
+			}
 
-		if (sender.username || sender.unconfirmedUsername) {
-			return setImmediate(cb, errorCode("USERNAMES.ALREADY_HAVE_USERNAME", trs));
-		}
+			if (sender.username || sender.unconfirmedUsername) {
+				return setImmediate(cb, errorCode("USERNAMES.ALREADY_HAVE_USERNAME", trs));
+			}
 
-		sender.unconfirmedUsername = trs.asset.username.alias;
-		private.unconfirmedNames[trs.asset.username.alias.toLowerCase()] = true;
+			sender.unconfirmedUsername = trs.asset.username.alias;
+			private.unconfirmedNames[trs.asset.username.alias.toLowerCase()] = true;
 
-		setImmediate(cb);
+			setImmediate(cb);
+		});
 	}
 
 	this.undoUnconfirmed = function (trs, sender, cb) {
@@ -797,11 +804,12 @@ function attachApi() {
 				});
 			}
 
-			var account = self.getAccount(query.address);
-			var balance = account ? account.balance : 0;
-			var unconfirmedBalance = account ? account.unconfirmedBalance : 0;
+			self.getAccount(query.address, function (err, account) {
+				var balance = account ? account.balance : 0;
+				var unconfirmedBalance = account ? account.unconfirmedBalance : 0;
 
-			return res.json({success: true, balance: balance, unconfirmedBalance: unconfirmedBalance});
+				res.json({success: true, balance: balance, unconfirmedBalance: unconfirmedBalance});
+			});
 		});
 	});
 
@@ -842,16 +850,16 @@ function attachApi() {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
 
-			var account = self.getAccount(query.address);
+			self.getAccount(query.address, function (err, account) {
+				if (!account || !account.publicKey) {
+					return res.json({
+						success: false,
+						error: errorCode("ACCOUNTS.ACCOUNT_PUBLIC_KEY_NOT_FOUND", {address: query.address})
+					});
+				}
 
-			if (!account || !account.publicKey) {
-				return res.json({
-					success: false,
-					error: errorCode("ACCOUNTS.ACCOUNT_PUBLIC_KEY_NOT_FOUND", {address: query.address})
-				});
-			}
-
-			return res.json({success: true, publicKey: account.publicKey});
+				res.json({success: true, publicKey: account.publicKey});
+			});
 		});
 	});
 
@@ -892,24 +900,24 @@ function attachApi() {
 			if (!report.isValid) return res.json({success: false, error: report.issues});
 
 
-			var account = self.getAccount(query.address);
+			self.getAccount(query.address, function (err, account) {
+				if (!account) {
+					return res.json({
+						success: false,
+						error: errorCode("ACCOUNTS.ACCOUNT_DOESNT_FOUND", {address: query.address})
+					});
+				}
 
-			if (!account) {
-				return res.json({
-					success: false,
-					error: errorCode("ACCOUNTS.ACCOUNT_DOESNT_FOUND", {address: query.address})
-				});
-			}
+				var delegates = null;
 
-			var delegates = null;
+				if (account.delegates) {
+					delegates = account.delegates.map(function (publicKey) {
+						return modules.delegates.getDelegateByPublicKey(publicKey);
+					});
+				}
 
-			if (account.delegates) {
-				delegates = account.delegates.map(function (publicKey) {
-					return modules.delegates.getDelegateByPublicKey(publicKey);
-				});
-			}
-
-			return res.json({success: true, delegates: delegates});
+				res.json({success: true, delegates: delegates});
+			});
 		});
 	});
 
@@ -940,39 +948,39 @@ function attachApi() {
 				}
 			}
 
-			var account = self.getAccountByPublicKey(keypair.publicKey.toString('hex'));
-
-			if (!account || !account.publicKey) {
-				return res.json({success: false, error: errorCode("COMMON.OPEN_ACCOUNT")});
-			}
-
-			if (account.secondSignature && !body.secondSecret) {
-				return res.json({success: false, error: errorCode("COMMON.SECOND_SECRET_KEY")});
-			}
-
-			var secondKeypair = null;
-
-			if (account.secondSignature) {
-				var secondHash = crypto.createHash('sha256').update(body.secondSecret, 'utf8').digest();
-				secondKeypair = ed.MakeKeypair(secondHash);
-			}
-
-			var transaction = library.logic.transaction.create({
-				type: TransactionTypes.VOTE,
-				votes: body.delegates,
-				sender: account,
-				keypair: keypair,
-				secondKeypair: secondKeypair
-			});
-
-			library.sequence.add(function (cb) {
-				modules.transactions.receiveTransactions([transaction], cb);
-			}, function (err) {
-				if (err) {
-					return res.json({success: false, error: err});
+			self.getAccountByPublicKey(keypair.publicKey.toString('hex'), function (err, account) {
+				if (err || !account || !account.publicKey) {
+					return res.json({success: false, error: errorCode("COMMON.OPEN_ACCOUNT")});
 				}
 
-				res.json({success: true, transaction: transaction});
+				if (account.secondSignature && !body.secondSecret) {
+					return res.json({success: false, error: errorCode("COMMON.SECOND_SECRET_KEY")});
+				}
+
+				var secondKeypair = null;
+
+				if (account.secondSignature) {
+					var secondHash = crypto.createHash('sha256').update(body.secondSecret, 'utf8').digest();
+					secondKeypair = ed.MakeKeypair(secondHash);
+				}
+
+				var transaction = library.logic.transaction.create({
+					type: TransactionTypes.VOTE,
+					votes: body.delegates,
+					sender: account,
+					keypair: keypair,
+					secondKeypair: secondKeypair
+				});
+
+				library.sequence.add(function (cb) {
+					modules.transactions.receiveTransactions([transaction], cb);
+				}, function (err) {
+					if (err) {
+						return res.json({success: false, error: err});
+					}
+
+					res.json({success: true, transaction: transaction});
+				});
 			});
 		});
 	});
@@ -1008,39 +1016,40 @@ function attachApi() {
 				}
 			}
 
-			var account = self.getAccountByPublicKey(keypair.publicKey.toString('hex'));
-
-			if (!account || !account.publicKey) {
-				return res.json({success: false, error: errorCode("COMMON.OPEN_ACCOUNT")});
-			}
-
-			if (account.secondSignature && !body.secondSecret) {
-				return res.json({success: false, error: errorCode("COMMON.SECOND_SECRET_KEY")});
-			}
-
-			var secondKeypair = null;
-
-			if (account.secondSignature) {
-				var secondHash = crypto.createHash('sha256').update(body.secondSecret, 'utf8').digest();
-				secondKeypair = ed.MakeKeypair(secondHash);
-			}
-
-			var transaction = library.logic.transaction.create({
-				type: TransactionTypes.USERNAME,
-				username: body.username,
-				sender: account,
-				keypair: keypair,
-				secondKeypair: secondKeypair
-			});
-
-			library.sequence.add(function (cb) {
-				modules.transactions.receiveTransactions([transaction], cb);
-			}, function (err) {
-				if (err) {
-					return res.json({success: false, error: err});
+			self.getAccountByPublicKey(keypair.publicKey.toString('hex'), function (err, account) {
+				if (err || !account || !account.publicKey) {
+					return res.json({success: false, error: errorCode("COMMON.OPEN_ACCOUNT")});
 				}
 
-				res.json({success: true, transaction: transaction});
+				if (account.secondSignature && !body.secondSecret) {
+					return res.json({success: false, error: errorCode("COMMON.SECOND_SECRET_KEY")});
+				}
+
+				var secondKeypair = null;
+
+				if (account.secondSignature) {
+					var secondHash = crypto.createHash('sha256').update(body.secondSecret, 'utf8').digest();
+					secondKeypair = ed.MakeKeypair(secondHash);
+				}
+
+				var transaction = library.logic.transaction.create({
+					type: TransactionTypes.USERNAME,
+					username: body.username,
+					sender: account,
+					keypair: keypair,
+					secondKeypair: secondKeypair
+				});
+
+				library.sequence.add(function (cb) {
+					modules.transactions.receiveTransactions([transaction], cb);
+				}, function (err) {
+					if (err) {
+						return res.json({success: false, error: err});
+					}
+
+					res.json({success: true, transaction: transaction});
+				});
+
 			});
 		});
 	});
@@ -1057,24 +1066,24 @@ function attachApi() {
 			if (!report.isValid) return res.json({success: false, error: report.issues});
 
 
-			var account = self.getAccount(query.address);
-
-			if (!account) {
-				return res.json({success: false, error: errorCode("ACCOUNTS.ACCOUNT_DOESNT_FOUND")});
-			}
-
-			return res.json({
-				success: true,
-				account: {
-					address: account.address,
-					username: account.username,
-					unconfirmedBalance: account.unconfirmedBalance,
-					balance: account.balance,
-					publicKey: account.publicKey,
-					unconfirmedSignature: account.unconfirmedSignature,
-					secondSignature: account.secondSignature,
-					secondPublicKey: account.secondPublicKey
+			self.getAccount(query.address, function (err, account) {
+				if (!account) {
+					return res.json({success: false, error: errorCode("ACCOUNTS.ACCOUNT_DOESNT_FOUND")});
 				}
+
+				return res.json({
+					success: true,
+					account: {
+						address: account.address,
+						username: account.username,
+						unconfirmedBalance: account.unconfirmedBalance,
+						balance: account.balance,
+						publicKey: account.publicKey,
+						unconfirmedSignature: account.unconfirmedSignature,
+						secondSignature: account.secondSignature,
+						secondPublicKey: account.secondPublicKey
+					}
+				});
 			});
 		});
 	});
@@ -1116,15 +1125,14 @@ Accounts.prototype.getAccount = function (id, cb) {
 	setImmediate(cb, null, private.accounts[id.toString().toUpperCase()]);
 }
 
-Accounts.prototype.getAccountByPublicKey = function (publicKey) {
+Accounts.prototype.getAccountByPublicKey = function (publicKey, cb) {
 	var address = self.getAddressByPublicKey(publicKey);
-	var account = self.getAccount(address);
-
-	if (account && !account.publicKey) {
-		account.publicKey = publicKey;
-	}
-
-	return account;
+	self.getAccount(address, function (err, account) {
+		if (account && !account.publicKey) {
+			account.publicKey = publicKey;
+		}
+		cb(null, account);
+	});
 }
 
 Accounts.prototype.getAddressByPublicKey = function (publicKey) {
@@ -1138,7 +1146,7 @@ Accounts.prototype.getAddressByPublicKey = function (publicKey) {
 	return address;
 }
 
-Accounts.prototype.getAccountByUsername = function (username) {
+Accounts.prototype.getAccountByUsername = function (username, cb) {
 	var address = private.username2address[username.toLowerCase()];
 	if (!address) {
 		var delegate = modules.delegates.getDelegateByUsername(username.toLowerCase())
@@ -1147,51 +1155,46 @@ Accounts.prototype.getAccountByUsername = function (username) {
 		}
 	}
 
-	return address && this.getAccount(address);
+	self.getAccount(address, cb);
 }
 
 Accounts.prototype.getAccountOrCreateByPublicKey = function (publicKey, cb) {
 	var address = self.getAddressByPublicKey(publicKey);
-	var account = self.getAccount(address);
+	self.getAccount(address, function (err, account) {
+		if (account && !account.publicKey) {
+			account.publicKey = publicKey;
+		}
 
-	if (account && !account.publicKey) {
-		account.publicKey = publicKey;
-	}
-
-	if (!account) {
-		account = new Account(address, publicKey);
-		private.addAccount(account, function (err) {
+		if (!account) {
+			account = new Account(address, publicKey);
+			private.addAccount(account, function (err) {
+				setImmediate(cb, null, account);
+			});
+		} else {
 			setImmediate(cb, null, account);
-		});
-	} else {
-		setImmediate(cb, null, account);
-	}
+		}
+	});
 }
 
 Accounts.prototype.getAccountOrCreateByAddress = function (address, cb) {
-	var account = self.getAccount(address);
-
-	if (!account) {
-		account = new Account(address);
-		private.addAccount(account, function (err) {
+	self.getAccount(address, function (err, account) {
+		if (!account) {
+			account = new Account(address);
+			private.addAccount(account, function (err) {
+				setImmediate(cb, null, account);
+			});
+		} else {
 			setImmediate(cb, null, account);
-		});
-	} else {
-		setImmediate(cb, null, account);
-	}
+		}
+	});
 }
 
-Accounts.prototype.getDelegates = function (publicKey) {
-	var account = self.getAccountByPublicKey(publicKey);
-	return account.delegates;
+Accounts.prototype.existsUnconfirmedUsername = function (username, cb) {
+	cb(null, !!private.unconfirmedNames[username.toLowerCase()]);
 }
 
-Accounts.prototype.existsUnconfirmedUsername = function (username) {
-	return !!private.unconfirmedNames[username.toLowerCase()];
-}
-
-Accounts.prototype.existsUsername = function (username) {
-	return !!private.username2address[username.toLowerCase()];
+Accounts.prototype.existsUsername = function (username, cb) {
+	cb(null, !!private.username2address[username.toLowerCase()]);
 }
 
 

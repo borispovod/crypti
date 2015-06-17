@@ -244,64 +244,63 @@ function attachApi() {
 			var recipientUsername = null;
 			var isAddress = /^[0-9]+[C|c]$/g;
 			if (isAddress.test(body.recipientId)) {
-				var recipient = modules.accounts.getAccount(body.recipientId);
 				recipientId = body.recipientId;
-				if (recipient) {
-					recipientUsername = recipient.username;
-				}
 			} else {
-				var recipient = modules.accounts.getAccountByUsername(body.recipientId);
+				recipientUsername = body.recipientId;
+			}
+
+			modules.accounts[recipientId ? "getAccount" : "getAccountByUsername"](recipientId || recipientUsername, function (err, recipient) {
 				if (!recipient) {
 					return res.json({success: false, error: errorCode("TRANSACTIONS.RECIPIENT_NOT_FOUND")});
 				}
-				recipientId = recipient.address;
-				recipientUsername = recipient.username;
-			}
+				var recipientId = recipient.address
+				var recipientUsername = recipient.username;
 
-			var hash = crypto.createHash('sha256').update(body.secret, 'utf8').digest();
-			var keypair = ed.MakeKeypair(hash);
+				var hash = crypto.createHash('sha256').update(body.secret, 'utf8').digest();
+				var keypair = ed.MakeKeypair(hash);
 
-			if (body.publicKey) {
-				if (keypair.publicKey.toString('hex') != body.publicKey) {
-					return res.json({success: false, error: errorCode("COMMON.INVALID_SECRET_KEY")});
-				}
-			}
-
-			var account = modules.accounts.getAccountByPublicKey(keypair.publicKey.toString('hex'));
-
-			if (!account || !account.publicKey) {
-				return res.json({success: false, error: errorCode("COMMON.OPEN_ACCOUNT")});
-			}
-
-			if (account.secondSignature && !body.secondSecret) {
-				return res.json({success: false, error: errorCode("COMMON.SECOND_SECRET_KEY")});
-			}
-
-			var secondKeypair = null;
-
-			if (account.secondSignature) {
-				var secondHash = crypto.createHash('sha256').update(body.secondSecret, 'utf8').digest();
-				secondKeypair = ed.MakeKeypair(secondHash);
-			}
-
-			var transaction = library.logic.transaction.create({
-				type: TransactionTypes.SEND,
-				amount: body.amount,
-				sender: account,
-				recipientId: recipientId,
-				recipientUsername: recipientUsername,
-				keypair: keypair,
-				secondKeypair: secondKeypair
-			});
-
-			library.sequence.add(function (cb) {
-				modules.transactions.receiveTransactions([transaction], cb);
-			}, function (err) {
-				if (err) {
-					return res.json({success: false, error: err});
+				if (body.publicKey) {
+					if (keypair.publicKey.toString('hex') != body.publicKey) {
+						return res.json({success: false, error: errorCode("COMMON.INVALID_SECRET_KEY")});
+					}
 				}
 
-				res.json({success: true, transactionId: transaction.id});
+				var account = modules.accounts.getAccountByPublicKey(keypair.publicKey.toString('hex'));
+
+				if (!account || !account.publicKey) {
+					return res.json({success: false, error: errorCode("COMMON.OPEN_ACCOUNT")});
+				}
+
+				if (account.secondSignature && !body.secondSecret) {
+					return res.json({success: false, error: errorCode("COMMON.SECOND_SECRET_KEY")});
+				}
+
+				var secondKeypair = null;
+
+				if (account.secondSignature) {
+					var secondHash = crypto.createHash('sha256').update(body.secondSecret, 'utf8').digest();
+					secondKeypair = ed.MakeKeypair(secondHash);
+				}
+
+				var transaction = library.logic.transaction.create({
+					type: TransactionTypes.SEND,
+					amount: body.amount,
+					sender: account,
+					recipientId: recipientId,
+					recipientUsername: recipientUsername,
+					keypair: keypair,
+					secondKeypair: secondKeypair
+				});
+
+				library.sequence.add(function (cb) {
+					modules.transactions.receiveTransactions([transaction], cb);
+				}, function (err) {
+					if (err) {
+						return res.json({success: false, error: err});
+					}
+
+					res.json({success: true, transactionId: transaction.id});
+				});
 			});
 		});
 	});
@@ -559,15 +558,15 @@ Transactions.prototype.undo = function (transaction, cb) {
 }
 
 Transactions.prototype.applyUnconfirmed = function (transaction, cb) {
-	var sender = modules.accounts.getAccountByPublicKey(transaction.senderPublicKey); //lost!
-
-	if (!sender && transaction.blockId != genesisblock.block.id) {
-		return setImmediate(cb, 'Failed account: ' + transaction.id);
-	} else {
-		modules.accounts.getAccountOrCreateByPublicKey(transaction.senderPublicKey, function (err, sender) {
-			library.logic.transaction.applyUnconfirmed(transaction, sender, cb);
-		});
-	}
+	modules.accounts.getAccountByPublicKey(transaction.senderPublicKey, function (err, sender) {
+		if (err || !sender && transaction.blockId != genesisblock.block.id) {
+			return setImmediate(cb, 'Failed account: ' + transaction.id);
+		} else {
+			modules.accounts.getAccountOrCreateByPublicKey(transaction.senderPublicKey, function (err, sender) {
+				library.logic.transaction.applyUnconfirmed(transaction, sender, cb);
+			});
+		}
+	});
 }
 
 Transactions.prototype.undoUnconfirmed = function (transaction, cb) {

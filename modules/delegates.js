@@ -90,19 +90,20 @@ function Delegate() {
 			return setImmediate(cb, errorCode("DELEGATES.EXISTS_DELEGATE"));
 		}
 
-		if (modules.accounts.existsUsername(trs.asset.delegate.username) && sender.username != trs.asset.delegate.username) {
-			return setImmediate(cb, errorCode("DELEGATES.EXISTS_USERNAME", trs));
-		}
+		modules.accounts.existsUsername(trs.asset.delegate.username, function (err, found) {
+			if (found && sender.username != trs.asset.delegate.username) {
+				return setImmediate(cb, errorCode("DELEGATES.EXISTS_USERNAME", trs));
+			}
+			if (sender.username && sender.username != trs.asset.delegate.username) {
+				return setImmediate(cb, errorCode("DELEGATES.WRONG_USERNAME"));
+			}
 
-		if (sender.username && sender.username != trs.asset.delegate.username) {
-			return setImmediate(cb, errorCode("DELEGATES.WRONG_USERNAME"));
-		}
+			if (sender.unconfirmedUsername && sender.unconfirmedUsername != trs.asset.delegate.username) {
+				return setImmediate(cb, errorCode("USERNAMES.ALREADY_HAVE_USERNAME", trs));
+			}
 
-		if (sender.unconfirmedUsername && sender.unconfirmedUsername != trs.asset.delegate.username) {
-			return setImmediate(cb, errorCode("USERNAMES.ALREADY_HAVE_USERNAME", trs));
-		}
-
-		setImmediate(cb, null, trs);
+			setImmediate(cb, null, trs);
+		});
 	}
 
 	this.process = function (trs, sender, cb) {
@@ -142,13 +143,14 @@ function Delegate() {
 			return setImmediate(cb, errorCode("DELEGATES.EXISTS_DELEGATE"));
 		}
 
-		if (modules.accounts.existsUnconfirmedUsername(trs.asset.delegate.username)) {
-			return setImmediate(cb, errorCode("DELEGATES.EXISTS_DELEGATE"));
-		}
+		modules.accounts.existsUnconfirmedUsername(trs.asset.delegate.username, function (err, found) {
+			if (found) {
+				return setImmediate(cb, errorCode("DELEGATES.EXISTS_DELEGATE"));
+			}
+			modules.delegates.addUnconfirmedDelegate(trs.asset.delegate);
 
-		modules.delegates.addUnconfirmedDelegate(trs.asset.delegate);
-
-		setImmediate(cb);
+			setImmediate(cb);
+		});
 	}
 
 	this.undoUnconfirmed = function (trs, sender, cb) {
@@ -403,8 +405,6 @@ function attachApi() {
 			}
 
 			var keypair = ed.MakeKeypair(crypto.createHash('sha256').update(body.secret, 'utf8').digest());
-			var address = modules.accounts.getAddressByPublicKey(keypair.publicKey.toString('hex'));
-			var account = modules.accounts.getAccount(address);
 
 			if (body.publicKey) {
 				if (keypair.publicKey.toString('hex') != body.publicKey) {
@@ -416,13 +416,16 @@ function attachApi() {
 				return res.json({success: false, error: errorCode("COMMON.FORGING_ALREADY_ENABLED")});
 			}
 
-			if (account && self.existsDelegate(keypair.publicKey.toString('hex'))) {
-				private.keypairs[keypair.publicKey.toString('hex')] = keypair;
-				res.json({success: true, address: address});
-				library.logger.info("Forging enabled on account: " + address);
-			} else {
-				res.json({success: false, error: errorCode("DELEGATES.DELEGATE_NOT_FOUND")});
-			}
+			var address = modules.accounts.getAddressByPublicKey(keypair.publicKey.toString('hex'));
+			modules.accounts.getAccount(address, function (err, account) {
+				if (account && self.existsDelegate(keypair.publicKey.toString('hex'))) {
+					private.keypairs[keypair.publicKey.toString('hex')] = keypair;
+					res.json({success: true, address: address});
+					library.logger.info("Forging enabled on account: " + address);
+				} else {
+					res.json({success: false, error: errorCode("DELEGATES.DELEGATE_NOT_FOUND")});
+				}
+			});
 		});
 	});
 
@@ -445,8 +448,6 @@ function attachApi() {
 			}
 
 			var keypair = ed.MakeKeypair(crypto.createHash('sha256').update(body.secret, 'utf8').digest());
-			var address = modules.accounts.getAddressByPublicKey(keypair.publicKey.toString('hex'));
-			var account = modules.accounts.getAccount(address);
 
 			if (body.publicKey) {
 				if (keypair.publicKey.toString('hex') != body.publicKey) {
@@ -458,13 +459,16 @@ function attachApi() {
 				return res.json({success: false, error: errorCode("DELEGATES.FORGER_NOT_FOUND")});
 			}
 
-			if (account && self.existsDelegate(keypair.publicKey.toString('hex'))) {
-				delete private.keypairs[keypair.publicKey.toString('hex')];
-				res.json({success: true, address: address});
-				library.logger.info("Forging disabled on account: " + address);
-			} else {
-				res.json({success: false});
-			}
+			var address = modules.accounts.getAddressByPublicKey(keypair.publicKey.toString('hex'));
+			modules.accounts.getAccount(address, function (err, account) {
+				if (account && self.existsDelegate(keypair.publicKey.toString('hex'))) {
+					delete private.keypairs[keypair.publicKey.toString('hex')];
+					res.json({success: true, address: address});
+					library.logger.info("Forging disabled on account: " + address);
+				} else {
+					res.json({success: false});
+				}
+			});
 		});
 	});
 
@@ -506,48 +510,48 @@ function attachApi() {
 				}
 			}
 
-			var account = modules.accounts.getAccountByPublicKey(keypair.publicKey.toString('hex'));
-
-			if (!account || !account.publicKey) {
-				return res.json({success: false, error: errorCode("COMMON.OPEN_ACCOUNT")});
-			}
-
-			if (account.secondSignature && !body.secondSecret) {
-				return res.json({success: false, error: errorCode("COMMON.SECOND_SECRET_KEY")});
-			}
-
-			var secondKeypair = null;
-
-			if (account.secondSignature) {
-				var secondHash = crypto.createHash('sha256').update(body.secondSecret, 'utf8').digest();
-				secondKeypair = ed.MakeKeypair(secondHash);
-			}
-
-			var username = body.username;
-			if (!body.username) {
-				if (account.username) {
-					username = account.username;
-				} else {
-					return res.json({success: false, error: errorCode("DELEGATES.USERNAME_IS_TOO_SHORT")});
-				}
-			}
-
-			var transaction = library.logic.transaction.create({
-				type: TransactionTypes.DELEGATE,
-				username: username,
-				sender: account,
-				keypair: keypair,
-				secondKeypair: secondKeypair
-			});
-
-			library.sequence.add(function (cb) {
-				modules.transactions.receiveTransactions([transaction], cb);
-			}, function (err) {
-				if (err) {
-					return res.json({success: false, error: err});
+			modules.accounts.getAccountByPublicKey(keypair.publicKey.toString('hex'), function (err, account) {
+				if (err || !account || !account.publicKey) {
+					return res.json({success: false, error: errorCode("COMMON.OPEN_ACCOUNT")});
 				}
 
-				res.json({success: true, transaction: transaction});
+				if (account.secondSignature && !body.secondSecret) {
+					return res.json({success: false, error: errorCode("COMMON.SECOND_SECRET_KEY")});
+				}
+
+				var secondKeypair = null;
+
+				if (account.secondSignature) {
+					var secondHash = crypto.createHash('sha256').update(body.secondSecret, 'utf8').digest();
+					secondKeypair = ed.MakeKeypair(secondHash);
+				}
+
+				var username = body.username;
+				if (!body.username) {
+					if (account.username) {
+						username = account.username;
+					} else {
+						return res.json({success: false, error: errorCode("DELEGATES.USERNAME_IS_TOO_SHORT")});
+					}
+				}
+
+				var transaction = library.logic.transaction.create({
+					type: TransactionTypes.DELEGATE,
+					username: username,
+					sender: account,
+					keypair: keypair,
+					secondKeypair: secondKeypair
+				});
+
+				library.sequence.add(function (cb) {
+					modules.transactions.receiveTransactions([transaction], cb);
+				}, function (err) {
+					if (err) {
+						return res.json({success: false, error: err});
+					}
+
+					res.json({success: true, transaction: transaction});
+				});
 			});
 		});
 
@@ -682,25 +686,25 @@ private.loop = function (cb) {
 	});
 }
 
-private.loadMyDelegates = function () {
+private.loadMyDelegates = function (cb) {
 	var secrets = null;
 	if (library.config.forging.secret) {
 		secrets = util.isArray(library.config.forging.secret) ? library.config.forging.secret : [library.config.forging.secret];
 	}
 
-	if (secrets) {
-		secrets.forEach(function (secret) {
-			var keypair = ed.MakeKeypair(crypto.createHash('sha256').update(secret, 'utf8').digest());
-			var address = modules.accounts.getAddressByPublicKey(keypair.publicKey.toString('hex'));
-			var account = modules.accounts.getAccount(address);
+	async.eachSeries(secrets, function (secret, cb) {
+		var keypair = ed.MakeKeypair(crypto.createHash('sha256').update(secret, 'utf8').digest());
+		var address = modules.accounts.getAddressByPublicKey(keypair.publicKey.toString('hex'));
+		modules.accounts.getAccount(address, function (err, account) {
 			if (self.existsDelegate(keypair.publicKey.toString('hex'))) {
 				private.keypairs[keypair.publicKey.toString('hex')] = keypair;
 				library.logger.info("Forging enabled on account: " + address);
 			} else {
 				library.logger.info("Forger with this public key not found " + keypair.publicKey.toString('hex'));
 			}
+			setImmediate(err);
 		});
-	}
+	}, cb);
 }
 
 //public methods
@@ -723,69 +727,71 @@ Delegates.prototype.generateDelegateList = function (height) {
 	return truncDelegateList;
 }
 
-Delegates.prototype.checkDelegates = function (publicKey, votes) {
+Delegates.prototype.checkDelegates = function (publicKey, votes, cb) {
 	if (votes === null) {
 		return true;
 	}
 
 	if (util.isArray(votes)) {
-		var account = modules.accounts.getAccountByPublicKey(publicKey);
-		if (!account) {
-			return false;
-		}
-
-		for (var i = 0; i < votes.length; i++) {
-			var math = votes[i][0];
-			var publicKey = votes[i].slice(1);
-
-			if (!self.existsDelegate(publicKey)) {
-				return false;
+		modules.accounts.getAccountByPublicKey(publicKey, function (err, account) {
+			if (err || !account) {
+				return setImmediate(cb, "error");
 			}
 
-			if (math == "+" && (account.delegates !== null && account.delegates.indexOf(publicKey) != -1)) {
-				return false;
-			}
-			if (math == "-" && (account.delegates === null || account.delegates.indexOf(publicKey) === -1)) {
-				return false;
-			}
-		}
+			for (var i = 0; i < votes.length; i++) {
+				var math = votes[i][0];
+				var publicKey = votes[i].slice(1);
 
-		return true;
+				if (!self.existsDelegate(publicKey)) {
+					return setImmediate(cb, "error");
+				}
+
+				if (math == "+" && (account.delegates !== null && account.delegates.indexOf(publicKey) != -1)) {
+					return setImmediate(cb, "error");
+				}
+				if (math == "-" && (account.delegates === null || account.delegates.indexOf(publicKey) === -1)) {
+					return setImmediate(cb, "error");
+				}
+			}
+
+			setImmediate(cb);
+		});
 	} else {
-		return false;
+		setImmediate(cb, "error");
 	}
 }
 
-Delegates.prototype.checkUnconfirmedDelegates = function (publicKey, votes) {
+Delegates.prototype.checkUnconfirmedDelegates = function (publicKey, votes, cb) {
 	if (votes === null) {
-		return true;
+		return setImmediate(cb);
 	}
 
 	if (util.isArray(votes)) {
-		var account = modules.accounts.getAccountByPublicKey(publicKey);
-		if (!account) {
-			return false;
-		}
-
-		for (var i = 0; i < votes.length; i++) {
-			var math = votes[i][0];
-			var publicKey = votes[i].slice(1);
-
-			if (private.unconfirmedVotes[publicKey] === undefined) {
-				return false;
+		modules.accounts.getAccountByPublicKey(publicKey, function (err, account) {
+			if (err || !account) {
+				return setImmediate(cb, "error");
 			}
 
-			if (math == "+" && (account.unconfirmedDelegates !== null && account.unconfirmedDelegates.indexOf(publicKey) != -1)) {
-				return false;
-			}
-			if (math == "-" && (account.unconfirmedDelegates === null || account.unconfirmedDelegates.indexOf(publicKey) === -1)) {
-				return false;
-			}
-		}
+			for (var i = 0; i < votes.length; i++) {
+				var math = votes[i][0];
+				var publicKey = votes[i].slice(1);
 
-		return true;
+				if (private.unconfirmedVotes[publicKey] === undefined) {
+					return setImmediate(cb, "error");
+				}
+
+				if (math == "+" && (account.unconfirmedDelegates !== null && account.unconfirmedDelegates.indexOf(publicKey) != -1)) {
+					return setImmediate(cb, "error");
+				}
+				if (math == "-" && (account.unconfirmedDelegates === null || account.unconfirmedDelegates.indexOf(publicKey) === -1)) {
+					return setImmediate(cb, "error");
+				}
+			}
+
+			return setImmediate(cb);
+		});
 	} else {
-		return false;
+		return setImmediate(cb, "error");
 	}
 }
 
@@ -899,9 +905,8 @@ Delegates.prototype.onBind = function (scope) {
 Delegates.prototype.onBlockchainReady = function () {
 	private.loaded = true;
 
-	private.loadMyDelegates(); //temp
-
-	process.nextTick(function nextLoop() {
+	private.loadMyDelegates(function nextLoop(err) {
+		err && library.logger.error('loading delegates', err);
 		private.loop(function (err) {
 			err && library.logger.error('delegate loop', err);
 
@@ -911,7 +916,8 @@ Delegates.prototype.onBlockchainReady = function () {
 			scheduledTime = scheduledTime <= slots.getTime() ? scheduledTime + 1 : scheduledTime;
 			schedule.scheduleJob(new Date(slots.getRealTime(scheduledTime) + 1000), nextLoop);
 		})
-	});
+	}); //temp
+
 }
 
 Delegates.prototype.onNewBlock = function (block, broadcast) {

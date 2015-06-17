@@ -631,9 +631,7 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 				} else {
 					private.lastBlock = block;
 
-					modules.round.tick(private.lastBlock);
-
-					setImmediate(cb);
+					modules.round.tick(private.lastBlock, cb);
 				}
 			});
 		}, function (err) {
@@ -749,43 +747,46 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 								return setImmediate(cb, "Dublicated transaction in block: " + transaction.id);
 							}
 
-							var sender = modules.accounts.getAccountByPublicKey(transaction.senderPublicKey);
-
-							library.logic.transaction.verify(transaction, sender, function (err) {
+							modules.accounts.getAccountByPublicKey(transaction.senderPublicKey, function (err, sender) {
 								if (err) {
 									return setImmediate(cb, err);
 								}
 
-								modules.transactions.applyUnconfirmed(transaction, function (err) {
+								library.logic.transaction.verify(transaction, sender, function (err) {
 									if (err) {
-										return setImmediate(cb, "Can't apply transaction: " + transaction.id);
+										return setImmediate(cb, err);
 									}
 
-									try {
-										var bytes = library.logic.transaction.getBytes(transaction);
-									} catch (e) {
-										return setImmediate(cb, e.toString());
-									}
+									modules.transactions.applyUnconfirmed(transaction, function (err) {
+										if (err) {
+											return setImmediate(cb, "Can't apply transaction: " + transaction.id);
+										}
 
-									appliedTransactions[transaction.id] = transaction;
+										try {
+											var bytes = library.logic.transaction.getBytes(transaction);
+										} catch (e) {
+											return setImmediate(cb, e.toString());
+										}
 
-									var index = unconfirmedTransactions.indexOf(transaction.id);
-									if (index >= 0) {
-										unconfirmedTransactions.splice(index, 1);
-									}
+										appliedTransactions[transaction.id] = transaction;
 
-									payloadHash.update(bytes);
+										var index = unconfirmedTransactions.indexOf(transaction.id);
+										if (index >= 0) {
+											unconfirmedTransactions.splice(index, 1);
+										}
 
-									totalAmount += transaction.amount;
-									totalFee += transaction.fee;
+										payloadHash.update(bytes);
 
-									setImmediate(cb);
+										totalAmount += transaction.amount;
+										totalFee += transaction.fee;
+
+										setImmediate(cb);
+									});
 								});
 							});
 						}
 					}
-				)
-				;
+				);
 			}, function (err) {
 				var errors = [];
 
@@ -943,19 +944,20 @@ Blocks.prototype.generateBlock = function (keypair, timestamp, cb) {
 	var ready = []
 
 	async.eachSeries(transactions, function (transaction, cb) {
-		var sender = modules.accounts.getAccountByPublicKey(transaction.senderPublicKey);
+		modules.accounts.getAccountByPublicKey(transaction.senderPublicKey, function (err, sender) {
+			if (err) {
+				return cb("sender doesn´t found");
+			}
+			if (library.logic.transaction.ready(transaction, sender)) {
+				library.logic.transaction.verify(transaction, sender, function (err) {
 
-		if (library.logic.transaction.ready(transaction, sender)) {
-			library.logic.transaction.verify(transaction, sender, function (err) {
-				if (err) {
-					return cb();
-				}
-				ready.push(transaction);
-				cb();
-			});
-		} else {
-			setImmediate(cb);
-		}
+					ready.push(transaction);
+					cb();
+				});
+			} else {
+				setImmediate(cb);
+			}
+		});
 	}, function () {
 		try {
 			var block = library.logic.block.create({

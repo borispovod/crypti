@@ -40,10 +40,6 @@ function Contact() {
 			return setImmediate(cb, "Following is not address: " + trs.asset.contact.address);
 		}
 
-		if (!modules.accounts.getAccount(trs.asset.contact.address.slice(1))) {
-			return setImmediate(cb, "Following is not exists: " + trs.id);
-		}
-
 		if (trs.amount != 0) {
 			return setImmediate(cb, "Invalid amount: " + trs.id);
 		}
@@ -52,7 +48,13 @@ function Contact() {
 			return setImmediate(cb, "Invalid recipientId: " + trs.id);
 		}
 
-		setImmediate(cb, null, trs);
+		modules.accounts.getAccount(trs.asset.contact.address.slice(1), function (err, account) {
+			if (err || !account) {
+				return setImmediate(cb, "Following is not exists: " + trs.id);
+			}
+
+			setImmediate(cb, null, trs);
+		});
 	}
 
 	this.process = function (trs, sender, cb) {
@@ -171,29 +173,29 @@ function attachApi() {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
 
-			var account = modules.accounts.getAccountByPublicKey(query.publicKey);
+			modules.accounts.getAccountByPublicKey(query.publicKey, function (err, account) {
+				if (err || !account) {
+					return res.json({success: false, error: errorCode("ACCOUNTS.ACCOUNT_DOESNT_FOUND")});
+				}
 
-			if (!account) {
-				return res.json({success: false, error: errorCode("ACCOUNTS.ACCOUNT_DOESNT_FOUND")});
-			}
+				var following = [];
+				var followers = [];
+				if (account.following && account.following.length) {
+					following = account.following.map(function (item) {
+						var account = modules.accounts.getAccount(item);
+						return {username: account.username, address: account.address};
+					});
+				}
 
-			var following = [];
-			var followers = [];
-			if (account.following && account.following.length) {
-				following = account.following.map(function (item) {
-					var account = modules.accounts.getAccount(item);
-					return {username: account.username, address: account.address};
-				});
-			}
+				if (account.followers && account.followers.length) {
+					followers = account.followers.map(function (item) {
+						var account = modules.accounts.getAccount(item);
+						return {username: account.username, address: account.address};
+					});
+				}
 
-			if (account.followers && account.followers.length) {
-				followers = account.followers.map(function (item) {
-					var account = modules.accounts.getAccount(item);
-					return {username: account.username, address: account.address};
-				});
-			}
-
-			res.json({success: true, following: following, followers: followers});
+				res.json({success: true, following: following, followers: followers});
+			});
 		});
 	});
 
@@ -224,53 +226,59 @@ function attachApi() {
 				}
 			}
 
-			var account = modules.accounts.getAccountByPublicKey(keypair.publicKey.toString('hex'));
-
-			if (!account || !account.publicKey) {
-				return res.json({success: false, error: errorCode("COMMON.OPEN_ACCOUNT")});
-			}
-
-			if (account.secondSignature && !body.secondSecret) {
-				return res.json({success: false, error: errorCode("COMMON.SECOND_SECRET_KEY")});
-			}
-
-			if (account.secondSignature && body.secondSecret) {
-				var secondHash = crypto.createHash('sha256').update(body.secondSecret, 'utf8').digest();
-				var secondKeypair = ed.MakeKeypair(secondHash);
-			}
-
-			var followingAddress = body.following.substring(1, body.following.length);
-			var isAddress = /^[0-9]+[C|c]$/g;
-			var following = null;
-			if (isAddress.test(followingAddress.toLowerCase())) {
-				following = modules.accounts.getAccount(followingAddress);
-			} else {
-				following = modules.accounts.getAccountByUsername(followingAddress);
-			}
-			if (!following) {
-				return res.json({success: false, error: errorCode("CONTACTS.USERNAME_DOESNT_FOUND")});
-			}
-			if (following.address == account.address) {
-				return res.json({success: false, error: errorCode("CONTACTS.SELF_FRIENDING")});
-			}
-			followingAddress = body.following[0] + following.address;
-
-			var transaction = library.logic.transaction.create({
-				type: TransactionTypes.FOLLOW,
-				sender: account,
-				keypair: keypair,
-				secondKeypair: secondKeypair,
-				contactAddress: followingAddress
-			});
-
-			library.sequence.add(function (cb) {
-				modules.transactions.receiveTransactions([transaction], cb);
-			}, function (err) {
-				if (err) {
-					return res.json({success: false, error: err});
+			modules.accounts.getAccountByPublicKey(keypair.publicKey.toString('hex'), function (err, account) {
+				if (err || !account || !account.publicKey) {
+					return res.json({success: false, error: errorCode("COMMON.OPEN_ACCOUNT")});
 				}
 
-				res.json({success: true, transaction: transaction});
+				if (account.secondSignature && !body.secondSecret) {
+					return res.json({success: false, error: errorCode("COMMON.SECOND_SECRET_KEY")});
+				}
+
+				if (account.secondSignature && body.secondSecret) {
+					var secondHash = crypto.createHash('sha256').update(body.secondSecret, 'utf8').digest();
+					var secondKeypair = ed.MakeKeypair(secondHash);
+				}
+
+				var followingAddress = body.following.substring(1, body.following.length);
+				var isAddress = /^[0-9]+[C|c]$/g;
+				var following = null;
+				var followingId, followingUsername = null;
+
+
+				if (isAddress.test(body.recipientId)) {
+					followingId = body.recipientId;
+				} else {
+					followingUsername = body.recipientId;
+				}
+
+				modules.accounts[followingId ? "getAccount" : "getAccountByUsername"](followingId || followingUsername, function (err, following) {
+					if (err || !following) {
+						return res.json({success: false, error: errorCode("CONTACTS.USERNAME_DOESNT_FOUND")});
+					}
+					if (following.address == account.address) {
+						return res.json({success: false, error: errorCode("CONTACTS.SELF_FRIENDING")});
+					}
+					followingAddress = body.following[0] + following.address;
+
+					var transaction = library.logic.transaction.create({
+						type: TransactionTypes.FOLLOW,
+						sender: account,
+						keypair: keypair,
+						secondKeypair: secondKeypair,
+						contactAddress: followingAddress
+					});
+
+					library.sequence.add(function (cb) {
+						modules.transactions.receiveTransactions([transaction], cb);
+					}, function (err) {
+						if (err) {
+							return res.json({success: false, error: err});
+						}
+
+						res.json({success: true, transaction: transaction});
+					});
+				});
 			});
 		});
 	});
