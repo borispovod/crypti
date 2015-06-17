@@ -32,7 +32,7 @@ var Saccount = {
 
 console.log("Starting account-test suite");
 
-describe('Account', function() {
+describe.skip('Account', function() {
 
     test = test + 1;
     it(test + '. Opening account with password: '+Saccount.password+'. Expecting success',function(done){
