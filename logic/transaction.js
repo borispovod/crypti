@@ -307,7 +307,7 @@ Transaction.prototype.applyUnconfirmed = function (trs, sender, cb) {
 		return setImmediate(cb, 'Unknown transaction type ' + trs.type);
 	}
 
-	if (sender.secondSignature && !trs.signSignature) {
+	if (sender.secondSignature && !trs.signSignature && trs.blockId != genesisblock.block.id) {
 		return setImmediate(cb, 'Failed second signature: ' + trs.id);
 	}
 
