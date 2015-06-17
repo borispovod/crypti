@@ -35,8 +35,6 @@ module.exports.connect = function (connectString, cb) {
 		"CREATE INDEX IF NOT EXISTS votes_trs_id ON votes(transactionId)",
 		"CREATE INDEX IF NOT EXISTS delegates_trs_id ON delegates(transactionId)",
 		"CREATE INDEX IF NOT EXISTS contacts_trs_id ON contacts(transactionId)",
-		"ALTER TABLE trs ADD COLUMN senderUsername VARCHAR(20)",
-		"ALTER TABLE trs ADD COLUMN recipientUsername VARCHAR(20)",
 		"PRAGMA foreign_keys = ON",
 		"UPDATE peers SET state = 1, clock = null where state != 0"
 	];
@@ -46,6 +44,34 @@ module.exports.connect = function (connectString, cb) {
 			cb(err, data);
 		});
 	}, function (err) {
-		cb(err, db);
+		if (err) {
+			return cb(err, db);
+		}
+
+		var migration = [
+			"ALTER TABLE trs ADD COLUMN senderUsername VARCHAR(20)",
+			"ALTER TABLE trs ADD COLUMN recipientUsername VARCHAR(20)",
+			"PRAGMA user_version = 1"
+		];
+
+		db.query("PRAGMA user_version", function (err, rows) {
+			if (err) {
+				return cb(err, db);
+			}
+
+			var version = rows[0];
+
+			if (version == 0) {
+				async.eachSeries(migration, function (command, cb) {
+					db.query(command, function (err, data) {
+						cb(err, data);
+					});
+				}, function (err) {
+					return cb(err, db);
+				});
+			} else {
+				return cb(null, db);
+			}
+		});
 	});
 }
