@@ -567,13 +567,21 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 				}
 			}
 
-			if (block.id != genesisblock.block.id) {
+			//if (block.id != genesisblock.block.id) {
 				block.transactions = block.transactions.sort(function (a, b) {
-					if (a.type == TransactionTypes.SIGNATURE)
+					if (block.id == genesisblock.block.id) {
+						if (a.type == TransactionTypes.VOTE)
+							return 1;
+					}
+
+					if (a.type == TransactionTypes.SIGNATURE) {
 						return 1;
+					}
+
+
 					return 0;
 				});
-			}
+			//}
 
 			async.eachSeries(block.transactions, function (transaction, cb) {
 				var sender = modules.accounts.getAccountOrCreateByPublicKey(transaction.senderPublicKey);
