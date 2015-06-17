@@ -47,7 +47,7 @@ function Delegate() {
 		if (modules.blocks.getLastBlock().height >= MilestoneBlocks.FEE_BLOCK) {
 			return 100 * constants.fixedPoint;
 		} else {
-			return 100 * constants.fixedPoint;
+			return 10000 * constants.fixedPoint;
 		}
 	}
 
@@ -227,7 +227,7 @@ function attachApi() {
 		if (modules.blocks.getLastBlock().height >= MilestoneBlocks.FEE_BLOCK) {
 			fee = 100 * constants.fixedPoint;
 		} else {
-			fee = 100 * constants.fixedPoint;
+			fee = 10000 * constants.fixedPoint;
 		}
 
 		return res.json({success: true, fee: fee})

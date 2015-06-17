@@ -196,6 +196,7 @@ Transaction.prototype.verify = function (trs, sender, cb) { //inheritance
 	//calc fee
 	var fee = private.types[trs.type].calculateFee(trs) || false;
 	if (!fee || trs.fee != fee) {
+		console.log(fee, trs.fee);
 		return setImmediate(cb, "Invalid transaction type/fee: " + trs.id);
 	}
 	//check amount
@@ -318,6 +319,7 @@ Transaction.prototype.applyUnconfirmed = function (trs, sender, cb) {
 	var amount = trs.amount + trs.fee;
 
 	if (sender.unconfirmedBalance < amount && trs.blockId != genesisblock.block.id) {
+		console.log(sender.unconfirmedBalance);
 		return setImmediate(cb, 'Account has no balance: ' + trs.id);
 	}
 

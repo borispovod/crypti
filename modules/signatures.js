@@ -28,7 +28,7 @@ function Signature() {
 		if (modules.blocks.getLastBlock().height >= MilestoneBlocks.FEE_BLOCK) {
 			return 5 * constants.fixedPoint;
 		} else {
-			return 5 * constants.fixedPoint;
+			return 100 * constants.fixedPoint;
 		}
 	}
 
@@ -175,7 +175,7 @@ function attachApi() {
 		if (modules.blocks.getLastBlock().height >= MilestoneBlocks.FEE_BLOCK) {
 			fee = 5 * constants.fixedPoint;
 		} else {
-			fee = 5 * constants.fixedPoint;
+			fee = 100 * constants.fixedPoint;
 		}
 
 		return res.json({success: true, fee: fee})
