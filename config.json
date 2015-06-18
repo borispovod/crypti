@@ -15,7 +15,10 @@
 	"peers": {
 		"list": [
 		],
-		"blackList": []
+		"blackList": [],
+		"options": {
+			"timeout": 20000
+		}
 	},
 	"forging": {
 		"secret": [
@@ -134,8 +137,8 @@
 		"options": {
 			"port": 443,
 			"address": "0.0.0.0",
-			"key": "path_to_key",
-			"cert": "path_to_cert"
+			"key": "./ssl/crypti.key",
+			"cert": "./ssl/crypti.crt"
 		}
 	}
 }
