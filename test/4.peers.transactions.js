@@ -1,6 +1,8 @@
 var node = require('./variables.js'),
 	crypto = require('crypto');
 
+var genesisblock = require('../helpers/genesisblock.js');
+
 describe("Peers transactions", function () {
 	it("create transaction. should return ok", function (done) {
 		var transaction = node.crypti.transaction.createTransaction("1C", 1, node.peers_config.account);
@@ -106,6 +108,23 @@ describe("Peers transactions", function () {
 				node.expect(res.body).to.have.property("success").to.be.false;
 				node.expect(res.body).to.have.property("message");
 				done();
+			});
+	});
+
+	it("send transaction with very large amount and genesis block id. should return no ok", function (done) {
+		var transaction = node.crypti.transaction.createTransaction("12C", 10000000000000000, node.peers_config.account);
+		transaction.blockId = genesisblock.block.id;
+		node.peer.post('/transactions')
+			.set('Accept', 'application/json')
+			.send({
+				transaction: transaction
+			})
+			.expect('Content-Type', /json/)
+			.expect(200)
+			.end(function (err, res) {
+				console.log(res.body);
+				node.expect(res.body).to.have.property("success").to.be.false;
+				setTimeout(done, 30000);
 			});
 	});
 
