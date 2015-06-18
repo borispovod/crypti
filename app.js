@@ -79,7 +79,7 @@ var logger = new Logger({echo: appConfig.consoleLogLevel, errorLevel: appConfig.
 var d = require('domain').create();
 d.on('error', function (err) {
 	logger.fatal('domain master', {message: err.message, stack: err.stack});
-	//process.exit(0);
+	process.exit(0);
 });
 d.run(function () {
 	var modules = [];

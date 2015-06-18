@@ -672,9 +672,12 @@ private.loop = function (cb) {
 
 private.loadMyDelegates = function () {
 	var secrets = null;
+
+
 	if (library.config.forging.secret) {
 		secrets = util.isArray(library.config.forging.secret) ? library.config.forging.secret : [library.config.forging.secret];
 	}
+
 
 	if (secrets) {
 		secrets.forEach(function (secret) {
