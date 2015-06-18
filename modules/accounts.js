@@ -195,9 +195,9 @@ Account.prototype.applyContact = function (diff, cb) {
 			library.network.io.sockets.emit('contacts/change', {address: this.address});
 			setImmediate(cb);
 		});
+	} else {
+		setImmediate(cb, "error");
 	}
-
-	setImmediate(cb, "error");
 }
 
 Account.prototype.undoContact = function (diff, cb) {
@@ -229,9 +229,9 @@ Account.prototype.undoContact = function (diff, cb) {
 			library.network.io.sockets.emit('contacts/change', {address: this.address});
 			setImmediate(cb);
 		});
+	} else {
+		setImmediate(cb, "error");
 	}
-
-	setImmediate(cb, "error");
 }
 
 Account.prototype.applyUnconfirmedContact = function (diff) {

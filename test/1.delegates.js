@@ -563,7 +563,7 @@ describe('Delegates', function() {
         });
     });
 
-    describe('Get Delegates list',function() {
+    describe.skip('Get Delegates list',function() {
 
         test += 1;
         it(test + '. We attempt to get a list of all delegates. We expect success',function(done){
