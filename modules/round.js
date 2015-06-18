@@ -44,7 +44,7 @@ Round.prototype.backwardTick = function (block, previousBlock, cb) {
 	function done(err) {
 		delete private.unFeesByRound[round];
 		delete private.unDelegatesByRound[round];
-		cb(err);
+		cb && cb(err);
 	}
 
 	private.forgedBlocks[block.generatorPublicKey] = (private.forgedBlocks[block.generatorPublicKey] || 0) - 1;
@@ -136,7 +136,7 @@ Round.prototype.tick = function (block, cb) {
 	function done(err) {
 		delete private.feesByRound[round];
 		delete private.delegatesByRound[round];
-		cb(err);
+		cb && cb(err);
 	}
 
 	private.forgedBlocks[block.generatorPublicKey] = (private.forgedBlocks[block.generatorPublicKey] || 0) + 1;

@@ -1,5 +1,6 @@
 var crypto = require('crypto'),
 	ed = require('ed25519'),
+	async = require('async'),
 	shuffle = require('knuth-shuffle').knuthShuffle,
 	Router = require('../helpers/router.js'),
 	slots = require('../helpers/slots.js'),
@@ -122,16 +123,15 @@ function Delegate() {
 
 	this.apply = function (trs, sender, cb) {
 		modules.delegates.removeUnconfirmedDelegate(trs.asset.delegate);
-		modules.delegates.cache(trs.asset.delegate);
-
-		setImmediate(cb);
+		modules.delegates.cache(trs.asset.delegate, cb);
 	}
 
 	this.undo = function (trs, sender, cb) {
-		modules.delegates.uncache(trs.asset.delegate);
-		modules.delegates.addUnconfirmedDelegate(trs.asset.delegate);
+		modules.delegates.uncache(trs.asset.delegate, function () {
+			modules.delegates.addUnconfirmedDelegate(trs.asset.delegate);
 
-		setImmediate(cb);
+			setImmediate(cb);
+		});
 	}
 
 	this.applyUnconfirmed = function (trs, sender, cb) {
@@ -702,7 +702,7 @@ private.loadMyDelegates = function (cb) {
 			} else {
 				library.logger.info("Forger with this public key not found " + keypair.publicKey.toString('hex'));
 			}
-			setImmediate(err);
+			setImmediate(cb, err);
 		});
 	}, cb);
 }
@@ -850,7 +850,7 @@ Delegates.prototype.existsName = function (userName) {
 	return private.namesIndex[userName.toLowerCase()] !== undefined;
 }
 
-Delegates.prototype.cache = function (delegate) {
+Delegates.prototype.cache = function (delegate, cb) {
 	private.delegates.push(delegate);
 	var index = private.delegates.length - 1;
 
@@ -861,13 +861,16 @@ Delegates.prototype.cache = function (delegate) {
 	private.publicKeyIndex[delegate.publicKey] = index;
 	private.transactionIdIndex[delegate.transactionId] = index;
 
-	var account = modules.accounts.getAccountByPublicKey(delegate.publicKey);
-	account.username = delegate.username;
+	modules.accounts.getAccountByPublicKey(delegate.publicKey, function (err, account) {
+		account.username = delegate.username;
 
-	library.network.io.sockets.emit('delegates/change', {});
+		library.network.io.sockets.emit('delegates/change', {});
+
+		setImmediate(cb);
+	});
 }
 
-Delegates.prototype.uncache = function (delegate) {
+Delegates.prototype.uncache = function (delegate, cb) {
 	delete private.votes[delegate.publicKey];
 	delete private.unconfirmedVotes[delegate.publicKey];
 
@@ -878,10 +881,13 @@ Delegates.prototype.uncache = function (delegate) {
 	delete private.transactionIdIndex[delegate.transactionId];
 	private.delegates[index] = false;
 
-	var account = modules.accounts.getAccountByPublicKey(delegate.publicKey);
-	account.username = null;
+	modules.accounts.getAccountByPublicKey(delegate.publicKey, function (err, account) {
+		account.username = null;
 
-	library.network.io.sockets.emit('delegates/change', {});
+		library.network.io.sockets.emit('delegates/change', {});
+
+		setImmediate(cb);
+	});
 }
 
 Delegates.prototype.validateBlockSlot = function (block) {

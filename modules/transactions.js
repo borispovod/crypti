@@ -265,41 +265,42 @@ function attachApi() {
 					}
 				}
 
-				var account = modules.accounts.getAccountByPublicKey(keypair.publicKey.toString('hex'));
+				modules.accounts.getAccountByPublicKey(keypair.publicKey.toString('hex'), function (err, account) {
 
-				if (!account || !account.publicKey) {
-					return res.json({success: false, error: errorCode("COMMON.OPEN_ACCOUNT")});
-				}
-
-				if (account.secondSignature && !body.secondSecret) {
-					return res.json({success: false, error: errorCode("COMMON.SECOND_SECRET_KEY")});
-				}
-
-				var secondKeypair = null;
-
-				if (account.secondSignature) {
-					var secondHash = crypto.createHash('sha256').update(body.secondSecret, 'utf8').digest();
-					secondKeypair = ed.MakeKeypair(secondHash);
-				}
-
-				var transaction = library.logic.transaction.create({
-					type: TransactionTypes.SEND,
-					amount: body.amount,
-					sender: account,
-					recipientId: recipientId,
-					recipientUsername: recipientUsername,
-					keypair: keypair,
-					secondKeypair: secondKeypair
-				});
-
-				library.sequence.add(function (cb) {
-					modules.transactions.receiveTransactions([transaction], cb);
-				}, function (err) {
-					if (err) {
-						return res.json({success: false, error: err});
+					if (!account || !account.publicKey) {
+						return res.json({success: false, error: errorCode("COMMON.OPEN_ACCOUNT")});
 					}
 
-					res.json({success: true, transactionId: transaction.id});
+					if (account.secondSignature && !body.secondSecret) {
+						return res.json({success: false, error: errorCode("COMMON.SECOND_SECRET_KEY")});
+					}
+
+					var secondKeypair = null;
+
+					if (account.secondSignature) {
+						var secondHash = crypto.createHash('sha256').update(body.secondSecret, 'utf8').digest();
+						secondKeypair = ed.MakeKeypair(secondHash);
+					}
+
+					var transaction = library.logic.transaction.create({
+						type: TransactionTypes.SEND,
+						amount: body.amount,
+						sender: account,
+						recipientId: recipientId,
+						recipientUsername: recipientUsername,
+						keypair: keypair,
+						secondKeypair: secondKeypair
+					});
+
+					library.sequence.add(function (cb) {
+						modules.transactions.receiveTransactions([transaction], cb);
+					}, function (err) {
+						if (err) {
+							return res.json({success: false, error: err});
+						}
+
+						res.json({success: true, transactionId: transaction.id});
+					});
 				});
 			});
 		});
@@ -482,39 +483,40 @@ Transactions.prototype.removeUnconfirmedTransaction = function (id) {
 }
 
 Transactions.prototype.processUnconfirmedTransaction = function (transaction, broadcast, cb) {
-	var sender = modules.accounts.getAccountByPublicKey(transaction.senderPublicKey);
+	var sender = modules.accounts.getAccountByPublicKey(transaction.senderPublicKey, function (err, sender) {
 
-	function done(err) {
-		if (err) {
-			return cb(err);
-		}
-
-		private.addUnconfirmedTransaction(transaction, function (err) {
+		function done(err) {
 			if (err) {
 				return cb(err);
 			}
 
-			library.bus.message('unconfirmedTransaction', transaction, broadcast);
+			private.addUnconfirmedTransaction(transaction, function (err) {
+				if (err) {
+					return cb(err);
+				}
 
-			cb();
+				library.bus.message('unconfirmedTransaction', transaction, broadcast);
+
+				cb();
+			});
+		}
+
+		if (!library.logic.transaction.ready(transaction, sender)) {
+			return done();
+		}
+
+		library.logic.transaction.process(transaction, sender, function (err, transaction) {
+			if (err) {
+				return done(err);
+			}
+
+			// check in confirmed transactions
+			if (private.unconfirmedTransactionsIdIndex[transaction.id] !== undefined || private.doubleSpendingTransactions[transaction.id]) {
+				return cb("This transaction already exists");
+			}
+
+			library.logic.transaction.verify(transaction, sender, done);
 		});
-	}
-
-	if (!library.logic.transaction.ready(transaction, sender)) {
-		return done();
-	}
-
-	library.logic.transaction.process(transaction, sender, function (err, transaction) {
-		if (err) {
-			return done(err);
-		}
-
-		// check in confirmed transactions
-		if (private.unconfirmedTransactionsIdIndex[transaction.id] !== undefined || private.doubleSpendingTransactions[transaction.id]) {
-			return cb("This transaction already exists");
-		}
-
-		library.logic.transaction.verify(transaction, sender, done);
 	});
 }
 
@@ -546,15 +548,15 @@ Transactions.prototype.undoUnconfirmedList = function (cb) {
 }
 
 Transactions.prototype.apply = function (transaction, cb) {
-	var sender = modules.accounts.getAccountByPublicKey(transaction.senderPublicKey);
-
-	library.logic.transaction.apply(transaction, sender, cb);
+	modules.accounts.getAccountByPublicKey(transaction.senderPublicKey, function (err, sender) {
+		library.logic.transaction.apply(transaction, sender, cb);
+	});
 }
 
 Transactions.prototype.undo = function (transaction, cb) {
-	var sender = modules.accounts.getAccountByPublicKey(transaction.senderPublicKey);
-
-	library.logic.transaction.undo(transaction, sender, cb);
+	var sender = modules.accounts.getAccountByPublicKey(transaction.senderPublicKey, function (err, sender) {
+		library.logic.transaction.undo(transaction, sender, cb);
+	});
 }
 
 Transactions.prototype.applyUnconfirmed = function (transaction, cb) {
@@ -570,9 +572,9 @@ Transactions.prototype.applyUnconfirmed = function (transaction, cb) {
 }
 
 Transactions.prototype.undoUnconfirmed = function (transaction, cb) {
-	var sender = modules.accounts.getAccountByPublicKey(transaction.senderPublicKey);
-
-	library.logic.transaction.undoUnconfirmed(transaction, sender, cb);
+	modules.accounts.getAccountByPublicKey(transaction.senderPublicKey, function (err, sender) {
+		library.logic.transaction.undoUnconfirmed(transaction, sender, cb);
+	});
 }
 
 Transactions.prototype.receiveTransactions = function (transactions, cb) {

@@ -249,26 +249,27 @@ function attachApi() {
 				return res.json({success: false, error: errorCode("MULTISIGNATURES.SIGN_NOT_ALLOWED", transaction)});
 			}
 
-			var account = modules.accounts.getAccountByPublicKey(keypair.publicKey.toString('hex'));
+			modules.accounts.getAccountByPublicKey(keypair.publicKey.toString('hex'), function (err, account) {
 
-			if (!account || !account.publicKey) {
-				return res.json({success: false, error: errorCode("COMMON.OPEN_ACCOUNT")});
-			}
-
-			library.sequence.add(function (cb) {
-				var transaction = modules.transactions.getUnconfirmedTransaction(body.transactionId);
-				if (!transaction) {
-					return cb("Transaction not found");
-				}
-				transaction.signatures = transaction.signatures || [];
-				transaction.signatures.push(sign);
-				cb();
-			}, function (err) {
-				if (err) {
-					return res.json({success: false, error: err});
+				if (!account || !account.publicKey) {
+					return res.json({success: false, error: errorCode("COMMON.OPEN_ACCOUNT")});
 				}
 
-				res.json({success: true, transactionId: transaction.id});
+				library.sequence.add(function (cb) {
+					var transaction = modules.transactions.getUnconfirmedTransaction(body.transactionId);
+					if (!transaction) {
+						return cb("Transaction not found");
+					}
+					transaction.signatures = transaction.signatures || [];
+					transaction.signatures.push(sign);
+					cb();
+				}, function (err) {
+					if (err) {
+						return res.json({success: false, error: err});
+					}
+
+					res.json({success: true, transactionId: transaction.id});
+				});
 			});
 		});
 	});
@@ -312,41 +313,42 @@ function attachApi() {
 				return res.json({success: false, error: errorCode("MULTISIGNATURES.NOT_UNIQUE_SET")});
 			}
 
-			var account = modules.accounts.getAccountByPublicKey(keypair.publicKey.toString('hex'));
+			modules.accounts.getAccountByPublicKey(keypair.publicKey.toString('hex'), function (err, account) {
 
-			if (!account || !account.publicKey) {
-				return res.json({success: false, error: errorCode("COMMON.OPEN_ACCOUNT")});
-			}
-
-			if (account.secondSignature && !body.secondSecret) {
-				return res.json({success: false, error: errorCode("COMMON.SECOND_SECRET_KEY")});
-			}
-
-			var secondKeypair = null;
-
-			if (account.secondSignature) {
-				var secondHash = crypto.createHash('sha256').update(body.secondSecret, 'utf8').digest();
-				secondKeypair = ed.MakeKeypair(secondHash);
-			}
-
-			var transaction = library.logic.transaction.create({
-				type: TransactionTypes.MULTI,
-				sender: account,
-				keypair: keypair,
-				secondKeypair: secondKeypair,
-				min: body.min,
-				keysgroup: body.keysgroup,
-				lifetime: body.lifetime
-			});
-
-			library.sequence.add(function (cb) {
-				modules.transactions.receiveTransactions([transaction], cb);
-			}, function (err) {
-				if (err) {
-					return res.json({success: false, error: err});
+				if (!account || !account.publicKey) {
+					return res.json({success: false, error: errorCode("COMMON.OPEN_ACCOUNT")});
 				}
 
-				res.json({success: true, transactionId: transaction.id});
+				if (account.secondSignature && !body.secondSecret) {
+					return res.json({success: false, error: errorCode("COMMON.SECOND_SECRET_KEY")});
+				}
+
+				var secondKeypair = null;
+
+				if (account.secondSignature) {
+					var secondHash = crypto.createHash('sha256').update(body.secondSecret, 'utf8').digest();
+					secondKeypair = ed.MakeKeypair(secondHash);
+				}
+
+				var transaction = library.logic.transaction.create({
+					type: TransactionTypes.MULTI,
+					sender: account,
+					keypair: keypair,
+					secondKeypair: secondKeypair,
+					min: body.min,
+					keysgroup: body.keysgroup,
+					lifetime: body.lifetime
+				});
+
+				library.sequence.add(function (cb) {
+					modules.transactions.receiveTransactions([transaction], cb);
+				}, function (err) {
+					if (err) {
+						return res.json({success: false, error: err});
+					}
+
+					res.json({success: true, transactionId: transaction.id});
+				});
 			});
 		});
 	});
