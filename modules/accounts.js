@@ -816,7 +816,7 @@ function attachApi() {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
 
-			private.openAccount(query.secret, function (err) {
+			private.openAccount(query.secret, function (err, account) {
 				var publicKey = null;
 				if (!err) {
 					publicKey = account.publicKey;
