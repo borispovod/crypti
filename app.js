@@ -54,6 +54,7 @@ if (program.log) {
 process.on('uncaughtException', function (err) {
 	// handle the error safely
 	logger.fatal('system error', {message: err.message, stack: err.stack});
+	process.exit(0);
 });
 
 var config = {
