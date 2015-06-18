@@ -388,7 +388,7 @@ function Username() {
 	}
 
 	this.calculateFee = function (trs) {
-		return 1 * constants.fixedPoint;
+		return 100 * constants.fixedPoint;
 	}
 
 	this.verify = function (trs, sender, cb) {
@@ -778,7 +778,7 @@ function attachApi() {
 	});
 
 	router.get('/username/fee', function (req, res) {
-		return res.json({success: true, fee: 1 * constants.fixedPoint});
+		return res.json({success: true, fee: 100 * constants.fixedPoint});
 	});
 
 	router.put("/username", function (req, res, next) {
