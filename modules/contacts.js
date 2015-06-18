@@ -79,15 +79,11 @@ function Contact() {
 	}
 
 	this.apply = function (trs, sender, cb) {
-		var res = sender.applyContact(trs.asset.contact.address);
-
-		setImmediate(cb, res ? null : true);
+		sender.applyContact(trs.asset.contact.address, cb);
 	}
 
 	this.undo = function (trs, sender, cb) {
-		var res = sender.undoContact(trs.asset.contact.address);
-
-		setImmediate(cb, res ? null : true);
+		sender.undoContact(trs.asset.contact.address, cb);
 	}
 
 	this.applyUnconfirmed = function (trs, sender, cb) {

@@ -40,7 +40,13 @@ Round.prototype.directionSwap = function (direction) {
 	}
 }
 
-Round.prototype.backwardTick = function (block, previousBlock) {
+Round.prototype.backwardTick = function (block, previousBlock, cb) {
+	function done(err) {
+		delete private.unFeesByRound[round];
+		delete private.unDelegatesByRound[round];
+		cb(err);
+	}
+
 	private.forgedBlocks[block.generatorPublicKey] = (private.forgedBlocks[block.generatorPublicKey] || 0) - 1;
 
 	var round = self.calc(block.height);
@@ -62,43 +68,60 @@ Round.prototype.backwardTick = function (block, previousBlock) {
 				}
 			});
 
-			while (private.tasks.length) {
-				var task = private.tasks.shift();
-				task();
-			}
+			async.series([
+				function (cb) {
+					async.until(function () {
+						var task = private.tasks.shift();
+						return !!task;
+					}, function (cb) {
+						task(function () {
+							cb();
+						});
+					}, cb);
+				},
+				function (cb) {
+					var foundationFee = Math.floor(private.unFeesByRound[round] / 10);
+					var diffFee = private.unFeesByRound[round] - foundationFee;
 
-			var foundationFee = Math.floor(private.unFeesByRound[round] / 10);
-			var diffFee = private.unFeesByRound[round] - foundationFee;
+					if (foundationFee || diffFee) {
+						var recipient = modules.accounts.getAccountOrCreateByAddress("14225995638226006440C");
+						recipient.addToBalance(-foundationFee);
+						recipient.addToUnconfirmedBalance(-foundationFee);
 
+						var delegatesFee = Math.floor(diffFee / slots.delegates);
+						var leftover = diffFee - (delegatesFee * slots.delegates);
 
-			if (foundationFee || diffFee) {
-				var recipient = modules.accounts.getAccountOrCreateByAddress("14225995638226006440C");
-				recipient.addToBalance(-foundationFee);
-				recipient.addToUnconfirmedBalance(-foundationFee);
-
-				var delegatesFee = Math.floor(diffFee / slots.delegates);
-				var leftover = diffFee - (delegatesFee * slots.delegates);
-
-				private.unDelegatesByRound[round].forEach(function (delegate, index) {
-					var recipient = modules.accounts.getAccountOrCreateByPublicKey(delegate); //lost!
-					recipient.addToBalance(-delegatesFee);
-					recipient.addToUnconfirmedBalance(-delegatesFee);
-					modules.delegates.addFee(delegate, -delegatesFee);
-					if (index === 0) {
-						recipient.addToBalance(-leftover);
-						recipient.addToUnconfirmedBalance(-leftover);
-						modules.delegates.addFee(delegate, -leftover);
+						async.forEachOfSeries(private.unDelegatesByRound[round], function (delegate, index, cb) {
+							modules.accounts.getAccountOrCreateByPublicKey(delegate, function (err, recipient) {
+								recipient.addToBalance(-delegatesFee);
+								recipient.addToUnconfirmedBalance(-delegatesFee);
+								modules.delegates.addFee(delegate, -delegatesFee);
+								if (index === 0) {
+									recipient.addToBalance(-leftover);
+									recipient.addToUnconfirmedBalance(-leftover);
+									modules.delegates.addFee(delegate, -leftover);
+								}
+								cb();
+							});
+						}, cb);
 					}
-				});
-			}
-
-			while (private.tasks.length) {
-				var task = private.tasks.shift();
-				task();
-			}
+				},
+				function (cb) {
+					async.until(function () {
+						var task = private.tasks.shift();
+						return !!task;
+					}, function (cb) {
+						task(function () {
+							cb();
+						});
+					}, cb);
+				}
+			], done);
+		} else {
+			done();
 		}
-		delete private.unFeesByRound[round];
-		delete private.unDelegatesByRound[round];
+	} else {
+		done();
 	}
 }
 
@@ -110,6 +133,12 @@ Round.prototype.blocksStat = function (publicKey) {
 }
 
 Round.prototype.tick = function (block, cb) {
+	function done(err) {
+		delete private.feesByRound[round];
+		delete private.delegatesByRound[round];
+		cb(err);
+	}
+
 	private.forgedBlocks[block.generatorPublicKey] = (private.forgedBlocks[block.generatorPublicKey] || 0) + 1;
 	var round = self.calc(block.height);
 
@@ -130,44 +159,69 @@ Round.prototype.tick = function (block, cb) {
 				}
 			});
 
-			while (private.tasks.length) {
-				var task = private.tasks.shift();
-				task();
-			}
-			var foundationFee = Math.floor(private.feesByRound[round] / 10);
-			var diffFee = private.feesByRound[round] - foundationFee;
+			async.series([
+				function (cb) {
+					async.until(function () {
+						var task = private.tasks.shift();
+						return !!task;
+					}, function (cb) {
+						task(function () {
+							cb();
+						});
+					}, cb);
+				},
+				function (cb) {
+					var foundationFee = Math.floor(private.feesByRound[round] / 10);
+					var diffFee = private.feesByRound[round] - foundationFee;
 
-			if (foundationFee || diffFee) {
-				modules.accounts.getAccountOrCreateByAddress("14225995638226006440C", function (err, recipient) {
-					recipient.addToUnconfirmedBalance(foundationFee);
-					recipient.addToBalance(foundationFee);
+					if (foundationFee || diffFee) {
+						modules.accounts.getAccountOrCreateByAddress("14225995638226006440C", function (err, recipient) {
+							recipient.addToUnconfirmedBalance(foundationFee);
+							recipient.addToBalance(foundationFee);
 
-					var delegatesFee = Math.floor(diffFee / slots.delegates);
-					var leftover = diffFee - (delegatesFee * slots.delegates);
+							var delegatesFee = Math.floor(diffFee / slots.delegates);
+							var leftover = diffFee - (delegatesFee * slots.delegates);
 
-					private.delegatesByRound[round].forEach(function (delegate, index) {
-						var recipient = modules.accounts.getAccountOrCreateByPublicKey(delegate); //lost!
-						recipient.addToUnconfirmedBalance(delegatesFee);
-						recipient.addToBalance(delegatesFee);
-						modules.delegates.addFee(delegate, delegatesFee);
+							//async.forEachOfSeries(private.unDelegatesByRound[round], function (delegate, index, cb) {
+							//modules.accounts.getAccountOrCreateByPublicKey(delegate, function (err, recipient) {
+							async.forEachOfSeries(private.delegatesByRound[round], function (delegate, index, cb) {
+								modules.accounts.getAccountOrCreateByPublicKey(delegate, function (err, recipient) {
+									recipient.addToUnconfirmedBalance(delegatesFee);
+									recipient.addToBalance(delegatesFee);
+									modules.delegates.addFee(delegate, delegatesFee);
 
-						if (index === private.delegatesByRound[round].length - 1) {
-							recipient.addToUnconfirmedBalance(leftover);
-							recipient.addToBalance(leftover);
-							modules.delegates.addFee(delegate, leftover);
-						}
+									if (index === private.delegatesByRound[round].length - 1) {
+										recipient.addToUnconfirmedBalance(leftover);
+										recipient.addToBalance(leftover);
+										modules.delegates.addFee(delegate, leftover);
+									}
+									cb();
+								});
+							}, cb);
+						});
+					} else {
+						cb();
+					}
+				},
+				function (cb) {
+					async.until(function () {
+						var task = private.tasks.shift();
+						return !!task;
+					}, function (cb) {
+						task(function () {
+							cb();
+						});
+					}, function () {
+						library.bus.message('finishRound', round);
+						cb();
 					});
-				});
-			}
-			while (private.tasks.length) {
-				var task = private.tasks.shift();
-				task();
-			}
-			library.bus.message('finishRound', round);
+				}
+			], done);
+		} else {
+			done();
 		}
-
-		delete private.feesByRound[round];
-		delete private.delegatesByRound[round];
+	} else {
+		done();
 	}
 }
 

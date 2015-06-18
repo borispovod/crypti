@@ -168,40 +168,40 @@ Account.prototype.undoDelegateList = function (diff) {
 	return false;
 }
 
-Account.prototype.applyContact = function (diff) {
-	if (diff === null) return;
+Account.prototype.applyContact = function (diff, cb) {
+	if (diff === null) return setImmediate(cb, "error");
 
 	var dest = applyDiff(this.following, [diff]);
 
 	if (dest !== false) {
 		var math = diff[0];
 		var address = diff.slice(1);
-		var friend = modules.accounts.getAccount(address); //lost!
-
-		if (math == "+") { //follow
-			if (friend.following.indexOf(this.address) == -1) { //if I´m not his friend
-				friend.addPending(this.address); //will send request for a friendship
-			} else { //if we are friends (I confirmed request)
-				this.deletePending(address); //remove his request
+		modules.accounts.getAccount(address, function (err, friend) {
+			if (math == "+") { //follow
+				if (friend.following.indexOf(this.address) == -1) { //if I´m not his friend
+					friend.addPending(this.address); //will send request for a friendship
+				} else { //if we are friends (I confirmed request)
+					this.deletePending(address); //remove his request
+				}
+			} else { //unfollow
+				if (friend.following.indexOf(this.address) == -1) { //if I´m not his friend
+					friend.deletePending(this.address); //remove my request
+				} else { //if we are friends
+					this.addPending(address); // back his request to me
+				}
 			}
-		} else { //unfollow
-			if (friend.following.indexOf(this.address) == -1) { //if I´m not his friend
-				friend.deletePending(this.address); //remove my request
-			} else { //if we are friends
-				this.addPending(address); // back his request to me
-			}
-		}
-		this.following = dest || [];
-		library.network.io.sockets.emit('followers/change', {address: address});
-		library.network.io.sockets.emit('contacts/change', {address: this.address});
-		return true;
+			this.following = dest || [];
+			library.network.io.sockets.emit('followers/change', {address: address});
+			library.network.io.sockets.emit('contacts/change', {address: this.address});
+			setImmediate(cb);
+		});
 	}
 
-	return false;
+	setImmediate(cb, "error");
 }
 
-Account.prototype.undoContact = function (diff) {
-	if (diff === null) return;
+Account.prototype.undoContact = function (diff, cb) {
+	if (diff === null) return setImmediate(cb, "error");
 
 	var copyDiff = reverseDiff([diff]);
 
@@ -210,28 +210,28 @@ Account.prototype.undoContact = function (diff) {
 	if (dest !== false) {
 		var math = diff[0];
 		var address = diff.slice(1);
-		var friend = modules.accounts.getAccount(address); //lost!
-
-		if (math == "+") { //follow
-			if (friend.following.indexOf(this.address) == -1) { //if I´m not his friend
-				friend.deletePending(this.address); //will send request for a friendship
-			} else { //if we are friends (I confirmed request)
-				this.addPending(address); //remove his request
+		modules.accounts.getAccount(address, function (err, friend) {
+			if (math == "+") { //follow
+				if (friend.following.indexOf(this.address) == -1) { //if I´m not his friend
+					friend.deletePending(this.address); //will send request for a friendship
+				} else { //if we are friends (I confirmed request)
+					this.addPending(address); //remove his request
+				}
+			} else { //unfollow
+				if (friend.following.indexOf(this.address) == -1) { //if I´m not his friend
+					friend.addPending(this.address); //remove my request
+				} else { //if we are friends
+					this.deletePending(address); // back his request to me
+				}
 			}
-		} else { //unfollow
-			if (friend.following.indexOf(this.address) == -1) { //if I´m not his friend
-				friend.addPending(this.address); //remove my request
-			} else { //if we are friends
-				this.deletePending(address); // back his request to me
-			}
-		}
-		this.following = dest || [];
-		library.network.io.sockets.emit('followers/change', {address: address});
-		library.network.io.sockets.emit('contacts/change', {address: this.address});
-		return true;
+			this.following = dest || [];
+			library.network.io.sockets.emit('followers/change', {address: address});
+			library.network.io.sockets.emit('contacts/change', {address: this.address});
+			setImmediate(cb);
+		});
 	}
 
-	return false;
+	setImmediate(cb, "error");
 }
 
 Account.prototype.applyUnconfirmedContact = function (diff) {
@@ -378,64 +378,6 @@ Account.prototype.undoUnconfirmedMultisignature = function (multisignature) {
 		this.unconfirmedMultisignature.min = minRes;
 		this.unconfirmedMultisignature.lifetime = lifetimeRes;
 		this.unconfirmedMultisignature.keysgroup = dest;
-		return true;
-	}
-
-	return false;
-}
-
-Account.prototype.applyContact = function (diff) {
-	if (diff === null) return;
-
-	var dest = applyDiff(this.following, [diff]);
-
-	if (dest !== false) {
-		this.following = dest;
-		library.network.io.sockets.emit('contacts/change', {address: this.address});
-		return true;
-	}
-
-	return false;
-}
-
-Account.prototype.undoContact = function (diff) {
-	if (diff === null) return;
-
-	var copyDiff = reverseDiff([diff]);
-
-	var dest = applyDiff(this.following, copyDiff);
-
-	if (dest !== false) {
-		this.following = dest;
-		library.network.io.sockets.emit('contacts/change', {address: this.address});
-		return true;
-	}
-
-	return false;
-}
-
-Account.prototype.applyUnconfirmedContact = function (diff) {
-	if (diff === null) return;
-
-	var dest = applyDiff(this.unconfirmedFollowing, [diff]);
-
-	if (dest !== false) {
-		this.unconfirmedFollowing = dest;
-		return true;
-	}
-
-	return false;
-}
-
-Account.prototype.undoUnconfirmedContact = function (diff) {
-	if (diff === null) return;
-
-	var copyDiff = reverseDiff([diff]);
-
-	var dest = applyDiff(this.unconfirmedFollowing, copyDiff);
-
-	if (dest !== false) {
-		this.unconfirmedFollowing = dest;
 		return true;
 	}
 

@@ -925,7 +925,7 @@ Delegates.prototype.onNewBlock = function (block, broadcast) {
 }
 
 Delegates.prototype.onChangeBalance = function (delegates, amount) {
-	modules.round.runOnFinish(function () {
+	modules.round.runOnFinish(function (cb) {
 		var vote = amount;
 
 		if (delegates !== null) {
@@ -933,6 +933,8 @@ Delegates.prototype.onChangeBalance = function (delegates, amount) {
 				private.votes[publicKey] !== undefined && (private.votes[publicKey] += vote);
 			});
 		}
+
+		setImmediate(cb);
 	});
 }
 
@@ -947,7 +949,7 @@ Delegates.prototype.onChangeUnconfirmedBalance = function (unconfirmedDelegates,
 }
 
 Delegates.prototype.onChangeDelegates = function (balance, diff) {
-	modules.round.runOnFinish(function () {
+	modules.round.runOnFinish(function (cb) {
 		var vote = balance;
 
 		for (var i = 0; i < diff.length; i++) {
@@ -960,6 +962,8 @@ Delegates.prototype.onChangeDelegates = function (balance, diff) {
 				private.votes[publicKey] !== undefined && (private.votes[publicKey] -= vote);
 			}
 		}
+
+		setImmediate(cb);
 	});
 }
 

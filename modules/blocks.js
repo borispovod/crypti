@@ -292,14 +292,14 @@ private.popLastBlock = function (oldLastBlock, cb) {
 				}
 			], cb);
 		}, function (err) {
-			modules.round.backwardTick(oldLastBlock, previousBlock);
+			modules.round.backwardTick(oldLastBlock, previousBlock, function () {
+				private.deleteBlock(oldLastBlock.id, function (err) {
+					if (err) {
+						return cb(err);
+					}
 
-			private.deleteBlock(oldLastBlock.id, function (err) {
-				if (err) {
-					return cb(err);
-				}
-
-				cb(null, previousBlock);
+					cb(null, previousBlock);
+				});
 			});
 		});
 	});
