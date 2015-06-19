@@ -1043,13 +1043,11 @@ function attachApi() {
 }
 
 private.addAccount = function (account, cb) {
-	if (!private.accounts[account.address]) {
-		private.accounts[account.address] = account;
-	}
-	setImmediate(cb);
-	//library.logic.account.set(account.address, account, function (err, res) {
-	//	console.log("set", err, res);
-	//});
+	library.logic.account.set(account.address, account, cb);
+	//if (!private.accounts[account.address]) {
+	//	private.accounts[account.address] = account;
+	//}
+	//setImmediate(cb);
 }
 
 private.openAccount = function (secret, cb) {
@@ -1061,20 +1059,19 @@ private.openAccount = function (secret, cb) {
 
 //public methods
 Accounts.prototype.getAccount = function (id, cb) {
-	//library.logic.account.get({address: id.toString().toUpperCase()}, function (err, res) {
-	//	console.log("get", err, res);
-	//});
-	setImmediate(cb, null, private.accounts[id.toString().toUpperCase()]);
+	library.logic.account.get({address: id.toString().toUpperCase()}, cb);
+	//setImmediate(cb, null, private.accounts[id.toString().toUpperCase()]);
 }
 
 Accounts.prototype.getAccountByPublicKey = function (publicKey, cb) {
-	var address = self.getAddressByPublicKey(publicKey);
-	self.getAccount(address, function (err, account) {
-		if (account && !account.publicKey) {
-			account.publicKey = publicKey;
-		}
-		cb(null, account);
-	});
+	library.logic.account.get({publicKey: publicKey}, cb);
+	//var address = self.getAddressByPublicKey(publicKey);
+	//self.getAccount(address, function (err, account) {
+	//	if (account && !account.publicKey) {
+	//		account.publicKey = publicKey;
+	//	}
+	//	cb(null, account);
+	//});
 }
 
 Accounts.prototype.getAddressByPublicKey = function (publicKey) {
@@ -1089,15 +1086,16 @@ Accounts.prototype.getAddressByPublicKey = function (publicKey) {
 }
 
 Accounts.prototype.getAccountByUsername = function (username, cb) {
-	var address = private.username2address[username.toLowerCase()];
-	if (!address) {
-		var delegate = modules.delegates.getDelegateByUsername(username.toLowerCase())
-		if (delegate) {
-			address = self.getAddressByPublicKey(delegate.publicKey);
-		}
-	}
-
-	self.getAccount(address, cb);
+	library.logic.account.get({username: id.toString().toUpperCase()}, cb);
+	//var address = private.username2address[username.toLowerCase()];
+	//if (!address) {
+	//	var delegate = modules.delegates.getDelegateByUsername(username.toLowerCase())
+	//	if (delegate) {
+	//		address = self.getAddressByPublicKey(delegate.publicKey);
+	//	}
+	//}
+	//
+	//self.getAccount(address, cb);
 }
 
 Accounts.prototype.getAccountOrCreateByPublicKey = function (publicKey, cb) {
@@ -1119,6 +1117,9 @@ Accounts.prototype.getAccountOrCreateByPublicKey = function (publicKey, cb) {
 }
 
 Accounts.prototype.getAccountOrCreateByAddress = function (address, cb) {
+	library.logic.account.get({address: address.toLowerCase()}, function (err, account) {
+		cb(err, !!account);
+	});
 	self.getAccount(address, function (err, account) {
 		if (!account) {
 			account = new Account(address);
@@ -1136,9 +1137,10 @@ Accounts.prototype.existsUnconfirmedUsername = function (username, cb) {
 }
 
 Accounts.prototype.existsUsername = function (username, cb) {
-	cb(null, !!private.username2address[username.toLowerCase()]);
+	library.logic.account.get({username: username.toLowerCase()}, function (err, account) {
+		cb(err, !!account);
+	});
 }
-
 
 //events
 Accounts.prototype.onBind = function (scope) {

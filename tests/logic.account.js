@@ -1,18 +1,29 @@
+var async = require('async');
 var Account = require('../logic/account.js');
 var dbLite = require('../helpers/dbLite.js');
 
-dbLite.connect("./blockchain.db", function (err, db) {
-	var account = new Account();
+RequestSanitizer = require('../helpers/request-sanitizer.js');
 
-	account.get({address: "123c"});
+var report = RequestSanitizer.validate({publicKey: ""}, {
+	object: true,
+	properties: {publicKey: 'int!'}
+});
 
-	account.set("123c", {"publicKey": "0xff"});
+return console.log(report);
 
-	account.set("123c", {"balance": 1000});
-
-	account.get({address: "123c"});
-
-	account.remove("123c");
-
-	account.get({address: "123c"});
+async.auto({
+	dbLite: function (cb) {
+		dbLite.connect("./blockchain.db", cb);
+	},
+	account: ["dbLite", function (cb, scope) {
+		var account = new Account(scope.dbLite, cb);
+	}],
+	getnull: ["account", function (cb, scope) {
+		scope.account.get({address: "123c"}, cb);
+	}],
+	addaccount: ["account", "getnull", function (cb, scope) {
+		scope.account.set("123c", {address: "123c"}, cb);
+	}]
+}, function (err, scope) {
+	//console.log(err, scope);
 });

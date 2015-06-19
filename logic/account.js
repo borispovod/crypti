@@ -128,7 +128,7 @@ Account.prototype.dbRead = function (raw) {
 			fee: parseInt(raw.t_fee),
 			signature: raw.t_signature,
 			signSignature: raw.t_signSignature,
-			confirmations: raw.confirmations,
+			confirmations: raw.t_confirmations,
 			asset: {}
 		}
 
@@ -145,6 +145,8 @@ Account.prototype.objectNormalize = function (account) {
 	if (!report.isValid) {
 		throw Error(report.issues);
 	}
+
+	console.log(account, this.filter, report.isValid)
 
 	return report.value;
 }
@@ -177,7 +179,12 @@ Account.prototype.get = function (filter, cb) {
 		if (err) {
 			return cb(err);
 		}
-		cb(null, data.length ? this.objectNormalize(data[0]) : null);
+		try {
+			data = data && data.length ? this.objectNormalize(data[0]) : null;
+		} catch (e) {
+			return cb(e.toString());
+		}
+		cb(null, data);
 	}.bind(this));
 }
 
@@ -196,8 +203,12 @@ Account.prototype.getAll = function (filter, cb) {
 		}
 
 		var accounts = [];
-		for (var i = 0; i < data.length; i++) {
-			accounts.push(this.objectNormalize(data[i]));
+		try {
+			for (var i = 0; i < data.length; i++) {
+				accounts.push(this.objectNormalize(data[i]));
+			}
+		} catch (e) {
+			return cb(e.toString());
 		}
 
 		cb(null, accounts);
@@ -205,9 +216,16 @@ Account.prototype.getAll = function (filter, cb) {
 }
 
 Account.prototype.set = function (address, fields, cb) {
-	debugger;
 	fields.address = address;
 	var account = this.adapter(fields);
+
+	try {
+		account = this.objectNormalize(account)
+	} catch (e) {
+		return cb(e.toString());
+	}
+
+	console.log(account)
 
 	var sql = jsonSql.build({
 		type: 'insert',
@@ -216,8 +234,11 @@ Account.prototype.set = function (address, fields, cb) {
 		values: account
 	});
 	this.dbLite.query(sql.query, sql.values, function (err, data) {
-		cb(err, account);
-	});
+		if (err) {
+			return cb(err);
+		}
+		this.get({address: address}, cb);
+	}.bind(this));
 }
 
 Account.prototype.remove = function (address, cb) {
