@@ -13,7 +13,8 @@ function Account(dbLite, cb) {
 			name: "username",
 			type: "String",
 			length: 20,
-			filter: "string?"
+			filter: "string?",
+			conv: String
 		},
 		{
 			name: "address",
@@ -26,7 +27,8 @@ function Account(dbLite, cb) {
 				required: true,
 				string: true,
 				minLength: 1
-			}
+			},
+			conv: String
 		},
 		{
 			name: "publicKey",
@@ -34,48 +36,77 @@ function Account(dbLite, cb) {
 			length: 32,
 			not_null: true,
 			unique: true,
-			filter: "hex!"
+			filter: "hex!",
+			conv: String
 		},
 		{
 			name: "secondPublicKey",
 			type: "Binary",
 			length: 32,
-			filter: "hex?"
+			filter: "hex?",
+			conv: String
 		},
 		{
 			name: "balance",
 			type: "BigInt",
-			filter: "int"
+			filter: "int",
+			conv: Number
 		},
 		{
 			name: "delegates",
 			type: "Text",
-			filter: "string"
+			filter: "string",
+			conv: String
 		},
 		{
 			name: "following",
 			type: "Text",
-			filter: "string"
+			filter: "string",
+			conv: String
 		},
 		{
 			name: "followers",
 			type: "Text",
-			filter: "string"
+			filter: "string",
+			conv: String
 		},
 		{
 			name: "multisignatures",
 			type: "Text",
-			filter: "string"
+			filter: "string",
+			conv: String
 		}
 	];
 
 	this.fields = this.model.map(function (field) {
-		return field.name;
+		var _tmp = {};
+		if (field.type == "Binary") {
+			_tmp.expression = ['lower', 'hex'];
+		}
+
+		if (field.expression) {
+			_tmp.expression = field.mod;
+		} else {
+			if (field.mod) {
+				_tmp.expression = field.mod;
+			}
+			_tmp.field = field.name;
+		}
+		if (_tmp.expression || field.alias) {
+			_tmp.alias = field.alias || field.name;
+		}
+
+		return _tmp;
 	});
 
 	this.filter = {};
 	this.model.forEach(function (field) {
 		this.filter[field.name] = field.filter;
+	}.bind(this));
+
+	this.conv = {};
+	this.model.forEach(function (field) {
+		this.conv[field.name] = field.conv;
 	}.bind(this));
 
 	var sqles = [];
@@ -146,12 +177,10 @@ Account.prototype.objectNormalize = function (account) {
 		throw Error(report.issues);
 	}
 
-	console.log(account, this.filter, report.isValid)
-
 	return report.value;
 }
 
-Account.prototype.adapter = function (raw) {
+Account.prototype.toDB = function (raw) {
 	var account = {};
 	account.address = raw.address;
 	account.balance = raw.balance || 0;
@@ -171,16 +200,14 @@ Account.prototype.get = function (filter, cb) {
 		type: 'select',
 		table: this.table,
 		condition: filter,
-		fields: this.model.map(function (field) {
-			return field.name;
-		})
+		fields: this.fields
 	});
-	this.dbLite.query(sql.query, sql.values, function (err, data) {
+	this.dbLite.query(sql.query, sql.values, this.conv, function (err, data) {
 		if (err) {
 			return cb(err);
 		}
 		try {
-			data = data && data.length ? this.objectNormalize(data[0]) : null;
+			data = data && data.length ? data[0] : null;
 		} catch (e) {
 			return cb(e.toString());
 		}
@@ -193,52 +220,44 @@ Account.prototype.getAll = function (filter, cb) {
 		type: 'select',
 		table: this.table,
 		condition: filter,
-		fields: this.model.map(function (field) {
-			return field.name;
-		})
+		fields: this.fields
 	});
-	this.dbLite.query(sql.query, sql.values, function (err, data) {
+	this.dbLite.query(sql.query, sql.values, this.conv, function (err, data) {
 		if (err) {
 			return cb(err);
 		}
 
-		var accounts = [];
-		try {
-			for (var i = 0; i < data.length; i++) {
-				accounts.push(this.objectNormalize(data[i]));
-			}
-		} catch (e) {
-			return cb(e.toString());
-		}
-
-		cb(null, accounts);
+		cb(null, data);
 	}.bind(this));
 }
 
-Account.prototype.set = function (address, fields, cb) {
-	fields.address = address;
-	var account = this.adapter(fields);
-
-	try {
-		account = this.objectNormalize(account)
-	} catch (e) {
-		return cb(e.toString());
-	}
-
-	console.log(account)
-
-	var sql = jsonSql.build({
-		type: 'insert',
-		or: "replace",
-		table: this.table,
-		values: account
-	});
-	this.dbLite.query(sql.query, sql.values, function (err, data) {
+Account.prototype.setAndGet = function (address, fields, cb) {
+	this.set(address, fields, function (err) {
 		if (err) {
 			return cb(err);
 		}
 		this.get({address: address}, cb);
 	}.bind(this));
+}
+
+Account.prototype.set = function (address, fields, cb) {
+	fields.address = address;
+
+	try {
+		var account = this.objectNormalize(fields);
+	} catch (e) {
+		return cb(e.toString());
+	}
+
+	var sql = jsonSql.build({
+		type: 'insert',
+		or: "replace",
+		table: this.table,
+		values: this.toDB(account)
+	});
+	this.dbLite.query(sql.query, sql.values, function (err, data) {
+		cb(err, data);
+	});
 }
 
 Account.prototype.remove = function (address, cb) {

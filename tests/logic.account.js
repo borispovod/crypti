@@ -2,14 +2,15 @@ var async = require('async');
 var Account = require('../logic/account.js');
 var dbLite = require('../helpers/dbLite.js');
 
-RequestSanitizer = require('../helpers/request-sanitizer.js');
+//RequestSanitizer = require('../helpers/request-sanitizer.js');
+//
+//var report = RequestSanitizer.validate({address: "123c", publicKey: "ff"}, {
+//	object: true,
+//	properties: {publicKey: 'hex!'}
+//});
+//
+//return console.log(report);
 
-var report = RequestSanitizer.validate({publicKey: ""}, {
-	object: true,
-	properties: {publicKey: 'int!'}
-});
-
-return console.log(report);
 
 async.auto({
 	dbLite: function (cb) {
@@ -22,8 +23,11 @@ async.auto({
 		scope.account.get({address: "123c"}, cb);
 	}],
 	addaccount: ["account", "getnull", function (cb, scope) {
-		scope.account.set("123c", {address: "123c"}, cb);
+		scope.account.set("123c", {publicKey: "ff"}, cb);
+	}],
+	getaccount: ["account", "addaccount", function (cb, scope) {
+		scope.account.get({address: "123c"}, cb);
 	}]
 }, function (err, scope) {
-	//console.log(err, scope);
+	console.log(scope.getnull, scope.addaccount, scope.getaccount)
 });
