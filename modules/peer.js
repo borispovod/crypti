@@ -48,7 +48,7 @@ function attachApi() {
 
 			query.limit = query.limit || 20;
 			query.limit = query.limit > 100 ? 100 : query.limit;
-			query.limit = query.limit < 0 ? 1 : query.limit;
+			query.limit = query.limit < 1 ? 1 : query.limit;
 
 			private.getByFilter(query, function (err, peers) {
 				if (err) {

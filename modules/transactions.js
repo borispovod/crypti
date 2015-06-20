@@ -135,7 +135,7 @@ function attachApi() {
 
 			query.limit = query.limit || 20;
 			query.limit = query.limit > 100 ? 100 : query.limit;
-			query.limit = query.limit < 0 ? 1 : query.limit;
+			query.limit = query.limit < 1 ? 1 : query.limit;
 
 			private.list(query, function (err, data) {
 				if (err) {
