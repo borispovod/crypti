@@ -139,7 +139,7 @@ private.saveGenesisBlock = function (cb) {
 
 private.deleteBlock = function (blockId, cb) {
 	library.dbLite.query("DELETE FROM blocks WHERE id = $id", {id: blockId}, function (err, res) {
-		cb(err, res)
+		cb(err, res);
 	});
 }
 
@@ -198,6 +198,8 @@ private.list = function (filter, cb) {
 	if (filter.limit > 100) {
 		return cb('Maximum of limit is 100');
 	}
+
+	console.log(params);
 
 	library.dbLite.query("select count(b.id) " +
 	"from blocks b " +
