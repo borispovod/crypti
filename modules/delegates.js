@@ -235,10 +235,7 @@ function attachApi() {
 
 	router.get('/', function (req, res) {
 		req.sanitize("query", {
-			limit: {
-				default: 101,
-				int: true
-			},
+			limit: {default: 101, int: true},
 			offset: "int",
 			orderBy: "string?",
 			active: "boolean?"
@@ -246,13 +243,16 @@ function attachApi() {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
 
+			query.limit = query.limit || 20;
+			query.limit = query.limit > 100 ? 100 : query.limit;
+			query.limit = query.limit < 1 ? 1 : query.limit;
+
 			var limit = query.limit,
 				offset = query.offset,
 				orderField = query.orderBy,
 				active = query.active;
 
 			orderField = orderField ? orderField.split(':') : null;
-			limit = limit > 101 ? 101 : limit;
 			var orderBy = orderField ? orderField[0] : null;
 			var sortMode = orderField && orderField.length == 2 ? orderField[1] : 'asc';
 			var publicKeys = Object.keys(private.publicKeyIndex);

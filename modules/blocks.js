@@ -75,7 +75,7 @@ function attachApi() {
 
 	router.get('/', function (req, res, next) {
 		req.sanitize("query", {
-			limit: "int?",
+			limit: {default: 20, int: true},
 			orderBy: "string?",
 			offset: "int?",
 			generatorPublicKey: "hex?",
@@ -86,6 +86,10 @@ function attachApi() {
 		}, function (err, report, query) {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
+
+			query.limit = query.limit || 20;
+			query.limit = query.limit > 100 ? 100 : query.limit;
+			query.limit = query.limit < 1 ? 1 : query.limit;
 
 			private.list(query, function (err, data) {
 				if (err) {
