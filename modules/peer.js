@@ -209,7 +209,7 @@ private.getByFilter = function (filter, cb) {
 		params.port = filter.port;
 	}
 
-	if (filter.hasOwnProperty('orderBy')) {
+	if (filter.hasOwnProperty('orderBy') && filter.orderBy !== null) {
 		var sort = filter.orderBy.split(':');
 		sortBy = sort[0].replace(/[^\w\s]/gi, '');
 		if (sort.length == 2) {
