@@ -37,7 +37,7 @@ function attachApi() {
 			state: "int?",
 			os: "string?",
 			version: "string?",
-			limit: "int?",
+			limit: {default: 20, int: true},
 			shared: "boolean?",
 			orderBy: "string?",
 			offset: "int?",
@@ -46,9 +46,9 @@ function attachApi() {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
 
-			if (query.limit < 0 || query.limit > 100) {
-				return res.json({success: false, error: errorCode("PEERS.LIMIT", query)});
-			}
+			query.limit = query.limit || 20;
+			query.limit = query.limit > 100 ? 100 : query.limit;
+			query.limit = query.limit < 0 ? 1 : query.limit;
 
 			private.getByFilter(query, function (err, peers) {
 				if (err) {
