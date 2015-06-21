@@ -1,6 +1,5 @@
 var encryptHelper = require('../helpers/encrypt.js'),
 	TransactionTypes = require('../helpers/transaction-types.js'),
-	RequestSanitizer = require('../helpers/request-sanitizer.js'),
 	Router = require('../helpers/router.js'),
 	constants = require('../helpers/constants.js'),
 	ed = require('ed25519'),
@@ -90,19 +89,19 @@ function Contact() {
 	}
 
 	this.objectNormalize = function (trs) {
-		var report = RequestSanitizer.validate(trs.asset.contact, {
-			object: true,
+		var report = library.scheme.validate(trs.asset.contact, {
+			type: "object",
 			properties: {
 				address: {
-					required: true,
-					string: true,
+					type: "string",
 					minLength: 1
 				}
-			}
+			},
+			required: ["address"]
 		});
 
-		if (!report.isValid) {
-			throw Error(report.issues);
+		if (!report) {
+			throw Error("Incorrect address in contact transaction");
 		}
 
 		trs.asset.contact = report.value;
@@ -148,8 +147,15 @@ function attachApi() {
 	});
 
 	router.get("/", function (req, res) {
-		req.sanitize("query", {
-			publicKey: "hex!"
+		req.sanitize(req.query, {
+			type: "object",
+			properties: {
+				publicKey: {
+					type: "string",
+					format: "publicKey"
+				}
+			},
+			required: ["publicKey"]
 		}, function (err, report, query) {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
@@ -181,19 +187,26 @@ function attachApi() {
 	});
 
 	router.put("/", function (req, res) {
-		req.sanitize("body", {
-			secret: {
-				required: true,
-				string: true,
-				minLength: 1
+		req.sanitize(req.body, {
+			type: "object",
+			properties: {
+				secret: {
+					type: "string",
+					minLength: 1
+				},
+				secondSecret: {
+					type: "string"
+				},
+				publicKey: {
+					type: "string",
+					format: "publicKey"
+				},
+				following: {
+					type: "string",
+					minLength: 1
+				}
 			},
-			secondSecret: "string?",
-			publicKey: "hex?",
-			following: {
-				required: true,
-				string: true,
-				minLength: 1
-			}
+			required: ["secret", "following"]
 		}, function (err, report, body) {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});

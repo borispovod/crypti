@@ -41,13 +41,24 @@ function attachApi() {
 		}
 
 		req.sanitize(req.headers, {
-			port: "int!",
-			os: "string?",
-			'share-port': {
-				int: true,
-				boolean: true
+			type: "object",
+			properties: {
+				port: {
+					type: "integer",
+					minimum: 1,
+					maximum: 65535
+				},
+				os: {
+					type: "string"
+				},
+				'share-port': {
+					type: 'boolean'
+				},
+				'version' : {
+					type: 'string'
+				}
 			},
-			version: "string?"
+			required: ["port"]
 		}, function (err, report, headers) {
 			if (err) return next(err);
 			if (!report.isValid) return res.status(500).send({status: false, error: report.issues});
@@ -82,16 +93,21 @@ function attachApi() {
 	router.get("/blocks/common", function (req, res, next) {
 		res.set(private.headers);
 
-		req.sanitize("query", {
-			max: "int!",
-			min: "int!",
-			ids: {
-				required: true,
-				string: true,
-				array: ",",
-				minLength: 1,
-				maxLength: 1000
-			}
+		req.sanitize(req.query, {
+			type: "object",
+			properties: {
+				max: {
+					type: 'integer'
+				},
+				min: {
+					type: 'integer'
+				},
+				ids: {
+					type: 'string',
+					format: 'splitarray'
+				}
+			},
+			required: ['max', 'min', 'ids']
 		}, function (err, report, query) {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issue});
@@ -99,18 +115,20 @@ function attachApi() {
 
 			var max = query.max;
 			var min = query.min;
-			var ids = query.ids.filter(function (id) {
+			var ids = query.ids.split(',');
+			ids = ids.filter(function (id) {
 				return /^\d+$/.test(id);
 			});
 			var escapedIds = ids.map(function (id) {
 				return "'" + id + "'";
 			});
 
+
 			if (!escapedIds.length) {
 				var peerIp = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
-				var peerStr = peerIp ? peerIp + ":" + RequestSanitizer.int(req.headers['port']) : 'unknown';
+				var peerStr = peerIp ? peerIp + ":" + req.headers['port']: 'unknown';
 				library.logger.log('common block request is not valid, ban 60 min', peerStr);
-				modules.peer.state(ip.toLong(peerIp), RequestSanitizer.int(req.headers['port']), 0, 3600);
+				modules.peer.state(ip.toLong(peerIp), req.headers['port'], 0, 3600);
 				return res.json({success: false, error: errorCode("BLOCKS.WRONG_ID_SEQUENCE")});
 			}
 
@@ -137,7 +155,7 @@ function attachApi() {
 	router.get("/blocks", function (req, res) {
 		res.set(private.headers);
 
-		req.sanitize("query", {lastBlockId: "string?"}, function (err, report, query) {
+		req.sanitize(req.query, {type: 'object', properties: { lastBlockId: { type : 'string' }}}, function (err, report, query) {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
 
@@ -162,13 +180,34 @@ function attachApi() {
 	router.post("/blocks", function (req, res) {
 		res.set(private.headers);
 
+		var report = library.scheme.validate({
+			type: "object",
+			prototypes: {
+				port: {
+					type: "integer",
+					minimum: 1,
+					maximum: 65535
+				}
+			},
+			required: ['port']
+		});
+
+		var port = req.headers['port'];
+		if (!report) {
+			port = library.config.port;
+		}
+
 		try {
 			var block = library.logic.block.objectNormalize(req.body.block);
 		} catch (e) {
 			var peerIp = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
-			var peerStr = peerIp ? peerIp + ":" + RequestSanitizer.int(req.headers['port']) : 'unknown';
+			var peerStr = peerIp ? peerIp + ":" + port : 'unknown';
 			library.logger.log('block ' + (block ? block.id : 'null') + ' is not valid, ban 60 min', peerStr);
-			modules.peer.state(ip.toLong(peerIp), RequestSanitizer.int(req.headers['port']), 0, 3600);
+
+			if (peerIp) {
+				modules.peer.state(ip.toLong(peerIp), port, 0, 3600);
+			}
+
 			return res.sendStatus(200);
 		}
 
@@ -186,13 +225,33 @@ function attachApi() {
 	router.post("/transactions", function (req, res) {
 		res.set(private.headers);
 
+		var report = library.scheme.validate({
+			type: "object",
+			prototypes: {
+				port: {
+					type: "integer",
+					minimum: 1,
+					maximum: 65535
+				}
+			},
+			required: ['port']
+		});
+
+		var port = req.headers['port'];
+		if (!report) {
+			port = library.config.port;
+		}
+
 		try {
 			var transaction = library.logic.transaction.objectNormalize(req.body.transaction);
 		} catch (e) {
 			var peerIp = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
-			var peerStr = peerIp ? peerIp + ":" + RequestSanitizer.int(req.headers['port']) : 'unknown';
+			var peerStr = peerIp ? peerIp + ":" + port : 'unknown';
 			library.logger.log('recieved transaction ' + (transaction ? transaction.id : 'null') + ' is not valid, ban 60 min', peerStr);
-			modules.peer.state(ip.toLong(peerIp), RequestSanitizer.int(req.headers['port']), 0, 3600);
+
+			if (peerIp) {
+				modules.peer.state(ip.toLong(peerIp), port, 0, 3600);
+			}
 			return res.status(200).json({success: false, message: "Invalid transaction body"});
 		}
 
@@ -325,13 +384,29 @@ Transport.prototype.getFromPeer = function (peer, options, cb) {
 			return;
 		}
 
-		var port = RequestSanitizer.int(response.headers['port']);
-		if (port > 0 && port <= 65535 && RequestSanitizer.string(response.headers['version'], true) == library.config.version) {
+		var report = library.scheme.validate({
+			type: "object",
+			prototypes: {
+				port: {
+					type: "integer",
+					minimum: 1,
+					maximum: 65535
+				}
+			},
+			required: ['port']
+		});
+
+		var port = req.headers['port'];
+		if (!report) {
+			port = library.config.port;
+		}
+
+		if (port > 0 && port <= 65535 && library.scheme.validate(response.headers['version'], {type: 'string', required: 'true'}) == library.config.version) {
 			modules.peer.update({
 				ip: peer.ip,
 				port: port,
 				state: 2,
-				os: RequestSanitizer.string(response.headers['os'], true),
+				os: response.headers['os'],
 				sharePort: Number(!!RequestSanitizer.int(response.headers['share-port'])),
 				version: RequestSanitizer.string(response.headers['version'], true)
 			});
