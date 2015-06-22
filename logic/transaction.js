@@ -6,7 +6,9 @@ var slots = require('../helpers/slots.js'),
 	ByteBuffer = require("bytebuffer"),
 	bignum = require('../helpers/bignum.js'),
 	extend = require('util-extend'),
-	RequestSanitizer = require('../helpers/request-sanitizer.js');
+	z_schema = require('z-schema');
+
+var scheme = new z_schema();
 
 //constructor
 function Transaction() {
@@ -390,32 +392,64 @@ Transaction.prototype.objectNormalize = function (trs) {
 		throw Error('Unknown transaction type ' + trs.type);
 	}
 
-	var report = RequestSanitizer.validate(trs, {
+	var report = scheme.validate(trs, {
 		object: true,
 		properties: {
-			id: "string",
-			height: "int?",
-			blockId: "string",
-			type: "int!",
-			timestamp: "int!",
-			senderPublicKey: "hex!",
-			senderId: "string",
-			recipientId: "string?",
-			senderUsername: "string?",
-			recipientUsername: "string?",
-			amount: "int",
-			fee: "int",
-			signature: "hex!",
-			signSignature: "hex?",
-			asset: "object"
-		}
+			id: {
+				type: "string"
+			},
+			height: {
+				type: "integer"
+			},
+			blockId: {
+				type: "string"
+			},
+			type: {
+				type: "integer"
+			},
+			timestamp: {
+				type: "integer"
+			},
+			senderPublicKey: {
+				type: "string",
+				format: "publicKey"
+			},
+			senderId: {
+				type: "string"
+			},
+			recipientId: {
+				type: "string"
+			},
+			senderUsername: {
+				type: "string"
+			},
+			recipientUsername: {
+				type: "string"
+			},
+			amount: {
+				type: "integer"
+			},
+			fee: {
+				type: "integer"
+			},
+			signature: {
+				type: "string",
+				format: "signature"
+			},
+			signSignature: {
+				type: "string",
+				format: "signature"
+			},
+			asset: {
+				type: "object"
+			}
+		},
+		required: ['type', 'timestamp', 'senderPublicKey', 'recipientId', 'signature']
 	});
 
-	if (!report.isValid) {
-		throw Error(report.issues);
+	if (!report) {
+		throw Error("Can't parse transaction");
 	}
-
-	trs = report.value;
 
 	try {
 		trs = private.types[trs.type].objectNormalize(trs);

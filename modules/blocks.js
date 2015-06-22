@@ -56,7 +56,7 @@ function attachApi() {
 			type: "object",
 			properties: {
 				id: {
-					type: string,
+					type: 'string',
 					minLength: 1
 				}
 			},
@@ -108,13 +108,11 @@ function attachApi() {
 					type: "string"
 				},
 				height: {
-					type: "integer",
-					minimum: 0
+					type: "integer"
 				}
 			},
 			format: 'listQuery'
 		}, function (err, report, query) {
-			console.log(err);
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
 

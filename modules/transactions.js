@@ -115,7 +115,7 @@ function attachApi() {
 		res.status(500).send({success: false, error: errorCode('COMMON.LOADING')});
 	});
 
-	router.get('/', function (req, res) {
+	router.get('/', function (req, res, next) {
 		req.sanitize(req.query, {
 			type: "object",
 			properties: {

@@ -5,7 +5,6 @@ var Router = require('../helpers/router.js'),
 	util = require('util'),
 	_ = require('underscore'),
 	zlib = require('zlib'),
-	RequestSanitizer = require('../helpers/request-sanitizer.js'),
 	errorCode = require('../helpers/errorCodes.js').error;
 
 //private fields
@@ -49,16 +48,20 @@ function attachApi() {
 					maximum: 65535
 				},
 				os: {
-					type: "string"
+					type: "string",
+					maxLength: 64
 				},
 				'share-port': {
-					type: 'boolean'
+					type: 'integer',
+					minimum: 0,
+					maximum: 1
 				},
 				'version' : {
-					type: 'string'
+					type: 'string',
+					maxLength: 11
 				}
 			},
-			required: ["port"]
+			required: ["port", 'share-port', 'version']
 		}, function (err, report, headers) {
 			if (err) return next(err);
 			if (!report.isValid) return res.status(500).send({status: false, error: report.issues});
@@ -180,7 +183,7 @@ function attachApi() {
 	router.post("/blocks", function (req, res) {
 		res.set(private.headers);
 
-		var report = library.scheme.validate({
+		var report = library.scheme.validate(req.headers, {
 			type: "object",
 			prototypes: {
 				port: {
@@ -194,7 +197,7 @@ function attachApi() {
 
 		var port = req.headers['port'];
 		if (!report) {
-			port = library.config.port;
+			return res.sendStatus(200).json({success: false, message: "Incorrect sender port"});
 		}
 
 		try {
@@ -225,7 +228,7 @@ function attachApi() {
 	router.post("/transactions", function (req, res) {
 		res.set(private.headers);
 
-		var report = library.scheme.validate({
+		var report = library.scheme.validate(req.headers, {
 			type: "object",
 			prototypes: {
 				port: {
@@ -239,7 +242,7 @@ function attachApi() {
 
 		var port = req.headers['port'];
 		if (!report) {
-			port = library.config.port;
+			return res.status(200).json({success: false, message: "Incorrect port"});
 		}
 
 		try {
@@ -384,31 +387,44 @@ Transport.prototype.getFromPeer = function (peer, options, cb) {
 			return;
 		}
 
-		var report = library.scheme.validate({
+		var report = library.scheme.validate(response.headers, {
 			type: "object",
 			prototypes: {
+				os: {
+					type: "string",
+					maxLength: 64
+				},
 				port: {
 					type: "integer",
 					minimum: 1,
 					maximum: 65535
+				},
+				'share-port': {
+					type: "integer",
+					minimum: 0,
+					maximum: 1
+				},
+				version: {
+					type: "string",
+					maxLength: 11
 				}
 			},
-			required: ['port']
+			required: ['port', 'share-port', 'version']
 		});
 
 		var port = req.headers['port'];
 		if (!report) {
-			port = library.config.port;
+			return cb && cb(null, {body: body, peer: peer});
 		}
 
-		if (port > 0 && port <= 65535 && library.scheme.validate(response.headers['version'], {type: 'string', required: 'true'}) == library.config.version) {
+		if (port > 0 && port <= 65535 && response.headers['version'] == library.config.version) {
 			modules.peer.update({
 				ip: peer.ip,
 				port: port,
 				state: 2,
 				os: response.headers['os'],
-				sharePort: Number(!!RequestSanitizer.int(response.headers['share-port'])),
-				version: RequestSanitizer.string(response.headers['version'], true)
+				sharePort: Number(!!response.headers['share-port']),
+				version: response.headers['version']
 			});
 		}
 

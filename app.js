@@ -131,6 +131,15 @@ d.run(function () {
 				}
 			});
 
+			z_schema.registerFormat('signature', function (str) {
+				try {
+					var signature = new Buffer(str, "hex");
+					return signature.length == 64;
+				} catch (e) {
+					return false;
+				}
+			})
+
 			z_schema.registerFormat('listQuery', function (obj) {
 				obj.limit = 100;
 				return true;
@@ -139,7 +148,16 @@ d.run(function () {
 			z_schema.registerFormat('listDelegates', function (obj) {
 				obj.limit = 101;
 				return true;
-			})
+			});
+
+			z_schema.registerFormat('checkInt', function (value) {
+				if (isNaN(value) || parseInt(value) != value || isNaN(parseInt(value, 10))) {
+					return false;
+				}
+
+				value = parseInt(value);
+				return true;
+			});
 
 			cb(null, new z_schema())
 		},
@@ -205,6 +223,7 @@ d.run(function () {
 			var path = require('path');
 			var bodyParser = require('body-parser');
 			var methodOverride = require('method-override');
+			var queryParser = require('express-query-int');
 
 			scope.network.app.engine('html', require('ejs').renderFile);
 			scope.network.app.use(require('express-domain-middleware'));
@@ -214,6 +233,15 @@ d.run(function () {
 			scope.network.app.use(bodyParser.urlencoded({extended: true, parameterLimit: 5000}));
 			scope.network.app.use(bodyParser.json());
 			scope.network.app.use(methodOverride());
+			scope.network.app.use(queryParser({
+				parser: function(value, radix) {
+					if (isNaN(value) || parseInt(value) != value || isNaN(parseInt(value, radix))) {
+						return value;
+					}
+
+					return parseInt(value);
+				}
+			}));
 			scope.network.app.use(require('./helpers/zscheme-express.js')(scope.scheme));
 
 			scope.network.app.use(function (req, res, next) {

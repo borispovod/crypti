@@ -29,6 +29,7 @@
     "esprima": "~1.2.3",
     "express": "4.x",
     "express-domain-middleware": "*",
+    "express-query-int": "^1.0.0",
     "extend": "^2.0.0",
     "image-type": "^2.0.2",
     "ip": "^0.3.2",
