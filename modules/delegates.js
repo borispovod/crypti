@@ -235,7 +235,7 @@ function attachApi() {
 		return res.json({success: true, fee: fee})
 	});
 
-	router.get('/', function (req, res) {
+	router.get('/', function (req, res, next) {
 		req.sanitize(req.query, {
 			type: 'object',
 			properties: {
@@ -376,7 +376,7 @@ function attachApi() {
 		});
 	});
 
-	router.get('/forging/getForgedByAccount', function (req, res) {
+	router.get('/forging/getForgedByAccount', function (req, res, next) {
 		req.sanitize(req.query, {
 			type: "object",
 			properties: {
@@ -398,7 +398,7 @@ function attachApi() {
 		});
 	});
 
-	router.post('/forging/enable', function (req, res) {
+	router.post('/forging/enable', function (req, res, next) {
 		req.sanitize(req.body, {
 			type: "object",
 			properties: {
@@ -447,7 +447,7 @@ function attachApi() {
 		});
 	});
 
-	router.post('/forging/disable', function (req, res) {
+	router.post('/forging/disable', function (req, res, next) {
 		req.sanitize(req.body, {
 			type: "object",
 			properties: {
@@ -496,7 +496,7 @@ function attachApi() {
 		});
 	});
 
-	router.get('/forging/status', function (req, res) {
+	router.get('/forging/status', function (req, res, next) {
 		req.sanitize(req.query, {
 			type: "object",
 			properties: {

@@ -66,7 +66,6 @@ function attachApi() {
 			if (err) return next(err);
 			if (!report.isValid) return res.status(500).send({status: false, error: report.issues});
 
-
 			var peer = {
 				ip: ip.toLong(peerIp),
 				port: private.headers.port,
@@ -155,7 +154,7 @@ function attachApi() {
 		});
 	});
 
-	router.get("/blocks", function (req, res) {
+	router.get("/blocks", function (req, res, next) {
 		res.set(private.headers);
 
 		req.sanitize(req.query, {type: 'object', properties: { lastBlockId: { type : 'string' }}}, function (err, report, query) {

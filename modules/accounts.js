@@ -603,7 +603,7 @@ function attachApi() {
 		});
 	});
 
-	router.get('/getBalance', function (req, res) {
+	router.get('/getBalance', function (req, res, next) {
 		req.sanitize(req.query, {
 			type: "object",
 			properties: {
@@ -659,7 +659,7 @@ function attachApi() {
 		});
 	}
 
-	router.get('/getPublicKey', function (req, res) {
+	router.get('/getPublicKey', function (req, res, next) {
 		req.sanitize(req.query, {
 			type: "object",
 			properties: {

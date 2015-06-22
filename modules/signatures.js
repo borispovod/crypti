@@ -184,7 +184,7 @@ function attachApi() {
 		return res.json({success: true, fee: fee})
 	});
 
-	router.put('/', function (req, res) {
+	router.put('/', function (req, res, next) {
 		req.sanitize(req.body, {
 			type: "object",
 			properties: {

@@ -146,7 +146,7 @@ function attachApi() {
 		return res.json({success: true, fee: 1 * constants.fixedPoint})
 	});
 
-	router.get("/", function (req, res) {
+	router.get("/", function (req, res, next) {
 		req.sanitize(req.query, {
 			type: "object",
 			properties: {
@@ -186,7 +186,7 @@ function attachApi() {
 		});
 	});
 
-	router.put("/", function (req, res) {
+	router.put("/", function (req, res, next) {
 		req.sanitize(req.body, {
 			type: "object",
 			properties: {
