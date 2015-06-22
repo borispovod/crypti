@@ -158,8 +158,8 @@ describe('Miscellaneous tests (peers, blocks, etc)', function() {
                 .expect(200)
                 .end(function (err, res){
                     console.log(res.body);
-                    node.expect(res.body).to.have.property("success").to.be.false;
-                    node.expect(res.body).to.have.property("error");
+                    node.expect(res.body).to.have.property("success").to.be.true;
+                    node.expect(res.body).to.have.property("peers");
                     done();
                 });
         });
