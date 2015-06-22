@@ -887,17 +887,19 @@ describe('Transactions', function() {
                         .end(function (err, res) {
                             console.log(res.body);
                             node.expect(res.body).to.have.property("success").to.be.true;
-                            Account1.transactions.push(transactionCount);
-                            transactionCount += 1;
-                            Account1.balance -= node.Fees.usernameFee;
-                            transactionList[transactionCount - 1] = {
-                                'sender': Account1.address,
-                                'recipient': 'SYSTEM',
-                                'brutoSent': 0,
-                                'fee': node.Fees.usernameFee,
-                                'nettoSent': 0,
-                                'txId': res.body.transaction.id,
-                                'type':node.TxTypes.SIGNATURE
+                            if (res.body.success == true ){
+                                Account1.transactions.push(transactionCount);
+                                transactionCount += 1;
+                                Account1.balance -= node.Fees.usernameFee;
+                                transactionList[transactionCount - 1] = {
+                                    'sender': Account1.address,
+                                    'recipient': 'SYSTEM',
+                                    'brutoSent': 0,
+                                    'fee': node.Fees.usernameFee,
+                                    'nettoSent': 0,
+                                    'txId': res.body.transaction.id,
+                                    'type':node.TxTypes.SIGNATURE
+                                }
                             }
                             done();
                         });
