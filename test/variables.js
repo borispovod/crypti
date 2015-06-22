@@ -9,13 +9,14 @@ var _ = require('lodash'),
 	config = require('./config.json'),
     expect = require('chai').expect,
     supertest = require('supertest'),
-    api = supertest('http://' + config.address + ':' + config.port + '/api'),
-	peer = supertest('http://' + config.address + ':' + config.port + '/peer'),
-	async = require('async'); // DEFINES THE NODE WE USE FOR THE TEST
+    api = supertest('http://' + config.address + ':' + config.port + '/api'), // DEFINES THE NODE WE USE FOR THE TEST
+	peer = supertest('http://' + config.address + ':' + config.port + '/peer'), // DEFINES THE NODE WE USE FOR PEER TESTS
+	async = require('async');
 
 var normalizer = 100000000; // Use this to convert XCR amount to normal value
 var blockTime = 10000; // Block time in miliseconds
 var blockTimePlus = 12000; // Block time + 2 seconds in miliseconds
+var version = "0.3.0" // Node version
 
 // Holds Fee amounts for different transaction types.
 var Fees = {
@@ -58,7 +59,7 @@ var TxTypes = {
     MESSAGE : 6,
     AVATAR : 7,
     MULTI: 8
-}
+};
 
 // Account info for foundation account - XCR > 1,000,000 | Needed for voting, registrations and Tx
 var Faccount = {
@@ -202,6 +203,7 @@ module.exports = {
 	crypti : require('./cryptijs'),
     supertest: supertest,
     expect: expect,
+    version: version,
     XCR: XCR,
     Faccount: Faccount,
     Daccount: Daccount,
