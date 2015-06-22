@@ -243,8 +243,8 @@ function attachApi() {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
 
-			query.limit = query.limit || 20;
-			query.limit = query.limit > 100 ? 100 : query.limit;
+			query.limit = query.limit || 101;
+			query.limit = query.limit > 101 ? 101 : query.limit;
 			query.limit = query.limit < 1 ? 1 : query.limit;
 
 			var limit = query.limit,
@@ -672,12 +672,9 @@ private.loop = function (cb) {
 
 private.loadMyDelegates = function () {
 	var secrets = null;
-
-
 	if (library.config.forging.secret) {
 		secrets = util.isArray(library.config.forging.secret) ? library.config.forging.secret : [library.config.forging.secret];
 	}
-
 
 	if (secrets) {
 		secrets.forEach(function (secret) {
