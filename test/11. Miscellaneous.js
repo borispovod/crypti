@@ -22,7 +22,7 @@ describe('Miscellaneous tests (peers, blocks, etc)', function() {
                 console.log(res.body);
                 node.expect(res.body).to.have.property("success").to.be.true;
                 node.expect(res.body).to.have.property("build");
-                node.expect(res.body).to.have.property("version").to.be(node.version);
+                node.expect(res.body).to.have.property("version").to.be.equal(node.version);
                 done();
             });
     });
