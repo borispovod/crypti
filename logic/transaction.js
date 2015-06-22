@@ -392,6 +392,14 @@ Transaction.prototype.objectNormalize = function (trs) {
 		throw Error('Unknown transaction type ' + trs.type);
 	}
 
+	if (!trs.senderUsername) {
+		delete trs.senderUsername;
+	}
+
+	if (!trs.recipientUsername) {
+		delete trs.recipientUsername;
+	}
+
 	var report = scheme.validate(trs, {
 		object: true,
 		properties: {
