@@ -52,7 +52,9 @@ describe("Peers usernames", function () {
 					.expect('Content-Type', /json/)
 					.expect(200)
 					.end(function (err, res) {
-						setTimeout(function () {
+						node.onNewBlock(function (err) {
+							node.expect(err).to.be.not.ok;
+
 							var transaction = node.crypti.delegate.createDelegate(account.password, node.randomDelegateName());
 							node.peer.post('/transactions')
 								.set('Accept', 'application/json')
@@ -79,7 +81,7 @@ describe("Peers usernames", function () {
 											done();
 										});
 								});
-						}, 10000);
+						});
 					});
 			});
 	});
@@ -105,7 +107,9 @@ describe("Peers usernames", function () {
 					.expect('Content-Type', /json/)
 					.expect(200)
 					.end(function (err, res) {
-						setTimeout(function () {
+						node.onNewBlock(function (err) {
+							node.expect(err).to.be.not.ok;
+
 							var transaction = node.crypti.username.createUsername(account2.password, node.randomDelegateName());
 
 							node.peer.post('/transactions')

@@ -288,21 +288,21 @@ describe('Miscellaneous tests (peers, blocks, etc)', function() {
         test = test + 1;
         it(test + '. Get blocks list by parameters: previousBlock. Expecting success',function(done){
             var previousBlock = block.id;
-            this.timeout(node.blockTimePlus);
-            setTimeout(function(){
-            node.api.get('/blocks?previousBlock='+previousBlock)
-                .set('Accept', 'application/json')
-                .expect('Content-Type', /json/)
-                .expect(200)
-                .end(function (err, res){
-                    console.log(res.body);
-                    node.expect(res.body).to.have.property("success").to.be.true;
-                    node.expect(res.body).to.have.property("blocks").that.is.an('array');
-                    node.expect(res.body.blocks).to.have.length(1);
-                    node.expect(res.body.blocks[0].previousBlock).to.equal(block.id);
-                    done();
-                });
-            }, node.blockTime);
+            node.onNewBlock(function(err){
+				node.expect(err).to.be.not.ok;
+				node.api.get('/blocks?previousBlock='+previousBlock)
+					.set('Accept', 'application/json')
+					.expect('Content-Type', /json/)
+					.expect(200)
+					.end(function (err, res){
+						console.log(res.body);
+						node.expect(res.body).to.have.property("success").to.be.true;
+						node.expect(res.body).to.have.property("blocks").that.is.an('array');
+						node.expect(res.body.blocks).to.have.length(1);
+						node.expect(res.body.blocks[0].previousBlock).to.equal(block.id);
+						done();
+					});
+            });
         });
 
         test = test + 1;

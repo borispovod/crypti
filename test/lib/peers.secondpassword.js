@@ -61,7 +61,8 @@ describe("Peers second signature transactions", function () {
 						console.log(res.body);
 						node.expect(res.body).to.have.property("success").to.be.true;
 
-						setTimeout(function () {
+						node.onNewBlock(function (err) {
+							node.expect(err).to.be.not.ok;
 							var transaction = node.crypti.signature.createSignature(account.password, account.secondPassword);
 							node.peer.post('/transactions')
 								.set('Accept', 'application/json')
@@ -74,11 +75,9 @@ describe("Peers second signature transactions", function () {
 									console.log(transaction.recipientId);
 									console.log(account.address);
 									node.expect(res.body).to.have.property("success").to.be.true;
-									setTimeout(function () {
-										done();
-									}, 10000);
+									node.onNewBlock(done);
 								});
-						}, 10000);
+						});
 					});
 			});
 	});
@@ -157,7 +156,8 @@ describe("Peers second signature transactions", function () {
 					.end(function (err, res) {
 						console.log(res.body);
 						node.expect(res.body).to.have.property('success').to.be.true;
-						setTimeout(function () {
+						node.onNewBlock(function (err) {
+							node.expect(err).to.be.not.ok;
 							var transaction = node.crypti.signature.createSignature(account2.password, account2.secondPassword);
 							node.peer.post('/transactions')
 								.set('Accept', 'application/json')
@@ -181,7 +181,7 @@ describe("Peers second signature transactions", function () {
 											done();
 										});
 								});
-						}, 10000);
+						});
 					});
 			});
 	});
@@ -206,7 +206,9 @@ describe("Peers second signature transactions", function () {
 					.expect('Content-Type', /json/)
 					.expect(200)
 					.end(function (err, res) {
-						setTimeout(function () {
+						node.onNewBlock(function (err) {
+							node.expect(err).to.be.not.ok;
+
 							var sendTransaction = node.crypti.transaction.createTransaction("1C", 1, account3.password);
 							node.peer.post('/transactions')
 								.set('Accept', 'application/json')
@@ -229,7 +231,9 @@ describe("Peers second signature transactions", function () {
 										.end(function (err, res) {
 											node.expect(res.body).to.have.property('success').to.be.true;
 
-											setTimeout(function () {
+											node.onNewBlock(function (err) {
+												node.expect(err).to.be.not.ok;
+
 												node.api.get('/transactions/get?id=' + sendTransaction.id)
 													.set('Accept', 'application/json')
 													.expect('Content-Type', /json/)
@@ -252,7 +256,7 @@ describe("Peers second signature transactions", function () {
 											}, 10000);
 										});
 								});
-						}, 10000);
+						});
 					});
 			});
 	});

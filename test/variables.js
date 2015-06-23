@@ -104,6 +104,17 @@ function getHeight(cb) {
 		});
 }
 
+function onNewBlock(cb) {
+	getHeight(function (err, height) {
+		console.log("height: " + height);
+		if (err) {
+			return cb(err);
+		} else {
+			waitForNewBlock(height, cb);
+		}
+	});
+}
+
 // Function used to wait until a new block has been created
 function waitForNewBlock(height, cb) {
 	var actualHeight = height;
@@ -118,7 +129,7 @@ function waitForNewBlock(height, cb) {
 						return cb(err);
 					}
 
-					if (height < res.body.height) {
+					if (height + 2 == res.body.height) {
 						height = res.body.height;
 					}
 
@@ -126,7 +137,7 @@ function waitForNewBlock(height, cb) {
 				});
 		},
 		function () {
-			return actualHeight < height;
+			return actualHeight == height;
 		},
 		function (err) {
 			if (err) {
@@ -246,5 +257,6 @@ module.exports = {
 	peers_config: config.mocha.peers,
 	config: config,
 	waitForNewBlock: waitForNewBlock,
-	getHeight: getHeight
+	getHeight: getHeight,
+	onNewBlock: onNewBlock
 };

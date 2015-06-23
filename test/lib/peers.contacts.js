@@ -26,7 +26,7 @@ describe("Peer contacts", function () {
 					.expect('Content-Type', /json/)
 					.expect(200)
 					.end(function (err, res) {
-						setTimeout(done, 10000);
+						node.onNewBlock(done);
 					});
 			});
 	});
@@ -60,7 +60,7 @@ describe("Peer contacts", function () {
 			.end(function (err, res) {
 				console.log(res.body);
 				node.expect(res.body).to.have.property("success").to.be.false;
-				setTimeout(done, 10000);
+				node.onNewBlock(done);
 			});
 	});
 
@@ -78,7 +78,7 @@ describe("Peer contacts", function () {
 			.end(function (err, res) {
 				console.log(res.body);
 				node.expect(res.body).to.have.property("success").to.be.true;
-				setTimeout(done, 10000);
+				node.onNewBlock(done);
 			});
 	});
 
@@ -94,7 +94,7 @@ describe("Peer contacts", function () {
 			.end(function (err, res) {
 				console.log(res.body);
 				node.expect(res.body).to.have.property("success").to.be.false;
-				setTimeout(done, 10000);
+				node.onNewBlock(done);
 			});
 	});
 });

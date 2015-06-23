@@ -134,8 +134,10 @@ describe('Delegates', function() {
 
         before(function (done) {
             // Check that Raccount has the XCR we sent
-            this.timeout(node.blockTimePlus); // Fail test if not finished in 12s
-            setTimeout(function(){
+             // Fail test if not finished in 12s
+            node.onNewBlock(function(err){
+				node.expect(err).to.be.not.ok
+
                 node.api.post('/accounts/open')
                     .set('Accept', 'application/json')
                     .send({
@@ -156,7 +158,7 @@ describe('Delegates', function() {
                          */
                         done();
                     });
-            }, node.blockTime);
+            });
         });
 
         test += 1;
@@ -269,8 +271,8 @@ describe('Delegates', function() {
         test += 1;
         it(test + '. We attempt to downVote a delegate from the new random account. We expect success',function(done){
             // We wait for a new block
-            this.timeout(node.blockTimePlus); // Fail test if not finished in 12s
-            setTimeout(function(){
+            node.onNewBlock(function(err){
+				node.expect(err).to.be.not.ok;
                 node.api.put('/accounts/delegates')
                     .set('Accept', 'application/json')
                     .send({
@@ -289,7 +291,7 @@ describe('Delegates', function() {
                         node.expect(res.body.transaction.fee).to.equal(node.Fees.voteFee);
                         done();
                     });
-            }, node.blockTime);
+            });
         });
 
         test += 1;
@@ -543,7 +545,8 @@ describe('Delegates', function() {
 
         test += 1;
         it(test + '. We attempt to re-register as delegate from SAME random account: ' + Raccount.password + '. We expect error',function(done){
-            setTimeout(function(){
+            node.onNewBlock(function(err){
+				node.expect(err).to.be.not.ok;
                 node.api.put('/delegates')
                     .set('Accept', 'application/json')
                     .send({
@@ -558,7 +561,7 @@ describe('Delegates', function() {
                         node.expect(res.body).to.have.property("error");
                         done();
                     });
-            }, node.blockTime);
+            });
         });
     });
 
