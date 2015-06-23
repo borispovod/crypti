@@ -5,7 +5,9 @@ var slots = require('../helpers/slots.js'),
 	bignum = require('../helpers/bignum.js'),
 	ByteBuffer = require("bytebuffer"),
 	constants = require('../helpers/constants.js'),
-	RequestSanitizer = require('../helpers/request-sanitizer.js');
+	z_schema = require('z-schema');
+
+var scheme = new z_schema();
 
 //constructor
 function Block() {
@@ -185,30 +187,62 @@ Block.prototype.dbSave = function (dbLite, block, cb) {
 }
 
 Block.prototype.objectNormalize = function (block) {
-	var report = RequestSanitizer.validate(block, {
+	var report = scheme.validate(block, {
 		object: true,
 		properties: {
-			id: "string",
-			height: "int",
-			blockSignature: "hex!",
-			generatorPublicKey: "hex!",
-			numberOfTransactions: "int!",
-			payloadHash: "hex!",
-			payloadLength: "int!",
-			previousBlock: "string?",
-			timestamp: "int!",
-			totalAmount: "int!",
-			totalFee: "int!",
-			transactions: "array!",
-			version: "int!"
-		}
+			id: {
+				type: "string"
+			},
+			height: {
+				type: "integer"
+			},
+			blockSignature: {
+				type: "string",
+				format: "signature"
+			},
+			generatorPublicKey: {
+				type: "string",
+				format: "publicKey"
+			},
+			numberOfTransactions: {
+				type: "integer"
+			},
+			payloadHash: {
+				type: "string",
+				format: "hex"
+			},
+			payloadLength: {
+				type: "integer"
+			},
+			previousBlock: {
+				type: "string"
+			},
+			timestamp: {
+				type: "integer"
+			},
+			totalAmount: {
+				type: "integer",
+				minimum: 0
+			},
+			totalFee: {
+				type: "integer",
+				minimum: 0
+			},
+			transactions: {
+				type: "array",
+				uniqueItems: true
+			},
+			version: {
+				type: "integer",
+				minimum: 0
+			}
+		},
+		required: ['blockSignature', 'generatorPublicKey', 'numberOfTransactions', 'payloadHash', 'payloadLength', 'timestamp', 'totalAmount', 'totalFee', 'transactions', 'version']
 	});
 
-	if (!report.isValid) {
-		throw Error(report.issues);
+	if (!report) {
+		throw Error("Can't parse block..");
 	}
-
-	block = report.value;
 
 	try {
 		for (var i = 0; i < block.transactions.length; i++) {

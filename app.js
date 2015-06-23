@@ -7,6 +7,7 @@ var extend = require('extend');
 var path = require('path');
 var https = require('https');
 var fs = require('fs');
+var z_schema = require('z-schema');
 
 var versionBuild = fs.readFileSync(path.join(__dirname, 'build'), 'utf8');
 
@@ -97,6 +98,71 @@ d.run(function () {
 			cb(null, versionBuild);
 		},
 
+		scheme: function (cb) {
+			z_schema.registerFormat("hex", function (str) {
+				try {
+					new Buffer(str, "hex");
+				} catch (e) {
+					return false;
+				}
+
+				return true;
+			});
+
+			z_schema.registerFormat('publicKey', function (str) {
+				try {
+					var publicKey = new Buffer(str, "hex");
+
+					return publicKey.length == 32;
+				} catch (e) {
+					return false;
+				}
+			});
+
+			z_schema.registerFormat('splitarray', function (str) {
+				try {
+					var a = str.split(',');
+					if (a.length > 0 && a.length <= 1000) {
+						return true;
+					} else {
+						return false;
+					}
+				} catch (e) {
+					return false;
+				}
+			});
+
+			z_schema.registerFormat('signature', function (str) {
+				try {
+					var signature = new Buffer(str, "hex");
+					return signature.length == 64;
+				} catch (e) {
+					return false;
+				}
+			})
+
+			z_schema.registerFormat('listQuery', function (obj) {
+				obj.limit = 100;
+				return true;
+			});
+
+			z_schema.registerFormat('listDelegates', function (obj) {
+				obj.limit = 101;
+				return true;
+			});
+
+			z_schema.registerFormat('checkInt', function (value) {
+				if (isNaN(value) || parseInt(value) != value || isNaN(parseInt(value, 10))) {
+					return false;
+				}
+
+				value = parseInt(value);
+				return true;
+			});
+
+			cb(null, new z_schema())
+		},
+
 		network: ['config', function (cb, scope) {
 			var express = require('express');
 			var app = express();
@@ -154,11 +220,11 @@ d.run(function () {
 			});
 		},
 
-		connect: ['config', 'logger', 'build', 'network', function (cb, scope) {
+		connect: ['config', 'logger', 'scheme', 'build', 'network', function (cb, scope) {
 			var path = require('path');
 			var bodyParser = require('body-parser');
 			var methodOverride = require('method-override');
-			var requestSanitizer = require('./helpers/request-sanitizer');
+			var queryParser = require('express-query-int');
 
 			scope.network.app.engine('html', require('ejs').renderFile);
 			scope.network.app.use(require('express-domain-middleware'));
@@ -168,7 +234,22 @@ d.run(function () {
 			scope.network.app.use(bodyParser.urlencoded({extended: true, parameterLimit: 5000}));
 			scope.network.app.use(bodyParser.json());
 			scope.network.app.use(methodOverride());
-			scope.network.app.use(requestSanitizer.express());
+
+			var ignore = ['id', 'blockId', 'transactionId', 'address', 'recipientId', 'senderId', 'senderUsername', 'recipientUsername'];
+			scope.network.app.use(queryParser({
+				parser: function(value, radix, name) {
+					if (ignore.indexOf(name) >= 0) {
+						return value;
+					}
+
+					if (isNaN(value) || parseInt(value) != value || isNaN(parseInt(value, radix))) {
+						return value;
+					}
+
+					return parseInt(value);
+				}
+			}));
+			scope.network.app.use(require('./helpers/zscheme-express.js')(scope.scheme));
 
 			scope.network.app.use(function (req, res, next) {
 				var parts = req.url.split('/');

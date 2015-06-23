@@ -2,7 +2,6 @@ var async = require('async'),
 	util = require('util'),
 	ip = require('ip'),
 	Router = require('../helpers/router.js'),
-	RequestSanitizer = require('../helpers/request-sanitizer'),
 	extend = require('extend'),
 	fs = require('fs'),
 	path = require('path'),
@@ -33,22 +32,48 @@ function attachApi() {
 	});
 
 	router.get('/', function (req, res, next) {
-		req.sanitize("query", {
-			state: "int?",
-			os: "string?",
-			version: "string?",
-			limit: {default: 20, int: true},
-			shared: "boolean?",
-			orderBy: "string?",
-			offset: "int?",
-			port: "int?"
+		req.sanitize(req.query, {
+			type: "object",
+			properties: {
+				state: {
+					type: "integer",
+					minimum: 0,
+					maximum: 3
+				},
+				os: {
+					type: "string"
+				},
+				version: {
+					type: "string"
+				},
+				limit: {
+					type: "integer",
+					minimum: 0,
+					maximum: 100
+				},
+				shared: {
+					type: "boolean"
+				},
+				orderBy: {
+					type: "string"
+				},
+				offset: {
+					type: "integer",
+					minimum: 0
+				},
+				port: {
+					type: "integer",
+					minimum: 1,
+					maximum: 65535
+				}
+			}
 		}, function (err, report, query) {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
 
-			query.limit = query.limit || 20;
-			query.limit = query.limit > 100 ? 100 : query.limit;
-			query.limit = query.limit < 1 ? 1 : query.limit;
+			if (!query.limit) {
+				query.limit = 100;
+			}
 
 			private.getByFilter(query, function (err, peers) {
 				if (err) {
@@ -69,13 +94,20 @@ function attachApi() {
 	})
 
 	router.get('/get', function (req, res) {
-		req.sanitize("query", {
-			ip_str: {
-				required: true,
-				string: true,
-				minLength: 1
+		req.sanitize(req.query, {
+			type: "object",
+			properties: {
+				ip_str: {
+					type: "string",
+					minLength: 1
+				},
+				port: {
+					type: "integer",
+					minimum: 0,
+					maximum: 65535
+				}
 			},
-			port: "int!"
+			required: ['ip_str', 'port']
 		}, function (err, report, query) {
 			try {
 				var ip_str = ip.toLong(query.ip_str);
@@ -123,22 +155,41 @@ private.updatePeerList = function (cb) {
 			return cb();
 		}
 
-		var peers = RequestSanitizer.array(data.body.peers);
+		var report = library.schema.validate(data.body.peers, {type: "array", required: true});
+
+		//var peers = RequestSanitizer.array(data.body.peers);
 		async.eachLimit(peers, 2, function (peer, cb) {
-			var report = RequestSanitizer.validate(peer, {
+			var report = library.scheme.validate(peer, {
 				object: true,
 				properties: {
-					ip: "int!",
-					port: "int!",
-					state: "int",
-					os: "string?",
-					sharePort: "string",
-					version: "string?"
-				}
+					ip: {
+						type: "integer"
+					},
+					port: {
+						type: "integer",
+						minimum: 1,
+						maximum: 65535
+					},
+					state: {
+						type: "integer",
+						minimum: 0,
+						maximum: 3
+					},
+					os: {
+						type: "string"
+					},
+					sharePort: {
+						type: "string"
+					},
+					version: {
+						type: "string"
+					}
+				},
+				required: ['ip', 'port', 'state']
 			});
 
-			if (!report.isValid) {
-				setImmediate(cb, report.issues);
+			if (!report) {
+				setImmediate(cb, "Peers incorrect");
 			}
 
 			peer = report.value;
