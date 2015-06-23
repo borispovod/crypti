@@ -100,7 +100,6 @@ function Signature() {
 	}
 
 	this.objectNormalize = function (trs) {
-		console.log(trs.asset);
 		var report = library.scheme.validate(trs.asset.signature, {
 			object: true,
 			properties: {

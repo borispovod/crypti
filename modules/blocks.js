@@ -188,12 +188,12 @@ private.list = function (filter, cb) {
 		params.previousBlock = filter.previousBlock;
 	}
 
-	if (filter.totalAmount) {
+	if (filter.totalAmount >= 0) {
 		fields.push('totalAmount = $totalAmount');
 		params.totalAmount = filter.totalAmount;
 	}
 
-	if (filter.totalFee) {
+	if (filter.totalFee >= 0) {
 		fields.push('totalFee = $totalFee');
 		params.totalFee = filter.totalFee;
 	}

@@ -156,6 +156,16 @@ function attachApi() {
 				},
 				recipientUsername: {
 					type: "string"
+				},
+				amount: {
+					type: "integer",
+					minimum: 0,
+					maximum: constants.fixedPoint
+				},
+				fee: {
+					type: "integer",
+					minimum: 0,
+					maximum: constants.fixedPoint
 				}
 			}
 		}, function (err, report, query) {
@@ -400,6 +410,14 @@ private.list = function (filter, cb) {
 		owner = '(lower(hex(senderPublicKey)) = $ownerPublicKey or recipientId = $ownerAddress)';
 		params.ownerPublicKey = filter.ownerPublicKey;
 		params.ownerAddress = filter.ownerAddress;
+	}
+	if (filter.amount >= 0) {
+		fields_or.push('amount = $amount');
+		params.amount = filter.amount;
+	}
+	if (filter.fee >= 0) {
+		fields_or.push('fee = $fee');
+		params.fee = filter.fee;
 	}
 	if (filter.limit) {
 		params.limit = filter.limit;

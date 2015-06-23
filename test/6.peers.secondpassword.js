@@ -16,6 +16,7 @@ describe("Peers second signature transactions", function () {
 			.expect('Content-Type', /json/)
 			.expect(200)
 			.end(function (err, res) {
+				console.log(res.body);
 				node.expect(res.body).to.have.property("success").to.be.false;
 				done();
 			});
@@ -31,6 +32,7 @@ describe("Peers second signature transactions", function () {
 			.expect('Content-Type', /json/)
 			.expect(200)
 			.end(function (err, res) {
+				console.log(res.body);
 				node.expect(res.body).to.have.property("success").to.be.false;
 				done();
 			});
@@ -56,6 +58,9 @@ describe("Peers second signature transactions", function () {
 					.expect('Content-Type', /json/)
 					.expect(200)
 					.end(function (err, res) {
+						console.log(res.body);
+						node.expect(res.body).to.have.property("success").to.be.true;
+
 						setTimeout(function () {
 							var transaction = node.crypti.signature.createSignature(account.password, account.secondPassword);
 							node.peer.post('/transactions')
@@ -66,8 +71,12 @@ describe("Peers second signature transactions", function () {
 								.expect('Content-Type', /json/)
 								.expect(200)
 								.end(function (err, res) {
+									console.log(transaction.recipientId);
+									console.log(account.address);
 									node.expect(res.body).to.have.property("success").to.be.true;
-									setTimeout(done, 10000);
+									setTimeout(function () {
+										done();
+									}, 10000);
 								});
 						}, 10000);
 					});
@@ -84,6 +93,7 @@ describe("Peers second signature transactions", function () {
 			.expect('Content-Type', /json/)
 			.expect(200)
 			.end(function (err, res) {
+				console.log(res.body);
 				node.expect(res.body).to.have.property("success").to.be.true;
 				done();
 			});
@@ -99,6 +109,7 @@ describe("Peers second signature transactions", function () {
 			.expect('Content-Type', /json/)
 			.expect(200)
 			.end(function (err, res) {
+				console.log(res.body);
 				node.expect(res.body).to.have.property("success").to.be.false;
 				done();
 			});
@@ -116,6 +127,7 @@ describe("Peers second signature transactions", function () {
 			.expect('Content-Type', /json/)
 			.expect(200)
 			.end(function (err, res) {
+				console.log(res.body);
 				node.expect(res.body).to.have.property("success").to.be.false;
 				done();
 			});
@@ -130,6 +142,8 @@ describe("Peers second signature transactions", function () {
 			.expect('Content-Type', /json/)
 			.expect(200)
 			.end(function (err, res) {
+				console.log(res.body);
+				node.expect(res.body).to.have.property('success').to.be.true;
 				account2.address = res.body.account.address;
 				node.api.put('/transactions')
 					.set('Accept', 'application/json')
@@ -141,6 +155,8 @@ describe("Peers second signature transactions", function () {
 					.expect('Content-Type', /json/)
 					.expect(200)
 					.end(function (err, res) {
+						console.log(res.body);
+						node.expect(res.body).to.have.property('success').to.be.true;
 						setTimeout(function () {
 							var transaction = node.crypti.signature.createSignature(account2.password, account2.secondPassword);
 							node.peer.post('/transactions')
@@ -160,6 +176,7 @@ describe("Peers second signature transactions", function () {
 										.expect('Content-Type', /json/)
 										.expect(200)
 										.end(function (err, res) {
+											console.log(res.body);
 											node.expect(res.body).to.have.property('success').to.be.false;
 											done();
 										});

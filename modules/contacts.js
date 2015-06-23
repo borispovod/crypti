@@ -104,8 +104,6 @@ function Contact() {
 			throw Error("Incorrect address in contact transaction");
 		}
 
-		trs.asset.contact = report.value;
-
 		return trs;
 	}
 

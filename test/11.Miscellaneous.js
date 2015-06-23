@@ -126,15 +126,13 @@ describe('Miscellaneous tests (peers, blocks, etc)', function() {
                     node.expect(res.body).to.have.property("success").to.be.true;
                     node.expect(res.body).to.have.property("peers").that.is.an('array');
 
-					// what is it??
-					/*
                     if (res.body.peers.length > 0){
                         for (var i = 0; i < res.body.peers.length; i++){
                             if (res.body.peers[i+1] != null){
                                 node.expect(res.body.peers[i+1].state).to.at.most(res.body.peers[i].state);
                             }
                         }
-                    }*/
+                    }
 
                     done();
                 });
@@ -207,8 +205,8 @@ describe('Miscellaneous tests (peers, blocks, etc)', function() {
 
         test = test + 1;
         it(test + '. Get blocks list by parameters: height. Expecting success',function(done){
-            var generatorPublicKey = "", totalFee = "", totalAmount = "", previousBlock = "", height = block.blockHeight, limit = 100, offset = 0, orderBy = "";
-            node.api.get('/blocks?generatorPublicKey='+generatorPublicKey+'&totalFee='+totalFee+'&totalAmount='+totalAmount+'&previousBlock='+previousBlock+'&height='+height+'&limit='+limit+'&offset='+offset+'orderBy='+orderBy)
+            var height = block.blockHeight, limit = 100, offset = 0;
+            node.api.get('/blocks?height='+height+'&limit='+limit+'&offset='+offset)
                 .set('Accept', 'application/json')
                 .expect('Content-Type', /json/)
                 .expect(200)
@@ -235,8 +233,8 @@ describe('Miscellaneous tests (peers, blocks, etc)', function() {
 
         test = test + 1;
         it(test + '. Get blocks list by parameters: generatorPublicKey. Expecting success',function(done){
-            var generatorPublicKey = block.generatorPublicKey, totalFee = "", totalAmount = "", previousBlock = "", height = "", limit = 100, offset = 0, orderBy = "";
-            node.api.get('/blocks?generatorPublicKey='+generatorPublicKey+'&totalFee='+totalFee+'&totalAmount='+totalAmount+'&previousBlock='+previousBlock+'&height='+height+'&limit='+limit+'&offset='+offset+'orderBy='+orderBy)
+            var generatorPublicKey = block.generatorPublicKey, limit = 100, offset = 0, orderBy = "";
+            node.api.get('/blocks?generatorPublicKey='+generatorPublicKey+'&limit='+limit+'&offset='+offset)
                 .set('Accept', 'application/json')
                 .expect('Content-Type', /json/)
                 .expect(200)
@@ -253,8 +251,8 @@ describe('Miscellaneous tests (peers, blocks, etc)', function() {
 
         test = test + 1;
         it(test + '. Get blocks list by parameters: totalFee. Expecting success',function(done){
-            var generatorPublicKey = "", totalFee = block.totalFee, totalAmount = "", previousBlock = "", height = "", limit = 100, offset = 0, orderBy = "";
-            node.api.get('/blocks?generatorPublicKey='+generatorPublicKey+'&totalFee='+totalFee+'&totalAmount='+totalAmount+'&previousBlock='+previousBlock+'&height='+height+'&limit='+limit+'&offset='+offset+'orderBy='+orderBy)
+            var totalFee = block.totalFee, limit = 100, offset = 0;
+            node.api.get('/blocks?totalFee='+totalFee+'&limit='+limit+'&offset='+offset)
                 .set('Accept', 'application/json')
                 .expect('Content-Type', /json/)
                 .expect(200)
@@ -271,8 +269,8 @@ describe('Miscellaneous tests (peers, blocks, etc)', function() {
 
         test = test + 1;
         it(test + '. Get blocks list by parameters: totalAmount. Expecting success',function(done){
-            var generatorPublicKey = "", totalFee = "", totalAmount = block.totalAmount, previousBlock = "", height = "", limit = 100, offset = 0, orderBy = "";
-            node.api.get('/blocks?generatorPublicKey='+generatorPublicKey+'&totalFee='+totalFee+'&totalAmount='+totalAmount+'&previousBlock='+previousBlock+'&height='+height+'&limit='+limit+'&offset='+offset+'orderBy='+orderBy)
+            var totalAmount = block.totalAmount, limit = 100, offset = 0;
+            node.api.get('/blocks?totalAmount='+totalAmount+'&limit='+limit+'&offset='+offset)
                 .set('Accept', 'application/json')
                 .expect('Content-Type', /json/)
                 .expect(200)
@@ -289,10 +287,10 @@ describe('Miscellaneous tests (peers, blocks, etc)', function() {
 
         test = test + 1;
         it(test + '. Get blocks list by parameters: previousBlock. Expecting success',function(done){
-            var generatorPublicKey = "", totalFee = "", totalAmount = "", previousBlock = block.id, height = "", limit = 100, offset = 0, orderBy = "";
+            var previousBlock = block.id;
             this.timeout(node.blockTimePlus);
             setTimeout(function(){
-            node.api.get('/blocks?generatorPublicKey='+generatorPublicKey+'&totalFee='+totalFee+'&totalAmount='+totalAmount+'&previousBlock='+previousBlock+'&height='+height+'&limit='+limit+'&offset='+offset+'orderBy='+orderBy)
+            node.api.get('/blocks?previousBlock='+previousBlock)
                 .set('Accept', 'application/json')
                 .expect('Content-Type', /json/)
                 .expect(200)
@@ -309,8 +307,8 @@ describe('Miscellaneous tests (peers, blocks, etc)', function() {
 
         test = test + 1;
         it(test + '. Get blocks list by parameters: orderBy. Expecting success',function(done){
-            var generatorPublicKey = "", totalFee = "", totalAmount = "", previousBlock = "", height = "", limit = 100, offset = 0, orderBy = "height:desc";
-            node.api.get('/blocks?generatorPublicKey='+generatorPublicKey+'&totalFee='+totalFee+'&totalAmount='+totalAmount+'&previousBlock='+previousBlock+'&height='+height+'&limit='+limit+'&offset='+offset+'orderBy='+orderBy)
+            var orderBy = "height:desc";
+            node.api.get('/blocks?orderBy='+orderBy)
                 .set('Accept', 'application/json')
                 .expect('Content-Type', /json/)
                 .expect(200)
