@@ -171,8 +171,6 @@ function Delegate() {
 			throw Error("Can't verify delegate transaction, incorrect parameters");
 		}
 
-		trs.asset.delegate = report.value;
-
 		return trs;
 	}
 
@@ -254,11 +252,18 @@ function attachApi() {
 				active: {
 					type: "boolean"
 				}
-			},
-			format: 'listDelegates'
+			}
 		}, function (err, report, query) {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
+
+			if (!query.limit) {
+				query.limit = 101;
+			}
+
+			if (!query.offset) {
+				query.offset = 0;
+			}
 
 			var limit = query.limit,
 				offset = query.offset,
@@ -273,6 +278,7 @@ function attachApi() {
 			var count = publicKeys.length;
 			var length = Math.min(limit, count);
 			var realLimit = Math.min(offset + limit, count);
+
 
 			if (active === true) {
 				publicKeys = publicKeys.slice(0, 101);

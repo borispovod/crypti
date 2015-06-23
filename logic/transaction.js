@@ -400,6 +400,10 @@ Transaction.prototype.objectNormalize = function (trs) {
 		delete trs.recipientUsername;
 	}
 
+	if (!trs.recipientId) {
+		delete trs.recipientId;
+	}
+
 	var report = scheme.validate(trs, {
 		object: true,
 		properties: {
@@ -435,10 +439,14 @@ Transaction.prototype.objectNormalize = function (trs) {
 				type: "string"
 			},
 			amount: {
-				type: "integer"
+				type: "integer",
+				minimum: 0,
+				maximum: constants.totalAmount
 			},
 			fee: {
-				type: "integer"
+				type: "integer",
+				minimum: 0,
+				maximum: constants.totalAmount
 			},
 			signature: {
 				type: "string",
@@ -452,7 +460,7 @@ Transaction.prototype.objectNormalize = function (trs) {
 				type: "object"
 			}
 		},
-		required: ['type', 'timestamp', 'senderPublicKey', 'recipientId', 'signature']
+		required: ['type', 'timestamp', 'senderPublicKey', 'signature']
 	});
 
 	if (!report) {

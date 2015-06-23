@@ -110,11 +110,14 @@ function attachApi() {
 				height: {
 					type: "integer"
 				}
-			},
-			format: 'listQuery'
+			}
 		}, function (err, report, query) {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
+
+			if (!query.limit) {
+				query.limit = 100;
+			}
 
 			private.list(query, function (err, data) {
 				if (err) {

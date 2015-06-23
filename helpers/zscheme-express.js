@@ -9,7 +9,7 @@ module.exports = function (zscheme) {
 					console.log(scheme);
 					console.log(err);
 				}
-				return callback(err? err[0].message + ": " + err[0].path : null, {
+				return callback(null, {
 					isValid: valid,
 					issues: err? err[0].message + ": " + err[0].path : null
 				}, value);

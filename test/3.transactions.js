@@ -261,7 +261,7 @@ describe('Transactions', function() {
         describe('/transactions', function () {
             test = test + 1;
             it(test + '. Attempting to get transactions list. Expecting success', function (done) {
-                var senderId = node.Faccount.address, blockId = '', recipientId = Account1.address, limit = 10, offset = '', orderBy = 't_amount:desc';
+                var senderId = node.Faccount.address, blockId = '', recipientId = Account1.address, limit = 10, offset = 0, orderBy = 't_amount:desc';
 
                 node.api.get('/transactions?blockId=' + blockId + '&senderId=' + senderId + '&recipientId=' + recipientId + '&limit=' + limit + '&offset=' + offset + '&orderBy=' + orderBy)
                     .set('Accept', 'application/json')
@@ -287,15 +287,14 @@ describe('Transactions', function() {
                     .expect(200)
                     .end(function (err, res) {
                         console.log(res.body);
-                        node.expect(res.body).to.have.property("success").to.be.true;
-                        node.expect(res.body).to.have.property("transactions").that.is.an('array');
-                        node.expect(res.body.count).to.equal(0);
+                        node.expect(res.body).to.have.property("success").to.be.false;
+                        node.expect(res.body).to.have.property("error");
                         done();
                     });
             });
 
             test = test + 1;
-            it(test + '. Attempting to get transactions list. Sending PARTIAL INVALID FIELDS. Expecting success', function (done) {
+            it(test + '. Attempting to get transactions list. Sending PARTIAL INVALID FIELDS. Expecting error', function (done) {
                 var senderId = "notAReadAddress", blockId = 'about5', recipientId = Account1.address, limit = 'aLOT', offset = 'Boris', orderBy = 't_blockId:asc';
                 this.timeout(node.blockTimePlus);
                 setTimeout(function(){
@@ -305,13 +304,15 @@ describe('Transactions', function() {
                     .expect(200)
                     .end(function (err, res) {
                         console.log(res.body);
-                        node.expect(res.body).to.have.property("success").to.be.true;
-                        node.expect(res.body).to.have.property("transactions").that.is.an('array');
+                        node.expect(res.body).to.have.property("success").to.be.false;
+                        node.expect(res.body).to.have.property("error");
+						/*
                         node.expect(res.body.count).to.equal(1);
                         node.expect(res.body.transactions[0].senderId).to.equal(node.Faccount.address);
                         node.expect(res.body.transactions[0].senderPublicKey).to.equal(node.Faccount.publicKey);
                         node.expect(res.body.transactions[0].recipientId).to.equal(Account1.address);
                         node.expect(res.body.transactions[0].amount).to.equal(Account1.balance);
+                        */
                         console.log("Finished transactions-test suite");
                         done();
                     });
@@ -319,7 +320,7 @@ describe('Transactions', function() {
             });
 
             test += 1;
-            it(test + '. We send XCR from Account 1 to Account 2 - valid data. We expect success',function(done){
+            it(test + '. We send XCR from Account 1 (' + Account1.password + ') to Account 2 (' + Account2.address + ') - valid data. We expect success',function(done){
                 this.timeout(node.blockTimePlus);
                 setTimeout(function(){
                     amountToSend = 100000000;
@@ -676,7 +677,7 @@ describe('Transactions', function() {
             });
 
             test += 1;
-            it(test + '. We attempt to created 2nd password for Account 1. We expect success',function(done){
+            it(test + '. We attempt to created 2nd password' + (Account1.secondPassword) + ' for Account 1. We expect success',function(done){
                 this.timeout(5000);
                 setTimeout(function(){
                 node.api.put('/signatures')

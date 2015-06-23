@@ -39,6 +39,9 @@ function attachApi() {
 			return next();
 		}
 
+		req.headers['port'] = parseInt(req.headers['port']);
+		req.headers['share-port'] = parseInt(req.headers);
+
 		req.sanitize(req.headers, {
 			type: "object",
 			properties: {
@@ -63,8 +66,8 @@ function attachApi() {
 			},
 			required: ["port", 'share-port', 'version']
 		}, function (err, report, headers) {
-			if (err) return next(err);
-			if (!report.isValid) return res.status(500).send({status: false, error: report.issues});
+			if (err) return next();
+			if (!report.isValid) return next();
 
 			var peer = {
 				ip: ip.toLong(peerIp),
@@ -196,7 +199,7 @@ function attachApi() {
 
 		var port = req.headers['port'];
 		if (!report) {
-			return res.sendStatus(200).json({success: false, message: "Incorrect sender port"});
+			return res.sendStatus(200).json({success: false, message: "Incorrect port"});
 		}
 
 		try {
@@ -240,21 +243,19 @@ function attachApi() {
 		});
 
 		var port = req.headers['port'];
-		if (!report) {
-			return res.status(200).json({success: false, message: "Incorrect port"});
-		}
 
 		try {
 			var transaction = library.logic.transaction.objectNormalize(req.body.transaction);
 		} catch (e) {
-			var peerIp = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
-			var peerStr = peerIp ? peerIp + ":" + port : 'unknown';
-			library.logger.log('recieved transaction ' + (transaction ? transaction.id : 'null') + ' is not valid, ban 60 min', peerStr);
+				var peerIp = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+				var peerStr = peerIp ? peerIp + ":" + port : 'unknown';
+				library.logger.log('recieved transaction ' + (transaction ? transaction.id : 'null') + ' is not valid, ban 60 min', peerStr);
 
-			if (peerIp) {
-				modules.peer.state(ip.toLong(peerIp), port, 0, 3600);
-			}
-			return res.status(200).json({success: false, message: "Invalid transaction body"});
+				if (peerIp && report) {
+					modules.peer.state(ip.toLong(peerIp), port, 0, 3600);
+				}
+
+				return res.status(200).json({success: false, message: "Invalid transaction body"});
 		}
 
 		library.sequence.add(function (cb) {
@@ -386,6 +387,9 @@ Transport.prototype.getFromPeer = function (peer, options, cb) {
 			return;
 		}
 
+		response.headers['port'] = parseInt(response.headers['port']);
+		response.headers['share-port'] = parseInt(response.headers['share-port']);
+
 		var report = library.scheme.validate(response.headers, {
 			type: "object",
 			prototypes: {
@@ -416,10 +420,10 @@ Transport.prototype.getFromPeer = function (peer, options, cb) {
 			return cb && cb(null, {body: body, peer: peer});
 		}
 
-		if (port > 0 && port <= 65535 && response.headers['version'] == library.config.version) {
+		if (port > 0 && port <= 65535 && response.headers['version'] == library.config.version && report) {
 			modules.peer.update({
 				ip: peer.ip,
-				port: port,
+				port: req.headers['port'],
 				state: 2,
 				os: response.headers['os'],
 				sharePort: Number(!!response.headers['share-port']),

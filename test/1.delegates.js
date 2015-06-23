@@ -260,7 +260,7 @@ describe('Delegates', function() {
                         console.log(res.body);
                         node.expect(res.body).to.have.property("success").to.be.false;
                         node.expect(res.body).to.have.property("error");
-                        node.expect(res.body.error).to.contain("you already voted");
+                        node.expect(res.body.error.toLowerCase()).to.contain("you already voted");
                         done();
                     });
             }, 1000);
@@ -308,7 +308,7 @@ describe('Delegates', function() {
                         console.log(res.body);
                         node.expect(res.body).to.have.property("success").to.be.false;
                         node.expect(res.body).to.have.property("error");
-                        node.expect(res.body.error).to.contain("you already voted");
+                        node.expect(res.body.error.toLowerCase()).to.contain("you already voted");
                         done();
                     });
             }, 2000);
@@ -543,7 +543,6 @@ describe('Delegates', function() {
 
         test += 1;
         it(test + '. We attempt to re-register as delegate from SAME random account: ' + Raccount.password + '. We expect error',function(done){
-            this.timeout(node.blockTimePlus);
             setTimeout(function(){
                 node.api.put('/delegates')
                     .set('Accept', 'application/json')
@@ -640,10 +639,8 @@ describe('Delegates', function() {
                 .expect(200)
                 .end(function (err, res) {
                     console.log(res.body);
-                    node.expect(res.body).to.have.property("success").to.be.true;
-                    node.expect(res.body).to.have.property("delegates").that.is.an('array');
-                    node.expect(res.body).to.have.property("totalCount").that.is.at.least(0);
-                    node.expect(res.body.delegates).to.have.length.of(0);
+                    node.expect(res.body).to.have.property("success").to.be.false;
+                    node.expect(res.body).to.have.property("error");
                     done();
                 });
         });

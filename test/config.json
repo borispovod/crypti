@@ -134,7 +134,7 @@
 	},
 	"loading": {
 		"verifyOnLoading": true,
-		"loadPerIteration": 5000
+		"loadPerIteration": 1000
 	},
 	"ssl": {
 		"enabled": false,

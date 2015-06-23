@@ -233,8 +233,14 @@ d.run(function () {
 			scope.network.app.use(bodyParser.urlencoded({extended: true, parameterLimit: 5000}));
 			scope.network.app.use(bodyParser.json());
 			scope.network.app.use(methodOverride());
+
+			var ignore = ['id', 'blockId', 'transactionId', 'address', 'recipientId', 'senderId', 'senderUsername', 'recipientUsername'];
 			scope.network.app.use(queryParser({
-				parser: function(value, radix) {
+				parser: function(value, radix, name) {
+					if (ignore.indexOf(name) >= 0) {
+						return value;
+					}
+
 					if (isNaN(value) || parseInt(value) != value || isNaN(parseInt(value, radix))) {
 						return value;
 					}

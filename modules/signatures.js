@@ -100,6 +100,7 @@ function Signature() {
 	}
 
 	this.objectNormalize = function (trs) {
+		console.log(trs.asset);
 		var report = library.scheme.validate(trs.asset.signature, {
 			object: true,
 			properties: {
@@ -111,11 +112,9 @@ function Signature() {
 			required: ['publicKey']
 		});
 
-		if (!report.isValid) {
-			throw Error(report.issues);
+		if (!report) {
+			throw Error("Can't parse signature");
 		}
-
-		trs.asset.signature = report.value;
 
 		return trs;
 	}
@@ -201,7 +200,7 @@ function attachApi() {
 					format: "publicKey"
 				}
 			},
-			required: ["string", "secondSecret"]
+			required: ["secret", "secondSecret"]
 		}, function (err, report, body) {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});

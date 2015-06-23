@@ -66,14 +66,13 @@ function attachApi() {
 					minimum: 1,
 					maximum: 65535
 				}
-			},
-			format: 'listQuery'
+			}
 		}, function (err, report, query) {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
 
-			if (query.limit < 0 || query.limit > 100) {
-				return res.json({success: false, error: errorCode("PEERS.LIMIT", query)});
+			if (!query.limit) {
+				query.limit = 100;
 			}
 
 			private.getByFilter(query, function (err, peers) {

@@ -519,8 +519,6 @@ function Username() {
 			throw Error("Alias of username transaction incorrect.");
 		}
 
-		trs.asset.username = report.value;
-
 		return trs;
 	}
 
@@ -818,7 +816,7 @@ function attachApi() {
 	});
 
 	router.put("/username", function (req, res, next) {
-		req.sanitize("body", {
+		req.sanitize(req.body, {
 			type: "object",
 			properties: {
 				secret: {
@@ -837,7 +835,8 @@ function attachApi() {
 					type: "string",
 					minLength: 1
 				}
-			}
+			},
+			required: ['secret', 'username']
 		}, function (err, report, body) {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
