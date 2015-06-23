@@ -52,7 +52,9 @@ function attachApi() {
 					maximum: 100
 				},
 				shared: {
-					type: "boolean"
+					type: "integer",
+					minimum: 0,
+					maximum: 1
 				},
 				orderBy: {
 					type: "string"
@@ -287,9 +289,9 @@ private.getByFilter = function (filter, cb) {
 		params['offset'] = offset;
 	}
 
-	library.dbLite.query("select ip, port, state, os, sharePort, version from peers" +
+	library.dbLite.query("select ip, port, state, os, sharePort, version from peers " +
 		(where.length ? (' where ' + where.join(' and ')) : '') +
-		(sortBy ? 'order by ' + sortBy + ' ' + sortMethod : '') + " " +
+		(sortBy ? ' order by ' + sortBy + ' ' + sortMethod : '') + " " +
 		(limit ? ' limit $limit' : '') +
 		(offset ? ' offset $offset ' : ''),
 		params, {
