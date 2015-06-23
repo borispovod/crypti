@@ -14,14 +14,10 @@
 	},
 	"peers": {
 		"list": [
-			{
-				"ip" : "127.0.0.1",
-				"port" : 8080
-			}
 		],
 		"blackList": [],
 		"options": {
-			"timeout": 20000
+			"timeout": 1
 		}
 	},
 	"forging": {
