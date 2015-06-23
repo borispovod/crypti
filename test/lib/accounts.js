@@ -9,7 +9,7 @@ console.log("Please, wait 3s...");
 var path = require('path');
 var sleep = require('sleep');
 var spawn = require('child_process').spawn;
-var process = spawn('node', [path.join(__dirname, '..', 'app.js'), '-c', path.join(__dirname, 'config.json')]);
+var process = spawn('node', [path.join(__dirname, '..', '..', 'app.js'), '-c', path.join(__dirname, '..', 'config.json')]);
 
 process.on('close', function(code) {
     console.log('closing code: ' + code);
@@ -18,7 +18,7 @@ process.on('close', function(code) {
 
 sleep.sleep(3);
 // Requires and node configuration
-var node = require('./variables.js');
+var node = require('./../variables.js');
 var test = 0;
 
 // Account info for password "sebastian"  - 0 XCR amount

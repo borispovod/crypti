@@ -1,11 +1,38 @@
-var node = require('./variables.js'),
+var node = require('./../variables.js'),
 	crypto = require('crypto');
 
 var account = node.randomAccount();
 var account2 = node.randomAccount();
 
-describe("Peers delegates transactions", function () {
-	it("Create delegate with incorrect username. Should return not ok", function (done) {
+describe("Peers usernames", function () {
+	it("Register username on new account and then try to register another username. Should return not ok", function (done) {
+		var transaction = node.crypti.username.createUsername(node.peers_config.account, node.randomDelegateName());
+		node.peer.post('/transactions')
+			.set('Accept', 'application/json')
+			.send({
+				transaction: transaction
+			})
+			.expect('Content-Type', /json/)
+			.expect(200)
+			.end(function (err, res) {
+				node.expect(res.body).to.have.property("success").to.be.true;
+				transaction = node.crypti.username.createUsername(node.peers_config.account, node.randomAccount());
+
+				node.peer.post('/transactions')
+					.set('Accept', 'application/json')
+					.send({
+						transaction: transaction
+					})
+					.expect('Content-Type', /json/)
+					.expect(200)
+					.end(function (err, res) {
+						node.expect(res.body).to.have.property("success").to.be.false;
+						done();
+					});
+			});
+	});
+
+	it("Register delegate and then username. Should return not ok", function (done) {
 		node.api.post('/accounts/open')
 			.set('Accept', 'application/json')
 			.send({
@@ -26,7 +53,7 @@ describe("Peers delegates transactions", function () {
 					.expect(200)
 					.end(function (err, res) {
 						setTimeout(function () {
-							var transaction = node.crypti.delegate.createDelegate(account.password, crypto.randomBytes(64).toString('hex'));
+							var transaction = node.crypti.delegate.createDelegate(account.password, node.randomDelegateName());
 							node.peer.post('/transactions')
 								.set('Accept', 'application/json')
 								.send({
@@ -35,49 +62,30 @@ describe("Peers delegates transactions", function () {
 								.expect('Content-Type', /json/)
 								.expect(200)
 								.end(function (err, res) {
-									console.log(res.body);
-									node.expect(res.body).to.have.property("success").to.be.false;
-									done();
+									node.expect(res.body).to.have.property("success").to.be.true;
+
+									transaction = node.crypti.username.createUsername(account.password, node.randomDelegateName());
+
+									node.peer.post('/transactions')
+										.set('Accept', 'application/json')
+										.send({
+											transaction: transaction
+										})
+										.expect('Content-Type', /json/)
+										.expect(200)
+										.end(function (err, res) {
+											console.log(res.body);
+											node.expect(res.body).to.have.property("success").to.be.false;
+											done();
+										});
 								});
 						}, 10000);
 					});
 			});
 	});
 
-	it("Create delegate from account with no funds. Should return not ok", function (done) {
-		var transaction = node.crypti.delegate.createDelegate(node.randomPassword(), node.randomDelegateName());
-		node.peer.post('/transactions')
-			.set('Accept', 'application/json')
-			.send({
-				transaction: transaction
-			})
-			.expect('Content-Type', /json/)
-			.expect(200)
-			.end(function (err, res) {
-				console.log(res.body);
-				node.expect(res.body).to.have.property("success").to.be.false;
-				done();
-			});
-	});
 
-	it("Create delegate on acccount. Should return ok", function (done) {
-		account.username = node.randomDelegateName();
-		var transaction = node.crypti.delegate.createDelegate(account.password, account.username);
-		node.peer.post('/transactions')
-			.set('Accept', 'application/json')
-			.send({
-				transaction: transaction
-			})
-			.expect('Content-Type', /json/)
-			.expect(200)
-			.end(function (err, res) {
-				console.log(res.body);
-				node.expect(res.body).to.have.property("success").to.be.true;
-				done();
-			});
-	});
-
-	it("Create delegate on new account and then create it again in one block", function (done) {
+	it("Register username and then register delegate. Should return not ok", function (done) {
 		node.api.post('/accounts/open')
 			.set('Accept', 'application/json')
 			.send({
@@ -98,8 +106,8 @@ describe("Peers delegates transactions", function () {
 					.expect(200)
 					.end(function (err, res) {
 						setTimeout(function () {
-							account2.username = node.randomDelegateName();
-							var transaction = node.crypti.delegate.createDelegate(account2.password, account2.username);
+							var transaction = node.crypti.username.createUsername(account2.password, node.randomDelegateName());
+
 							node.peer.post('/transactions')
 								.set('Accept', 'application/json')
 								.send({
@@ -110,22 +118,20 @@ describe("Peers delegates transactions", function () {
 								.end(function (err, res) {
 									node.expect(res.body).to.have.property("success").to.be.true;
 
-									account2.username = node.randomDelegateName();
-									var transaction2 = node.crypti.delegate.createDelegate(account2.password, account2.username);
-
+									transaction = node.crypti.delegate.createDelegate(account2.password, node.randomDelegateName());
 									node.peer.post('/transactions')
 										.set('Accept', 'application/json')
 										.send({
-											transaction: transaction2
+											transaction: transaction
 										})
 										.expect('Content-Type', /json/)
 										.expect(200)
 										.end(function (err, res) {
-											console.log(res.body);
 											node.expect(res.body).to.have.property("success").to.be.false;
 											done();
 										});
 								});
+
 						}, 10000);
 					});
 			});

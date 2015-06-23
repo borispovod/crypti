@@ -1,7 +1,7 @@
-var node = require('./variables.js'),
+var node = require('./../variables.js'),
 	crypto = require('crypto');
 
-var genesisblock = require('../helpers/genesisblock.js');
+var genesisblock = require('../../helpers/genesisblock.js');
 
 describe("Peers transactions", function () {
 	it("create transaction. should return ok", function (done) {

@@ -1,4 +1,4 @@
-var node = require('./variables.js'),
+var node = require('./../variables.js'),
 	crypto = require('crypto');
 
 var account = node.randomAccount();

@@ -5,7 +5,7 @@
 'use strict';
 
 // Requires and node configuration
-var node = require('./variables.js');
+var node = require('./../variables.js');
 var test = 0;
 var block = {
     blockHeight : 0,

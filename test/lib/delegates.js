@@ -5,7 +5,7 @@
 'use strict';
 
 // Requires and node configuration
-var node = require('./variables.js');
+var node = require('./../variables.js');
 
 // Account info for a RANDOM account (which we create later) - 0 XCR amount | Will act as delegate
 var Raccount = node.randomAccount();
