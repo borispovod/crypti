@@ -138,6 +138,28 @@ function waitForNewBlock(height, cb) {
 	)
 }
 
+// Adds peers to local node
+function addPeers(numOfPeers){
+
+    var operatingSystems = ['win32','win64','linux','debian'];
+    var versions = ['0.1.9','0.2.0','0.2.0a','0.3.0'];
+    var ports = [4060, 5060, 8040, 7040];
+    var sharePortOptions = [false,true];
+    var os,version,port,sharePort;
+
+    for (var i = 0; i < numOfPeers; i++){
+        os = operatingSystems[randomizeSelection(operatingSystems.length)];
+        version = versions[randomizeSelection(versions.length)];
+        port = ports[randomizeSelection(ports.length)];
+        sharePort = sharePortOptions[randomizeSelection(sharePortOptions.length)];
+        peer.get('/height').set('os',os).set('version',version).set('port',port).set('share-port',sharePort);
+    }
+}
+
+// Used to randomize selecting from within an array. Requires array length
+function randomizeSelection(length){
+    return Math.floor(Math.random() * length);
+}
 
 // Returns a random number between min (inclusive) and max (exclusive)
 function randomNumber(min, max) {
@@ -220,6 +242,7 @@ module.exports = {
     randomTxAccount: randomTxAccount,
     randomUsername: randomUsername,
     expectedFee:expectedFee,
+    addPeers:addPeers,
 	peers_config: config.mocha.peers,
 	config: config,
 	waitForNewBlock: waitForNewBlock,
