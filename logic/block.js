@@ -8,8 +8,8 @@ var slots = require('../helpers/slots.js'),
 	RequestSanitizer = require('../helpers/request-sanitizer.js');
 
 //constructor
-function Block(dbLite, cb) {
-	this.dbLite = dbLite;
+function Block(scope, cb) {
+	this.scope = scope;
 	setImmediate(cb, null, this);
 }
 
@@ -42,7 +42,7 @@ Block.prototype.create = function (data) {
 
 	for (var i = 0; i < transactions.length; i++) {
 		var transaction = transactions[i];
-		var bytes = this.logic.transaction.getBytes(transaction);
+		var bytes = this.scope.transaction.getBytes(transaction);
 
 		if (size + bytes.length > constants.maxPayloadLength) {
 			break;
@@ -169,7 +169,7 @@ Block.prototype.dbSave = function (block, cb) {
 		return cb(e.toString())
 	}
 
-	this.dbLite.query("INSERT INTO blocks(id, version, timestamp, height, previousBlock,  numberOfTransactions, totalAmount, totalFee, payloadLength, payloadHash, generatorPublicKey, blockSignature) VALUES($id, $version, $timestamp, $height, $previousBlock, $numberOfTransactions, $totalAmount, $totalFee, $payloadLength,  $payloadHash, $generatorPublicKey, $blockSignature)", {
+	this.scope.dbLite.query("INSERT INTO blocks(id, version, timestamp, height, previousBlock,  numberOfTransactions, totalAmount, totalFee, payloadLength, payloadHash, generatorPublicKey, blockSignature) VALUES($id, $version, $timestamp, $height, $previousBlock, $numberOfTransactions, $totalAmount, $totalFee, $payloadLength,  $payloadHash, $generatorPublicKey, $blockSignature)", {
 		id: block.id,
 		version: block.version,
 		timestamp: block.timestamp,
@@ -213,7 +213,7 @@ Block.prototype.objectNormalize = function (block) {
 
 	try {
 		for (var i = 0; i < block.transactions.length; i++) {
-			block.transactions[i] = this.logic.transaction.objectNormalize(block.transactions[i]);
+			block.transactions[i] = this.scope.transaction.objectNormalize(block.transactions[i]);
 		}
 	} catch (e) {
 		throw Error(e.toString());

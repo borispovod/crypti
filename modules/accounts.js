@@ -545,7 +545,8 @@ function Username() {
 			return setImmediate(cb, errorCode("USERNAMES.EXISTS_USERNAME", trs));
 		}
 
-		self.existsUsername(trs.asset.username.alias, function (err, found) {
+		self.getAccount({username: trs.asset.username.alias}, function (err, account) {
+			var found = !!account;
 			if (found) {
 				return setImmediate(cb, errorCode("USERNAMES.EXISTS_USERNAME", trs));
 			}
@@ -596,7 +597,8 @@ function Username() {
 			return setImmediate(cb, errorCode("USERNAMES.EXISTS_USERNAME", trs));
 		}
 
-		self.existsUnconfirmedUsername(trs.asset.username.alias, function (err, found) {
+		self.getAccount({u_username: trs.asset.username.alias}, function (err, account) {
+			var found = account;
 			if (found) {
 				return setImmediate(cb, errorCode("USERNAMES.EXISTS_USERNAME", trs));
 			}
@@ -890,7 +892,7 @@ function attachApi() {
 				}
 			}
 
-			self.getAccountByPublicKey(keypair.publicKey.toString('hex'), function (err, account) {
+			self.getAccount({publicKey: keypair.publicKey.toString('hex')}, function (err, account) {
 				if (err || !account || !account.publicKey) {
 					return res.json({success: false, error: errorCode("COMMON.OPEN_ACCOUNT")});
 				}
@@ -958,7 +960,7 @@ function attachApi() {
 				}
 			}
 
-			self.getAccountByPublicKey(keypair.publicKey.toString('hex'), function (err, account) {
+			self.getAccount({publicKey: keypair.publicKey.toString('hex')}, function (err, account) {
 				if (err || !account || !account.publicKey) {
 					return res.json({success: false, error: errorCode("COMMON.OPEN_ACCOUNT")});
 				}
@@ -1042,27 +1044,14 @@ function attachApi() {
 	});
 }
 
-private.addAccount = function (account, cb) {
-	library.logic.account.set(account.address, account, cb);
-}
-
 private.openAccount = function (secret, cb) {
 	var hash = crypto.createHash('sha256').update(secret, 'utf8').digest();
 	var keypair = ed.MakeKeypair(hash);
 
-	self.getAccountOrCreateByPublicKey(keypair.publicKey.toString('hex'), cb);
+	self.setAccountAndGet({publicKey: keypair.publicKey.toString('hex')}, cb);
 }
 
-//public methods
-Accounts.prototype.getAccount = function (id, cb) {
-	library.logic.account.get({address: id.toString().toUpperCase()}, cb);
-}
-
-Accounts.prototype.getAccountByPublicKey = function (publicKey, cb) {
-	library.logic.account.get({publicKey: publicKey}, cb);
-}
-
-Accounts.prototype.getAddressByPublicKey = function (publicKey) {
+private.generateAddressByPublicKey = function (publicKey) {
 	var publicKeyHash = crypto.createHash('sha256').update(publicKey, 'hex').digest();
 	var temp = new Buffer(8);
 	for (var i = 0; i < 8; i++) {
@@ -1073,52 +1062,42 @@ Accounts.prototype.getAddressByPublicKey = function (publicKey) {
 	return address;
 }
 
-Accounts.prototype.getAccountByUsername = function (username, cb) {
-	library.logic.account.get({username: id.toString().toUpperCase()}, cb);
+//public methods
+Accounts.prototype.getAccount = function (filter, cb) {
+	if(filter.publicKey){
+		filter.address = private.generateAddressByPublicKey(filter.publicKey);
+		delete filter.publicKey;
+	}
+	library.logic.account.get(filter, cb);
 }
 
-Accounts.prototype.getAccountOrCreateByPublicKey = function (publicKey, cb) {
-	var address = self.getAddressByPublicKey(publicKey);
-	self.getAccount(address, function (err, account) {
-		if (account && !account.publicKey) {
-			account.publicKey = publicKey;
-		}
-
-		if (!account) {
-			account = new Account(address, publicKey);
-			private.addAccount(account, function (err) {
-				setImmediate(cb, null, account);
-			});
+Accounts.prototype.setAccountAndGet = function (data, cb) {
+	var address = data.address || null;
+	if (address === null) {
+		if (data.publicKey) {
+			address = private.generateAddressByPublicKey(data.publicKey);
 		} else {
-			setImmediate(cb, null, account);
+			cb("must provide address or publicKey");
 		}
+	}
+	library.logic.account.set(address, data, function (err) {
+		if (err) {
+			return cb(err);
+		}
+		library.logic.account.get({address: address}, cb);
 	});
 }
 
-Accounts.prototype.getAccountOrCreateByAddress = function (address, cb) {
-	library.logic.account.get({address: address.toLowerCase()}, function (err, account) {
-		cb(err, !!account);
-	});
-	self.getAccount(address, function (err, account) {
-		if (!account) {
-			account = new Account(address);
-			private.addAccount(account, function (err) {
-				setImmediate(cb, null, account);
-			});
+Accounts.prototype.mergeAccountAndGet = function (data, cb) {
+	var address = data.address || null;
+	if (address === null) {
+		if (data.publicKey) {
+			address = private.generateAddressByPublicKey(data.publicKey);
 		} else {
-			setImmediate(cb, null, account);
+			cb("must provide address or publicKey");
 		}
-	});
-}
-
-Accounts.prototype.existsUnconfirmedUsername = function (username, cb) {
-	cb(null, !!private.unconfirmedNames[username.toLowerCase()]);
-}
-
-Accounts.prototype.existsUsername = function (username, cb) {
-	library.logic.account.get({username: username.toLowerCase()}, function (err, account) {
-		cb(err, !!account);
-	});
+	}
+	library.logic.account.merge(address, data, cb);
 }
 
 //events

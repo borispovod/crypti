@@ -169,7 +169,7 @@ function attachApi() {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
 
-			modules.accounts.getAccountByPublicKey(query.publicKey, function (err, account) {
+			modules.accounts.getAccount({publicKey: query.publicKey}, function (err, account) {
 				if (err || !account) {
 					return res.json({success: false, error: errorCode("ACCOUNTS.ACCOUNT_DOESNT_FOUND")});
 				}
@@ -222,8 +222,8 @@ function attachApi() {
 				}
 			}
 
-			modules.accounts.getAccountByPublicKey(keypair.publicKey.toString('hex'), function (err, account) {
-				if (err || !account || !account.publicKey) {
+			modules.accounts.getAccount({publicKey: keypair.publicKey.toString('hex')}, function (err, account) {
+				if (err || !account) {
 					return res.json({success: false, error: errorCode("COMMON.OPEN_ACCOUNT")});
 				}
 
@@ -237,18 +237,16 @@ function attachApi() {
 				}
 
 				var followingAddress = body.following.substring(1, body.following.length);
+				var query = {};
+
 				var isAddress = /^[0-9]+[C|c]$/g;
-				var following = null;
-				var followingId, followingUsername = null;
-
-
-				if (isAddress.test(body.recipientId)) {
-					followingId = body.recipientId;
+				if (isAddress.test(followingAddress)) {
+					query.address = body.recipientId;
 				} else {
-					followingUsername = body.recipientId;
+					query.username = body.recipientId;
 				}
 
-				modules.accounts[followingId ? "getAccount" : "getAccountByUsername"](followingId || followingUsername, function (err, following) {
+				modules.accounts.getAccount(query, function (err, following) {
 					if (err || !following) {
 						return res.json({success: false, error: errorCode("CONTACTS.USERNAME_DOESNT_FOUND")});
 					}

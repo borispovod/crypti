@@ -589,7 +589,7 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 			}
 
 			async.eachSeries(block.transactions, function (transaction, cb) {
-				modules.accounts.getAccountOrCreateByPublicKey(transaction.senderPublicKey, function (err, sender) {
+				modules.accounts.setAccountAndGet({publicKey: transaction.senderPublicKey}, function (err, sender) {
 					if (err) {
 						return setImmediate(cb, {
 							message: err,
@@ -747,7 +747,7 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 								return setImmediate(cb, "Dublicated transaction in block: " + transaction.id);
 							}
 
-							modules.accounts.getAccountByPublicKey(transaction.senderPublicKey, function (err, sender) {
+							modules.accounts.getAccount({publicKey: transaction.senderPublicKey}, function (err, sender) {
 								if (err) {
 									return setImmediate(cb, err);
 								}
@@ -944,7 +944,7 @@ Blocks.prototype.generateBlock = function (keypair, timestamp, cb) {
 	var ready = []
 
 	async.eachSeries(transactions, function (transaction, cb) {
-		modules.accounts.getAccountByPublicKey(transaction.senderPublicKey, function (err, sender) {
+		modules.accounts.getAccount({publicKey: transaction.senderPublicKey}, function (err, sender) {
 			if (err) {
 				return cb("sender doesn´t found");
 			}

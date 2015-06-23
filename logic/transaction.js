@@ -9,8 +9,8 @@ var slots = require('../helpers/slots.js'),
 	RequestSanitizer = require('../helpers/request-sanitizer.js');
 
 //constructor
-function Transaction(dbLite, cb) {
-	this.dbLite = dbLite;
+function Transaction(scope, cb) {
+	this.scope = scope;
 	setImmediate(cb, null, this);
 }
 
@@ -193,7 +193,7 @@ Transaction.prototype.process = function (trs, sender, cb) {
 			return setImmediate(cb, err);
 		}
 
-		this.dbLite.query("SELECT count(id) FROM trs WHERE id=$id", {id: trs.id}, {"count": Number}, function (err, rows) {
+		this.scope.dbLite.query("SELECT count(id) FROM trs WHERE id=$id", {id: trs.id}, {"count": Number}, function (err, rows) {
 			if (err) {
 				return cb("Internal sql error");
 			}
@@ -352,14 +352,19 @@ Transaction.prototype.apply = function (trs, sender, cb) {
 		return setImmediate(cb, "Balance has no XCR: " + trs.id);
 	}
 
-	sender.addToBalance(-amount);
-
-	private.types[trs.type].apply.call(this, trs, sender, function (err) {
+	this.scope.account.merge(sender.address, {balance: -amount}, function (err, sender) {
 		if (err) {
-			sender.addToBalance(amount);
+			return cb(err);
 		}
-		setImmediate(cb, err);
-	});
+
+		private.types[trs.type].apply.call(this, trs, sender, function (err) {
+			if (err) {
+				this.scope.account.merge(sender.address, {balance: amount}, cb);
+			} else {
+				setImmediate(cb);
+			}
+		}.bind(this));
+	}.bind(this));
 }
 
 Transaction.prototype.undo = function (trs, sender, cb) {
@@ -369,14 +374,19 @@ Transaction.prototype.undo = function (trs, sender, cb) {
 
 	var amount = trs.amount + trs.fee;
 
-	sender.addToBalance(amount);
-
-	private.types[trs.type].undo.call(this, trs, sender, function (err) {
+	this.scope.account.merge(sender.address, {balance: amount}, function (err, sender) {
 		if (err) {
-			sender.addToBalance(-amount);
+			return cb(err);
 		}
-		setImmediate(cb, err);
-	})
+
+		private.types[trs.type].undo.call(this, trs, sender, function (err) {
+			if (err) {
+				this.scope.account.merge(sender.address, {balance: amount}, cb);
+			} else {
+				setImmediate(cb);
+			}
+		}.bind(this));
+	}.bind(this));
 }
 
 Transaction.prototype.applyUnconfirmed = function (trs, sender, cb) {
@@ -398,14 +408,19 @@ Transaction.prototype.applyUnconfirmed = function (trs, sender, cb) {
 		return setImmediate(cb, 'Account has no balance: ' + trs.id);
 	}
 
-	sender.addToUnconfirmedBalance(-amount);
-
-	private.types[trs.type].applyUnconfirmed.call(this, trs, sender, function (err) {
+	this.scope.account.merge(sender.address, {u_balance: -amount}, function (err, sender) {
 		if (err) {
-			sender.addToUnconfirmedBalance(amount);
+			return cb(err);
 		}
-		setImmediate(cb, err);
-	});
+
+		private.types[trs.type].applyUnconfirmed.call(this, trs, sender, function (err) {
+			if (err) {
+				this.scope.account.merge(sender.address, {u_balance: amount}, cb);
+			} else {
+				setImmediate(cb, err);
+			}
+		}.bind(this));
+	}.bind(this));
 }
 
 Transaction.prototype.undoUnconfirmed = function (trs, sender, cb) {
@@ -415,13 +430,18 @@ Transaction.prototype.undoUnconfirmed = function (trs, sender, cb) {
 
 	var amount = trs.amount + trs.fee;
 
-	sender.addToUnconfirmedBalance(amount);
-
-	private.types[trs.type].undoUnconfirmed.call(this, trs, sender, function (err) {
+	this.scope.account.merge(sender.address, {u_balance: amount}, function (err, sender) {
 		if (err) {
-			sender.addToUnconfirmedBalance(-amount);
+			return cb(err);
 		}
-		setImmediate(cb, err);
+
+		private.types[trs.type].undoUnconfirmed.call(this, trs, sender, function (err) {
+			if (err) {
+				this.scope.account.merge(sender.address, {u_balance: -amount}, cb);
+			} else {
+				setImmediate(cb, err);
+			}
+		});
 	});
 }
 
@@ -438,7 +458,7 @@ Transaction.prototype.dbSave = function (trs, cb) {
 		return cb(e.toString())
 	}
 
-	this.dbLite.query("INSERT INTO trs(id, blockId, type, timestamp, senderPublicKey, senderId, recipientId, senderUsername, recipientUsername, amount, fee, signature, signSignature, multisignatures) VALUES($id, $blockId, $type, $timestamp, $senderPublicKey, $senderId, $recipientId, $senderUsername, $recipientUsername, $amount, $fee, $signature, $signSignature, $multisignatures)", {
+	this.scope.dbLite.query("INSERT INTO trs(id, blockId, type, timestamp, senderPublicKey, senderId, recipientId, senderUsername, recipientUsername, amount, fee, signature, signSignature, multisignatures) VALUES($id, $blockId, $type, $timestamp, $senderPublicKey, $senderId, $recipientId, $senderUsername, $recipientUsername, $amount, $fee, $signature, $signSignature, $multisignatures)", {
 		id: trs.id,
 		blockId: trs.blockId,
 		type: trs.type,

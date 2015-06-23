@@ -84,26 +84,39 @@ Round.prototype.backwardTick = function (block, previousBlock, cb) {
 					var diffFee = private.unFeesByRound[round] - foundationFee;
 
 					if (foundationFee || diffFee) {
-						var recipient = modules.accounts.getAccountOrCreateByAddress("14225995638226006440C");
-						recipient.addToBalance(-foundationFee);
-						recipient.addToUnconfirmedBalance(-foundationFee);
+						modules.accounts.mergeAccountAndGet({
+							address: "14225995638226006440C",
+							balance: -foundationFee,
+							u_balance: -foundationFee
+						}, function (err, recipient) {
+							if (err) {
+								return cb(err);
+							}
+							var delegatesFee = Math.floor(diffFee / slots.delegates);
+							var leftover = diffFee - (delegatesFee * slots.delegates);
 
-						var delegatesFee = Math.floor(diffFee / slots.delegates);
-						var leftover = diffFee - (delegatesFee * slots.delegates);
-
-						async.forEachOfSeries(private.unDelegatesByRound[round], function (delegate, index, cb) {
-							modules.accounts.getAccountOrCreateByPublicKey(delegate, function (err, recipient) {
-								recipient.addToBalance(-delegatesFee);
-								recipient.addToUnconfirmedBalance(-delegatesFee);
-								modules.delegates.addFee(delegate, -delegatesFee);
-								if (index === 0) {
-									recipient.addToBalance(-leftover);
-									recipient.addToUnconfirmedBalance(-leftover);
-									modules.delegates.addFee(delegate, -leftover);
-								}
-								cb();
-							});
-						}, cb);
+							async.forEachOfSeries(private.unDelegatesByRound[round], function (delegate, index, cb) {
+								modules.accounts.mergeAccountAndGet({
+									publicKey: delegate,
+									balance: -delegatesFee,
+									u_balance: -delegatesFee
+								}, function (err, recipient) {
+									modules.delegates.addFee(delegate, -delegatesFee);
+									if (index === 0) {
+										modules.accounts.mergeAccountAndGet({
+											publicKey: delegate,
+											balance: -leftover,
+											u_balance: -leftover
+										}, function () {
+											modules.delegates.addFee(delegate, -leftover);
+											cb();
+										});
+									}else{
+										cb();
+									}
+								});
+							}, cb);
+						});
 					}
 				},
 				function (cb) {
@@ -175,27 +188,34 @@ Round.prototype.tick = function (block, cb) {
 					var diffFee = private.feesByRound[round] - foundationFee;
 
 					if (foundationFee || diffFee) {
-						modules.accounts.getAccountOrCreateByAddress("14225995638226006440C", function (err, recipient) {
-							recipient.addToUnconfirmedBalance(foundationFee);
-							recipient.addToBalance(foundationFee);
+						modules.accounts.mergeAccountAndGet({
+							address: "14225995638226006440C",
+							balance: foundationFee,
+							u_balance: foundationFee
+						}, function (err, recipient) {
 
 							var delegatesFee = Math.floor(diffFee / slots.delegates);
 							var leftover = diffFee - (delegatesFee * slots.delegates);
 
-							//async.forEachOfSeries(private.unDelegatesByRound[round], function (delegate, index, cb) {
-							//modules.accounts.getAccountOrCreateByPublicKey(delegate, function (err, recipient) {
 							async.forEachOfSeries(private.delegatesByRound[round], function (delegate, index, cb) {
-								modules.accounts.getAccountOrCreateByPublicKey(delegate, function (err, recipient) {
-									recipient.addToUnconfirmedBalance(delegatesFee);
-									recipient.addToBalance(delegatesFee);
+								modules.accounts.mergeAccountAndGet({
+									publicKey: delegate,
+									balance: delegatesFee,
+									u_balance: delegatesFee
+								}, function (err, recipient) {
 									modules.delegates.addFee(delegate, delegatesFee);
 
 									if (index === private.delegatesByRound[round].length - 1) {
-										recipient.addToUnconfirmedBalance(leftover);
-										recipient.addToBalance(leftover);
-										modules.delegates.addFee(delegate, leftover);
+										modules.accounts.mergeAccountAndGet({
+											publicKey: delegate,
+											balance: leftover,
+											u_balance: leftover
+										}, function (err, recipient) {
+											modules.delegates.addFee(delegate, leftover);
+										});
+									} else {
+										cb();
 									}
-									cb();
 								});
 							}, cb);
 						});

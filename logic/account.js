@@ -3,8 +3,8 @@ var jsonSql = require('json-sql')();
 RequestSanitizer = require('../helpers/request-sanitizer.js');
 
 //constructor
-function Account(dbLite, cb) {
-	this.dbLite = dbLite;
+function Account(scope, cb) {
+	this.scope = scope;
 
 	this.table = "mem_accounts";
 
@@ -14,7 +14,8 @@ function Account(dbLite, cb) {
 			type: "String",
 			length: 20,
 			filter: "string?",
-			conv: String
+			conv: String,
+			constante: true
 		},
 		{
 			name: "address",
@@ -28,7 +29,8 @@ function Account(dbLite, cb) {
 				string: true,
 				minLength: 1
 			},
-			conv: String
+			conv: String,
+			constante: true
 		},
 		{
 			name: "publicKey",
@@ -37,14 +39,16 @@ function Account(dbLite, cb) {
 			not_null: true,
 			unique: true,
 			filter: "hex!",
-			conv: String
+			conv: String,
+			constante: true
 		},
 		{
 			name: "secondPublicKey",
 			type: "Binary",
 			length: 32,
 			filter: "hex?",
-			conv: String
+			conv: String,
+			constante: true
 		},
 		{
 			name: "balance",
@@ -109,6 +113,13 @@ function Account(dbLite, cb) {
 		this.conv[field.name] = field.conv;
 	}.bind(this));
 
+	this.editable = [];
+	this.model.forEach(function (field) {
+		if (!field.constante) {
+			this.editable.push(field.name);
+		}
+	}.bind(this));
+
 	var sqles = [];
 
 	var sql = jsonSql.build({
@@ -131,11 +142,24 @@ function Account(dbLite, cb) {
 	});
 	sqles.push(sql.query);
 
+	var sql = jsonSql.build({
+		type: "index",
+		table: this.table,
+		name: this.table + "_publicKey_unique",
+		indexOn: "publicKey",
+		condition: {
+			publicKey: {
+				$isnot: null
+			}
+		}
+	});
+	sqles.push(sql.query);
+
 	async.eachSeries(sqles, function (command, cb) {
-		dbLite.query(command, function (err, data) {
+		scope.dbLite.query(command, function (err, data) {
 			cb(err, data);
 		});
-	}, function (err) {
+	}.bind(this), function (err) {
 		setImmediate(cb, err, this);
 	}.bind(this));
 }
@@ -202,7 +226,10 @@ Account.prototype.get = function (filter, cb) {
 		condition: filter,
 		fields: this.fields
 	});
-	this.dbLite.query(sql.query, sql.values, this.conv, function (err, data) {
+
+	console.log(sql.query, sql.values)
+
+	this.scope.dbLite.query(sql.query, sql.values, this.conv, function (err, data) {
 		if (err) {
 			return cb(err);
 		}
@@ -222,21 +249,12 @@ Account.prototype.getAll = function (filter, cb) {
 		condition: filter,
 		fields: this.fields
 	});
-	this.dbLite.query(sql.query, sql.values, this.conv, function (err, data) {
+	this.scope.dbLite.query(sql.query, sql.values, this.conv, function (err, data) {
 		if (err) {
 			return cb(err);
 		}
 
 		cb(null, data);
-	}.bind(this));
-}
-
-Account.prototype.setAndGet = function (address, fields, cb) {
-	this.set(address, fields, function (err) {
-		if (err) {
-			return cb(err);
-		}
-		this.get({address: address}, cb);
 	}.bind(this));
 }
 
@@ -255,9 +273,48 @@ Account.prototype.set = function (address, fields, cb) {
 		table: this.table,
 		values: this.toDB(account)
 	});
-	this.dbLite.query(sql.query, sql.values, function (err, data) {
+
+	console.log(sql.query, sql.values)
+
+	this.scope.dbLite.query(sql.query, sql.values, function (err, data) {
 		cb(err, data);
 	});
+}
+
+Account.prototype.merge = function (address, diff, cb) {
+	var modifier = {};
+
+	this.editable.forEach(function (value) {
+		if (diff[value]) {
+			var trueValue = diff[value];
+			if (Math.abs(trueValue) === trueValue) {
+				modifier.$inc = modifier.$inc || {};
+				modifier.$inc[value] = trueValue;
+			}
+			else if (trueValue < 0) {
+				modifier.$dec = modifier.$dec || {};
+				modifier.$dec[value] = trueValue;
+			}
+		}
+	});
+
+	var sql = jsonSql.build({
+		type: 'update',
+		table: this.table,
+		modifier: modifier,
+		condition: {
+			address: address
+		}
+	});
+
+	console.log(sql.query, sql.values)
+
+	this.scope.dbLite.query(sql.query, sql.values, function (err, data) {
+		if (err){
+			return cb(err);
+		}
+		this.get({address: address}, cb);
+	}.bind(this));
 }
 
 Account.prototype.remove = function (address, cb) {
@@ -268,7 +325,7 @@ Account.prototype.remove = function (address, cb) {
 			address: address
 		}
 	});
-	this.dbLite.query(sql.query, sql.values, function (err, data) {
+	this.scope.dbLite.query(sql.query, sql.values, function (err, data) {
 		cb(err, address);
 	});
 }

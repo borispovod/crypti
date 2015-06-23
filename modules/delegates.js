@@ -91,7 +91,8 @@ function Delegate() {
 			return setImmediate(cb, errorCode("DELEGATES.EXISTS_DELEGATE"));
 		}
 
-		modules.accounts.existsUsername(trs.asset.delegate.username, function (err, found) {
+		modules.accounts.getAccount({username: trs.asset.delegate.username}, function (err, account) {
+			var found = !!account;
 			if (found && sender.username != trs.asset.delegate.username) {
 				return setImmediate(cb, errorCode("DELEGATES.EXISTS_USERNAME", trs));
 			}
@@ -143,7 +144,8 @@ function Delegate() {
 			return setImmediate(cb, errorCode("DELEGATES.EXISTS_DELEGATE"));
 		}
 
-		modules.accounts.existsUnconfirmedUsername(trs.asset.delegate.username, function (err, found) {
+		modules.accounts.getAccount({u_username: trs.asset.delegate.username}, function (err, account) {
+			var found = !!account;
 			if (found) {
 				return setImmediate(cb, errorCode("DELEGATES.EXISTS_DELEGATE"));
 			}
@@ -416,12 +418,11 @@ function attachApi() {
 				return res.json({success: false, error: errorCode("COMMON.FORGING_ALREADY_ENABLED")});
 			}
 
-			var address = modules.accounts.getAddressByPublicKey(keypair.publicKey.toString('hex'));
-			modules.accounts.getAccount(address, function (err, account) {
+			modules.accounts.getAccount({publicKey: keypair.publicKey.toString('hex')}, function (err, account) {
 				if (account && self.existsDelegate(keypair.publicKey.toString('hex'))) {
 					private.keypairs[keypair.publicKey.toString('hex')] = keypair;
-					res.json({success: true, address: address});
-					library.logger.info("Forging enabled on account: " + address);
+					res.json({success: true, address: account.address});
+					library.logger.info("Forging enabled on account: " + account.address);
 				} else {
 					res.json({success: false, error: errorCode("DELEGATES.DELEGATE_NOT_FOUND")});
 				}
@@ -459,12 +460,11 @@ function attachApi() {
 				return res.json({success: false, error: errorCode("DELEGATES.FORGER_NOT_FOUND")});
 			}
 
-			var address = modules.accounts.getAddressByPublicKey(keypair.publicKey.toString('hex'));
-			modules.accounts.getAccount(address, function (err, account) {
+			modules.accounts.getAccount({publicKey: keypair.publicKey.toString('hex')}, function (err, account) {
 				if (account && self.existsDelegate(keypair.publicKey.toString('hex'))) {
 					delete private.keypairs[keypair.publicKey.toString('hex')];
-					res.json({success: true, address: address});
-					library.logger.info("Forging disabled on account: " + address);
+					res.json({success: true, address: account.address});
+					library.logger.info("Forging disabled on account: " + account.address);
 				} else {
 					res.json({success: false});
 				}
@@ -510,7 +510,7 @@ function attachApi() {
 				}
 			}
 
-			modules.accounts.getAccountByPublicKey(keypair.publicKey.toString('hex'), function (err, account) {
+			modules.accounts.getAccount({publicKey: keypair.publicKey.toString('hex')}, function (err, account) {
 				if (err || !account || !account.publicKey) {
 					return res.json({success: false, error: errorCode("COMMON.OPEN_ACCOUNT")});
 				}
@@ -694,11 +694,10 @@ private.loadMyDelegates = function (cb) {
 
 	async.eachSeries(secrets, function (secret, cb) {
 		var keypair = ed.MakeKeypair(crypto.createHash('sha256').update(secret, 'utf8').digest());
-		var address = modules.accounts.getAddressByPublicKey(keypair.publicKey.toString('hex'));
-		modules.accounts.getAccount(address, function (err, account) {
+		modules.accounts.getAccount({publicKey: keypair.publicKey.toString('hex')}, function (err, account) {
 			if (self.existsDelegate(keypair.publicKey.toString('hex'))) {
 				private.keypairs[keypair.publicKey.toString('hex')] = keypair;
-				library.logger.info("Forging enabled on account: " + address);
+				library.logger.info("Forging enabled on account: " + account.address);
 			} else {
 				library.logger.info("Forger with this public key not found " + keypair.publicKey.toString('hex'));
 			}
@@ -733,7 +732,7 @@ Delegates.prototype.checkDelegates = function (publicKey, votes, cb) {
 	}
 
 	if (util.isArray(votes)) {
-		modules.accounts.getAccountByPublicKey(publicKey, function (err, account) {
+		modules.accounts.getAccount({publicKey: publicKey}, function (err, account) {
 			if (err || !account) {
 				return setImmediate(cb, "error");
 			}
@@ -767,7 +766,7 @@ Delegates.prototype.checkUnconfirmedDelegates = function (publicKey, votes, cb) 
 	}
 
 	if (util.isArray(votes)) {
-		modules.accounts.getAccountByPublicKey(publicKey, function (err, account) {
+		modules.accounts.getAccount({publicKey: publicKey}, function (err, account) {
 			if (err || !account) {
 				return setImmediate(cb, "error");
 			}
@@ -861,7 +860,7 @@ Delegates.prototype.cache = function (delegate, cb) {
 	private.publicKeyIndex[delegate.publicKey] = index;
 	private.transactionIdIndex[delegate.transactionId] = index;
 
-	modules.accounts.getAccountByPublicKey(delegate.publicKey, function (err, account) {
+	modules.accounts.getAccount({publicKey: delegate.publicKey}, function (err, account) {
 		account.username = delegate.username;
 
 		library.network.io.sockets.emit('delegates/change', {});
@@ -881,7 +880,7 @@ Delegates.prototype.uncache = function (delegate, cb) {
 	delete private.transactionIdIndex[delegate.transactionId];
 	private.delegates[index] = false;
 
-	modules.accounts.getAccountByPublicKey(delegate.publicKey, function (err, account) {
+	modules.accounts.getAccount({publicKey: delegate.publicKey}, function (err, account) {
 		account.username = null;
 
 		library.network.io.sockets.emit('delegates/change', {});

@@ -17,17 +17,19 @@ async.auto({
 		dbLite.connect("./blockchain.db", cb);
 	},
 	account: ["dbLite", function (cb, scope) {
-		var account = new Account(scope.dbLite, cb);
+		var account = new Account(scope, cb);
 	}],
-	getnull: ["account", function (cb, scope) {
-		scope.account.get({address: "123c"}, cb);
-	}],
-	addaccount: ["account", "getnull", function (cb, scope) {
-		scope.account.set("123c", {publicKey: "ff"}, cb);
-	}],
-	getaccount: ["account", "addaccount", function (cb, scope) {
-		scope.account.get({address: "123c"}, cb);
+	//getnull: ["account", function (cb, scope) {
+	//	scope.account.get({address: "123c"}, cb);
+	//}],
+	//addaccount: ["account", "getnull", function (cb, scope) {
+	//	scope.account.set("123c", {publicKey: "ff"}, cb);
+	//}],
+	mergeaccount: ["account", function (cb, scope) {
+		scope.account.merge("123c", {balance: -5}, cb);
 	}]
+	//getaccount: ["account", "mergeaccount", function (cb, scope) {
+	//	scope.account.get({address: "123c"}, cb);
+	//}]
 }, function (err, scope) {
-	console.log(scope.getnull, scope.addaccount, scope.getaccount)
 });

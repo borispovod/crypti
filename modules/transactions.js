@@ -56,20 +56,14 @@ function Transfer() {
 	}
 
 	this.apply = function (trs, sender, cb) {
-		modules.accounts.getAccountOrCreateByAddress(trs.recipientId, function (err, recipient) {
-			recipient.addToUnconfirmedBalance(trs.amount);
-			recipient.addToBalance(trs.amount);
-
-			setImmediate(cb);
+		modules.accounts.setAccountAndGet({address: trs.recipientId}, function (err, recipient) {
+			library.logic.account.merge(recipient.address, {balance: trs.amount, u_balance: trs.amount}, cb);
 		});
 	}
 
 	this.undo = function (trs, sender, cb) {
-		modules.accounts.getAccountOrCreateByAddress(trs.recipientId, function (err, recipient) {
-			recipient.addToUnconfirmedBalance(-trs.amount);
-			recipient.addToBalance(-trs.amount);
-
-			setImmediate(cb);
+		modules.accounts.setAccountAndGet({address: trs.recipientId}, function (err, recipient) {
+			library.logic.account.merge(recipient.address, {balance: -trs.amount, u_balance: -trs.amount}, cb);
 		});
 	}
 
@@ -240,16 +234,16 @@ function attachApi() {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
 
-			var recipientId = null;
-			var recipientUsername = null;
+			var query = {};
+
 			var isAddress = /^[0-9]+[C|c]$/g;
 			if (isAddress.test(body.recipientId)) {
-				recipientId = body.recipientId;
+				query.address = body.recipientId;
 			} else {
-				recipientUsername = body.recipientId;
+				query.username = body.recipientId;
 			}
 
-			modules.accounts[recipientId ? "getAccount" : "getAccountByUsername"](recipientId || recipientUsername, function (err, recipient) {
+			modules.accounts.getAccount(query, function (err, recipient) {
 				if (!recipient) {
 					return res.json({success: false, error: errorCode("TRANSACTIONS.RECIPIENT_NOT_FOUND")});
 				}
@@ -265,7 +259,7 @@ function attachApi() {
 					}
 				}
 
-				modules.accounts.getAccountByPublicKey(keypair.publicKey.toString('hex'), function (err, account) {
+				modules.accounts.getAccount({publicKey: keypair.publicKey.toString('hex')}, function (err, account) {
 
 					if (!account || !account.publicKey) {
 						return res.json({success: false, error: errorCode("COMMON.OPEN_ACCOUNT")});
@@ -483,7 +477,7 @@ Transactions.prototype.removeUnconfirmedTransaction = function (id) {
 }
 
 Transactions.prototype.processUnconfirmedTransaction = function (transaction, broadcast, cb) {
-	var sender = modules.accounts.getAccountByPublicKey(transaction.senderPublicKey, function (err, sender) {
+	var sender = modules.accounts.getAccount({publicKey: transaction.senderPublicKey}, function (err, sender) {
 
 		function done(err) {
 			if (err) {
@@ -548,23 +542,23 @@ Transactions.prototype.undoUnconfirmedList = function (cb) {
 }
 
 Transactions.prototype.apply = function (transaction, cb) {
-	modules.accounts.getAccountByPublicKey(transaction.senderPublicKey, function (err, sender) {
+	modules.accounts.getAccount({publicKey: transaction.senderPublicKey}, function (err, sender) {
 		library.logic.transaction.apply(transaction, sender, cb);
 	});
 }
 
 Transactions.prototype.undo = function (transaction, cb) {
-	var sender = modules.accounts.getAccountByPublicKey(transaction.senderPublicKey, function (err, sender) {
+	modules.accounts.getAccount({publicKey: transaction.senderPublicKey}, function (err, sender) {
 		library.logic.transaction.undo(transaction, sender, cb);
 	});
 }
 
 Transactions.prototype.applyUnconfirmed = function (transaction, cb) {
-	modules.accounts.getAccountByPublicKey(transaction.senderPublicKey, function (err, sender) {
+	modules.accounts.getAccount({publicKey: transaction.senderPublicKey}, function (err, sender) {
 		if (err || !sender && transaction.blockId != genesisblock.block.id) {
 			return setImmediate(cb, 'Failed account: ' + transaction.id);
 		} else {
-			modules.accounts.getAccountOrCreateByPublicKey(transaction.senderPublicKey, function (err, sender) {
+			modules.accounts.setAccountAndGet({publicKey: transaction.senderPublicKey}, function (err, sender) {
 				library.logic.transaction.applyUnconfirmed(transaction, sender, cb);
 			});
 		}
@@ -572,7 +566,7 @@ Transactions.prototype.applyUnconfirmed = function (transaction, cb) {
 }
 
 Transactions.prototype.undoUnconfirmed = function (transaction, cb) {
-	modules.accounts.getAccountByPublicKey(transaction.senderPublicKey, function (err, sender) {
+	modules.accounts.getAccount({publicKey: transaction.senderPublicKey}, function (err, sender) {
 		library.logic.transaction.undoUnconfirmed(transaction, sender, cb);
 	});
 }

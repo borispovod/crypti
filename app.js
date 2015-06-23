@@ -253,20 +253,18 @@ d.run(function () {
 			var Account = require('./logic/account.js');
 
 			async.auto({
-				transaction: function (cb) {
-					new Transaction(scope.dbLite, cb);
+				dbLite: function (cb) {
+					cb(null, scope.dbLite);
 				},
-				block: ["transaction", function (cb, lscope) {
-					new Block(scope.dbLite, function (err, block) {
-						block.logic = {
-							transaction: lscope.transaction
-						}
-						cb(null, block);
-					});
+				account: ["dbLite", function (cb, scope) {
+					new Account(scope, cb);
 				}],
-				account: function (cb) {
-					new Account(scope.dbLite, cb);
-				}
+				transaction: ["dbLite", "account", function (cb, scope) {
+					new Transaction(scope, cb);
+				}],
+				block: ["dbLite", "account", "transaction", function (cb, scope) {
+					new Block(scope, cb);
+				}]
 			}, cb);
 		}],
 
