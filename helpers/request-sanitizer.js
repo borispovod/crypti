@@ -57,11 +57,15 @@ RequestSanitizer.addRule("boolean", {
 });
 
 RequestSanitizer.addRule("int", {
-    filter : function(accept, value , field) {
-        if (field.isEmpty() && field.rules.empty) return null;
+    validate: function(accept, value , field) {
+        if (field.isEmpty() && field.rules.empty) {
+			return null;
+		} else {
+			return false;
+		}
 
-		if (isNaN(value) || parseInt(value) != value || isNaN(parseInt(value, 10))) {
-			return 0;
+		if (typeof value !== 'Number' || isNaN(value) || parseInt(value) != value || isNaN(parseInt(value, 10))) {
+			return false;
 		}
 
 		return parseInt(value);

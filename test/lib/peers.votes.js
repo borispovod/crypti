@@ -1,4 +1,4 @@
-var node = require('./variables.js'),
+var node = require('./../variables.js'),
 	crypto = require('crypto');
 
 var account = node.randomAccount();
@@ -86,7 +86,8 @@ describe("Peers votes", function () {
 					.expect('Content-Type', /json/)
 					.expect(200)
 					.end(function (err, res) {
-						setTimeout(function () {
+						node.onNewBlock(function (err) {
+							node.expect(err).to.be.not.ok;
 							account.username = node.randomDelegateName();
 							var transaction = node.crypti.delegate.createDelegate(account.password, account.username);
 							node.peer.post('/transactions')
@@ -107,7 +108,9 @@ describe("Peers votes", function () {
 
 	it("Vote for created delegate. Should return not ok", function (done) {
 		var transaction = node.crypti.vote.createVote(node.peers_config.account, ["+" + account.publicKey]);
-		setTimeout(function () {
+		node.onNewBlock(function (err) {
+			node.expect(err).to.be.not.ok;
+
 			node.peer.post('/transactions')
 				.set('Accept', 'application/json')
 				.send({

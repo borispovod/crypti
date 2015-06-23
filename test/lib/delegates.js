@@ -5,7 +5,7 @@
 'use strict';
 
 // Requires and node configuration
-var node = require('./variables.js');
+var node = require('./../variables.js');
 
 // Account info for a RANDOM account (which we create later) - 0 XCR amount | Will act as delegate
 var Raccount = node.randomAccount();
@@ -134,8 +134,10 @@ describe('Delegates', function() {
 
         before(function (done) {
             // Check that Raccount has the XCR we sent
-            this.timeout(node.blockTimePlus); // Fail test if not finished in 12s
-            setTimeout(function(){
+             // Fail test if not finished in 12s
+            node.onNewBlock(function(err){
+				node.expect(err).to.be.not.ok
+
                 node.api.post('/accounts/open')
                     .set('Accept', 'application/json')
                     .send({
@@ -156,7 +158,7 @@ describe('Delegates', function() {
                          */
                         done();
                     });
-            }, node.blockTime);
+            });
         });
 
         test += 1;
@@ -260,7 +262,7 @@ describe('Delegates', function() {
                         console.log(res.body);
                         node.expect(res.body).to.have.property("success").to.be.false;
                         node.expect(res.body).to.have.property("error");
-                        node.expect(res.body.error).to.contain("you already voted");
+                        node.expect(res.body.error.toLowerCase()).to.contain("you already voted");
                         done();
                     });
             }, 1000);
@@ -269,8 +271,8 @@ describe('Delegates', function() {
         test += 1;
         it(test + '. We attempt to downVote a delegate from the new random account. We expect success',function(done){
             // We wait for a new block
-            this.timeout(node.blockTimePlus); // Fail test if not finished in 12s
-            setTimeout(function(){
+            node.onNewBlock(function(err){
+				node.expect(err).to.be.not.ok;
                 node.api.put('/accounts/delegates')
                     .set('Accept', 'application/json')
                     .send({
@@ -289,7 +291,7 @@ describe('Delegates', function() {
                         node.expect(res.body.transaction.fee).to.equal(node.Fees.voteFee);
                         done();
                     });
-            }, node.blockTime);
+            });
         });
 
         test += 1;
@@ -308,7 +310,7 @@ describe('Delegates', function() {
                         console.log(res.body);
                         node.expect(res.body).to.have.property("success").to.be.false;
                         node.expect(res.body).to.have.property("error");
-                        node.expect(res.body.error).to.contain("you already voted");
+                        node.expect(res.body.error.toLowerCase()).to.contain("you already voted");
                         done();
                     });
             }, 2000);
@@ -543,8 +545,8 @@ describe('Delegates', function() {
 
         test += 1;
         it(test + '. We attempt to re-register as delegate from SAME random account: ' + Raccount.password + '. We expect error',function(done){
-            this.timeout(node.blockTimePlus);
-            setTimeout(function(){
+            node.onNewBlock(function(err){
+				node.expect(err).to.be.not.ok;
                 node.api.put('/delegates')
                     .set('Accept', 'application/json')
                     .send({
@@ -559,7 +561,7 @@ describe('Delegates', function() {
                         node.expect(res.body).to.have.property("error");
                         done();
                     });
-            }, node.blockTime);
+            });
         });
     });
 
@@ -640,10 +642,8 @@ describe('Delegates', function() {
                 .expect(200)
                 .end(function (err, res) {
                     console.log(res.body);
-                    node.expect(res.body).to.have.property("success").to.be.true;
-                    node.expect(res.body).to.have.property("delegates").that.is.an('array');
-                    node.expect(res.body).to.have.property("totalCount").that.is.at.least(0);
-                    node.expect(res.body.delegates).to.have.length.of(0);
+                    node.expect(res.body).to.have.property("success").to.be.false;
+                    node.expect(res.body).to.have.property("error");
                     done();
                 });
         });
