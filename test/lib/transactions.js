@@ -1,5 +1,5 @@
 /**
- * Ask Sebastian if you have any questions. Last Edit: 31/05/2015
+ * Ask Sebastian if you have any questions. Last Edit: 24/06/2015
  */
 
 // Requires and node configuration
@@ -121,6 +121,7 @@ describe('Transactions', function() {
                 else {
                     console.log('Unable to open account1, tests will fail');
                     console.log('Data sent: secret: ' + Account1.password + ' , secondSecret: ' + Account1.secondPassword );
+                    node.expect("TEST").to.equal("FAILED");
                 }
                 done();
             });
@@ -147,6 +148,7 @@ describe('Transactions', function() {
                 else{
                     console.log('Unable to open account2, tests will fail');
                     console.log('Data sent: secret: ' + Account2.password + ' , secondSecret: ' + Account2.secondPassword );
+                    node.expect("TEST").to.equal("FAILED");
                 }
                 done();
             });
@@ -173,6 +175,7 @@ describe('Transactions', function() {
                 else{
                     console.log('Unable to open account3, tests will fail');
                     console.log('Data sent: secret: ' + Account3.password + ' , secondSecret: ' + Account3.secondPassword );
+                    node.expect("TEST").to.equal("FAILED");
                 }
                 done();
             });
@@ -211,6 +214,11 @@ describe('Transactions', function() {
                             'txId': res.body.transactionId,
                             'type':node.TxTypes.SEND
                         }
+                    }
+                    else{
+                        console.log("Sending XCR to Account1 failed.");
+                        console.log("Sent: secret: " + node.Faccount.password + ", amount: " + randomXCR + ", recipientId: " + Account1.address );
+                        node.expect("TEST").to.equal("FAILED");
                     }
                     done();
                     /*
@@ -257,6 +265,11 @@ describe('Transactions', function() {
                             'type':node.TxTypes.SEND
                         }
                     }
+                    else{
+                        console.log("Sending XCR to Account2 failed.");
+                        console.log("Sent: secret: " + node.Faccount.password + ", amount: " + randomXCR + ", recipientId: " + Account2.address );
+                        node.expect("TEST").to.equal("FAILED");
+                    }
                     done();
                     /*
                      console.log("Tx " + JSON.stringify(transactionList[transactionCount-1]));
@@ -298,6 +311,10 @@ describe('Transactions', function() {
                                     node.expect(res.body.transactions[i].amount).to.be.at.most(res.body.transactions[i+1].amount);
                                 }
                             }
+                        }
+                        else{
+                            console.log("Request failed. Expected success");
+                            node.expect("TEST").to.equal("FAILED");
                         }
                         done();
                     });
@@ -345,15 +362,18 @@ describe('Transactions', function() {
                                     }
                                 }
                             }
+                            else{
+                                console.log("Request failed. Expected success");
+                                node.expect("TEST").to.equal("FAILED");
+                            }
                             done();
                         });
                 });
             });
 
             test = test + 1;
-            it(test + '. Attempting to get transactions list. offset. Expecting success', function (done) {
+            it(test + '. Attempting to get transactions list. Using Offset. Expecting success', function (done) {
                 var senderId = '', blockId = '', recipientId = '', limit = 100, offset = 1, orderBy = 't_timestamp:asc';
-
                 node.onNewBlock(function(err) {
                     node.api.get('/transactions?blockId=' + blockId + '&recipientId=' + recipientId + '&limit=' + limit + '&offset=' + offset + '&orderBy=' + orderBy)
                         .set('Accept', 'application/json')
@@ -370,6 +390,21 @@ describe('Transactions', function() {
                             done();
                         });
                 });
+            });
+
+            test = test + 1;
+            it(test + '. Attempting to get transactions list. Using Offset as TEXT. Expecting error', function (done) {
+                var senderId = '', blockId = '', recipientId = '', limit = 100, offset = 'ONE', orderBy = 't_timestamp:asc';
+                node.api.get('/transactions?blockId=' + blockId + '&recipientId=' + recipientId + '&limit=' + limit + '&offset=' + offset + '&orderBy=' + orderBy)
+                    .set('Accept', 'application/json')
+                    .expect('Content-Type', /json/)
+                    .expect(200)
+                    .end(function (err, res) {
+                        console.log(res.body);
+                        node.expect(res.body).to.have.property("success").to.be.false;
+                        node.expect(res.body).to.have.property("error");
+                        done();
+                   });
             });
 
             test = test + 1;
@@ -473,6 +508,7 @@ describe('Transactions', function() {
                             else{
                                 console.log("Failed Tx or transactionId is null");
                                 console.log("Sent: secret: " + Account1.password + ", amount: " + amountToSend + ", recipientId: " + Account2.address);
+                                node.expect("TEST").to.equal("FAILED");
                             }
                             done();
                         });
@@ -736,7 +772,8 @@ describe('Transactions', function() {
                             node.expect(res.body.transaction.type).to.equal(transactionInCheck.type);
                         }
                         else{
-                            console.log("Transaction failed or transaction list empty");
+                            console.log("Transaction failed or transaction list is null");
+                            node.expect("TEST").to.equal("FAILED");
                         }
                         done();
                     });
@@ -771,6 +808,10 @@ describe('Transactions', function() {
                                     node.expect(res.body.transactions[i].type).to.equal(node.TxTypes.SEND);
                                 }
                             }
+                        }
+                        else{
+                            console.log("Request failed or transaction list is null");
+                            node.expect("TEST").to.equal("FAILED");
                         }
                         done();
                     });
@@ -889,6 +930,7 @@ describe('Transactions', function() {
                         else {
                             console.log("Transaction failed or transaction object is null");
                             console.log("Sent: secret: " + Account1.password + ", secondSecret: " + Account1.secondPassword);
+                            node.expect("TEST").to.equal("FAILED");
                         }
                         done();
                     });
@@ -1088,6 +1130,7 @@ describe('Transactions', function() {
                             else {
                                 console.log("Transaction failed or transaction object is null");
                                 console.log("Sent: secret: " + Account1.secret + ", secondSecret: " + Account1.secondPassword + ", username: " + Account1.username);
+                                node.expect("TEST").to.equal("FAILED");
                             }
                             done();
                         });
@@ -1177,6 +1220,7 @@ describe('Transactions', function() {
                                 console.log("Transaction failed or transactionId is null");
                                 console.log("Sent: secret: " + Account2.password + ", secondSecret: " + Account2.secondPassword
                                 + ", amount: " + amountToSend + ", recipientId: " + Account1.username);
+                                node.expect("TEST").to.equal("FAILED");
                             }
                             done();
                         });
