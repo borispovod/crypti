@@ -404,6 +404,14 @@ Transaction.prototype.objectNormalize = function (trs) {
 		delete trs.recipientId;
 	}
 
+	if (trs.signSignature == null) {
+		delete trs.signSignature;
+	}
+
+	if (trs.asset == null) {
+		delete trs.asset;
+	}
+
 	var report = scheme.validate(trs, {
 		object: true,
 		properties: {
