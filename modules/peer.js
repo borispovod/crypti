@@ -157,7 +157,13 @@ private.updatePeerList = function (cb) {
 			return cb();
 		}
 
-		var report = library.schema.validate(data.body.peers, {type: "array", required: true});
+		var report = library.scheme.validate(data.body.peers, {type: "array", required: true});
+
+		if (!report) {
+			return cb();
+		}
+
+		var peers = data.body.peers;
 
 		//var peers = RequestSanitizer.array(data.body.peers);
 		async.eachLimit(peers, 2, function (peer, cb) {

@@ -231,8 +231,6 @@ private.list = function (filter, cb) {
 		return cb('Maximum of limit is 100');
 	}
 
-	console.log(params);
-
 	library.dbLite.query("select count(b.id) " +
 	"from blocks b " +
 	(fields.length ? "where " + fields.join(' and ') : ''), params, {count: Number}, function (err, rows) {
