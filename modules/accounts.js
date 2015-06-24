@@ -640,20 +640,41 @@ function attachApi() {
 
 	if (process.env.TOP && process.env.TOP.toUpperCase() == "TRUE") {
 		router.get('/top', function (req, res) {
-			var arr = Object.keys(private.accounts).map(function (key) {
-				return private.accounts[key]
-			});
+			req.sanitize(req.query, {
+				type: "object",
+				properties: {
+					limit: {
+						type: "integer",
+						minimum: 0,
+						maximum: 100
+					},
+					offset: {
+						type: "integer",
+						minimum: 0
+					}
+				}
+			}, function (err, report, query) {
+				if (err) return next(err);
+				if (!report.isValid) return res.json({success: false, error: report.issues});
 
-			arr.sort(function (a, b) {
-				if (a.balance > b.balance)
-					return -1;
-				if (a.balance < b.balance)
-					return 1;
-				return 0;
-			});
+				var limit = req.query.limit,
+					offset = req.query.offset;
 
-			arr = arr.slice(0, 30);
-			return res.json({success: true, accounts: arr});
+				var arr = Object.keys(private.accounts).map(function (key) {
+					return private.accounts[key]
+				});
+
+				arr.sort(function (a, b) {
+					if (a.balance > b.balance)
+						return -1;
+					if (a.balance < b.balance)
+						return 1;
+					return 0;
+				});
+
+				arr = arr.slice(offset, offset + limit);
+				return res.json({success: true, accounts: arr});
+			});
 		});
 	}
 

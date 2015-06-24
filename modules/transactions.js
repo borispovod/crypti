@@ -386,6 +386,7 @@ function attachApi() {
 
 private.list = function (filter, cb) {
 	var sortFields = ['t.id', 't.blockId', 't.type', 't.timestamp', 't.senderPublicKey', 't.senderId', 't.recipientId', 't.senderUsername', 't.recipientUsername', 't.amount', 't.fee', 't.signature', 't.signSignature', 't.confirmations', 'b.height'];
+
 	var params = {}, fields_or = [], owner = "";
 	if (filter.blockId) {
 		fields_or.push('blockId = $blockId')
@@ -416,6 +417,7 @@ private.list = function (filter, cb) {
 		params.ownerPublicKey = filter.ownerPublicKey;
 		params.ownerAddress = filter.ownerAddress;
 	}
+
 	if (filter.amount >= 0) {
 		fields_or.push('amount = $amount');
 		params.amount = filter.amount;
@@ -424,14 +426,16 @@ private.list = function (filter, cb) {
 		fields_or.push('fee = $fee');
 		params.fee = filter.fee;
 	}
+
 	if (filter.type >= 0) {
 		fields_or.push('type = $type');
 		params.type = filter.type;
 	}
-	if (filter.limit) {
+
+	if (filter.limit >= 0) {
 		params.limit = filter.limit;
 	}
-	if (filter.offset) {
+	if (filter.offset >= 0) {
 		params.offset = filter.offset;
 	}
 
@@ -474,7 +478,7 @@ private.list = function (filter, cb) {
 		(fields_or.length ? "(" + fields_or.join(' or ') + ") " : "") + (fields_or.length && owner ? " and " + owner : owner) + " " +
 		(filter.orderBy ? 'order by ' + sortBy + ' ' + sortMethod : '') + " " +
 		(filter.limit ? 'limit $limit' : '') + " " +
-		(filter.offset ? 'offset $offset' : ''), params, ['t_id', 'b_height', 't_blockId', 't_type', 't_timestamp', 't_senderPublicKey', 't_senderId', 't_recipientId', 't_senderUsername', 't_recipientUsername', 't_amount', 't_fee', 't_signature', 't_signSignature', 'confirmations'], function (err, rows) {
+		(filter.offset ? 'offset $offset' : ''), params, ['t_id', 'b_height', 'b_id', 't_type', 't_timestamp', 't_senderPublicKey', 't_senderId', 't_recipientId', 't_senderUsername', 't_recipientUsername', 't_amount', 't_fee', 't_signature', 't_signSignature', 'confirmations'], function (err, rows) {
 			if (err) {
 				return cb(err);
 			}
@@ -496,7 +500,7 @@ private.getById = function (id, cb) {
 	library.dbLite.query("select t.id, b.height, t.blockId, t.type, t.timestamp, lower(hex(t.senderPublicKey)), t.senderId, t.recipientId, t.senderUsername, t.recipientUsername, t.amount, t.fee, lower(hex(t.signature)), lower(hex(t.signSignature)), (select max(height) + 1 from blocks) - b.height " +
 	"from trs t " +
 	"inner join blocks b on t.blockId = b.id " +
-	"where t.id = $id", {id: id}, ['t_id', 'b_height', 't_blockId', 't_type', 't_timestamp', 't_senderPublicKey', 't_senderId', 't_recipientId', 't_senderUsername', 't_recipientUsername', 't_amount', 't_fee', 't_signature', 't_signSignature', 'confirmations'], function (err, rows) {
+	"where t.id = $id", {id: id}, ['t_id', 'b_height', 'b_id', 't_type', 't_timestamp', 't_senderPublicKey', 't_senderId', 't_recipientId', 't_senderUsername', 't_recipientUsername', 't_amount', 't_fee', 't_signature', 't_signSignature', 'confirmations'], function (err, rows) {
 		if (err || !rows.length) {
 			return cb(err || "Can't find transaction: " + id);
 		}
