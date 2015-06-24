@@ -2,6 +2,8 @@ var async = require('async');
 var jsonSql = require('json-sql')();
 RequestSanitizer = require('../helpers/request-sanitizer.js');
 
+var private = {};
+
 //constructor
 function Account(scope, cb) {
 	this.scope = scope;
@@ -60,26 +62,31 @@ function Account(scope, cb) {
 			name: "delegates",
 			type: "Text",
 			filter: "string",
-			conv: String
+			conv: String,
+			expression: "GROUP_CONCAT(d.dependentId)"
 		},
 		{
-			name: "following",
+			name: "contacts",
 			type: "Text",
 			filter: "string",
-			conv: String
-		},
-		{
-			name: "followers",
-			type: "Text",
-			filter: "string",
-			conv: String
-		},
-		{
-			name: "multisignatures",
-			type: "Text",
-			filter: "string",
-			conv: String
+			conv: String,
+			expression: "GROUP_CONCAT(c.dependentId)"
 		}
+		//{
+		//	name: "followers",
+		//	type: "Text",
+		//	filter: "string",
+		//	conv: String,
+		//	expression: "GROUP_CONCAT(c.follower)",
+		//	readonly: true
+		//},
+		//{
+		//	name: "multisignatures",
+		//	type: "Text",
+		//	filter: "string",
+		//	conv: String,
+		//	expression: "GROUP_CONCAT(ms.publicKey)"
+		//}
 	];
 
 	this.fields = this.model.map(function (field) {
@@ -89,7 +96,7 @@ function Account(scope, cb) {
 		}
 
 		if (field.expression) {
-			_tmp.expression = field.mod;
+			_tmp.expression = field.expression;
 		} else {
 			if (field.mod) {
 				_tmp.expression = field.mod;
@@ -115,7 +122,7 @@ function Account(scope, cb) {
 
 	this.editable = [];
 	this.model.forEach(function (field) {
-		if (!field.constante) {
+		if (!field.constante && !field.readonly) {
 			this.editable.push(field.name);
 		}
 	}.bind(this));
@@ -155,6 +162,46 @@ function Account(scope, cb) {
 	});
 	sqles.push(sql.query);
 
+	var sql = jsonSql.build({
+		type: 'create',
+		table: this.table + "2delegates",
+		tableFields: [
+			{
+				name: "accountId",
+				type: "String",
+				length: 21,
+				not_null: true,
+				primary_key: true
+			}, {
+				name: "dependentId",
+				type: "String",
+				length: 21,
+				not_null: true
+			}
+		]
+	});
+	sqles.push(sql.query);
+
+	var sql = jsonSql.build({
+		type: 'create',
+		table: this.table + "2contacts",
+		tableFields: [
+			{
+				name: "accountId",
+				type: "String",
+				length: 21,
+				not_null: true,
+				primary_key: true
+			}, {
+				name: "dependentId",
+				type: "String",
+				length: 21,
+				not_null: true
+			}
+		]
+	});
+	sqles.push(sql.query);
+
 	async.eachSeries(sqles, function (command, cb) {
 		scope.dbLite.query(command, function (err, data) {
 			cb(err, data);
@@ -162,6 +209,52 @@ function Account(scope, cb) {
 	}.bind(this), function (err) {
 		setImmediate(cb, err, this);
 	}.bind(this));
+}
+
+private.reverseDiff = function (diff) {
+	var copyDiff = diff.slice();
+	for (var i = 0; i < copyDiff.length; i++) {
+		var math = copyDiff[i][0] == '-' ? '+' : '-';
+		copyDiff[i] = math + copyDiff[i].slice(1);
+	}
+	return copyDiff;
+}
+
+private.applyDiff = function (source, diff) {
+	var res = source ? source.slice() : [];
+
+	for (var i = 0; i < diff.length; i++) {
+		var math = diff[i][0];
+		var publicKey = diff[i].slice(1);
+
+		if (math == "+") {
+			res = res || [];
+
+			var index = -1;
+			if (res) {
+				index = res.indexOf(publicKey);
+			}
+			if (index != -1) {
+				return false;
+			}
+
+			res.push(publicKey);
+		}
+		if (math == "-") {
+			var index = -1;
+			if (res) {
+				index = res.indexOf(publicKey);
+			}
+			if (index == -1) {
+				return false;
+			}
+			res.splice(index, 1);
+			if (!res.length) {
+				res = null;
+			}
+		}
+	}
+	return res;
 }
 
 Account.prototype.dbRead = function (raw) {
@@ -211,10 +304,6 @@ Account.prototype.toDB = function (raw) {
 	account.publicKey = raw.publicKey ? new Buffer(raw.publicKey, "hex") : null;
 	account.secondPublicKey = raw.secondPublicKey ? new Buffer(raw.secondPublicKey, "hex") : null;
 	account.username = raw.username || null;
-	account.delegates = raw.delegates || null;
-	account.followers = raw.followers || null;
-	account.following = raw.following || null;
-	account.multisignatures = raw.multisignature || null;
 
 	return account;
 }
@@ -223,11 +312,23 @@ Account.prototype.get = function (filter, cb) {
 	var sql = jsonSql.build({
 		type: 'select',
 		table: this.table,
+		alias: 'a',
 		condition: filter,
-		fields: this.fields
+		fields: this.fields,
+		join: [
+			{
+				type: 'inner',
+				table: this.table + "2delegates",
+				alias: 'd',
+				on: {'a.address': 'd.accountId'}
+			}, {
+				type: 'inner',
+				table: this.table + "2contacts",
+				alias: 'c',
+				on: {'a.address': 'c.accountId'}
+			}
+		]
 	});
-
-	console.log(sql.query, sql.values)
 
 	this.scope.dbLite.query(sql.query, sql.values, this.conv, function (err, data) {
 		if (err) {
@@ -274,52 +375,118 @@ Account.prototype.set = function (address, fields, cb) {
 		values: this.toDB(account)
 	});
 
-	console.log(sql.query, sql.values)
-
 	this.scope.dbLite.query(sql.query, sql.values, function (err, data) {
 		cb(err, data);
 	});
 }
 
 Account.prototype.merge = function (address, diff, cb) {
-	var modifier = {};
+	var update = {}, remove = {}, insert = {};
+
+	var self = this;
 
 	this.editable.forEach(function (value) {
 		if (diff[value]) {
 			var trueValue = diff[value];
-			if (Math.abs(trueValue) === trueValue) {
-				modifier.$inc = modifier.$inc || {};
-				modifier.$inc[value] = trueValue;
-			}
-			else if (trueValue < 0) {
-				modifier.$dec = modifier.$dec || {};
-				modifier.$dec[value] = trueValue;
+			switch (typeof trueValue) {
+				case "number":
+					if (Math.abs(trueValue) === trueValue) {
+						update.$inc = update.$inc || {};
+						update.$inc[value] = trueValue;
+					}
+					else if (trueValue < 0) {
+						update.$dec = update.$dec || {};
+						update.$dec[value] = Math.abs(trueValue);
+					}
+					break;
+				case "string":
+					var diffarr = trueValue.split(",");
+					for (var i = 0; i < diffarr.length; i++) {
+						var math = diffarr[i][0];
+						var val = diffarr[i].slice(1);
+						if (math == "-") {
+							remove[value] = remove[value] || [];
+							remove[value].push(val);
+						} else if (math == "+") {
+							insert[value] = insert[value] || [];
+							insert[value].push(val)
+						}
+					}
+					break;
 			}
 		}
 	});
 
-	var sql = jsonSql.build({
-		type: 'update',
-		table: this.table,
-		modifier: modifier,
-		condition: {
-			address: address
+	var sqles = [];
+
+	if (Object.keys(remove).length) {
+		Object.keys(remove).forEach(function (el) {
+			var sql = jsonSql.build({
+				type: 'remove',
+				table: self.table + "2" + el,
+				condition: {
+					dependentId: {$in: remove[el]}
+				}
+			});
+			sqles.push(sql);
+		});
+	}
+
+	if (Object.keys(insert).length) {
+		Object.keys(insert).forEach(function (el) {
+			for (var i = 0; i < insert[el].length; i++) {
+				var sql = jsonSql.build({
+					type: 'insert',
+					table: self.table + "2" + el,
+					values: {
+						accountId: address,
+						dependentId: insert[el][i]
+					}
+				});
+				sqles.push(sql);
+			}
+		});
+	}
+
+	if (Object.keys(update).length) {
+		var sql = jsonSql.build({
+			type: 'update',
+			table: this.table,
+			modifier: update,
+			condition: {
+				address: address
+			}
+		});
+		sqles.push(sql);
+	}
+
+	if (sqles.length > 1) {
+		self.scope.dbLite.query('BEGIN TRANSACTION;');
+	}
+	async.eachSeries(sqles, function (sql, cb) {
+		self.scope.dbLite.query(sql.query, sql.values, function (err, data) {
+			cb(err, data);
+		});
+	}, function (err) {
+		if (err) {
+			cb(err);
+			//self.scope.dbLite.query('ROLLBACK;', function (rollbackErr) {
+			//	console.log("ROLLBACK")
+			//	cb(rollbackErr || err);
+			//});
+		} else {
+			if (sqles.length > 1) {
+				self.scope.dbLite.query('COMMIT;', function (err) {
+					self.get({address: address}, cb);
+				});
+			}
 		}
 	});
-
-	console.log(sql.query, sql.values)
-
-	this.scope.dbLite.query(sql.query, sql.values, function (err, data) {
-		if (err){
-			return cb(err);
-		}
-		this.get({address: address}, cb);
-	}.bind(this));
 }
 
 Account.prototype.remove = function (address, cb) {
 	var sql = jsonSql.build({
-		type: 'delete',
+		type: 'remove',
 		table: this.table,
 		condition: {
 			address: address
