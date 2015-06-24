@@ -412,6 +412,10 @@ Transaction.prototype.objectNormalize = function (trs) {
 		delete trs.asset;
 	}
 
+	if (trs.height == null) {
+		delete trs.height;
+	}
+
 	var report = scheme.validate(trs, {
 		object: true,
 		properties: {
