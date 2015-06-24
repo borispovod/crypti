@@ -12,6 +12,7 @@ var Account3 = node.randomTxAccount();
 
 var transactionCount = 0;
 var transactionList = [];
+var offsetTimestamp = 0;
 
 // Used for calculating amounts
 var expectedFee = 0;
@@ -112,9 +113,15 @@ describe('Transactions', function() {
                 console.log(res.body);
                 console.log('Opening Account 1 with password: ' + Account1.password);
                 node.expect(res.body).to.have.property("success").to.be.true;
-                Account1.address = res.body.account.address;
-                Account1.publicKey = res.body.account.publicKey;
-                Account1.balance = res.body.account.balance;
+                if (res.body.success == true && res.body.account != null){
+                    Account1.address = res.body.account.address;
+                    Account1.publicKey = res.body.account.publicKey;
+                    Account1.balance = res.body.account.balance;
+                }
+                else {
+                    console.log('Unable to open account1, tests will fail');
+                    console.log('Data sent: secret: ' + Account1.password + ' , secondSecret: ' + Account1.secondPassword );
+                }
                 done();
             });
     });
@@ -132,9 +139,15 @@ describe('Transactions', function() {
                 console.log(res.body);
                 console.log('Opening Account 2 with password: ' + Account2.password);
                 node.expect(res.body).to.have.property("success").to.be.true;
-                Account2.address = res.body.account.address;
-                Account2.publicKey = res.body.account.publicKey;
-                Account2.balance = res.body.account.balance;
+                if (res.body.success == true && res.body.account != null) {
+                    Account2.address = res.body.account.address;
+                    Account2.publicKey = res.body.account.publicKey;
+                    Account2.balance = res.body.account.balance;
+                }
+                else{
+                    console.log('Unable to open account2, tests will fail');
+                    console.log('Data sent: secret: ' + Account2.password + ' , secondSecret: ' + Account2.secondPassword );
+                }
                 done();
             });
     });
@@ -152,9 +165,15 @@ describe('Transactions', function() {
                 console.log(res.body);
                 console.log('Opening Account 3 with password: ' + Account3.password);
                 node.expect(res.body).to.have.property("success").to.be.true;
-                Account3.address = res.body.account.address;
-                Account3.publicKey = res.body.account.publicKey;
-                Account3.balance = res.body.account.balance;
+                if (res.body.success == true && res.body.account != null) {
+                    Account3.address = res.body.account.address;
+                    Account3.publicKey = res.body.account.publicKey;
+                    Account3.balance = res.body.account.balance;
+                }
+                else{
+                    console.log('Unable to open account3, tests will fail');
+                    console.log('Data sent: secret: ' + Account3.password + ' , secondSecret: ' + Account3.secondPassword );
+                }
                 done();
             });
     });
@@ -176,7 +195,7 @@ describe('Transactions', function() {
                 .end(function (err, res) {
                     console.log(res.body);
                     node.expect(res.body).to.have.property("success").to.be.true;
-                    if (res.body.success == true) {
+                    if (res.body.success == true && res.body.transactionId != null) {
                         console.log('Sent to ' + Account1.address + ' ' + (randomXCR / node.normalizer) + ' XCR');
                         console.log('Expected fee (paid by sender): ' + expectedFee / node.normalizer + ' XCR');
                         Account1.transactions.push(transactionCount);
@@ -223,7 +242,7 @@ describe('Transactions', function() {
                     console.log('Sent to ' + Account2.address + ' ' + (randomXCR / node.normalizer) + ' XCR');
                     console.log('Expected fee (paid by sender): ' + expectedFee / node.normalizer + ' XCR');
                     node.expect(res.body).to.have.property("success").to.be.true;
-                    if (res.body.success == true) {
+                    if (res.body.success == true && res.body.transactionId != null) {
                         Account2.transactions.push(transactionCount);
                         transactionCount += 1;
                         totalTxFee += (expectedFee / node.normalizer);
@@ -250,7 +269,7 @@ describe('Transactions', function() {
 
     before(function (done) {
 
-        // this.timeout(node.blockTimePlus);
+        // Wait for new block to ensure all data has been recieved
         node.onNewBlock(function(err) {
 			node.expect(err).to.be.not.ok;
             console.log("ACCOUNT 1:" + Account1);
@@ -262,7 +281,7 @@ describe('Transactions', function() {
         describe('/transactions', function () {
             test = test + 1;
             it(test + '. Attempting to get transactions list. Expecting success', function (done) {
-                var senderId = node.Faccount.address, blockId = '', recipientId = Account1.address, limit = 10, offset = 0, orderBy = 't_amount:desc';
+                var senderId = node.Faccount.address, blockId = '', recipientId = Account1.address, limit = 10, offset = 0, orderBy = 't_amount:asc';
 
                 node.api.get('/transactions?blockId=' + blockId + '&senderId=' + senderId + '&recipientId=' + recipientId + '&limit=' + limit + '&offset=' + offset + '&orderBy=' + orderBy)
                     .set('Accept', 'application/json')
@@ -273,7 +292,102 @@ describe('Transactions', function() {
                         node.expect(res.body).to.have.property("success").to.be.true;
                         node.expect(res.body).to.have.property("transactions").that.is.an('array');
                         node.expect(res.body.transactions).to.have.length.within(transactionCount, limit);
-                        node.expect(res.body.transactions[0].amount).to.be.at.least(res.body.transactions[1].amount);
+                        if (res.body.transactions.length > 0){
+                            for (var i=0; i < res.body.transactions.length; i++){
+                                if (res.body.transactions[i+1] != null){
+                                    node.expect(res.body.transactions[i].amount).to.be.at.most(res.body.transactions[i+1].amount);
+                                }
+                            }
+                        }
+                        done();
+                    });
+            });
+
+            test = test + 1;
+            it(test + '. Attempting to get transactions list. Invalid limit. Expecting error', function (done) {
+                var senderId = node.Faccount.address, blockId = '', recipientId = Account1.address, limit = 999999, offset = 0, orderBy = 't_amount:asc';
+
+                node.api.get('/transactions?blockId=' + blockId + '&senderId=' + senderId + '&recipientId=' + recipientId + '&limit=' + limit + '&offset=' + offset + '&orderBy=' + orderBy)
+                    .set('Accept', 'application/json')
+                    .expect('Content-Type', /json/)
+                    .expect(200)
+                    .end(function (err, res) {
+                        console.log(res.body);
+                        node.expect(res.body).to.have.property("success").to.be.false;
+                        node.expect(res.body).to.have.property("error");
+                        done();
+                    });
+            });
+
+            test = test + 1;
+            it(test + '. Attempting to get transactions list. Order by timestamp. Expecting success', function (done) {
+                var senderId = "", blockId = '', recipientId = Account1.address, limit = 100, offset = 0, orderBy = 't_timestamp:asc';
+
+                node.api.get('/transactions?blockId=' + blockId + '&recipientId=' + recipientId + '&limit=' + limit + '&offset=' + offset + '&orderBy=' + orderBy)
+                    .set('Accept', 'application/json')
+                    .expect('Content-Type', /json/)
+                    .expect(200)
+                    .end(function (err, res) {
+                        console.log(res.body);
+                        node.expect(res.body).to.have.property("success").to.be.true;
+                        node.expect(res.body).to.have.property("transactions").that.is.an('array');
+                        node.expect(res.body.transactions).to.have.length.within(transactionCount, limit);
+                        if (res.body.transactions.length > 0){
+                            var flag = 0;
+                            for (var i=0; i < res.body.transactions.length; i++){
+                                if (res.body.transactions[i+1] != null){
+                                    node.expect(res.body.transactions[i].timestamp).to.be.at.most(res.body.transactions[i+1].timestamp);
+                                    if (flag == 0){
+                                        offsetTimestamp = res.body.transactions[i+1].timestamp;
+                                        flag = 1;
+                                    }
+
+                                }
+                            }
+                        }
+                        done();
+                    });
+            });
+
+            test = test + 1;
+            it(test + '. Attempting to get transactions list. offset. Expecting success', function (done) {
+                var senderId = "", blockId = '', recipientId = Account1.address, limit = 100, offset = 1, orderBy = 't_timestamp:asc';
+
+                node.api.get('/transactions?blockId=' + blockId + '&recipientId=' + recipientId + '&limit=' + limit + '&offset=' + offset + '&orderBy=' + orderBy)
+                    .set('Accept', 'application/json')
+                    .expect('Content-Type', /json/)
+                    .expect(200)
+                    .end(function (err, res) {
+                        console.log(res.body);
+                        node.expect(res.body).to.have.property("success").to.be.true;
+                        node.expect(res.body).to.have.property("transactions").that.is.an('array');
+                        node.expect(res.body.transactions).to.have.length.within(transactionCount, limit);
+                        if (res.body.transactions.length > 0){
+                            node.expect(res.body.transactions[0].timestamp).to.be.equal(offsetTimestamp);
+                        }
+                        done();
+                    });
+            });
+
+            test = test + 1;
+            it(test + '. Attempting to get transactions list. No limit. Expecting success', function (done) {
+                var senderId = node.Faccount.address, blockId = '', recipientId = Account1.address, offset = 0, orderBy = 't_amount:desc';
+
+                node.api.get('/transactions?blockId=' + blockId + '&senderId=' + senderId + '&recipientId=' + recipientId + '&offset=' + offset + '&orderBy=' + orderBy)
+                    .set('Accept', 'application/json')
+                    .expect('Content-Type', /json/)
+                    .expect(200)
+                    .end(function (err, res) {
+                        console.log(res.body);
+                        node.expect(res.body).to.have.property("success").to.be.true;
+                        node.expect(res.body).to.have.property("transactions").that.is.an('array');
+                        if (res.body.transactions.length > 0){
+                            for (var i = 0; i < res.body.transactions.length; i++){
+                                if (res.body.transactions[i+1] != null){
+                                    node.expect(res.body.transactions[i].amount).to.be.at.least(res.body.transactions[i+1].amount);
+                                }
+                            }
+                        }
                         done();
                     });
             });
@@ -314,7 +428,6 @@ describe('Transactions', function() {
 							node.expect(res.body.transactions[0].recipientId).to.equal(Account1.address);
 							node.expect(res.body.transactions[0].amount).to.equal(Account1.balance);
 							*/
-							console.log("Finished transactions-test suite");
 							done();
 						});
                 });
@@ -338,7 +451,7 @@ describe('Transactions', function() {
                             console.log(res.body);
                             node.expect(res.body).to.have.property("success").to.be.true;
                             node.expect(res.body).to.have.property("transactionId");
-                            if (res.body.success == true){
+                            if (res.body.success == true && res.body.transactionId != null){
                                 expectedFee = node.expectedFee(amountToSend);
                                 Account1.balance -= (amountToSend + expectedFee);
                                 Account2.balance += amountToSend;
@@ -354,6 +467,10 @@ describe('Transactions', function() {
                                 }
                                 transactionCount += 1;
                             }
+                            else{
+                                console.log("Failed Tx or transactionId is null");
+                                console.log("Sent: secret: " + Account1.password + ", amount: " + amountToSend + ", recipientId: " + Account2.address);
+                            }
                             done();
                         });
                 });
@@ -367,7 +484,17 @@ describe('Transactions', function() {
                     .expect(200)
                     .end(function (err, res) {
                         console.log(res.body);
-                        node.expect(res.body).to.have.property("success");/*.to.be.true;
+                        node.expect(res.body).to.have.property("success"); //.to.be.true;
+                        if (res.body.success == true){
+                            if (res.body.transaction != null){
+                                node.expect(res.body.transaction.id).to.equal(transactionList[transactionCount-1].txId);
+                            }
+                        }
+                        else{
+                            console.log("Transaction already processed");
+                            node.expect(res.body).to.have.property("error");
+                        }
+                        /*
                         node.expect(res.body).to.have.property("transaction").that.is.an('object');
                         node.expect(res.body.transaction).to.have.property("type").to.equal(node.TxTypes.SEND);
                         node.expect(res.body.transaction).to.have.property("id").to.equal(transactionList[transactionCount-1].txId);
@@ -394,6 +521,26 @@ describe('Transactions', function() {
                             node.expect(res.body).to.have.property("error");
                             done();
                         });
+            });
+
+            test += 1;
+            it(test + '. We try to send INVALID XCR VALUE from Account 1 to Account 2. We expect error',function(done){
+                amountToSend = 1.2;
+                node.api.put('/transactions')
+                    .set('Accept', 'application/json')
+                    .send({
+                        secret: Account1.password,
+                        amount: amountToSend,
+                        recipientId: Account2.address
+                    })
+                    .expect('Content-Type', /json/)
+                    .expect(200)
+                    .end(function (err, res) {
+                        console.log(res.body);
+                        node.expect(res.body).to.have.property("success").to.be.false;
+                        node.expect(res.body).to.have.property("error");
+                        done();
+                    });
             });
 
             test += 1;
@@ -577,12 +724,17 @@ describe('Transactions', function() {
                         console.log(res.body);
                         node.expect(res.body).to.have.property("success").to.be.true;
                         node.expect(res.body).to.have.property("transaction").that.is.an('object');
-                        node.expect(res.body.transaction.id).to.equal(transactionInCheck.txId);
-                        node.expect(res.body.transaction.amount / node.normalizer).to.equal(transactionInCheck.nettoSent);
-                        node.expect(res.body.transaction.fee / node.normalizer).to.equal(transactionInCheck.fee);
-                        node.expect(res.body.transaction.recipientId).to.equal(transactionInCheck.recipient);
-                        node.expect(res.body.transaction.senderId).to.equal(transactionInCheck.sender);
-                        node.expect(res.body.transaction.type).to.equal(transactionInCheck.type);
+                        if (res.body.success == true && res.body.transaction.id != null){
+                            node.expect(res.body.transaction.id).to.equal(transactionInCheck.txId);
+                            node.expect(res.body.transaction.amount / node.normalizer).to.equal(transactionInCheck.nettoSent);
+                            node.expect(res.body.transaction.fee / node.normalizer).to.equal(transactionInCheck.fee);
+                            node.expect(res.body.transaction.recipientId).to.equal(transactionInCheck.recipient);
+                            node.expect(res.body.transaction.senderId).to.equal(transactionInCheck.sender);
+                            node.expect(res.body.transaction.type).to.equal(transactionInCheck.type);
+                        }
+                        else{
+                            console.log("Transaction failed or transaction list empty");
+                        }
                         done();
                     });
             });
@@ -597,6 +749,26 @@ describe('Transactions', function() {
                         console.log(res.body);
                         node.expect(res.body).to.have.property("success").to.be.false;
                         node.expect(res.body).to.have.property("error");
+                        done();
+                    });
+            });
+
+            test += 1;
+            it(test + '. We attempt to GET TX by TYPE. We expect success',function(done){
+                node.api.get('/transactions?type=' + node.TxTypes.SEND)
+                    .set('Accept', 'application/json')
+                    .expect('Content-Type', /json/)
+                    .expect(200)
+                    .end(function (err, res) {
+                        console.log(res.body);
+                        node.expect(res.body).to.have.property("success").to.be.true;
+                        if (res.body.success == true && res.body.transactions != null){
+                            for (var i=0; i < res.body.transactions.length; i++){
+                                if (res.body.transactions[i] != null){
+                                    node.expect(res.body.transactions[i].type).to.equal(node.TxTypes.SEND);
+                                }
+                            }
+                        }
                         done();
                     });
             });
