@@ -321,52 +321,55 @@ describe('Transactions', function() {
 
             test = test + 1;
             it(test + '. Attempting to get transactions list. Order by timestamp. Expecting success', function (done) {
-                var senderId = "", blockId = '', recipientId = Account1.address, limit = 100, offset = 0, orderBy = 't_timestamp:asc';
+                var senderId = '', blockId = '', recipientId = '', limit = 100, offset = 0, orderBy = 't_timestamp:asc';
 
-                node.api.get('/transactions?blockId=' + blockId + '&recipientId=' + recipientId + '&limit=' + limit + '&offset=' + offset + '&orderBy=' + orderBy)
-                    .set('Accept', 'application/json')
-                    .expect('Content-Type', /json/)
-                    .expect(200)
-                    .end(function (err, res) {
-                        console.log(res.body);
-                        node.expect(res.body).to.have.property("success").to.be.true;
-                        node.expect(res.body).to.have.property("transactions").that.is.an('array');
-                        node.expect(res.body.transactions).to.have.length.within(transactionCount, limit);
-                        if (res.body.transactions.length > 0){
-                            var flag = 0;
-                            for (var i=0; i < res.body.transactions.length; i++){
-                                if (res.body.transactions[i+1] != null){
-                                    node.expect(res.body.transactions[i].timestamp).to.be.at.most(res.body.transactions[i+1].timestamp);
-                                    if (flag == 0){
-                                        offsetTimestamp = res.body.transactions[i+1].timestamp;
-                                        flag = 1;
+                node.onNewBlock(function(err){
+                    node.api.get('/transactions?blockId=' + blockId + '&recipientId=' + recipientId + '&limit=' + limit + '&offset=' + offset + '&orderBy=' + orderBy)
+                        .set('Accept', 'application/json')
+                        .expect('Content-Type', /json/)
+                        .expect(200)
+                        .end(function (err, res) {
+                            console.log(res.body);
+                            node.expect(res.body).to.have.property("success").to.be.true;
+                            node.expect(res.body).to.have.property("transactions").that.is.an('array');
+                            node.expect(res.body.transactions).to.have.length.within(transactionCount, limit);
+                            if (res.body.transactions.length > 0) {
+                                var flag = 0;
+                                for (var i = 0; i < res.body.transactions.length; i++) {
+                                    if (res.body.transactions[i + 1] != null) {
+                                        node.expect(res.body.transactions[i].timestamp).to.be.at.most(res.body.transactions[i + 1].timestamp);
+                                        if (flag == 0) {
+                                            offsetTimestamp = res.body.transactions[i + 1].timestamp;
+                                            flag = 1;
+                                        }
                                     }
-
                                 }
                             }
-                        }
-                        done();
-                    });
+                            done();
+                        });
+                });
             });
 
             test = test + 1;
             it(test + '. Attempting to get transactions list. offset. Expecting success', function (done) {
-                var senderId = "", blockId = '', recipientId = Account1.address, limit = 100, offset = 1, orderBy = 't_timestamp:asc';
+                var senderId = '', blockId = '', recipientId = '', limit = 100, offset = 1, orderBy = 't_timestamp:asc';
 
-                node.api.get('/transactions?blockId=' + blockId + '&recipientId=' + recipientId + '&limit=' + limit + '&offset=' + offset + '&orderBy=' + orderBy)
-                    .set('Accept', 'application/json')
-                    .expect('Content-Type', /json/)
-                    .expect(200)
-                    .end(function (err, res) {
-                        console.log(res.body);
-                        node.expect(res.body).to.have.property("success").to.be.true;
-                        node.expect(res.body).to.have.property("transactions").that.is.an('array');
-                        node.expect(res.body.transactions).to.have.length.within(transactionCount, limit);
-                        if (res.body.transactions.length > 0){
-                            node.expect(res.body.transactions[0].timestamp).to.be.equal(offsetTimestamp);
-                        }
-                        done();
-                    });
+                node.onNewBlock(function(err) {
+                    node.api.get('/transactions?blockId=' + blockId + '&recipientId=' + recipientId + '&limit=' + limit + '&offset=' + offset + '&orderBy=' + orderBy)
+                        .set('Accept', 'application/json')
+                        .expect('Content-Type', /json/)
+                        .expect(200)
+                        .end(function (err, res) {
+                            console.log(res.body);
+                            node.expect(res.body).to.have.property("success").to.be.true;
+                            node.expect(res.body).to.have.property("transactions").that.is.an('array');
+                            node.expect(res.body.transactions).to.have.length.within(transactionCount, limit);
+                            if (res.body.transactions.length > 0) {
+                                node.expect(res.body.transactions[0].timestamp).to.be.equal(offsetTimestamp);
+                            }
+                            done();
+                        });
+                });
             });
 
             test = test + 1;
@@ -865,21 +868,27 @@ describe('Transactions', function() {
                         console.log(res.body);
                         node.expect(res.body).to.have.property("success").to.be.true;
                         node.expect(res.body).to.have.property("transaction").that.is.an('object');
-                        node.expect(res.body.transaction).to.have.property("type").to.equal(node.TxTypes.SIGNATURE);
-                        node.expect(res.body.transaction).to.have.property("senderPublicKey").to.equal(Account1.publicKey);
-                        node.expect(res.body.transaction).to.have.property("senderId").to.equal(Account1.address);
-                        node.expect(res.body.transaction).to.have.property("fee").to.equal(node.Fees.secondPasswordFee);
-                        Account1.transactions.push(transactionCount);
-                        transactionCount += 1;
-                        Account1.balance -= node.Fees.secondPasswordFee;
-                        transactionList[transactionCount - 1] = {
-                            'sender': Account1.address,
-                            'recipient': 'SYSTEM',
-                            'brutoSent': 0,
-                            'fee': node.Fees.secondPasswordFee,
-                            'nettoSent': 0,
-                            'txId': res.body.transaction.id,
-                            'type':node.TxTypes.SIGNATURE
+                        if (res.body.success == true && res.body.transaction != null){
+                            node.expect(res.body.transaction).to.have.property("type").to.equal(node.TxTypes.SIGNATURE);
+                            node.expect(res.body.transaction).to.have.property("senderPublicKey").to.equal(Account1.publicKey);
+                            node.expect(res.body.transaction).to.have.property("senderId").to.equal(Account1.address);
+                            node.expect(res.body.transaction).to.have.property("fee").to.equal(node.Fees.secondPasswordFee);
+                            Account1.transactions.push(transactionCount);
+                            transactionCount += 1;
+                            Account1.balance -= node.Fees.secondPasswordFee;
+                            transactionList[transactionCount - 1] = {
+                                'sender': Account1.address,
+                                'recipient': 'SYSTEM',
+                                'brutoSent': 0,
+                                'fee': node.Fees.secondPasswordFee,
+                                'nettoSent': 0,
+                                'txId': res.body.transaction.id,
+                                'type':node.TxTypes.SIGNATURE
+                            }
+                        }
+                        else {
+                            console.log("Transaction failed or transaction object is null");
+                            console.log("Sent: secret: " + Account1.password + ", secondSecret: " + Account1.secondPassword);
                         }
                         done();
                     });
@@ -1062,7 +1071,7 @@ describe('Transactions', function() {
                         .end(function (err, res) {
                             console.log(res.body);
                             node.expect(res.body).to.have.property("success").to.be.true;
-                            if (res.body.success == true ){
+                            if (res.body.success == true && res.body.transaction != null){
                                 Account1.transactions.push(transactionCount);
                                 transactionCount += 1;
                                 Account1.balance -= node.Fees.usernameFee;
@@ -1075,6 +1084,10 @@ describe('Transactions', function() {
                                     'txId': res.body.transaction.id,
                                     'type':node.TxTypes.SIGNATURE
                                 }
+                            }
+                            else {
+                                console.log("Transaction failed or transaction object is null");
+                                console.log("Sent: secret: " + Account1.secret + ", secondSecret: " + Account1.secondPassword + ", username: " + Account1.username);
                             }
                             done();
                         });
@@ -1144,7 +1157,7 @@ describe('Transactions', function() {
                             console.log(res.body);
                             node.expect(res.body).to.have.property("success").to.be.true;
                             node.expect(res.body).to.have.property("transactionId");
-                            if (res.body.success == true){
+                            if (res.body.success == true && res.body.transactionId != null){
                                 expectedFee = node.expectedFee(amountToSend);
                                 Account2.balance -= (amountToSend + expectedFee);
                                 Account1.balance += amountToSend;
@@ -1159,6 +1172,11 @@ describe('Transactions', function() {
                                     'type': node.TxTypes.SEND
                                 }
                                 transactionCount += 1;
+                            }
+                            else {
+                                console.log("Transaction failed or transactionId is null");
+                                console.log("Sent: secret: " + Account2.password + ", secondSecret: " + Account2.secondPassword
+                                + ", amount: " + amountToSend + ", recipientId: " + Account1.username);
                             }
                             done();
                         });
