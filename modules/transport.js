@@ -208,6 +208,7 @@ function attachApi() {
 			var peerIp = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
 			var peerStr = peerIp ? peerIp + ":" + port : 'unknown';
 			library.logger.log('block ' + (block ? block.id : 'null') + ' is not valid, ban 60 min', peerStr);
+			console.log(req.body.block);
 
 			if (peerIp) {
 				modules.peer.state(ip.toLong(peerIp), port, 0, 3600);
