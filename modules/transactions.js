@@ -127,6 +127,11 @@ function attachApi() {
 					minimum: 0,
 					maximum: 100
 				},
+				type: {
+					type: "integer",
+					minimum: 0,
+					maximum: 10
+				},
 				orderBy: {
 					type: "string"
 				},
@@ -418,6 +423,10 @@ private.list = function (filter, cb) {
 	if (filter.fee >= 0) {
 		fields_or.push('fee = $fee');
 		params.fee = filter.fee;
+	}
+	if (filter.type >= 0) {
+		fields_or.push('type = $type');
+		params.type = filter.type;
 	}
 	if (filter.limit) {
 		params.limit = filter.limit;
