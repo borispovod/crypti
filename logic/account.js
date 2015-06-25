@@ -63,30 +63,30 @@ function Account(scope, cb) {
 			type: "Text",
 			filter: "string",
 			conv: String,
-			expression: "(select GROUP_CONCAT(dependentId) from "+this.table+"2delegates where accountId = a.address)"
+			expression: "(select GROUP_CONCAT(dependentId) from " + this.table + "2delegates where accountId = a.address)"
 		},
 		{
 			name: "contacts",
 			type: "Text",
 			filter: "string",
 			conv: String,
-			expression: "(select GROUP_CONCAT(dependentId) from "+this.table+"2contacts where accountId = a.address)"
+			expression: "(select GROUP_CONCAT(dependentId) from " + this.table + "2contacts where accountId = a.address)"
+		},
+		{
+			name: "followers",
+			type: "Text",
+			filter: "string",
+			conv: String,
+			expression: "(select GROUP_CONCAT(accountId) from " + this.table + "2contacts where dependentId = a.address)",
+			readonly: true
+		},
+		{
+			name: "multisignatures",
+			type: "Text",
+			filter: "string",
+			conv: String,
+			expression: "(select GROUP_CONCAT(dependentId) from " + this.table + "2multisignatures where accountId = a.address)"
 		}
-		//{
-		//	name: "followers",
-		//	type: "Text",
-		//	filter: "string",
-		//	conv: String,
-		//	expression: "GROUP_CONCAT(c.follower)",
-		//	readonly: true
-		//},
-		//{
-		//	name: "multisignatures",
-		//	type: "Text",
-		//	filter: "string",
-		//	conv: String,
-		//	expression: "GROUP_CONCAT(ms.publicKey)"
-		//}
 	];
 
 	this.fields = this.model.map(function (field) {
@@ -184,6 +184,25 @@ function Account(scope, cb) {
 	var sql = jsonSql.build({
 		type: 'create',
 		table: this.table + "2contacts",
+		tableFields: [
+			{
+				name: "accountId",
+				type: "String",
+				length: 21,
+				not_null: true
+			}, {
+				name: "dependentId",
+				type: "String",
+				length: 21,
+				not_null: true
+			}
+		]
+	});
+	sqles.push(sql.query);
+
+	var sql = jsonSql.build({
+		type: 'create',
+		table: this.table + "2multisignatures",
 		tableFields: [
 			{
 				name: "accountId",
