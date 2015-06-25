@@ -40,7 +40,7 @@ function attachApi() {
 		}
 
 		req.headers['port'] = parseInt(req.headers['port']);
-		req.headers['share-port'] = parseInt(req.headers);
+		req.headers['share-port'] = parseInt(req.headers['share-port']);
 
 		req.sanitize(req.headers, {
 			type: "object",
@@ -80,6 +80,7 @@ function attachApi() {
 
 
 			if (peer.port > 0 && peer.port <= 65535 && peer.version == library.config.version) {
+				console.log("update peer");
 				modules.peer.update(peer);
 			}
 

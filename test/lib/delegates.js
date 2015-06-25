@@ -24,8 +24,13 @@ describe('Delegates', function() {
 
     describe('Vote and Register delegate attempts from account with 0 XCR', function() {
 
-        before(function (done) {
+        /*before(function (done) {
             // Open Random Account
+
+        });*/
+
+        test += 1;
+        it(test + '. We attempt to upVote a delegate from the new random account. We expect error (account should have 0 XCR)',function(done){
             node.api.post('/accounts/open')
                 .set('Accept', 'application/json')
                 .send({
@@ -37,46 +42,36 @@ describe('Delegates', function() {
                     console.log(res.body);
                     node.expect(res.body).to.have.property("success").to.be.true;
                     node.expect(res.body).to.have.property("account").that.is.an('object');
-                    if (res.body.success == true && res.body.account != null ){
-                        Raccount.address = res.body.account.address;
-                        Raccount.publicKey = res.body.account.publicKey;
-                        Raccount.balance = res.body.account.balance;
-                    }
-                    else{
-                        console.log("Failed to open account. Tests will fail");
-                        console.log("Sent: secret: " + Raccount.password);
-                        node.expect("TEST").to.equal("FAILED");
-                    }
-                    done();
-                });
-        });
+                    Raccount.address = res.body.account.address;
+                    Raccount.publicKey = res.body.account.publicKey;
+                    Raccount.balance = res.body.account.balance;
 
-        test += 1;
-        it(test + '. We attempt to upVote a delegate from the new random account. We expect error (account should have 0 XCR)',function(done){
-            node.onNewBlock(function(err) {
-                node.api.put('/accounts/delegates')
-                    .set('Accept', 'application/json')
-                    .send({
-                        secret: Raccount.password,
-                        delegates: ["+" + node.Eaccount.publicKey]
-                    })
-                    .expect('Content-Type', /json/)
-                    .expect(200)
-                    .end(function (err, res) {
-                        console.log(res.body);
-                        node.expect(res.body).to.have.property("success").to.be.false;
-                        node.expect(res.body).to.have.property("error");
-                        if (res.body.success == false && res.body.error != null) {
-                            node.expect(res.body.error).to.contain("balance");
-                        }
-                        else {
-                            console.log("Expected test to fail but it succeeded");
-                            console.log("Sent: secret: " + Raccount.password + ", delegates:[\"+\"" + node.Eaccount.publicKey);
-                            node.expect("TEST").to.equal("FAILED");
-                        }
-                        done();
+                    node.onNewBlock(function(err) {
+                        node.expect(err).to.be.not.ok;
+                        node.api.put('/accounts/delegates')
+                            .set('Accept', 'application/json')
+                            .send({
+                                secret: Raccount.password,
+                                delegates: ["+" + node.Eaccount.publicKey]
+                            })
+                            .expect('Content-Type', /json/)
+                            .expect(200)
+                            .end(function (err, res) {
+                                console.log(res.body);
+                                node.expect(res.body).to.have.property("success").to.be.false;
+                                node.expect(res.body).to.have.property("error");
+                                /*if (res.body.success == false && res.body.error != null) {
+                                    node.expect(res.body.error).to.contain("balance");
+                                }
+                                else {
+                                    console.log("Expected test to fail but it succeeded");
+                                    console.log("Sent: secret: " + Raccount.password + ", delegates:[\"+\"" + node.Eaccount.publicKey);
+                                    node.expect("TEST").to.equal("FAILED");
+                                }*/
+                                done();
+                            });
                     });
-            });
+                });
         });
 
         test += 1;
