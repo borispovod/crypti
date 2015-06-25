@@ -40,7 +40,7 @@ function attachApi() {
 		}
 
 		req.headers['port'] = parseInt(req.headers['port']);
-		req.headers['share-port'] = parseInt(req.headers);
+		req.headers['share-port'] = parseInt(req.headers['share-port']);
 
 		req.sanitize(req.headers, {
 			type: "object",
