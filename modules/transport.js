@@ -35,9 +35,9 @@ function attachApi() {
 	router.use(function (req, res, next) {
 		var peerIp = req.headers['x-forwarded-for'] || req.connection.remoteAddress || 'unknown';
 
-		if (peerIp == "127.0.0.1") {
+		/*if (peerIp == "127.0.0.1") {
 			return next();
-		}
+		}*/
 
 		req.headers['port'] = parseInt(req.headers['port']);
 		req.headers['share-port'] = parseInt(req.headers['share-port']);
@@ -77,7 +77,6 @@ function attachApi() {
 				sharePort: Number(private.headers['share-port']),
 				version: private.headers.version
 			};
-
 
 			if (peer.port > 0 && peer.port <= 65535 && peer.version == library.config.version) {
 				console.log("update peer");
@@ -122,19 +121,36 @@ function attachApi() {
 			var max = query.max;
 			var min = query.min;
 			var ids = query.ids.split(',');
+
 			ids = ids.filter(function (id) {
 				return /^\d+$/.test(id);
 			});
+
 			var escapedIds = ids.map(function (id) {
 				return "'" + id + "'";
 			});
 
 
 			if (!escapedIds.length) {
-				var peerIp = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
-				var peerStr = peerIp ? peerIp + ":" + req.headers['port']: 'unknown';
-				library.logger.log('common block request is not valid, ban 60 min', peerStr);
-				modules.peer.state(ip.toLong(peerIp), req.headers['port'], 0, 3600);
+				report = library.scheme.validate(req.headers, {
+					type: "object",
+					properties: {
+						port: {
+							type: "integer",
+							minimum: 1,
+							maximum: 65535
+						}
+					},
+					required: ['port']
+				});
+
+				if (report) {
+					var peerIp = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+					var peerStr = peerIp ? peerIp + ":" + req.headers['port'] : 'unknown';
+					library.logger.log('common block request is not valid, ban 60 min', peerStr);
+					modules.peer.state(ip.toLong(peerIp), req.headers['port'], 0, 3600);
+				}
+
 				return res.json({success: false, error: errorCode("BLOCKS.WRONG_ID_SEQUENCE")});
 			}
 
@@ -188,7 +204,7 @@ function attachApi() {
 
 		var report = library.scheme.validate(req.headers, {
 			type: "object",
-			prototypes: {
+			properties: {
 				port: {
 					type: "integer",
 					minimum: 1,
@@ -199,19 +215,16 @@ function attachApi() {
 		});
 
 		var port = req.headers['port'];
-		if (!report) {
-			return res.sendStatus(200).json({success: false, message: "Incorrect port"});
-		}
 
 		try {
 			var block = library.logic.block.objectNormalize(req.body.block);
 		} catch (e) {
 			var peerIp = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
-			var peerStr = peerIp ? peerIp + ":" + port : 'unknown';
+			var peerStr = peerIp ? peerIp + ":" + (isNaN(port)? 'unknown' : port) : 'unknown';
 			library.logger.log('block ' + (block ? block.id : 'null') + ' is not valid, ban 60 min', peerStr);
 			console.log(req.body.block);
 
-			if (peerIp) {
+			if (peerIp && report) {
 				modules.peer.state(ip.toLong(peerIp), port, 0, 3600);
 			}
 
@@ -234,7 +247,7 @@ function attachApi() {
 
 		var report = library.scheme.validate(req.headers, {
 			type: "object",
-			prototypes: {
+			properties: {
 				port: {
 					type: "integer",
 					minimum: 1,
@@ -244,18 +257,18 @@ function attachApi() {
 			required: ['port']
 		});
 
-		var port = req.headers['port'];
 
 		var transaction = null;
 		try {
 			transaction = library.logic.transaction.objectNormalize(req.body.transaction);
 		} catch (e) {
 				var peerIp = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
-				var peerStr = peerIp ? peerIp + ":" + port : 'unknown';
+				var peerStr = peerIp ? peerIp + ":" + (isNaN(req.headers['port'])? 'unknown' : req.headers['port']) : 'unknown';
 				library.logger.log('recieved transaction ' + (transaction ? transaction.id : 'null') + ' is not valid, ban 60 min', peerStr);
 
 				if (peerIp && report) {
-					modules.peer.state(ip.toLong(peerIp), port, 0, 3600);
+					console.log(peerIp, req.headers['port'], report);
+					modules.peer.state(ip.toLong(peerIp), req.headers['port'], 0, 3600);
 				}
 
 				return res.status(200).json({success: false, message: "Invalid transaction body"});
@@ -395,7 +408,7 @@ Transport.prototype.getFromPeer = function (peer, options, cb) {
 
 		var report = library.scheme.validate(response.headers, {
 			type: "object",
-			prototypes: {
+			properties: {
 				os: {
 					type: "string",
 					maxLength: 64
