@@ -96,6 +96,8 @@ Account.prototype.addToUnconfirmedBalance = function (amount) {
 	library.bus.message('changeUnconfirmedBalance', unconfirmedDelegate, amount);
 }
 
+//------------------------------
+
 Account.prototype.applyUnconfirmedDelegateList = function (diff) {
 	if (diff === null) return;
 
@@ -167,6 +169,8 @@ Account.prototype.undoDelegateList = function (diff) {
 
 	return false;
 }
+
+//------------------------------
 
 Account.prototype.applyContact = function (diff, cb) {
 	if (diff === null) return setImmediate(cb, "error");
@@ -262,6 +266,8 @@ Account.prototype.undoUnconfirmedContact = function (diff) {
 	return false;
 }
 
+//------------------------------
+
 Account.prototype.addPending = function (address) {
 	var index = this.followers.indexOf(address);
 	if (index != -1) {
@@ -279,6 +285,8 @@ Account.prototype.deletePending = function (address) {
 	this.followers.splice(index, 1);
 	return true;
 }
+
+//------------------------------
 
 Account.prototype.applyMultisignature = function (multisignature) {
 	var dest = applyDiff(this.multisignature.keysgroup, multisignature.keysgroup);
@@ -384,6 +392,8 @@ Account.prototype.undoUnconfirmedMultisignature = function (multisignature) {
 	return false;
 }
 
+//------------------------------
+
 function Vote() {
 	this.create = function (data, trs) {
 		trs.recipientId = data.sender.address;
@@ -434,33 +444,37 @@ function Vote() {
 	}
 
 	this.apply = function (trs, sender, cb) {
-		sender.applyDelegateList(trs.asset.votes);
+		if (trs.asset.votes === null) return cb();
 
-		setImmediate(cb);
+		this.scope.account.merge(sender.address, {delegates: trs.asset.votes}, cb);
 	}
 
 	this.undo = function (trs, sender, cb) {
-		sender.undoDelegateList(trs.asset.votes);
+		if (trs.asset.votes === null) return cb();
 
-		setImmediate(cb);
+		var votesInvert = reverseDiff(trs.asset.votes);
+
+		this.scope.account.merge(sender.address, {delegates: votesInvert}, cb);
 	}
 
 	this.applyUnconfirmed = function (trs, sender, cb) {
+		if (trs.asset.votes === null) return cb();
+
 		modules.delegates.checkUnconfirmedDelegates(trs.senderPublicKey, trs.asset.votes, function (err) {
 			if (err) {
 				return setImmediate(cb, errorCode("VOTES.ALREADY_VOTED_UNCONFIRMED", trs));
 			}
 
-			var res = sender.applyUnconfirmedDelegateList(trs.asset.votes);
-
-			setImmediate(cb, res ? null : "can't apply delegates: " + trs.id);
+			this.scope.account.merge(sender.address, {u_delegates: trs.asset.votes}, cb);
 		});
 	}
 
 	this.undoUnconfirmed = function (trs, sender, cb) {
-		var res = sender.undoUnconfirmedDelegateList(trs.asset.votes);
+		if (trs.asset.votes === null) return cb();
 
-		setImmediate(cb, res ? null : "can't confirm delegates");
+		var votesInvert = reverseDiff(trs.asset.votes);
+
+		this.scope.account.merge(sender.address, {u_delegates: votesInvert}, cb);
 	}
 
 	this.objectNormalize = function (trs) {
@@ -1064,7 +1078,7 @@ private.generateAddressByPublicKey = function (publicKey) {
 
 //public methods
 Accounts.prototype.getAccount = function (filter, cb) {
-	if(filter.publicKey){
+	if (filter.publicKey) {
 		filter.address = private.generateAddressByPublicKey(filter.publicKey);
 		delete filter.publicKey;
 	}

@@ -20,6 +20,14 @@ function Account(scope, cb) {
 			constante: true
 		},
 		{
+			name: "u_username",
+			type: "String",
+			length: 20,
+			filter: "string?",
+			conv: String,
+			constante: true
+		},
+		{
 			name: "address",
 			type: "String",
 			length: 21,
@@ -59,33 +67,68 @@ function Account(scope, cb) {
 			conv: Number
 		},
 		{
+			name: "u_balance",
+			type: "BigInt",
+			filter: "int",
+			conv: Number
+		},
+		{
 			name: "delegates",
 			type: "Text",
 			filter: "string",
-			conv: String,
-			expression: "(select GROUP_CONCAT(dependentId) from " + this.table + "2delegates where accountId = a.address)"
+			conv: Array,
+			expression: "(select GROUP_CONCAT(dependentId) from " + this.table + "2delegates where accountId = a.address and confirmed = 1)"
 		},
 		{
 			name: "contacts",
 			type: "Text",
 			filter: "string",
-			conv: String,
-			expression: "(select GROUP_CONCAT(dependentId) from " + this.table + "2contacts where accountId = a.address)"
+			conv: Array,
+			expression: "(select GROUP_CONCAT(dependentId) from " + this.table + "2contacts where accountId = a.address and confirmed = 1)"
 		},
 		{
 			name: "followers",
 			type: "Text",
 			filter: "string",
-			conv: String,
-			expression: "(select GROUP_CONCAT(accountId) from " + this.table + "2contacts where dependentId = a.address)",
+			conv: Array,
+			expression: "(select GROUP_CONCAT(accountId) from " + this.table + "2contacts where dependentId = a.address and confirmed = 1)",
+			readonly: true
+		},
+		{
+			name: "u_delegates",
+			type: "Text",
+			filter: "string",
+			conv: Array,
+			expression: "(select GROUP_CONCAT(dependentId) from " + this.table + "2u_delegates where accountId = a.address and confirmed = 0)"
+		},
+		{
+			name: "u_contacts",
+			type: "Text",
+			filter: "string",
+			conv: Array,
+			expression: "(select GROUP_CONCAT(dependentId) from " + this.table + "2u_contacts where accountId = a.address and confirmed = 0)"
+		},
+		{
+			name: "u_followers",
+			type: "Text",
+			filter: "string",
+			conv: Array,
+			expression: "(select GROUP_CONCAT(accountId) from " + this.table + "2u_contacts where dependentId = a.address and confirmed = 0)",
 			readonly: true
 		},
 		{
 			name: "multisignatures",
 			type: "Text",
 			filter: "string",
-			conv: String,
+			conv: Array,
 			expression: "(select GROUP_CONCAT(dependentId) from " + this.table + "2multisignatures where accountId = a.address)"
+		},
+		{
+			name: "u_multisignatures",
+			type: "Text",
+			filter: "string",
+			conv: Array,
+			expression: "(select GROUP_CONCAT(dependentId) from " + this.table + "2u_multisignatures where accountId = a.address)"
 		}
 	];
 
@@ -202,7 +245,64 @@ function Account(scope, cb) {
 
 	var sql = jsonSql.build({
 		type: 'create',
+		table: this.table + "2u_delegates",
+		tableFields: [
+			{
+				name: "accountId",
+				type: "String",
+				length: 21,
+				not_null: true
+			}, {
+				name: "dependentId",
+				type: "String",
+				length: 21,
+				not_null: true
+			}
+		]
+	});
+	sqles.push(sql.query);
+
+	var sql = jsonSql.build({
+		type: 'create',
+		table: this.table + "2u_contacts",
+		tableFields: [
+			{
+				name: "accountId",
+				type: "String",
+				length: 21,
+				not_null: true
+			}, {
+				name: "dependentId",
+				type: "String",
+				length: 21,
+				not_null: true
+			}
+		]
+	});
+	sqles.push(sql.query);
+
+	var sql = jsonSql.build({
+		type: 'create',
 		table: this.table + "2multisignatures",
+		tableFields: [
+			{
+				name: "accountId",
+				type: "String",
+				length: 21,
+				not_null: true
+			}, {
+				name: "dependentId",
+				type: "String",
+				length: 21,
+				not_null: true
+			}
+		]
+	});
+	sqles.push(sql.query);
+
+	var sql = jsonSql.build({
+		type: 'create',
+		table: this.table + "2u_multisignatures",
 		tableFields: [
 			{
 				name: "accountId",
@@ -325,26 +425,24 @@ Account.prototype.toDB = function (raw) {
 	return account;
 }
 
-Account.prototype.get = function (filter, cb) {
+Account.prototype.get = function (filter, fields, cb) {
+	if (arguments.length == 2) {
+		cb = fields;
+		fields = this.fields.map(function (field) {
+			return field.alias;
+		});
+	}
+
+	var realFields = this.fields.filter(function (field) {
+		return fields.indexOf(field.alias) != -1;
+	});
+
 	var sql = jsonSql.build({
 		type: 'select',
 		table: this.table,
 		alias: 'a',
 		condition: filter,
-		fields: this.fields
-		//join: [
-		//	{
-		//		type: 'inner',
-		//		table: this.table + "2delegates",
-		//		alias: 'd',
-		//		on: {'a.address': 'd.accountId'}
-		//	}, {
-		//		type: 'inner',
-		//		table: this.table + "2contacts",
-		//		alias: 'c',
-		//		on: {'a.address': 'c.accountId'}
-		//	}
-		//]
+		fields: realFields
 	});
 
 	this.scope.dbLite.query(sql.query, sql.values, this.conv, function (err, data) {
@@ -360,12 +458,23 @@ Account.prototype.get = function (filter, cb) {
 	}.bind(this));
 }
 
-Account.prototype.getAll = function (filter, cb) {
+Account.prototype.getAll = function (filter, fields, cb) {
+	if (arguments.length == 2) {
+		cb = fields;
+		fields = this.fields.map(function (field) {
+			return field.alias;
+		});
+	}
+
+	var realFields = this.fields.filter(function (field) {
+		return fields.indexOf(field.alias) != -1;
+	});
+
 	var sql = jsonSql.build({
 		type: 'select',
 		table: this.table,
 		condition: filter,
-		fields: this.fields
+		fields: realFields
 	});
 	this.scope.dbLite.query(sql.query, sql.values, this.conv, function (err, data) {
 		if (err) {
@@ -405,8 +514,8 @@ Account.prototype.merge = function (address, diff, cb) {
 	this.editable.forEach(function (value) {
 		if (diff[value]) {
 			var trueValue = diff[value];
-			switch (typeof trueValue) {
-				case "number":
+			switch (self.conv[value]) {
+				case Number:
 					if (Math.abs(trueValue) === trueValue) {
 						update.$inc = update.$inc || {};
 						update.$inc[value] = trueValue;
@@ -416,7 +525,7 @@ Account.prototype.merge = function (address, diff, cb) {
 						update.$dec[value] = Math.abs(trueValue);
 					}
 					break;
-				case "string":
+				case Array:
 					var diffarr = trueValue.split(",");
 					for (var i = 0; i < diffarr.length; i++) {
 						var math = diffarr[i][0];
@@ -487,10 +596,6 @@ Account.prototype.merge = function (address, diff, cb) {
 	}, function (err) {
 		if (err) {
 			cb(err);
-			//self.scope.dbLite.query('ROLLBACK;', function (rollbackErr) {
-			//	console.log("ROLLBACK")
-			//	cb(rollbackErr || err);
-			//});
 		} else {
 			if (sqles.length > 1) {
 				self.scope.dbLite.query('COMMIT;', function (err) {

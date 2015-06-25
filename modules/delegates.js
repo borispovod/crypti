@@ -761,10 +761,6 @@ Delegates.prototype.checkDelegates = function (publicKey, votes, cb) {
 }
 
 Delegates.prototype.checkUnconfirmedDelegates = function (publicKey, votes, cb) {
-	if (votes === null) {
-		return setImmediate(cb);
-	}
-
 	if (util.isArray(votes)) {
 		modules.accounts.getAccount({publicKey: publicKey}, function (err, account) {
 			if (err || !account) {
@@ -779,10 +775,10 @@ Delegates.prototype.checkUnconfirmedDelegates = function (publicKey, votes, cb) 
 					return setImmediate(cb, "error");
 				}
 
-				if (math == "+" && (account.unconfirmedDelegates !== null && account.unconfirmedDelegates.indexOf(publicKey) != -1)) {
+				if (math == "+" && (account.u_delegates !== null && account.u_delegates.indexOf(publicKey) != -1)) {
 					return setImmediate(cb, "error");
 				}
-				if (math == "-" && (account.unconfirmedDelegates === null || account.unconfirmedDelegates.indexOf(publicKey) === -1)) {
+				if (math == "-" && (account.u_delegates === null || account.u_delegates.indexOf(publicKey) === -1)) {
 					return setImmediate(cb, "error");
 				}
 			}

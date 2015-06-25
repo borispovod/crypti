@@ -79,11 +79,13 @@ function Contact() {
 	}
 
 	this.apply = function (trs, sender, cb) {
-		sender.applyContact(trs.asset.contact.address, cb);
+		this.scope.account.merge(sender.address, {contacts: trs.asset.contact.address}, cb);
 	}
 
 	this.undo = function (trs, sender, cb) {
-		sender.undoContact(trs.asset.contact.address, cb);
+		var contactsInvert = reverseDiff(trs.asset.contact.address);
+
+		this.scope.account.merge(sender.address, {contacts: contactsInvert}, cb);
 	}
 
 	this.applyUnconfirmed = function (trs, sender, cb) {
