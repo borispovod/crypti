@@ -9,9 +9,11 @@ var _ = require('lodash'),
 	config = require('./config.json'),
     expect = require('chai').expect,
     supertest = require('supertest'),
-    api = supertest('http://' + config.address + ':' + config.port + '/api'), // DEFINES THE NODE WE USE FOR THE TEST
-	peer = supertest('http://' + config.address + ':' + config.port + '/peer'), // DEFINES THE NODE WE USE FOR PEER TESTS
-	async = require('async');
+    baseUrl = 'http://' + config.address + ':' + config.port,
+    api = supertest(baseUrl + '/api'), // DEFINES THE NODE WE USE FOR THE TEST
+	peer = supertest(baseUrl + '/peer'), // DEFINES THE NODE WE USE FOR PEER TESTS
+	async = require('async'),
+    request = require('request');
 
 var normalizer = 100000000; // Use this to convert XCR amount to normal value
 var blockTime = 10000; // Block time in miliseconds
@@ -91,17 +93,17 @@ function randomizeXCR(){
 }
 // Returns current block height
 function getHeight(cb) {
-	api.get('/blocks/getHeight')
-		.set('Accept', 'application/json')
-		.expect('Content-Type', /json/)
-		.expect(200)
-		.end(function (err, res) {
-			if (err) {
-				return cb(err);
-			} else {
-				return cb(null, res.body.height);
-			}
-		});
+    request({
+        type: "GET",
+        url: baseUrl + "/api/blocks/getHeight",
+        json: true
+    }, function (err, resp, body) {
+        if (err || resp.statusCode != 200) {
+            return cb(err || "Status code is not 200 (getHeight)");
+        } else {
+            return cb(null, body.height);
+        }
+    })
 }
 
 function onNewBlock(cb) {
@@ -120,21 +122,21 @@ function waitForNewBlock(height, cb) {
 	var actualHeight = height;
 	async.doWhilst(
 		function (cb) {
-			api.get('/blocks/getHeight')
-				.set('Accept', 'application/json')
-				.expect('Content-Type', /json/)
-				.expect(200)
-				.end(function (err, res) {
-					if (err) {
-						return cb(err);
-					}
+            request({
+                type: "GET",
+                url: baseUrl + "/api/blocks/getHeight",
+                json: true
+            }, function (err, resp, body) {
+                if (err || resp.statusCode != 200) {
+                    return cb(err || "Got incorrect status");
+                }
 
-					if (height + 2 == res.body.height) {
-						height = res.body.height;
-					}
+                if (height + 2 == body.height) {
+                    height = body.height;
+                }
 
-					setTimeout(cb, 1000);
-				});
+                setTimeout(cb, 1000);
+            });
 		},
 		function () {
 			return actualHeight == height;
