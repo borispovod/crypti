@@ -63,14 +63,14 @@ function Account(scope, cb) {
 			type: "Text",
 			filter: "string",
 			conv: String,
-			expression: "GROUP_CONCAT(d.dependentId)"
+			expression: "(select GROUP_CONCAT(dependentId) from "+this.table+"2delegates where accountId = a.address)"
 		},
 		{
 			name: "contacts",
 			type: "Text",
 			filter: "string",
 			conv: String,
-			expression: "GROUP_CONCAT(c.dependentId)"
+			expression: "(select GROUP_CONCAT(dependentId) from "+this.table+"2contacts where accountId = a.address)"
 		}
 		//{
 		//	name: "followers",
@@ -170,8 +170,7 @@ function Account(scope, cb) {
 				name: "accountId",
 				type: "String",
 				length: 21,
-				not_null: true,
-				primary_key: true
+				not_null: true
 			}, {
 				name: "dependentId",
 				type: "String",
@@ -190,8 +189,7 @@ function Account(scope, cb) {
 				name: "accountId",
 				type: "String",
 				length: 21,
-				not_null: true,
-				primary_key: true
+				not_null: true
 			}, {
 				name: "dependentId",
 				type: "String",
@@ -314,20 +312,20 @@ Account.prototype.get = function (filter, cb) {
 		table: this.table,
 		alias: 'a',
 		condition: filter,
-		fields: this.fields,
-		join: [
-			{
-				type: 'inner',
-				table: this.table + "2delegates",
-				alias: 'd',
-				on: {'a.address': 'd.accountId'}
-			}, {
-				type: 'inner',
-				table: this.table + "2contacts",
-				alias: 'c',
-				on: {'a.address': 'c.accountId'}
-			}
-		]
+		fields: this.fields
+		//join: [
+		//	{
+		//		type: 'inner',
+		//		table: this.table + "2delegates",
+		//		alias: 'd',
+		//		on: {'a.address': 'd.accountId'}
+		//	}, {
+		//		type: 'inner',
+		//		table: this.table + "2contacts",
+		//		alias: 'c',
+		//		on: {'a.address': 'c.accountId'}
+		//	}
+		//]
 	});
 
 	this.scope.dbLite.query(sql.query, sql.values, this.conv, function (err, data) {
