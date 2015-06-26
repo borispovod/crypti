@@ -89,14 +89,13 @@ function Contact() {
 	}
 
 	this.applyUnconfirmed = function (trs, sender, cb) {
-		var res = sender.applyUnconfirmedContact(trs.asset.contact.address);
-		setImmediate(cb, res ? null : "can't apply contact: " + trs.id);
+		this.scope.account.merge(sender.address, {u_contacts: trs.asset.contact.address}, cb);
 	}
 
 	this.undoUnconfirmed = function (trs, sender, cb) {
-		var res = sender.undoUnconfirmedContact(trs.asset.contact.address);
+		var contactsInvert = reverseDiff(trs.asset.contact.address);
 
-		setImmediate(cb, res ? null : "can't confirm contact");
+		this.scope.account.merge(sender.address, {u_contacts: contactsInvert}, cb);
 	}
 
 	this.objectNormalize = function (trs) {

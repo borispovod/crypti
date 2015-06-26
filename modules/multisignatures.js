@@ -86,26 +86,23 @@ function Multisignature() {
 	}
 
 	this.apply = function (trs, sender, cb) {
-		var res = sender.applyMultisignature(trs.asset.multisignature);
-
-		setImmediate(cb, res ? null : true);
+		this.scope.account.merge(sender.address, {multisignatures: trs.asset.multisignature.keysgroup, multimin: trs.asset.multisignature.min, multilifetime: trs.asset.multisignature.lifetime}, cb);
 	}
 
 	this.undo = function (trs, sender, cb) {
-		var res = sender.undoMultisignature(trs.asset.multisignature);
+		var multiInvert = reverseDiff(trs.asset.multisignature.keysgroup);
 
-		setImmediate(cb, res ? null : true);
+		this.scope.account.merge(sender.address, {multisignatures: multiInvert, multimin: -trs.asset.multisignature.min, multilifetime: -trs.asset.multisignature.lifetime}, cb);
 	}
 
 	this.applyUnconfirmed = function (trs, sender, cb) {
-		var res = sender.applyUnconfirmedMultisignature(trs.asset.multisignature);
-		setImmediate(cb, res ? null : "can't confirm multisignature");
+		this.scope.account.merge(sender.address, {u_multisignatures: trs.asset.multisignature.keysgroup, u_multimin: trs.asset.multisignature.min, u_multilifetime: trs.asset.multisignature.lifetime}, cb);
 	}
 
 	this.undoUnconfirmed = function (trs, sender, cb) {
-		var res = sender.undoUnconfirmedMultisignature(trs.asset.multisignature);
+		var multiInvert = reverseDiff(trs.asset.multisignature.keysgroup);
 
-		setImmediate(cb, res ? null : "can't confirm multisignature");
+		this.scope.account.merge(sender.address, {u_multisignatures: multiInvert, u_multimin: -trs.asset.multisignature.min, u_multilifetime: -trs.asset.multisignature.lifetime}, cb);
 	}
 
 	this.objectNormalize = function (trs) {

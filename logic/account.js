@@ -129,6 +129,26 @@ function Account(scope, cb) {
 			filter: "string",
 			conv: Array,
 			expression: "(select GROUP_CONCAT(dependentId) from " + this.table + "2u_multisignatures where accountId = a.address)"
+		},{
+			name: "multimin",
+			type: "BigInt",
+			filter: "int",
+			conv: Number
+		},{
+			name: "u_multimin",
+			type: "BigInt",
+			filter: "int",
+			conv: Number
+		},{
+			name: "multilifetime",
+			type: "BigInt",
+			filter: "int",
+			conv: Number
+		},{
+			name: "u_multilifetime",
+			type: "BigInt",
+			filter: "int",
+			conv: Number
 		}
 	];
 
