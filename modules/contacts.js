@@ -6,6 +6,7 @@ var encryptHelper = require('../helpers/encrypt.js'),
 	ed = require('ed25519'),
 	ByteBuffer = require("bytebuffer"),
 	crypto = require('crypto'),
+	Diff = require('../helpers/diff.js'),
 	errorCode = require('../helpers/errorCodes.js').error;
 
 var modules, library, self, private = {};
@@ -83,7 +84,7 @@ function Contact() {
 	}
 
 	this.undo = function (trs, sender, cb) {
-		var contactsInvert = reverseDiff(trs.asset.contact.address);
+		var contactsInvert = Diff.reverse(trs.asset.contact.address);
 
 		this.scope.account.merge(sender.address, {contacts: contactsInvert}, cb);
 	}
@@ -93,7 +94,7 @@ function Contact() {
 	}
 
 	this.undoUnconfirmed = function (trs, sender, cb) {
-		var contactsInvert = reverseDiff(trs.asset.contact.address);
+		var contactsInvert = Diff.reverse(trs.asset.contact.address);
 
 		this.scope.account.merge(sender.address, {u_contacts: contactsInvert}, cb);
 	}
@@ -140,11 +141,11 @@ function Contact() {
 	}
 
 	this.ready = function (trs, sender) {
-		if (sender.multisignature.keysgroup.length) {
+		if (sender.multisignatures.length) {
 			if (!trs.signatures) {
 				return false;
 			}
-			return trs.signatures.length >= sender.multisignature.min;
+			return trs.signatures.length >= sender.multimin;
 		} else {
 			return true;
 		}

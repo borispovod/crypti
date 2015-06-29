@@ -56,7 +56,9 @@ function Transfer() {
 	}
 
 	this.apply = function (trs, sender, cb) {
+		if (trs.recipientId == "2334212999465599568C") debugger;
 		modules.accounts.setAccountAndGet({address: trs.recipientId}, function (err, recipient) {
+			if (!recipient) debugger
 			library.logic.account.merge(recipient.address, {balance: trs.amount, u_balance: trs.amount}, cb);
 		});
 	}
@@ -88,11 +90,11 @@ function Transfer() {
 	}
 
 	this.ready = function (trs, sender) {
-		if (sender.multisignature.keysgroup.length) {
+		if (sender.multisignatures.length) {
 			if (!trs.signatures) {
 				return false;
 			}
-			return trs.signatures.length >= sender.multisignature.min;
+			return trs.signatures.length >= sender.multimin;
 		} else {
 			return true;
 		}

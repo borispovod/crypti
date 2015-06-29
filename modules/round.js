@@ -111,7 +111,7 @@ Round.prototype.backwardTick = function (block, previousBlock, cb) {
 											modules.delegates.addFee(delegate, -leftover);
 											cb();
 										});
-									}else{
+									} else {
 										cb();
 									}
 								});
@@ -174,12 +174,14 @@ Round.prototype.tick = function (block, cb) {
 
 			async.series([
 				function (cb) {
+					var task;
 					async.until(function () {
-						var task = private.tasks.shift();
+						task = private.tasks.shift();
+						console.log(task, !!task)
 						return !!task;
 					}, function (cb) {
 						task(function () {
-							cb();
+							setImmediate(cb);
 						});
 					}, cb);
 				},

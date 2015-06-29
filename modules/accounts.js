@@ -7,6 +7,7 @@ var crypto = require('crypto'),
 	constants = require('../helpers/constants.js'),
 	RequestSanitizer = require('../helpers/request-sanitizer.js'),
 	TransactionTypes = require('../helpers/transaction-types.js'),
+	Diff = require('../helpers/diff.js'),
 	errorCode = require('../helpers/errorCodes.js').error;
 
 //private
@@ -15,384 +16,6 @@ var modules, library, self, private = {};
 private.accounts = {};
 private.username2address = {};
 private.unconfirmedNames = {};
-
-function Account(address, publicKey, balance, unconfirmedBalance) {
-	this.address = address;
-	this.publicKey = publicKey || null;
-	this.balance = balance || 0;
-	this.unconfirmedBalance = unconfirmedBalance || 0;
-	this.unconfirmedSignature = false;
-	this.secondSignature = false;
-	this.secondPublicKey = null;
-	this.delegates = null;
-	this.unconfirmedDelegates = null;
-	this.unconfirmedAvatar = false;
-	this.avatar = false;
-	this.username = null;
-	this.unconfirmedUsername = null;
-	this.following = [];
-	this.unconfirmedFollowing = [];
-	this.followers = [];
-	this.unconfirmedMultisignature = {min: 0, lifetime: 0, keysgroup: []};
-	this.multisignature = {min: 0, lifetime: 0, keysgroup: []};
-}
-
-function reverseDiff(diff) {
-	var copyDiff = diff.slice();
-	for (var i = 0; i < copyDiff.length; i++) {
-		var math = copyDiff[i][0] == '-' ? '+' : '-';
-		copyDiff[i] = math + copyDiff[i].slice(1);
-	}
-	return copyDiff;
-}
-
-function applyDiff(source, diff) {
-	var res = source ? source.slice() : [];
-
-	for (var i = 0; i < diff.length; i++) {
-		var math = diff[i][0];
-		var publicKey = diff[i].slice(1);
-
-		if (math == "+") {
-			res = res || [];
-
-			var index = -1;
-			if (res) {
-				index = res.indexOf(publicKey);
-			}
-			if (index != -1) {
-				return false;
-			}
-
-			res.push(publicKey);
-		}
-		if (math == "-") {
-			var index = -1;
-			if (res) {
-				index = res.indexOf(publicKey);
-			}
-			if (index == -1) {
-				return false;
-			}
-			res.splice(index, 1);
-			if (!res.length) {
-				res = null;
-			}
-		}
-	}
-	return res;
-}
-
-Account.prototype.addToBalance = function (amount) {
-	this.balance += amount;
-	var delegate = this.delegates ? this.delegates.slice() : null
-	library.bus.message('changeBalance', delegate, amount);
-}
-
-Account.prototype.addToUnconfirmedBalance = function (amount) {
-	this.unconfirmedBalance += amount;
-
-	var unconfirmedDelegate = this.unconfirmedDelegates ? this.unconfirmedDelegates.slice() : null
-	library.bus.message('changeUnconfirmedBalance', unconfirmedDelegate, amount);
-}
-
-//------------------------------
-
-Account.prototype.applyUnconfirmedDelegateList = function (diff) {
-	if (diff === null) return;
-
-	var dest = applyDiff(this.unconfirmedDelegates, diff);
-
-	if (dest !== false) {
-		if (dest && dest.length > 101) {
-			return false;
-		}
-		this.unconfirmedDelegates = dest;
-		library.bus.message('changeUnconfirmedDelegates', this.balance, diff);
-		return true;
-	}
-
-	return false;
-}
-
-Account.prototype.undoUnconfirmedDelegateList = function (diff) {
-	if (diff === null) return;
-
-	var copyDiff = reverseDiff(diff);
-
-	var dest = applyDiff(this.unconfirmedDelegates, copyDiff);
-
-	if (dest !== false) {
-		if (dest && dest.length > 101) {
-			return false;
-		}
-		this.unconfirmedDelegates = dest;
-		library.bus.message('changeUnconfirmedDelegates', this.balance, copyDiff);
-		return true;
-	}
-
-	return false;
-}
-
-Account.prototype.applyDelegateList = function (diff) {
-	if (diff === null) return;
-
-	var dest = applyDiff(this.delegates, diff);
-
-	if (dest !== false) {
-		if (dest && dest.length > 101) {
-			return false;
-		}
-		this.delegates = dest;
-		library.bus.message('changeDelegates', this.balance, diff);
-		return true;
-	}
-
-	return false;
-}
-
-Account.prototype.undoDelegateList = function (diff) {
-	if (diff === null) return;
-
-	var copyDiff = reverseDiff(diff);
-
-	var dest = applyDiff(this.delegates, copyDiff);
-
-	if (dest !== false) {
-		if (dest && dest.length > 101) {
-			return false;
-		}
-		this.delegates = dest;
-		library.bus.message('changeDelegates', this.balance, copyDiff);
-		return true;
-	}
-
-	return false;
-}
-
-//------------------------------
-
-Account.prototype.applyContact = function (diff, cb) {
-	if (diff === null) return setImmediate(cb, "error");
-
-	var dest = applyDiff(this.following, [diff]);
-
-	if (dest !== false) {
-		var math = diff[0];
-		var address = diff.slice(1);
-		modules.accounts.getAccount(address, function (err, friend) {
-			if (math == "+") { //follow
-				if (friend.following.indexOf(this.address) == -1) { //if I´m not his friend
-					friend.addPending(this.address); //will send request for a friendship
-				} else { //if we are friends (I confirmed request)
-					this.deletePending(address); //remove his request
-				}
-			} else { //unfollow
-				if (friend.following.indexOf(this.address) == -1) { //if I´m not his friend
-					friend.deletePending(this.address); //remove my request
-				} else { //if we are friends
-					this.addPending(address); // back his request to me
-				}
-			}
-			this.following = dest || [];
-			library.network.io.sockets.emit('followers/change', {address: address});
-			library.network.io.sockets.emit('contacts/change', {address: this.address});
-			setImmediate(cb);
-		});
-	} else {
-		setImmediate(cb, "error");
-	}
-}
-
-Account.prototype.undoContact = function (diff, cb) {
-	if (diff === null) return setImmediate(cb, "error");
-
-	var copyDiff = reverseDiff([diff]);
-
-	var dest = applyDiff(this.following, copyDiff);
-
-	if (dest !== false) {
-		var math = diff[0];
-		var address = diff.slice(1);
-		modules.accounts.getAccount(address, function (err, friend) {
-			if (math == "+") { //follow
-				if (friend.following.indexOf(this.address) == -1) { //if I´m not his friend
-					friend.deletePending(this.address); //will send request for a friendship
-				} else { //if we are friends (I confirmed request)
-					this.addPending(address); //remove his request
-				}
-			} else { //unfollow
-				if (friend.following.indexOf(this.address) == -1) { //if I´m not his friend
-					friend.addPending(this.address); //remove my request
-				} else { //if we are friends
-					this.deletePending(address); // back his request to me
-				}
-			}
-			this.following = dest || [];
-			library.network.io.sockets.emit('followers/change', {address: address});
-			library.network.io.sockets.emit('contacts/change', {address: this.address});
-			setImmediate(cb);
-		});
-	} else {
-		setImmediate(cb, "error");
-	}
-}
-
-Account.prototype.applyUnconfirmedContact = function (diff) {
-	if (diff === null) return;
-
-	var dest = applyDiff(this.unconfirmedFollowing, [diff]);
-
-	if (dest !== false) {
-		this.unconfirmedFollowing = dest || [];
-		return true;
-	}
-
-	return false;
-}
-
-Account.prototype.undoUnconfirmedContact = function (diff) {
-	if (diff === null) return;
-
-	var copyDiff = reverseDiff([diff]);
-
-	var dest = applyDiff(this.unconfirmedFollowing, copyDiff);
-
-	if (dest !== false) {
-		this.unconfirmedFollowing = dest || [];
-		return true;
-	}
-
-	return false;
-}
-
-//------------------------------
-
-Account.prototype.addPending = function (address) {
-	var index = this.followers.indexOf(address);
-	if (index != -1) {
-		return false;
-	}
-	this.followers.push(address);
-	return true;
-}
-
-Account.prototype.deletePending = function (address) {
-	var index = this.followers.indexOf(address);
-	if (index == -1) {
-		return false;
-	}
-	this.followers.splice(index, 1);
-	return true;
-}
-
-//------------------------------
-
-Account.prototype.applyMultisignature = function (multisignature) {
-	var dest = applyDiff(this.multisignature.keysgroup, multisignature.keysgroup);
-
-	if (dest !== false) {
-		if (dest && dest.length > 10) {
-			return false;
-		}
-		var minRes = this.multisignature.min + multisignature.min;
-		if (minRes < 1 || minRes > 10) {
-			return false;
-		}
-		var lifetimeRes = this.multisignature.lifetime + multisignature.lifetime;
-		if (lifetimeRes < 1 || lifetimeRes > 72) {
-			return false;
-		}
-
-		this.multisignature.min = minRes;
-		this.multisignature.lifetime = lifetimeRes;
-		this.multisignature.keysgroup = dest;
-		return true;
-	}
-
-	return false;
-}
-
-Account.prototype.undoMultisignature = function (multisignature) {
-	var copyDiff = reverseDiff(multisignature.keysgroup);
-
-	var dest = applyDiff(this.multisignature.keysgroup, copyDiff);
-
-	if (dest !== false) {
-		if (dest && dest.length > 10) {
-			return false;
-		}
-		var minRes = this.multisignature.min + multisignature.min;
-		if (minRes < 1 || minRes > 10) {
-			return false;
-		}
-		var lifetimeRes = this.multisignature.lifetime + multisignature.lifetime;
-		if (lifetimeRes < 1 || lifetimeRes > 72) {
-			return false;
-		}
-
-		this.multisignature.min = minRes;
-		this.multisignature.lifetime = lifetimeRes;
-		this.multisignature.keysgroup = dest;
-		return true;
-	}
-
-	return false;
-}
-
-Account.prototype.applyUnconfirmedMultisignature = function (multisignature) {
-	var dest = applyDiff(this.unconfirmedMultisignature.keysgroup, multisignature.keysgroup);
-
-	if (dest !== false) {
-		if (dest && dest.length > 10) {
-			return false;
-		}
-		var minRes = this.unconfirmedMultisignature.min + multisignature.min;
-		if (minRes < 1 || minRes > 10) {
-			return false;
-		}
-		var lifetimeRes = this.unconfirmedMultisignature.lifetime + multisignature.lifetime;
-		if (lifetimeRes < 1 || lifetimeRes > 72) {
-			return false;
-		}
-
-		this.unconfirmedMultisignature.min = minRes;
-		this.unconfirmedMultisignature.lifetime = lifetimeRes;
-		this.unconfirmedMultisignature.keysgroup = dest;
-		return true;
-	}
-
-	return false;
-}
-
-Account.prototype.undoUnconfirmedMultisignature = function (multisignature) {
-	var copyDiff = reverseDiff(multisignature.keysgroup);
-
-	var dest = applyDiff(this.unconfirmedMultisignature.keysgroup, copyDiff);
-
-	if (dest !== false) {
-		if (dest && dest.length > 10) {
-			return false;
-		}
-		var minRes = this.unconfirmedMultisignature.min + multisignature.min;
-		if (minRes < 1 || minRes > 10) {
-			return false;
-		}
-		var lifetimeRes = this.unconfirmedMultisignature.lifetime + multisignature.lifetime;
-		if (lifetimeRes < 1 || lifetimeRes > 72) {
-			return false;
-		}
-
-		this.unconfirmedMultisignature.min = minRes;
-		this.unconfirmedMultisignature.lifetime = lifetimeRes;
-		this.unconfirmedMultisignature.keysgroup = dest;
-		return true;
-	}
-
-	return false;
-}
-
-//------------------------------
 
 function Vote() {
 	this.create = function (data, trs) {
@@ -452,7 +75,7 @@ function Vote() {
 	this.undo = function (trs, sender, cb) {
 		if (trs.asset.votes === null) return cb();
 
-		var votesInvert = reverseDiff(trs.asset.votes);
+		var votesInvert = Diff.reverse(trs.asset.votes);
 
 		this.scope.account.merge(sender.address, {delegates: votesInvert}, cb);
 	}
@@ -466,13 +89,13 @@ function Vote() {
 			}
 
 			this.scope.account.merge(sender.address, {u_delegates: trs.asset.votes}, cb);
-		});
+		}.bind(this));
 	}
 
 	this.undoUnconfirmed = function (trs, sender, cb) {
 		if (trs.asset.votes === null) return cb();
 
-		var votesInvert = reverseDiff(trs.asset.votes);
+		var votesInvert = Diff.reverse(trs.asset.votes);
 
 		this.scope.account.merge(sender.address, {u_delegates: votesInvert}, cb);
 	}
@@ -501,11 +124,11 @@ function Vote() {
 	}
 
 	this.ready = function (trs, sender) {
-		if (sender.multisignature.keysgroup.length) {
+		if (sender.multisignatures.length) {
 			if (!trs.signatures) {
 				return false;
 			}
-			return trs.signatures.length >= sender.multisignature.min;
+			return trs.signatures.length >= sender.multimin;
 		} else {
 			return true;
 		}
@@ -678,11 +301,11 @@ function Username() {
 	}
 
 	this.ready = function (trs, sender) {
-		if (sender.multisignature.keysgroup.length) {
+		if (sender.multisignatures.length) {
 			if (!trs.signatures) {
 				return false;
 			}
-			return trs.signatures.length >= sender.multisignature.min;
+			return trs.signatures.length >= sender.multimin;
 		} else {
 			return true;
 		}

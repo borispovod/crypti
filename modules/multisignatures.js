@@ -10,6 +10,7 @@ var ed = require('ed25519'),
 	async = require('async'),
 	RequestSanitizer = require('../helpers/request-sanitizer.js'),
 	TransactionTypes = require('../helpers/transaction-types.js'),
+	Diff = require('../helpers/diff.js'),
 	errorCode = require('../helpers/errorCodes.js').error;
 
 // private fields
@@ -53,7 +54,7 @@ function Multisignature() {
 			var verify = false;
 			if (trs.signatures) {
 				for (var d = 0; d < trs.signatures.length && !verify; d++) {
-					if (library.logic.transaction.verifySignature(trs, sender.multisignature.keysgroup[s], trs.signatures[d])) {
+					if (library.logic.transaction.verifySignature(trs, sender.multisignatures[s], trs.signatures[d])) {
 						verify = true;
 					}
 				}
@@ -90,7 +91,7 @@ function Multisignature() {
 	}
 
 	this.undo = function (trs, sender, cb) {
-		var multiInvert = reverseDiff(trs.asset.multisignature.keysgroup);
+		var multiInvert = Diff.reverse(trs.asset.multisignature.keysgroup);
 
 		this.scope.account.merge(sender.address, {multisignatures: multiInvert, multimin: -trs.asset.multisignature.min, multilifetime: -trs.asset.multisignature.lifetime}, cb);
 	}
@@ -100,7 +101,7 @@ function Multisignature() {
 	}
 
 	this.undoUnconfirmed = function (trs, sender, cb) {
-		var multiInvert = reverseDiff(trs.asset.multisignature.keysgroup);
+		var multiInvert = Diff.reverse(trs.asset.multisignature.keysgroup);
 
 		this.scope.account.merge(sender.address, {u_multisignatures: multiInvert, u_multimin: -trs.asset.multisignature.min, u_multilifetime: -trs.asset.multisignature.lifetime}, cb);
 	}
@@ -156,10 +157,10 @@ function Multisignature() {
 		if (!trs.signatures) {
 			return false;
 		}
-		if (!sender.multisignature.keysgroup.length) {
+		if (!sender.multisignatures.length) {
 			return trs.signatures.length == trs.asset.multisignature.keysgroup.length;
 		} else {
-			return trs.signatures.length >= sender.multisignature.min;
+			return trs.signatures.length >= sender.multimin;
 		}
 	}
 }

@@ -245,12 +245,12 @@ Transaction.prototype.verify = function (trs, sender, cb) { //inheritance
 		}
 	}
 
-	for (var s = 0; s < sender.multisignature.keysgroup.length; s++) {
+	for (var s = 0; s < sender.multisignatures.length; s++) {
 		var verify = false;
 
 		if (trs.signatures) {
 			for (var d = 0; d < trs.signatures.length && !verify; d++) {
-				if (this.verifySecondSignature(trs, sender.multisignature.keysgroup[s], trs.signatures[d])) {
+				if (this.verifySecondSignature(trs, sender.multisignatures[s], trs.signatures[d])) {
 					verify = true;
 				}
 			}

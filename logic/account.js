@@ -46,9 +46,7 @@ function Account(scope, cb) {
 			name: "publicKey",
 			type: "Binary",
 			length: 32,
-			not_null: true,
-			unique: true,
-			filter: "hex!",
+			filter: "hex?",
 			conv: String,
 			constante: true
 		},
@@ -64,34 +62,36 @@ function Account(scope, cb) {
 			name: "balance",
 			type: "BigInt",
 			filter: "int",
-			conv: Number
+			conv: Number,
+			default: 0
 		},
 		{
 			name: "u_balance",
 			type: "BigInt",
 			filter: "int",
-			conv: Number
+			conv: Number,
+			default: 0
 		},
 		{
 			name: "delegates",
 			type: "Text",
 			filter: "string",
 			conv: Array,
-			expression: "(select GROUP_CONCAT(dependentId) from " + this.table + "2delegates where accountId = a.address and confirmed = 1)"
+			expression: "(select GROUP_CONCAT(dependentId) from " + this.table + "2delegates where accountId = a.address)"
 		},
 		{
 			name: "contacts",
 			type: "Text",
 			filter: "string",
 			conv: Array,
-			expression: "(select GROUP_CONCAT(dependentId) from " + this.table + "2contacts where accountId = a.address and confirmed = 1)"
+			expression: "(select GROUP_CONCAT(dependentId) from " + this.table + "2contacts where accountId = a.address)"
 		},
 		{
 			name: "followers",
 			type: "Text",
 			filter: "string",
 			conv: Array,
-			expression: "(select GROUP_CONCAT(accountId) from " + this.table + "2contacts where dependentId = a.address and confirmed = 1)",
+			expression: "(select GROUP_CONCAT(accountId) from " + this.table + "2contacts where dependentId = a.address)",
 			readonly: true
 		},
 		{
@@ -99,21 +99,21 @@ function Account(scope, cb) {
 			type: "Text",
 			filter: "string",
 			conv: Array,
-			expression: "(select GROUP_CONCAT(dependentId) from " + this.table + "2u_delegates where accountId = a.address and confirmed = 0)"
+			expression: "(select GROUP_CONCAT(dependentId) from " + this.table + "2u_delegates where accountId = a.address)"
 		},
 		{
 			name: "u_contacts",
 			type: "Text",
 			filter: "string",
 			conv: Array,
-			expression: "(select GROUP_CONCAT(dependentId) from " + this.table + "2u_contacts where accountId = a.address and confirmed = 0)"
+			expression: "(select GROUP_CONCAT(dependentId) from " + this.table + "2u_contacts where accountId = a.address)"
 		},
 		{
 			name: "u_followers",
 			type: "Text",
 			filter: "string",
 			conv: Array,
-			expression: "(select GROUP_CONCAT(accountId) from " + this.table + "2u_contacts where dependentId = a.address and confirmed = 0)",
+			expression: "(select GROUP_CONCAT(accountId) from " + this.table + "2u_contacts where dependentId = a.address)",
 			readonly: true
 		},
 		{
@@ -129,26 +129,30 @@ function Account(scope, cb) {
 			filter: "string",
 			conv: Array,
 			expression: "(select GROUP_CONCAT(dependentId) from " + this.table + "2u_multisignatures where accountId = a.address)"
-		},{
+		}, {
 			name: "multimin",
 			type: "BigInt",
 			filter: "int",
-			conv: Number
-		},{
+			conv: Number,
+			default: 0
+		}, {
 			name: "u_multimin",
 			type: "BigInt",
 			filter: "int",
-			conv: Number
-		},{
+			conv: Number,
+			default: 0
+		}, {
 			name: "multilifetime",
 			type: "BigInt",
 			filter: "int",
-			conv: Number
-		},{
+			conv: Number,
+			default: 0
+		}, {
 			name: "u_multilifetime",
 			type: "BigInt",
 			filter: "int",
-			conv: Number
+			conv: Number,
+			default: 0
 		}
 	];
 
@@ -348,79 +352,6 @@ function Account(scope, cb) {
 	}.bind(this));
 }
 
-private.reverseDiff = function (diff) {
-	var copyDiff = diff.slice();
-	for (var i = 0; i < copyDiff.length; i++) {
-		var math = copyDiff[i][0] == '-' ? '+' : '-';
-		copyDiff[i] = math + copyDiff[i].slice(1);
-	}
-	return copyDiff;
-}
-
-private.applyDiff = function (source, diff) {
-	var res = source ? source.slice() : [];
-
-	for (var i = 0; i < diff.length; i++) {
-		var math = diff[i][0];
-		var publicKey = diff[i].slice(1);
-
-		if (math == "+") {
-			res = res || [];
-
-			var index = -1;
-			if (res) {
-				index = res.indexOf(publicKey);
-			}
-			if (index != -1) {
-				return false;
-			}
-
-			res.push(publicKey);
-		}
-		if (math == "-") {
-			var index = -1;
-			if (res) {
-				index = res.indexOf(publicKey);
-			}
-			if (index == -1) {
-				return false;
-			}
-			res.splice(index, 1);
-			if (!res.length) {
-				res = null;
-			}
-		}
-	}
-	return res;
-}
-
-Account.prototype.dbRead = function (raw) {
-	if (!raw.t_id) {
-		return null
-	} else {
-		var account = {
-			id: raw.t_id,
-			height: raw.b_height,
-			blockId: raw.b_id,
-			type: parseInt(raw.t_type),
-			timestamp: parseInt(raw.t_timestamp),
-			senderPublicKey: raw.t_senderPublicKey,
-			senderId: raw.t_senderId,
-			recipientId: raw.t_recipientId,
-			senderUsername: raw.t_senderUsername,
-			recipientUsername: raw.t_recipientUsername,
-			amount: parseInt(raw.t_amount),
-			fee: parseInt(raw.t_fee),
-			signature: raw.t_signature,
-			signSignature: raw.t_signSignature,
-			confirmations: raw.t_confirmations,
-			asset: {}
-		}
-
-		return account;
-	}
-}
-
 Account.prototype.objectNormalize = function (account) {
 	var report = RequestSanitizer.validate(account, {
 		object: true,
@@ -449,12 +380,12 @@ Account.prototype.get = function (filter, fields, cb) {
 	if (arguments.length == 2) {
 		cb = fields;
 		fields = this.fields.map(function (field) {
-			return field.alias;
+			return field.alias || field.field;
 		});
 	}
 
 	var realFields = this.fields.filter(function (field) {
-		return fields.indexOf(field.alias) != -1;
+		return fields.indexOf(field.alias || field.field) != -1;
 	});
 
 	var sql = jsonSql.build({
@@ -546,10 +477,9 @@ Account.prototype.merge = function (address, diff, cb) {
 					}
 					break;
 				case Array:
-					var diffarr = trueValue.split(",");
-					for (var i = 0; i < diffarr.length; i++) {
-						var math = diffarr[i][0];
-						var val = diffarr[i].slice(1);
+					for (var i = 0; i < trueValue.length; i++) {
+						var math = trueValue[i][0];
+						var val = trueValue[i].slice(1);
 						if (math == "-") {
 							remove[value] = remove[value] || [];
 							remove[value].push(val);
@@ -615,13 +545,14 @@ Account.prototype.merge = function (address, diff, cb) {
 		});
 	}, function (err) {
 		if (err) {
-			cb(err);
-		} else {
-			if (sqles.length > 1) {
-				self.scope.dbLite.query('COMMIT;', function (err) {
-					self.get({address: address}, cb);
-				});
-			}
+			return cb(err);
+		}
+		if (sqles.length > 1) {
+			self.scope.dbLite.query('COMMIT;', function (err) {
+				self.get({address: address}, cb);
+			});
+		}else{
+			self.get({address: address}, cb);
 		}
 	});
 }

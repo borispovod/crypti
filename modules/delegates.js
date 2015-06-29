@@ -205,11 +205,11 @@ function Delegate() {
 	}
 
 	this.ready = function (trs, sender) {
-		if (sender.multisignature.keysgroup.length) {
+		if (sender.multisignatures.length) {
 			if (!trs.signatures) {
 				return false;
 			}
-			return trs.signatures.length >= sender.multisignature.min;
+			return trs.signatures.length >= sender.multimin;
 		} else {
 			return true;
 		}
