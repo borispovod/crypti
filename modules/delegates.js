@@ -89,10 +89,10 @@ function Delegate() {
 				publicKey: trs.senderPublicKey
 			}
 		}, function (err, account) {
-			if (account.username == trs.asset.delegate.username) {
+			if (account && account.username == trs.asset.delegate.username) {
 				return setImmediate(cb, errorCode("DELEGATES.EXISTS_USERNAME", trs));
 			}
-			if (account.senderPublicKey == trs.senderPublicKey) {
+			if (account && account.senderPublicKey == trs.senderPublicKey) {
 				return setImmediate(cb, errorCode("DELEGATES.EXISTS_DELEGATE"));
 			}
 			if (sender.username && sender.username != trs.asset.delegate.username) {
@@ -118,7 +118,8 @@ function Delegate() {
 	}
 
 	this.apply = function (trs, sender, cb) {
-		modules.accounts.setAccountAndGet(sender.address, {
+		modules.accounts.setAccountAndGet({
+			address: sender.address,
 			u_username: null,
 			username: trs.asset.delegate.username,
 			u_isDelegate: 0,
@@ -127,7 +128,8 @@ function Delegate() {
 	}
 
 	this.undo = function (trs, sender, cb) {
-		modules.accounts.setAccountAndGet(sender.address, {
+		modules.accounts.setAccountAndGet({
+			address: sender.address,
 			username: null,
 			u_username: trs.asset.delegate.username,
 			u_isDelegate: 1,
@@ -142,10 +144,11 @@ function Delegate() {
 				publicKey: trs.asset.delegate.publicKey
 			}
 		}, function (err, account) {
-			if (account.u_isDelegate || (account.u_username == trs.asset.delegate.username && account.publicKey != sender.publicKey)) {
+			if (account && (account.u_isDelegate || (account.u_username == trs.asset.delegate.username && account.publicKey != sender.publicKey))) {
 				return setImmediate(cb, errorCode("DELEGATES.EXISTS_DELEGATE"));
 			}
-			modules.accounts.setAccountAndGet(sender.address, {
+			modules.accounts.setAccountAndGet({
+				address: sender.address,
 				username: null,
 				u_username: trs.asset.delegate.username,
 				u_isDelegate: 1,
@@ -155,7 +158,8 @@ function Delegate() {
 	}
 
 	this.undoUnconfirmed = function (trs, sender, cb) {
-		modules.accounts.setAccountAndGet(sender.address, {
+		modules.accounts.setAccountAndGet({
+			address: sender.address,
 			username: null,
 			u_username: null,
 			u_isDelegate: 0,

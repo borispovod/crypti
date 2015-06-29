@@ -73,11 +73,11 @@ function Signature() {
 	}
 
 	this.apply = function (trs, sender, cb) {
-		modules.accounts.setAccountAndGet(sender.address, {secondSignature: 1, u_secondSignature: 0, secondPublicKey: trs.asset.signature.publicKey}, cb);
+		modules.accounts.setAccountAndGet({address: sender.address, secondSignature: 1, u_secondSignature: 0, secondPublicKey: trs.asset.signature.publicKey}, cb);
 	}
 
 	this.undo = function (trs, sender, cb) {
-		modules.accounts.setAccountAndGet(sender.address, {secondSignature: 0, u_secondSignature: 1, secondPublicKey: null}, cb);
+		modules.accounts.setAccountAndGet({address: sender.address, secondSignature: 0, u_secondSignature: 1, secondPublicKey: null}, cb);
 	}
 
 	this.applyUnconfirmed = function (trs, sender, cb) {
@@ -85,11 +85,11 @@ function Signature() {
 			return setImmediate(cb, "Failed secondSignature: " + trs.id);
 		}
 
-		modules.accounts.setAccountAndGet(sender.address, { u_secondSignature: 1}, cb);
+		modules.accounts.setAccountAndGet({address: sender.address, u_secondSignature: 1}, cb);
 	}
 
 	this.undoUnconfirmed = function (trs, sender, cb) {
-		modules.accounts.setAccountAndGet(sender.address, { u_secondSignature: 0}, cb);
+		modules.accounts.setAccountAndGet({address: sender.address, u_secondSignature: 0}, cb);
 	}
 
 	this.objectNormalize = function (trs) {

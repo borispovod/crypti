@@ -391,6 +391,12 @@ Account.prototype.toDB = function (raw) {
 }
 
 Account.prototype.get = function (filter, fields, cb) {
+	if (arguments.length == 2) {
+		cb = fields;
+		fields = this.fields.map(function (field) {
+			return field.alias || field.field;
+		});
+	}
 	this.getAll(filter, fields, function (err, data) {
 		cb(err, data && data.length ? data[0] : null)
 	})

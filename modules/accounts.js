@@ -180,7 +180,7 @@ function Username() {
 				u_username: trs.asset.username.alias
 			}
 		}, function (err, account) {
-			if (account.username == trs.asset.delegate.username) {
+			if (account && account.username == trs.asset.delegate.username) {
 				return setImmediate(cb, errorCode("DELEGATES.EXISTS_USERNAME", trs));
 			}
 			if (sender.username && sender.username != trs.asset.delegate.username) {
@@ -209,11 +209,11 @@ function Username() {
 	}
 
 	this.apply = function (trs, sender, cb) {
-		modules.accounts.setAccountAndGet(sender.address, {u_username: null, username: trs.asset.username.alias}, cb);
+		self.setAccountAndGet({address: sender.address, u_username: null, username: trs.asset.username.alias}, cb);
 	}
 
 	this.undo = function (trs, sender, cb) {
-		modules.accounts.setAccountAndGet(sender.address, {username: null, u_username: trs.asset.username.alias}, cb);
+		self.setAccountAndGet({address: sender.address, username: null, u_username: trs.asset.username.alias}, cb);
 	}
 
 	this.applyUnconfirmed = function (trs, sender, cb) {
@@ -227,16 +227,16 @@ function Username() {
 				publicKey: trs.senderPublicKey
 			}
 		}, function (err, account) {
-			if (account.u_username) {
+			if (account && account.u_username) {
 				return setImmediate(cb, errorCode("USERNAMES.EXISTS_USERNAME", trs));
 			}
 
-			modules.accounts.setAccountAndGet(sender.address, {u_username: trs.asset.username.alias}, cb);
+			self.setAccountAndGet({address: sender.address, u_username: trs.asset.username.alias}, cb);
 		});
 	}
 
 	this.undoUnconfirmed = function (trs, sender, cb) {
-		modules.accounts.setAccountAndGet(sender.address, {u_username: null}, cb);
+		self.setAccountAndGet({address: sender.address, u_username: null}, cb);
 	}
 
 	this.objectNormalize = function (trs) {
