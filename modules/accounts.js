@@ -240,10 +240,7 @@ function Username() {
 	}
 
 	this.undoUnconfirmed = function (trs, sender, cb) {
-		sender.unconfirmedUsername = null;
-		delete private.unconfirmedNames[trs.asset.username.alias.toLowerCase()];
-
-		setImmediate(cb);
+		modules.accounts.setAccountAndGet(sender.address, {u_username: null}, cb);
 	}
 
 	this.objectNormalize = function (trs) {
