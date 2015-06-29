@@ -210,19 +210,11 @@ function Username() {
 	}
 
 	this.apply = function (trs, sender, cb) {
-		delete private.unconfirmedNames[trs.asset.username.alias.toLowerCase()]
-		private.username2address[trs.asset.username.alias.toLowerCase()] = sender.address;
-		sender.username = trs.asset.username.alias;
-
-		setImmediate(cb);
+		modules.accounts.setAccountAndGet(sender.address, {u_username: null, username: trs.asset.username.alias}, cb);
 	}
 
 	this.undo = function (trs, sender, cb) {
-		private.unconfirmedNames[trs.asset.username.alias.toLowerCase()] = true;
-		delete private.username2address[trs.asset.username.alias.toLowerCase()];
-		sender.username = null;
-
-		setImmediate(cb);
+		modules.accounts.setAccountAndGet(sender.address, {username: null, u_username: trs.asset.username.alias}, cb);
 	}
 
 	this.applyUnconfirmed = function (trs, sender, cb) {
@@ -234,20 +226,16 @@ function Username() {
 			return setImmediate(cb, errorCode("USERNAMES.EXISTS_USERNAME", trs));
 		}
 
+		if (sender.username || sender.u_username) {
+			return setImmediate(cb, errorCode("USERNAMES.ALREADY_HAVE_USERNAME", trs));
+		}
+
 		self.getAccount({u_username: trs.asset.username.alias}, function (err, account) {
-			var found = account;
-			if (found) {
+			if (account) {
 				return setImmediate(cb, errorCode("USERNAMES.EXISTS_USERNAME", trs));
 			}
 
-			if (sender.username || sender.unconfirmedUsername) {
-				return setImmediate(cb, errorCode("USERNAMES.ALREADY_HAVE_USERNAME", trs));
-			}
-
-			sender.unconfirmedUsername = trs.asset.username.alias;
-			private.unconfirmedNames[trs.asset.username.alias.toLowerCase()] = true;
-
-			setImmediate(cb);
+			modules.accounts.setAccountAndGet(sender.address, {u_username: trs.asset.username.alias}, cb);
 		});
 	}
 
@@ -350,7 +338,7 @@ function attachApi() {
 				if (!err) {
 					accountData = {
 						address: account.address,
-						unconfirmedBalance: account.unconfirmedBalance,
+						unconfirmedBalance: account.u_balance,
 						balance: account.balance,
 						publicKey: account.publicKey,
 						unconfirmedSignature: account.unconfirmedSignature,
@@ -387,7 +375,7 @@ function attachApi() {
 
 			self.getAccount(query.address, function (err, account) {
 				var balance = account ? account.balance : 0;
-				var unconfirmedBalance = account ? account.unconfirmedBalance : 0;
+				var unconfirmedBalance = account ? account.u_balance : 0;
 
 				res.json({success: true, balance: balance, unconfirmedBalance: unconfirmedBalance});
 			});
@@ -657,7 +645,7 @@ function attachApi() {
 					account: {
 						address: account.address,
 						username: account.username,
-						unconfirmedBalance: account.unconfirmedBalance,
+						unconfirmedBalance: account.u_balance,
 						balance: account.balance,
 						publicKey: account.publicKey,
 						unconfirmedSignature: account.unconfirmedSignature,
