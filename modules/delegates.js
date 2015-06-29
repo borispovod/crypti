@@ -83,25 +83,20 @@ function Delegate() {
 			return setImmediate(cb, errorCode("DELEGATES.USERNAME_IS_TOO_LONG", trs));
 		}
 
-		if (self.existsName(trs.asset.delegate.username)) {
-			return setImmediate(cb, errorCode("DELEGATES.EXISTS_USERNAME", trs));
-		}
-
-		if (self.existsDelegate(trs.senderPublicKey)) {
-			return setImmediate(cb, errorCode("DELEGATES.EXISTS_DELEGATE"));
-		}
-
-		modules.accounts.getAccount({username: trs.asset.delegate.username}, function (err, account) {
-			var found = !!account;
-			if (found && sender.username != trs.asset.delegate.username) {
+		modules.accounts.getAccount({
+			$or: {
+				username: trs.asset.delegate.username,
+				publicKey: trs.senderPublicKey
+			}
+		}, function (err, account) {
+			if (account.username == trs.asset.delegate.username) {
 				return setImmediate(cb, errorCode("DELEGATES.EXISTS_USERNAME", trs));
+			}
+			if (account.senderPublicKey == trs.senderPublicKey) {
+				return setImmediate(cb, errorCode("DELEGATES.EXISTS_DELEGATE"));
 			}
 			if (sender.username && sender.username != trs.asset.delegate.username) {
 				return setImmediate(cb, errorCode("DELEGATES.WRONG_USERNAME"));
-			}
-
-			if (sender.unconfirmedUsername && sender.unconfirmedUsername != trs.asset.delegate.username) {
-				return setImmediate(cb, errorCode("USERNAMES.ALREADY_HAVE_USERNAME", trs));
 			}
 
 			setImmediate(cb, null, trs);
@@ -123,42 +118,49 @@ function Delegate() {
 	}
 
 	this.apply = function (trs, sender, cb) {
-		modules.delegates.removeUnconfirmedDelegate(trs.asset.delegate);
-		modules.delegates.cache(trs.asset.delegate, cb);
+		modules.accounts.setAccountAndGet(sender.address, {
+			u_username: null,
+			username: trs.asset.delegate.username,
+			u_isDelegate: 0,
+			isDelegate: 1
+		}, cb);
 	}
 
 	this.undo = function (trs, sender, cb) {
-		modules.delegates.uncache(trs.asset.delegate, function () {
-			modules.delegates.addUnconfirmedDelegate(trs.asset.delegate);
-
-			setImmediate(cb);
-		});
+		modules.accounts.setAccountAndGet(sender.address, {
+			username: null,
+			u_username: trs.asset.delegate.username,
+			u_isDelegate: 1,
+			isDelegate: 0
+		}, cb);
 	}
 
 	this.applyUnconfirmed = function (trs, sender, cb) {
-		if (self.existsUnconfirmedDelegate(trs.asset.delegate.publicKey)) {
-			return setImmediate(cb, errorCode("DELEGATES.EXISTS_DELEGATE"));
-		}
-
-		if (self.existsUnconfirmedName(trs.asset.delegate.username)) {
-			return setImmediate(cb, errorCode("DELEGATES.EXISTS_DELEGATE"));
-		}
-
-		modules.accounts.getAccount({u_username: trs.asset.delegate.username}, function (err, account) {
-			var found = !!account;
-			if (found) {
+		modules.accounts.getAccount({
+			$or: {
+				u_username: trs.asset.delegate.username,
+				publicKey: trs.asset.delegate.publicKey
+			}
+		}, function (err, account) {
+			if (account.u_isDelegate || (account.u_username == trs.asset.delegate.username && account.publicKey != sender.publicKey)) {
 				return setImmediate(cb, errorCode("DELEGATES.EXISTS_DELEGATE"));
 			}
-			modules.delegates.addUnconfirmedDelegate(trs.asset.delegate);
-
-			setImmediate(cb);
+			modules.accounts.setAccountAndGet(sender.address, {
+				username: null,
+				u_username: trs.asset.delegate.username,
+				u_isDelegate: 1,
+				isDelegate: 0
+			}, cb);
 		});
 	}
 
 	this.undoUnconfirmed = function (trs, sender, cb) {
-		modules.delegates.removeUnconfirmedDelegate(trs.asset.delegate);
-
-		setImmediate(cb);
+		modules.accounts.setAccountAndGet(sender.address, {
+			username: null,
+			u_username: null,
+			u_isDelegate: 0,
+			isDelegate: 0
+		}, cb);
 	}
 
 	this.objectNormalize = function (trs) {
@@ -419,7 +421,7 @@ function attachApi() {
 			}
 
 			modules.accounts.getAccount({publicKey: keypair.publicKey.toString('hex')}, function (err, account) {
-				if (account && self.existsDelegate(keypair.publicKey.toString('hex'))) {
+				if (account && account.isDelegate) {
 					private.keypairs[keypair.publicKey.toString('hex')] = keypair;
 					res.json({success: true, address: account.address});
 					library.logger.info("Forging enabled on account: " + account.address);
@@ -461,7 +463,7 @@ function attachApi() {
 			}
 
 			modules.accounts.getAccount({publicKey: keypair.publicKey.toString('hex')}, function (err, account) {
-				if (account && self.existsDelegate(keypair.publicKey.toString('hex'))) {
+				if (account && account.isDelegate) {
 					delete private.keypairs[keypair.publicKey.toString('hex')];
 					res.json({success: true, address: account.address});
 					library.logger.info("Forging disabled on account: " + account.address);
@@ -671,11 +673,11 @@ private.loop = function (cb) {
 
 		if (slots.getSlotNumber(currentBlockData.time) == slots.getSlotNumber()) {
 			modules.blocks.generateBlock(currentBlockData.keypair, currentBlockData.time, function (err) {
-				library.logger.log('round ' + self.getDelegateByPublicKey(_activeDelegates[slots.getSlotNumber(currentBlockData.time) % slots.delegates]).username + ': ' + modules.round.calc(modules.blocks.getLastBlock().height) + ' new block id: ' + modules.blocks.getLastBlock().id + ' height:' + modules.blocks.getLastBlock().height + ' slot:' + slots.getSlotNumber(currentBlockData.time))
+				//library.logger.log('round ' + self.getDelegateByPublicKey(_activeDelegates[slots.getSlotNumber(currentBlockData.time) % slots.delegates]).username + ': ' + modules.round.calc(modules.blocks.getLastBlock().height) + ' new block id: ' + modules.blocks.getLastBlock().id + ' height:' + modules.blocks.getLastBlock().height + ' slot:' + slots.getSlotNumber(currentBlockData.time))
 				cb(err);
 			});
 		} else {
-			library.logger.log('loop', 'exit: ' + self.getDelegateByPublicKey(_activeDelegates[slots.getSlotNumber() % slots.delegates]).username + ' delegate slot');
+			//library.logger.log('loop', 'exit: ' + self.getDelegateByPublicKey(_activeDelegates[slots.getSlotNumber() % slots.delegates]).username + ' delegate slot');
 
 			setImmediate(cb);
 		}
@@ -695,7 +697,7 @@ private.loadMyDelegates = function (cb) {
 	async.eachSeries(secrets, function (secret, cb) {
 		var keypair = ed.MakeKeypair(crypto.createHash('sha256').update(secret, 'utf8').digest());
 		modules.accounts.getAccount({publicKey: keypair.publicKey.toString('hex')}, function (err, account) {
-			if (self.existsDelegate(keypair.publicKey.toString('hex'))) {
+			if (account.isDelegate) {
 				private.keypairs[keypair.publicKey.toString('hex')] = keypair;
 				library.logger.info("Forging enabled on account: " + account.address);
 			} else {
@@ -741,7 +743,7 @@ Delegates.prototype.checkDelegates = function (publicKey, votes, cb) {
 				var math = votes[i][0];
 				var publicKey = votes[i].slice(1);
 
-				if (!self.existsDelegate(publicKey)) {
+				if (!account.isDelegate) {
 					return setImmediate(cb, "error");
 				}
 
@@ -790,24 +792,6 @@ Delegates.prototype.checkUnconfirmedDelegates = function (publicKey, votes, cb) 
 	}
 }
 
-Delegates.prototype.addUnconfirmedDelegate = function (delegate) {
-	private.unconfirmedDelegates[delegate.publicKey] = true;
-	private.unconfirmedNames[delegate.username] = true;
-}
-
-Delegates.prototype.existsUnconfirmedDelegate = function (publicKey) {
-	return !!private.unconfirmedDelegates[publicKey];
-}
-
-Delegates.prototype.existsUnconfirmedName = function (username) {
-	return !!private.unconfirmedNames[username];
-}
-
-Delegates.prototype.removeUnconfirmedDelegate = function (delegate) {
-	delete private.unconfirmedDelegates[delegate.publicKey];
-	delete private.unconfirmedNames[delegate.username];
-}
-
 Delegates.prototype.fork = function (block, cause) {
 	library.logger.info('fork', {
 		delegate: private.getDelegate({publicKey: block.generatorPublicKey}),
@@ -825,64 +809,8 @@ Delegates.prototype.fork = function (block, cause) {
 	});
 }
 
-Delegates.prototype.getDelegateByPublicKey = function (publicKey) {
-	return private.getDelegate({publicKey: publicKey});
-}
-
-Delegates.prototype.getDelegateByUsername = function (username) {
-	return private.getDelegate({username: username});
-}
-
 Delegates.prototype.addFee = function (publicKey, value) {
 	private.fees[publicKey] = (private.fees[publicKey] || 0) + value;
-}
-
-Delegates.prototype.existsDelegate = function (publicKey) {
-	return private.votes[publicKey] !== undefined;
-}
-
-Delegates.prototype.existsName = function (userName) {
-	return private.namesIndex[userName.toLowerCase()] !== undefined;
-}
-
-Delegates.prototype.cache = function (delegate, cb) {
-	private.delegates.push(delegate);
-	var index = private.delegates.length - 1;
-
-	private.unconfirmedVotes[delegate.publicKey] = 0;
-	private.votes[delegate.publicKey] = 0;
-
-	private.namesIndex[delegate.username.toLowerCase()] = index;
-	private.publicKeyIndex[delegate.publicKey] = index;
-	private.transactionIdIndex[delegate.transactionId] = index;
-
-	modules.accounts.getAccount({publicKey: delegate.publicKey}, function (err, account) {
-		account.username = delegate.username;
-
-		library.network.io.sockets.emit('delegates/change', {});
-
-		setImmediate(cb);
-	});
-}
-
-Delegates.prototype.uncache = function (delegate, cb) {
-	delete private.votes[delegate.publicKey];
-	delete private.unconfirmedVotes[delegate.publicKey];
-
-	var index = private.publicKeyIndex[delegate.publicKey];
-
-	delete private.publicKeyIndex[delegate.publicKey]
-	delete private.namesIndex[delegate.username.toLowerCase()];
-	delete private.transactionIdIndex[delegate.transactionId];
-	private.delegates[index] = false;
-
-	modules.accounts.getAccount({publicKey: delegate.publicKey}, function (err, account) {
-		account.username = null;
-
-		library.network.io.sockets.emit('delegates/change', {});
-
-		setImmediate(cb);
-	});
 }
 
 Delegates.prototype.validateBlockSlot = function (block) {

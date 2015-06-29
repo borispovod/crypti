@@ -20,6 +20,20 @@ function Account(scope, cb) {
 			constante: true
 		},
 		{
+			name: "isDelegate",
+			type: "BigInt",
+			filter: "string?",
+			conv: Boolean,
+			default: 0
+		},
+		{
+			name: "u_isDelegate",
+			type: "BigInt",
+			filter: "string?",
+			conv: Boolean,
+			default: 0
+		},
+		{
 			name: "u_username",
 			type: "String",
 			length: 20,
@@ -377,6 +391,12 @@ Account.prototype.toDB = function (raw) {
 }
 
 Account.prototype.get = function (filter, fields, cb) {
+	this.getAll(filter, fields, function (err, data) {
+		cb(err, data && data.length ? data[0] : null)
+	})
+}
+
+Account.prototype.getAll = function (filter, fields, cb) {
 	if (arguments.length == 2) {
 		cb = fields;
 		fields = this.fields.map(function (field) {
@@ -400,39 +420,8 @@ Account.prototype.get = function (filter, fields, cb) {
 		if (err) {
 			return cb(err);
 		}
-		try {
-			data = data && data.length ? data[0] : null;
-		} catch (e) {
-			return cb(e.toString());
-		}
-		cb(null, data);
-	}.bind(this));
-}
 
-Account.prototype.getAll = function (filter, fields, cb) {
-	if (arguments.length == 2) {
-		cb = fields;
-		fields = this.fields.map(function (field) {
-			return field.alias;
-		});
-	}
-
-	var realFields = this.fields.filter(function (field) {
-		return fields.indexOf(field.alias) != -1;
-	});
-
-	var sql = jsonSql.build({
-		type: 'select',
-		table: this.table,
-		condition: filter,
-		fields: realFields
-	});
-	this.scope.dbLite.query(sql.query, sql.values, this.conv, function (err, data) {
-		if (err) {
-			return cb(err);
-		}
-
-		cb(null, data);
+		cb(null, data || []);
 	}.bind(this));
 }
 
@@ -551,7 +540,7 @@ Account.prototype.merge = function (address, diff, cb) {
 			self.scope.dbLite.query('COMMIT;', function (err) {
 				self.get({address: address}, cb);
 			});
-		}else{
+		} else {
 			self.get({address: address}, cb);
 		}
 	});

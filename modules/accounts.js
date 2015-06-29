@@ -13,10 +13,6 @@ var crypto = require('crypto'),
 //private
 var modules, library, self, private = {};
 
-private.accounts = {};
-private.username2address = {};
-private.unconfirmedNames = {};
-
 function Vote() {
 	this.create = function (data, trs) {
 		trs.recipientId = data.sender.address;
@@ -178,17 +174,20 @@ function Username() {
 			return setImmediate(cb, errorCode("USERNAMES.INCORRECT_USERNAME_LENGTH", trs));
 		}
 
-		if (modules.delegates.existsName(trs.asset.username.alias)) {
-			return setImmediate(cb, errorCode("USERNAMES.EXISTS_USERNAME", trs));
-		}
-
-		self.getAccount({username: trs.asset.username.alias}, function (err, account) {
-			var found = !!account;
-			if (found) {
-				return setImmediate(cb, errorCode("USERNAMES.EXISTS_USERNAME", trs));
+		modules.accounts.getAccount({
+			$or: {
+				username: trs.asset.username.alias,
+				u_username: trs.asset.username.alias
 			}
-			if (modules.delegates.existsDelegate(trs.senderPublicKey)) {
-				return setImmediate(cb, errorCode("USERNAMES.EXISTS_USERNAME", trs));
+		}, function (err, account) {
+			if (account.username == trs.asset.delegate.username) {
+				return setImmediate(cb, errorCode("DELEGATES.EXISTS_USERNAME", trs));
+			}
+			if (sender.username && sender.username != trs.asset.delegate.username) {
+				return setImmediate(cb, errorCode("DELEGATES.WRONG_USERNAME"));
+			}
+			if (sender.u_username && sender.u_username != trs.asset.delegate.username) {
+				return setImmediate(cb, errorCode("USERNAMES.ALREADY_HAVE_USERNAME", trs));
 			}
 
 			setImmediate(cb, null, trs);
@@ -218,20 +217,17 @@ function Username() {
 	}
 
 	this.applyUnconfirmed = function (trs, sender, cb) {
-		if (modules.delegates.existsUnconfirmedDelegate(trs.senderPublicKey)) {
-			return setImmediate(cb, errorCode("USERNAMES.EXISTS_USERNAME", trs));
-		}
-
-		if (modules.delegates.existsUnconfirmedName(trs.asset.username.alias)) {
-			return setImmediate(cb, errorCode("USERNAMES.EXISTS_USERNAME", trs));
-		}
-
 		if (sender.username || sender.u_username) {
 			return setImmediate(cb, errorCode("USERNAMES.ALREADY_HAVE_USERNAME", trs));
 		}
 
-		self.getAccount({u_username: trs.asset.username.alias}, function (err, account) {
-			if (account) {
+		self.getAccount({
+			$or: {
+				u_username: trs.asset.username.alias,
+				publicKey: trs.senderPublicKey
+			}
+		}, function (err, account) {
+			if (account.u_username) {
 				return setImmediate(cb, errorCode("USERNAMES.EXISTS_USERNAME", trs));
 			}
 
@@ -474,15 +470,14 @@ function attachApi() {
 					});
 				}
 
-				var delegates = null;
-
 				if (account.delegates) {
-					delegates = account.delegates.map(function (publicKey) {
-						return modules.delegates.getDelegateByPublicKey(publicKey);
-					});
-				}
+					self.getAccounts({address: {$in: account.delegates}}, function (err, delegates) {
+						res.json({success: true, delegates: delegates});
 
-				res.json({success: true, delegates: delegates});
+					});
+				} else {
+					res.json({success: true, delegates: []});
+				}
 			});
 		});
 	});
@@ -691,6 +686,10 @@ Accounts.prototype.getAccount = function (filter, cb) {
 		delete filter.publicKey;
 	}
 	library.logic.account.get(filter, cb);
+}
+
+Accounts.prototype.getAccounts = function (filter, cb) {
+	library.logic.account.getAll(filter, cb);
 }
 
 Accounts.prototype.setAccountAndGet = function (data, cb) {
