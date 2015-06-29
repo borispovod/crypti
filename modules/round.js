@@ -70,7 +70,7 @@ Round.prototype.backwardTick = function (block, previousBlock, cb) {
 
 			async.series([
 				function (cb) {
-					async.until(function () {
+					async.whilst(function () {
 						var task = private.tasks.shift();
 						return !!task;
 					}, function (cb) {
@@ -120,7 +120,7 @@ Round.prototype.backwardTick = function (block, previousBlock, cb) {
 					}
 				},
 				function (cb) {
-					async.until(function () {
+					async.whilst(function () {
 						var task = private.tasks.shift();
 						return !!task;
 					}, function (cb) {
@@ -175,7 +175,7 @@ Round.prototype.tick = function (block, cb) {
 			async.series([
 				function (cb) {
 					var task;
-					async.until(function () {
+					async.whilst(function () {
 						task = private.tasks.shift();
 						console.log(task, !!task)
 						return !!task;
@@ -226,7 +226,7 @@ Round.prototype.tick = function (block, cb) {
 					}
 				},
 				function (cb) {
-					async.until(function () {
+					async.whilst(function () {
 						var task = private.tasks.shift();
 						return !!task;
 					}, function (cb) {
