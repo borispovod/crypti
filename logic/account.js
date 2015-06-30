@@ -470,7 +470,7 @@ Account.prototype.merge = function (address, diff, cb) {
 			var trueValue = diff[value];
 			switch (self.conv[value]) {
 				case Number:
-					if (Math.abs(trueValue) === trueValue) {
+					if (Math.abs(trueValue) === trueValue && trueValue !== 0) {
 						update.$inc = update.$inc || {};
 						update.$inc[value] = trueValue;
 					}
@@ -539,6 +539,24 @@ Account.prototype.merge = function (address, diff, cb) {
 		sqles.push(sql);
 	}
 
+	function done(err) {
+		self.get({address: address}, function (err, account) {
+			if (diff.balance) {
+				self.scope.bus.message('changeBalance', account.delegates, diff.balance);
+			}
+			if (diff.u_balance) {
+				self.scope.bus.message('changeUnconfirmedBalance', account.delegates, diff.balance);
+			}
+			if (diff.delegates !== undefined) {
+				self.scope.bus.message('changeDelegates', account.balance, diff.delegates);
+			}
+			if (diff.u_delegates !== undefined) {
+				self.scope.bus.message('changeUnconfirmedDelegates', account.balance, diff.u_delegates);
+			}
+			cb(err, account)
+		});
+	}
+
 	if (sqles.length > 1) {
 		self.scope.dbLite.query('BEGIN TRANSACTION;');
 	}
@@ -551,11 +569,9 @@ Account.prototype.merge = function (address, diff, cb) {
 			return cb(err);
 		}
 		if (sqles.length > 1) {
-			self.scope.dbLite.query('COMMIT;', function (err) {
-				self.get({address: address}, cb);
-			});
+			self.scope.dbLite.query('COMMIT;', done);
 		} else {
-			self.get({address: address}, cb);
+			done();
 		}
 	});
 }

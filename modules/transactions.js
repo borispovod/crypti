@@ -57,14 +57,13 @@ function Transfer() {
 
 	this.apply = function (trs, sender, cb) {
 		modules.accounts.setAccountAndGet({address: trs.recipientId}, function (err, recipient) {
-			if (!recipient) debugger
-			library.logic.account.merge(recipient.address, {balance: trs.amount, u_balance: trs.amount}, cb);
+			modules.accounts.mergeAccountAndGet({address: trs.recipientId, balance: trs.amount, u_balance: trs.amount}, cb);
 		});
 	}
 
 	this.undo = function (trs, sender, cb) {
 		modules.accounts.setAccountAndGet({address: trs.recipientId}, function (err, recipient) {
-			library.logic.account.merge(recipient.address, {balance: -trs.amount, u_balance: -trs.amount}, cb);
+			modules.accounts.mergeAccountAndGet({address: trs.recipientId, balance: -trs.amount, u_balance: -trs.amount}, cb);
 		});
 	}
 

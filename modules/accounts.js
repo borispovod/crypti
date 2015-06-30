@@ -174,7 +174,7 @@ function Username() {
 			return setImmediate(cb, errorCode("USERNAMES.INCORRECT_USERNAME_LENGTH", trs));
 		}
 
-		modules.accounts.getAccount({
+		self.getAccount({
 			$or: {
 				username: trs.asset.username.alias,
 				u_username: trs.asset.username.alias

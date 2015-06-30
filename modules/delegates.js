@@ -118,6 +118,7 @@ function Delegate() {
 	}
 
 	this.apply = function (trs, sender, cb) {
+		private.votes[trs.asset.delegate.publicKey] = 0;
 		modules.accounts.setAccountAndGet({
 			address: sender.address,
 			u_username: null,
@@ -677,11 +678,11 @@ private.loop = function (cb) {
 
 		if (slots.getSlotNumber(currentBlockData.time) == slots.getSlotNumber()) {
 			modules.blocks.generateBlock(currentBlockData.keypair, currentBlockData.time, function (err) {
-				//library.logger.log('round ' + self.getDelegateByPublicKey(_activeDelegates[slots.getSlotNumber(currentBlockData.time) % slots.delegates]).username + ': ' + modules.round.calc(modules.blocks.getLastBlock().height) + ' new block id: ' + modules.blocks.getLastBlock().id + ' height:' + modules.blocks.getLastBlock().height + ' slot:' + slots.getSlotNumber(currentBlockData.time))
+				library.logger.log('round ' + _activeDelegates[slots.getSlotNumber(currentBlockData.time) % slots.delegates] + ': ' + modules.round.calc(modules.blocks.getLastBlock().height) + ' new block id: ' + modules.blocks.getLastBlock().id + ' height:' + modules.blocks.getLastBlock().height + ' slot:' + slots.getSlotNumber(currentBlockData.time))
 				cb(err);
 			});
 		} else {
-			//library.logger.log('loop', 'exit: ' + self.getDelegateByPublicKey(_activeDelegates[slots.getSlotNumber() % slots.delegates]).username + ' delegate slot');
+			library.logger.log('loop', 'exit: ' + _activeDelegates[slots.getSlotNumber() % slots.delegates] + ' delegate slot');
 
 			setImmediate(cb);
 		}
@@ -863,11 +864,9 @@ Delegates.prototype.onChangeBalance = function (delegates, amount) {
 	modules.round.runOnFinish(function (cb) {
 		var vote = amount;
 
-		if (delegates !== null) {
-			delegates.forEach(function (publicKey) {
-				private.votes[publicKey] !== undefined && (private.votes[publicKey] += vote);
-			});
-		}
+		delegates.forEach(function (publicKey) {
+			private.votes[publicKey] !== undefined && (private.votes[publicKey] += vote);
+		});
 
 		setImmediate(cb);
 	});
@@ -876,11 +875,9 @@ Delegates.prototype.onChangeBalance = function (delegates, amount) {
 Delegates.prototype.onChangeUnconfirmedBalance = function (unconfirmedDelegates, amount) {
 	var vote = amount;
 
-	if (unconfirmedDelegates !== null) {
-		unconfirmedDelegates.forEach(function (publicKey) {
-			private.unconfirmedVotes[publicKey] !== undefined && (private.unconfirmedVotes[publicKey] += vote);
-		});
-	}
+	unconfirmedDelegates.forEach(function (publicKey) {
+		private.unconfirmedVotes[publicKey] !== undefined && (private.unconfirmedVotes[publicKey] += vote);
+	});
 }
 
 Delegates.prototype.onChangeDelegates = function (balance, diff) {
