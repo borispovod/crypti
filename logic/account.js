@@ -540,20 +540,25 @@ Account.prototype.merge = function (address, diff, cb) {
 	}
 
 	function done(err) {
+		if (err) {
+			return cb(err);
+		}
 		self.get({address: address}, function (err, account) {
-			if (diff.balance) {
-				self.scope.bus.message('changeBalance', account.delegates, diff.balance);
+			if (!err) {
+				if (diff.balance) {
+					self.scope.bus.message('changeBalance', account.delegates, diff.balance);
+				}
+				if (diff.u_balance) {
+					self.scope.bus.message('changeUnconfirmedBalance', account.delegates, diff.balance);
+				}
+				if (diff.delegates !== undefined) {
+					self.scope.bus.message('changeDelegates', account.balance, diff.delegates);
+				}
+				if (diff.u_delegates !== undefined) {
+					self.scope.bus.message('changeUnconfirmedDelegates', account.balance, diff.u_delegates);
+				}
 			}
-			if (diff.u_balance) {
-				self.scope.bus.message('changeUnconfirmedBalance', account.delegates, diff.balance);
-			}
-			if (diff.delegates !== undefined) {
-				self.scope.bus.message('changeDelegates', account.balance, diff.delegates);
-			}
-			if (diff.u_delegates !== undefined) {
-				self.scope.bus.message('changeUnconfirmedDelegates', account.balance, diff.u_delegates);
-			}
-			cb(err, account)
+			cb(err, account);
 		});
 	}
 

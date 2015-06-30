@@ -207,6 +207,9 @@ function attachApi() {
 			}
 
 			modules.accounts.getAccount({publicKey: keypair.publicKey.toString('hex')}, function (err, account) {
+				if (err) {
+					return res.json({success: false, error: err.toString()});
+				}
 				if (!account || !account.publicKey) {
 					return res.json({success: false, error: errorCode("COMMON.OPEN_ACCOUNT")});
 				}
@@ -229,7 +232,7 @@ function attachApi() {
 					modules.transactions.receiveTransactions([transaction], cb);
 				}, function (err) {
 					if (err) {
-						return res.json({success: false, error: err});
+						return res.json({success: false, error: err.toString()});
 					}
 					res.json({success: true, transaction: transaction});
 				});

@@ -49,12 +49,15 @@ function Contact() {
 			return setImmediate(cb, "Invalid recipientId: " + trs.id);
 		}
 
-		modules.accounts.getAccount(trs.asset.contact.address.slice(1), function (err, account) {
-			if (err || !account) {
-				return setImmediate(cb, "Following is not exists: " + trs.id);
+		modules.accounts.getAccount({address: trs.asset.contact.address.slice(1)}, function (err, account) {
+			if (err) {
+				return cb(err);
+			}
+			if (!account) {
+				return cb("Following is not exists: " + trs.id);
 			}
 
-			setImmediate(cb, null, trs);
+			cb(null, trs);
 		});
 	}
 
@@ -172,7 +175,10 @@ function attachApi() {
 			if (!report.isValid) return res.json({success: false, error: report.issues});
 
 			modules.accounts.getAccount({publicKey: query.publicKey}, function (err, account) {
-				if (err || !account) {
+				if (err) {
+					return res.json({success: false, error: err.toString()});
+				}
+				if (!account) {
 					return res.json({success: false, error: errorCode("ACCOUNTS.ACCOUNT_DOESNT_FOUND")});
 				}
 
@@ -225,7 +231,10 @@ function attachApi() {
 			}
 
 			modules.accounts.getAccount({publicKey: keypair.publicKey.toString('hex')}, function (err, account) {
-				if (err || !account) {
+				if (err) {
+					return res.json({success: false, error: err.toString()});
+				}
+				if (!account) {
 					return res.json({success: false, error: errorCode("COMMON.OPEN_ACCOUNT")});
 				}
 
@@ -249,7 +258,10 @@ function attachApi() {
 				}
 
 				modules.accounts.getAccount(query, function (err, following) {
-					if (err || !following) {
+					if (err) {
+						return res.json({success: false, error: err.toString()});
+					}
+					if (!following) {
 						return res.json({success: false, error: errorCode("CONTACTS.USERNAME_DOESNT_FOUND")});
 					}
 					if (following.address == account.address) {
@@ -269,7 +281,7 @@ function attachApi() {
 						modules.transactions.receiveTransactions([transaction], cb);
 					}, function (err) {
 						if (err) {
-							return res.json({success: false, error: err});
+							return res.json({success: false, error: err.toString()});
 						}
 
 						res.json({success: true, transaction: transaction});

@@ -89,17 +89,20 @@ function Delegate() {
 				publicKey: trs.senderPublicKey
 			}
 		}, function (err, account) {
+			if (err) {
+				return cb(err);
+			}
 			if (account && account.username == trs.asset.delegate.username) {
-				return setImmediate(cb, errorCode("DELEGATES.EXISTS_USERNAME", trs));
+				return cb(errorCode("DELEGATES.EXISTS_USERNAME", trs));
 			}
 			if (account && account.senderPublicKey == trs.senderPublicKey) {
-				return setImmediate(cb, errorCode("DELEGATES.EXISTS_DELEGATE"));
+				return cb(errorCode("DELEGATES.EXISTS_DELEGATE"));
 			}
 			if (sender.username && sender.username != trs.asset.delegate.username) {
-				return setImmediate(cb, errorCode("DELEGATES.WRONG_USERNAME"));
+				return cb(errorCode("DELEGATES.WRONG_USERNAME"));
 			}
 
-			setImmediate(cb, null, trs);
+			cb(null, trs);
 		});
 	}
 
@@ -145,8 +148,11 @@ function Delegate() {
 				publicKey: trs.asset.delegate.publicKey
 			}
 		}, function (err, account) {
+			if (err) {
+				return cb(err);
+			}
 			if (account && (account.u_isDelegate || (account.u_username == trs.asset.delegate.username && account.publicKey != sender.publicKey))) {
-				return setImmediate(cb, errorCode("DELEGATES.EXISTS_DELEGATE"));
+				return cb(errorCode("DELEGATES.EXISTS_DELEGATE"));
 			}
 			modules.accounts.setAccountAndGet({
 				address: sender.address,
@@ -426,6 +432,9 @@ function attachApi() {
 			}
 
 			modules.accounts.getAccount({publicKey: keypair.publicKey.toString('hex')}, function (err, account) {
+				if (err) {
+					return res.json({success: false, error: err.toString()});
+				}
 				if (account && account.isDelegate) {
 					private.keypairs[keypair.publicKey.toString('hex')] = keypair;
 					res.json({success: true, address: account.address});
@@ -468,6 +477,9 @@ function attachApi() {
 			}
 
 			modules.accounts.getAccount({publicKey: keypair.publicKey.toString('hex')}, function (err, account) {
+				if (err) {
+					return res.json({success: false, error: err.toString()});
+				}
 				if (account && account.isDelegate) {
 					delete private.keypairs[keypair.publicKey.toString('hex')];
 					res.json({success: true, address: account.address});
@@ -518,7 +530,10 @@ function attachApi() {
 			}
 
 			modules.accounts.getAccount({publicKey: keypair.publicKey.toString('hex')}, function (err, account) {
-				if (err || !account || !account.publicKey) {
+				if (err) {
+					return res.json({success: false, error: err.toString()});
+				}
+				if (!account || !account.publicKey) {
 					return res.json({success: false, error: errorCode("COMMON.OPEN_ACCOUNT")});
 				}
 
@@ -554,7 +569,7 @@ function attachApi() {
 					modules.transactions.receiveTransactions([transaction], cb);
 				}, function (err) {
 					if (err) {
-						return res.json({success: false, error: err});
+						return res.json({success: false, error: err.toString()});
 					}
 
 					res.json({success: true, transaction: transaction});
@@ -704,13 +719,16 @@ private.loadMyDelegates = function (cb) {
 		modules.accounts.getAccount({
 			publicKey: keypair.publicKey.toString('hex')
 		}, function (err, account) {
+			if (err) {
+				return cb(err);
+			}
 			if (account.isDelegate) {
 				private.keypairs[keypair.publicKey.toString('hex')] = keypair;
 				library.logger.info("Forging enabled on account: " + account.address);
 			} else {
 				library.logger.info("Forger with this public key not found " + keypair.publicKey.toString('hex'));
 			}
-			setImmediate(cb, err);
+			cb();
 		});
 	}, cb);
 }
@@ -742,8 +760,11 @@ Delegates.prototype.checkDelegates = function (publicKey, votes, cb) {
 
 	if (util.isArray(votes)) {
 		modules.accounts.getAccount({publicKey: publicKey}, function (err, account) {
-			if (err || !account) {
-				return setImmediate(cb, "error");
+			if (err) {
+				return cb(err);
+			}
+			if (!account) {
+				return cb("error");
 			}
 
 			for (var i = 0; i < votes.length; i++) {
@@ -751,18 +772,18 @@ Delegates.prototype.checkDelegates = function (publicKey, votes, cb) {
 				var publicKey = votes[i].slice(1);
 
 				if (!account.isDelegate) {
-					return setImmediate(cb, "error");
+					return cb("error");
 				}
 
 				if (math == "+" && (account.delegates !== null && account.delegates.indexOf(publicKey) != -1)) {
-					return setImmediate(cb, "error");
+					return cb("error");
 				}
 				if (math == "-" && (account.delegates === null || account.delegates.indexOf(publicKey) === -1)) {
-					return setImmediate(cb, "error");
+					return cb("error");
 				}
 			}
 
-			setImmediate(cb);
+			cb();
 		});
 	} else {
 		setImmediate(cb, "error");
@@ -772,8 +793,11 @@ Delegates.prototype.checkDelegates = function (publicKey, votes, cb) {
 Delegates.prototype.checkUnconfirmedDelegates = function (publicKey, votes, cb) {
 	if (util.isArray(votes)) {
 		modules.accounts.getAccount({publicKey: publicKey}, function (err, account) {
-			if (err || !account) {
-				return setImmediate(cb, "error");
+			if (err) {
+				return cb(err);
+			}
+			if (!account) {
+				return cb("error");
 			}
 
 			for (var i = 0; i < votes.length; i++) {
@@ -781,18 +805,18 @@ Delegates.prototype.checkUnconfirmedDelegates = function (publicKey, votes, cb) 
 				var publicKey = votes[i].slice(1);
 
 				if (private.unconfirmedVotes[publicKey] === undefined) {
-					return setImmediate(cb, "error");
+					return cb("error");
 				}
 
 				if (math == "+" && (account.u_delegates !== null && account.u_delegates.indexOf(publicKey) != -1)) {
-					return setImmediate(cb, "error");
+					return cb("error");
 				}
 				if (math == "-" && (account.u_delegates === null || account.u_delegates.indexOf(publicKey) === -1)) {
-					return setImmediate(cb, "error");
+					return cb("error");
 				}
 			}
 
-			return setImmediate(cb);
+			cb();
 		});
 	} else {
 		return setImmediate(cb, "error");

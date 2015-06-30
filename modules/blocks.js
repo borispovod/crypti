@@ -591,7 +591,7 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 			async.eachSeries(block.transactions, function (transaction, cb) {
 				modules.accounts.setAccountAndGet({publicKey: transaction.senderPublicKey}, function (err, sender) {
 					if (err) {
-						return setImmediate(cb, {
+						return cb({
 							message: err,
 							transaction: transaction,
 							block: block
@@ -749,7 +749,7 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 
 							modules.accounts.getAccount({publicKey: transaction.senderPublicKey}, function (err, sender) {
 								if (err) {
-									return setImmediate(cb, err);
+									return cb(err);
 								}
 
 								library.logic.transaction.verify(transaction, sender, function (err) {

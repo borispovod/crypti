@@ -180,17 +180,20 @@ function Username() {
 				u_username: trs.asset.username.alias
 			}
 		}, function (err, account) {
+			if (err) {
+				return cb(err);
+			}
 			if (account && account.username == trs.asset.delegate.username) {
-				return setImmediate(cb, errorCode("DELEGATES.EXISTS_USERNAME", trs));
+				return cb(errorCode("DELEGATES.EXISTS_USERNAME", trs));
 			}
 			if (sender.username && sender.username != trs.asset.delegate.username) {
-				return setImmediate(cb, errorCode("DELEGATES.WRONG_USERNAME"));
+				return cb(errorCode("DELEGATES.WRONG_USERNAME"));
 			}
 			if (sender.u_username && sender.u_username != trs.asset.delegate.username) {
-				return setImmediate(cb, errorCode("USERNAMES.ALREADY_HAVE_USERNAME", trs));
+				return cb(errorCode("USERNAMES.ALREADY_HAVE_USERNAME", trs));
 			}
 
-			setImmediate(cb, null, trs);
+			cb(null, trs);
 		});
 	}
 
@@ -227,8 +230,11 @@ function Username() {
 				publicKey: trs.senderPublicKey
 			}
 		}, function (err, account) {
+			if (err) {
+				return cb(err);
+			}
 			if (account && account.u_username) {
-				return setImmediate(cb, errorCode("USERNAMES.EXISTS_USERNAME", trs));
+				return cb(errorCode("USERNAMES.EXISTS_USERNAME", trs));
 			}
 
 			self.setAccountAndGet({address: sender.address, u_username: trs.asset.username.alias}, cb);
@@ -366,7 +372,10 @@ function attachApi() {
 				});
 			}
 
-			self.getAccount(query.address, function (err, account) {
+			self.getAccount({address: query.address}, function (err, account) {
+				if (err) {
+					return res.json({success: false, error: err.toString()});
+				}
 				var balance = account ? account.balance : 0;
 				var unconfirmedBalance = account ? account.u_balance : 0;
 
@@ -412,7 +421,10 @@ function attachApi() {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
 
-			self.getAccount(query.address, function (err, account) {
+			self.getAccount({address: query.address}, function (err, account) {
+				if (err) {
+					return res.json({success: false, error: err.toString()});
+				}
 				if (!account || !account.publicKey) {
 					return res.json({
 						success: false,
@@ -461,8 +473,10 @@ function attachApi() {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
 
-
-			self.getAccount(query.address, function (err, account) {
+			self.getAccount({address: query.address}, function (err, account) {
+				if (err) {
+					return res.json({success: false, error: err.toString()});
+				}
 				if (!account) {
 					return res.json({
 						success: false,
@@ -472,6 +486,9 @@ function attachApi() {
 
 				if (account.delegates) {
 					self.getAccounts({address: {$in: account.delegates}}, function (err, delegates) {
+						if (err) {
+							return res.json({success: false, error: err.toString()});
+						}
 						res.json({success: true, delegates: delegates});
 
 					});
@@ -510,7 +527,10 @@ function attachApi() {
 			}
 
 			self.getAccount({publicKey: keypair.publicKey.toString('hex')}, function (err, account) {
-				if (err || !account || !account.publicKey) {
+				if (err) {
+					return res.json({success: false, error: err.toString()});
+				}
+				if (!account || !account.publicKey) {
 					return res.json({success: false, error: errorCode("COMMON.OPEN_ACCOUNT")});
 				}
 
@@ -537,7 +557,7 @@ function attachApi() {
 					modules.transactions.receiveTransactions([transaction], cb);
 				}, function (err) {
 					if (err) {
-						return res.json({success: false, error: err});
+						return res.json({success: false, error: err.toString()});
 					}
 
 					res.json({success: true, transaction: transaction});
@@ -578,7 +598,10 @@ function attachApi() {
 			}
 
 			self.getAccount({publicKey: keypair.publicKey.toString('hex')}, function (err, account) {
-				if (err || !account || !account.publicKey) {
+				if (err) {
+					return res.json({success: false, error: err.toString()});
+				}
+				if (!account || !account.publicKey) {
 					return res.json({success: false, error: errorCode("COMMON.OPEN_ACCOUNT")});
 				}
 
@@ -605,7 +628,7 @@ function attachApi() {
 					modules.transactions.receiveTransactions([transaction], cb);
 				}, function (err) {
 					if (err) {
-						return res.json({success: false, error: err});
+						return res.json({success: false, error: err.toString()});
 					}
 
 					res.json({success: true, transaction: transaction});
@@ -627,7 +650,10 @@ function attachApi() {
 			if (!report.isValid) return res.json({success: false, error: report.issues});
 
 
-			self.getAccount(query.address, function (err, account) {
+			self.getAccount({address: query.address}, function (err, account) {
+				if (err) {
+					return res.json({success: false, error: err.toString()});
+				}
 				if (!account) {
 					return res.json({success: false, error: errorCode("ACCOUNTS.ACCOUNT_DOESNT_FOUND")});
 				}

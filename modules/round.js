@@ -101,13 +101,19 @@ Round.prototype.backwardTick = function (block, previousBlock, cb) {
 									balance: -delegatesFee,
 									u_balance: -delegatesFee
 								}, function (err, recipient) {
+									if (err) {
+										return cb(err);
+									}
 									modules.delegates.addFee(delegate, -delegatesFee);
 									if (index === 0) {
 										modules.accounts.mergeAccountAndGet({
 											publicKey: delegate,
 											balance: -leftover,
 											u_balance: -leftover
-										}, function () {
+										}, function (err) {
+											if (err) {
+												return cb(err);
+											}
 											modules.delegates.addFee(delegate, -leftover);
 											cb();
 										});
@@ -194,7 +200,9 @@ Round.prototype.tick = function (block, cb) {
 							balance: foundationFee,
 							u_balance: foundationFee
 						}, function (err, recipient) {
-
+							if (err) {
+								return cb(err);
+							}
 							var delegatesFee = Math.floor(diffFee / slots.delegates);
 							var leftover = diffFee - (delegatesFee * slots.delegates);
 
@@ -204,6 +212,9 @@ Round.prototype.tick = function (block, cb) {
 									balance: delegatesFee,
 									u_balance: delegatesFee
 								}, function (err, recipient) {
+									if (err) {
+										return cb(err);
+									}
 									modules.delegates.addFee(delegate, delegatesFee);
 
 									if (index === private.delegatesByRound[round].length - 1) {
@@ -212,6 +223,9 @@ Round.prototype.tick = function (block, cb) {
 											balance: leftover,
 											u_balance: leftover
 										}, function (err, recipient) {
+											if (err) {
+												return cb(err);
+											}
 											modules.delegates.addFee(delegate, leftover);
 										});
 									} else {
