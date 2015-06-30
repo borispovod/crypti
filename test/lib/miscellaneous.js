@@ -21,10 +21,10 @@ describe('Miscellaneous tests (peers, blocks, etc)', function() {
 
     describe('/peers tests', function(){
 
-        before(function (done) {
+        /*before(function (done) {
             node.addPeers(50);
             done();
-        });
+        });*/
 
         test = test + 1;
         it(test + '. Get version of node. Expecting success',function(done){
