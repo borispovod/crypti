@@ -700,7 +700,9 @@ private.loadMyDelegates = function (cb) {
 
 	async.eachSeries(secrets, function (secret, cb) {
 		var keypair = ed.MakeKeypair(crypto.createHash('sha256').update(secret, 'utf8').digest());
-		modules.accounts.getAccount({publicKey: keypair.publicKey.toString('hex')}, function (err, account) {
+		modules.accounts.getAccount({
+			publicKey: keypair.publicKey.toString('hex')
+		}, function (err, account) {
 			if (account.isDelegate) {
 				private.keypairs[keypair.publicKey.toString('hex')] = keypair;
 				library.logger.info("Forging enabled on account: " + account.address);

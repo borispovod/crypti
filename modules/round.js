@@ -177,7 +177,6 @@ Round.prototype.tick = function (block, cb) {
 					var task;
 					async.whilst(function () {
 						task = private.tasks.shift();
-						console.log(task, !!task)
 						return !!task;
 					}, function (cb) {
 						task(function () {

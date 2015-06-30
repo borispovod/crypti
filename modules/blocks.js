@@ -614,6 +614,8 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 					}
 				});
 			}, function (err) {
+				debugger;
+
 				if (err) {
 					var lastValidTransaction = block.transactions.findIndex(function (trs) {
 						return trs.id == err.transaction.id;

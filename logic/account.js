@@ -191,6 +191,13 @@ function Account(scope, cb) {
 		return _tmp;
 	});
 
+	this.binary = [];
+	this.model.forEach(function (field) {
+		if (field.type == "Binary") {
+			this.binary.push(field.name);
+		}
+	}.bind(this));
+
 	this.filter = {};
 	this.model.forEach(function (field) {
 		this.filter[field.name] = field.filter;
@@ -380,14 +387,13 @@ Account.prototype.objectNormalize = function (account) {
 }
 
 Account.prototype.toDB = function (raw) {
-	var account = {};
-	account.address = raw.address;
-	account.balance = raw.balance || 0;
-	account.publicKey = raw.publicKey ? new Buffer(raw.publicKey, "hex") : null;
-	account.secondPublicKey = raw.secondPublicKey ? new Buffer(raw.secondPublicKey, "hex") : null;
-	account.username = raw.username || null;
+	this.binary.forEach(function (field) {
+		if (raw[field]) {
+			raw[field] = new Buffer(raw[field], "hex");
+		}
+	});
 
-	return account;
+	return raw;
 }
 
 Account.prototype.get = function (filter, fields, cb) {
@@ -434,11 +440,13 @@ Account.prototype.getAll = function (filter, fields, cb) {
 Account.prototype.set = function (address, fields, cb) {
 	fields.address = address;
 
-	try {
-		var account = this.objectNormalize(fields);
-	} catch (e) {
-		return cb(e.toString());
-	}
+	//try {
+	//	var account = this.objectNormalize(fields);
+	//} catch (e) {
+	//	return cb(e.toString());
+	//}
+
+	var account = fields;
 
 	var sql = jsonSql.build({
 		type: 'insert',

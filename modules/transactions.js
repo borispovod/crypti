@@ -56,7 +56,6 @@ function Transfer() {
 	}
 
 	this.apply = function (trs, sender, cb) {
-		if (trs.recipientId == "2334212999465599568C") debugger;
 		modules.accounts.setAccountAndGet({address: trs.recipientId}, function (err, recipient) {
 			if (!recipient) debugger
 			library.logic.account.merge(recipient.address, {balance: trs.amount, u_balance: trs.amount}, cb);
@@ -560,9 +559,7 @@ Transactions.prototype.applyUnconfirmed = function (transaction, cb) {
 		if (err || !sender && transaction.blockId != genesisblock.block.id) {
 			return setImmediate(cb, 'Failed account: ' + transaction.id);
 		} else {
-			modules.accounts.setAccountAndGet({publicKey: transaction.senderPublicKey}, function (err, sender) {
-				library.logic.transaction.applyUnconfirmed(transaction, sender, cb);
-			});
+			library.logic.transaction.applyUnconfirmed(transaction, sender, cb);
 		}
 	});
 }
