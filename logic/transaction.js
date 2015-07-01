@@ -404,7 +404,7 @@ Transaction.prototype.applyUnconfirmed = function (trs, sender, cb) {
 
 	var amount = trs.amount + trs.fee;
 
-	if (sender.unconfirmedBalance < amount && trs.blockId != genesisblock.block.id) {
+	if (sender.u_balance < amount && trs.blockId != genesisblock.block.id) {
 		return setImmediate(cb, 'Account has no balance: ' + trs.id);
 	}
 

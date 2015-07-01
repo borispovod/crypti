@@ -87,23 +87,39 @@ function Multisignature() {
 	}
 
 	this.apply = function (trs, sender, cb) {
-		this.scope.account.merge(sender.address, {multisignatures: trs.asset.multisignature.keysgroup, multimin: trs.asset.multisignature.min, multilifetime: trs.asset.multisignature.lifetime}, cb);
+		this.scope.account.merge(sender.address, {
+			multisignatures: trs.asset.multisignature.keysgroup,
+			multimin: trs.asset.multisignature.min,
+			multilifetime: trs.asset.multisignature.lifetime
+		}, cb);
 	}
 
 	this.undo = function (trs, sender, cb) {
 		var multiInvert = Diff.reverse(trs.asset.multisignature.keysgroup);
 
-		this.scope.account.merge(sender.address, {multisignatures: multiInvert, multimin: -trs.asset.multisignature.min, multilifetime: -trs.asset.multisignature.lifetime}, cb);
+		this.scope.account.merge(sender.address, {
+			multisignatures: multiInvert,
+			multimin: -trs.asset.multisignature.min,
+			multilifetime: -trs.asset.multisignature.lifetime
+		}, cb);
 	}
 
 	this.applyUnconfirmed = function (trs, sender, cb) {
-		this.scope.account.merge(sender.address, {u_multisignatures: trs.asset.multisignature.keysgroup, u_multimin: trs.asset.multisignature.min, u_multilifetime: trs.asset.multisignature.lifetime}, cb);
+		this.scope.account.merge(sender.address, {
+			u_multisignatures: trs.asset.multisignature.keysgroup,
+			u_multimin: trs.asset.multisignature.min,
+			u_multilifetime: trs.asset.multisignature.lifetime
+		}, cb);
 	}
 
 	this.undoUnconfirmed = function (trs, sender, cb) {
 		var multiInvert = Diff.reverse(trs.asset.multisignature.keysgroup);
 
-		this.scope.account.merge(sender.address, {u_multisignatures: multiInvert, u_multimin: -trs.asset.multisignature.min, u_multilifetime: -trs.asset.multisignature.lifetime}, cb);
+		this.scope.account.merge(sender.address, {
+			u_multisignatures: multiInvert,
+			u_multimin: -trs.asset.multisignature.min,
+			u_multilifetime: -trs.asset.multisignature.lifetime
+		}, cb);
 	}
 
 	this.objectNormalize = function (trs) {
@@ -248,7 +264,9 @@ function attachApi() {
 			}
 
 			modules.accounts.getAccount({publicKey: keypair.publicKey.toString('hex')}, function (err, account) {
-
+				if (err) {
+					return res.json({success: false, error: err.toString()});
+				}
 				if (!account || !account.publicKey) {
 					return res.json({success: false, error: errorCode("COMMON.OPEN_ACCOUNT")});
 				}
@@ -263,7 +281,7 @@ function attachApi() {
 					cb();
 				}, function (err) {
 					if (err) {
-						return res.json({success: false, error: err});
+						return res.json({success: false, error: err.toString()});
 					}
 
 					res.json({success: true, transactionId: transaction.id});
@@ -312,7 +330,9 @@ function attachApi() {
 			}
 
 			modules.accounts.getAccount({publicKey: keypair.publicKey.toString('hex')}, function (err, account) {
-
+				if (err) {
+					return res.json({success: false, error: err.toString()});
+				}
 				if (!account || !account.publicKey) {
 					return res.json({success: false, error: errorCode("COMMON.OPEN_ACCOUNT")});
 				}
@@ -342,7 +362,7 @@ function attachApi() {
 					modules.transactions.receiveTransactions([transaction], cb);
 				}, function (err) {
 					if (err) {
-						return res.json({success: false, error: err});
+						return res.json({success: false, error: err.toString()});
 					}
 
 					res.json({success: true, transactionId: transaction.id});

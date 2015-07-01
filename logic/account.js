@@ -20,6 +20,20 @@ function Account(scope, cb) {
 			constante: true
 		},
 		{
+			name: "isDelegate",
+			type: "BigInt",
+			filter: "string?",
+			conv: Boolean,
+			default: 0
+		},
+		{
+			name: "u_isDelegate",
+			type: "BigInt",
+			filter: "string?",
+			conv: Boolean,
+			default: 0
+		},
+		{
 			name: "u_username",
 			type: "String",
 			length: 20,
@@ -176,6 +190,13 @@ function Account(scope, cb) {
 
 		return _tmp;
 	});
+
+	this.binary = [];
+	this.model.forEach(function (field) {
+		if (field.type == "Binary") {
+			this.binary.push(field.name);
+		}
+	}.bind(this));
 
 	this.filter = {};
 	this.model.forEach(function (field) {
@@ -366,17 +387,28 @@ Account.prototype.objectNormalize = function (account) {
 }
 
 Account.prototype.toDB = function (raw) {
-	var account = {};
-	account.address = raw.address;
-	account.balance = raw.balance || 0;
-	account.publicKey = raw.publicKey ? new Buffer(raw.publicKey, "hex") : null;
-	account.secondPublicKey = raw.secondPublicKey ? new Buffer(raw.secondPublicKey, "hex") : null;
-	account.username = raw.username || null;
+	this.binary.forEach(function (field) {
+		if (raw[field]) {
+			raw[field] = new Buffer(raw[field], "hex");
+		}
+	});
 
-	return account;
+	return raw;
 }
 
 Account.prototype.get = function (filter, fields, cb) {
+	if (arguments.length == 2) {
+		cb = fields;
+		fields = this.fields.map(function (field) {
+			return field.alias || field.field;
+		});
+	}
+	this.getAll(filter, fields, function (err, data) {
+		cb(err, data && data.length ? data[0] : null)
+	})
+}
+
+Account.prototype.getAll = function (filter, fields, cb) {
 	if (arguments.length == 2) {
 		cb = fields;
 		fields = this.fields.map(function (field) {
@@ -400,50 +432,21 @@ Account.prototype.get = function (filter, fields, cb) {
 		if (err) {
 			return cb(err);
 		}
-		try {
-			data = data && data.length ? data[0] : null;
-		} catch (e) {
-			return cb(e.toString());
-		}
-		cb(null, data);
-	}.bind(this));
-}
 
-Account.prototype.getAll = function (filter, fields, cb) {
-	if (arguments.length == 2) {
-		cb = fields;
-		fields = this.fields.map(function (field) {
-			return field.alias;
-		});
-	}
-
-	var realFields = this.fields.filter(function (field) {
-		return fields.indexOf(field.alias) != -1;
-	});
-
-	var sql = jsonSql.build({
-		type: 'select',
-		table: this.table,
-		condition: filter,
-		fields: realFields
-	});
-	this.scope.dbLite.query(sql.query, sql.values, this.conv, function (err, data) {
-		if (err) {
-			return cb(err);
-		}
-
-		cb(null, data);
+		cb(null, data || []);
 	}.bind(this));
 }
 
 Account.prototype.set = function (address, fields, cb) {
 	fields.address = address;
 
-	try {
-		var account = this.objectNormalize(fields);
-	} catch (e) {
-		return cb(e.toString());
-	}
+	//try {
+	//	var account = this.objectNormalize(fields);
+	//} catch (e) {
+	//	return cb(e.toString());
+	//}
+
+	var account = fields;
 
 	var sql = jsonSql.build({
 		type: 'insert',
@@ -467,7 +470,7 @@ Account.prototype.merge = function (address, diff, cb) {
 			var trueValue = diff[value];
 			switch (self.conv[value]) {
 				case Number:
-					if (Math.abs(trueValue) === trueValue) {
+					if (Math.abs(trueValue) === trueValue && trueValue !== 0) {
 						update.$inc = update.$inc || {};
 						update.$inc[value] = trueValue;
 					}
@@ -536,6 +539,29 @@ Account.prototype.merge = function (address, diff, cb) {
 		sqles.push(sql);
 	}
 
+	function done(err) {
+		if (err) {
+			return cb(err);
+		}
+		self.get({address: address}, function (err, account) {
+			if (!err) {
+				if (diff.balance) {
+					self.scope.bus.message('changeBalance', account.delegates, diff.balance);
+				}
+				if (diff.u_balance) {
+					self.scope.bus.message('changeUnconfirmedBalance', account.delegates, diff.balance);
+				}
+				if (diff.delegates !== undefined) {
+					self.scope.bus.message('changeDelegates', account.balance, diff.delegates);
+				}
+				if (diff.u_delegates !== undefined) {
+					self.scope.bus.message('changeUnconfirmedDelegates', account.balance, diff.u_delegates);
+				}
+			}
+			cb(err, account);
+		});
+	}
+
 	if (sqles.length > 1) {
 		self.scope.dbLite.query('BEGIN TRANSACTION;');
 	}
@@ -548,11 +574,9 @@ Account.prototype.merge = function (address, diff, cb) {
 			return cb(err);
 		}
 		if (sqles.length > 1) {
-			self.scope.dbLite.query('COMMIT;', function (err) {
-				self.get({address: address}, cb);
-			});
-		}else{
-			self.get({address: address}, cb);
+			self.scope.dbLite.query('COMMIT;', done);
+		} else {
+			done();
 		}
 	});
 }

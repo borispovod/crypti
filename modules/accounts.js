@@ -13,10 +13,6 @@ var crypto = require('crypto'),
 //private
 var modules, library, self, private = {};
 
-private.accounts = {};
-private.username2address = {};
-private.unconfirmedNames = {};
-
 function Vote() {
 	this.create = function (data, trs) {
 		trs.recipientId = data.sender.address;
@@ -44,11 +40,7 @@ function Vote() {
 		}
 
 		modules.delegates.checkDelegates(trs.senderPublicKey, trs.asset.votes, function (err) {
-			if (err) {
-				return setImmediate(cb, errorCode("VOTES.ALREADY_VOTED_CONFIRMED", trs));
-			}
-
-			setImmediate(cb, null, trs);
+			setImmediate(cb, err, trs);
 		});
 	}
 
@@ -178,20 +170,26 @@ function Username() {
 			return setImmediate(cb, errorCode("USERNAMES.INCORRECT_USERNAME_LENGTH", trs));
 		}
 
-		if (modules.delegates.existsName(trs.asset.username.alias)) {
-			return setImmediate(cb, errorCode("USERNAMES.EXISTS_USERNAME", trs));
-		}
-
-		self.getAccount({username: trs.asset.username.alias}, function (err, account) {
-			var found = !!account;
-			if (found) {
-				return setImmediate(cb, errorCode("USERNAMES.EXISTS_USERNAME", trs));
+		self.getAccount({
+			$or: {
+				username: trs.asset.username.alias,
+				u_username: trs.asset.username.alias
 			}
-			if (modules.delegates.existsDelegate(trs.senderPublicKey)) {
-				return setImmediate(cb, errorCode("USERNAMES.EXISTS_USERNAME", trs));
+		}, function (err, account) {
+			if (err) {
+				return cb(err);
+			}
+			if (account && account.username == trs.asset.delegate.username) {
+				return cb(errorCode("DELEGATES.EXISTS_USERNAME", trs));
+			}
+			if (sender.username && sender.username != trs.asset.delegate.username) {
+				return cb(errorCode("DELEGATES.WRONG_USERNAME"));
+			}
+			if (sender.u_username && sender.u_username != trs.asset.delegate.username) {
+				return cb(errorCode("USERNAMES.ALREADY_HAVE_USERNAME", trs));
 			}
 
-			setImmediate(cb, null, trs);
+			cb(null, trs);
 		});
 	}
 
@@ -210,52 +208,37 @@ function Username() {
 	}
 
 	this.apply = function (trs, sender, cb) {
-		delete private.unconfirmedNames[trs.asset.username.alias.toLowerCase()]
-		private.username2address[trs.asset.username.alias.toLowerCase()] = sender.address;
-		sender.username = trs.asset.username.alias;
-
-		setImmediate(cb);
+		self.setAccountAndGet({address: sender.address, u_username: null, username: trs.asset.username.alias}, cb);
 	}
 
 	this.undo = function (trs, sender, cb) {
-		private.unconfirmedNames[trs.asset.username.alias.toLowerCase()] = true;
-		delete private.username2address[trs.asset.username.alias.toLowerCase()];
-		sender.username = null;
-
-		setImmediate(cb);
+		self.setAccountAndGet({address: sender.address, username: null, u_username: trs.asset.username.alias}, cb);
 	}
 
 	this.applyUnconfirmed = function (trs, sender, cb) {
-		if (modules.delegates.existsUnconfirmedDelegate(trs.senderPublicKey)) {
-			return setImmediate(cb, errorCode("USERNAMES.EXISTS_USERNAME", trs));
+		if (sender.username || sender.u_username) {
+			return setImmediate(cb, errorCode("USERNAMES.ALREADY_HAVE_USERNAME", trs));
 		}
 
-		if (modules.delegates.existsUnconfirmedName(trs.asset.username.alias)) {
-			return setImmediate(cb, errorCode("USERNAMES.EXISTS_USERNAME", trs));
-		}
-
-		self.getAccount({u_username: trs.asset.username.alias}, function (err, account) {
-			var found = account;
-			if (found) {
-				return setImmediate(cb, errorCode("USERNAMES.EXISTS_USERNAME", trs));
+		self.getAccount({
+			$or: {
+				u_username: trs.asset.username.alias,
+				publicKey: trs.senderPublicKey
+			}
+		}, function (err, account) {
+			if (err) {
+				return cb(err);
+			}
+			if (account && account.u_username) {
+				return cb(errorCode("USERNAMES.EXISTS_USERNAME", trs));
 			}
 
-			if (sender.username || sender.unconfirmedUsername) {
-				return setImmediate(cb, errorCode("USERNAMES.ALREADY_HAVE_USERNAME", trs));
-			}
-
-			sender.unconfirmedUsername = trs.asset.username.alias;
-			private.unconfirmedNames[trs.asset.username.alias.toLowerCase()] = true;
-
-			setImmediate(cb);
+			self.setAccountAndGet({address: sender.address, u_username: trs.asset.username.alias}, cb);
 		});
 	}
 
 	this.undoUnconfirmed = function (trs, sender, cb) {
-		sender.unconfirmedUsername = null;
-		delete private.unconfirmedNames[trs.asset.username.alias.toLowerCase()];
-
-		setImmediate(cb);
+		self.setAccountAndGet({address: sender.address, u_username: null}, cb);
 	}
 
 	this.objectNormalize = function (trs) {
@@ -350,7 +333,7 @@ function attachApi() {
 				if (!err) {
 					accountData = {
 						address: account.address,
-						unconfirmedBalance: account.unconfirmedBalance,
+						unconfirmedBalance: account.u_balance,
 						balance: account.balance,
 						publicKey: account.publicKey,
 						unconfirmedSignature: account.unconfirmedSignature,
@@ -385,9 +368,12 @@ function attachApi() {
 				});
 			}
 
-			self.getAccount(query.address, function (err, account) {
+			self.getAccount({address: query.address}, function (err, account) {
+				if (err) {
+					return res.json({success: false, error: err.toString()});
+				}
 				var balance = account ? account.balance : 0;
-				var unconfirmedBalance = account ? account.unconfirmedBalance : 0;
+				var unconfirmedBalance = account ? account.u_balance : 0;
 
 				res.json({success: true, balance: balance, unconfirmedBalance: unconfirmedBalance});
 			});
@@ -431,7 +417,10 @@ function attachApi() {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
 
-			self.getAccount(query.address, function (err, account) {
+			self.getAccount({address: query.address}, function (err, account) {
+				if (err) {
+					return res.json({success: false, error: err.toString()});
+				}
 				if (!account || !account.publicKey) {
 					return res.json({
 						success: false,
@@ -480,8 +469,10 @@ function attachApi() {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
 
-
-			self.getAccount(query.address, function (err, account) {
+			self.getAccount({address: query.address}, function (err, account) {
+				if (err) {
+					return res.json({success: false, error: err.toString()});
+				}
 				if (!account) {
 					return res.json({
 						success: false,
@@ -489,15 +480,17 @@ function attachApi() {
 					});
 				}
 
-				var delegates = null;
-
 				if (account.delegates) {
-					delegates = account.delegates.map(function (publicKey) {
-						return modules.delegates.getDelegateByPublicKey(publicKey);
-					});
-				}
+					self.getAccounts({address: {$in: account.delegates}}, function (err, delegates) {
+						if (err) {
+							return res.json({success: false, error: err.toString()});
+						}
+						res.json({success: true, delegates: delegates});
 
-				res.json({success: true, delegates: delegates});
+					});
+				} else {
+					res.json({success: true, delegates: []});
+				}
 			});
 		});
 	});
@@ -530,7 +523,10 @@ function attachApi() {
 			}
 
 			self.getAccount({publicKey: keypair.publicKey.toString('hex')}, function (err, account) {
-				if (err || !account || !account.publicKey) {
+				if (err) {
+					return res.json({success: false, error: err.toString()});
+				}
+				if (!account || !account.publicKey) {
 					return res.json({success: false, error: errorCode("COMMON.OPEN_ACCOUNT")});
 				}
 
@@ -557,7 +553,7 @@ function attachApi() {
 					modules.transactions.receiveTransactions([transaction], cb);
 				}, function (err) {
 					if (err) {
-						return res.json({success: false, error: err});
+						return res.json({success: false, error: err.toString()});
 					}
 
 					res.json({success: true, transaction: transaction});
@@ -598,7 +594,10 @@ function attachApi() {
 			}
 
 			self.getAccount({publicKey: keypair.publicKey.toString('hex')}, function (err, account) {
-				if (err || !account || !account.publicKey) {
+				if (err) {
+					return res.json({success: false, error: err.toString()});
+				}
+				if (!account || !account.publicKey) {
 					return res.json({success: false, error: errorCode("COMMON.OPEN_ACCOUNT")});
 				}
 
@@ -625,7 +624,7 @@ function attachApi() {
 					modules.transactions.receiveTransactions([transaction], cb);
 				}, function (err) {
 					if (err) {
-						return res.json({success: false, error: err});
+						return res.json({success: false, error: err.toString()});
 					}
 
 					res.json({success: true, transaction: transaction});
@@ -647,7 +646,10 @@ function attachApi() {
 			if (!report.isValid) return res.json({success: false, error: report.issues});
 
 
-			self.getAccount(query.address, function (err, account) {
+			self.getAccount({address: query.address}, function (err, account) {
+				if (err) {
+					return res.json({success: false, error: err.toString()});
+				}
 				if (!account) {
 					return res.json({success: false, error: errorCode("ACCOUNTS.ACCOUNT_DOESNT_FOUND")});
 				}
@@ -657,7 +659,7 @@ function attachApi() {
 					account: {
 						address: account.address,
 						username: account.username,
-						unconfirmedBalance: account.unconfirmedBalance,
+						unconfirmedBalance: account.u_balance,
 						balance: account.balance,
 						publicKey: account.publicKey,
 						unconfirmedSignature: account.unconfirmedSignature,
@@ -706,6 +708,10 @@ Accounts.prototype.getAccount = function (filter, cb) {
 		delete filter.publicKey;
 	}
 	library.logic.account.get(filter, cb);
+}
+
+Accounts.prototype.getAccounts = function (filter, cb) {
+	library.logic.account.getAll(filter, cb);
 }
 
 Accounts.prototype.setAccountAndGet = function (data, cb) {
