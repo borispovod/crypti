@@ -22,14 +22,28 @@ function Account(scope, cb) {
 		{
 			name: "isDelegate",
 			type: "BigInt",
-			filter: "string?",
+			filter: "int?",
 			conv: Boolean,
 			default: 0
 		},
 		{
 			name: "u_isDelegate",
 			type: "BigInt",
-			filter: "string?",
+			filter: "int?",
+			conv: Boolean,
+			default: 0
+		},
+		{
+			name: "secondSignature",
+			type: "BigInt",
+			filter: "int?",
+			conv: Boolean,
+			default: 0
+		},
+		{
+			name: "u_secondSignature",
+			type: "BigInt",
+			filter: "int?",
 			conv: Boolean,
 			default: 0
 		},
