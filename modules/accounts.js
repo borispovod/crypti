@@ -40,11 +40,7 @@ function Vote() {
 		}
 
 		modules.delegates.checkDelegates(trs.senderPublicKey, trs.asset.votes, function (err) {
-			if (err) {
-				return setImmediate(cb, errorCode("VOTES.ALREADY_VOTED_CONFIRMED", trs));
-			}
-
-			setImmediate(cb, null, trs);
+			setImmediate(cb, err, trs);
 		});
 	}
 

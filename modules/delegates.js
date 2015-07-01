@@ -122,6 +122,7 @@ function Delegate() {
 
 	this.apply = function (trs, sender, cb) {
 		private.votes[trs.asset.delegate.publicKey] = 0;
+		private.unconfirmedVotes[trs.asset.delegate.publicKey] = 0;
 		modules.accounts.setAccountAndGet({
 			address: sender.address,
 			u_username: null,
@@ -132,6 +133,8 @@ function Delegate() {
 	}
 
 	this.undo = function (trs, sender, cb) {
+		delete private.votes[trs.asset.delegate.publicKey];
+		delete private.unconfirmedVotes[trs.asset.delegate.publicKey];
 		modules.accounts.setAccountAndGet({
 			address: sender.address,
 			username: null,
@@ -755,7 +758,7 @@ Delegates.prototype.generateDelegateList = function (height) {
 
 Delegates.prototype.checkDelegates = function (publicKey, votes, cb) {
 	if (votes === null) {
-		return true;
+		return setImmediate(cb);
 	}
 
 	if (util.isArray(votes)) {
@@ -764,7 +767,7 @@ Delegates.prototype.checkDelegates = function (publicKey, votes, cb) {
 				return cb(err);
 			}
 			if (!account) {
-				return cb("error");
+				return cb("Account not found");
 			}
 
 			for (var i = 0; i < votes.length; i++) {
@@ -772,21 +775,21 @@ Delegates.prototype.checkDelegates = function (publicKey, votes, cb) {
 				var publicKey = votes[i].slice(1);
 
 				if (!account.isDelegate) {
-					return cb("error");
+					return cb("Your delegate not found");
 				}
 
 				if (math == "+" && (account.delegates !== null && account.delegates.indexOf(publicKey) != -1)) {
-					return cb("error");
+					return cb("Can't verify votes, you already voted for this delegate");
 				}
 				if (math == "-" && (account.delegates === null || account.delegates.indexOf(publicKey) === -1)) {
-					return cb("error");
+					return cb("Can't verify votes, you had no votes for this delegate");
 				}
 			}
 
 			cb();
 		});
 	} else {
-		setImmediate(cb, "error");
+		setImmediate(cb, "Provide array of votes");
 	}
 }
 
@@ -797,7 +800,7 @@ Delegates.prototype.checkUnconfirmedDelegates = function (publicKey, votes, cb) 
 				return cb(err);
 			}
 			if (!account) {
-				return cb("error");
+				return cb("Account not found");
 			}
 
 			for (var i = 0; i < votes.length; i++) {
@@ -805,21 +808,21 @@ Delegates.prototype.checkUnconfirmedDelegates = function (publicKey, votes, cb) 
 				var publicKey = votes[i].slice(1);
 
 				if (private.unconfirmedVotes[publicKey] === undefined) {
-					return cb("error");
+					return cb("Your delegate not found");
 				}
 
 				if (math == "+" && (account.u_delegates !== null && account.u_delegates.indexOf(publicKey) != -1)) {
-					return cb("error");
+					return cb("Can't verify votes, you already voted for this delegate");
 				}
 				if (math == "-" && (account.u_delegates === null || account.u_delegates.indexOf(publicKey) === -1)) {
-					return cb("error");
+					return cb("Can't verify votes, you had no votes for this delegate");
 				}
 			}
 
 			cb();
 		});
 	} else {
-		return setImmediate(cb, "error");
+		return setImmediate(cb, "Provide array of votes");
 	}
 }
 
