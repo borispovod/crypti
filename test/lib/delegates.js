@@ -5,7 +5,7 @@
 'use strict';
 
 // Requires and node configuration
-var node = require('./variables.js');
+var node = require('./../variables.js');
 
 // Account info for a RANDOM account (which we create later) - 0 XCR amount | Will act as delegate
 var Raccount = node.randomAccount();
@@ -24,8 +24,13 @@ describe('Delegates', function() {
 
     describe('Vote and Register delegate attempts from account with 0 XCR', function() {
 
-        before(function (done) {
+        /*before(function (done) {
             // Open Random Account
+
+        });*/
+
+        test += 1;
+        it(test + '. We attempt to upVote a delegate from the new random account. We expect error (account should have 0 XCR)',function(done){
             node.api.post('/accounts/open')
                 .set('Accept', 'application/json')
                 .send({
@@ -40,36 +45,38 @@ describe('Delegates', function() {
                     Raccount.address = res.body.account.address;
                     Raccount.publicKey = res.body.account.publicKey;
                     Raccount.balance = res.body.account.balance;
-                    done();
+
+                    node.onNewBlock(function(err) {
+                        node.expect(err).to.be.not.ok;
+                        node.api.put('/accounts/delegates')
+                            .set('Accept', 'application/json')
+                            .send({
+                                secret: Raccount.password,
+                                delegates: ["+" + node.Eaccount.publicKey]
+                            })
+                            .expect('Content-Type', /json/)
+                            .expect(200)
+                            .end(function (err, res) {
+                                console.log(res.body);
+                                node.expect(res.body).to.have.property("success").to.be.false;
+                                node.expect(res.body).to.have.property("error");
+                                /*if (res.body.success == false && res.body.error != null) {
+                                    node.expect(res.body.error).to.contain("balance");
+                                }
+                                else {
+                                    console.log("Expected test to fail but it succeeded");
+                                    console.log("Sent: secret: " + Raccount.password + ", delegates:[\"+\"" + node.Eaccount.publicKey);
+                                    node.expect("TEST").to.equal("FAILED");
+                                }*/
+                                done();
+                            });
+                    });
                 });
         });
 
         test += 1;
-        it(test + '. We attempt to upVote a delegate from the new random account. We expect error (account should have 0 XCR)',function(done){
-            this.timeout(5000);
-            setTimeout(function(){
-                node.api.put('/accounts/delegates')
-                    .set('Accept', 'application/json')
-                    .send({
-                        secret: Raccount.password,
-                        delegates: ["+" + node.Eaccount.publicKey]
-                    })
-                    .expect('Content-Type', /json/)
-                    .expect(200)
-                    .end(function (err, res) {
-                        console.log(res.body);
-                        node.expect(res.body).to.have.property("success").to.be.false;
-                        node.expect(res.body).to.have.property("error");
-                        node.expect(res.body.error).to.contain("balance");
-                        done();
-                    });
-            }, 2000);
-        });
-
-        test += 1;
         it(test + '. We attempt to downVote a delegate from the new random account. We expect error (account should have 0 XCR)',function(done){
-            this.timeout(4000);
-            setTimeout(function(){
+            node.onNewBlock(function(err) {
                 node.api.put('/accounts/delegates')
                     .set('Accept', 'application/json')
                     .send({
@@ -85,7 +92,7 @@ describe('Delegates', function() {
                         //    node.expect(res.body.error).to.contain("balance");
                         done();
                     });
-            }, 2000);
+            });
         });
 
         test += 1;
@@ -102,7 +109,15 @@ describe('Delegates', function() {
                     console.log(res.body);
                     node.expect(res.body).to.have.property("success").to.be.false;
                     node.expect(res.body).to.have.property("error");
-                    node.expect(res.body.error).to.contain("balance");
+                    if (res.body.success == false && res.body.error != null){
+                        node.expect(res.body.error).to.contain("balance");
+                    }
+                    else{
+                        console.log("Expected error and got success.");
+                        console.log("Sent: secret: " + Raccount.password + ", username: " + Raccount.delegateName);
+                        node.expect("TEST").to.equal("FAILED");
+                    }
+
                     done();
                 });
         });
@@ -126,16 +141,25 @@ describe('Delegates', function() {
                     console.log(res.body);
                     node.expect(res.body).to.have.property("success").to.be.true;
                     node.expect(res.body).to.have.property("transactionId");
-                    node.expect(res.body.transactionId).to.be.above(1);
-                    Raccount.amount += node.XCR;
+                    if (res.body.success == true && res.body.transactionId != null){
+                        node.expect(res.body.transactionId).to.be.above(1);
+                        Raccount.amount += node.XCR;
+                    }
+                    else{
+                        console.log("Transaction failed or transactionId is null");
+                        console.log("Sent: secret: " + node.Faccount.password + ", amount: " + node.XCR + ", recipientId: " + Raccount.address);
+                        node.expect("TEST").to.equal("FAILED");
+                    }
                     done();
                 });
         });
 
         before(function (done) {
             // Check that Raccount has the XCR we sent
-            this.timeout(node.blockTimePlus); // Fail test if not finished in 12s
-            setTimeout(function(){
+
+            node.onNewBlock(function(err){
+				node.expect(err).to.be.not.ok;
+
                 node.api.post('/accounts/open')
                     .set('Accept', 'application/json')
                     .send({
@@ -146,7 +170,14 @@ describe('Delegates', function() {
                     .end(function (err, res) {
                         console.log(res.body);
                         node.expect(res.body).to.have.property("success").to.be.true;
-                        node.expect(res.body.account.balance).to.be.equal(node.XCR);
+                        if (res.body.success == true && res.body.account != null){
+                            node.expect(res.body.account.balance).to.be.equal(node.XCR);
+                        }
+                        else{
+                            console.log("Failed to open account or account object is null");
+                            console.log("Sent: secret: " + Raccount.password);
+                            node.expect("TEST").to.equal("FAILED");
+                        }
                         /*
                          node.expect(res.body).to.have.property("account").that.is.an('object');
                          node.expect(res.body.account.address).to.be.equal(Raccount.address);
@@ -156,13 +187,13 @@ describe('Delegates', function() {
                          */
                         done();
                     });
-            }, node.blockTime);
+            });
         });
 
         test += 1;
         it(test + '. We attempt to upVote same delegate SEVERAL TIMES from random account. We expect error',function(done){
             var votedDelegate = '"+' + node.Eaccount.publicKey + '","+' + node.Eaccount.publicKey + '"';
-            setTimeout(function(){
+            node.onNewBlock(function(err){
                 node.api.put('/accounts/delegates')
                     .set('Accept', 'application/json')
                     .send({
@@ -175,15 +206,18 @@ describe('Delegates', function() {
                         console.log(res.body);
                         node.expect(res.body).to.have.property("success").to.be.false;
                         node.expect(res.body).to.have.property("error");
+                        if (res.body.success == true){
+                            console.log("Sent: secret:" + Raccount.password + ", delegates: [" + votedDelegate + "]");
+                        }
                         done();
                     });
-            }, 1000);
+            });
         });
 
         test += 1;
         it(test + '. We attempt to downVote same delegate SEVERAL TIMES from random account. We expect error',function(done){
             var votedDelegate = '"-' + node.Eaccount.publicKey + '","-' + node.Eaccount.publicKey + '"';
-            setTimeout(function(){
+            node.onNewBlock(function(err){
                 node.api.put('/accounts/delegates')
                     .set('Accept', 'application/json')
                     .send({
@@ -196,15 +230,18 @@ describe('Delegates', function() {
                         console.log(res.body);
                         node.expect(res.body).to.have.property("success").to.be.false;
                         node.expect(res.body).to.have.property("error");
+                        if (res.body.success == true){
+                            console.log("Sent: secret:" + Raccount.password + ", delegates: [" + votedDelegate + "]");
+                        }
                         done();
                     });
-            }, 1000);
+            });
         });
 
         test += 1;
         it(test + '. We attempt to upVote & downVote same delegate from random account in same request. We expect error',function(done){
             var votedDelegate = '"+' + node.Eaccount.publicKey + '","-' + node.Eaccount.publicKey + '"';
-            setTimeout(function(){
+            node.onNewBlock(function(err){
                 node.api.put('/accounts/delegates')
                     .set('Accept', 'application/json')
                     .send({
@@ -217,9 +254,12 @@ describe('Delegates', function() {
                         console.log(res.body);
                         node.expect(res.body).to.have.property("success").to.be.false;
                         node.expect(res.body).to.have.property("error");
+                        if (res.body.success == true){
+                            console.log("Sent: secret:" + Raccount.password + ", delegates: [" + votedDelegate) + "]";
+                        }
                         done();
                     });
-            }, 1000);
+            });
         });
 
         test += 1;
@@ -236,18 +276,25 @@ describe('Delegates', function() {
                     console.log(res.body);
                     node.expect(res.body).to.have.property("success").to.be.true;
                     node.expect(res.body).to.have.property("transaction").that.is.an('object');
-                    node.expect(res.body.transaction.type).to.equal(node.TxTypes.VOTE);
-                    node.expect(res.body.transaction.amount).to.equal(0);
-                    node.expect(res.body.transaction.senderPublicKey).to.equal(Raccount.publicKey);
-                    node.expect(res.body.transaction.fee).to.equal(node.Fees.voteFee);
+                    if (res.body.success == true && res.body.transaction != null){
+                        node.expect(res.body.transaction.type).to.equal(node.TxTypes.VOTE);
+                        node.expect(res.body.transaction.amount).to.equal(0);
+                        node.expect(res.body.transaction.senderPublicKey).to.equal(Raccount.publicKey);
+                        node.expect(res.body.transaction.fee).to.equal(node.Fees.voteFee);
+                    }
+                    else {
+                        console.log("Transaction failed or transaction object is null");
+                        console.log("Sent: secret: " + Raccount.password + ", delegates: [+" + node.Eaccount.publicKey + "]");
+                        node.expect("TEST").to.equal("FAILED");
+                    }
+
                     done();
                 });
         });
 
         test += 1;
         it(test + '. We attempt to upVote same delegate from the same random account. We expect error',function(done){
-            this.timeout(5000);
-            setTimeout(function(){
+            node.onNewBlock(function(err){
                 node.api.put('/accounts/delegates')
                     .set('Accept', 'application/json')
                     .send({
@@ -260,17 +307,24 @@ describe('Delegates', function() {
                         console.log(res.body);
                         node.expect(res.body).to.have.property("success").to.be.false;
                         node.expect(res.body).to.have.property("error");
-                        node.expect(res.body.error).to.contain("you already voted");
+                        if (res.body.success == false && res.body.error != null){
+                            node.expect(res.body.error.toLowerCase()).to.contain("you already voted");
+                        }
+                        else{
+                            console.log("Expected error but got success");
+                            console.log("Sent: secret: " + Raccount.password + ", delegates: [+" + node.Eaccount.publicKey + "]");
+                            node.expect("TEST").to.equal("FAILED");
+                        }
                         done();
                     });
-            }, 1000);
+            });
         });
 
         test += 1;
         it(test + '. We attempt to downVote a delegate from the new random account. We expect success',function(done){
             // We wait for a new block
-            this.timeout(node.blockTimePlus); // Fail test if not finished in 12s
-            setTimeout(function(){
+            node.onNewBlock(function(err){
+				node.expect(err).to.be.not.ok;
                 node.api.put('/accounts/delegates')
                     .set('Accept', 'application/json')
                     .send({
@@ -283,19 +337,25 @@ describe('Delegates', function() {
                         console.log(res.body);
                         node.expect(res.body).to.have.property("success").to.be.true;
                         node.expect(res.body).to.have.property("transaction").that.is.an('object');
-                        node.expect(res.body.transaction.type).to.equal(node.TxTypes.VOTE);
-                        node.expect(res.body.transaction.amount).to.equal(0);
-                        node.expect(res.body.transaction.senderPublicKey).to.equal(Raccount.publicKey);
-                        node.expect(res.body.transaction.fee).to.equal(node.Fees.voteFee);
+                        if (res.body.success == true && res.body.transaction != null){
+                            node.expect(res.body.transaction.type).to.equal(node.TxTypes.VOTE);
+                            node.expect(res.body.transaction.amount).to.equal(0);
+                            node.expect(res.body.transaction.senderPublicKey).to.equal(Raccount.publicKey);
+                            node.expect(res.body.transaction.fee).to.equal(node.Fees.voteFee);
+                        }
+                        else{
+                            console.log("Expected success but got error");
+                            console.log("Sent: secret: " + Raccount.password + ", delegates: [-" + node.Eaccount.publicKey + "]");
+                            node.expect("TEST").to.equal("FAILED");
+                        }
                         done();
                     });
-            }, node.blockTime);
+            });
         });
 
         test += 1;
         it(test + '. We attempt to downVote same delegate from the same random account. We expect error',function(done){
-            this.timeout(5000);
-            setTimeout(function(){
+            node.onNewBlock(function(err){
                 node.api.put('/accounts/delegates')
                     .set('Accept', 'application/json')
                     .send({
@@ -308,10 +368,17 @@ describe('Delegates', function() {
                         console.log(res.body);
                         node.expect(res.body).to.have.property("success").to.be.false;
                         node.expect(res.body).to.have.property("error");
-                        node.expect(res.body.error).to.contain("you already voted");
+                        if (res.body.success == false && res.body.error != null) {
+                            node.expect(res.body.error.toLowerCase()).to.contain("you already voted");
+                        }
+                        else{
+                            console.log("Expected error but got success");
+                            console.log("Sent: secret: " + Raccount.password + ", delegates: [-" + node.Eaccount.publicKey + "]");
+                            node.expect("TEST").to.equal("FAILED");
+                        }
                         done();
                     });
-            }, 2000);
+            });
         });
 
         test += 1;
@@ -532,19 +599,26 @@ describe('Delegates', function() {
                     console.log(res.body);
                     node.expect(res.body).to.have.property("success").to.be.true;
                     node.expect(res.body).to.have.property("transaction").that.is.an('object');
-                    node.expect(res.body.transaction.fee).to.equal(node.Fees.delegateRegistrationFee);
-                    node.expect(res.body.transaction.asset.delegate.username).to.equal(Raccount.delegateName);
-                    node.expect(res.body.transaction.asset.delegate.publicKey).to.equal(Raccount.publicKey);
-                    node.expect(res.body.transaction.type).to.equal(node.TxTypes.DELEGATE);
-                    node.expect(res.body.transaction.amount).to.equal(0);
+                    if (res.body.success == true && res.body.transaction != null){
+                        node.expect(res.body.transaction.fee).to.equal(node.Fees.delegateRegistrationFee);
+                        node.expect(res.body.transaction.asset.delegate.username).to.equal(Raccount.delegateName);
+                        node.expect(res.body.transaction.asset.delegate.publicKey).to.equal(Raccount.publicKey);
+                        node.expect(res.body.transaction.type).to.equal(node.TxTypes.DELEGATE);
+                        node.expect(res.body.transaction.amount).to.equal(0);
+                    }
+                    else {
+                        console.log("Transaction failed or transaction object is null");
+                        console.log("Sent: secret: " + Raccount.password + ", username: " + Raccount.delegateName);
+                        node.expect("TEST").to.equal("FAILED");
+                    }
                     done();
                 });
         });
 
         test += 1;
         it(test + '. We attempt to re-register as delegate from SAME random account: ' + Raccount.password + '. We expect error',function(done){
-            this.timeout(node.blockTimePlus);
-            setTimeout(function(){
+            node.onNewBlock(function(err){
+				node.expect(err).to.be.not.ok;
                 node.api.put('/delegates')
                     .set('Accept', 'application/json')
                     .send({
@@ -559,11 +633,11 @@ describe('Delegates', function() {
                         node.expect(res.body).to.have.property("error");
                         done();
                     });
-            }, node.blockTime);
+            });
         });
     });
 
-    describe.skip('Get Delegates list',function() {
+    describe('Get Delegates list',function() {
 
         test += 1;
         it(test + '. We attempt to get a list of all delegates. We expect success',function(done){
@@ -583,15 +657,20 @@ describe('Delegates', function() {
                     console.log("Limit is " + limit + ". Number of delegates returned is: " + num_of_delegates);
                     console.log("Total Number of delegates returned is: " + res.body.totalCount);
                     if (num_of_delegates >= 1) {
-                        node.expect(res.body.delegates[0]).to.have.property("username");
-                        node.expect(res.body.delegates[0]).to.have.property("publicKey");
-                        node.expect(res.body.delegates[0]).to.have.property("vote");
-                        node.expect(res.body.delegates[0]).to.have.property("rate");
-                        node.expect(res.body.delegates[0]).to.have.property("productivity");
+                        for (var i = 0; i < num_of_delegates; i++) {
+                            if (res.body.delegates[i + 1] != null) {
+                                node.expect(res.body.delegates[i].vote).to.be.at.most(res.body.delegates[i + 1].vote);
+                                node.expect(res.body.delegates[i]).to.have.property("username");
+                                node.expect(res.body.delegates[i]).to.have.property("publicKey");
+                                node.expect(res.body.delegates[i]).to.have.property("vote");
+                                node.expect(res.body.delegates[i]).to.have.property("rate");
+                                node.expect(res.body.delegates[i]).to.have.property("productivity");
+                            }
+                        }
                     }
-                    if (num_of_delegates >= 4){
-                        node.expect(res.body.delegates[0].vote).to.be.at.least(res.body.delegates[1].vote);
-                        node.expect(res.body.delegates[2].vote).to.be.at.least(res.body.delegates[3].vote);
+                    else {
+                        console.log("Got 0 delegates");
+                        node.expect("TEST").to.equal("FAILED");
                     }
                     done();
                 });
@@ -615,15 +694,15 @@ describe('Delegates', function() {
                     console.log("Limit is: " + limit + ". Number of delegates returned is: " + num_of_delegates);
                     console.log("Total Number of delegates returned is: " + res.body.totalCount);
                     if (num_of_delegates >= 1) {
-                        node.expect(res.body.delegates[0]).to.have.property("username");
-                        node.expect(res.body.delegates[0]).to.have.property("publicKey");
-                        node.expect(res.body.delegates[0]).to.have.property("vote");
-                        node.expect(res.body.delegates[0]).to.have.property("rate");
-                        node.expect(res.body.delegates[0]).to.have.property("productivity");
+                        for (var i = 0; i < num_of_delegates; i++) {
+                            if (res.body.delegates[i + 1] != null) {
+                                node.expect(res.body.delegates[i].vote).to.be.at.least(res.body.delegates[i + 1].vote);
+                            }
+                        }
                     }
-                    if (num_of_delegates >= 4){
-                        node.expect(res.body.delegates[0].rate).to.be.below(res.body.delegates[1].vote);
-                        node.expect(res.body.delegates[2].rate).to.be.below(res.body.delegates[3].vote);
+                    else {
+                        console.log("Got 0 delegates");
+                        node.expect("TEST").to.equal("FAILED");
                     }
                     done();
                 });
@@ -640,10 +719,8 @@ describe('Delegates', function() {
                 .expect(200)
                 .end(function (err, res) {
                     console.log(res.body);
-                    node.expect(res.body).to.have.property("success").to.be.true;
-                    node.expect(res.body).to.have.property("delegates").that.is.an('array');
-                    node.expect(res.body).to.have.property("totalCount").that.is.at.least(0);
-                    node.expect(res.body.delegates).to.have.length.of(0);
+                    node.expect(res.body).to.have.property("success").to.be.false;
+                    node.expect(res.body).to.have.property("error");
                     done();
                 });
         });

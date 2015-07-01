@@ -9,13 +9,16 @@ var _ = require('lodash'),
 	config = require('./config.json'),
     expect = require('chai').expect,
     supertest = require('supertest'),
-    api = supertest('http://' + config.address + ':' + config.port + '/api'),
-	peer = supertest('http://' + config.address + ':' + config.port + '/peer'),
-	async = require('async'); // DEFINES THE NODE WE USE FOR THE TEST
+    baseUrl = 'http://' + config.address + ':' + config.port,
+    api = supertest(baseUrl + '/api'), // DEFINES THE NODE WE USE FOR THE TEST
+	peer = supertest(baseUrl + '/peer'), // DEFINES THE NODE WE USE FOR PEER TESTS
+	async = require('async'),
+    request = require('request');
 
 var normalizer = 100000000; // Use this to convert XCR amount to normal value
 var blockTime = 10000; // Block time in miliseconds
 var blockTimePlus = 12000; // Block time + 2 seconds in miliseconds
+var version = "0.3.0" // Node version
 
 // Holds Fee amounts for different transaction types.
 var Fees = {
@@ -58,7 +61,7 @@ var TxTypes = {
     MESSAGE : 6,
     AVATAR : 7,
     MULTI: 8
-}
+};
 
 // Account info for foundation account - XCR > 1,000,000 | Needed for voting, registrations and Tx
 var Faccount = {
@@ -90,17 +93,28 @@ function randomizeXCR(){
 }
 // Returns current block height
 function getHeight(cb) {
-	api.get('/blocks/getHeight')
-		.set('Accept', 'application/json')
-		.expect('Content-Type', /json/)
-		.expect(200)
-		.end(function (err, res) {
-			if (err) {
-				return cb(err);
-			} else {
-				return cb(null, res.body.height);
-			}
-		});
+    request({
+        type: "GET",
+        url: baseUrl + "/api/blocks/getHeight",
+        json: true
+    }, function (err, resp, body) {
+        if (err || resp.statusCode != 200) {
+            return cb(err || "Status code is not 200 (getHeight)");
+        } else {
+            return cb(null, body.height);
+        }
+    })
+}
+
+function onNewBlock(cb) {
+	getHeight(function (err, height) {
+		console.log("height: " + height);
+		if (err) {
+			return cb(err);
+		} else {
+			waitForNewBlock(height, cb);
+		}
+	});
 }
 
 // Function used to wait until a new block has been created
@@ -108,24 +122,24 @@ function waitForNewBlock(height, cb) {
 	var actualHeight = height;
 	async.doWhilst(
 		function (cb) {
-			api.get('/blocks/getHeight')
-				.set('Accept', 'application/json')
-				.expect('Content-Type', /json/)
-				.expect(200)
-				.end(function (err, res) {
-					if (err) {
-						return cb(err);
-					}
+            request({
+                type: "GET",
+                url: baseUrl + "/api/blocks/getHeight",
+                json: true
+            }, function (err, resp, body) {
+                if (err || resp.statusCode != 200) {
+                    return cb(err || "Got incorrect status");
+                }
 
-					if (height < res.body.height) {
-						height = res.body.height;
-					}
+                if (height + 2 == body.height) {
+                    height = body.height;
+                }
 
-					setTimeout(cb, 1000);
-				});
+                setTimeout(cb, 1000);
+            });
 		},
 		function () {
-			return actualHeight < height;
+			return actualHeight == height;
 		},
 		function (err) {
 			if (err) {
@@ -137,6 +151,28 @@ function waitForNewBlock(height, cb) {
 	)
 }
 
+// Adds peers to local node
+function addPeers(numOfPeers){
+
+    var operatingSystems = ['win32','win64','linux','debian'];
+    var versions = ['0.1.9','0.2.0','0.2.0a','0.3.0'];
+    var ports = [4060, 5060, 8040, 7040];
+    var sharePortOptions = [false,true];
+    var os,version,port,sharePort;
+
+    for (var i = 0; i < numOfPeers; i++){
+        os = operatingSystems[randomizeSelection(operatingSystems.length)];
+        version = versions[randomizeSelection(versions.length)];
+        port = ports[randomizeSelection(ports.length)];
+        sharePort = sharePortOptions[randomizeSelection(sharePortOptions.length)];
+        peer.get('/height').set('os',os).set('version',version).set('port',port).set('share-port',sharePort);
+    }
+}
+
+// Used to randomize selecting from within an array. Requires array length
+function randomizeSelection(length){
+    return Math.floor(Math.random() * length);
+}
 
 // Returns a random number between min (inclusive) and max (exclusive)
 function randomNumber(min, max) {
@@ -202,6 +238,7 @@ module.exports = {
 	crypti : require('./cryptijs'),
     supertest: supertest,
     expect: expect,
+    version: version,
     XCR: XCR,
     Faccount: Faccount,
     Daccount: Daccount,
@@ -218,8 +255,10 @@ module.exports = {
     randomTxAccount: randomTxAccount,
     randomUsername: randomUsername,
     expectedFee:expectedFee,
+    addPeers:addPeers,
 	peers_config: config.mocha.peers,
 	config: config,
 	waitForNewBlock: waitForNewBlock,
-	getHeight: getHeight
+	getHeight: getHeight,
+	onNewBlock: onNewBlock
 };
