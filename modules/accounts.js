@@ -481,7 +481,7 @@ function attachApi() {
 				}
 
 				if (account.delegates) {
-					self.getAccounts({address: {$in: account.delegates}}, function (err, delegates) {
+					self.getAccounts({publicKey: {$in: account.delegates}}, function (err, delegates) {
 						if (err) {
 							return res.json({success: false, error: err.toString()});
 						}

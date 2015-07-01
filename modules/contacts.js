@@ -7,6 +7,7 @@ var encryptHelper = require('../helpers/encrypt.js'),
 	ByteBuffer = require("bytebuffer"),
 	crypto = require('crypto'),
 	Diff = require('../helpers/diff.js'),
+	async = require('async'),
 	errorCode = require('../helpers/errorCodes.js').error;
 
 var modules, library, self, private = {};
@@ -174,31 +175,36 @@ function attachApi() {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
 
-			modules.accounts.getAccount({publicKey: query.publicKey}, function (err, account) {
+			self.getAccount({address: query.address}, function (err, account) {
 				if (err) {
 					return res.json({success: false, error: err.toString()});
 				}
 				if (!account) {
-					return res.json({success: false, error: errorCode("ACCOUNTS.ACCOUNT_DOESNT_FOUND")});
-				}
-
-				var following = [];
-				var followers = [];
-				if (account.following && account.following.length) {
-					following = account.following.map(function (item) {
-						var account = modules.accounts.getAccount(item);
-						return {username: account.username, address: account.address};
+					return res.json({
+						success: false,
+						error: errorCode("ACCOUNTS.ACCOUNT_DOESNT_FOUND", {address: query.address})
 					});
 				}
 
-				if (account.followers && account.followers.length) {
-					followers = account.followers.map(function (item) {
-						var account = modules.accounts.getAccount(item);
-						return {username: account.username, address: account.address};
-					});
-				}
-
-				res.json({success: true, following: following, followers: followers});
+				async.series({
+					contacts: function (cb) {
+						if (!account.contacts.length) {
+							return cb(null, []);
+						}
+						self.getAccounts({publicKey: {$in: account.contacts}} ["address", "username"], cbº);
+					},
+					followers: function (cb) {
+						if (!account.followers.length) {
+							return cb(null, []);
+						}
+						self.getAccounts({publicKey: {$in: account.followers}} ["address", "username"], cb);
+					}
+				}, function (err, res) {
+					if (err) {
+						return res.json({success: false, error: err.toString()});
+					}
+					res.json({success: true, following: res.contacts, followers: res.followers});
+				});
 			});
 		});
 	});
