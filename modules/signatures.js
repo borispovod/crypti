@@ -3,7 +3,6 @@ var ed = require('ed25519'),
 	crypto = require('crypto'),
 	constants = require("../helpers/constants.js"),
 	slots = require('../helpers/slots.js'),
-	RequestSanitizer = require('../helpers/request-sanitizer.js'),
 	Router = require('../helpers/router.js'),
 	async = require('async'),
 	TransactionTypes = require('../helpers/transaction-types.js'),
@@ -93,18 +92,20 @@ function Signature() {
 	}
 
 	this.objectNormalize = function (trs) {
-		var report = RequestSanitizer.validate(trs.asset.signature, {
+		var report = library.scheme.validate(trs.asset.signature, {
 			object: true,
 			properties: {
-				publicKey: "hex!"
-			}
+				publicKey: {
+					type: 'string',
+					format: 'publicKey'
+				}
+			},
+			required: ['publicKey']
 		});
 
-		if (!report.isValid) {
-			throw Error(report.issues);
+		if (!report) {
+			throw Error("Can't parse signature: " + library.scheme.getLastError());
 		}
-
-		trs.asset.signature = report.value;
 
 		return trs;
 	}
@@ -181,18 +182,23 @@ function attachApi() {
 	});
 
 	router.put('/', function (req, res) {
-		req.sanitize("body", {
-			secret: {
-				required: true,
-				string: true,
-				minLength: 1
+		req.sanitize(req.body, {
+			type: "object",
+			properties: {
+				secret: {
+					type: "string",
+					minLength: 1
+				},
+				secondSecret: {
+					type: "string",
+					minLength: 1
+				},
+				publicKey: {
+					type: "string",
+					format: "publicKey"
+				}
 			},
-			secondSecret: {
-				required: true,
-				string: true,
-				minLength: 1
-			},
-			publicKey: "hex?"
+			required: ["secret", "secondSecret"]
 		}, function (err, report, body) {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});

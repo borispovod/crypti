@@ -8,7 +8,6 @@ var ed = require('ed25519'),
 	extend = require('extend'),
 	Router = require('../helpers/router.js'),
 	async = require('async'),
-	RequestSanitizer = require('../helpers/request-sanitizer.js'),
 	TransactionTypes = require('../helpers/transaction-types.js'),
 	errorCode = require('../helpers/errorCodes.js').error;
 
@@ -136,18 +135,63 @@ function attachApi() {
 	});
 
 	router.get('/', function (req, res) {
-		req.sanitize("query", {
-			blockId: "string?",
-			limit: "int?",
-			orderBy: "string?",
-			offset: {default: 0, int: true},
-			senderPublicKey: "hex?",
-			ownerPublicKey: "hex?",
-			ownerAddress: "string?",
-			senderId: "string?",
-			recipientId: "string?",
-			senderUsername: "string?",
-			recipientUsername: "string?"
+		req.sanitize(req.query, {
+			type: "object",
+			properties: {
+				blockId: {
+					type: "string"
+				},
+				limit: {
+					type: "integer",
+					minimum: 0,
+					maximum: 100
+				},
+				type: {
+					type: "integer",
+					minimum: 0,
+					maximum: 10
+				},
+				orderBy: {
+					type: "string"
+				},
+				offset: {
+					type: "integer",
+					minimum: 0
+				},
+				senderPublicKey: {
+					type: "string",
+					format: "publicKey"
+				},
+				ownerPublicKey: {
+					type: "string",
+					format: "publicKey"
+				},
+				ownerAddress: {
+					type: "string"
+				},
+				senderId: {
+					type: "string"
+				},
+				recipientId: {
+					type: "string"
+				},
+				senderUsername: {
+					type: "string"
+				},
+				recipientUsername: {
+					type: "string"
+				},
+				amount: {
+					type: "integer",
+					minimum: 0,
+					maximum: constants.fixedPoint
+				},
+				fee: {
+					type: "integer",
+					minimum: 0,
+					maximum: constants.fixedPoint
+				}
+			}
 		}, function (err, report, query) {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
@@ -163,12 +207,15 @@ function attachApi() {
 	});
 
 	router.get('/get', function (req, res) {
-		req.sanitize("query", {
-			id: {
-				required: true,
-				string: true,
-				minLength: 1
-			}
+		req.sanitize(req.query, {
+			type: 'object',
+			properties: {
+				id: {
+					type: 'string',
+					minLength: 1
+				}
+			},
+			required: ['id']
 		}, function (err, report, query) {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
@@ -183,12 +230,15 @@ function attachApi() {
 	});
 
 	router.get('/unconfirmed/get', function (req, res) {
-		req.sanitize("query", {
-			id: {
-				required: true,
-				string: true,
-				minLength: 1
-			}
+		req.sanitize(req.query, {
+			type: 'object',
+			properties: {
+				id: {
+					type: 'string',
+					minLength: 1
+				}
+			},
+			required: ['id']
 		}, function (err, report, query) {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
@@ -204,9 +254,17 @@ function attachApi() {
 	});
 
 	router.get('/unconfirmed/', function (req, res) {
-		req.sanitize("query", {
-			senderPublicKey: "hex?",
-			address: "string?"
+		req.sanitize(req.query, {
+			type: "object",
+			properties: {
+				senderPublicKey: {
+					type: "string",
+					format: "publicKey"
+				},
+				address: {
+					type: "string"
+				}
+			}
 		}, function (err, report, query) {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
@@ -231,20 +289,34 @@ function attachApi() {
 	});
 
 	router.put('/', function (req, res) {
-		req.sanitize("body", {
-			secret: {
-				required: true,
-				string: true,
-				minLength: 1
+		req.sanitize(req.body, {
+			type: "object",
+			properties: {
+				secret: {
+					type: "string",
+					minLength: 1,
+					maxLength: 100
+				},
+				amount: {
+					type: "integer",
+					minimum: 1,
+					maximum: constants.totalAmount
+				},
+				recipientId: {
+					type: "string",
+					minLength: 1
+				},
+				publicKey: {
+					type: "string",
+					format: "publicKey"
+				},
+				secondSecret: {
+					type: "string",
+					minLength: 1,
+					maxLength: 100
+				}
 			},
-			amount: "int!",
-			recipientId: {
-				required: true,
-				string: true,
-				minLength: 1
-			},
-			publicKey: "hex?",
-			secondSecret: "string?"
+			required: ["secret", "amount", "recipientId"]
 		}, function (err, report, body) {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
