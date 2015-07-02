@@ -1,21 +1,6 @@
 var async = require('async');
 var jsonSql = require('json-sql')();
-var constants = require('../helpers/constants.js')
-z_schema = require('z-schema');
-
-
-z_schema.registerFormat('publicKey', function (str) {
-	try {
-		var publicKey = new Buffer(str, "hex");
-
-		return publicKey.length == 32;
-	} catch (e) {
-		return false;
-	}
-});
-
-var scheme = new z_schema();
-
+var constants = require('../helpers/constants.js');
 
 var private = {};
 
@@ -475,13 +460,13 @@ function Account(scope, cb) {
 }
 
 Account.prototype.objectNormalize = function (account) {
-	var report = scheme.validate(account, {
+	var report = this.scope.scheme.validate(account, {
 		object: true,
 		properties: this.filter
 	});
 
 	if (!report) {
-		throw Error(scheme.getLastError());
+		throw Error(this.scope.scheme.getLastError());
 	}
 
 	return account;

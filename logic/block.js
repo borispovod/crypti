@@ -4,10 +4,7 @@ var slots = require('../helpers/slots.js'),
 	genesisblock = require("../helpers/genesisblock.js"),
 	bignum = require('../helpers/bignum.js'),
 	ByteBuffer = require("bytebuffer"),
-	constants = require('../helpers/constants.js'),
-	z_schema = require('z-schema');
-
-var scheme = new z_schema();
+	constants = require('../helpers/constants.js');
 
 //constructor
 function Block(scope, cb) {
@@ -188,7 +185,7 @@ Block.prototype.dbSave = function (block, cb) {
 }
 
 Block.prototype.objectNormalize = function (block) {
-	var report = scheme.validate(block, {
+	var report = this.scope.scheme.validate(block, {
 		object: true,
 		properties: {
 			id: {
@@ -242,7 +239,7 @@ Block.prototype.objectNormalize = function (block) {
 	});
 
 	if (!report) {
-		throw Error(scheme.getLastError());
+		throw Error(this.scope.scheme.getLastError());
 	}
 
 	try {

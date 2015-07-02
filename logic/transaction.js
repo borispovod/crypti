@@ -5,10 +5,7 @@ var slots = require('../helpers/slots.js'),
 	constants = require('../helpers/constants.js'),
 	ByteBuffer = require("bytebuffer"),
 	bignum = require('../helpers/bignum.js'),
-	extend = require('util-extend'),
-	z_schema = require('z-schema');
-
-var scheme = new z_schema();
+	extend = require('util-extend');
 
 //constructor
 function Transaction(scope, cb) {
@@ -514,7 +511,7 @@ Transaction.prototype.objectNormalize = function (trs) {
 		delete trs.height;
 	}
 
-	var report = scheme.validate(trs, {
+	var report = this.scope.scheme.validate(trs, {
 		object: true,
 		properties: {
 			id: {
@@ -574,7 +571,7 @@ Transaction.prototype.objectNormalize = function (trs) {
 	});
 
 	if (!report) {
-		throw Error(scheme.getLastError());
+		throw Error(this.scope.scheme.getLastError());
 	}
 
 	try {
