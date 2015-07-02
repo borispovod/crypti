@@ -5,7 +5,6 @@ var crypto = require('crypto'),
 	Router = require('../helpers/router.js'),
 	util = require('util'),
 	constants = require('../helpers/constants.js'),
-	RequestSanitizer = require('../helpers/request-sanitizer.js'),
 	TransactionTypes = require('../helpers/transaction-types.js'),
 	Diff = require('../helpers/diff.js'),
 	errorCode = require('../helpers/errorCodes.js').error;
@@ -93,7 +92,16 @@ function Vote() {
 	}
 
 	this.objectNormalize = function (trs) {
-		trs.asset.votes = RequestSanitizer.array(trs.asset.votes, true);
+		var report = library.scheme.validate(trs.asset.votes, {
+			type: "array",
+			minLength: 1,
+			maxLength: 32,
+			uniqueItems: true
+		});
+
+		if (!report) {
+			throw new Error("Incorrect votes in transactions: " + library.scheme.getLastError());
+		}
 
 		return trs;
 	}
@@ -242,23 +250,25 @@ function Username() {
 	}
 
 	this.objectNormalize = function (trs) {
-		var report = RequestSanitizer.validate(trs.asset.username, {
-			object: true,
+		var report = library.scheme.validate(trs.asset.username, {
+			type: "object",
 			properties: {
 				alias: {
-					required: true,
-					string: true,
-					minLength: 1
+					type: "string",
+					minLength: 1,
+					maxLength: 20
 				},
-				publicKey: "hex!"
-			}
+				publicKey: {
+					type: 'string',
+					format: 'publicKey'
+				}
+			},
+			required: ['alias', 'publicKey']
 		});
 
-		if (!report.isValid) {
-			throw Error(report.issues);
+		if (!report) {
+			throw Error(library.scheme.getLastError());
 		}
-
-		trs.asset.username = report.value;
 
 		return trs;
 	}
@@ -319,11 +329,15 @@ function attachApi() {
 
 	router.post('/open', function (req, res, next) {
 		req.sanitize(req.body, {
-			secret: {
-				required: true,
-				string: true,
-				minLength: 1
-			}
+			type: "object",
+			properties: {
+				secret: {
+					type: "string",
+					minLength: 1,
+					maxLength: 100
+				}
+			},
+			required: ["secret"]
 		}, function (err, report, body) {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
@@ -349,13 +363,16 @@ function attachApi() {
 		});
 	});
 
-	router.get('/getBalance', function (req, res) {
-		req.sanitize("query", {
-			address: {
-				required: true,
-				string: true,
-				minLength: 1
-			}
+	router.get('/getBalance', function (req, res, next) {
+		req.sanitize(req.query, {
+			type: "object",
+			properties: {
+				address: {
+					type: "string",
+					minLength: 1
+				}
+			},
+			required: ["address"]
 		}, function (err, report, query) {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
@@ -406,13 +423,16 @@ function attachApi() {
 		});
 	}
 
-	router.get('/getPublicKey', function (req, res) {
-		req.sanitize("query", {
-			address: {
-				required: true,
-				string: true,
-				minLength: 1
-			}
+	router.get('/getPublicKey', function (req, res, next) {
+		req.sanitize(req.query, {
+			type: "object",
+			properties: {
+				address: {
+					type: "string",
+					minLength: 1
+				}
+			},
+			required: ["address"]
 		}, function (err, report, query) {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
@@ -434,12 +454,15 @@ function attachApi() {
 	});
 
 	router.post("/generatePublicKey", function (req, res, next) {
-		req.sanitize("body", {
-			secret: {
-				required: true,
-				string: true,
-				minLength: 1
-			}
+		req.sanitize(req.body, {
+			type: "object",
+			properties: {
+				secret: {
+					type: "string",
+					minLength: 1
+				}
+			},
+			required: ["secret"]
 		}, function (err, report, query) {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
@@ -459,12 +482,15 @@ function attachApi() {
 	});
 
 	router.get("/delegates", function (req, res, next) {
-		req.sanitize("query", {
-			address: {
-				required: true,
-				string: true,
-				minLength: 1
-			}
+		req.sanitize(req.query, {
+			type: "object",
+			properties: {
+				address: {
+					type: "string",
+					minLength: 1
+				}
+			},
+			required: ["address"]
 		}, function (err, report, query) {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
@@ -500,15 +526,22 @@ function attachApi() {
 	});
 
 	router.put("/delegates", function (req, res, next) {
-		req.sanitize("body", {
-			secret: {
-				required: true,
-				string: true,
-				minLength: 1
-			},
-			publicKey: "hex?",
-			secondSecret: "string?",
-			delegates: "array!"
+		req.sanitize(req.body, {
+			type: "object",
+			properties: {
+				secret: {
+					type: 'string',
+					minLength: 1
+				},
+				publicKey: {
+					type: 'string',
+					format: 'publicKey'
+				},
+				secondSecret: {
+					type: 'string',
+					minLength: 1
+				}
+			}
 		}, function (err, report, body) {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
@@ -567,19 +600,27 @@ function attachApi() {
 	});
 
 	router.put("/username", function (req, res, next) {
-		req.sanitize("body", {
-			secret: {
-				required: true,
-				string: true,
-				minLength: 1
+		req.sanitize(req.body, {
+			type: "object",
+			properties: {
+				secret: {
+					type: "string",
+					minLength: 1
+				},
+				publicKey: {
+					type: "string",
+					format: "publicKey"
+				},
+				secondSecret: {
+					type: "string",
+					minLength: 1
+				},
+				username: {
+					type: "string",
+					minLength: 1
+				}
 			},
-			publicKey: "hex?",
-			secondSecret: "string?",
-			username: {
-				required: true,
-				string: true,
-				minLength: 1
-			}
+			required: ['secret', 'username']
 		}, function (err, report, body) {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
@@ -635,12 +676,15 @@ function attachApi() {
 	});
 
 	router.get("/", function (req, res, next) {
-		req.sanitize("query", {
-			address: {
-				required: true,
-				string: true,
-				minLength: 1
-			}
+		req.sanitize(req.query, {
+			type: "object",
+			properties: {
+				address: {
+					type: "string",
+					minLength: 1
+				}
+			},
+			required: ["address"]
 		}, function (err, report, query) {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});

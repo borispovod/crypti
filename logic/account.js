@@ -254,7 +254,7 @@ function Account(scope, cb) {
 			filter: {
 				type: "integer",
 				minimum: 1,
-				maximum: 48
+				maximum: 72
 			},
 			conv: Number,
 			default: 0
@@ -264,7 +264,7 @@ function Account(scope, cb) {
 			filter: {
 				type: "integer",
 				minimum: 1,
-				maximum: 48
+				maximum: 72
 			},
 			conv: Number,
 			default: 0
