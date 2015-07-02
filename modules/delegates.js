@@ -153,9 +153,11 @@ function Delegate() {
 			if (err) {
 				return cb(err);
 			}
+
 			if (account && (account.u_isDelegate || (account.u_username == trs.asset.delegate.username && account.publicKey != sender.publicKey))) {
 				return cb(errorCode("DELEGATES.EXISTS_DELEGATE"));
 			}
+
 			modules.accounts.setAccountAndGet({
 				address: sender.address,
 				username: null,

@@ -179,7 +179,7 @@ function attachApi() {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
 
-			self.getAccount({address: query.address}, function (err, account) {
+			modules.accounts.getAccount({address: query.address}, function (err, account) {
 				if (err) {
 					return res.json({success: false, error: err.toString()});
 				}
@@ -195,13 +195,13 @@ function attachApi() {
 						if (!account.contacts.length) {
 							return cb(null, []);
 						}
-						self.getAccounts({publicKey: {$in: account.contacts}} ["address", "username"], cbº);
+						modules.accounts.getAccounts({publicKey: {$in: account.contacts}} ["address", "username"], cbº);
 					},
 					followers: function (cb) {
 						if (!account.followers.length) {
 							return cb(null, []);
 						}
-						self.getAccounts({publicKey: {$in: account.followers}} ["address", "username"], cb);
+						modules.accounts.getAccounts({publicKey: {$in: account.followers}} ["address", "username"], cb);
 					}
 				}, function (err, res) {
 					if (err) {
