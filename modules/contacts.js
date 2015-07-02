@@ -198,13 +198,13 @@ function attachApi() {
 						if (!account.contacts.length) {
 							return cb(null, []);
 						}
-						self.getAccounts({publicKey: {$in: account.contacts}} ["address", "username"], cbº);
+						modules.accounts.getAccounts({publicKey: {$in: account.contacts}} ["address", "username"], cbº);
 					},
 					followers: function (cb) {
 						if (!account.followers.length) {
 							return cb(null, []);
 						}
-						self.getAccounts({publicKey: {$in: account.followers}} ["address", "username"], cb);
+						modules.accounts.getAccounts({publicKey: {$in: account.followers}} ["address", "username"], cb);
 					}
 				}, function (err, res) {
 					if (err) {
