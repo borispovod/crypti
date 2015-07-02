@@ -440,8 +440,8 @@ Transaction.prototype.undoUnconfirmed = function (trs, sender, cb) {
 			} else {
 				setImmediate(cb, err);
 			}
-		});
-	});
+		}.bind(this));
+	}.bind(this));
 }
 
 Transaction.prototype.dbSave = function (trs, cb) {
