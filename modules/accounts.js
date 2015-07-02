@@ -179,13 +179,13 @@ function Username() {
 			if (err) {
 				return cb(err);
 			}
-			if (account && account.username == trs.asset.delegate.username) {
+			if (account && account.username == trs.asset.username.alias) {
 				return cb(errorCode("DELEGATES.EXISTS_USERNAME", trs));
 			}
-			if (sender.username && sender.username != trs.asset.delegate.username) {
+			if (sender.username && sender.username != trs.asset.username.alias) {
 				return cb(errorCode("DELEGATES.WRONG_USERNAME"));
 			}
-			if (sender.u_username && sender.u_username != trs.asset.delegate.username) {
+			if (sender.u_username && sender.u_username != trs.asset.username.alias) {
 				return cb(errorCode("USERNAMES.ALREADY_HAVE_USERNAME", trs));
 			}
 
