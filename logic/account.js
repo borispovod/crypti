@@ -22,14 +22,28 @@ function Account(scope, cb) {
 		{
 			name: "isDelegate",
 			type: "BigInt",
-			filter: "string?",
+			filter: "int?",
 			conv: Boolean,
 			default: 0
 		},
 		{
 			name: "u_isDelegate",
 			type: "BigInt",
-			filter: "string?",
+			filter: "int?",
+			conv: Boolean,
+			default: 0
+		},
+		{
+			name: "secondSignature",
+			type: "BigInt",
+			filter: "int?",
+			conv: Boolean,
+			default: 0
+		},
+		{
+			name: "u_secondSignature",
+			type: "BigInt",
+			filter: "int?",
 			conv: Boolean,
 			default: 0
 		},
@@ -438,26 +452,37 @@ Account.prototype.getAll = function (filter, fields, cb) {
 }
 
 Account.prototype.set = function (address, fields, cb) {
-	fields.address = address;
+	var self = this;
 
-	//try {
-	//	var account = this.objectNormalize(fields);
-	//} catch (e) {
-	//	return cb(e.toString());
-	//}
+	fields.address = address;
 
 	var account = fields;
 
+	var sqles = []
+
 	var sql = jsonSql.build({
 		type: 'insert',
-		or: "replace",
+		or: "ignore",
 		table: this.table,
 		values: this.toDB(account)
 	});
+	sqles.push(sql);
 
-	this.scope.dbLite.query(sql.query, sql.values, function (err, data) {
-		cb(err, data);
+	var sql = jsonSql.build({
+		type: 'update',
+		table: this.table,
+		modifier: this.toDB(account),
+		condition: {
+			address: address
+		}
 	});
+	sqles.push(sql);
+
+	async.eachSeries(sqles, function (sql, cb) {
+		self.scope.dbLite.query(sql.query, sql.values, function (err, data) {
+			cb(err, data);
+		});
+	}, cb);
 }
 
 Account.prototype.merge = function (address, diff, cb) {
@@ -571,7 +596,7 @@ Account.prototype.merge = function (address, diff, cb) {
 		});
 	}, function (err) {
 		if (err) {
-			return cb(err);
+			return done(err);
 		}
 		if (sqles.length > 1) {
 			self.scope.dbLite.query('COMMIT;', done);
