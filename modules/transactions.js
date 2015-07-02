@@ -90,6 +90,7 @@ function Transfer() {
 	}
 
 	this.objectNormalize = function (trs) {
+		delete trs.blockId;
 		return trs;
 	}
 
