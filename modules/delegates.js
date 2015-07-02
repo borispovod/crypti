@@ -7,7 +7,6 @@ var crypto = require('crypto'),
 	schedule = require('node-schedule'),
 	util = require('util'),
 	constants = require('../helpers/constants.js'),
-	RequestSanitizer = require('../helpers/request-sanitizer'),
 	TransactionTypes = require('../helpers/transaction-types.js'),
 	MilestoneBlocks = require("../helpers/milestoneBlocks.js"),
 	errorCode = require('../helpers/errorCodes.js').error;
@@ -178,23 +177,24 @@ function Delegate() {
 	}
 
 	this.objectNormalize = function (trs) {
-		var report = RequestSanitizer.validate(trs.asset.delegate, {
+		var report = library.scheme.validate(trs.asset.delegate, {
 			object: true,
 			properties: {
 				username: {
-					required: true,
-					string: true,
+					type: "string",
 					minLength: 1
 				},
-				publicKey: "hex!"
-			}
+				publicKey: {
+					type: "string",
+					format: "publicKey"
+				}
+			},
+			required: ["username", "publicKey"]
 		});
 
-		if (!report.isValid) {
-			throw Error(report.issues);
+		if (!report) {
+			throw Error("Can't verify delegate transaction, incorrect parameters: " + library.scheme.getLastError());
 		}
-
-		trs.asset.delegate = report.value;
 
 		return trs;
 	}
@@ -265,15 +265,26 @@ function attachApi() {
 		return res.json({success: true, fee: fee})
 	});
 
-	router.get('/', function (req, res) {
-		req.sanitize("query", {
-			limit: {
-				default: 101,
-				int: true
-			},
-			offset: "int",
-			orderBy: "string?",
-			active: "boolean?"
+	router.get('/', function (req, res, next) {
+		req.sanitize(req.query, {
+			type: 'object',
+			properties: {
+				limit: {
+					type: "integer",
+					minimum: 0,
+					maximum: 101
+				},
+				offset: {
+					type: "integer",
+					minimum: 0
+				},
+				orderBy: {
+					type: "string"
+				},
+				active: {
+					type: "boolean"
+				}
+			}
 		}, function (err, report, query) {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
@@ -368,10 +379,19 @@ function attachApi() {
 	});
 
 	router.get('/get', function (req, res, next) {
-		req.sanitize("query", {
-			transactionId: "string?",
-			publicKey: "string?",
-			username: "string?"
+		req.sanitize(req.query, {
+			type: "object",
+			properties: {
+				transactionId: {
+					type: "string"
+				},
+				publicKey: {
+					type: "string"
+				},
+				username: {
+					type: "string"
+				}
+			}
 		}, function (err, report, query) {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
@@ -385,13 +405,16 @@ function attachApi() {
 		});
 	});
 
-	router.get('/forging/getForgedByAccount', function (req, res) {
-		req.sanitize("query", {
-			generatorPublicKey: {
-				required: true,
-				string: true,
-				minLength: 1
-			}
+	router.get('/forging/getForgedByAccount', function (req, res, next) {
+		req.sanitize(req.query, {
+			type: "object",
+			properties: {
+				generatorPublicKey: {
+					type: "string",
+					format: "publicKey"
+				}
+			},
+			required: ["generatorPublicKey"]
 		}, function (err, report, query) {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
@@ -405,13 +428,20 @@ function attachApi() {
 	});
 
 	router.post('/forging/enable', function (req, res) {
-		req.sanitize("body", {
-			secret: {
-				required: true,
-				string: true,
-				minLength: 1
+		req.sanitize(req.body, {
+			type: "object",
+			properties: {
+				secret: {
+					type: "string",
+					minLength: 1,
+					maxLength: 100
+				},
+				publicKey: {
+					type: "string",
+					format: "publicKey"
+				}
 			},
-			publicKey: "string?"
+			required: ["secret"]
 		}, function (err, report, body) {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
@@ -450,13 +480,20 @@ function attachApi() {
 	});
 
 	router.post('/forging/disable', function (req, res) {
-		req.sanitize("body", {
-			secret: {
-				required: true,
-				string: true,
-				minLength: 1
+		req.sanitize(req.body, {
+			type: "object",
+			properties: {
+				secret: {
+					type: "string",
+					minLength: 1,
+					maxLength: 100
+				},
+				publicKey: {
+					type: "string",
+					format: "publicKey"
+				}
 			},
-			publicKey: "string?"
+			required: ["secret"]
 		}, function (err, report, body) {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
@@ -495,12 +532,15 @@ function attachApi() {
 	});
 
 	router.get('/forging/status', function (req, res) {
-		req.sanitize("query", {
-			publicKey: {
-				required: true,
-				string: true,
-				minLength: 1
-			}
+		req.sanitize(req.query, {
+			type: "object",
+			properties: {
+				publicKey: {
+					type: "string",
+					format: "publicKey"
+				}
+			},
+			required: ["publicKey"]
 		}, function (err, report, query) {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
@@ -510,15 +550,29 @@ function attachApi() {
 	});
 
 	router.put('/', function (req, res, next) {
-		req.sanitize("body", {
-			secret: {
-				required: true,
-				string: true,
-				minLength: 1
+		req.sanitize(req.body, {
+			type: "object",
+			properties: {
+				secret: {
+					type: "string",
+					minLength: 1,
+					maxLength: 100
+				},
+				publicKey: {
+					type: "string",
+					format: "publicKey"
+				},
+				secondSecret: {
+					type: "string",
+					minLength: 1,
+					maxLength: 100
+				},
+				username: {
+					type: "string",
+					minLength: 1
+				}
 			},
-			publicKey: "hex?",
-			secondSecret: "string?",
-			username: "string?"
+			required: ["secret"]
 		}, function (err, report, body) {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});

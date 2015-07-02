@@ -1,6 +1,6 @@
 var async = require('async');
 var jsonSql = require('json-sql')();
-var constants = require('./helpers/constants.js')
+var constants = require('../helpers/constants.js')
 z_schema = require('z-schema');
 
 
