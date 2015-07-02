@@ -1,6 +1,21 @@
 var async = require('async');
 var jsonSql = require('json-sql')();
-RequestSanitizer = require('../helpers/request-sanitizer.js');
+var constants = require('./helpers/constants.js')
+z_schema = require('z-schema');
+
+
+z_schema.registerFormat('publicKey', function (str) {
+	try {
+		var publicKey = new Buffer(str, "hex");
+
+		return publicKey.length == 32;
+	} catch (e) {
+		return false;
+	}
+});
+
+var scheme = new z_schema();
+
 
 var private = {};
 
@@ -15,35 +30,47 @@ function Account(scope, cb) {
 			name: "username",
 			type: "String",
 			length: 20,
-			filter: "string?",
+			filter: {
+				type: "string",
+				maxLength: 20,
+				minLength: 1
+			},
 			conv: String,
 			constante: true
 		},
 		{
 			name: "isDelegate",
 			type: "BigInt",
-			filter: "int?",
+			filter: {
+				type: "boolean"
+			},
 			conv: Boolean,
 			default: 0
 		},
 		{
 			name: "u_isDelegate",
 			type: "BigInt",
-			filter: "int?",
+			filter: {
+				type: "boolean"
+			},
 			conv: Boolean,
 			default: 0
 		},
 		{
 			name: "secondSignature",
 			type: "BigInt",
-			filter: "int?",
+			filter: {
+				type: "boolean"
+			},
 			conv: Boolean,
 			default: 0
 		},
 		{
 			name: "u_secondSignature",
 			type: "BigInt",
-			filter: "int?",
+			filter: {
+				type: "boolean"
+			},
 			conv: Boolean,
 			default: 0
 		},
@@ -51,7 +78,10 @@ function Account(scope, cb) {
 			name: "u_username",
 			type: "String",
 			length: 20,
-			filter: "string?",
+			filter: {
+				type: "string",
+				maxLength: 20
+			},
 			conv: String,
 			constante: true
 		},
@@ -64,8 +94,9 @@ function Account(scope, cb) {
 			primary_key: true,
 			filter: {
 				required: true,
-				string: true,
-				minLength: 1
+				type: "string",
+				minLength: 1,
+				maxLength: 21
 			},
 			conv: String,
 			constante: true
@@ -74,7 +105,10 @@ function Account(scope, cb) {
 			name: "publicKey",
 			type: "Binary",
 			length: 32,
-			filter: "hex?",
+			filter: {
+				type: "string",
+				format: "publicKey"
+			},
 			conv: String,
 			constante: true
 		},
@@ -82,42 +116,64 @@ function Account(scope, cb) {
 			name: "secondPublicKey",
 			type: "Binary",
 			length: 32,
-			filter: "hex?",
+			filter: {
+				type: "string",
+				format: "publicKey"
+			},
 			conv: String,
 			constante: true
 		},
 		{
 			name: "balance",
 			type: "BigInt",
-			filter: "int",
+			filter: {
+				required: true,
+				type: "integer",
+				minimum: 0,
+				maximum: constants.totalAmount
+			},
 			conv: Number,
 			default: 0
 		},
 		{
 			name: "u_balance",
 			type: "BigInt",
-			filter: "int",
+			filter: {
+				required: true,
+				type: "integer",
+				minimum: 0,
+				maximum: constants.totalAMount
+			},
 			conv: Number,
 			default: 0
 		},
 		{
 			name: "delegates",
 			type: "Text",
-			filter: "string",
+			filter: {
+				type: "array",
+				uniqueItems: true
+			},
 			conv: Array,
 			expression: "(select GROUP_CONCAT(dependentId) from " + this.table + "2delegates where accountId = a.address)"
 		},
 		{
 			name: "contacts",
 			type: "Text",
-			filter: "string",
+			filter: {
+				type: "array",
+				uniqueItems: true
+			},
 			conv: Array,
 			expression: "(select GROUP_CONCAT(dependentId) from " + this.table + "2contacts where accountId = a.address)"
 		},
 		{
 			name: "followers",
 			type: "Text",
-			filter: "string",
+			filter: {
+				type: "array",
+				uniqueItems: true
+			},
 			conv: Array,
 			expression: "(select GROUP_CONCAT(accountId) from " + this.table + "2contacts where dependentId = a.address)",
 			readonly: true
@@ -125,21 +181,30 @@ function Account(scope, cb) {
 		{
 			name: "u_delegates",
 			type: "Text",
-			filter: "string",
+			filter: {
+				type: "array",
+				uniqueItems: true
+			},
 			conv: Array,
 			expression: "(select GROUP_CONCAT(dependentId) from " + this.table + "2u_delegates where accountId = a.address)"
 		},
 		{
 			name: "u_contacts",
 			type: "Text",
-			filter: "string",
+			filter: {
+				type: "array",
+				uniqueItems: true
+			},
 			conv: Array,
 			expression: "(select GROUP_CONCAT(dependentId) from " + this.table + "2u_contacts where accountId = a.address)"
 		},
 		{
 			name: "u_followers",
 			type: "Text",
-			filter: "string",
+			filter: {
+				type: "array",
+				uniqueItems: true
+			},
 			conv: Array,
 			expression: "(select GROUP_CONCAT(accountId) from " + this.table + "2u_contacts where dependentId = a.address)",
 			readonly: true
@@ -147,38 +212,60 @@ function Account(scope, cb) {
 		{
 			name: "multisignatures",
 			type: "Text",
-			filter: "string",
+			filter: {
+				type: "array",
+				uniqueItems: true
+			},
 			conv: Array,
 			expression: "(select GROUP_CONCAT(dependentId) from " + this.table + "2multisignatures where accountId = a.address)"
 		},
 		{
 			name: "u_multisignatures",
 			type: "Text",
-			filter: "string",
+			filter: {
+				type: "array",
+				uniqueItems: true
+			},
 			conv: Array,
 			expression: "(select GROUP_CONCAT(dependentId) from " + this.table + "2u_multisignatures where accountId = a.address)"
 		}, {
 			name: "multimin",
 			type: "BigInt",
-			filter: "int",
+			filter: {
+				type: "integer",
+				minimum: 0,
+				maximum: 17
+			},
 			conv: Number,
 			default: 0
 		}, {
 			name: "u_multimin",
 			type: "BigInt",
-			filter: "int",
+			filter: {
+				type: "integer",
+				minimum: 0,
+				maximum: 17
+			},
 			conv: Number,
 			default: 0
 		}, {
 			name: "multilifetime",
 			type: "BigInt",
-			filter: "int",
+			filter: {
+				type: "integer",
+				minimum: 1,
+				maximum: 48
+			},
 			conv: Number,
 			default: 0
 		}, {
 			name: "u_multilifetime",
 			type: "BigInt",
-			filter: "int",
+			filter: {
+				type: "integer",
+				minimum: 1,
+				maximum: 48
+			},
 			conv: Number,
 			default: 0
 		}
@@ -388,16 +475,16 @@ function Account(scope, cb) {
 }
 
 Account.prototype.objectNormalize = function (account) {
-	var report = RequestSanitizer.validate(account, {
+	var report = scheme.validate(account, {
 		object: true,
 		properties: this.filter
 	});
 
-	if (!report.isValid) {
-		throw Error(report.issues);
+	if (!report) {
+		throw Error(scheme.getLastError());
 	}
 
-	return report.value;
+	return account;
 }
 
 Account.prototype.toDB = function (raw) {

@@ -14,5 +14,6 @@ module.exports = {
     maxSignaturesLength: 196 * 256,
     maxConfirmations : 77 * 100,
     confirmationLength: 77,
-    fixedPoint : Math.pow(10, 8)
+    fixedPoint : Math.pow(10, 8),
+    totalAmount: 10000000000000000
 }
