@@ -3,8 +3,8 @@ var async = require('async'),
 	util = require('util'),
 	genesisBlock = require("../helpers/genesisblock.js"),
 	ip = require("ip"),
-	bignum = require('../helpers/bignum.js'),
-	RequestSanitizer = require('../helpers/request-sanitizer');
+	bignum = require('../helpers/bignum.js');
+
 require('colors');
 
 //private fields
@@ -207,8 +207,18 @@ private.loadBlocks = function (lastBlock, cb) {
 
 		library.logger.info("Check blockchain on " + peerStr);
 
-		if (bignum(modules.blocks.getLastBlock().height).lt(RequestSanitizer.string(data.body.height || "0"))) { //diff in chainbases
-			private.blocksToSync = RequestSanitizer.int(data.body.height);
+		data.body.height = parseInt(data.body.height);
+
+		var report = library.scheme.validate(data.body.height, {type : "integer", required: true});
+
+		if (!report) {
+			library.logger.log("Can't parse blockchain height: " + peerStr + "\n" + library.scheme.getLastError());
+			return cb();
+		}
+
+
+		if (bignum(modules.blocks.getLastBlock().height).lt(data.body.height)) { //diff in chainbases
+			private.blocksToSync = data.body.height;
 
 			if (lastBlock.id != genesisBlock.block.id) { //have to found common block
 				private.findUpdate(lastBlock, data.peer, cb);
@@ -230,7 +240,12 @@ private.loadUnconfirmedTransactions = function (cb) {
 			return cb()
 		}
 
-		var transactions = RequestSanitizer.array(data.body.transactions);
+		var report = library.scheme.validate(data.body.transactions, {type: "array", required: true, uniqueItems: true});
+		if (!report) {
+			return cb();
+		}
+
+		var transactions = data.body.transactions;
 
 		for (var i = 0; i < transactions.length; i++) {
 			try {
