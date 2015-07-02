@@ -7,6 +7,7 @@ var encryptHelper = require('../helpers/encrypt.js'),
 	crypto = require('crypto'),
 	Diff = require('../helpers/diff.js'),
 	async = require('async'),
+	util = require('util'),
 	errorCode = require('../helpers/errorCodes.js').error;
 
 var modules, library, self, private = {};
@@ -49,15 +50,11 @@ function Contact() {
 			return setImmediate(cb, "Invalid recipientId: " + trs.id);
 		}
 
-		modules.accounts.getAccount({address: trs.asset.contact.address.slice(1)}, function (err, account) {
+		modules.contacts.checkContacts(trs.senderPublicKey, [trs.asset.contact.address], function (err) {
 			if (err) {
-				return cb(err);
+				return setImmediate(cb, errorCode("CONTACTS.ALREADY_ADDED_CONFIRMED", trs));
 			}
-			if (!account) {
-				return cb("Following is not exists: " + trs.id);
-			}
-
-			cb(null, trs);
+			setImmediate(cb, err, trs);
 		});
 	}
 
@@ -83,21 +80,27 @@ function Contact() {
 	}
 
 	this.apply = function (trs, sender, cb) {
-		this.scope.account.merge(sender.address, {contacts: trs.asset.contact.address}, cb);
+		this.scope.account.merge(sender.address, {contacts: [trs.asset.contact.address]}, cb);
 	}
 
 	this.undo = function (trs, sender, cb) {
-		var contactsInvert = Diff.reverse(trs.asset.contact.address);
+		var contactsInvert = Diff.reverse([trs.asset.contact.address]);
 
 		this.scope.account.merge(sender.address, {contacts: contactsInvert}, cb);
 	}
 
 	this.applyUnconfirmed = function (trs, sender, cb) {
-		this.scope.account.merge(sender.address, {u_contacts: trs.asset.contact.address}, cb);
+		modules.delegates.checkUnconfirmedDelegates(trs.senderPublicKey, [trs.asset.contact.address], function (err) {
+			if (err) {
+				return setImmediate(cb, errorCode("CONTACTS.ALREADY_ADDED_UNCONFIRMED", trs));
+			}
+
+			this.scope.account.merge(sender.address, {u_contacts: [trs.asset.contact.address]}, cb);
+		}.bind(this));
 	}
 
 	this.undoUnconfirmed = function (trs, sender, cb) {
-		var contactsInvert = Diff.reverse(trs.asset.contact.address);
+		var contactsInvert = Diff.reverse([trs.asset.contact.address]);
 
 		this.scope.account.merge(sender.address, {u_contacts: contactsInvert}, cb);
 	}
@@ -179,7 +182,7 @@ function attachApi() {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
 
-			self.getAccount({address: query.address}, function (err, account) {
+			modules.accounts.getAccount({address: query.address}, function (err, account) {
 				if (err) {
 					return res.json({success: false, error: err.toString()});
 				}
@@ -329,6 +332,72 @@ function Contacts(cb, scope) {
 	library.logic.transaction.attachAssetType(TransactionTypes.FOLLOW, new Contact());
 
 	setImmediate(cb, null, self);
+}
+
+Contacts.prototype.checkContacts = function (publicKey, contacts, cb) {
+	if (contacts === null) {
+		return setImmediate(cb);
+	}
+
+	if (util.isArray(contacts)) {
+		modules.accounts.getAccount({publicKey: publicKey}, function (err, account) {
+			if (err) {
+				return cb(err);
+			}
+			if (!account) {
+				return cb("Account not found");
+			}
+
+			for (var i = 0; i < contacts.length; i++) {
+				var math = contacts[i][0];
+				var publicKey = contacts[i].slice(1);
+
+				if (math == "+" && (account.contacts !== null && account.contacts.indexOf(publicKey) != -1)) {
+					return cb("Can't verify contacts, you already added this contact");
+				}
+				if (math == "-" && (account.contacts === null || account.contacts.indexOf(publicKey) === -1)) {
+					return cb("Can't verify contacts, you had no this contact for removing");
+				}
+			}
+
+			cb();
+		});
+	} else {
+		setImmediate(cb, "Provide array of contacts");
+	}
+}
+
+Contacts.prototype.checkUnconfirmedContacts = function (publicKey, contacts, cb) {
+	if (util.isArray(contacts)) {
+		modules.accounts.getAccount({publicKey: publicKey}, function (err, account) {
+			if (err) {
+				return cb(err);
+			}
+			if (!account) {
+				return cb("Account not found");
+			}
+
+			for (var i = 0; i < contacts.length; i++) {
+				var math = contacts[i][0];
+				var publicKey = contacts[i].slice(1);
+
+				if (private.unconfirmedVotes[publicKey] === undefined) {
+					return cb("Your delegate not found");
+				}
+
+				if (math == "+" && (account.u_delegates !== null && account.u_delegates.indexOf(publicKey) != -1)) {
+					return cb("Can't verify contacts, you already voted for this delegate");
+				}
+				if (math == "-" && (account.u_delegates === null || account.u_delegates.indexOf(publicKey) === -1)) {
+					return cb("Can't verify contacts, you had no contacts for this delegate");
+				}
+			}
+
+			cb();
+		});
+	} else {
+		return setImmediate(cb, "Provide array of contacts");
+	}
 }
 
 Contacts.prototype.onBind = function (scope) {

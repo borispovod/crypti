@@ -235,6 +235,14 @@ var errorCodes = {
 		SELF_FRIENDING: {
 			message: "Can´t add yourself in contacts",
 			args: []
+		},
+		ALREADY_ADDED_UNCONFIRMED: {
+			message: "Can´t add account in contacts",
+			args: []
+		},
+		ALREADY_ADDED_CONFIRMED: {
+			message: "Can´t add account in contacts",
+			args: []
 		}
 	},
 	MULTISIGNATURES: {
