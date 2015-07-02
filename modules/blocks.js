@@ -204,6 +204,18 @@ private.list = function (filter, cb) {
 	if (filter.limit) {
 		params.limit = filter.limit;
 	}
+
+
+	if (filter.totalAmount >= 0) {
+		fields.push('totalAmount = $totalAmount');
+		params.totalAmount = filter.totalAmount;
+	}
+
+	if (filter.totalFee >= 0) {
+		fields.push('totalFee = $totalFee');
+		params.totalFee = filter.totalFee;
+	}
+
 	if (filter.orderBy) {
 		var sort = filter.orderBy.split(':');
 		sortBy = sort[0].replace(/[^\w\s]/gi, '');
@@ -215,13 +227,14 @@ private.list = function (filter, cb) {
 		}
 	}
 
+
 	if (sortBy) {
 		if (sortFields.indexOf(sortBy) < 0) {
 			return cb("Invalid field to sort");
 		}
 	}
 
-	if (filter.offset) {
+	if (filter.offset >= 0) {
 		params.offset = filter.offset;
 	}
 

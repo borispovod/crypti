@@ -1,5 +1,5 @@
 {
-	"port": 4060,
+	"port": 7040,
 	"address": "127.0.0.1",
 	"serveHttpAPI": true,
 	"serveHttpWallet": true,

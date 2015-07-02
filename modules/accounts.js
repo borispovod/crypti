@@ -404,6 +404,7 @@ function attachApi() {
 		});
 	}
 
+	// надо тут поправить
 	if (process.env.TOP && process.env.TOP.toUpperCase() == "TRUE") {
 		router.get('/top', function (req, res) {
 			var arr = Object.keys(private.accounts).map(function (key) {

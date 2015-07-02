@@ -297,7 +297,7 @@ private.getByFilter = function (filter, cb) {
 
 	library.dbLite.query("select ip, port, state, os, sharePort, version from peers" +
 		(where.length ? (' where ' + where.join(' and ')) : '') +
-		(sortBy ? 'order by ' + sortBy + ' ' + sortMethod : '') + " " +
+		(sortBy ? ' order by ' + sortBy + ' ' + sortMethod : '') + " " +
 		(limit ? ' limit $limit' : '') +
 		(offset ? ' offset $offset ' : ''),
 		params, {
