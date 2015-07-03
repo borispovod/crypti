@@ -29,9 +29,9 @@ function Contact() {
 	}
 
 	this.verify = function (trs, sender, cb) {
-		if (!trs.asset.contact) {
-			return setImmediate(cb, "Invalid asset: " + trs.id);
-		}
+			if (!trs.asset.contact) {
+				return setImmediate(cb, "Invalid asset: " + trs.id);
+			}
 
 		if (!trs.asset.contact.address) {
 			return setImmediate(cb, "Empty following: " + trs.id);
@@ -50,7 +50,7 @@ function Contact() {
 			return setImmediate(cb, "Invalid recipientId: " + trs.id);
 		}
 
-		modules.contacts.checkContacts(trs.senderPublicKey, [trs.asset.contact.address], function (err) {
+		self.checkContacts(trs.senderPublicKey, [trs.asset.contact.address], function (err) {
 			if (err) {
 				return setImmediate(cb, errorCode("CONTACTS.ALREADY_ADDED_CONFIRMED", trs));
 			}
@@ -90,7 +90,7 @@ function Contact() {
 	}
 
 	this.applyUnconfirmed = function (trs, sender, cb) {
-		modules.delegates.checkUnconfirmedDelegates(trs.senderPublicKey, [trs.asset.contact.address], function (err) {
+		self.checkUnconfirmedContacts(trs.senderPublicKey, [trs.asset.contact.address], function (err) {
 			if (err) {
 				return setImmediate(cb, errorCode("CONTACTS.ALREADY_ADDED_UNCONFIRMED", trs));
 			}
@@ -250,60 +250,60 @@ function attachApi() {
 				}
 			}
 
-			modules.accounts.getAccount({publicKey: keypair.publicKey.toString('hex')}, function (err, account) {
-				if (err) {
-					return res.json({success: false, error: err.toString()});
-				}
-				if (!account) {
-					return res.json({success: false, error: errorCode("COMMON.OPEN_ACCOUNT")});
-				}
+			var query = {};
 
-				if (account.secondSignature && !body.secondSecret) {
-					return res.json({success: false, error: errorCode("COMMON.SECOND_SECRET_KEY")});
-				}
+			var followingAddress = body.following.substring(1, body.following.length);
+			var isAddress = /^[0-9]+[C|c]$/g;
+			if (isAddress.test(followingAddress)) {
+				query.address = body.recipientId;
+			} else {
+				query.username = body.recipientId;
+			}
 
-				if (account.secondSignature && body.secondSecret) {
-					var secondHash = crypto.createHash('sha256').update(body.secondSecret, 'utf8').digest();
-					var secondKeypair = ed.MakeKeypair(secondHash);
-				}
-
-				var followingAddress = body.following.substring(1, body.following.length);
-				var query = {};
-
-				var isAddress = /^[0-9]+[C|c]$/g;
-				if (isAddress.test(followingAddress)) {
-					query.address = body.recipientId;
-				} else {
-					query.username = body.recipientId;
-				}
-
+			library.sequence.add(function (cb) {
 				modules.accounts.getAccount(query, function (err, following) {
 					if (err) {
-						return res.json({success: false, error: err.toString()});
+						return cb(err.toString());
 					}
 					if (!following) {
-						return res.json({success: false, error: errorCode("CONTACTS.USERNAME_DOESNT_FOUND")});
+						return cb(errorCode("CONTACTS.USERNAME_DOESNT_FOUND"));
 					}
 					followingAddress = body.following[0] + following.address;
 
-					var transaction = library.logic.transaction.create({
-						type: TransactionTypes.FOLLOW,
-						sender: account,
-						keypair: keypair,
-						secondKeypair: secondKeypair,
-						contactAddress: followingAddress
-					});
-
-					library.sequence.add(function (cb) {
-						modules.transactions.receiveTransactions([transaction], cb);
-					}, function (err) {
+					modules.accounts.getAccount({publicKey: keypair.publicKey.toString('hex')}, function (err, account) {
 						if (err) {
-							return res.json({success: false, error: err.toString()});
+							return cb(err.toString());
+						}
+						if (!account) {
+							return cb(errorCode("COMMON.OPEN_ACCOUNT"));
 						}
 
-						res.json({success: true, transaction: transaction});
+						if (account.secondSignature && !body.secondSecret) {
+							return cb(errorCode("COMMON.SECOND_SECRET_KEY"));
+						}
+
+						if (account.secondSignature && body.secondSecret) {
+							var secondHash = crypto.createHash('sha256').update(body.secondSecret, 'utf8').digest();
+							var secondKeypair = ed.MakeKeypair(secondHash);
+						}
+
+						var transaction = library.logic.transaction.create({
+							type: TransactionTypes.FOLLOW,
+							sender: account,
+							keypair: keypair,
+							secondKeypair: secondKeypair,
+							contactAddress: followingAddress
+						});
+
+						modules.transactions.receiveTransactions([transaction], cb);
 					});
 				});
+			}, function (err, transaction) {
+				if (err) {
+					return res.json({success: false, error: err.toString()});
+				}
+
+				res.json({success: true, transaction: transaction[0]});
 			});
 		});
 	});
@@ -376,7 +376,7 @@ Contacts.prototype.checkUnconfirmedContacts = function (publicKey, contacts, cb)
 				var math = contacts[i][0];
 				var contactAddress = contacts[i].slice(1);
 
-				if (contactAddress == selfAddress){
+				if (contactAddress == selfAddress) {
 					return cb(errorCode("CONTACTS.SELF_FRIENDING"));
 				}
 

@@ -58,8 +58,6 @@ function Vote() {
 	}
 
 	this.apply = function (trs, sender, cb) {
-		if (trs.asset.votes === null) return cb();
-
 		this.scope.account.merge(sender.address, {delegates: trs.asset.votes}, cb);
 	}
 
@@ -72,8 +70,6 @@ function Vote() {
 	}
 
 	this.applyUnconfirmed = function (trs, sender, cb) {
-		if (trs.asset.votes === null) return cb();
-
 		modules.delegates.checkUnconfirmedDelegates(trs.senderPublicKey, trs.asset.votes, function (err) {
 			if (err) {
 				return setImmediate(cb, errorCode("VOTES.ALREADY_VOTED_UNCONFIRMED", trs));
@@ -561,42 +557,41 @@ function attachApi() {
 				}
 			}
 
-			self.getAccount({publicKey: keypair.publicKey.toString('hex')}, function (err, account) {
+			library.sequence.add(function (cb) {
+				self.getAccount({publicKey: keypair.publicKey.toString('hex')}, function (err, account) {
+					if (err) {
+						return cb(err.toString());
+					}
+					if (!account || !account.publicKey) {
+						return cb(errorCode("COMMON.OPEN_ACCOUNT"));
+					}
+
+					if (account.secondSignature && !body.secondSecret) {
+						return cb(errorCode("COMMON.SECOND_SECRET_KEY"));
+					}
+
+					var secondKeypair = null;
+
+					if (account.secondSignature) {
+						var secondHash = crypto.createHash('sha256').update(body.secondSecret, 'utf8').digest();
+						secondKeypair = ed.MakeKeypair(secondHash);
+					}
+
+					var transaction = library.logic.transaction.create({
+						type: TransactionTypes.VOTE,
+						votes: body.delegates,
+						sender: account,
+						keypair: keypair,
+						secondKeypair: secondKeypair
+					});
+					modules.transactions.receiveTransactions([transaction], cb);
+				});
+			}, function (err, transaction) {
 				if (err) {
 					return res.json({success: false, error: err.toString()});
 				}
-				if (!account || !account.publicKey) {
-					return res.json({success: false, error: errorCode("COMMON.OPEN_ACCOUNT")});
-				}
 
-				if (account.secondSignature && !body.secondSecret) {
-					return res.json({success: false, error: errorCode("COMMON.SECOND_SECRET_KEY")});
-				}
-
-				var secondKeypair = null;
-
-				if (account.secondSignature) {
-					var secondHash = crypto.createHash('sha256').update(body.secondSecret, 'utf8').digest();
-					secondKeypair = ed.MakeKeypair(secondHash);
-				}
-
-				var transaction = library.logic.transaction.create({
-					type: TransactionTypes.VOTE,
-					votes: body.delegates,
-					sender: account,
-					keypair: keypair,
-					secondKeypair: secondKeypair
-				});
-
-				library.sequence.add(function (cb) {
-					modules.transactions.receiveTransactions([transaction], cb);
-				}, function (err) {
-					if (err) {
-						return res.json({success: false, error: err.toString()});
-					}
-
-					res.json({success: true, transaction: transaction});
-				});
+				res.json({success: true, transaction: transaction[0]});
 			});
 		});
 	});
@@ -640,43 +635,41 @@ function attachApi() {
 				}
 			}
 
-			self.getAccount({publicKey: keypair.publicKey.toString('hex')}, function (err, account) {
+			library.sequence.add(function (cb) {
+				self.getAccount({publicKey: keypair.publicKey.toString('hex')}, function (err, account) {
+					if (err) {
+						return cb(err.toString());
+					}
+					if (!account || !account.publicKey) {
+						return cb(errorCode("COMMON.OPEN_ACCOUNT"));
+					}
+
+					if (account.secondSignature && !body.secondSecret) {
+						return cb(errorCode("COMMON.SECOND_SECRET_KEY"));
+					}
+
+					var secondKeypair = null;
+
+					if (account.secondSignature) {
+						var secondHash = crypto.createHash('sha256').update(body.secondSecret, 'utf8').digest();
+						secondKeypair = ed.MakeKeypair(secondHash);
+					}
+
+					var transaction = library.logic.transaction.create({
+						type: TransactionTypes.USERNAME,
+						username: body.username,
+						sender: account,
+						keypair: keypair,
+						secondKeypair: secondKeypair
+					});
+					modules.transactions.receiveTransactions([transaction], cb);
+				});
+			}, function (err, transaction) {
 				if (err) {
 					return res.json({success: false, error: err.toString()});
 				}
-				if (!account || !account.publicKey) {
-					return res.json({success: false, error: errorCode("COMMON.OPEN_ACCOUNT")});
-				}
 
-				if (account.secondSignature && !body.secondSecret) {
-					return res.json({success: false, error: errorCode("COMMON.SECOND_SECRET_KEY")});
-				}
-
-				var secondKeypair = null;
-
-				if (account.secondSignature) {
-					var secondHash = crypto.createHash('sha256').update(body.secondSecret, 'utf8').digest();
-					secondKeypair = ed.MakeKeypair(secondHash);
-				}
-
-				var transaction = library.logic.transaction.create({
-					type: TransactionTypes.USERNAME,
-					username: body.username,
-					sender: account,
-					keypair: keypair,
-					secondKeypair: secondKeypair
-				});
-
-				library.sequence.add(function (cb) {
-					modules.transactions.receiveTransactions([transaction], cb);
-				}, function (err) {
-					if (err) {
-						return res.json({success: false, error: err.toString()});
-					}
-
-					res.json({success: true, transaction: transaction});
-				});
-
+				res.json({success: true, transaction: transaction[0]});
 			});
 		});
 	});

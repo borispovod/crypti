@@ -60,7 +60,7 @@ function Delegate() {
 			return setImmediate(cb, errorCode("DELEGATES.INVALID_AMOUNT", trs));
 		}
 
-		if (!trs.asset.delegate.username) {
+		if (!sender.username && !trs.asset.delegate.username) {
 			return setImmediate(cb, errorCode("DELEGATES.EMPTY_TRANSACTION_ASSET", trs));
 		}
 
@@ -74,33 +74,31 @@ function Delegate() {
 			return setImmediate(cb, errorCode("DELEGATES.USERNAME_LIKE_ADDRESS", trs));
 		}
 
-		if (trs.asset.delegate.username.length < 1) {
+		if (!sender.username && trs.asset.delegate.username.length < 1) {
 			return setImmediate(cb, errorCode("DELEGATES.USERNAME_IS_TOO_SHORT", trs));
 		}
 
-		if (trs.asset.delegate.username.length > 20) {
+		if (!sender.username && trs.asset.delegate.username.length > 20) {
 			return setImmediate(cb, errorCode("DELEGATES.USERNAME_IS_TOO_LONG", trs));
 		}
 
-		var address = modules.accounts.generateAddressByPublicKey(trs.senderPublicKey);
+		if (sender.username && trs.asset.delegate.username) {
+			return cb(errorCode("USERNAMES.ALREADY_HAVE_USERNAME"));
+		}
+
+		if (sender.isDelegate) {
+			return cb(errorCode("DELEGATES.EXISTS_DELEGATE"));
+		}
 
 		modules.accounts.getAccount({
-			$or: {
-				username: trs.asset.delegate.username,
-				address: address
-			}
+			username: trs.asset.delegate.username
 		}, function (err, account) {
 			if (err) {
 				return cb(err);
 			}
-			if (account && account.username == trs.asset.delegate.username) {
+
+			if (account) {
 				return cb(errorCode("DELEGATES.EXISTS_USERNAME", trs));
-			}
-			if (account && account.senderPublicKey == trs.senderPublicKey) {
-				return cb(errorCode("DELEGATES.EXISTS_DELEGATE"));
-			}
-			if (sender.username && sender.username != trs.asset.delegate.username) {
-				return cb(errorCode("DELEGATES.WRONG_USERNAME"));
 			}
 
 			cb(null, trs);
@@ -146,19 +144,22 @@ function Delegate() {
 	}
 
 	this.applyUnconfirmed = function (trs, sender, cb) {
-		var address = modules.accounts.generateAddressByPublicKey(trs.asset.delegate.publicKey);
+		if (sender.u_username && trs.asset.delegate.username) {
+			return cb(errorCode("USERNAMES.ALREADY_HAVE_USERNAME"));
+		}
+
+		if (sender.u_isDelegate) {
+			return cb(errorCode("DELEGATES.EXISTS_DELEGATE"));
+		}
 
 		modules.accounts.getAccount({
-			$or: {
-				u_username: trs.asset.delegate.username,
-				address: address
-			}
+			u_username: trs.asset.delegate.username
 		}, function (err, account) {
 			if (err) {
 				return cb(err);
 			}
 
-			if (account && (account.u_isDelegate || (account.u_username == trs.asset.delegate.username && account.publicKey != sender.publicKey))) {
+			if (account) {
 				return cb(errorCode("DELEGATES.EXISTS_DELEGATE"));
 			}
 
@@ -574,8 +575,7 @@ function attachApi() {
 					maxLength: 100
 				},
 				username: {
-					type: "string",
-					minLength: 1
+					type: "string"
 				}
 			},
 			required: ["secret"]
@@ -592,51 +592,42 @@ function attachApi() {
 				}
 			}
 
-			modules.accounts.getAccount({publicKey: keypair.publicKey.toString('hex')}, function (err, account) {
+			library.sequence.add(function (cb) {
+				modules.accounts.getAccount({publicKey: keypair.publicKey.toString('hex')}, function (err, account) {
+					if (err) {
+						return cb(err.toString());
+					}
+
+					if (!account || !account.publicKey) {
+						return cb(errorCode("COMMON.OPEN_ACCOUNT"));
+					}
+
+					if (account.secondSignature && !body.secondSecret) {
+						return cb(errorCode("COMMON.SECOND_SECRET_KEY"));
+					}
+
+					var secondKeypair = null;
+
+					if (account.secondSignature) {
+						var secondHash = crypto.createHash('sha256').update(body.secondSecret, 'utf8').digest();
+						secondKeypair = ed.MakeKeypair(secondHash);
+					}
+
+					var transaction = library.logic.transaction.create({
+						type: TransactionTypes.DELEGATE,
+						username: body.username,
+						sender: account,
+						keypair: keypair,
+						secondKeypair: secondKeypair
+					});
+					modules.transactions.receiveTransactions([transaction], cb);
+				});
+			}, function (err, transaction) {
 				if (err) {
 					return res.json({success: false, error: err.toString()});
 				}
-				if (!account || !account.publicKey) {
-					return res.json({success: false, error: errorCode("COMMON.OPEN_ACCOUNT")});
-				}
 
-				if (account.secondSignature && !body.secondSecret) {
-					return res.json({success: false, error: errorCode("COMMON.SECOND_SECRET_KEY")});
-				}
-
-				var secondKeypair = null;
-
-				if (account.secondSignature) {
-					var secondHash = crypto.createHash('sha256').update(body.secondSecret, 'utf8').digest();
-					secondKeypair = ed.MakeKeypair(secondHash);
-				}
-
-				var username = body.username;
-				if (!body.username) {
-					if (account.username) {
-						username = account.username;
-					} else {
-						return res.json({success: false, error: errorCode("DELEGATES.USERNAME_IS_TOO_SHORT")});
-					}
-				}
-
-				var transaction = library.logic.transaction.create({
-					type: TransactionTypes.DELEGATE,
-					username: username,
-					sender: account,
-					keypair: keypair,
-					secondKeypair: secondKeypair
-				});
-
-				library.sequence.add(function (cb) {
-					modules.transactions.receiveTransactions([transaction], cb);
-				}, function (err) {
-					if (err) {
-						return res.json({success: false, error: err.toString()});
-					}
-
-					res.json({success: true, transaction: transaction});
-				});
+				res.json({success: true, transaction: transaction[0]});
 			});
 		});
 
@@ -830,7 +821,7 @@ Delegates.prototype.checkDelegates = function (publicKey, votes, cb) {
 				var math = votes[i][0];
 				var publicKey = votes[i].slice(1);
 
-				if (!account.isDelegate) {
+				if (private.votes[publicKey] === undefined) {
 					return cb("Your delegate not found");
 				}
 
