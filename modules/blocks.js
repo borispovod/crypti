@@ -893,7 +893,7 @@ Blocks.prototype.loadBlocksFromPeer = function (peer, lastCommonBlockId, cb) {
 				});
 
 				if (!report) {
-					return ("Error, can't parse blocks...");
+					return next("Error, can't parse blocks...");
 				}
 
 				//blocks = RequestSanitizer.array(blocks);

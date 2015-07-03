@@ -35,9 +35,9 @@ function attachApi() {
 	router.use(function (req, res, next) {
 		var peerIp = req.headers['x-forwarded-for'] || req.connection.remoteAddress || 'unknown';
 
-		/*if (peerIp == "127.0.0.1") {
+		if (peerIp == "127.0.0.1") {
 			return next();
-		}*/
+		}
 
 		req.headers['port'] = parseInt(req.headers['port']);
 		req.headers['share-port'] = parseInt(req.headers['share-port']);
