@@ -82,10 +82,12 @@ function Delegate() {
 			return setImmediate(cb, errorCode("DELEGATES.USERNAME_IS_TOO_LONG", trs));
 		}
 
+		var address = modules.accounts.generateAddressByPublicKey(trs.senderPublicKey);
+
 		modules.accounts.getAccount({
 			$or: {
 				username: trs.asset.delegate.username,
-				publicKey: trs.senderPublicKey
+				address: address
 			}
 		}, function (err, account) {
 			if (err) {
@@ -144,10 +146,12 @@ function Delegate() {
 	}
 
 	this.applyUnconfirmed = function (trs, sender, cb) {
+		var address = modules.accounts.generateAddressByPublicKey(trs.asset.delegate.publicKey);
+
 		modules.accounts.getAccount({
 			$or: {
 				u_username: trs.asset.delegate.username,
-				publicKey: trs.asset.delegate.publicKey
+				address: address
 			}
 		}, function (err, account) {
 			if (err) {

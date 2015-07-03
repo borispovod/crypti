@@ -228,10 +228,12 @@ function Username() {
 			return setImmediate(cb, errorCode("USERNAMES.ALREADY_HAVE_USERNAME", trs));
 		}
 
+		var address = modules.accounts.generateAddressByPublicKey(trs.senderPublicKey);
+
 		self.getAccount({
 			$or: {
 				u_username: trs.asset.username.alias,
-				publicKey: trs.senderPublicKey
+				address: address
 			}
 		}, function (err, account) {
 			if (err) {
@@ -508,7 +510,10 @@ function attachApi() {
 				}
 
 				if (account.delegates) {
-					self.getAccounts({publicKey: {$in: account.delegates}}, function (err, delegates) {
+					var delegates = account.delegates.map(function (delegate) {
+						return self.generateAddressByPublicKey(delegate);
+					})
+					self.getAccounts({address: {$in: delegates}}, function (err, delegates) {
 						if (err) {
 							return res.json({success: false, error: err.toString()});
 						}
@@ -735,7 +740,8 @@ private.openAccount = function (secret, cb) {
 	self.setAccountAndGet({publicKey: keypair.publicKey.toString('hex')}, cb);
 }
 
-private.generateAddressByPublicKey = function (publicKey) {
+//public methods
+Accounts.prototype.generateAddressByPublicKey = function (publicKey) {
 	var publicKeyHash = crypto.createHash('sha256').update(publicKey, 'hex').digest();
 	var temp = new Buffer(8);
 	for (var i = 0; i < 8; i++) {
@@ -746,10 +752,9 @@ private.generateAddressByPublicKey = function (publicKey) {
 	return address;
 }
 
-//public methods
 Accounts.prototype.getAccount = function (filter, cb) {
 	if (filter.publicKey) {
-		filter.address = private.generateAddressByPublicKey(filter.publicKey);
+		filter.address = self.generateAddressByPublicKey(filter.publicKey);
 		delete filter.publicKey;
 	}
 	library.logic.account.get(filter, cb);
@@ -763,7 +768,7 @@ Accounts.prototype.setAccountAndGet = function (data, cb) {
 	var address = data.address || null;
 	if (address === null) {
 		if (data.publicKey) {
-			address = private.generateAddressByPublicKey(data.publicKey);
+			address = self.generateAddressByPublicKey(data.publicKey);
 		} else {
 			cb("must provide address or publicKey");
 		}
@@ -780,7 +785,7 @@ Accounts.prototype.mergeAccountAndGet = function (data, cb) {
 	var address = data.address || null;
 	if (address === null) {
 		if (data.publicKey) {
-			address = private.generateAddressByPublicKey(data.publicKey);
+			address = self.generateAddressByPublicKey(data.publicKey);
 		} else {
 			cb("must provide address or publicKey");
 		}
