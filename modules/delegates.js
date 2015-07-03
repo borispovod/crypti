@@ -817,10 +817,6 @@ Delegates.prototype.generateDelegateList = function (height) {
 }
 
 Delegates.prototype.checkDelegates = function (publicKey, votes, cb) {
-	if (votes === null) {
-		return setImmediate(cb);
-	}
-
 	if (util.isArray(votes)) {
 		modules.accounts.getAccount({publicKey: publicKey}, function (err, account) {
 			if (err) {

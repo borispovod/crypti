@@ -334,11 +334,11 @@ function attachApi() {
 				if (err) {
 					return res.json({success: false, error: err.toString()});
 				}
-				if (!recipient) {
+				if (!recipient && query.username) {
 					return res.json({success: false, error: errorCode("TRANSACTIONS.RECIPIENT_NOT_FOUND")});
 				}
-				var recipientId = recipient.address
-				var recipientUsername = recipient.username;
+				var recipientId = recipient ? recipient.address : body.recipientId;
+				var recipientUsername = recipient ? recipient.username : null;
 
 				var hash = crypto.createHash('sha256').update(body.secret, 'utf8').digest();
 				var keypair = ed.MakeKeypair(hash);

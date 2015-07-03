@@ -284,9 +284,6 @@ function attachApi() {
 					if (!following) {
 						return res.json({success: false, error: errorCode("CONTACTS.USERNAME_DOESNT_FOUND")});
 					}
-					if (following.address == account.address) {
-						return res.json({success: false, error: errorCode("CONTACTS.SELF_FRIENDING")});
-					}
 					followingAddress = body.following[0] + following.address;
 
 					var transaction = library.logic.transaction.create({
@@ -335,10 +332,6 @@ function Contacts(cb, scope) {
 }
 
 Contacts.prototype.checkContacts = function (publicKey, contacts, cb) {
-	if (contacts === null) {
-		return setImmediate(cb);
-	}
-
 	if (util.isArray(contacts)) {
 		modules.accounts.getAccount({publicKey: publicKey}, function (err, account) {
 			if (err) {
@@ -350,12 +343,12 @@ Contacts.prototype.checkContacts = function (publicKey, contacts, cb) {
 
 			for (var i = 0; i < contacts.length; i++) {
 				var math = contacts[i][0];
-				var publicKey = contacts[i].slice(1);
+				var contactAddress = contacts[i].slice(1);
 
-				if (math == "+" && (account.contacts !== null && account.contacts.indexOf(publicKey) != -1)) {
+				if (math == "+" && (account.contacts !== null && account.contacts.indexOf(contactAddress) != -1)) {
 					return cb("Can't verify contacts, you already added this contact");
 				}
-				if (math == "-" && (account.contacts === null || account.contacts.indexOf(publicKey) === -1)) {
+				if (math == "-" && (account.contacts === null || account.contacts.indexOf(contactAddress) === -1)) {
 					return cb("Can't verify contacts, you had no this contact for removing");
 				}
 			}
@@ -368,8 +361,10 @@ Contacts.prototype.checkContacts = function (publicKey, contacts, cb) {
 }
 
 Contacts.prototype.checkUnconfirmedContacts = function (publicKey, contacts, cb) {
+	var selfAddress = modules.accounts.generateAddressByPublicKey(publicKey);
+
 	if (util.isArray(contacts)) {
-		modules.accounts.getAccount({publicKey: publicKey}, function (err, account) {
+		modules.accounts.getAccount({address: selfAddress}, function (err, account) {
 			if (err) {
 				return cb(err);
 			}
@@ -379,16 +374,16 @@ Contacts.prototype.checkUnconfirmedContacts = function (publicKey, contacts, cb)
 
 			for (var i = 0; i < contacts.length; i++) {
 				var math = contacts[i][0];
-				var publicKey = contacts[i].slice(1);
+				var contactAddress = contacts[i].slice(1);
 
-				if (private.unconfirmedVotes[publicKey] === undefined) {
-					return cb("Your delegate not found");
+				if (contactAddress == selfAddress){
+					return cb(errorCode("CONTACTS.SELF_FRIENDING"));
 				}
 
-				if (math == "+" && (account.u_delegates !== null && account.u_delegates.indexOf(publicKey) != -1)) {
+				if (math == "+" && (account.u_delegates !== null && account.u_delegates.indexOf(contactAddress) != -1)) {
 					return cb("Can't verify contacts, you already voted for this delegate");
 				}
-				if (math == "-" && (account.u_delegates === null || account.u_delegates.indexOf(publicKey) === -1)) {
+				if (math == "-" && (account.u_delegates === null || account.u_delegates.indexOf(contactAddress) === -1)) {
 					return cb("Can't verify contacts, you had no contacts for this delegate");
 				}
 			}
