@@ -39,6 +39,9 @@ function attachApi() {
 			return next();
 		}
 
+		req.headers['port'] = parseInt(req.headers['port']);
+		req.headers['share-port'] = parseInt(req.headers['share-port']);
+
 		req.sanitize(req.headers, {
 			type: "object",
 			properties: {
@@ -393,6 +396,9 @@ Transport.prototype.getFromPeer = function (peer, options, cb) {
 			cb && cb(err || ('request status code' + response.statusCode));
 			return;
 		}
+
+		response.headers['port'] = parseInt(response.headers['port']);
+		response.headers['share-port'] = parseInt(response.headers['share-port']);
 
 		var report = library.scheme.validate(response.headers, {
 			type: "object",
