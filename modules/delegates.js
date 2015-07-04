@@ -386,6 +386,12 @@ function attachApi() {
 					}
 
 					delegates = delegates.slice(offset, realLimit);
+
+					/*
+					var result = publicKeys.map(function (publicKey) {
+						return private.getDelegate({publicKey: publicKey}, rateSort);
+					});*/
+
 					res.json({success: true, delegates: delegates, totalCount: count});
 				}
 			});
@@ -410,7 +416,11 @@ function attachApi() {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
 
+
+			//library.dbLite.query("SELECT username, publicKey, address FROM mem_accounts WHERE isDelegate = 1 ");
+
 			var delegate = private.getDelegate(query);
+
 			if (delegate) {
 				res.json({success: true, delegate: delegate});
 			} else {
@@ -648,32 +658,14 @@ function attachApi() {
 	});
 }
 
-private.getDelegate = function (filter, rateSort) {
-	var index;
-
-	if (filter.transactionId) {
-		index = private.transactionIdIndex[filter.transactionId];
-	}
-	if (filter.publicKey) {
-		index = private.publicKeyIndex[filter.publicKey];
-	}
-	if (filter.username) {
-		index = private.namesIndex[filter.username.toLowerCase()];
-	}
-
-	if (index === undefined) {
-		return false;
-	}
-
-	if (!rateSort) {
+private.getDelegate = function (delegate, rateSort) {
+	/*if (!rateSort) {
 		rateSort = {};
 		private.getKeysSortByVote(Object.keys(private.publicKeyIndex), private.votes)
 			.forEach(function (item, index) {
 				rateSort[item] = index + 1;
 			});
-	}
-
-	var delegate = private.delegates[index];
+	}*/
 
 	var stat = modules.round.blocksStat(delegate.publicKey);
 
@@ -686,7 +678,6 @@ private.getDelegate = function (filter, rateSort) {
 		username: delegate.username,
 		address: delegate.address,
 		publicKey: delegate.publicKey,
-		transactionId: delegate.transactionId,
 		vote: private.votes[delegate.publicKey],
 		rate: rateSort[delegate.publicKey],
 		productivity: outsider ? null : productivity
@@ -882,7 +873,7 @@ Delegates.prototype.checkUnconfirmedDelegates = function (publicKey, votes, cb) 
 
 Delegates.prototype.fork = function (block, cause) {
 	library.logger.info('fork', {
-		delegate: private.getDelegate({publicKey: block.generatorPublicKey}),
+		delegate: {publicKey: block.generatorPublicKey},
 		block: {id: block.id, timestamp: block.timestamp, height: block.height, previousBlock: block.previousBlock},
 		cause: cause
 	});
