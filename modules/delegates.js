@@ -296,92 +296,99 @@ function attachApi() {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
 
-			var limit = query.limit,
-				offset = query.offset,
-				orderField = query.orderBy,
-				active = query.active;
+			library.dbLite.query("SELECT username, address, lower(hex(publicKey)) FROM mem_accounts WHERE isDelegate = 1", ['username','address','publicKey'], function (err, delegates) {
+				if (err || delegates.length == 0) {
+					return res.json({success: false, error: "Sql error"});
+				} else {
+					var limit = query.limit || 101,
+						offset = query.offset || 0,
+						orderField = query.orderBy,
+						active = query.active;
 
-			orderField = orderField ? orderField.split(':') : null;
-			limit = limit > 101 ? 101 : limit;
-			var orderBy = orderField ? orderField[0] : null;
-			var sortMode = orderField && orderField.length == 2 ? orderField[1] : 'asc';
-			var publicKeys = Object.keys(private.publicKeyIndex);
-			var count = publicKeys.length;
-			var length = Math.min(limit, count);
-			var realLimit = Math.min(offset + limit, count);
 
-			if (active === true) {
-				publicKeys = publicKeys.slice(0, 101);
-			} else if (active === false) {
-				publicKeys = publicKeys.slice(101, publicKeys.length);
-			}
+					orderField = orderField ? orderField.split(':') : null;
+					limit = limit > 101 ? 101 : limit;
 
-			var rateSort = {};
-			private.getKeysSortByVote(publicKeys, private.votes)
-				.forEach(function (item, index) {
-					rateSort[item] = index + 1;
-				});
-
-			if (orderBy) {
-				if (orderBy == 'username') {
-					publicKeys = publicKeys.sort(function compare(a, b) {
-						if (sortMode == 'asc') {
-							if (private.delegates[private.publicKeyIndex[a]][orderBy] < private.delegates[private.publicKeyIndex[b]][orderBy])
-								return -1;
-							if (private.delegates[private.publicKeyIndex[a]][orderBy] > private.delegates[private.publicKeyIndex[b]][orderBy])
-								return 1;
-						} else if (sortMode == 'desc') {
-							if (private.delegates[private.publicKeyIndex[a]][orderBy] > private.delegates[private.publicKeyIndex[b]][orderBy])
-								return -1;
-							if (private.delegates[private.publicKeyIndex[a]][orderBy] < private.delegates[private.publicKeyIndex[b]][orderBy])
-								return 1;
-						}
-						return 0;
+					var orderBy = orderField ? orderField[0] : null;
+					var sortMode = orderField && orderField.length == 2 ? orderField[1] : 'asc';
+					var publicKeys = delegates.map(function (delegate) {
+						return delegate.publicKey;
 					});
-				}
-				if (orderBy == 'vote') {
-					publicKeys = publicKeys.sort(function compare(a, b) {
+					var count = delegates.length;
+					var length = Math.min(limit, count);
+					var realLimit = Math.min(offset + limit, count);
 
-						if (sortMode == 'asc') {
-							if (private.votes[a] < private.votes[b])
-								return -1;
-							if (private.votes[a] > private.votes[b])
-								return 1;
-						} else if (sortMode == 'desc') {
-							if (private.votes[a] > private.votes[b])
-								return -1;
-							if (private.votes[a] < private.votes[b])
-								return 1;
+					console.log(limit,count);
+
+
+					if (active === true) {
+						delegates = delegates.slice(0, 101);
+					} else if (active === false) {
+						delegates = delegates.slice(101, delegates.length);
+					}
+
+					var rateSort = {};
+
+					private.getKeysSortByVote(publicKeys, private.votes)
+						.forEach(function (item, index) {
+							rateSort[item] = index + 1;
+						});
+
+					if (orderBy) {
+						if (orderBy == 'username') {
+							delegates = delegates.sort(function compare(a, b) {
+								if (sortMode == 'asc') {
+									if (a.username < b.username)
+										return -1;
+									if (a.username > b.username)
+										return 1;
+								} else if (sortMode == 'desc') {
+									if (a.username > b.username)
+										return -1;
+									if (a.username < b.username)
+										return 1;
+								}
+								return 0;
+							});
 						}
-						return 0;
-					});
-				}
-				if (orderBy == 'rate') {
-					publicKeys = publicKeys.sort(function compare(a, b) {
-
-						if (sortMode == 'asc') {
-							if (rateSort[a] < rateSort[b])
-								return -1;
-							if (rateSort[a] > rateSort[b])
-								return 1;
-						} else if (sortMode == 'desc') {
-							if (rateSort[a] > rateSort[b])
-								return -1;
-							if (rateSort[a] < rateSort[b])
-								return 1;
+						if (orderBy == 'vote') {
+							delegates = delegates.sort(function compare(a, b) {
+								if (sortMode == 'asc') {
+									if (private.votes[a.publicKey] < private.votes[b.publicKey])
+										return -1;
+									if (private.votes[a.publicKey] > private.votes[b.publicKey])
+										return 1;
+								} else if (sortMode == 'desc') {
+									if (private.votes[a.publicKey] > private.votes[b.publicKey])
+										return -1;
+									if (private.votes[a.publicKey] < private.votes[b.publicKey])
+										return 1;
+								}
+								return 0;
+							});
 						}
-						return 0;
-					});
+						if (orderBy == 'rate') {
+							delegates = delegates.sort(function compare(a, b) {
+								if (sortMode == 'asc') {
+									if (rateSort[a.publicKey] < rateSort[b.publicKey])
+										return -1;
+									if (rateSort[a.publicKey] > rateSort[b.publicKey])
+										return 1;
+								} else if (sortMode == 'desc') {
+									if (rateSort[a.publicKey] > rateSort[b.publicKey])
+										return -1;
+									if (rateSort[a.publicKey] < rateSort[b.publicKey])
+										return 1;
+								}
+								return 0;
+							});
+						}
+					}
+
+					delegates = delegates.slice(offset, realLimit);
+					res.json({success: true, delegates: delegates, totalCount: count});
 				}
-			}
-
-			publicKeys = publicKeys.slice(offset, realLimit);
-
-			var result = publicKeys.map(function (publicKey) {
-				return private.getDelegate({publicKey: publicKey}, rateSort);
 			});
-
-			res.json({success: true, delegates: result, totalCount: count});
 		});
 	});
 
