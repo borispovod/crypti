@@ -821,6 +821,12 @@ Delegates.prototype.checkDelegates = function (publicKey, votes, cb) {
 				var math = votes[i][0];
 				var publicKey = votes[i].slice(1);
 
+				try {
+					new Buffer(publicKey, "hex");
+				} catch (e) {
+					return cb("wrong public key");
+				}
+
 				if (private.votes[publicKey] === undefined) {
 					return cb("Your delegate not found");
 				}
@@ -853,6 +859,12 @@ Delegates.prototype.checkUnconfirmedDelegates = function (publicKey, votes, cb) 
 			for (var i = 0; i < votes.length; i++) {
 				var math = votes[i][0];
 				var publicKey = votes[i].slice(1);
+
+				try {
+					new Buffer(publicKey, "hex");
+				} catch (e) {
+					return cb("wrong public key");
+				}
 
 				if (private.unconfirmedVotes[publicKey] === undefined) {
 					return cb("Your delegate not found");

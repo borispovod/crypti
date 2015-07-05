@@ -369,7 +369,7 @@ describe('Delegates', function() {
                         node.expect(res.body).to.have.property("success").to.be.false;
                         node.expect(res.body).to.have.property("error");
                         if (res.body.success == false && res.body.error != null) {
-                            node.expect(res.body.error.toLowerCase()).to.contain("you already voted");
+                            node.expect(res.body.error.toLowerCase()).to.contain("you had no votes for this delegate");
                         }
                         else{
                             console.log("Expected error but got success");
