@@ -41,7 +41,8 @@ function DApp() {
 			description: data.description,
 			tags: data.tags,
 			type: data.type,
-			asciiCode: data.asciiCode
+			asciiCode: data.asciiCode,
+			git: data.git
 		}
 
 		return trs;
@@ -52,6 +53,8 @@ function DApp() {
 	}
 
 	this.verify = function (trs, sender, cb) {
+		var isSia = false;
+
 		if (trs.recipientId != null) {
 			return setImmediate(cb, errorCode("TRANSACTIONS.INVALID_RECIPIENT", trs));
 		}
@@ -60,8 +63,21 @@ function DApp() {
 			return setImmediate(cb, errorCode("TRANSACTIONS.INVALID_AMOUNT", trs));
 		}
 
-		if (!trs.asset.dapp.asciiCode || trs.asset.dapp.asciiCode.trim().length == 0) {
-			return setImmediate(cb, errorCode("DAPPS.EMTRY_ASCII"));
+		if (trs.asset.dapp.asciiCode) {
+			isSia = true;
+			if (!trs.asset.dapp.asciiCode || trs.asset.dapp.asciiCode.trim().length == 0) {
+				return setImmediate(cb, errorCode("DAPPS.EMTRY_ASCII"));
+			}
+		}
+
+		if (trs.asset.dapp.git) {
+			if (isSia) {
+				return setImmediate(cb, errorCode("DAPPS.GIT_AND_SIA"));
+			}
+
+			if (!(/^git\@git.com\:.+.git$/.test(trs.asset.dapp.git))) {
+				return setImmediate(cb, erroCode("DAPPS.INVALID_GIT"));
+			}
 		}
 
 		if (!trs.asset.dapp.name || trs.asset.dapp.name.trim().length == 0) {
@@ -117,7 +133,13 @@ function DApp() {
 				buf = buf.concat(tagsBuf);
 			}
 
-			buf = buf.concat(new Buffer(trs.asset.dapp.asciiCode, 'utf8'));
+			if (trs.asset.dapp.asciiCode) {
+				buf = buf.concat(new Buffer(trs.asset.dapp.asciiCode, 'utf8'));
+			}
+
+			if (trs.asset.dapp.git) {
+				buf = buf.concat(new Buffer(trs.asset.dapp.git, 'utf8'));
+			}
 
 			var bb = new ByteBuffer(4, true);
 			bb.writeInt(trs.asset.dapp.type);
@@ -172,10 +194,16 @@ function DApp() {
 					maximum: 1
 				},
 				asciiCode: {
-					type: "string"
+					type: "string",
+					minLength: 1
+				},
+				git: {
+					type: "string",
+					maxLength: 2000,
+					minLength: 1
 				}
 			},
-			required: ["type", "asciiCode", "name"]
+			required: ["type", "name"]
 		});
 
 		if (!report) {
@@ -194,7 +222,8 @@ function DApp() {
 				description: raw.dapp_description,
 				tags: raw.dapp_tags,
 				type: raw.dapp_type,
-				asciiCode: raw.dapp_asciiCode
+				asciiCode: raw.dapp_asciiCode,
+				git: raw.dapp_git
 			}
 
 			return {dapp: dapp};
@@ -202,12 +231,13 @@ function DApp() {
 	}
 
 	this.dbSave = function (trs, cb) {
-		library.dbLite.query("INSERT INTO dapps(type, name, description, tags, asciiCode, transactionId) VALUES($type, $name, $description, $tags, $asciiCode, $transactionId)", {
+		library.dbLite.query("INSERT INTO dapps(type, name, description, tags, asciiCode, git, transactionId) VALUES($type, $name, $description, $tags, $asciiCode, $git, $transactionId)", {
 			type: trs.asset.dapp.type,
 			name: trs.asset.dapp.name,
 			description: trs.asset.dapp.description,
 			tags: trs.asset.dapp.tags,
 			asciiCode: trs.asset.dapp.asciiCode,
+			git: trs.asset.dapp.git,
 			transactionId: trs.id
 		}, cb);
 	}
