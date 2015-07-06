@@ -4,10 +4,12 @@ var async = require('async'),
 	TransactionTypes = require('../helpers/transaction-types.js'),
 	ByteBuffer = require("bytebuffer"),
 	fs = require('fs'),
+	gift = require('gift'),
 	path = require('path');
 
 var modules, library, self, private = {};
 
+private.loading = {};
 private.unconfirmedNames = {};
 private.unconfirmedLinks = {};
 private.dappsPath = path.join(process.cwd(), 'dapps');
@@ -113,16 +115,35 @@ private.removeDApp = function (dApp, cb) {
 	setImmediate(cb);
 }
 
-private.downloadDApp = function (dApp, cb) {
-	// make base dir
+private.downloadDApp = function (dApp, cb) {}
+	var dappPath = path.join(private.dappsPath, dApp.transactionId);
 
+	fs.exists(dappPath, function (exists) {
+		if (exists) {
+			return setImmediate(cb, "This app already installed");
+		} else {
+			fs.mkdir(dappPath, function (err) {
+				if (err) {
+					return setImmediate(cb, "Can't create folder for dapp: " + dApp.transactionId);
+				}
 
+				if (dApp.git) {
+					// fetch repo
+					gift.clone(dApp.git, dappPath, function (err, repo) {
+						if (err) {
+							library.logger.error(err.toString());
+							return setImmediate(cb, "Git error of cloning repository " + dApp.git + " at " + dApp.transactionId);
+						}
 
-	if (dApp.git) {
+						return setImmediate(cb, null, dappPath);
+					});
+				} else if (dApp.asciiCode) {
+					// fetch from sia
 
-	} else if (dApp.asciiCode) {
-
-	}
+				}
+			});
+		}
+	});
 }
 
 private.launchDApp = function (dApp, cb) {
@@ -608,9 +629,14 @@ function attachApi() {
 					return res.json({success: false, error: err});
 				}
 
-				private.download(dapp, function (err, cb) {
 
-				});
+				if (private.loading[query.id]) {
+					return res.json({"This DApp already on downloading"});
+				}
+
+				private.loading[query.id] = true;
+
+
 			});
 		});
 	});
