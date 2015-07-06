@@ -5,7 +5,8 @@ var async = require('async'),
 	ByteBuffer = require("bytebuffer"),
 	fs = require('fs'),
 	gift = require('gift'),
-	path = require('path');
+	path = require('path'),
+	unzip = require('unzip');
 
 var modules, library, self, private = {};
 
@@ -147,19 +148,60 @@ private.downloadDApp = function (dApp, cb) {
 					gift.clone(dApp.git, dappPath, function (err, repo) {
 						if (err) {
 							library.logger.error(err.toString());
-							return setImmediate(cb, "Git error of cloning repository " + dApp.git + " at " + dApp.transactionId);
-						}
 
-						return setImmediate(cb, null, dappPath);
+							fs.unlink(dappPath, function (err) {
+								if (err) {
+									library.logger.error(err.toString());
+								}
+
+								return setImmediate(cb, "Git error of cloning repository " + dApp.git + " at " + dApp.transactionId);
+							});
+						} else {
+							return setImmediate(cb, null, dappPath);
+						}
 					});
 				} else if (dApp.nickname) {
-					// fetch from sia
-					modules.sia.download(dApp.nickname, dappPath, function (err, dappPath) {
-						if (err) {
-							return setImmediate(cb, "Failed to fetch ascii code from sia: \n" + dApp.nickname + " \n " + dappPath);
-						}
+					var dappZip = path.joind(dappPath, dApp.id + ".zip");
 
-						return setImmediate(cb, null, dappPath);
+					// fetch from sia
+					modules.sia.download(dApp.nickname, dappZip, function (err, dappZip) {
+						if (err) {
+							library.logger.error(err);
+
+							fs.unlink(dappPath, function (err) {
+								if (err) {
+									library.logger.error(err);
+								}
+
+								return setImmediate(cb, "Failed to fetch ascii code from sia: \n" + dApp.nickname + " \n " + dappPath);
+							});
+						} else {
+							fs.createReadStream(dappZip).pipe(unzip.Extract({path: dappPath})).on('end', function () {
+								fs.unlink(dappZip, function (err) {
+									if (err) {
+										return setImmediate(cb, "Can't remove zip file of app: " + dappZip);
+									} else {
+										return setImmediate(cb, null, dappPath);
+									}
+								});
+							}).on('error', function (err) {
+								library.logger.error(err);
+
+								fs.unlink(dappZip, function (err) {
+									if (err) {
+										library.logger.error(err);
+									}
+
+									fs.unlink(dappPath, function (err) {
+										if (err) {
+											library.logger.error(err);
+										}
+
+										return setImmediate(cb, "Can't unzip file of app: " + dappZip);
+									});
+								});
+							})
+						}
 					});
 				}
 			});

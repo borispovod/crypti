@@ -29,6 +29,7 @@
     "esprima": "~1.2.3",
     "express": "4.x",
     "express-domain-middleware": "*",
+    "express-query-int": "https://github.com/crypti/express-query-int/tarball/master",
     "extend": "^2.0.0",
     "image-type": "^2.0.2",
     "ip": "^0.3.2",
@@ -47,10 +48,10 @@
     "strftime": "*",
     "toposort": "~0.2.10",
     "underscore": "https://github.com/crypti/underscore/tarball/master",
+    "unzip": "^0.1.11",
     "usage": "^0.6.0",
     "util-extend": "*",
-    "z-schema": "^3.12.0",
-    "express-query-int": "https://github.com/crypti/express-query-int/tarball/master"
+    "z-schema": "^3.12.0"
   },
   "devDependencies": {
     "blanket": "~1.1.6",
