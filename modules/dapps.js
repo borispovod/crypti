@@ -1,5 +1,6 @@
 var async = require('async'),
 	dappTypes = require('../helpers/dappTypes.js'),
+	dappCategory = require('../helpers/dappCategory.js'),
 	ByteBuffer = require("bytebuffer");
 
 var modules, library, self, private = {};
@@ -37,6 +38,7 @@ private.launchDApp = function (dApp, cb) {
 function DApp() {
 	this.create = function (data, trs) {
 		trs.asset.dapp = {
+			category: dappCategory[data.category],
 			name: data.name,
 			description: data.description,
 			tags: data.tags,
@@ -63,11 +65,19 @@ function DApp() {
 			return setImmediate(cb, errorCode("TRANSACTIONS.INVALID_AMOUNT", trs));
 		}
 
+		if (!trs.asset.dapp.category) {
+			return setImmediate(cb, errorCode("DAPPS.UNKNOWN_CATEGORY"));
+		}
+
 		if (trs.asset.dapp.asciiCode) {
 			isSia = true;
 			if (!trs.asset.dapp.asciiCode || trs.asset.dapp.asciiCode.trim().length == 0) {
 				return setImmediate(cb, errorCode("DAPPS.EMTRY_ASCII"));
 			}
+		}
+
+		if (trs.asset.dapp.type > 1) {
+			return setImmediate(cb, errorCode("DAPPS.UNKNOWN_TYPE"));
 		}
 
 		if (trs.asset.dapp.git) {
@@ -97,25 +107,53 @@ function DApp() {
 		}
 
 		library.dbLite.query("SELECT count(transactionId) FROM dapps WHERE name = $name", ['count'], {
-			name: trs.asset.dapp.name
+			name: trs.asset.dapp.name,
 		}, function (err, rows) {
 			if (err || rows.length == 0) {
 				return setImmediate(cb, "Sql error");
 			}
 
 			if (rows[0].count > 0) {
-				return setImmediate(cb, errorCode("DAPPS.EXISTS_DAPP"));
+				return setImmediate(cb, errorCode("DAPPS.EXISTS_DAPP_NAME"));
 			}
 
-			return setImmediate(cb);
-		})
-	}
+			if (trs.asset.dapp.git) {
+				library.dbLite.query("SELECT count(transactionId) FROM dapps WHERE asciiCode = $asciiCode", ['count'], {
+					asciiCode: trs.asset.dapp.asciiCode
+				}, function (err, rows) {
+					if (err || rows.length == 0) {
+						return setImmediate(cb, "Sql error");
+					}
 
+					if (rows[0].count > 0) {
+						return setImmediate(cb, errorCode("DAPPS.EXISTS_DAPP_ASCII_CODE"));
+					}
+
+					return setImmediate(cb);
+				});
+			} else if (trs.asset.dapp.asciiCode) {
+				library.dbLite.query("SELECT count(transactionId) FROM dapps WHERE git = $git", ['count'], {
+					git: trs.asset.dapp.git
+				}, function (err, rows) {
+					if (err || rows.length == 0) {
+						return setImmediate(cb, "Sql error");
+					}
+
+					if (rows[0].count > 0) {
+						return setImmediate(cb, errorCode("DAPPS.EXISTS_DAPP_GIT"));
+					}
+
+					return setImmediate(cb);
+				});
+			} else {
+				return setImmediate(cb, errorCode("DAPPS.INCORRECT_LINK"))
+			}
+		});
+	}
 
 	this.process = function (trs, sender, cb) {
 		setImmediate(cb, null, trs);
 	}
-
 
 	this.getBytes = function (trs) {
 		try {
@@ -141,8 +179,9 @@ function DApp() {
 				buf = buf.concat(new Buffer(trs.asset.dapp.git, 'utf8'));
 			}
 
-			var bb = new ByteBuffer(4, true);
+			var bb = new ByteBuffer(4+4,true);
 			bb.writeInt(trs.asset.dapp.type);
+			bb.writeInt(trs.asset.dapp.category);
 			bb.flip();
 
 			buf = buf.concat(bb.toBuffer());
@@ -173,6 +212,10 @@ function DApp() {
 		var report = library.scheme.validate(trs.asset.delegate, {
 			object: true,
 			properties: {
+				category: {
+					type: "integer",
+					minimum: 0
+				},
 				name: {
 					type: "string",
 					minLength: 1,
@@ -190,8 +233,7 @@ function DApp() {
 				},
 				type: {
 					type: "integer",
-					minimum: 0,
-					maximum: 1
+					minimum: 0
 				},
 				asciiCode: {
 					type: "string",
@@ -203,7 +245,7 @@ function DApp() {
 					minLength: 1
 				}
 			},
-			required: ["type", "name"]
+			required: ["type", "name", "category"]
 		});
 
 		if (!report) {
@@ -223,7 +265,8 @@ function DApp() {
 				tags: raw.dapp_tags,
 				type: raw.dapp_type,
 				asciiCode: raw.dapp_asciiCode,
-				git: raw.dapp_git
+				git: raw.dapp_git,
+				category: raw.dapp_category
 			}
 
 			return {dapp: dapp};
@@ -231,13 +274,14 @@ function DApp() {
 	}
 
 	this.dbSave = function (trs, cb) {
-		library.dbLite.query("INSERT INTO dapps(type, name, description, tags, asciiCode, git, transactionId) VALUES($type, $name, $description, $tags, $asciiCode, $git, $transactionId)", {
+		library.dbLite.query("INSERT INTO dapps(type, name, description, tags, asciiCode, git, category, transactionId) VALUES($type, $name, $description, $tags, $asciiCode, $git, $category, $transactionId)", {
 			type: trs.asset.dapp.type,
 			name: trs.asset.dapp.name,
 			description: trs.asset.dapp.description,
 			tags: trs.asset.dapp.tags,
 			asciiCode: trs.asset.dapp.asciiCode,
 			git: trs.asset.dapp.git,
+			category: trs.asset.dapp.category,
 			transactionId: trs.id
 		}, cb);
 	}
@@ -260,6 +304,48 @@ function attachApi() {
 	router.use(function (req, res, next) {
 		if (modules) return next();
 		res.status(500).send({success: false, error: errorCode('COMMON.LOADING')});
+	});
+
+	router.put('/', function (req, res, next) {
+		// put dapp
+	});
+
+	router.get('/', function (req, res, next) {
+		// get dapp
+	});
+
+	router.get('/get', function (req, res, next) {
+		req.sanitize(req.query, {
+			type: "object",
+			properties: {
+				id: {
+					type: 'string',
+					minLength: 1
+				}
+			},
+			required: ["id"]
+		}, function (err, report, query) {
+			if (err) return next(err);
+			if (!report.isValid) return res.json({success: false, error: report.issues});
+
+			// get by id
+		});
+	});
+
+	router.get('/search', function (req, res, next) {
+		// search by q and category
+	});
+
+	router.post('/install', function (req, res, next) {
+		// install dapp
+	});
+
+	router.post('/uninstall', function (req, res, next) {
+		// remove dapp
+	});
+
+	router.post('/launch', function (req, res, next) {
+		// launch dapp
 	});
 
 	library.network.app.use('/api/dapps', router);
