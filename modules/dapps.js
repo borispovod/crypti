@@ -2,13 +2,15 @@ var async = require('async'),
 	dappTypes = require('../helpers/dappTypes.js'),
 	dappCategory = require('../helpers/dappCategory.js'),
 	TransactionTypes = require('../helpers/transaction-types.js'),
-	ByteBuffer = require("bytebuffer");
+	ByteBuffer = require("bytebuffer"),
+	fs = require('fs'),
+	path = require('path');
 
 var modules, library, self, private = {};
 
 private.unconfirmedNames = {};
 private.unconfirmedLinks = {};
-private.appPath = process.cwd();
+private.dappsPath = path.join(process.cwd(), 'dapps');
 private.sandboxes = {};
 private.routes = {};
 
@@ -85,6 +87,16 @@ private.list = function (filter, cb) {
 	});
 }
 
+private.createBasePathes = function (cb) {
+	fs.exists(private.dappsPath, function (exists) {
+		if (exists) {
+			return setImmediate(cb);
+		} else {
+			fs.mkdir(private.dappsPath, cb);
+		}
+	});
+}
+
 private.installDependencies = function (dApp, cb) {
 	setImmediate(cb);
 }
@@ -102,7 +114,15 @@ private.removeDApp = function (dApp, cb) {
 }
 
 private.downloadDApp = function (dApp, cb) {
-	setImmediate(cb);
+	// make base dir
+
+
+
+	if (dApp.git) {
+
+	} else if (dApp.asciiCode) {
+
+	}
 }
 
 private.launchDApp = function (dApp, cb) {
@@ -583,6 +603,15 @@ function attachApi() {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
 
+			private.get(query.id, function (err, dapp) {
+				if (err) {
+					return res.json({success: false, error: err});
+				}
+
+				private.download(dapp, function (err, cb) {
+
+				});
+			});
 		});
 	});
 
@@ -607,12 +636,12 @@ function DApps(cb, scope) {
 	self = this;
 	self.__private = private;
 	attachApi();
-
-	private.createBasePathes();
-
 	library.logic.transaction.attachAssetType(TransactionTypes.DAPP, new DApp());
 
-	setImmediate(cb, null, self);
+
+	private.createBasePathes(function (err) {
+		setImmediate(cb, err, self);
+	});
 }
 
 DApps.prototype.onBind = function (scope) {
