@@ -328,7 +328,13 @@ function attachApi() {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
 
-			// get by id
+			library.dbLite.query("SELECT name, description, tags, asciiCode, git, type, category, transactionId FROM dapps WHERE transactionId = $id", ['name', 'description', 'tags', 'asciiCode', 'git', 'type', 'category', 'transactionId'], {id : req.query.id}, function (err, rows) {
+				if (err || rows.length == 0) {
+					return res.json({success: false, error: err? "Sql error" : "DApp not found"});
+				}
+
+				return res.json({success: true, dapp: rows[0]});
+			});
 		});
 	});
 
