@@ -140,5 +140,10 @@
 			"key": "./ssl/crypti.key",
 			"cert": "./ssl/crypti.crt"
 		}
+	},
+  	"sia": {
+      "peer": {
+
+      }
 	}
 }

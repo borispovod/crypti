@@ -10,6 +10,7 @@ var async = require('async'),
 var modules, library, self, private = {};
 
 private.loading = {};
+private.removing = {};
 private.unconfirmedNames = {};
 private.unconfirmedLinks = {};
 private.dappsPath = path.join(process.cwd(), 'dapps');
@@ -112,15 +113,29 @@ private.installDApp = function (dApp, cb) {
 }
 
 private.removeDApp = function (dApp, cb) {
-	setImmediate(cb);
+	var dappPath = path.join(private.dappsPath, dApp.transactionId);
+
+	fs.exists(dappPath, function (exists) {
+		if (!exists) {
+			return setImmediate(cb, "This dapp not found");
+		} else {
+			fs.unlink(dappPath, function (err) {
+				if (err) {
+					return setImmediate(cb, "Problem when removing folder of dapp: " dappPath);
+				} else {
+					return setImmediate(cb);
+				}
+			});
+		}
+	});
 }
 
-private.downloadDApp = function (dApp, cb) {}
+private.downloadDApp = function (dApp, cb) {
 	var dappPath = path.join(private.dappsPath, dApp.transactionId);
 
 	fs.exists(dappPath, function (exists) {
 		if (exists) {
-			return setImmediate(cb, "This app already installed");
+			return setImmediate(cb, "This dapp already installed");
 		} else {
 			fs.mkdir(dappPath, function (err) {
 				if (err) {
@@ -631,18 +646,63 @@ function attachApi() {
 
 
 				if (private.loading[query.id]) {
-					return res.json({"This DApp already on downloading"});
+					return res.json({success: false, error: "This DApp already on downloading"});
 				}
 
 				private.loading[query.id] = true;
 
+				private.downloadDApp(dapp, function (err, dappPath) {
+					private.loading[query.id] = false;
 
+					if (err) {
+						return res.json({success: false, error: err});
+					} else {
+						return res.json({success: true, path: dappPath});
+					}
+				});
 			});
 		});
 	});
 
 	router.post('/uninstall', function (req, res, next) {
-		// remove dapp
+		req.sanitize(req.query, {
+			type: "object",
+			properties: {
+				id: {
+					type: 'string',
+					minLength: 1
+				}
+			},
+			required: ["id"]
+		}, function (err, report, query) {
+			if (err) return next(err);
+			if (!report.isValid) return res.json({success: false, error: report.issues});
+
+			private.get(query.id, function (err, dapp) {
+				if (err) {
+					return res.json({success: false, error: err});
+				}
+
+				if (private.removing[query.id]) {
+					return res.json({success: true, error: "This DApp already on uninstall"});
+				}
+
+				private.removing[query.id] = true;
+
+				// later - first we run uninstall
+				private.removeDApp(dapp, function (err) {
+					private.removing[query.id] = false;
+
+					if (err) {
+						return res.json({success: false, error: err});
+					} else {
+						return res.json({success: true});
+					}
+				})
+			});
+
+
+		});
 	});
 
 	router.post('/launch', function (req, res, next) {
