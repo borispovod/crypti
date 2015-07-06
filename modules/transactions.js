@@ -484,7 +484,7 @@ private.list = function (filter, cb) {
 		"inner join blocks b on t.blockId = b.id " +
 		(fields_or.length || owner ? "where " : "") + " " +
 		(fields_or.length ? "(" + fields_or.join(' or ') + ") " : "") + (fields_or.length && owner ? " and " + owner : owner) + " " +
-		(filter.orderBy ? 'order by ' + sortBy + ' ' + sortMethod : '') + " " +
+		(filter.orderBy ? ' order by ' + sortBy + ' ' + sortMethod : '') + " " +
 		(filter.limit ? 'limit $limit' : '') + " " +
 		(filter.offset ? 'offset $offset' : ''), params, ['t_id', 'b_height', 't_blockId', 't_type', 't_timestamp', 't_senderPublicKey', 't_senderId', 't_recipientId', 't_senderUsername', 't_recipientUsername', 't_amount', 't_fee', 't_signature', 't_signSignature', 'confirmations'], function (err, rows) {
 			if (err) {

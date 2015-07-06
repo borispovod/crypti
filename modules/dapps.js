@@ -12,6 +12,69 @@ private.appPath = process.cwd();
 private.sandboxes = {};
 private.routes = {};
 
+private.list = function (filter, cb) {
+	var sortFields = ['type', 'name', 'category', 'git'];
+	var params = {}, fields = [], owner = "";
+
+	if (filter.type >= 0) {
+		fields.push('type = $type');
+		params.type = filter.type;
+	}
+
+	if (filter.name) {
+		fields.push('name = $name');
+		params.name = filter.name;
+	}
+	if (filter.category >= 0) {
+		fields.push('category = $category');
+		params.category = filter.category;
+	}
+	if (filter.git) {
+		fields.push('git = $git');
+		params.git = filter.git;
+	}
+
+	if (filter.limit >= 0) {
+		params.limit = filter.limit;
+	}
+	if (filter.offset >= 0) {
+		params.offset = filter.offset;
+	}
+
+	if (filter.orderBy) {
+		var sort = filter.orderBy.split(':');
+		var sortBy = sort[0].replace(/[^\w_]/gi, '');
+		if (sort.length == 2) {
+			var sortMethod = sort[1] == 'desc' ? 'desc' : 'asc'
+		} else {
+			sortMethod = "desc";
+		}
+	}
+
+	if (sortBy) {
+		if (sortFields.indexOf(sortBy) < 0) {
+			return cb("Invalid field to sort");
+		}
+	}
+
+
+	// need to fix 'or' or 'and' in query
+	library.dbLite.query("select name, description, tags, asciiCode, git, type, category, transactionId " +
+		"from trs t " +
+		"inner join blocks b on t.blockId = b.id " +
+		(fields.length || owner ? "where " : "") + " " +
+		(fields.length ? "(" + fields.join(' or ') + ") " : "") + (fields.length && owner ? " and " + owner : owner) + " " +
+		(filter.orderBy ? ' order by ' + sortBy + ' ' + sortMethod : '') + " " +
+		(filter.limit ? 'limit $limit' : '') + " " +
+		(filter.offset ? 'offset $offset' : ''), params, ['name', 'description', 'tags', 'asciiCode', 'git', 'type', 'category', 'transactionId'], function (err, rows) {
+		if (err) {
+			return cb(err);
+		}
+
+		cb(null, rows);
+	});
+}
+
 private.installDependencies = function (dApp, cb) {
 	setImmediate(cb);
 }
@@ -419,7 +482,53 @@ function attachApi() {
 	});
 
 	router.get('/', function (req, res, next) {
-		// get dapp
+		req.sanitize(req.query, {
+			type: "object",
+			properties: {
+				category: {
+					type: "integer",
+					minimum: 0
+				},
+				name: {
+					type: "string",
+					minLength: 1,
+					maxLength: 32
+				},
+				type: {
+					type: "integer",
+					minimum: 0
+				},
+				git: {
+					type: "string",
+					maxLength: 2000,
+					minLength: 1
+				},
+				limit: {
+					type: "integer",
+					minimum: 0,
+					maximum: 100
+				},
+				offset: {
+					type: "integer",
+					minimum: 0
+				},
+				orderBy: {
+					type: "string",
+					minLength: 1
+				}
+			}
+		}, function (err, report, query) {
+			if (err) return next(err);
+			if (!report.isValid) return res.json({success: false, error: report.issues});
+
+			private.list(query, function (err, dapps) {
+				if (err) {
+					return res.json({success: false, error: errorCode("DAPPS.DAPPS_NOT_FOUND")});
+				}
+
+				res.json({success: true, dapps: dapps});
+			});
+		});
 	});
 
 	router.get('/get', function (req, res, next) {
