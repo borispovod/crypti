@@ -12,6 +12,16 @@ private.appPath = process.cwd();
 private.sandboxes = {};
 private.routes = {};
 
+private.get = function (id, cb) {
+	library.dbLite.query("SELECT name, description, tags, asciiCode, git, type, category, transactionId FROM dapps WHERE transactionId = $id", ['name', 'description', 'tags', 'asciiCode', 'git', 'type', 'category', 'transactionId'], {id : id}, function (err, rows) {
+		if (err || rows.length == 0) {
+			return setImmediate(cb, err? "Sql error" : "DApp not found");
+		}
+
+		return setImmediate(cb, null, rows[0]);
+	});
+}
+
 private.list = function (filter, cb) {
 	var sortFields = ['type', 'name', 'category', 'git'];
 	var params = {}, fields = [], owner = "";
@@ -545,12 +555,12 @@ function attachApi() {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
 
-			library.dbLite.query("SELECT name, description, tags, asciiCode, git, type, category, transactionId FROM dapps WHERE transactionId = $id", ['name', 'description', 'tags', 'asciiCode', 'git', 'type', 'category', 'transactionId'], {id : req.query.id}, function (err, rows) {
-				if (err || rows.length == 0) {
-					return res.json({success: false, error: err? "Sql error" : "DApp not found"});
+			private.get(query.id, function (err, dapp) {
+				if (err) {
+					return res.json({success: false, error: err});
 				}
 
-				return res.json({success: true, dapp: rows[0]});
+				return res.json({success: true, dapp: dapp});
 			});
 		});
 	});
@@ -560,7 +570,20 @@ function attachApi() {
 	});
 
 	router.post('/install', function (req, res, next) {
-		// install dapp
+		req.sanitize(req.query, {
+			type: "object",
+			properties: {
+				id: {
+					type: 'string',
+					minLength: 1
+				}
+			},
+			required: ["id"]
+		}, function (err, report, query) {
+			if (err) return next(err);
+			if (!report.isValid) return res.json({success: false, error: report.issues});
+
+		});
 	});
 
 	router.post('/uninstall', function (req, res, next) {
