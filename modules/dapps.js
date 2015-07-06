@@ -1,6 +1,7 @@
 var async = require('async'),
 	dappTypes = require('../helpers/dappTypes.js'),
 	dappCategory = require('../helpers/dappCategory.js'),
+	TransactionTypes = require('../helpers/transaction-types.js'),
 	ByteBuffer = require("bytebuffer");
 
 var modules, library, self, private = {};
@@ -307,7 +308,114 @@ function attachApi() {
 	});
 
 	router.put('/', function (req, res, next) {
-		// put dapp
+		req.sanitize(req.body, {
+			type: "object",
+			properties: {
+				secret: {
+					type: "string",
+					minLength: 1
+				},
+				secondSecret: {
+					type: "string",
+					minLength: 1
+				},
+				publicKey: {
+					type: "string",
+					format: "publicKey"
+				},
+				category: {
+					type: "integer",
+					minimum: 0
+				},
+				name: {
+					type: "string",
+					minLength: 1,
+					maxLength: 32
+				},
+				description: {
+					type: "string",
+					minLength: 0,
+					maxLength: 160
+				},
+				tags: {
+					type: "string",
+					minLength: 0,
+					maxLength: 160
+				},
+				type: {
+					type: "integer",
+					minimum: 0
+				},
+				asciiCode: {
+					type: "string",
+					minLength: 1
+				},
+				git: {
+					type: "string",
+					maxLength: 2000,
+					minLength: 1
+				}
+			},
+			required: ["secret", "secondSecret", "type", "name", "category"]
+		}, function (err, report, body) {
+			if (err) return next(err);
+			if (!report.isValid) return res.json({success: false, error: report.issues});
+
+			var hash = crypto.createHash('sha256').update(body.secret, 'utf8').digest();
+			var keypair = ed.MakeKeypair(hash);
+
+			if (body.publicKey) {
+				if (keypair.publicKey.toString('hex') != body.publicKey) {
+					return res.json({success: false, error: errorCode("COMMON.INVALID_SECRET_KEY")});
+				}
+			}
+
+			library.sequence.add(function (cb) {
+				modules.accounts.getAccount({publicKey: keypair.publicKey.toString('hex')}, function (err, account) {
+					if (err) {
+						return cb("Sql error");
+					}
+
+					if (!account || !account.publicKey) {
+						return cb(errorCode("COMMON.OPEN_ACCOUNT"));
+					}
+
+					if (account.secondSignature && !body.secondSecret) {
+						return cb(errorCode("COMMON.SECOND_SECRET_KEY"));
+					}
+
+					var secondKeypair = null;
+
+					if (account.secondSignature) {
+						var secondHash = crypto.createHash('sha256').update(body.secondSecret, 'utf8').digest();
+						secondKeypair = ed.MakeKeypair(secondHash);
+					}
+
+					var transaction = library.logic.transaction.create({
+						type: TransactionTypes.DAPP,
+						sender: account,
+						keypair: keypair,
+						secondKeypair: secondKeypair,
+						category: body.category,
+						name: body.name,
+						description: body.description,
+						tags: body.tags,
+						type: body.type,
+						asciiCode: body.asciiCode,
+						git: body.git
+					});
+
+					modules.transactions.receiveTransactions([transaction], cb);
+				});
+			}, function (err, transaction) {
+				if (err) {
+					return res.json({success: false, error: err.toString()});
+				}
+				res.json({success: true, transaction: transaction[0]});
+			});
+
+
+		});
 	});
 
 	router.get('/', function (req, res, next) {
