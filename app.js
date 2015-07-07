@@ -73,7 +73,8 @@ var config = {
 		"round": "./modules/round.js",
 		"contacts": "./modules/contacts.js",
 		"multisignatures": "./modules/multisignatures.js",
-		"dapps": "./modules/dapps.js"
+		"dapps": "./modules/dapps.js",
+		"sia": "./modules/sia.js"
 	}
 }
 

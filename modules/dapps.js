@@ -6,6 +6,7 @@ var async = require('async'),
 	fs = require('fs'),
 	gift = require('gift'),
 	path = require('path'),
+	npm = require('npm'),
 	unzip = require('unzip');
 
 var modules, library, self, private = {};
@@ -102,15 +103,43 @@ private.createBasePathes = function (cb) {
 }
 
 private.installDependencies = function (dApp, cb) {
-	setImmediate(cb);
+	var dappPath = path.join(private.dappsPath, dApp.transactionId);
+
+	var packageJson = path.join(dappPath, "package.json");
+	var config = null;
+
+	try {
+		config = JSON.parse(fs.readFileSync(packageJson));
+	} catch (e) {
+		return setImmediate(cb, "Incorrect package.json file for " + id + " DApp");
+	}
+
+	npm.load(config, function (err) {
+		if (err) {
+			return setImmediate(cb, err);
+		}
+
+		npm.root = path.join(dappPath, "node_modules");
+		npm.prefix = dappPath;
+
+		npm.commands.install(function (err, data) {
+			if (err) {
+				setImmediate(cb, err);
+			} else {
+				return setImmediate(cb, null);
+			}
+		});
+	});
 }
 
-private.uninstallDApp = function (dApp, cb) {
-	setImmediate(cb);
-}
+private.getInstalled = function (cb) {
+	fs.readdir(private.dappsPath, function (err, files) {
+		if (err) {
+			return setImmediate(cb, err);
+		}
 
-private.installDApp = function (dApp, cb) {
-	setImmediate(cb);
+		setImmediate(cb, null, files);
+	});
 }
 
 private.removeDApp = function (dApp, cb) {
@@ -210,6 +239,10 @@ private.downloadDApp = function (dApp, cb) {
 }
 
 private.launchDApp = function (dApp, cb) {
+	setImmediate(cb);
+}
+
+private.stopDApp = function (dApp, cb) {
 	setImmediate(cb);
 }
 
@@ -692,6 +725,7 @@ function attachApi() {
 					return res.json({success: false, error: err});
 				}
 
+				// check that dapp already installed here in feature
 
 				if (private.loading[query.id]) {
 					return res.json({success: false, error: "This DApp already on downloading"});
@@ -705,11 +739,42 @@ function attachApi() {
 					if (err) {
 						return res.json({success: false, error: err});
 					} else {
-						return res.json({success: true, path: dappPath});
+						if (dapp.type == 0) {
+							private.installDependencies(dapp, function (err) {
+								if (err) {
+									library.logger.error(err);
+									private.removing[query.id] = true;
+									private.removeDApp(dapp, function (err) {
+										private.removing[query.id] = false;
+
+										if (err) {
+											library.logger.error(err);
+										}
+
+										return res.json({success: false, error: "Can't install DApp dependencies, check logs"});
+									});
+								} else {
+									return res.json({success: true, path: dappPath});
+								}
+							})
+						} else {
+							return res.json({success: true, path: dappPath});
+						}
 					}
 				});
 			});
 		});
+	});
+
+	router.get('/installed', function (req, res, next) {
+		private.getInstalled(function (err, files) {
+			if (err) {
+				library.logger.error(err);
+				return res.json({success: false, error: "Can't get installed dapps, see logs"});
+			}
+
+			return res.json({success: true, files: files});
+		})
 	});
 
 	router.post('/uninstall', function (req, res, next) {
