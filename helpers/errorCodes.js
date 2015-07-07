@@ -258,6 +258,11 @@ var errorCodes = {
 			message: "Prohibited to use self publicKey to sign",
 			args: []
 		}
+	},
+	DAPP: {
+		EXISTS_DAPP: {
+			message: "This DApp already exists"
+		}
 	}
 }
 

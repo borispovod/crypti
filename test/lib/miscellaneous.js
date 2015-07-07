@@ -17,7 +17,7 @@ var block = {
 
 console.log("Starting Miscellaneous Tests");
 
-describe('Miscellaneous tests (peers, blocks, etc)', function() {
+describe.skip('Miscellaneous tests (peers, blocks, etc)', function() {
 
     describe('/peers tests', function(){
 

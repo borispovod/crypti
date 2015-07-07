@@ -523,7 +523,6 @@ function Account(scope, cb) {
 	sqles.push(sql.query);
 
 	async.eachSeries(sqles, function (command, cb) {
-		console.log(command)
 		scope.dbLite.query(command, function (err, data) {
 			cb(err, data);
 		});

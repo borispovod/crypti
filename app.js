@@ -72,7 +72,8 @@ var config = {
 		"delegates": "./modules/delegates.js",
 		"round": "./modules/round.js",
 		"contacts": "./modules/contacts.js",
-		"multisignatures": "./modules/multisignatures.js"
+		"multisignatures": "./modules/multisignatures.js",
+		"dapps": "./modules/dapps.js"
 	}
 }
 

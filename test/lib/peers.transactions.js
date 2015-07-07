@@ -3,7 +3,7 @@ var node = require('./../variables.js'),
 
 var genesisblock = require('../../helpers/genesisblock.js');
 
-describe("Peers transactions", function () {
+describe.skip("Peers transactions", function () {
 	it("create transaction. should return ok", function (done) {
 		var transaction = node.crypti.transaction.createTransaction("1C", 1, node.peers_config.account);
 		node.peer.post('/transactions')

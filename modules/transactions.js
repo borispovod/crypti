@@ -427,7 +427,7 @@ private.list = function (filter, cb) {
 		params.senderUsername = filter.senderUsername;
 	}
 	if (filter.recipientUsername) {
-		fields_or.push('recipientUsername = $recipientUsername')
+		fields_or.push('recipientUsername = $recipientUsername');
 		params.recipientUsername = filter.recipientUsername;
 	}
 	if (filter.ownerAddress && filter.ownerPublicKey) {
@@ -435,10 +435,15 @@ private.list = function (filter, cb) {
 		params.ownerPublicKey = filter.ownerPublicKey;
 		params.ownerAddress = filter.ownerAddress;
 	}
-	if (filter.limit) {
+	if (filter.type >= 0) {
+		fields_or.push('type = $type');
+		params.type = filter.type;
+	}
+
+	if (filter.limit >= 0) {
 		params.limit = filter.limit;
 	}
-	if (filter.offset) {
+	if (filter.offset >= 0) {
 		params.offset = filter.offset;
 	}
 

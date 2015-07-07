@@ -4,7 +4,7 @@ var node = require('./../variables.js'),
 var account = node.randomAccount();
 var account2 = node.randomAccount();
 
-describe("Peer contacts", function () {
+describe.skip("Peer contacts", function () {
 	before(function (done) {
 		node.api.post('/accounts/open')
 			.set('Accept', 'application/json')

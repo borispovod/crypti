@@ -511,7 +511,7 @@ function attachApi() {
 					var delegates = account.delegates.map(function (delegate) {
 						return self.generateAddressByPublicKey(delegate);
 					});
-					self.getAccounts({address: {$in: delegates}}, ["username", "address", "publicKey"], function (err, delegates) {
+					self.getAccounts({address: {$in: delegates}}, ["username", "address", "publicKey", "rate", "vote"], function (err, delegates) {
 						if (err) {
 							return res.json({success: false, error: err.toString()});
 						}

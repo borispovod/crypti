@@ -4,7 +4,7 @@ var node = require('./../variables.js'),
 var account = node.randomAccount();
 var account2 = node.randomAccount();
 
-describe("Peers delegates transactions", function () {
+describe.skip("Peers delegates transactions", function () {
 	it("Create delegate with incorrect username. Should return not ok", function (done) {
 		node.api.post('/accounts/open')
 			.set('Accept', 'application/json')
