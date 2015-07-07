@@ -6,6 +6,8 @@ var async = require('async'),
 	fs = require('fs'),
 	gift = require('gift'),
 	path = require('path'),
+	slots = require('../helpers/slots.js'),
+	Router = require('../helpers/router.js'),
 	unzip = require('unzip');
 
 var modules, library, self, private = {};
