@@ -506,13 +506,22 @@ function attachApi() {
 				}
 
 				if (account.delegates) {
+					var stat = modules.delegates.getStats();
+
 					var delegates = account.delegates.map(function (delegate) {
 						return self.generateAddressByPublicKey(delegate);
-					})
-					self.getAccounts({address: {$in: delegates}}, function (err, delegates) {
+					});
+					self.getAccounts({address: {$in: delegates}}, ["username", "address", "publicKey"], function (err, delegates) {
 						if (err) {
 							return res.json({success: false, error: err.toString()});
 						}
+
+						for (var i = 0; i < delegates.length; i++) {
+							delegates[i].vote = stat.votes[delegates[i].publicKey];
+							delegates[i].rate = stat.rates[delegates[i].publicKey];
+							delegates[i].productivity = stat.productivities[delegates[i].publicKey];
+						}
+
 						res.json({success: true, delegates: delegates});
 
 					});
@@ -745,16 +754,16 @@ Accounts.prototype.generateAddressByPublicKey = function (publicKey) {
 	return address;
 }
 
-Accounts.prototype.getAccount = function (filter, cb) {
+Accounts.prototype.getAccount = function (filter, fields, cb) {
 	if (filter.publicKey) {
 		filter.address = self.generateAddressByPublicKey(filter.publicKey);
 		delete filter.publicKey;
 	}
-	library.logic.account.get(filter, cb);
+	library.logic.account.get(filter, fields, cb);
 }
 
-Accounts.prototype.getAccounts = function (filter, cb) {
-	library.logic.account.getAll(filter, cb);
+Accounts.prototype.getAccounts = function (filter, fields, cb) {
+	library.logic.account.getAll(filter, fields, cb);
 }
 
 Accounts.prototype.setAccountAndGet = function (data, cb) {

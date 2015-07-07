@@ -885,7 +885,9 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 							library.bus.message('newBlock', block, broadcast);
 							private.lastBlock = block;
 
-							setImmediate(done);
+							modules.round.tick(block, done);
+
+							//setImmediate(done);
 						});
 					});
 				}

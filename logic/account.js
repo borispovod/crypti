@@ -133,6 +133,24 @@ function Account(scope, cb) {
 			default: 0
 		},
 		{
+			name: "vote",
+			type: "BigInt",
+			filter: {
+				type: "integer"
+			},
+			conv: Number,
+			default: 0
+		},
+		{
+			name: "rate",
+			type: "BigInt",
+			filter: {
+				type: "integer"
+			},
+			conv: Number,
+			default: 0
+		},
+		{
 			name: "delegates",
 			type: "Text",
 			filter: {
@@ -351,6 +369,14 @@ function Account(scope, cb) {
 				length: 21,
 				not_null: true
 			}
+		],
+		foreignKeys: [
+			{
+				field: "accountId",
+				table: this.table,
+				table_field: "address",
+				on_delete: "cascade"
+			}
 		]
 	});
 	sqles.push(sql.query);
@@ -369,6 +395,14 @@ function Account(scope, cb) {
 				type: "String",
 				length: 21,
 				not_null: true
+			}
+		],
+		foreignKeys: [
+			{
+				field: "accountId",
+				table: this.table,
+				table_field: "address",
+				on_delete: "cascade"
 			}
 		]
 	});
@@ -389,6 +423,14 @@ function Account(scope, cb) {
 				length: 21,
 				not_null: true
 			}
+		],
+		foreignKeys: [
+			{
+				field: "accountId",
+				table: this.table,
+				table_field: "address",
+				on_delete: "cascade"
+			}
 		]
 	});
 	sqles.push(sql.query);
@@ -407,6 +449,14 @@ function Account(scope, cb) {
 				type: "String",
 				length: 21,
 				not_null: true
+			}
+		],
+		foreignKeys: [
+			{
+				field: "accountId",
+				table: this.table,
+				table_field: "address",
+				on_delete: "cascade"
 			}
 		]
 	});
@@ -427,6 +477,14 @@ function Account(scope, cb) {
 				length: 21,
 				not_null: true
 			}
+		],
+		foreignKeys: [
+			{
+				field: "accountId",
+				table: this.table,
+				table_field: "address",
+				on_delete: "cascade"
+			}
 		]
 	});
 	sqles.push(sql.query);
@@ -446,11 +504,26 @@ function Account(scope, cb) {
 				length: 21,
 				not_null: true
 			}
+		],
+		foreignKeys: [
+			{
+				field: "accountId",
+				table: this.table,
+				table_field: "address",
+				on_delete: "cascade"
+			}
 		]
 	});
 	sqles.push(sql.query);
 
+	var sql = jsonSql.build({
+		type: 'remove',
+		table: this.table
+	});
+	sqles.push(sql.query);
+
 	async.eachSeries(sqles, function (command, cb) {
+		console.log(command)
 		scope.dbLite.query(command, function (err, data) {
 			cb(err, data);
 		});
@@ -483,7 +556,7 @@ Account.prototype.toDB = function (raw) {
 }
 
 Account.prototype.get = function (filter, fields, cb) {
-	if (arguments.length == 2) {
+	if (typeof(fields) == 'function') {
 		cb = fields;
 		fields = this.fields.map(function (field) {
 			return field.alias || field.field;
@@ -495,7 +568,7 @@ Account.prototype.get = function (filter, fields, cb) {
 }
 
 Account.prototype.getAll = function (filter, fields, cb) {
-	if (arguments.length == 2) {
+	if (typeof(fields) == 'function') {
 		cb = fields;
 		fields = this.fields.map(function (field) {
 			return field.alias || field.field;
@@ -506,15 +579,40 @@ Account.prototype.getAll = function (filter, fields, cb) {
 		return fields.indexOf(field.alias || field.field) != -1;
 	});
 
+	var realConv = {};
+	Object.keys(this.conv).forEach(function (key) {
+		if (fields.indexOf(key) != -1) {
+			realConv[key] = this.conv[key];
+		}
+	}.bind(this));
+
+	var limit, offset, sort;
+
+	if (filter.limit > 0) {
+		limit = filter.limit;
+	}
+	delete filter.limit;
+	if (filter.offset > 0) {
+		offset = filter.offset;
+	}
+	delete filter.offset;
+	if (filter.sort) {
+		sort = filter.sort;
+	}
+	delete filter.sort;
+
 	var sql = jsonSql.build({
 		type: 'select',
 		table: this.table,
+		limit: limit,
+		offset: offset,
+		sort: sort,
 		alias: 'a',
 		condition: filter,
 		fields: realFields
 	});
 
-	this.scope.dbLite.query(sql.query, sql.values, this.conv, function (err, data) {
+	this.scope.dbLite.query(sql.query, sql.values, realConv, function (err, data) {
 		if (err) {
 			return cb(err);
 		}

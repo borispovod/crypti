@@ -17,16 +17,10 @@ require('array.prototype.find'); //old node fix
 var modules, library, self, private = {};
 
 private.loaded = false;
+
+private.delegates = {};
 private.unconfirmedDelegates = {};
-private.unconfirmedNames = {};
 
-private.votes = {};
-private.unconfirmedVotes = {};
-
-private.namesIndex = {};
-private.publicKeyIndex = {};
-private.transactionIdIndex = {};
-private.delegates = [];
 private.fees = {};
 
 private.keypairs = {};
@@ -120,8 +114,8 @@ function Delegate() {
 	}
 
 	this.apply = function (trs, sender, cb) {
-		private.votes[trs.asset.delegate.publicKey] = 0;
-		private.unconfirmedVotes[trs.asset.delegate.publicKey] = 0;
+		private.delegates[trs.asset.delegate.publicKey] = 0;
+		private.unconfirmedDelegates[trs.asset.delegate.publicKey] = 0;
 		modules.accounts.setAccountAndGet({
 			address: sender.address,
 			u_username: null,
@@ -132,8 +126,8 @@ function Delegate() {
 	}
 
 	this.undo = function (trs, sender, cb) {
-		delete private.votes[trs.asset.delegate.publicKey];
-		delete private.unconfirmedVotes[trs.asset.delegate.publicKey];
+		delete private.delegates[trs.asset.delegate.publicKey];
+		delete private.unconfirmedDelegates[trs.asset.delegate.publicKey];
 		modules.accounts.setAccountAndGet({
 			address: sender.address,
 			username: null,
@@ -287,101 +281,40 @@ function attachApi() {
 				},
 				orderBy: {
 					type: "string"
-				},
-				active: {
-					type: "boolean"
 				}
 			}
 		}, function (err, report, query) {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
 
-			var limit = query.limit,
-				offset = query.offset,
-				orderField = query.orderBy,
-				active = query.active;
+			var orderField = query.orderBy ? query.orderBy.split(':') : null;
+			orderField[1] = orderField[1] == "desc" ? -1 : 1;
 
-			orderField = orderField ? orderField.split(':') : null;
-			limit = limit > 101 ? 101 : limit;
-			var orderBy = orderField ? orderField[0] : null;
-			var sortMode = orderField && orderField.length == 2 ? orderField[1] : 'asc';
-			var publicKeys = Object.keys(private.publicKeyIndex);
-			var count = publicKeys.length;
-			var length = Math.min(limit, count);
-			var realLimit = Math.min(offset + limit, count);
+			var orderBy;
 
-			if (active === true) {
-				publicKeys = publicKeys.slice(0, 101);
-			} else if (active === false) {
-				publicKeys = publicKeys.slice(101, publicKeys.length);
-			}
+			orderBy = {};
+			orderBy[orderField[0]] = orderField[1];
 
-			var rateSort = {};
-			private.getKeysSortByVote(publicKeys, private.votes)
-				.forEach(function (item, index) {
-					rateSort[item] = index + 1;
-				});
-
-			if (orderBy) {
-				if (orderBy == 'username') {
-					publicKeys = publicKeys.sort(function compare(a, b) {
-						if (sortMode == 'asc') {
-							if (private.delegates[private.publicKeyIndex[a]][orderBy] < private.delegates[private.publicKeyIndex[b]][orderBy])
-								return -1;
-							if (private.delegates[private.publicKeyIndex[a]][orderBy] > private.delegates[private.publicKeyIndex[b]][orderBy])
-								return 1;
-						} else if (sortMode == 'desc') {
-							if (private.delegates[private.publicKeyIndex[a]][orderBy] > private.delegates[private.publicKeyIndex[b]][orderBy])
-								return -1;
-							if (private.delegates[private.publicKeyIndex[a]][orderBy] < private.delegates[private.publicKeyIndex[b]][orderBy])
-								return 1;
-						}
-						return 0;
-					});
+			modules.accounts.getAccounts({
+				isDelegate: 1,
+				limit: query.limit > 101 ? 101 : query.limit,
+				offset: query.offset,
+				sort: orderBy
+			}, ["username", "address", "publicKey", "vote"], function (err, delegates) {
+				if (err) {
+					return res.json({success: false, error: err.toString()});
 				}
-				if (orderBy == 'vote') {
-					publicKeys = publicKeys.sort(function compare(a, b) {
 
-						if (sortMode == 'asc') {
-							if (private.votes[a] < private.votes[b])
-								return -1;
-							if (private.votes[a] > private.votes[b])
-								return 1;
-						} else if (sortMode == 'desc') {
-							if (private.votes[a] > private.votes[b])
-								return -1;
-							if (private.votes[a] < private.votes[b])
-								return 1;
-						}
-						return 0;
-					});
+				var stat = modules.delegates.getStats();
+
+				for (var i = 0; i < delegates.length; i++) {
+					delegates[i].vote = stat.votes[delegates[i].publicKey];
+					delegates[i].rate = stat.rates[delegates[i].publicKey];
+					delegates[i].productivity = stat.productivities[delegates[i].publicKey];
 				}
-				if (orderBy == 'rate') {
-					publicKeys = publicKeys.sort(function compare(a, b) {
 
-						if (sortMode == 'asc') {
-							if (rateSort[a] < rateSort[b])
-								return -1;
-							if (rateSort[a] > rateSort[b])
-								return 1;
-						} else if (sortMode == 'desc') {
-							if (rateSort[a] > rateSort[b])
-								return -1;
-							if (rateSort[a] < rateSort[b])
-								return 1;
-						}
-						return 0;
-					});
-				}
-			}
-
-			publicKeys = publicKeys.slice(offset, realLimit);
-
-			var result = publicKeys.map(function (publicKey) {
-				return private.getDelegate({publicKey: publicKey}, rateSort);
+				res.json({success: true, delegates: delegates, totalCount: Object.keys(private.delegates).length});
 			});
-
-			res.json({success: true, delegates: result, totalCount: count});
 		});
 	});
 
@@ -403,12 +336,35 @@ function attachApi() {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
 
-			var delegate = private.getDelegate(query);
-			if (delegate) {
-				res.json({success: true, delegate: delegate});
-			} else {
-				res.json({success: false, error: errorCode("DELEGATES.DELEGATE_NOT_FOUND")});
+			var filter = {};
+			if (query.transactionId) {
+				filter.transactionId = query.transactionId;
 			}
+			if (query.publicKey) {
+				filter.publicKey = query.publicKey;
+			}
+			if (query.username) {
+				filter.username = query.username;
+			}
+
+			modules.accounts.getAccounts(filter, ["username", "address", "publicKey"], function (err, delegate) {
+				if (err) {
+					return res.json({success: false, error: err.toString()});
+				}
+
+				var stat = modules.delegates.getStats();
+
+				delegate.vote = stat.votes[delegate.publicKey];
+				delegate.rate = stat.rates[delegate.publicKey];
+				delegate.productivity = stat.productivities[delegate.publicKey];
+
+
+				if (delegate) {
+					res.json({success: true, delegate: delegate});
+				} else {
+					res.json({success: false, error: errorCode("DELEGATES.DELEGATE_NOT_FOUND")});
+				}
+			});
 		});
 	});
 
@@ -641,51 +597,6 @@ function attachApi() {
 	});
 }
 
-private.getDelegate = function (filter, rateSort) {
-	var index;
-
-	if (filter.transactionId) {
-		index = private.transactionIdIndex[filter.transactionId];
-	}
-	if (filter.publicKey) {
-		index = private.publicKeyIndex[filter.publicKey];
-	}
-	if (filter.username) {
-		index = private.namesIndex[filter.username.toLowerCase()];
-	}
-
-	if (index === undefined) {
-		return false;
-	}
-
-	if (!rateSort) {
-		rateSort = {};
-		private.getKeysSortByVote(Object.keys(private.publicKeyIndex), private.votes)
-			.forEach(function (item, index) {
-				rateSort[item] = index + 1;
-			});
-	}
-
-	var delegate = private.delegates[index];
-
-	var stat = modules.round.blocksStat(delegate.publicKey);
-
-	var percent = 100 - (stat.missed / ((stat.forged + stat.missed) / 100));
-	var novice = stat.missed === null && stat.forged === null;
-	var outsider = rateSort[delegate.publicKey] > slots.delegates && novice;
-	var productivity = novice ? 0 : parseFloat(Math.floor(percent * 100) / 100).toFixed(2)
-
-	return {
-		username: delegate.username,
-		address: delegate.address,
-		publicKey: delegate.publicKey,
-		transactionId: delegate.transactionId,
-		vote: private.votes[delegate.publicKey],
-		rate: rateSort[delegate.publicKey],
-		productivity: outsider ? null : productivity
-	};
-}
-
 private.getKeysSortByVote = function (keys, votes) {
 	return keys.sort(function compare(a, b) {
 		if (votes[a] > votes[b]) return -1;
@@ -788,8 +699,28 @@ private.loadMyDelegates = function (cb) {
 }
 
 //public methods
+Delegates.prototype.getStats = function () {
+	var rateSort = {}, productivity = {};
+	private.getKeysSortByVote(Object.keys(private.delegates), private.delegates)
+		.forEach(function (item, index) {
+			rateSort[item] = index + 1;
+		});
+
+	Object.keys(private.delegates).forEach(function (publicKey) {
+		var stat = modules.round.blocksStat(publicKey);
+
+		var percent = 100 - (stat.missed / ((stat.forged + stat.missed) / 100));
+		var novice = stat.missed === null && stat.forged === null;
+		var outsider = rateSort[publicKey] > slots.delegates && novice;
+		productivity[publicKey] = !outsider ? novice ? 0 : parseFloat(Math.floor(percent * 100) / 100).toFixed(2) : null
+	});
+
+	return {votes: private.delegates, rates: rateSort, productivities: productivity}
+
+}
+
 Delegates.prototype.generateDelegateList = function (height) {
-	var sortedDelegateList = private.getKeysSortByVote(Object.keys(private.votes), private.votes);
+	var sortedDelegateList = private.getKeysSortByVote(Object.keys(private.delegates), private.delegates);
 	var truncDelegateList = sortedDelegateList.slice(0, slots.delegates);
 	var seedSource = modules.round.calc(height).toString();
 
@@ -827,7 +758,7 @@ Delegates.prototype.checkDelegates = function (publicKey, votes, cb) {
 					return cb("wrong public key");
 				}
 
-				if (private.votes[publicKey] === undefined) {
+				if (private.delegates[publicKey] === undefined) {
 					return cb("Your delegate not found");
 				}
 
@@ -866,7 +797,7 @@ Delegates.prototype.checkUnconfirmedDelegates = function (publicKey, votes, cb) 
 					return cb("wrong public key");
 				}
 
-				if (private.unconfirmedVotes[publicKey] === undefined) {
+				if (private.unconfirmedDelegates[publicKey] === undefined) {
 					return cb("Your delegate not found");
 				}
 
@@ -887,7 +818,7 @@ Delegates.prototype.checkUnconfirmedDelegates = function (publicKey, votes, cb) 
 
 Delegates.prototype.fork = function (block, cause) {
 	library.logger.info('fork', {
-		delegate: private.getDelegate({publicKey: block.generatorPublicKey}),
+		delegate: block.generatorPublicKey,
 		block: {id: block.id, timestamp: block.timestamp, height: block.height, previousBlock: block.previousBlock},
 		cause: cause
 	});
@@ -942,19 +873,29 @@ Delegates.prototype.onBlockchainReady = function () {
 
 }
 
-Delegates.prototype.onNewBlock = function (block, broadcast) {
-	modules.round.tick(block);
-}
+//Delegates.prototype.onNewBlock = function (block, broadcast) {
+//	modules.round.tick(block);
+//}
 
 Delegates.prototype.onChangeBalance = function (delegates, amount) {
 	modules.round.runOnFinish(function (cb) {
 		var vote = amount;
 
 		delegates.forEach(function (publicKey) {
-			private.votes[publicKey] !== undefined && (private.votes[publicKey] += vote);
+			private.delegates[publicKey] !== undefined && (private.delegates[publicKey] += vote);
 		});
 
-		setImmediate(cb);
+		var _delegates = delegates.map(function (delegate) {
+			return '"' + modules.accounts.generateAddressByPublicKey(delegate) + '"';
+		});
+
+		if (_delegates && _delegates.length) {
+			library.dbLite.query('update mem_accounts set vote = vote + $vote where address in (' + _delegates.join(',') + ')', {vote: vote}, function (err, data) {
+				cb();
+			});
+		} else {
+			cb();
+		}
 	});
 }
 
@@ -962,7 +903,7 @@ Delegates.prototype.onChangeUnconfirmedBalance = function (unconfirmedDelegates,
 	var vote = amount;
 
 	unconfirmedDelegates.forEach(function (publicKey) {
-		private.unconfirmedVotes[publicKey] !== undefined && (private.unconfirmedVotes[publicKey] += vote);
+		private.unconfirmedDelegates[publicKey] !== undefined && (private.unconfirmedDelegates[publicKey] += vote);
 	});
 }
 
@@ -970,18 +911,41 @@ Delegates.prototype.onChangeDelegates = function (balance, diff) {
 	modules.round.runOnFinish(function (cb) {
 		var vote = balance;
 
+		var _delegatesRemove = [];
+
+		var _delegatesAdd = [];
+
 		for (var i = 0; i < diff.length; i++) {
 			var math = diff[i][0];
 			var publicKey = diff[i].slice(1);
 			if (math == "+") {
-				private.votes[publicKey] !== undefined && (private.votes[publicKey] += vote);
+				_delegatesAdd.push('"' + modules.accounts.generateAddressByPublicKey(publicKey) + '"')
+				private.delegates[publicKey] !== undefined && (private.delegates[publicKey] += vote);
 			}
 			if (math == "-") {
-				private.votes[publicKey] !== undefined && (private.votes[publicKey] -= vote);
+				_delegatesRemove.push('"' + modules.accounts.generateAddressByPublicKey(publicKey) + '"')
+				private.delegates[publicKey] !== undefined && (private.delegates[publicKey] -= vote);
 			}
 		}
 
-		setImmediate(cb);
+		async.series([
+			function (cb) {
+				if (!_delegatesAdd.length) {
+					return cb();
+				}
+				library.dbLite.query('update mem_accounts set vote = vote + $vote where address in (' + _delegatesAdd.join(',') + ')', {vote: vote}, function (err, data) {
+					cb();
+				});
+			},
+			function (cb) {
+				if (!_delegatesRemove.length) {
+					return cb();
+				}
+				library.dbLite.query('update mem_accounts set vote = vote - $vote where address in (' + _delegatesRemove.join(',') + ')', {vote: vote}, function (err, data) {
+					cb();
+				});
+			}
+		], cb);
 	});
 }
 
@@ -992,10 +956,10 @@ Delegates.prototype.onChangeUnconfirmedDelegates = function (balance, diff) {
 		var math = diff[i][0];
 		var publicKey = diff[i].slice(1);
 		if (math == "+") {
-			private.unconfirmedVotes[publicKey] !== undefined && (private.unconfirmedVotes[publicKey] += vote);
+			private.unconfirmedDelegates[publicKey] !== undefined && (private.unconfirmedDelegates[publicKey] += vote);
 		}
 		if (math == "-") {
-			private.unconfirmedVotes[publicKey] !== undefined && (private.unconfirmedVotes[publicKey] -= vote);
+			private.unconfirmedDelegates[publicKey] !== undefined && (private.unconfirmedDelegates[publicKey] -= vote);
 		}
 	}
 }

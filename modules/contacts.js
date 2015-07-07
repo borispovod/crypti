@@ -198,7 +198,7 @@ function attachApi() {
 						if (!account.contacts.length) {
 							return cb(null, []);
 						}
-						modules.accounts.getAccounts({address: {$in: account.contacts}} ["address", "username"], cbº);
+						modules.accounts.getAccounts({address: {$in: account.contacts}} ["address", "username"], cb);
 					},
 					followers: function (cb) {
 						if (!account.followers.length) {
