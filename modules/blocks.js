@@ -27,7 +27,8 @@ private.blocksDataFields = {
 	'v_votes': String,
 	'c_address': String,
 	'u_alias': String,
-	'm_min': Number, 'm_lifetime': Number, 'm_dependence': String, 'm_signatures': String
+	'm_min': Number, 'm_lifetime': Number, 'm_dependence': String, 'm_signatures': String,
+	'dapp_name': String, 'dapp_description': String, 'dapp_tags': String, 'dapp_type': Number, 'dapp_nickname': String, 'dapp_git': String, 'dapp_category': Number
 };
 // @formatter:on
 
@@ -534,6 +535,7 @@ Blocks.prototype.loadBlocksData = function (filter, options, cb) {
 	"left outer join contacts as c on c.transactionId=t.id " +
 	"left outer join usernames as u on u.transactionId=t.id " +
 	"left outer join multisignatures as m on m.transactionId=t.id " +
+	"left outer join dapps as dapp on dapp.transactionId=t.id " +
 	"ORDER BY b.height, t.rowid" +
 	"", params, fields, cb);
 };
@@ -576,6 +578,7 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 	"left outer join contacts as c on c.transactionId=t.id " +
 	"left outer join usernames as u on u.transactionId=t.id " +
 	"left outer join multisignatures as m on m.transactionId=t.id " +
+	"left outer join dapps as dapp on dapp.transactionId=t.id " +
 	"ORDER BY b.height, t.rowid" +
 	"", params, private.blocksDataFields, function (err, rows) {
 		// Some notes:
