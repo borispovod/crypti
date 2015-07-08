@@ -265,7 +265,7 @@ private.downloadDApp = function (dApp, cb) {
 private.launch = function (dApp, cb) {
 	var dappPath = path.join(private.dappsPath, dApp.transactionId);
 	var dappPublicPath = path.join(dappPath, "public");
-	var dappPublicLink = path.join(private.appPath, "public", "dapps", id);
+	var dappPublicLink = path.join(private.appPath, "public", "dapps", dApp.transactionId);
 
 	fs.exists(dappPublicPath, function (exists) {
 		if (exists) {
@@ -284,9 +284,9 @@ private.launch = function (dApp, cb) {
 
 
 private.stop = function (dApp, cb) {
-	var dappPublicLink = path.join(private.appPath, "public", "dapps", id);
+	var dappPublicLink = path.join(private.appPath, "public", "dapps", dApp.transactionId);
 
-	fs.exists(dappPublicPath, function (exists) {
+	fs.exists(dappPublicLink, function (exists) {
 		if (exists) {
 			fs.unlink(dappPublicLink, function (err) {
 				if (err) {
