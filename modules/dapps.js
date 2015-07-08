@@ -305,8 +305,8 @@ function DApp() {
 				return setImmediate(cb, errorCode("DAPPS.GIT_AND_SIA"));
 			}
 
-			if (!(/^git\@git.com\:.+.git$/.test(trs.asset.dapp.git))) {
-				return setImmediate(cb, erroCode("DAPPS.INVALID_GIT"));
+			if (!(/^git\@github\.com\:.+\.git$/.test(trs.asset.dapp.git))) {
+				return setImmediate(cb, errorCode("DAPPS.INVALID_GIT"));
 			}
 		}
 
@@ -337,29 +337,29 @@ function DApp() {
 				return setImmediate(cb, errorCode("DAPPS.EXISTS_DAPP_NAME"));
 			}
 
-			if (trs.asset.dapp.git) {
+			if (trs.asset.dapp.nickcname) {
 				library.dbLite.query("SELECT count(transactionId) FROM dapps WHERE nickname = $nickname", {
 					nickname: trs.asset.dapp.nickname
 				}, ['count'], function (err, rows) {
-					if (err || rows.length == 0) {
+					if (err) {
 						return setImmediate(cb, "Sql error");
 					}
 
-					if (rows[0].count > 0) {
+					if (rows.length > 0 && rows[0].count > 0) {
 						return setImmediate(cb, errorCode("DAPPS.EXISTS_DAPP_NICKNAME"));
 					}
 
 					return setImmediate(cb);
 				});
-			} else if (trs.asset.dapp.nickname) {
+			} else if (trs.asset.dapp.git) {
 				library.dbLite.query("SELECT count(transactionId) FROM dapps WHERE git = $git", {
 					git: trs.asset.dapp.git
 				}, ['count'], function (err, rows) {
-					if (err || rows.length == 0) {
+					if (err) {
 						return setImmediate(cb, "Sql error");
 					}
 
-					if (rows[0].count > 0) {
+					if (rows.length > 0 && rows[0].count > 0) {
 						return setImmediate(cb, errorCode("DAPPS.EXISTS_DAPP_GIT"));
 					}
 
@@ -497,10 +497,10 @@ function DApp() {
 		library.dbLite.query("INSERT INTO dapps(type, name, description, tags, nickname, git, category, transactionId) VALUES($type, $name, $description, $tags, $nickname, $git, $category, $transactionId)", {
 			type: trs.asset.dapp.type,
 			name: trs.asset.dapp.name,
-			description: trs.asset.dapp.description,
-			tags: trs.asset.dapp.tags,
-			nickname: trs.asset.dapp.nickname,
-			git: trs.asset.dapp.git,
+			description: trs.asset.dapp.description || null,
+			tags: trs.asset.dapp.tags || null,
+			nickname: trs.asset.dapp.nickname || null,
+			git: trs.asset.dapp.git || null,
 			category: trs.asset.dapp.category,
 			transactionId: trs.id
 		}, cb);
@@ -625,8 +625,6 @@ function attachApi() {
 						git: body.git
 					});
 
-					console.log("here: " );
-
 					modules.transactions.receiveTransactions([transaction], cb);
 				});
 			}, function (err, transaction) {
@@ -717,7 +715,7 @@ function attachApi() {
 	});
 
 	router.post('/install', function (req, res, next) {
-		req.sanitize(req.query, {
+		req.sanitize(req.body, {
 			type: "object",
 			properties: {
 				id: {
@@ -726,26 +724,24 @@ function attachApi() {
 				}
 			},
 			required: ["id"]
-		}, function (err, report, query) {
+		}, function (err, report, body) {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
 
-			private.get(query.id, function (err, dapp) {
+			private.get(body.id, function (err, dapp) {
 				if (err) {
 					return res.json({success: false, error: err});
 				}
 
 				// check that dapp already installed here in feature
 
-				if (private.loading[query.id]) {
-					return res.json({success: false, error: "This DApp already on downloading"});
+				if (private.removing[body.id] || private.loading[body.id]) {
+					return res.json({success: false, error: "This DApp already on downloading/removing"});
 				}
 
-				private.loading[query.id] = true;
+				private.loading[body.id] = true;
 
 				private.downloadDApp(dapp, function (err, dappPath) {
-					private.loading[query.id] = false;
-
 					if (err) {
 						return res.json({success: false, error: err});
 					} else {
@@ -753,21 +749,24 @@ function attachApi() {
 							private.installDependencies(dapp, function (err) {
 								if (err) {
 									library.logger.error(err);
-									private.removing[query.id] = true;
+									private.removing[body.id] = true;
 									private.removeDApp(dapp, function (err) {
-										private.removing[query.id] = false;
+										private.removing[body.id] = false;
 
 										if (err) {
 											library.logger.error(err);
 										}
 
+										private.loading[body.id] = false;
 										return res.json({success: false, error: "Can't install DApp dependencies, check logs"});
 									});
 								} else {
+									private.loading[body.id] = false;
 									return res.json({success: true, path: dappPath});
 								}
 							})
 						} else {
+							private.loading[body.id] = false;
 							return res.json({success: true, path: dappPath});
 						}
 					}
@@ -788,7 +787,7 @@ function attachApi() {
 	});
 
 	router.post('/uninstall', function (req, res, next) {
-		req.sanitize(req.query, {
+		req.sanitize(req.body, {
 			type: "object",
 			properties: {
 				id: {
@@ -797,24 +796,24 @@ function attachApi() {
 				}
 			},
 			required: ["id"]
-		}, function (err, report, query) {
+		}, function (err, report, body) {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
 
-			private.get(query.id, function (err, dapp) {
+			private.get(body.id, function (err, dapp) {
 				if (err) {
 					return res.json({success: false, error: err});
 				}
 
-				if (private.removing[query.id]) {
-					return res.json({success: true, error: "This DApp already on uninstall"});
+				if (private.removing[body.id] || private.loading[body.id]) {
+					return res.json({success: true, error: "This DApp already on uninstall/loading"});
 				}
 
-				private.removing[query.id] = true;
+				private.removing[body.id] = true;
 
 				// later - first we run uninstall
 				private.removeDApp(dapp, function (err) {
-					private.removing[query.id] = false;
+					private.removing[body.id] = false;
 
 					if (err) {
 						return res.json({success: false, error: err});
