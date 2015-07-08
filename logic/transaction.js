@@ -93,8 +93,6 @@ Transaction.prototype.getBytes = function (trs, skipSignature, skipSecondSignatu
 		throw Error('Unknown transaction type ' + trs.type);
 	}
 
-	console.log(trs);
-
 	try {
 		var assetBytes = private.types[trs.type].getBytes.call(this, trs, skipSignature, skipSecondSignature);
 		var assetSize = assetBytes ? assetBytes.length : 0;
