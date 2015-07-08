@@ -4,7 +4,7 @@ var node = require('./../variables.js'),
 var account = node.randomAccount();
 var account2 = node.randomAccount();
 
-describe.skip("Peer contacts", function () {
+describe("Peer contacts", function () {
 	before(function (done) {
 		node.api.post('/accounts/open')
 			.set('Accept', 'application/json')
@@ -41,7 +41,7 @@ describe.skip("Peer contacts", function () {
 			.expect('Content-Type', /json/)
 			.expect(200)
 			.end(function (err, res) {
-				console.log(res.body);
+				//console.log(res.body);
 				node.expect(res.body).to.have.property("success").to.be.false;
 				done();
 			});
@@ -58,7 +58,7 @@ describe.skip("Peer contacts", function () {
 			.expect('Content-Type', /json/)
 			.expect(200)
 			.end(function (err, res) {
-				console.log(res.body);
+				//console.log(res.body);
 				node.expect(res.body).to.have.property("success").to.be.false;
 				node.onNewBlock(done);
 			});
@@ -76,7 +76,7 @@ describe.skip("Peer contacts", function () {
 			.expect('Content-Type', /json/)
 			.expect(200)
 			.end(function (err, res) {
-				console.log(res.body);
+				//console.log(res.body);
 				node.expect(res.body).to.have.property("success").to.be.true;
 				node.onNewBlock(done);
 			});
@@ -92,7 +92,7 @@ describe.skip("Peer contacts", function () {
 			.expect('Content-Type', /json/)
 			.expect(200)
 			.end(function (err, res) {
-				console.log(res.body);
+				//console.log(res.body);
 				node.expect(res.body).to.have.property("success").to.be.false;
 				node.onNewBlock(done);
 			});

@@ -4,7 +4,7 @@ var node = require('./../variables.js'),
 var account = node.randomAccount();
 var account2 = node.randomAccount();
 
-describe.skip("Peers delegates transactions", function () {
+describe("Peers delegates transactions", function () {
 	it("Create delegate with incorrect username. Should return not ok", function (done) {
 		node.api.post('/accounts/open')
 			.set('Accept', 'application/json')
@@ -36,7 +36,7 @@ describe.skip("Peers delegates transactions", function () {
 								.expect('Content-Type', /json/)
 								.expect(200)
 								.end(function (err, res) {
-									console.log(res.body);
+									//console.log(res.body);
 									node.expect(res.body).to.have.property("success").to.be.false;
 									done();
 								});
@@ -55,7 +55,7 @@ describe.skip("Peers delegates transactions", function () {
 			.expect('Content-Type', /json/)
 			.expect(200)
 			.end(function (err, res) {
-				console.log(res.body);
+				//console.log(res.body);
 				node.expect(res.body).to.have.property("success").to.be.false;
 				done();
 			});
@@ -72,7 +72,7 @@ describe.skip("Peers delegates transactions", function () {
 			.expect('Content-Type', /json/)
 			.expect(200)
 			.end(function (err, res) {
-				console.log(res.body);
+				//console.log(res.body);
 				node.expect(res.body).to.have.property("success").to.be.true;
 				done();
 			});
@@ -123,7 +123,7 @@ describe.skip("Peers delegates transactions", function () {
 										.expect('Content-Type', /json/)
 										.expect(200)
 										.end(function (err, res) {
-											console.log(res.body);
+											//console.log(res.body);
 											node.expect(res.body).to.have.property("success").to.be.false;
 											done();
 										});
