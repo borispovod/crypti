@@ -7,6 +7,8 @@ var async = require('async'),
 	gift = require('gift'),
 	path = require('path'),
 	npm = require('npm'),
+	slots = require('../helpers/slots.js'),
+	Router = require('../helpers/router.js'),
 	unzip = require('unzip');
 
 var modules, library, self, private = {};
@@ -151,7 +153,7 @@ private.removeDApp = function (dApp, cb) {
 		} else {
 			fs.unlink(dappPath, function (err) {
 				if (err) {
-					return setImmediate(cb, "Problem when removing folder of dapp: " dappPath);
+					return setImmediate(cb, "Problem when removing folder of dapp: ", dappPath);
 				} else {
 					return setImmediate(cb);
 				}
@@ -318,7 +320,7 @@ function DApp() {
 		}
 
 		library.dbLite.query("SELECT count(transactionId) FROM dapps WHERE name = $name", ['count'], {
-			name: trs.asset.dapp.name,
+			name: trs.asset.dapp.name
 		}, function (err, rows) {
 			if (err || rows.length == 0) {
 				return setImmediate(cb, "Sql error");

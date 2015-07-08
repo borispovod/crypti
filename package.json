@@ -49,6 +49,7 @@
     "strftime": "*",
     "toposort": "~0.2.10",
     "underscore": "https://github.com/crypti/underscore/tarball/master",
+    "unzip": "*",
     "usage": "^0.6.0",
     "util-extend": "*",
     "z-schema": "^3.12.0"
