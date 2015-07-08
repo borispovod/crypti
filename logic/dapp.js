@@ -5,7 +5,7 @@ var extend = require('extend');
 var private = {};
 
 //constructor
-function Dapp(dappid, cb) {
+function Dapp(dappid, config, cb) {
 	var self = this;
 	this.dappid = dappid;
 
