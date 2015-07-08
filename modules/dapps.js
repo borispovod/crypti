@@ -9,7 +9,9 @@ var async = require('async'),
 	npm = require('npm'),
 	slots = require('../helpers/slots.js'),
 	Router = require('../helpers/router.js'),
-	unzip = require('unzip');
+	unzip = require('unzip'),
+	crypto = require('crypto'),
+	ed = require('ed25519');
 
 var modules, library, self, private = {};
 
@@ -250,6 +252,9 @@ private.stopDApp = function (dApp, cb) {
 
 function DApp() {
 	this.create = function (data, trs) {
+		trs.recipientId = null;
+		trs.amount = 0;
+
 		trs.asset.dapp = {
 			category: dappCategory[data.category],
 			name: data.name,
@@ -257,7 +262,7 @@ function DApp() {
 			tags: data.tags,
 			type: data.type,
 			nickname: data.nickname,
-			git: data.git
+			git: data.git,
 		}
 
 		return trs;
@@ -391,6 +396,8 @@ function DApp() {
 			if (trs.asset.dapp.git) {
 				buf = buf.concat(new Buffer(trs.asset.dapp.git, 'utf8'));
 			}
+
+			console.log(trs.asset.dapp);
 
 			var bb = new ByteBuffer(4+4,true);
 			bb.writeInt(trs.asset.dapp.type);
@@ -568,7 +575,7 @@ function attachApi() {
 					minLength: 1
 				}
 			},
-			required: ["secret", "secondSecret", "type", "name", "category"]
+			required: ["secret", "type", "name", "category"]
 		}, function (err, report, body) {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
@@ -625,8 +632,6 @@ function attachApi() {
 				}
 				res.json({success: true, transaction: transaction[0]});
 			});
-
-
 		});
 	});
 
@@ -836,9 +841,8 @@ function DApps(cb, scope) {
 	library = scope;
 	self = this;
 	self.__private = private;
-	attachApi();
 	library.logic.transaction.attachAssetType(TransactionTypes.DAPP, new DApp());
-
+	attachApi();
 
 	private.createBasePathes(function (err) {
 		setImmediate(cb, err, self);
