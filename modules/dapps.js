@@ -121,8 +121,9 @@ private.createBasePathes = function (cb) {
 				}
 			});
 		}
-	])
-
+	], function (err) {
+		return setImmediate(cb, err);
+	});
 }
 
 private.installDependencies = function (dApp, cb) {
