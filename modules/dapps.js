@@ -285,7 +285,7 @@ function DApp() {
 		if (trs.asset.dapp.nickname) {
 			isSia = true;
 			if (!trs.asset.dapp.nickname || trs.asset.dapp.nickname.trim().length == 0) {
-				return setImmediate(cb, errorCode("DAPPS.EMTRY_NICKNAME"));
+				return setImmediate(cb, errorCode("DAPPS.EMPTY_NICKNAME"));
 			}
 		}
 
@@ -339,7 +339,7 @@ function DApp() {
 					}
 
 					if (rows[0].count > 0) {
-						return setImmediate(cb, errorCode("DAPPS.EXISTS_DAPP_ASCII_CODE"));
+						return setImmediate(cb, errorCode("DAPPS.EXISTS_DAPP_NICKNAME"));
 					}
 
 					return setImmediate(cb);

@@ -259,9 +259,51 @@ var errorCodes = {
 			args: []
 		}
 	},
-	DAPP: {
+	DAPPS: {
 		EXISTS_DAPP: {
 			message: "This DApp already exists"
+		},
+		UNKNOWN_CATEGORY: {
+			message: "Unknown category of DApp"
+		},
+		EMPTY_NICKNAME: {
+			message: "Empty sia file nickname of DApp"
+		},
+		UNKNOWN_TYPE: {
+			message: "Unknown type of DApp"
+		},
+		GIT_AND_SIA: {
+			message: "DApp contains link to github and sia storage in same time, it's not possible"
+		},
+		INVALID_GIT: {
+			message: "DApp contains incorrect git link"
+		},
+		EMPTY_NAME: {
+			message: "Incorrect DApp name, it's empty"
+		},
+		TOO_LONG_NAME: {
+			message: "Incorrect DApp name, it's too long"
+		},
+		TOO_LONG_DESCRIPTION: {
+			message: "Too long description of DApp"
+		},
+		TOO_LONG_TAGS: {
+			message: "Too long tags of DApp"
+		},
+		EXISTS_DAPP_NAME: {
+			message: "DApp with this name already exists"
+		},
+		EXISTS_DAPP_NICKNAME: {
+			message: "DApp with this sia file nickname already exists"
+		},
+		EXISTS_DAPP_GIT: {
+			message: "DApp with this git link already exists"
+		},
+		INCORRECT_LINK: {
+			message: "DApp must contain sia file nickname or link"
+		},
+		DAPPS_NOT_FOUND: {
+			message: "DApps not found"
 		}
 	}
 }
