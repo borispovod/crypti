@@ -983,6 +983,10 @@ function DApps(cb, scope) {
 		var keys = Object.keys(private.launched);
 
 		async.eachSeries(keys, function (id, cb) {
+			if (!private.launched[id]) {
+				return setImmediate(cb);
+			}
+
 			self.stop({
 				transactionId: id
 			}, function (err) {
