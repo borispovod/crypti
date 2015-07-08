@@ -16,3 +16,4 @@ bfg.jar
 *.zip
 .directory
 ssl/
+dapps/
