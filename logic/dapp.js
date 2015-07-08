@@ -5,10 +5,9 @@ var extend = require('extend');
 var private = {};
 
 //constructor
-function Dapp(dappid, config, scope, cb) {
+function Dapp(dappid, cb) {
 	var self = this;
 	this.dappid = dappid;
-	this.scope = scope;
 
 	var sqles = [];
 	for (var i = 0; i < config.length; i++) {
@@ -23,14 +22,12 @@ function Dapp(dappid, config, scope, cb) {
 	}
 
 	async.eachSeries(sqles, function (command, cb) {
-		scope.dbLite.query(command, function (err, data) {
+		private.dbLite.query(command, function (err, data) {
 			cb(err, data);
 		});
 	}, function (err) {
 		setImmediate(cb, err, self);
 	});
-
-	cb(null, this);
 }
 
 private.query = function (action, config, cb) {
@@ -42,7 +39,7 @@ private.query = function (action, config, cb) {
 
 	var sql = jsonSql.build(extend(config, defaultConfig));
 
-	this.scope.dbLite.query(sql.query, sql.values, function (err, data) {
+	private.dbLite.query(sql.query, sql.values, function (err, data) {
 		cb(err, data);
 	});
 }
@@ -64,4 +61,7 @@ Dapp.prototype.remove = function (config, cb) {
 }
 
 //export
-module.exports = Dapp;
+module.exports = function(dbLite){
+	private.dbLite = dbLite;
+	return Dapp;
+};

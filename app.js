@@ -240,7 +240,7 @@ d.run(function () {
 
 			var ignore = ['id', 'blockId', 'transactionId', 'address', 'recipientId', 'senderId', 'senderUsername', 'recipientUsername', 'previousBlock'];
 			scope.network.app.use(queryParser({
-				parser: function(value, radix, name) {
+				parser: function (value, radix, name) {
 					if (ignore.indexOf(name) >= 0) {
 						return value;
 					}
@@ -331,6 +331,12 @@ d.run(function () {
 			var dbLite = require('./helpers/dbLite.js');
 			dbLite.connect(config.db, cb);
 		},
+
+		DappApi: ["dbLite", function (cb, scope) {
+			var Dapp = require('./logic/dapp.js');
+
+			cb(null, Dapp(scope.dbLite));
+		}],
 
 		logic: ['dbLite', 'bus', 'scheme', function (cb, scope) {
 			var Transaction = require('./logic/transaction.js');
