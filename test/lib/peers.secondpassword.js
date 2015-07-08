@@ -5,7 +5,7 @@ var account = node.randomAccount();
 var account2 = node.randomAccount();
 var account3 = node.randomAccount();
 
-describe.skip("Peers second signature transactions", function () {
+describe("Peers second signature transactions", function () {
 	it("Send second signature from account that doesn't have it. Should return not ok", function (done) {
 		var transaction = node.crypti.transaction.createTransaction("1C", 1, node.peers_config.account, account.secondPassword);
 		node.peer.post('/transactions')
@@ -16,7 +16,7 @@ describe.skip("Peers second signature transactions", function () {
 			.expect('Content-Type', /json/)
 			.expect(200)
 			.end(function (err, res) {
-				console.log(res.body);
+				//console.log(res.body);
 				node.expect(res.body).to.have.property("success").to.be.false;
 				done();
 			});
@@ -32,7 +32,7 @@ describe.skip("Peers second signature transactions", function () {
 			.expect('Content-Type', /json/)
 			.expect(200)
 			.end(function (err, res) {
-				console.log(res.body);
+				//console.log(res.body);
 				node.expect(res.body).to.have.property("success").to.be.false;
 				done();
 			});
@@ -58,7 +58,7 @@ describe.skip("Peers second signature transactions", function () {
 					.expect('Content-Type', /json/)
 					.expect(200)
 					.end(function (err, res) {
-						console.log(res.body);
+						//console.log(res.body);
 						node.expect(res.body).to.have.property("success").to.be.true;
 
 						node.onNewBlock(function (err) {
@@ -92,7 +92,7 @@ describe.skip("Peers second signature transactions", function () {
 			.expect('Content-Type', /json/)
 			.expect(200)
 			.end(function (err, res) {
-				console.log(res.body);
+				//console.log(res.body);
 				node.expect(res.body).to.have.property("success").to.be.true;
 				done();
 			});
@@ -108,7 +108,7 @@ describe.skip("Peers second signature transactions", function () {
 			.expect('Content-Type', /json/)
 			.expect(200)
 			.end(function (err, res) {
-				console.log(res.body);
+				//console.log(res.body);
 				node.expect(res.body).to.have.property("success").to.be.false;
 				done();
 			});
@@ -126,7 +126,7 @@ describe.skip("Peers second signature transactions", function () {
 			.expect('Content-Type', /json/)
 			.expect(200)
 			.end(function (err, res) {
-				console.log(res.body);
+				//console.log(res.body);
 				node.expect(res.body).to.have.property("success").to.be.false;
 				done();
 			});
@@ -141,7 +141,7 @@ describe.skip("Peers second signature transactions", function () {
 			.expect('Content-Type', /json/)
 			.expect(200)
 			.end(function (err, res) {
-				console.log(res.body);
+				//console.log(res.body);
 				node.expect(res.body).to.have.property('success').to.be.true;
 				account2.address = res.body.account.address;
 				node.api.put('/transactions')
@@ -154,7 +154,7 @@ describe.skip("Peers second signature transactions", function () {
 					.expect('Content-Type', /json/)
 					.expect(200)
 					.end(function (err, res) {
-						console.log(res.body);
+						//console.log(res.body);
 						node.expect(res.body).to.have.property('success').to.be.true;
 						node.onNewBlock(function (err) {
 							node.expect(err).to.be.not.ok;
@@ -176,7 +176,7 @@ describe.skip("Peers second signature transactions", function () {
 										.expect('Content-Type', /json/)
 										.expect(200)
 										.end(function (err, res) {
-											console.log(res.body);
+											//console.log(res.body);
 											node.expect(res.body).to.have.property('success').to.be.false;
 											done();
 										});

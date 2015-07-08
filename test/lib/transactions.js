@@ -28,7 +28,7 @@ console.log("Password for Account 2 is: " + Account2.password);
 
 // Starting tests //
 
-describe.skip('Transactions', function() {
+describe('Transactions', function() {
 
     before(function (done) {
         /*
@@ -43,7 +43,7 @@ describe.skip('Transactions', function() {
          .expect('Content-Type', /json/)
          .expect(200)
          .end(function (err, res) {
-         console.log(res.body);
+         //console.log(res.body);
          node.expect(res.body).to.have.property("success").to.be.true;
          account.address = res.body.account.address;
          account.publicKey = res.body.account.publicKey;
@@ -72,7 +72,7 @@ describe.skip('Transactions', function() {
          .expect('Content-Type', /json/)
          .expect(200)
          .end(function (err, res) {
-         console.log(res.body);
+         //console.log(res.body);
          console.log('Sent to ' + account.address + ' ' + (randomXCR / node.normalizer) + ' XCR');
          console.log('Expected fee (paid by sender): ' + expectedFee / node.normalizer + ' XCR');
          node.expect(res.body).to.have.property("success").to.be.true;
@@ -110,7 +110,7 @@ describe.skip('Transactions', function() {
             .expect('Content-Type', /json/)
             .expect(200)
             .end(function (err, res) {
-                console.log(res.body);
+                //console.log(res.body);
                 console.log('Opening Account 1 with password: ' + Account1.password);
                 node.expect(res.body).to.have.property("success").to.be.true;
                 if (res.body.success == true && res.body.account != null){
@@ -137,7 +137,7 @@ describe.skip('Transactions', function() {
             .expect('Content-Type', /json/)
             .expect(200)
             .end(function (err, res) {
-                console.log(res.body);
+                //console.log(res.body);
                 console.log('Opening Account 2 with password: ' + Account2.password);
                 node.expect(res.body).to.have.property("success").to.be.true;
                 if (res.body.success == true && res.body.account != null) {
@@ -164,7 +164,7 @@ describe.skip('Transactions', function() {
             .expect('Content-Type', /json/)
             .expect(200)
             .end(function (err, res) {
-                console.log(res.body);
+                //console.log(res.body);
                 console.log('Opening Account 3 with password: ' + Account3.password);
                 node.expect(res.body).to.have.property("success").to.be.true;
                 if (res.body.success == true && res.body.account != null) {
@@ -196,7 +196,7 @@ describe.skip('Transactions', function() {
                 .expect('Content-Type', /json/)
                 .expect(200)
                 .end(function (err, res) {
-                    console.log(res.body);
+                    //console.log(res.body);
                     node.expect(res.body).to.have.property("success").to.be.true;
                     if (res.body.success == true && res.body.transactionId != null) {
                         console.log('Sent to ' + Account1.address + ' ' + (randomXCR / node.normalizer) + ' XCR');
@@ -245,7 +245,7 @@ describe.skip('Transactions', function() {
                 .expect('Content-Type', /json/)
                 .expect(200)
                 .end(function (err, res) {
-                    console.log(res.body);
+                    //console.log(res.body);
                     console.log('We send the XCR from foundation account to account. Recipient is: ' + Account2.address);
                     console.log('Sent to ' + Account2.address + ' ' + (randomXCR / node.normalizer) + ' XCR');
                     console.log('Expected fee (paid by sender): ' + expectedFee / node.normalizer + ' XCR');
@@ -301,7 +301,7 @@ describe.skip('Transactions', function() {
                     .expect('Content-Type', /json/)
                     .expect(200)
                     .end(function (err, res) {
-                        console.log(res.body);
+                        //console.log(res.body);
                         node.expect(res.body).to.have.property("success").to.be.true;
                         node.expect(res.body).to.have.property("transactions").that.is.an('array');
                         node.expect(res.body.transactions).to.have.length.within(transactionCount, limit);
@@ -329,7 +329,7 @@ describe.skip('Transactions', function() {
                     .expect('Content-Type', /json/)
                     .expect(200)
                     .end(function (err, res) {
-                        console.log(res.body);
+                        //console.log(res.body);
                         node.expect(res.body).to.have.property("success").to.be.false;
                         node.expect(res.body).to.have.property("error");
                         done();
@@ -346,7 +346,7 @@ describe.skip('Transactions', function() {
                         .expect('Content-Type', /json/)
                         .expect(200)
                         .end(function (err, res) {
-                            console.log(res.body);
+                            //console.log(res.body);
                             node.expect(res.body).to.have.property("success").to.be.true;
                             node.expect(res.body).to.have.property("transactions").that.is.an('array');
                             node.expect(res.body.transactions).to.have.length.within(transactionCount, limit);
@@ -380,7 +380,7 @@ describe.skip('Transactions', function() {
                         .expect('Content-Type', /json/)
                         .expect(200)
                         .end(function (err, res) {
-                            console.log(res.body);
+                            //console.log(res.body);
                             node.expect(res.body).to.have.property("success").to.be.true;
                             node.expect(res.body).to.have.property("transactions").that.is.an('array');
                             node.expect(res.body.transactions).to.have.length.within(transactionCount, limit);
@@ -400,7 +400,7 @@ describe.skip('Transactions', function() {
                     .expect('Content-Type', /json/)
                     .expect(200)
                     .end(function (err, res) {
-                        console.log(res.body);
+                        //console.log(res.body);
                         node.expect(res.body).to.have.property("success").to.be.false;
                         node.expect(res.body).to.have.property("error");
                         done();
@@ -416,7 +416,7 @@ describe.skip('Transactions', function() {
                     .expect('Content-Type', /json/)
                     .expect(200)
                     .end(function (err, res) {
-                        console.log(res.body);
+                        //console.log(res.body);
                         node.expect(res.body).to.have.property("success").to.be.true;
                         node.expect(res.body).to.have.property("transactions").that.is.an('array');
                         if (res.body.transactions.length > 0){
@@ -439,7 +439,7 @@ describe.skip('Transactions', function() {
                     .expect('Content-Type', /json/)
                     .expect(200)
                     .end(function (err, res) {
-                        console.log(res.body);
+                        //console.log(res.body);
                         node.expect(res.body).to.have.property("success").to.be.false;
                         node.expect(res.body).to.have.property("error");
                         done();
@@ -456,7 +456,7 @@ describe.skip('Transactions', function() {
 						.expect('Content-Type', /json/)
 						.expect(200)
 						.end(function (err, res) {
-							console.log(res.body);
+							//console.log(res.body);
 							node.expect(res.body).to.have.property("success").to.be.false;
 							node.expect(res.body).to.have.property("error");
 							/*
@@ -486,7 +486,7 @@ describe.skip('Transactions', function() {
                         .expect('Content-Type', /json/)
                         .expect(200)
                         .end(function (err, res) {
-                            console.log(res.body);
+                            //console.log(res.body);
                             node.expect(res.body).to.have.property("success").to.be.true;
                             node.expect(res.body).to.have.property("transactionId");
                             if (res.body.success == true && res.body.transactionId != null){
@@ -522,7 +522,7 @@ describe.skip('Transactions', function() {
                     .expect('Content-Type', /json/)
                     .expect(200)
                     .end(function (err, res) {
-                        console.log(res.body);
+                        //console.log(res.body);
                         node.expect(res.body).to.have.property("success"); //.to.be.true;
                         if (res.body.success == true){
                             if (res.body.transaction != null){
@@ -555,7 +555,7 @@ describe.skip('Transactions', function() {
                         .expect('Content-Type', /json/)
                         .expect(200)
                         .end(function (err, res) {
-                            console.log(res.body);
+                            //console.log(res.body);
                             node.expect(res.body).to.have.property("success").to.be.false;
                             node.expect(res.body).to.have.property("error");
                             done();
@@ -575,7 +575,7 @@ describe.skip('Transactions', function() {
                     .expect('Content-Type', /json/)
                     .expect(200)
                     .end(function (err, res) {
-                        console.log(res.body);
+                        //console.log(res.body);
                         node.expect(res.body).to.have.property("success").to.be.false;
                         node.expect(res.body).to.have.property("error");
                         done();
@@ -596,7 +596,7 @@ describe.skip('Transactions', function() {
                         .expect('Content-Type', /json/)
                         .expect(200)
                         .end(function (err, res) {
-                            console.log(res.body);
+                            //console.log(res.body);
                             node.expect(res.body).to.have.property("success").to.be.false;
                             node.expect(res.body).to.have.property("error");
                             done();
@@ -618,7 +618,7 @@ describe.skip('Transactions', function() {
                         .expect('Content-Type', /json/)
                         .expect(200)
                         .end(function (err, res) {
-                            console.log(res.body);
+                            //console.log(res.body);
                             node.expect(res.body).to.have.property("success").to.be.false;
                             node.expect(res.body).to.have.property("error");
                             done();
@@ -640,7 +640,7 @@ describe.skip('Transactions', function() {
                         .expect('Content-Type', /json/)
                         .expect(200)
                         .end(function (err, res) {
-                            console.log(res.body);
+                            //console.log(res.body);
                             node.expect(res.body).to.have.property("success").to.be.false;
                             node.expect(res.body).to.have.property("error");
                             done();
@@ -662,7 +662,7 @@ describe.skip('Transactions', function() {
                         .expect('Content-Type', /json/)
                         .expect(200)
                         .end(function (err, res) {
-                            console.log(res.body);
+                            //console.log(res.body);
                             node.expect(res.body).to.have.property("success").to.be.false;
                             node.expect(res.body).to.have.property("error");
                             done();
@@ -684,7 +684,7 @@ describe.skip('Transactions', function() {
                         .expect('Content-Type', /json/)
                         .expect(200)
                         .end(function (err, res) {
-                            console.log(res.body);
+                            //console.log(res.body);
                             node.expect(res.body).to.have.property("success").to.be.true;
 							node.expect(res.body).to.have.property("transactionId");
                             done();
@@ -706,7 +706,7 @@ describe.skip('Transactions', function() {
                         .expect('Content-Type', /json/)
                         .expect(200)
                         .end(function (err, res) {
-                            console.log(res.body);
+                            //console.log(res.body);
                             node.expect(res.body).to.have.property("success").to.be.false;
                             node.expect(res.body).to.have.property("error");
                             done();
@@ -726,7 +726,7 @@ describe.skip('Transactions', function() {
                     .expect('Content-Type', /json/)
                     .expect(200)
                     .end(function (err, res) {
-                        console.log(res.body);
+                        //console.log(res.body);
                         node.expect(res.body).to.have.property("success").to.be.false;
                         node.expect(res.body).to.have.property("error");
                         done();
@@ -745,7 +745,7 @@ describe.skip('Transactions', function() {
                     .expect('Content-Type', /json/)
                     .expect(200)
                     .end(function (err, res) {
-                        console.log(res.body);
+                        //console.log(res.body);
                         node.expect(res.body).to.have.property("success").to.be.false;
                         node.expect(res.body).to.have.property("error");
                         done();
@@ -760,7 +760,7 @@ describe.skip('Transactions', function() {
                     .expect('Content-Type', /json/)
                     .expect(200)
                     .end(function (err, res) {
-                        console.log(res.body);
+                        //console.log(res.body);
                         node.expect(res.body).to.have.property("success").to.be.true;
                         node.expect(res.body).to.have.property("transaction").that.is.an('object');
                         if (res.body.success == true && res.body.transaction.id != null){
@@ -786,7 +786,7 @@ describe.skip('Transactions', function() {
                     .expect('Content-Type', /json/)
                     .expect(200)
                     .end(function (err, res) {
-                        console.log(res.body);
+                        //console.log(res.body);
                         node.expect(res.body).to.have.property("success").to.be.false;
                         node.expect(res.body).to.have.property("error");
                         done();
@@ -800,7 +800,7 @@ describe.skip('Transactions', function() {
                     .expect('Content-Type', /json/)
                     .expect(200)
                     .end(function (err, res) {
-                        console.log(res.body);
+                        //console.log(res.body);
                         node.expect(res.body).to.have.property("success").to.be.true;
                         if (res.body.success == true && res.body.transactions != null){
                             for (var i=0; i < res.body.transactions.length; i++){
@@ -824,7 +824,7 @@ describe.skip('Transactions', function() {
                     .expect('Content-Type', /json/)
                     .expect(200)
                     .end(function (err, res) {
-                        console.log(res.body);
+                        //console.log(res.body);
                         node.expect(res.body).to.have.property("success").to.be.true;
                         node.expect(res.body).to.have.property("transactions").that.is.an('array');
                         done();
@@ -844,7 +844,7 @@ describe.skip('Transactions', function() {
                     .expect('Content-Type', /json/)
                     .expect(200)
                     .end(function (err, res) {
-                        console.log(res.body);
+                        //console.log(res.body);
                         node.expect(res.body).to.have.property("success").to.be.false;
                         node.expect(res.body).to.have.property("error");
                         done();
@@ -865,7 +865,7 @@ describe.skip('Transactions', function() {
                     .expect('Content-Type', /json/)
                     .expect(200)
                     .end(function (err, res) {
-                        console.log(res.body);
+                        //console.log(res.body);
                         node.expect(res.body).to.have.property("success").to.be.false;
                         node.expect(res.body).to.have.property("error");
                         done();
@@ -885,7 +885,7 @@ describe.skip('Transactions', function() {
                     .expect('Content-Type', /json/)
                     .expect(200)
                     .end(function (err, res) {
-                        console.log(res.body);
+                        //console.log(res.body);
                         node.expect(res.body).to.have.property("success").to.be.false;
                         node.expect(res.body).to.have.property("error");
                         done();
@@ -906,7 +906,7 @@ describe.skip('Transactions', function() {
                     .expect('Content-Type', /json/)
                     .expect(200)
                     .end(function (err, res) {
-                        console.log(res.body);
+                        //console.log(res.body);
                         node.expect(res.body).to.have.property("success").to.be.true;
                         node.expect(res.body).to.have.property("transaction").that.is.an('object');
                         if (res.body.success == true && res.body.transaction != null){
@@ -953,7 +953,7 @@ describe.skip('Transactions', function() {
 						.expect('Content-Type', /json/)
 						.expect(200)
 						.end(function (err, res) {
-							console.log(res.body);
+							//console.log(res.body);
 							node.expect(res.body).to.have.property("success").to.be.false;
 							node.expect(res.body).to.have.property("error");
 							done();
@@ -976,7 +976,7 @@ describe.skip('Transactions', function() {
                         .expect('Content-Type', /json/)
                         .expect(200)
                         .end(function (err, res) {
-                            console.log(res.body);
+                            //console.log(res.body);
                             node.expect(res.body).to.have.property("success").to.be.false;
                             node.expect(res.body).to.have.property("error");
                             done();
@@ -998,7 +998,7 @@ describe.skip('Transactions', function() {
                         .expect('Content-Type', /json/)
                         .expect(200)
                         .end(function (err, res) {
-                            console.log(res.body);
+                            //console.log(res.body);
                             node.expect(res.body).to.have.property("success").to.be.false;
                             node.expect(res.body).to.have.property("error");
                             done();
@@ -1020,7 +1020,7 @@ describe.skip('Transactions', function() {
                         .expect('Content-Type', /json/)
                         .expect(200)
                         .end(function (err, res) {
-                            console.log(res.body);
+                            //console.log(res.body);
                             node.expect(res.body).to.have.property("success").to.be.false;
                             node.expect(res.body).to.have.property("error");
                             done();
@@ -1042,7 +1042,7 @@ describe.skip('Transactions', function() {
                         .expect('Content-Type', /json/)
                         .expect(200)
                         .end(function (err, res) {
-                            console.log(res.body);
+                            //console.log(res.body);
                             node.expect(res.body).to.have.property("success").to.be.false;
                             node.expect(res.body).to.have.property("error");
                             done();
@@ -1065,7 +1065,7 @@ describe.skip('Transactions', function() {
                         .expect('Content-Type', /json/)
                         .expect(200)
                         .end(function (err, res) {
-                            console.log(res.body);
+                            //console.log(res.body);
                             node.expect(res.body).to.have.property("success").to.be.false;
                             node.expect(res.body).to.have.property("error");
                             done();
@@ -1088,7 +1088,7 @@ describe.skip('Transactions', function() {
                         .expect('Content-Type', /json/)
                         .expect(200)
                         .end(function (err, res) {
-                            console.log(res.body);
+                            //console.log(res.body);
                             node.expect(res.body).to.have.property("success").to.be.false;
                             node.expect(res.body).to.have.property("error");
                             done();
@@ -1111,7 +1111,7 @@ describe.skip('Transactions', function() {
                         .expect('Content-Type', /json/)
                         .expect(200)
                         .end(function (err, res) {
-                            console.log(res.body);
+                            //console.log(res.body);
                             node.expect(res.body).to.have.property("success").to.be.true;
                             if (res.body.success == true && res.body.transaction != null){
                                 Account1.transactions.push(transactionCount);
@@ -1151,7 +1151,7 @@ describe.skip('Transactions', function() {
                         .expect('Content-Type', /json/)
                         .expect(200)
                         .end(function (err, res) {
-                            console.log(res.body);
+                            //console.log(res.body);
                             node.expect(res.body).to.have.property("success").to.be.false;
                             node.expect(res.body).to.have.property("error");
                             done();
@@ -1173,7 +1173,7 @@ describe.skip('Transactions', function() {
                         .expect('Content-Type', /json/)
                         .expect(200)
                         .end(function (err, res) {
-                            console.log(res.body);
+                            //console.log(res.body);
                             node.expect(res.body).to.have.property("success").to.be.false;
                             node.expect(res.body).to.have.property("error");
                             done();
@@ -1197,7 +1197,7 @@ describe.skip('Transactions', function() {
                         .expect('Content-Type', /json/)
                         .expect(200)
                         .end(function (err, res) {
-                            console.log(res.body);
+                            //console.log(res.body);
                             node.expect(res.body).to.have.property("success").to.be.true;
                             node.expect(res.body).to.have.property("transactionId");
                             if (res.body.success == true && res.body.transactionId != null){
@@ -1240,7 +1240,7 @@ describe.skip('Transactions', function() {
                         .expect('Content-Type', /json/)
                         .expect(200)
                         .end(function (err, res) {
-                            console.log(res.body);
+                            //console.log(res.body);
                             node.expect(res.body).to.have.property("success").to.be.false;
                             node.expect(res.body).to.have.property("error");
                             done();

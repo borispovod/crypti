@@ -3,7 +3,7 @@ var node = require('./../variables.js'),
 
 var genesisblock = require('../../helpers/genesisblock.js');
 
-describe.skip("Peers transactions", function () {
+describe("Peers transactions", function () {
 	it("create transaction. should return ok", function (done) {
 		var transaction = node.crypti.transaction.createTransaction("1C", 1, node.peers_config.account);
 		node.peer.post('/transactions')
@@ -14,7 +14,7 @@ describe.skip("Peers transactions", function () {
 			.expect('Content-Type', /json/)
 			.expect(200)
 			.end(function (err, res) {
-				console.log(res.body);
+				//console.log(res.body);
 				node.expect(res.body).to.have.property("success").to.be.true;
 				done();
 			});
@@ -30,7 +30,7 @@ describe.skip("Peers transactions", function () {
 			.expect('Content-Type', /json/)
 			.expect(200)
 			.end(function (err, res) {
-				console.log(res.body);
+				//console.log(res.body);
 				node.expect(res.body).to.have.property("success").to.be.false;
 				node.expect(res.body).to.have.property("message");
 				done();
@@ -49,7 +49,7 @@ describe.skip("Peers transactions", function () {
 			.expect('Content-Type', /json/)
 			.expect(200)
 			.end(function (err, res) {
-				console.log(res.body);
+				//console.log(res.body);
 				node.expect(res.body).to.have.property("success").to.be.false;
 				node.expect(res.body).to.have.property("message");
 				done();
@@ -66,7 +66,7 @@ describe.skip("Peers transactions", function () {
 			.expect('Content-Type', /json/)
 			.expect(200)
 			.end(function (err, res) {
-				console.log(res.body);
+				//console.log(res.body);
 				node.expect(res.body).to.have.property("success").to.be.false;
 				node.expect(res.body).to.have.property("message");
 				done();
@@ -85,7 +85,7 @@ describe.skip("Peers transactions", function () {
 			.expect('Content-Type', /json/)
 			.expect(200)
 			.end(function (err, res) {
-				console.log(res.body);
+				//console.log(res.body);
 				node.expect(res.body).to.have.property("success").to.be.false;
 				node.expect(res.body).to.have.property("message");
 				done();
@@ -104,7 +104,7 @@ describe.skip("Peers transactions", function () {
 			.expect('Content-Type', /json/)
 			.expect(200)
 			.end(function (err, res) {
-				console.log(res.body);
+				//console.log(res.body);
 				node.expect(res.body).to.have.property("success").to.be.false;
 				node.expect(res.body).to.have.property("message");
 				done();
@@ -122,7 +122,7 @@ describe.skip("Peers transactions", function () {
 			.expect('Content-Type', /json/)
 			.expect(200)
 			.end(function (err, res) {
-				console.log(res.body);
+				//console.log(res.body);
 				node.expect(res.body).to.have.property("success").to.be.false;
 				setTimeout(done, 30000);
 			});
@@ -138,7 +138,7 @@ describe.skip("Peers transactions", function () {
 			.expect('Content-Type', /json/)
 			.expect(200)
 			.end(function (err, res) {
-				console.log(res.body);
+				//console.log(res.body);
 				node.expect(res.body).to.have.property("success").to.be.false;
 				node.expect(res.body).to.have.property("message");
 				done();
@@ -155,7 +155,7 @@ describe.skip("Peers transactions", function () {
 			.expect('Content-Type', /json/)
 			.expect(200)
 			.end(function (err, res) {
-				console.log(res.body);
+				//console.log(res.body);
 				node.expect(res.body).to.have.property("success").to.be.false;
 				node.expect(res.body).to.have.property("message");
 				done();

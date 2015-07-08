@@ -4,7 +4,7 @@ var node = require('./../variables.js'),
 var account = node.randomAccount();
 var account2 = node.randomAccount();
 
-describe.skip("Peers usernames", function () {
+describe("Peers usernames", function () {
 	it("Register username on new account and then try to register another username. Should return not ok", function (done) {
 		var transaction = node.crypti.username.createUsername(node.peers_config.account, node.randomDelegateName());
 		node.peer.post('/transactions')
@@ -76,7 +76,7 @@ describe.skip("Peers usernames", function () {
 										.expect('Content-Type', /json/)
 										.expect(200)
 										.end(function (err, res) {
-											console.log(res.body);
+											//console.log(res.body);
 											node.expect(res.body).to.have.property("success").to.be.false;
 											done();
 										});

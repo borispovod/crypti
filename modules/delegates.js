@@ -287,33 +287,57 @@ function attachApi() {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
 
-			var orderField = query.orderBy ? query.orderBy.split(':') : null;
-			orderField[1] = orderField[1] == "desc" ? -1 : 1;
-
-			var orderBy;
-
-			orderBy = {};
-			orderBy[orderField[0]] = orderField[1];
-
 			modules.accounts.getAccounts({
 				isDelegate: 1,
-				limit: query.limit > 101 ? 101 : query.limit,
-				offset: query.offset,
-				sort: orderBy
+				//limit: query.limit > 101 ? 101 : query.limit,
+				//offset: query.offset,
+				sort: ["vote", "publicKey"]
 			}, ["username", "address", "publicKey", "vote"], function (err, delegates) {
 				if (err) {
 					return res.json({success: false, error: err.toString()});
 				}
 
-				var stat = modules.delegates.getStats();
+				var limit = query.limit,
+					offset = query.offset,
+					orderField = query.orderBy,
+					active = query.active;
+
+				orderField = orderField ? orderField.split(':') : null;
+				limit = limit > 101 ? 101 : limit;
+				var orderBy = orderField ? orderField[0] : null;
+				var sortMode = orderField && orderField.length == 2 ? orderField[1] : 'asc';
+				var count = delegates.length;
+				var length = Math.min(limit, count);
+				var realLimit = Math.min(offset + limit, count);
 
 				for (var i = 0; i < delegates.length; i++) {
-					delegates[i].vote = stat.votes[delegates[i].publicKey];
-					delegates[i].rate = stat.rates[delegates[i].publicKey];
-					delegates[i].productivity = stat.productivities[delegates[i].publicKey];
+					delegates[i].rate = i + 1;
+					var stat = modules.round.blocksStat(delegates[i].publicKey);
+
+					var percent = 100 - (stat.missed / ((stat.forged + stat.missed) / 100));
+					var novice = stat.missed === null && stat.forged === null;
+					var outsider = i + 1 > slots.delegates && novice;
+					delegates[i].productivity = !outsider ? novice ? 0 : parseFloat(Math.floor(percent * 100) / 100).toFixed(2) : null
 				}
 
-				res.json({success: true, delegates: delegates, totalCount: Object.keys(private.delegates).length});
+				delegates.sort(function compare(a, b) {
+					if (sortMode == 'asc') {
+						if (a[orderBy] < b[orderBy])
+							return -1;
+						if (a[orderBy] > b[orderBy])
+							return 1;
+					} else if (sortMode == 'desc') {
+						if (a[orderBy] > b[orderBy])
+							return -1;
+						if (a[orderBy] < b[orderBy])
+							return 1;
+					}
+					return 0;
+				});
+
+				var result = delegates.slice(offset, realLimit);
+
+				res.json({success: true, delegates: result, totalCount: count});
 			});
 		});
 	});
