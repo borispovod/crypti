@@ -11,6 +11,8 @@ var async = require('async'),
 	Router = require('../helpers/router.js'),
 	unzip = require('unzip'),
 	crypto = require('crypto'),
+	constants = require('../helpers/constants.js'),
+	errorCode = require('../helpers/errorCodes.js').error,
 	ed = require('ed25519');
 
 var modules, library, self, private = {};
@@ -24,7 +26,7 @@ private.sandboxes = {};
 private.routes = {};
 
 private.get = function (id, cb) {
-	library.dbLite.query("SELECT name, description, tags, nickname, git, type, category, transactionId FROM dapps WHERE transactionId = $id", ['name', 'description', 'tags', 'nickname', 'git', 'type', 'category', 'transactionId'], {id : id}, function (err, rows) {
+	library.dbLite.query("SELECT name, description, tags, nickname, git, type, category, transactionId FROM dapps WHERE transactionId = $id", {id : id}, ['name', 'description', 'tags', 'nickname', 'git', 'type', 'category', 'transactionId'], function (err, rows) {
 		if (err || rows.length == 0) {
 			return setImmediate(cb, err? "Sql error" : "DApp not found");
 		}
@@ -260,7 +262,7 @@ function DApp() {
 			name: data.name,
 			description: data.description,
 			tags: data.tags,
-			type: data.type,
+			type: data.dapp_type,
 			nickname: data.nickname,
 			git: data.git,
 		}
@@ -283,7 +285,7 @@ function DApp() {
 			return setImmediate(cb, errorCode("TRANSACTIONS.INVALID_AMOUNT", trs));
 		}
 
-		if (!trs.asset.dapp.category) {
+		if (trs.asset.dapp.category != 0 && !trs.asset.dapp.category) {
 			return setImmediate(cb, errorCode("DAPPS.UNKNOWN_CATEGORY"));
 		}
 
@@ -294,7 +296,7 @@ function DApp() {
 			}
 		}
 
-		if (trs.asset.dapp.type > 1) {
+		if (trs.asset.dapp.type > 1 || trs.asset.dapp.type < 0) {
 			return setImmediate(cb, errorCode("DAPPS.UNKNOWN_TYPE"));
 		}
 
@@ -324,9 +326,9 @@ function DApp() {
 			return setImmediate(cb, errorCode("DAPPS.TOO_LONG_TAGS"));
 		}
 
-		library.dbLite.query("SELECT count(transactionId) FROM dapps WHERE name = $name", ['count'], {
+		library.dbLite.query("SELECT count(transactionId) FROM dapps WHERE name = $name", {
 			name: trs.asset.dapp.name
-		}, function (err, rows) {
+		},  ['count'], function (err, rows) {
 			if (err || rows.length == 0) {
 				return setImmediate(cb, "Sql error");
 			}
@@ -336,9 +338,9 @@ function DApp() {
 			}
 
 			if (trs.asset.dapp.git) {
-				library.dbLite.query("SELECT count(transactionId) FROM dapps WHERE nickname = $nickname", ['count'], {
+				library.dbLite.query("SELECT count(transactionId) FROM dapps WHERE nickname = $nickname", {
 					nickname: trs.asset.dapp.nickname
-				}, function (err, rows) {
+				}, ['count'], function (err, rows) {
 					if (err || rows.length == 0) {
 						return setImmediate(cb, "Sql error");
 					}
@@ -350,9 +352,9 @@ function DApp() {
 					return setImmediate(cb);
 				});
 			} else if (trs.asset.dapp.nickname) {
-				library.dbLite.query("SELECT count(transactionId) FROM dapps WHERE git = $git", ['count'], {
+				library.dbLite.query("SELECT count(transactionId) FROM dapps WHERE git = $git", {
 					git: trs.asset.dapp.git
-				}, function (err, rows) {
+				}, ['count'], function (err, rows) {
 					if (err || rows.length == 0) {
 						return setImmediate(cb, "Sql error");
 					}
@@ -375,36 +377,34 @@ function DApp() {
 
 	this.getBytes = function (trs) {
 		try {
-			var buf = new Buffer();
+			var buf = new Buffer([]);
 			var nameBuf = new Buffer(trs.asset.dapp.name, 'utf8');
-			buf = buf.concat(nameBuf);
+			buf = Buffer.concat([buf, nameBuf]);
 
 			if (trs.asset.dapp.description) {
 				var descriptionBuf = new Buffer(trs.asset.dapp.description, 'utf8');
-				buf = buf.concat(descriptionBuf);
+				buf = Buffer.concat([buf, descriptionBuf]);
 			}
 
 			if (trs.asset.dapp.tags) {
 				var tagsBuf = new Buffer(trs.asset.dapp.tags, 'utf8');
-				buf = buf.concat(tagsBuf);
+				buf = Buffer.concat([buf, tagsBuf]);
 			}
 
 			if (trs.asset.dapp.nickname) {
-				buf = buf.concat(new Buffer(trs.asset.dapp.nickname, 'utf8'));
+				buf = Buffer.concat([buf, new Buffer(trs.asset.dapp.nickname, 'utf8')]);
 			}
 
 			if (trs.asset.dapp.git) {
-				buf = buf.concat(new Buffer(trs.asset.dapp.git, 'utf8'));
+				buf = Buffer.concat([buf, new Buffer(trs.asset.dapp.git, 'utf8')]);
 			}
-
-			console.log(trs.asset.dapp);
 
 			var bb = new ByteBuffer(4+4,true);
 			bb.writeInt(trs.asset.dapp.type);
 			bb.writeInt(trs.asset.dapp.category);
 			bb.flip();
 
-			buf = buf.concat(bb.toBuffer());
+			buf = Buffer.concat([buf, bb.toBuffer()]);
 		} catch (e) {
 			throw Error(e.toString());
 		}
@@ -433,8 +433,8 @@ function DApp() {
 			object: true,
 			properties: {
 				category: {
-					type: "integer",
-					minimum: 0
+					type: "string",
+					minLength: 0
 				},
 				name: {
 					type: "string",
@@ -543,8 +543,8 @@ function attachApi() {
 					format: "publicKey"
 				},
 				category: {
-					type: "integer",
-					minimum: 0
+					type: "string",
+					minLength: 0
 				},
 				name: {
 					type: "string",
@@ -610,6 +610,7 @@ function attachApi() {
 						secondKeypair = ed.MakeKeypair(secondHash);
 					}
 
+
 					var transaction = library.logic.transaction.create({
 						type: TransactionTypes.DAPP,
 						sender: account,
@@ -619,10 +620,12 @@ function attachApi() {
 						name: body.name,
 						description: body.description,
 						tags: body.tags,
-						type: body.type,
+						dapp_type: body.type,
 						nickname: body.nickname,
 						git: body.git
 					});
+
+					console.log("here: " );
 
 					modules.transactions.receiveTransactions([transaction], cb);
 				});

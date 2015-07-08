@@ -261,49 +261,64 @@ var errorCodes = {
 	},
 	DAPPS: {
 		EXISTS_DAPP: {
-			message: "This DApp already exists"
+			message: "This DApp already exists",
+			args: []
 		},
 		UNKNOWN_CATEGORY: {
-			message: "Unknown category of DApp"
+			message: "Unknown category of DApp",
+			args: []
 		},
 		EMPTY_NICKNAME: {
-			message: "Empty sia file nickname of DApp"
+			message: "Empty sia file nickname of DApp",
+			args: []
 		},
 		UNKNOWN_TYPE: {
-			message: "Unknown type of DApp"
+			message: "Unknown type of DApp",
+			args: []
 		},
 		GIT_AND_SIA: {
-			message: "DApp contains link to github and sia storage in same time, it's not possible"
+			message: "DApp contains link to github and sia storage in same time, it's not possible",
+			args: []
 		},
 		INVALID_GIT: {
-			message: "DApp contains incorrect git link"
+			message: "DApp contains incorrect git link",
+			args: []
 		},
 		EMPTY_NAME: {
-			message: "Incorrect DApp name, it's empty"
+			message: "Incorrect DApp name, it's empty",
+			args: []
 		},
 		TOO_LONG_NAME: {
-			message: "Incorrect DApp name, it's too long"
+			message: "Incorrect DApp name, it's too long",
+			args: []
 		},
 		TOO_LONG_DESCRIPTION: {
-			message: "Too long description of DApp"
+			message: "Too long description of DApp",
+			args: []
 		},
 		TOO_LONG_TAGS: {
-			message: "Too long tags of DApp"
+			message: "Too long tags of DApp",
+			args: []
 		},
 		EXISTS_DAPP_NAME: {
-			message: "DApp with this name already exists"
+			message: "DApp with this name already exists",
+			args: []
 		},
 		EXISTS_DAPP_NICKNAME: {
-			message: "DApp with this sia file nickname already exists"
+			message: "DApp with this sia file nickname already exists",
+			args: []
 		},
 		EXISTS_DAPP_GIT: {
-			message: "DApp with this git link already exists"
+			message: "DApp with this git link already exists",
+			args: []
 		},
 		INCORRECT_LINK: {
-			message: "DApp must contain sia file nickname or link"
+			message: "DApp must contain sia file nickname or link",
+			args: []
 		},
 		DAPPS_NOT_FOUND: {
-			message: "DApps not found"
+			message: "DApps not found",
+			args: []
 		}
 	}
 }
