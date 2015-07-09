@@ -9,8 +9,9 @@ var crypto = require('crypto'),
 	ed = require('ed25519'),
 	Transaction = require('./logic/transaction.js'),
 	Block = require('./logic/block.js'),
+	util = require('util'),
 	constants = require('./helpers/constants.js'),
-	bignum = require('bignum'),
+	bignum = require('./helpers/bignum.js'),
 	ByteBuffer = require('bytebuffer'),
 	TransactionTypes = require('./helpers/transaction-types.js');
 
@@ -18,7 +19,10 @@ var file = require(process.env.FILE || "./scheme.json"),
 	output = process.env.OUTPUT || "./genesisblock.js",
 	secret = process.env.SECRET;
 
-function Transfer() {
+var blockHelper = new Block();
+var transactionHelper = new Transaction();
+
+function TransactionBase() {
 	this.create = function (data, trs) {
 		return trs;
 	}
@@ -31,7 +35,7 @@ function Transfer() {
 		cb(null, trs);
 	}
 
-	this.process = function (dbLite, trs, sender, cb) {
+	this.process = function (trs, sender, cb) {
 		cb(null, trs);
 	}
 
@@ -39,20 +43,20 @@ function Transfer() {
 		return null;
 	}
 
-	this.apply = function (trs, sender) {
-		return true;
+	this.apply = function (trs, sender, cb) {
+		cb(null, trs);
 	}
 
-	this.undo = function (trs, sender) {
-		return true;
+	this.undo = function (trs, sender, cb) {
+		cb(null, trs);
 	}
 
 	this.applyUnconfirmed = function (trs, sender, cb) {
-		cb();
+		cb(null, trs);
 	}
 
-	this.undoUnconfirmed = function (trs, sender) {
-		return true;
+	this.undoUnconfirmed = function (trs, sender, cb) {
+		cb(null, trs);
 	}
 
 	this.objectNormalize = function (trs) {
@@ -63,31 +67,22 @@ function Transfer() {
 		return null;
 	}
 
-	this.dbSave = function (dbLite, trs, cb) {
+	this.dbSave = function (trs, cb) {
 		cb();
 	}
 
-	this.ready = function (trs) {
+	this.ready = function (trs, sender) {
 		return true;
 	}
 }
 
+function Transfer() {
+	TransactionBase.call(this);
+}
+util.inherits(Transfer, TransactionBase);
+
 function Signature() {
-	this.create = function (data, trs) {
-		return trs;
-	}
-
-	this.calculateFee = function (trs) {
-		return 100 * constants.fixedPoint;
-	}
-
-	this.verify = function (trs, sender, cb) {
-		cb(null, trs);
-	}
-
-	this.process = function (dbLite, trs, sender, cb) {
-		cb(null, trs);
-	}
+	TransactionBase.call(this);
 
 	this.getBytes = function (trs) {
 		try {
@@ -104,145 +99,92 @@ function Signature() {
 		}
 		return bb.toBuffer();
 	}
-
-	this.apply = function (trs, sender) {
-		return true;
-	}
-
-	this.undo = function (trs, sender) {
-		return true;
-	}
-
-	this.applyUnconfirmed = function (trs, sender, cb) {
-		cb();
-	}
-
-	this.undoUnconfirmed = function (trs, sender) {
-		return true;
-	}
-
-	this.objectNormalize = function (trs) {
-		return trs;
-	}
-
-	this.dbRead = function (raw) {
-		return null;
-	}
-
-	this.dbSave = function (dbLite, trs, cb) {
-		cb();
-	}
-
-	this.ready = function (trs) {
-		return true;
-	}
 }
+util.inherits(Signature, TransactionBase);
 
 function Delegate() {
-	this.create = function (data, trs) {
-		return trs;
-	}
-
-	this.calculateFee = function (trs) {
-		return 10000 * constants.fixedPoint;
-	}
-
-	this.verify = function (trs, sender, cb) {
-		cb(null, trs);
-	}
-
-	this.process = function (dbLite, trs, sender, cb) {
-		cb(null, trs);
-	}
+	TransactionBase.call(this);
 
 	this.getBytes = function (trs) {
-		return new Buffer(trs.asset.delegate.username, 'utf8');
-	}
+		try {
+			var buf = new Buffer(trs.asset.delegate.username, 'utf8');
+		} catch (e) {
+			throw Error(e.toString());
+		}
 
-	this.apply = function (trs, sender) {
-		return true;
-	}
-
-	this.undo = function (trs, sender) {
-		return true;
-	}
-
-	this.applyUnconfirmed = function (trs, sender, cb) {
-		cb();
-	}
-
-	this.undoUnconfirmed = function (trs, sender) {
-		return true;
-	}
-
-	this.objectNormalize = function (trs) {
-		return trs;
-	}
-
-	this.dbRead = function (raw) {
-		return null;
-	}
-
-	this.dbSave = function (dbLite, trs, cb) {
-		cb();
-	}
-
-	this.ready = function (trs) {
-		return true;
+		return buf;
 	}
 }
+util.inherits(Delegate, TransactionBase);
 
 function Vote() {
-	this.create = function (data, trs) {
-		return trs;
-	}
-
-	this.calculateFee = function (trs) {
-		return 1 * constants.fixedPoint;
-	}
-
-	this.verify = function (trs, sender, cb) {
-		cb(null, trs);
-	}
-
-	this.process = function (dbLite, trs, sender, cb) {
-		cb(null, trs);
-	}
+	TransactionBase.call(this);
 
 	this.getBytes = function (trs) {
-		return trs.asset.votes ? new Buffer(trs.asset.votes.join(''), 'utf8') : null;
-	}
+		try {
+			var buf = trs.asset.votes ? new Buffer(trs.asset.votes.join(''), 'utf8') : null;
+		} catch (e) {
+			throw Error(e.toString());
+		}
 
-	this.apply = function (trs, sender) {
-		return true;
+		return buf;
 	}
+}
+util.inherits(Vote, TransactionBase);
 
-	this.undo = function (trs, sender) {
-		return true;
+function Username() {
+	TransactionBase.call(this);
+
+	this.getBytes = function (trs) {
+		try {
+			var buf = new Buffer(trs.asset.username.alias, 'utf8');
+		} catch (e) {
+			throw Error(e.toString());
+		}
+
+		return buf;
 	}
+}
+util.inherits(Username, TransactionBase);
 
-	this.applyUnconfirmed = function (trs, sender, cb) {
-		cb();
-	}
+function DApp() {
+	TransactionBase.call(this);
 
-	this.undoUnconfirmed = function (trs, sender) {
-		return true;
-	}
+	this.getBytes = function (trs) {
+		try {
+			var buf = new Buffer([]);
+			var nameBuf = new Buffer(trs.asset.dapp.name, 'utf8');
+			buf = Buffer.concat([buf, nameBuf]);
 
-	this.objectNormalize = function (trs) {
-		return trs;
-	}
+			if (trs.asset.dapp.description) {
+				var descriptionBuf = new Buffer(trs.asset.dapp.description, 'utf8');
+				buf = Buffer.concat([buf, descriptionBuf]);
+			}
 
-	this.dbRead = function (raw) {
-		return null;
-	}
+			if (trs.asset.dapp.tags) {
+				var tagsBuf = new Buffer(trs.asset.dapp.tags, 'utf8');
+				buf = Buffer.concat([buf, tagsBuf]);
+			}
 
-	this.dbSave = function (dbLite, trs, cb) {
-		cb();
-	}
+			if (trs.asset.dapp.nickname) {
+				buf = Buffer.concat([buf, new Buffer(trs.asset.dapp.nickname, 'utf8')]);
+			}
 
-	this.ready = function (trs) {
-		return true;
+			if (trs.asset.dapp.git) {
+				buf = Buffer.concat([buf, new Buffer(trs.asset.dapp.git, 'utf8')]);
+			}
+
+			var bb = new ByteBuffer(4 + 4, true);
+			bb.writeInt(trs.asset.dapp.type);
+			bb.writeInt(trs.asset.dapp.category);
+			bb.flip();
+
+			buf = Buffer.concat([buf, bb.toBuffer()]);
+		} catch (e) {
+			throw Error(e.toString());
+		}
+
+		return buf;
 	}
 }
 
@@ -265,17 +207,12 @@ var hash = crypto.createHash('sha256').update(secret, 'utf8').digest();
 var keypair = ed.MakeKeypair(hash);
 var address = getAddressByPublicKey(keypair.publicKey.toString('hex'));
 
-var blockHelper = new Block();
-var transactionHelper = new Transaction();
-
 transactionHelper.attachAssetType(TransactionTypes.SEND, new Transfer());
 transactionHelper.attachAssetType(TransactionTypes.SIGNATURE, new Signature());
 transactionHelper.attachAssetType(TransactionTypes.DELEGATE, new Delegate());
 transactionHelper.attachAssetType(TransactionTypes.VOTE, new Vote());
-
-blockHelper.logic = {
-	transaction: transactionHelper
-}
+transactionHelper.attachAssetType(TransactionTypes.USERNAME, new Username());
+transactionHelper.attachAssetType(TransactionTypes.DAPP, new DApp());
 
 console.log("Address: " + address + ", pubic key: " + keypair.publicKey.toString('hex'));
 
@@ -386,6 +323,34 @@ for (var i = 0; i < file.votes.publicKeys.length; i++) {
 		senderPublicKey: publicKey,
 		asset: {
 			votes: file.votes.votes
+		}
+	}
+
+	transaction.signature = transactionHelper.sign(keypair, transaction);
+	transaction.id = transactionHelper.getId(transaction);
+
+	var bytes = transactionHelper.getBytes(transaction);
+	payloadLength += bytes.length;
+	payloadHash.update(bytes);
+
+	transactions.push(transaction);
+}
+
+console.log("Make dapps...");
+
+for (var i = 0; i < file.dapps.length; i++) {
+	var dapp = file.dapps[i];
+
+	var transaction = {
+		type: 9,
+		amount: 0,
+		fee: 0,
+		timestamp: 0,
+		recipientId: null,
+		senderId: account.address,
+		senderPublicKey: account.publicKey,
+		asset: {
+			dapp: dapp
 		}
 	}
 

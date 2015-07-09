@@ -53,7 +53,7 @@ function DApp() {
 	this.verify = function (trs, sender, cb) {
 		var isSia = false;
 
-		if (trs.recipientId != null) {
+		if (trs.recipientId !== null) {
 			return setImmediate(cb, errorCode("TRANSACTIONS.INVALID_RECIPIENT", trs));
 		}
 
@@ -167,6 +167,7 @@ function DApp() {
 	}
 
 	this.applyUnconfirmed = function (trs, sender, cb) {
+		debugger
 		if (private.unconfirmedNames[trs.asset.dapp.name]) {
 			setImmediate(cb, "dapp name is exists");
 		}
@@ -239,7 +240,7 @@ function DApp() {
 	}
 
 	this.dbRead = function (raw) {
-		if (!raw.dapp_type) {
+		if (!raw.dapp_name) {
 			return null;
 		} else {
 			var dapp = {

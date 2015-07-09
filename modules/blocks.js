@@ -244,8 +244,8 @@ private.list = function (filter, cb) {
 	}
 
 	library.dbLite.query("select count(b.id) " +
-	"from blocks b " +
-	(fields.length ? "where " + fields.join(' and ') : ''), params, {count: Number}, function (err, rows) {
+		"from blocks b " +
+		(fields.length ? "where " + fields.join(' and ') : ''), params, {count: Number}, function (err, rows) {
 		if (err) {
 			return cb(err);
 		}
@@ -253,11 +253,11 @@ private.list = function (filter, cb) {
 		var count = rows.length ? rows[0].count : 0;
 
 		library.dbLite.query("select b.id, b.version, b.timestamp, b.height, b.previousBlock, b.numberOfTransactions, b.totalAmount, b.totalFee, b.payloadLength,  lower(hex(b.payloadHash)), lower(hex(b.generatorPublicKey)), lower(hex(b.blockSignature)), (select max(height) + 1 from blocks) - b.height " +
-		"from blocks b " +
-		(fields.length ? "where " + fields.join(' and ') : '') + " " +
-		(filter.orderBy ? 'order by ' + sortBy + ' ' + sortMethod : '') + " " +
-		(filter.limit ? 'limit $limit' : '') + " " +
-		(filter.offset ? 'offset $offset' : ''), params, ['b_id', 'b_version', 'b_timestamp', 'b_height', 'b_previousBlock', 'b_numberOfTransactions', 'b_totalAmount', 'b_totalFee', 'b_payloadLength', 'b_payloadHash', 'b_generatorPublicKey', 'b_blockSignature', 'b_confirmations'], function (err, rows) {
+			"from blocks b " +
+			(fields.length ? "where " + fields.join(' and ') : '') + " " +
+			(filter.orderBy ? 'order by ' + sortBy + ' ' + sortMethod : '') + " " +
+			(filter.limit ? 'limit $limit' : '') + " " +
+			(filter.offset ? 'offset $offset' : ''), params, ['b_id', 'b_version', 'b_timestamp', 'b_height', 'b_previousBlock', 'b_numberOfTransactions', 'b_totalAmount', 'b_totalFee', 'b_payloadLength', 'b_payloadHash', 'b_generatorPublicKey', 'b_blockSignature', 'b_confirmations'], function (err, rows) {
 			if (err) {
 				return cb(err);
 			}
@@ -278,8 +278,8 @@ private.list = function (filter, cb) {
 
 private.getById = function (id, cb) {
 	library.dbLite.query("select b.id, b.version, b.timestamp, b.height, b.previousBlock, b.numberOfTransactions, b.totalAmount, b.totalFee, b.payloadLength,  lower(hex(b.payloadHash)), lower(hex(b.generatorPublicKey)), lower(hex(b.blockSignature)), (select max(height) + 1 from blocks) - b.height " +
-	"from blocks b " +
-	"where b.id = $id", {id: id}, ['b_id', 'b_version', 'b_timestamp', 'b_height', 'b_previousBlock', 'b_numberOfTransactions', 'b_totalAmount', 'b_totalFee', 'b_payloadLength', 'b_payloadHash', 'b_generatorPublicKey', 'b_blockSignature', 'b_confirmations'], function (err, rows) {
+		"from blocks b " +
+		"where b.id = $id", {id: id}, ['b_id', 'b_version', 'b_timestamp', 'b_height', 'b_previousBlock', 'b_numberOfTransactions', 'b_totalAmount', 'b_totalFee', 'b_payloadLength', 'b_payloadHash', 'b_generatorPublicKey', 'b_blockSignature', 'b_confirmations'], function (err, rows) {
 		if (err || !rows.length) {
 			return cb(err || errorCode("BLOCKS.BLOCK_NOT_FOUND"));
 		}
@@ -350,15 +350,15 @@ private.popLastBlock = function (oldLastBlock, cb) {
 
 private.getIdSequence = function (height, cb) {
 	library.dbLite.query("SELECT s.height, group_concat(s.id) from ( " +
-	'SELECT id, max(height) as height ' +
-	'FROM blocks ' +
-	'group by (cast(height / $delegates as integer) + (case when height % $delegates > 0 then 1 else 0 end)) having height <= $height ' +
-	'union ' +
-	'select id, 1 as height ' +
-	'from blocks where height = 1 ' +
-	'order by height desc ' +
-	'limit $limit ' +
-	') s', {
+		'SELECT id, max(height) as height ' +
+		'FROM blocks ' +
+		'group by (cast(height / $delegates as integer) + (case when height % $delegates > 0 then 1 else 0 end)) having height <= $height ' +
+		'union ' +
+		'select id, 1 as height ' +
+		'from blocks where height = 1 ' +
+		'order by height desc ' +
+		'limit $limit ' +
+		') s', {
 		'height': height,
 		'limit': 1000,
 		'delegates': slots.delegates
@@ -519,25 +519,26 @@ Blocks.prototype.loadBlocksData = function (filter, options, cb) {
 	}
 
 	library.dbLite[method]("SELECT " +
-	"b.id, b.version, b.timestamp, b.height, b.previousBlock, b.numberOfTransactions, b.totalAmount, b.totalFee, b.payloadLength, lower(hex(b.payloadHash)), lower(hex(b.generatorPublicKey)), lower(hex(b.blockSignature)), " +
-	"t.id, t.type, t.timestamp, lower(hex(t.senderPublicKey)), t.senderId, t.recipientId, t.senderUsername, t.recipientUsername, t.amount, t.fee, lower(hex(t.signature)), lower(hex(t.signSignature)), t.multisignatures, " +
-	"lower(hex(s.publicKey)), " +
-	"d.username, " +
-	"v.votes, " +
-	"c.address, " +
-	"u.username, " +
-	"m.min, m.lifetime, m.dependence, m.signatures " +
-	"FROM (select * from blocks " + (filter.id ? " where id = $id " : "") + (filter.lastId ? " where height > (SELECT height FROM blocks where id = $lastId) " : "") + " limit $limit) as b " +
-	"left outer join trs as t on t.blockId=b.id " +
-	"left outer join delegates as d on d.transactionId=t.id " +
-	"left outer join votes as v on v.transactionId=t.id " +
-	"left outer join signatures as s on s.transactionId=t.id " +
-	"left outer join contacts as c on c.transactionId=t.id " +
-	"left outer join usernames as u on u.transactionId=t.id " +
-	"left outer join multisignatures as m on m.transactionId=t.id " +
-	"left outer join dapps as dapp on dapp.transactionId=t.id " +
-	"ORDER BY b.height, t.rowid" +
-	"", params, fields, cb);
+		"b.id, b.version, b.timestamp, b.height, b.previousBlock, b.numberOfTransactions, b.totalAmount, b.totalFee, b.payloadLength, lower(hex(b.payloadHash)), lower(hex(b.generatorPublicKey)), lower(hex(b.blockSignature)), " +
+		"t.id, t.type, t.timestamp, lower(hex(t.senderPublicKey)), t.senderId, t.recipientId, t.senderUsername, t.recipientUsername, t.amount, t.fee, lower(hex(t.signature)), lower(hex(t.signSignature)), t.multisignatures, " +
+		"lower(hex(s.publicKey)), " +
+		"d.username, " +
+		"v.votes, " +
+		"c.address, " +
+		"u.username, " +
+		"m.min, m.lifetime, m.dependence, m.signatures, " +
+		"dapp.name, dapp.description, dapp.tags, dapp.type, dapp.nickname, dapp.git, dapp.category " +
+		"FROM (select * from blocks " + (filter.id ? " where id = $id " : "") + (filter.lastId ? " where height > (SELECT height FROM blocks where id = $lastId) " : "") + " limit $limit) as b " +
+		"left outer join trs as t on t.blockId=b.id " +
+		"left outer join delegates as d on d.transactionId=t.id " +
+		"left outer join votes as v on v.transactionId=t.id " +
+		"left outer join signatures as s on s.transactionId=t.id " +
+		"left outer join contacts as c on c.transactionId=t.id " +
+		"left outer join usernames as u on u.transactionId=t.id " +
+		"left outer join multisignatures as m on m.transactionId=t.id " +
+		"left outer join dapps as dapp on dapp.transactionId=t.id " +
+		"ORDER BY b.height, t.rowid" +
+		"", params, fields, cb);
 };
 
 Blocks.prototype.loadBlocksPart = function (filter, cb) {
@@ -562,25 +563,26 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 	var params = {limit: limit, offset: offset || 0};
 
 	library.dbLite.query("SELECT " +
-	"b.id, b.version, b.timestamp, b.height, b.previousBlock, b.numberOfTransactions, b.totalAmount, b.totalFee, b.payloadLength, lower(hex(b.payloadHash)), lower(hex(b.generatorPublicKey)), lower(hex(b.blockSignature)), " +
-	"t.id, t.type, t.timestamp, lower(hex(t.senderPublicKey)), t.senderId, t.recipientId, t.senderUsername, t.recipientUsername, t.amount, t.fee, lower(hex(t.signature)), lower(hex(t.signSignature)), t.multisignatures, " +
-	"lower(hex(s.publicKey)), " +
-	"d.username, " +
-	"v.votes, " +
-	"c.address, " +
-	"u.username, " +
-	"m.min, m.lifetime, m.dependence, m.signatures " +
-	"FROM (select * from blocks limit $limit offset $offset) as b " +
-	"left outer join trs as t on t.blockId=b.id " +
-	"left outer join delegates as d on d.transactionId=t.id " +
-	"left outer join votes as v on v.transactionId=t.id " +
-	"left outer join signatures as s on s.transactionId=t.id " +
-	"left outer join contacts as c on c.transactionId=t.id " +
-	"left outer join usernames as u on u.transactionId=t.id " +
-	"left outer join multisignatures as m on m.transactionId=t.id " +
-	"left outer join dapps as dapp on dapp.transactionId=t.id " +
-	"ORDER BY b.height, t.rowid" +
-	"", params, private.blocksDataFields, function (err, rows) {
+		"b.id, b.version, b.timestamp, b.height, b.previousBlock, b.numberOfTransactions, b.totalAmount, b.totalFee, b.payloadLength, lower(hex(b.payloadHash)), lower(hex(b.generatorPublicKey)), lower(hex(b.blockSignature)), " +
+		"t.id, t.type, t.timestamp, lower(hex(t.senderPublicKey)), t.senderId, t.recipientId, t.senderUsername, t.recipientUsername, t.amount, t.fee, lower(hex(t.signature)), lower(hex(t.signSignature)), t.multisignatures, " +
+		"lower(hex(s.publicKey)), " +
+		"d.username, " +
+		"v.votes, " +
+		"c.address, " +
+		"u.username, " +
+		"m.min, m.lifetime, m.dependence, m.signatures, " +
+		"dapp.name, dapp.description, dapp.tags, dapp.type, dapp.nickname, dapp.git, dapp.category " +
+		"FROM (select * from blocks limit $limit offset $offset) as b " +
+		"left outer join trs as t on t.blockId=b.id " +
+		"left outer join delegates as d on d.transactionId=t.id " +
+		"left outer join votes as v on v.transactionId=t.id " +
+		"left outer join signatures as s on s.transactionId=t.id " +
+		"left outer join contacts as c on c.transactionId=t.id " +
+		"left outer join usernames as u on u.transactionId=t.id " +
+		"left outer join multisignatures as m on m.transactionId=t.id " +
+		"left outer join dapps as dapp on dapp.transactionId=t.id " +
+		"ORDER BY b.height, t.rowid" +
+		"", params, private.blocksDataFields, function (err, rows) {
 		// Some notes:
 		// If loading catch error, for example, invalid signature on block & transaction, need to stop loading and remove all blocks after last good block.
 		// We need to process all transactions of block

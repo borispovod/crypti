@@ -10,7 +10,7 @@ var slots = require('../helpers/slots.js'),
 //constructor
 function Transaction(scope, cb) {
 	this.scope = scope;
-	setImmediate(cb, null, this);
+	cb && setImmediate(cb, null, this);
 }
 
 //private methods
