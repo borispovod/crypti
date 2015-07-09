@@ -13,7 +13,8 @@ var async = require('async'),
 	crypto = require('crypto'),
 	constants = require('../helpers/constants.js'),
 	errorCode = require('../helpers/errorCodes.js').error,
-	ed = require('ed25519');
+	Sandbox = require("crypti-sandbox");
+ed = require('ed25519');
 
 var modules, library, self, private = {};
 
@@ -1031,6 +1032,13 @@ private.downloadDApp = function (dApp, cb) {
 	});
 }
 
+private.apiHandler = function (message, callback) {
+	debugger
+	console.log(message);
+	cb();
+}
+
+
 private.launch = function (dApp, cb) {
 	var dappPath = path.join(private.dappsPath, dApp.transactionId);
 	var dappPublicPath = path.join(dappPath, "public");
@@ -1042,6 +1050,28 @@ private.launch = function (dApp, cb) {
 				if (err) {
 					return setImmediate(cb, err);
 				} else {
+					var dAppConfig = null;
+
+					try {
+						dAppConfig = require(path.join(dAppPath, "config.json"));
+					} catch (e) {
+						return setImmediate(cb, "This DApp has no config file, can't launch it");
+					}
+
+					var sandbox = new Sandbox(path.join("dapps", id, "index.js"), private.apiHandler, true);
+
+					sandbox.on("exit", function () {
+						debugger
+						library.logger.info("DApp " + id + " closed");
+					});
+
+					sandbox.on("error", function (err) {
+						debugger
+						library.logger.info("Error in DApp " + id + " " + err.toString());
+					});
+
+					sandbox.run();
+
 					return setImmediate(cb);
 				}
 			});
