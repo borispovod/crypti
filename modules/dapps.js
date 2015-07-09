@@ -22,6 +22,7 @@ private.loading = {};
 private.removing = {};
 private.unconfirmedNames = {};
 private.unconfirmedLinks = {};
+private.unconfirmedNickNames = {};
 private.appPath = process.cwd();
 private.dappsPath = path.join(process.cwd(), 'dapps');
 private.sandboxes = {};
@@ -172,8 +173,12 @@ function DApp() {
 		if (private.unconfirmedNames[trs.asset.dapp.git]) {
 			setImmediate(cb, "dapp link is exists");
 		}
+		if (private.unconfirmedNickNames[trs.asset.dapp.nickname]) {
+			setImmediate(cb, "dapp nickname is exists");
+		}
 		private.unconfirmedNames[trs.asset.dapp.name] = true;
 		private.unconfirmedLinks[trs.asset.dapp.git] = true;
+		private.unconfirmedNickNames[trs.asset.dapp.nickname] = true;
 
 		setImmediate(cb);
 	}
@@ -181,6 +186,7 @@ function DApp() {
 	this.undoUnconfirmed = function (trs, sender, cb) {
 		delete private.unconfirmedNames[trs.asset.dapp.name];
 		delete private.unconfirmedLinks[trs.asset.dapp.git];
+		delete private.unconfirmedNickNames[trs.asset.dapp.nickname];
 
 		setImmediate(cb);
 	}
