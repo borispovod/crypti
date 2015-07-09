@@ -760,7 +760,73 @@ function attachApi() {
 	});
 
 	router.get('/search', function (req, res, next) {
-		// search by q and category
+		req.sanitize(req.query, {
+			type: "object",
+			properties: {
+				q: {
+					type: 'string',
+					minLength: 1
+				},
+				category: {
+					type: 'string',
+					minLength: 1
+				}
+			},
+			required: ["q"]
+		}, function (err, report, query) {
+			if (err) return next(err);
+			if (!report.isValid) return res.json({success: false, error: report.issues});
+
+			var category = null;
+
+			if (query.category) {
+				category = dappCategory[query.category];
+
+				if (category != 0 && !category) {
+					return res.json({success: false, error: "Incorrect category"});
+				}
+			}
+
+			library.dbLite.query("CREATE VIRTUAL TABLE IF NOT EXISTS dapps_search USING fts4(content=dapps, name, description, tags)", function (err, rows) {
+				if (err) {
+					library.logger.error(err);
+					return res.json({success: false, error: "Sql error, check logs"});
+				} else {
+					//INSERT INTO t3(docid, b, c) SELECT id, b, c FROM t2;
+
+					library.dbLite.query("INSERT OR IGNORE INTO dapps_search(docid, name, description, tags) SELECT rowid, name, description, tags FROM dapps", function (err, rows) {
+						if (err) {
+							library.logger.error(err);
+							return res.json({success: false, error: "Sql error, check logs"})
+						} else {
+							library.dbLite.query("SELECT rowid FROM dapps_search WHERE dapps_search MATCH $q", {q: query.q + "*"}, function (err, rows) {
+								if (err) {
+									library.logger.error(err);
+									return res.json({success: false, error: "Sql error, check logs"});
+								} else if (rows.length > 0) {
+									var categorySql = "";
+
+									if (category === 0 || category > 0) {
+										categorySql = " AND category = $category"
+									}
+
+									library.dbLite.query("SELECT transactionId, name, description, tags, nickname, git, type, category FROM dapps WHERE rowid IN (" + rows.join(',') + ")" + categorySql, {category: category}, {'transactionId': String, 'name': String, 'description': String, 'tags': String, 'nickname': String, 'git': String, 'type': Number, 'category': Number}, function (err, rows) {
+										if (err) {
+											library.logger.error(err);
+											return res.json({success: false, error: "Sql error, check logs"});
+										} else {
+											return res.json({success: true, dapps: rows});
+										}
+									});
+								} else {
+									return res.json({success: true, dapps: []});
+								}
+							})
+						}
+					});
+				}
+			});
+		});
 	});
 
 	router.post('/install', function (req, res, next) {
