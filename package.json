@@ -45,6 +45,7 @@
 		"npm": "^2.12.1",
 		"pkginfo": "^0.3.0",
 		"request": "*",
+		"rimraf": "*",
 		"socket.io": "*",
 		"stack-trace": "0.0.9",
 		"strftime": "*",

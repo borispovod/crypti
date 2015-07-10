@@ -13,6 +13,7 @@ var async = require('async'),
 	crypto = require('crypto'),
 	constants = require('../helpers/constants.js'),
 	errorCode = require('../helpers/errorCodes.js').error,
+	rmdir = require('rimraf'),
 	Sandbox = require("crypti-sandbox");
 ed = require('ed25519');
 
@@ -730,13 +731,15 @@ function attachApi() {
 							return res.json({success: false, error: "Can't get installed dapps"});
 						} else {
 							if (files.indexOf(body.id) >= 0) {
-								private.launch(dapp, function (err) {
+								private.symlink(dapp, function (err) {
 									if (err) {
 										private.launched[body.id] = false;
 										library.logger.error(err);
 										return res.json({success: false, error: "Can't launch dapp, see logs"});
 									} else {
-										return res.json({success: true});
+										private.launch(dapp, function (err) {
+											res.json({success: !!err});
+										})
 									}
 								});
 							} else {
@@ -1031,57 +1034,58 @@ private.downloadDApp = function (dApp, cb) {
 	});
 }
 
-private.launch = function (dApp, cb) {
+private.symlink = function (dApp, cb) {
 	var dappPath = path.join(private.dappsPath, dApp.transactionId);
 	var dappPublicPath = path.join(dappPath, "public");
 	var dappPublicLink = path.join(private.appPath, "public", "dapps", dApp.transactionId);
 
 	fs.exists(dappPublicPath, function (exists) {
 		if (exists) {
-			fs.symlink(dappPublicPath, dappPublicLink, function (err) {
-				if (err) {
-					return setImmediate(cb, err);
-				} else {
-					try {
-						var dappConfig = require(path.join(dappPath, "config.json"));
-					} catch (e) {
-						return setImmediate(cb, "This DApp has no config file, can't launch it");
-					}
-
-					debugger
-
-					new library.logic.dapp(dApp.transactionId, dappConfig.db, function (err, dbapi) {
-						var sandbox = new Sandbox(path.join(dappPath, "index.js"), function (message, callback) {
-							console.log(message);
-						}, true);
-
-						sandbox.on("exit", function () {
-							library.logger.info("DApp " + id + " closed");
-							private.stop(dApp, function (err) {
-								if (err) {
-									library.logger.error("Error on stop dapp: " + err);
-								}
-							});
-						});
-
-						sandbox.on("error", function (err) {
-							library.logger.info("Error in DApp " + id + " " + err.toString());
-							private.stop(dApp, function (err) {
-								if (err) {
-									library.logger.error("Error on stop dapp: " + err);
-								}
-							})
-						});
-
-						sandbox.run();
-
-						setImmediate(cb);
-					});
-				}
+			rmdir(dappPublicLink, function (err) {
+				fs.symlink(dappPublicPath, dappPublicLink, cb);
 			});
 		} else {
-			setImmediate(cb);
+			cb();
 		}
+	});
+}
+
+private.launch = function (dApp, cb) {
+	debugger
+
+	var dappPath = path.join(private.dappsPath, dApp.transactionId);
+
+	try {
+		var dappConfig = require(path.join(dappPath, "config.json"));
+	} catch (e) {
+		return setImmediate(cb, "This DApp has no config file, can't launch it");
+	}
+
+
+	new library.logic.dapp(dApp.transactionId, dappConfig.db, function (err, dbapi) {
+		var sandbox = new Sandbox(path.join(dappPath, "index.js"), function (message, callback) {
+			console.log(message);
+		}, true);
+
+		sandbox.on("exit", function () {
+			library.logger.info("DApp " + id + " closed");
+			private.stop(dApp, function (err) {
+				if (err) {
+					library.logger.error("Error on stop dapp: " + err);
+				}
+			});
+		});
+
+		sandbox.on("error", function (err) {
+			library.logger.info("Error in DApp " + id + " " + err.toString());
+			private.stop(dApp, function (err) {
+				if (err) {
+					library.logger.error("Error on stop dapp: " + err);
+				}
+			})
+		});
+
+		sandbox.run();
 	});
 }
 
