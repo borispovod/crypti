@@ -1051,8 +1051,6 @@ private.symlink = function (dApp, cb) {
 }
 
 private.launch = function (dApp, cb) {
-	debugger
-
 	var dappPath = path.join(private.dappsPath, dApp.transactionId);
 
 	try {
@@ -1061,8 +1059,10 @@ private.launch = function (dApp, cb) {
 		return setImmediate(cb, "This DApp has no config file, can't launch it");
 	}
 
+	debugger
 
-	new library.logic.dapp(dApp.transactionId, dappConfig.db, function (err, dbapi) {
+	new library.dapp(dApp.transactionId, dappConfig.db, function (err, dbapi) {
+		debugger
 		var sandbox = new Sandbox(path.join(dappPath, "index.js"), function (message, callback) {
 			console.log(message);
 		}, true);

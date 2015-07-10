@@ -332,7 +332,7 @@ d.run(function () {
 			dbLite.connect(config.db, cb);
 		},
 
-		DappApi: ["dbLite", function (cb, scope) {
+		dapp: ["dbLite", function (cb, scope) {
 			var Dapp = require('./logic/dapp.js');
 
 			cb(null, Dapp(scope.dbLite));
