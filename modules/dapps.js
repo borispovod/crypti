@@ -15,6 +15,7 @@ var async = require('async'),
 	errorCode = require('../helpers/errorCodes.js').error,
 	Sandbox = require("crypti-sandbox"),
 	ed = require('ed25519'),
+	rmdir = require('rimraf'),
 	extend = require('extend');
 
 var modules, library, self, private = {};
@@ -732,25 +733,34 @@ function attachApi() {
 							return res.json({success: false, error: "Can't get installed dapps"});
 						} else {
 							if (files.indexOf(body.id) >= 0) {
-								private.launch(dapp, function (err) {
+								private.symlink(dapp, function (err) {
 									if (err) {
 										private.launched[body.id] = false;
 										library.logger.error(err);
-										return res.json({success: false, error: "Can't launch dapp, see logs"});
+										return res.json({success: false, error: "Can't create public link for: " + body.id});
 									} else {
-										private.dappRoutes(dapp, function (err) {
+										private.launch(dapp, function (err) {
 											if (err) {
+												private.launched[body.id] = false;
 												library.logger.error(err);
-												private.stop(dapp, function (err) {
-													if (err) {
-														library.logger.error(err);
-														return res.json({success: false, error: "Can't stop dapp, check logs: " + body.id})
-													}
-
-													return res.json({success: false});
-												});
+												return res.json({success: false, error: "Can't launch dapp, see logs: " + body.id});
 											} else {
-												return res.json({success: true});
+												private.dappRoutes(dapp, function (err) {
+													if (err) {
+														private.launched[body.id] = false;
+														library.logger.error(err);
+														private.stop(dapp, function (err) {
+															if (err) {
+																library.logger.error(err);
+																return res.json({success: false, error: "Can't stop dapp, check logs: " + body.id})
+															}
+
+															return res.json({success: false});
+														});
+													} else {
+														return res.json({success: true});
+													}
+												});
 											}
 										});
 									}
@@ -900,9 +910,7 @@ private.createBasePathes = function (cb) {
 			var dappsPublic = path.join(private.appPath, 'public', 'dapps')
 			fs.exists(dappsPublic, function (exists) {
 				if (exists) {
-					fs.unlink(dappsPublic, function (err) {
-						return setImmediate(cb, err);
-					});
+					return setImmediate(cb);
 				} else {
 					fs.mkdir(dappsPublic, cb);
 				}
@@ -960,7 +968,7 @@ private.removeDApp = function (dApp, cb) {
 		if (!exists) {
 			return setImmediate(cb, "This dapp not found");
 		} else {
-			fs.unlink(dappPath, function (err) {
+			rmdir(dappPath, function (err) {
 				if (err) {
 					return setImmediate(cb, "Problem when removing folder of dapp: ", dappPath);
 				} else {
@@ -989,7 +997,7 @@ private.downloadDApp = function (dApp, cb) {
 						if (err) {
 							library.logger.error(err.toString());
 
-							fs.unlink(dappPath, function (err) {
+							rmdir(dappPath, function (err) {
 								if (err) {
 									library.logger.error(err.toString());
 								}
@@ -1008,7 +1016,7 @@ private.downloadDApp = function (dApp, cb) {
 						if (err) {
 							library.logger.error(err);
 
-							fs.unlink(dappPath, function (err) {
+							rmdir(dappPath, function (err) {
 								if (err) {
 									library.logger.error(err);
 								}
@@ -1032,7 +1040,7 @@ private.downloadDApp = function (dApp, cb) {
 										library.logger.error(err);
 									}
 
-									fs.unlink(dappPath, function (err) {
+									rmdir(dappPath, function (err) {
 										if (err) {
 											library.logger.error(err);
 										}
@@ -1049,11 +1057,24 @@ private.downloadDApp = function (dApp, cb) {
 	});
 }
 
+private.symlink = function (dApp, cb) {
+	var dappPath = path.join(private.dappsPath, dApp.transactionId);
+	var dappPublicPath = path.join(dappPath, "public");
+	var dappPublicLink = path.join(private.appPath, "public", "dapps", dApp.transactionId);
+
+	fs.exists(dappPublicLink, function (exists) {
+		if (exists) {
+			return setImmediate(cb);
+		} else {
+			fs.symlink(dappPublicPath, dappPublicLink, cb);
+		}
+	});
+}
+
 private.apiHandler = function (message, callback) {
 	console.log(message);
 	cb();
 }
-
 
 private.dappRoutes = function (dapp, cb) {
 	var dappPath = path.join(private.dappsPath, dapp.transactionId);
@@ -1104,47 +1125,41 @@ private.launch = function (dApp, cb) {
 	var dappPublicPath = path.join(dappPath, "public");
 	var dappPublicLink = path.join(private.appPath, "public", "dapps", dApp.transactionId);
 
-	fs.exists(dappPublicPath, function (exists) {
-		if (exists) {
-			fs.symlink(dappPublicPath, dappPublicLink, function (err) {
+	try {
+		var dappConfig = require(path.join(dappPath, "config.json"));
+	} catch (e) {
+		return setImmediate(cb, "This DApp has no config file, can't launch it");
+	}
+
+	new library.dapp(dApp.transactionId, dappConfig.db, function (err, dbapi) {
+		if (err) {
+			return setImmediate(cb, err);
+		}
+
+		var sandbox = new Sandbox(path.join(dappPath, "index.js"), private.apiHandler, true);
+		private.sandboxes[dApp.transactionId] = sandbox;
+
+		sandbox.on("exit", function () {
+			library.logger.info("DApp " + id + " closed");
+			private.stop(dApp, function (err) {
 				if (err) {
-					return setImmediate(cb, err);
-				} else {
-					try {
-						var dappConfig = require(path.join(dappPath, "config.json"));
-					} catch (e) {
-						return setImmediate(cb, "This DApp has no config file, can't launch it");
-					}
-
-					var sandbox = new Sandbox(path.join(dappPath, "index.js"), private.apiHandler, true);
-					private.sandboxes[dApp.transactionId] = sandbox;
-
-					sandbox.on("exit", function () {
-						library.logger.info("DApp " + id + " closed");
-						private.stop(dApp, function (err) {
-							if (err) {
-								library.logger.error("Error on stop dapp: " + err);
-							}
-						});
-					});
-
-					sandbox.on("error", function (err) {
-						library.logger.info("Error in DApp " + id + " " + err.toString());
-						private.stop(dApp, function (err) {
-							if (err) {
-								library.logger.error("Error on stop dapp: " + err);
-							}
-						});
-					});
-
-					sandbox.run();
-
-					return setImmediate(cb);
+					library.logger.error("Error on stop dapp: " + err);
 				}
 			});
-		} else {
-			setImmediate(cb);
-		}
+		});
+
+		sandbox.on("error", function (err) {
+			library.logger.info("Error in DApp " + id + " " + err.toString());
+			private.stop(dApp, function (err) {
+				if (err) {
+					library.logger.error("Error on stop dapp: " + err);
+				}
+			});
+		});
+
+		sandbox.run();
+
+		return setImmediate(cb);
 	});
 }
 
@@ -1155,6 +1170,7 @@ private.stop = function (dApp, cb) {
 		function (cb) {
 			fs.exists(dappPublicLink, function (exists) {
 				if (exists) {
+					// rm
 					return setImmediate(cb);
 				} else {
 					setImmediate(cb);

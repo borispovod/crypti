@@ -17,7 +17,7 @@ function Dapp(dappid, config, cb) {
 		} else if (config[i].type == "index") {
 			config[i].type = "index";
 		}
-		var sql = jsonSql.build(config);
+		var sql = jsonSql.build(config[i]);
 		sqles.push(sql.query);
 	}
 
