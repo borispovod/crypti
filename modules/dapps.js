@@ -738,7 +738,7 @@ function attachApi() {
 										return res.json({success: false, error: "Can't launch dapp, see logs"});
 									} else {
 										private.launch(dapp, function (err) {
-											res.json({success: !!err});
+											res.json({success: !err});
 										})
 									}
 								});
@@ -1086,6 +1086,8 @@ private.launch = function (dApp, cb) {
 		});
 
 		sandbox.run();
+
+		cb();
 	});
 }
 
