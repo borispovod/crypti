@@ -1032,12 +1032,6 @@ private.downloadDApp = function (dApp, cb) {
 	});
 }
 
-private.apiHandler = function (message, callback) {
-	console.log(message);
-	cb();
-}
-
-
 private.launch = function (dApp, cb) {
 	var dappPath = path.join(private.dappsPath, dApp.transactionId);
 	var dappPublicPath = path.join(dappPath, "public");
@@ -1055,29 +1049,33 @@ private.launch = function (dApp, cb) {
 						return setImmediate(cb, "This DApp has no config file, can't launch it");
 					}
 
-					var sandbox = new Sandbox(path.join(dappPath, "index.js"), private.apiHandler, true);
+					new library.logic.dapp(dApp.transactionId, dappConfig.db, function (err, dbapi) {
+						var sandbox = new Sandbox(path.join(dappPath, "index.js"), function (message, callback) {
+							console.log(message);
+						}, true);
 
-					sandbox.on("exit", function () {
-						library.logger.info("DApp " + id + " closed");
-						private.stop(dApp, function (err) {
-							if (err) {
-								library.logger.error("Error on stop dapp: " + err);
-							}
+						sandbox.on("exit", function () {
+							library.logger.info("DApp " + id + " closed");
+							private.stop(dApp, function (err) {
+								if (err) {
+									library.logger.error("Error on stop dapp: " + err);
+								}
+							});
 						});
+
+						sandbox.on("error", function (err) {
+							library.logger.info("Error in DApp " + id + " " + err.toString());
+							private.stop(dApp, function (err) {
+								if (err) {
+									library.logger.error("Error on stop dapp: " + err);
+								}
+							})
+						});
+
+						sandbox.run();
+
+						setImmediate(cb);
 					});
-
-					sandbox.on("error", function (err) {
-						library.logger.info("Error in DApp " + id + " " + err.toString());
-						private.stop(dApp, function (err) {
-							if (err) {
-								library.logger.error("Error on stop dapp: " + err);
-							}
-						})
-					});
-
-					sandbox.run();
-
-					return setImmediate(cb);
 				}
 			});
 		} else {
