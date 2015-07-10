@@ -1033,7 +1033,6 @@ private.downloadDApp = function (dApp, cb) {
 }
 
 private.apiHandler = function (message, callback) {
-	debugger
 	console.log(message);
 	cb();
 }
@@ -1050,24 +1049,30 @@ private.launch = function (dApp, cb) {
 				if (err) {
 					return setImmediate(cb, err);
 				} else {
-					var dAppConfig = null;
-
 					try {
-						dAppConfig = require(path.join(dAppPath, "config.json"));
+						var dappConfig = require(path.join(dappPath, "config.json"));
 					} catch (e) {
 						return setImmediate(cb, "This DApp has no config file, can't launch it");
 					}
 
-					var sandbox = new Sandbox(path.join("dapps", id, "index.js"), private.apiHandler, true);
+					var sandbox = new Sandbox(path.join(dappPath, "index.js"), private.apiHandler, true);
 
 					sandbox.on("exit", function () {
-						debugger
 						library.logger.info("DApp " + id + " closed");
+						private.stop(dApp, function (err) {
+							if (err) {
+								library.logger.error("Error on stop dapp: " + err);
+							}
+						});
 					});
 
 					sandbox.on("error", function (err) {
-						debugger
 						library.logger.info("Error in DApp " + id + " " + err.toString());
+						private.stop(dApp, function (err) {
+							if (err) {
+								library.logger.error("Error on stop dapp: " + err);
+							}
+						})
 					});
 
 					sandbox.run();
