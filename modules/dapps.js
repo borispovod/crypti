@@ -168,11 +168,10 @@ function DApp() {
 	}
 
 	this.applyUnconfirmed = function (trs, sender, cb) {
-		debugger
 		if (private.unconfirmedNames[trs.asset.dapp.name]) {
 			setImmediate(cb, "dapp name is exists");
 		}
-		if (private.unconfirmedNames[trs.asset.dapp.git]) {
+		if (private.unconfirmedLinks[trs.asset.dapp.git]) {
 			setImmediate(cb, "dapp link is exists");
 		}
 		if (private.unconfirmedNickNames[trs.asset.dapp.nickname]) {
@@ -1048,6 +1047,8 @@ private.launch = function (dApp, cb) {
 					} catch (e) {
 						return setImmediate(cb, "This DApp has no config file, can't launch it");
 					}
+
+					debugger
 
 					new library.logic.dapp(dApp.transactionId, dappConfig.db, function (err, dbapi) {
 						var sandbox = new Sandbox(path.join(dappPath, "index.js"), function (message, callback) {
