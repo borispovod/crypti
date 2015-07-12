@@ -8,11 +8,12 @@ var crypto = require('crypto'),
 	TransactionTypes = require('../helpers/transaction-types.js'),
 	Diff = require('../helpers/diff.js'),
 	errorCode = require('../helpers/errorCodes.js').error,
+	extend = require('extend'),
 	sandboxHelper = require('../helpers/sandbox.js');
 
 //private
 var modules, library, self, private = {};
-var shared = [
+private.shared = [
 	'open'
 ];
 
@@ -29,7 +30,7 @@ private.open = function (body, cb) {
 		required: ["secret"]
 	}, function (err) {
 		if (err) {
-			return cb(err);
+			return cb(err[0].message);
 		}
 
 		private.openAccount(body.secret, function (err, account) {

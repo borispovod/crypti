@@ -7,7 +7,7 @@ function callMethod(private, call, args, cb) {
 		return cb("This call not found in this module, but shared, notify developers: " + call);
 	}
 
-	var callArgs = args.concat([cb]);
+	var callArgs = [args, cb];
 	private[call].apply(null, callArgs);
 }
 

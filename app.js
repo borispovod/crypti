@@ -74,7 +74,8 @@ var config = {
 		"contacts": "./modules/contacts.js",
 		"multisignatures": "./modules/multisignatures.js",
 		"dapps": "./modules/dapps.js",
-		"sia": "./modules/sia.js"
+		"sia": "./modules/sia.js",
+		"crypto": "./modules/crypto.js"
 	}
 }
 

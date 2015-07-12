@@ -1087,6 +1087,7 @@ private.apiHandler = function (message, callback) {
 
 		modules[module].sandboxApi(call, message.args, callback);
 	} catch (e) {
+		console.log(e);
 		return setImmediate(callback, "Incorrect call");
 	}
 }
@@ -1111,8 +1112,12 @@ private.dappRoutes = function (dapp, cb) {
 						private.sandboxes[dapp.transactionId].sendMessage({
 							method: router.method,
 							path: router.path,
-							query: req.query
+							query: (router.method == "get")? req.query : req.body
 						}, function (err, body) {
+							if (!err && body.error) {
+								err = body.error;
+							}
+
 							body = ((err || typeof body != "object") ? {error: err} : body);
 							var resultBody = extend(body, {success: !err});
 							res.json(resultBody);
