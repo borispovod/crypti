@@ -56,7 +56,7 @@ function DApp() {
 	this.verify = function (trs, sender, cb) {
 		var isSia = false;
 
-		if (trs.recipientId !== null) {
+		if (trs.recipientId) {
 			return setImmediate(cb, errorCode("TRANSACTIONS.INVALID_RECIPIENT", trs));
 		}
 
@@ -105,8 +105,8 @@ function DApp() {
 			return setImmediate(cb, errorCode("DAPPS.TOO_LONG_TAGS"));
 		}
 
-		library.dbLite.query("SELECT count(transactionId) FROM dapps WHERE name = $name or nickname = $nickname or git = $git", {
-			name: trs.asset.dapp.name, nickname: trs.asset.dapp.nickname, git: trs.asset.dapp.git
+		library.dbLite.query("SELECT count(transactionId) FROM dapps WHERE (name = $name or nickname = $nickname or git = $git) and transactionId != $transactionId", {
+			name: trs.asset.dapp.name, nickname: trs.asset.dapp.nickname? trs.asset.dapp.nickname : null, git: trs.asset.dapp.git? trs.asset.dapp.git : null, transactionId : trs.id
 		}, ['count'], function (err, rows) {
 			if (err || rows.length == 0) {
 				return setImmediate(cb, "Sql error");
@@ -1208,7 +1208,6 @@ private.stop = function (dApp, cb) {
 	], function (err) {
 		return setImmediate(cb, err);
 	});
-
 }
 
 DApps.prototype.sandboxApi = function (call, data, cb) {
