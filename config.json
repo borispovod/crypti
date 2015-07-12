@@ -6,7 +6,7 @@
 	"version": "0.3.0",
 	"fileLogLevel": "info",
 	"consoleLogLevel": "log",
-	"sharePort": true,
+	"sharePort": false,
 	"api": {
 		"access": {
 			"whiteList": []
@@ -45,7 +45,7 @@
 	},
 	"loading": {
 		"verifyOnLoading": true,
-		"loadPerIteration": 1000
+		"loadPerIteration": 5000
 	},
 	"ssl": {
 		"enabled": false,

@@ -676,6 +676,18 @@ function attachApi() {
 				return res.json({success: true, accounts: arr});
 			});
 		});
+
+		router.get('/top_sum', function (req, res) {
+			var s = bignum("0");
+			for (var i in private.accounts) {
+				var a = private.accounts[i];
+				if (a.balance > 0) {
+					s = s.add(a.balance.toString());
+				}
+			}
+
+			return res.json({success: true, balance: s.toString()});
+		});
 	}
 
 	router.get('/getPublicKey', function (req, res, next) {
