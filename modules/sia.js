@@ -55,4 +55,8 @@ Sia.prototype.onBlockchainReady = function () {
 	private.loaded = true;
 }
 
+Sia.prototype.sandboxApi = function (call, data, cb) {
+
+}
+
 module.exports = Sia;

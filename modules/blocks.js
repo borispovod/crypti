@@ -646,6 +646,7 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 					}
 					if (verify && block.id != genesisblock.block.id) {
 						library.logic.transaction.verify(transaction, sender, function (err) {
+							console.log(err);
 							if (err) {
 								return setImmediate(cb, {
 									message: err,
@@ -769,13 +770,13 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 
 			var totalAmount = 0, totalFee = 0, payloadHash = crypto.createHash('sha256'), appliedTransactions = {}, acceptedRequests = {}, acceptedConfirmations = {};
 
-
 			async.eachSeries(block.transactions, function (transaction, cb) {
 				try {
 					transaction.id = library.logic.transaction.getId(transaction);
 				} catch (e) {
 					return setImmediate(cb, e.toString());
 				}
+
 				transaction.blockId = block.id;
 
 				library.dbLite.query("SELECT id FROM trs WHERE id=$id", {id: transaction.id}, ['id'], function (err, rows) {
@@ -1003,9 +1004,9 @@ Blocks.prototype.generateBlock = function (keypair, timestamp, cb) {
 			if (err) {
 				return cb("sender doesn´t found");
 			}
+
 			if (library.logic.transaction.ready(transaction, sender)) {
 				library.logic.transaction.verify(transaction, sender, function (err) {
-
 					ready.push(transaction);
 					cb();
 				});
@@ -1047,6 +1048,10 @@ Blocks.prototype.onReceiveBlock = function (block) {
 			cb();
 		}
 	});
+}
+
+Blocks.prototype.sandboxApi = function (call, data, cb) {
+
 }
 
 Blocks.prototype.onBind = function (scope) {

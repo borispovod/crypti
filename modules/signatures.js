@@ -270,6 +270,10 @@ function attachApi() {
 
 //public methods
 
+Signatures.prototype.sandboxApi = function (call, data, cb) {
+
+}
+
 //events
 Signatures.prototype.onBind = function (scope) {
 	modules = scope;

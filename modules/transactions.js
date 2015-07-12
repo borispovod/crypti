@@ -693,5 +693,9 @@ Transactions.prototype.onBind = function (scope) {
 	modules = scope;
 }
 
+Transactions.prototype.sandboxApi = function (call, data, cb) {
+
+}
+
 //export
 module.exports = Transactions;

@@ -988,5 +988,10 @@ Delegates.prototype.onChangeUnconfirmedDelegates = function (balance, diff) {
 	}
 }
 
+
+Delegates.prototype.sandboxApi = function (call, data, cb) {
+
+}
+
 //export
 module.exports = Delegates;

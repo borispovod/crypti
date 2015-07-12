@@ -22,10 +22,20 @@ function getNonce() {
 	return nacl.crypto_box_random_nonce();;
 }
 
+function cryptobox(text, nonce, key) {
+	return nacl.crypto_secretbox(nacl.encode_utf8(text), nonce, convertPrivateKey(key));
+}
+
+function decrypt_cryptobox(text, nonce, key) {
+	return nacl.crypto_secretbox_open(text, nonce, convertPrivateKey(key));
+}
+
 module.exports = {
 	convertPublicKey: convertPublicKey,
 	convertPrivateKey: convertPrivateKey,
 	getNonce: getNonce,
 	encrypt: encrypt,
-	decrypt: decrypt
+	decrypt: decrypt,
+	cryptobox: cryptobox,
+	decrypt_cryptobox: decrypt_cryptobox
 }
