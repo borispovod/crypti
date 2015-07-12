@@ -1072,8 +1072,23 @@ private.symlink = function (dApp, cb) {
 }
 
 private.apiHandler = function (message, callback) {
-	console.log(message);
-	cb();
+	// get all modules
+	try {
+		var strs = message.call.split('#');
+		var module = strs[0], call = strs[1];
+
+		if (!modules[module]) {
+			return setImmediate(callback, "Incorrect module in call: " + message.call);
+		}
+
+		if (!modules[module].sandboxApi) {
+			return setImmediate(callback, "This module doesn't have sandbox api");
+		}
+
+		modules[module].sandboxApi(call, message.args, callback);
+	} catch (e) {
+		return setImmediate(callback, "Incorrect call");
+	}
 }
 
 private.dappRoutes = function (dapp, cb) {
@@ -1188,6 +1203,10 @@ private.stop = function (dApp, cb) {
 	], function (err) {
 		return setImmediate(cb, err);
 	});
+
+}
+
+DApps.prototype.sandboxApi = function (call, data, cb) {
 
 }
 

@@ -384,6 +384,11 @@ function attachApi() {
 
 //public methods
 
+
+Multisignatures.prototype.sandboxApi = function (call, data, cb) {
+
+}
+
 //events
 Multisignatures.prototype.onBind = function (scope) {
 	modules = scope;

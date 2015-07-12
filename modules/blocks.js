@@ -1049,6 +1049,10 @@ Blocks.prototype.onReceiveBlock = function (block) {
 	});
 }
 
+Blocks.prototype.sandboxApi = function (call, data, cb) {
+
+}
+
 Blocks.prototype.onBind = function (scope) {
 	modules = scope;
 }

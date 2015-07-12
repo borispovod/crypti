@@ -7,10 +7,51 @@ var crypto = require('crypto'),
 	constants = require('../helpers/constants.js'),
 	TransactionTypes = require('../helpers/transaction-types.js'),
 	Diff = require('../helpers/diff.js'),
-	errorCode = require('../helpers/errorCodes.js').error;
+	errorCode = require('../helpers/errorCodes.js').error,
+	sandboxHelper = require('../helpers/sandbox.js');
 
 //private
 var modules, library, self, private = {};
+var shared = [
+	'open'
+];
+
+private.open = function (body, cb) {
+	library.scheme.validate(body, {
+		type: "object",
+		properties: {
+			secret: {
+				type: "string",
+				minLength: 1,
+				maxLength: 100
+			}
+		},
+		required: ["secret"]
+	}, function (err) {
+		if (err) {
+			return cb(err);
+		}
+
+		private.openAccount(body.secret, function (err, account) {
+			var accountData = null;
+			if (!err) {
+				accountData = {
+					address: account.address,
+					unconfirmedBalance: account.u_balance,
+					balance: account.balance,
+					publicKey: account.publicKey,
+					unconfirmedSignature: account.unconfirmedSignature,
+					secondSignature: account.secondSignature,
+					secondPublicKey: account.secondPublicKey
+				};
+
+				return cb(null, {account: accountData});
+			} else {
+				return cb(err);
+			}
+		});
+	});
+}
 
 function Vote() {
 	this.create = function (data, trs) {
@@ -326,38 +367,12 @@ function attachApi() {
 	});
 
 	router.post('/open', function (req, res, next) {
-		req.sanitize(req.body, {
-			type: "object",
-			properties: {
-				secret: {
-					type: "string",
-					minLength: 1,
-					maxLength: 100
-				}
-			},
-			required: ["secret"]
-		}, function (err, report, body) {
-			if (err) return next(err);
-			if (!report.isValid) return res.json({success: false, error: report.issues});
-
-			private.openAccount(body.secret, function (err, account) {
-				var accountData = null;
-				if (!err) {
-					accountData = {
-						address: account.address,
-						unconfirmedBalance: account.u_balance,
-						balance: account.balance,
-						publicKey: account.publicKey,
-						unconfirmedSignature: account.unconfirmedSignature,
-						secondSignature: account.secondSignature,
-						secondPublicKey: account.secondPublicKey
-					};
-				}
-				res.json({
-					success: !err,
-					account: accountData
-				});
-			});
+		private.open(req.body, function (err, response) {
+			if (err) {
+				res.json({success: false, error: err});
+			} else {
+				return res.json(extend({}, {success: true}, response));
+			}
 		});
 	});
 
@@ -793,6 +808,10 @@ Accounts.prototype.mergeAccountAndGet = function (data, cb) {
 		}
 	}
 	library.logic.account.merge(address, data, cb);
+}
+
+Accounts.prototype.sandboxApi = function (call, args, cb) {
+	sandboxHelper.callMethod(private, call, args, cb);
 }
 
 //events

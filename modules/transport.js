@@ -475,5 +475,9 @@ Transport.prototype.onNewBlock = function (block, broadcast) {
 	}
 }
 
+Transport.prototype.sandboxApi = function (call, data, cb) {
+
+}
+
 //export
 module.exports = Transport;

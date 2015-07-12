@@ -41,5 +41,10 @@ System.prototype.onBind = function (scope) {
 	modules = scope;
 }
 
+
+System.prototype.sandboxApi = function (call, data, cb) {
+
+}
+
 //export
 module.exports = System;
