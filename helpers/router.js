@@ -2,9 +2,13 @@ var extend = require('extend');
 
 function map (root, map) {
 	var router = this;
-	Object.keys(map).forEach(function (route) {
-		router[map[route].method](route, function (req, res, next) {
-			root[map[route].call](map[route].method == "get" ? req.query : req.body, function (err, response) {
+	Object.keys(map).forEach(function (params) {
+		var route = params.split(" ");
+		if (route.length != 2 || ["post", "get", "put"].indexOf(route[0]) == -1){
+			throw Error("wrong map config");
+		}
+		router[route[0]](route[1], function (req, res, next) {
+			root[params](map[route].method == "get" ? req.query : req.body, function (err, response) {
 				if (err) {
 					res.json({success: false, error: err});
 				} else {

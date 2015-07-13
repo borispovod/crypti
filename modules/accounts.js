@@ -328,10 +328,16 @@ private.attachApi = function () {
 	});
 
 	router.map(shared, {
-		"/open": {"method": "post", "call": "open"},
-		"/getBalance": {"method": "get", "call": "getBalance"},
-		"/getPublicKey": {"method": "get", "call": "getPublickey"},
-		"/generatePublicKey": {"method": "post", "call": "generatePublicKey"}
+		"post /open": "open",
+		"get /getBalance": "getBalance",
+		"get /getPublicKey": "getPublickey",
+		"post /generatePublicKey": "generatePublicKey",
+		"get /delegates": "getDelegates",
+		"get /delegates/fee": "getDelegatesFee",
+		"put /delegates": "addDelegates",
+		"get /username/fee": "getUsernameFee",
+		"put /username": "addUsername",
+		"get /": "getAccount"
 	});
 
 	if (process.env.DEBUG && process.env.DEBUG.toUpperCase() == "TRUE") {
@@ -360,249 +366,6 @@ private.attachApi = function () {
 			return res.json({success: true, accounts: arr});
 		});
 	}
-
-	router.get("/delegates", function (req, res, next) {
-		req.sanitize(req.query, {
-			type: "object",
-			properties: {
-				address: {
-					type: "string",
-					minLength: 1
-				}
-			},
-			required: ["address"]
-		}, function (err, report, query) {
-			if (err) return next(err);
-			if (!report.isValid) return res.json({success: false, error: report.issues});
-
-			self.getAccount({address: query.address}, function (err, account) {
-				if (err) {
-					return res.json({success: false, error: err.toString()});
-				}
-				if (!account) {
-					return res.json({
-						success: false,
-						error: errorCode("ACCOUNTS.ACCOUNT_DOESNT_FOUND", {address: query.address})
-					});
-				}
-
-				if (account.delegates) {
-					var stat = modules.delegates.getStats();
-
-					var delegates = account.delegates.map(function (delegate) {
-						return self.generateAddressByPublicKey(delegate);
-					});
-					self.getAccounts({address: {$in: delegates}}, ["username", "address", "publicKey", "rate", "vote"], function (err, delegates) {
-						if (err) {
-							return res.json({success: false, error: err.toString()});
-						}
-
-						for (var i = 0; i < delegates.length; i++) {
-							delegates[i].vote = stat.votes[delegates[i].publicKey];
-							delegates[i].rate = stat.rates[delegates[i].publicKey];
-							delegates[i].productivity = stat.productivities[delegates[i].publicKey];
-						}
-
-						res.json({success: true, delegates: delegates});
-
-					});
-				} else {
-					res.json({success: true, delegates: []});
-				}
-			});
-		});
-	});
-
-	router.get("/delegates/fee", function (req, res) {
-		return res.json({success: true, fee: 1 * constants.fixedPoint});
-	});
-
-	router.put("/delegates", function (req, res, next) {
-		req.sanitize(req.body, {
-			type: "object",
-			properties: {
-				secret: {
-					type: 'string',
-					minLength: 1
-				},
-				publicKey: {
-					type: 'string',
-					format: 'publicKey'
-				},
-				secondSecret: {
-					type: 'string',
-					minLength: 1
-				}
-			}
-		}, function (err, report, body) {
-			if (err) return next(err);
-			if (!report.isValid) return res.json({success: false, error: report.issues});
-
-			var hash = crypto.createHash('sha256').update(body.secret, 'utf8').digest();
-			var keypair = ed.MakeKeypair(hash);
-
-			if (body.publicKey) {
-				if (keypair.publicKey.toString('hex') != body.publicKey) {
-					return res.json({success: false, error: errorCode("COMMON.INVALID_SECRET_KEY")});
-				}
-			}
-
-			library.sequence.add(function (cb) {
-				self.getAccount({publicKey: keypair.publicKey.toString('hex')}, function (err, account) {
-					if (err) {
-						return cb(err.toString());
-					}
-					if (!account || !account.publicKey) {
-						return cb(errorCode("COMMON.OPEN_ACCOUNT"));
-					}
-
-					if (account.secondSignature && !body.secondSecret) {
-						return cb(errorCode("COMMON.SECOND_SECRET_KEY"));
-					}
-
-					var secondKeypair = null;
-
-					if (account.secondSignature) {
-						var secondHash = crypto.createHash('sha256').update(body.secondSecret, 'utf8').digest();
-						secondKeypair = ed.MakeKeypair(secondHash);
-					}
-
-					var transaction = library.logic.transaction.create({
-						type: TransactionTypes.VOTE,
-						votes: body.delegates,
-						sender: account,
-						keypair: keypair,
-						secondKeypair: secondKeypair
-					});
-					modules.transactions.receiveTransactions([transaction], cb);
-				});
-			}, function (err, transaction) {
-				if (err) {
-					return res.json({success: false, error: err.toString()});
-				}
-
-				res.json({success: true, transaction: transaction[0]});
-			});
-		});
-	});
-
-	router.get('/username/fee', function (req, res) {
-		return res.json({success: true, fee: 1 * constants.fixedPoint});
-	});
-
-	router.put("/username", function (req, res, next) {
-		req.sanitize(req.body, {
-			type: "object",
-			properties: {
-				secret: {
-					type: "string",
-					minLength: 1
-				},
-				publicKey: {
-					type: "string",
-					format: "publicKey"
-				},
-				secondSecret: {
-					type: "string",
-					minLength: 1
-				},
-				username: {
-					type: "string",
-					minLength: 1
-				}
-			},
-			required: ['secret', 'username']
-		}, function (err, report, body) {
-			if (err) return next(err);
-			if (!report.isValid) return res.json({success: false, error: report.issues});
-
-			var hash = crypto.createHash('sha256').update(body.secret, 'utf8').digest();
-			var keypair = ed.MakeKeypair(hash);
-
-			if (body.publicKey) {
-				if (keypair.publicKey.toString('hex') != body.publicKey) {
-					return res.json({success: false, error: errorCode("COMMON.INVALID_SECRET_KEY")});
-				}
-			}
-
-			library.sequence.add(function (cb) {
-				self.getAccount({publicKey: keypair.publicKey.toString('hex')}, function (err, account) {
-					if (err) {
-						return cb(err.toString());
-					}
-					if (!account || !account.publicKey) {
-						return cb(errorCode("COMMON.OPEN_ACCOUNT"));
-					}
-
-					if (account.secondSignature && !body.secondSecret) {
-						return cb(errorCode("COMMON.SECOND_SECRET_KEY"));
-					}
-
-					var secondKeypair = null;
-
-					if (account.secondSignature) {
-						var secondHash = crypto.createHash('sha256').update(body.secondSecret, 'utf8').digest();
-						secondKeypair = ed.MakeKeypair(secondHash);
-					}
-
-					var transaction = library.logic.transaction.create({
-						type: TransactionTypes.USERNAME,
-						username: body.username,
-						sender: account,
-						keypair: keypair,
-						secondKeypair: secondKeypair
-					});
-					modules.transactions.receiveTransactions([transaction], cb);
-				});
-			}, function (err, transaction) {
-				if (err) {
-					return res.json({success: false, error: err.toString()});
-				}
-
-				res.json({success: true, transaction: transaction[0]});
-			});
-		});
-	});
-
-	router.get("/", function (req, res, next) {
-		req.sanitize(req.query, {
-			type: "object",
-			properties: {
-				address: {
-					type: "string",
-					minLength: 1
-				}
-			},
-			required: ["address"]
-		}, function (err, report, query) {
-			if (err) return next(err);
-			if (!report.isValid) return res.json({success: false, error: report.issues});
-
-
-			self.getAccount({address: query.address}, function (err, account) {
-				if (err) {
-					return res.json({success: false, error: err.toString()});
-				}
-				if (!account) {
-					return res.json({success: false, error: errorCode("ACCOUNTS.ACCOUNT_DOESNT_FOUND")});
-				}
-
-				return res.json({
-					success: true,
-					account: {
-						address: account.address,
-						username: account.username,
-						unconfirmedBalance: account.u_balance,
-						balance: account.balance,
-						publicKey: account.publicKey,
-						unconfirmedSignature: account.unconfirmedSignature,
-						secondSignature: account.secondSignature,
-						secondPublicKey: account.secondPublicKey
-					}
-				});
-			});
-		});
-	});
 
 	router.use(function (req, res, next) {
 		res.status(500).send({success: false, error: errorCode('COMMON.INVALID_API')});
@@ -804,6 +567,248 @@ shared.generatePublickey = function (body, cb) {
 			}
 			cd(err, {
 				publicKey: publicKey
+			});
+		});
+	});
+}
+
+shared.getDelegates = function (query, cb) {
+	library.scheme.validate(query, {
+		type: "object",
+		properties: {
+			address: {
+				type: "string",
+				minLength: 1
+			}
+		},
+		required: ["address"]
+	}, function (err) {
+		if (err) {
+			return cb(err[0].message);
+		}
+
+		self.getAccount({address: query.address}, function (err, account) {
+			if (err) {
+				return cb(err.toString());
+			}
+			if (!account) {
+				return cb(errorCode("ACCOUNTS.ACCOUNT_DOESNT_FOUND", {address: query.address}));
+			}
+
+			if (account.delegates) {
+				var stat = modules.delegates.getStats();
+
+				var delegates = account.delegates.map(function (delegate) {
+					return self.generateAddressByPublicKey(delegate);
+				});
+				self.getAccounts({address: {$in: delegates}}, ["username", "address", "publicKey", "rate", "vote"], function (err, delegates) {
+					if (err) {
+						return cb(err.toString());
+					}
+
+					for (var i = 0; i < delegates.length; i++) {
+						delegates[i].vote = stat.votes[delegates[i].publicKey];
+						delegates[i].rate = stat.rates[delegates[i].publicKey];
+						delegates[i].productivity = stat.productivities[delegates[i].publicKey];
+					}
+
+					cb(null, {delegates: delegates});
+
+				});
+			} else {
+				cb(null, {delegates: []});
+			}
+		});
+	});
+}
+
+shared.getDelegatesFee = function (query, cb) {
+	cb(null, {fee: 1 * constants.fixedPoint});
+}
+
+shared.addDelegates = function (body, cb) {
+	library.scheme.validate(body, {
+		type: "object",
+		properties: {
+			secret: {
+				type: 'string',
+				minLength: 1
+			},
+			publicKey: {
+				type: 'string',
+				format: 'publicKey'
+			},
+			secondSecret: {
+				type: 'string',
+				minLength: 1
+			}
+		}
+	}, function (err) {
+		if (err) {
+			return cb(err[0].message);
+		}
+
+		var hash = crypto.createHash('sha256').update(body.secret, 'utf8').digest();
+		var keypair = ed.MakeKeypair(hash);
+
+		if (body.publicKey) {
+			if (keypair.publicKey.toString('hex') != body.publicKey) {
+				return cb(errorCode("COMMON.INVALID_SECRET_KEY"));
+			}
+		}
+
+		library.sequence.add(function (cb) {
+			self.getAccount({publicKey: keypair.publicKey.toString('hex')}, function (err, account) {
+				if (err) {
+					return cb(err.toString());
+				}
+				if (!account || !account.publicKey) {
+					return cb(errorCode("COMMON.OPEN_ACCOUNT"));
+				}
+
+				if (account.secondSignature && !body.secondSecret) {
+					return cb(errorCode("COMMON.SECOND_SECRET_KEY"));
+				}
+
+				var secondKeypair = null;
+
+				if (account.secondSignature) {
+					var secondHash = crypto.createHash('sha256').update(body.secondSecret, 'utf8').digest();
+					secondKeypair = ed.MakeKeypair(secondHash);
+				}
+
+				var transaction = library.logic.transaction.create({
+					type: TransactionTypes.VOTE,
+					votes: body.delegates,
+					sender: account,
+					keypair: keypair,
+					secondKeypair: secondKeypair
+				});
+				modules.transactions.receiveTransactions([transaction], cb);
+			});
+		}, function (err, transaction) {
+			if (err) {
+				return cb(err.toString());
+			}
+
+			cb(null, {transaction: transaction[0]});
+		});
+	});
+}
+
+shared.getUsernameFee = function (query, cb) {
+	cb(null, {fee: 1 * constants.fixedPoint});
+}
+
+shared.addUsername = function (body, cb) {
+	library.scheme.validate(body, {
+		type: "object",
+		properties: {
+			secret: {
+				type: "string",
+				minLength: 1
+			},
+			publicKey: {
+				type: "string",
+				format: "publicKey"
+			},
+			secondSecret: {
+				type: "string",
+				minLength: 1
+			},
+			username: {
+				type: "string",
+				minLength: 1
+			}
+		},
+		required: ['secret', 'username']
+	}, function (err) {
+		if (err) {
+			return cb(err[0].message);
+		}
+
+		var hash = crypto.createHash('sha256').update(body.secret, 'utf8').digest();
+		var keypair = ed.MakeKeypair(hash);
+
+		if (body.publicKey) {
+			if (keypair.publicKey.toString('hex') != body.publicKey) {
+				return cb(errorCode("COMMON.INVALID_SECRET_KEY"));
+			}
+		}
+
+		library.sequence.add(function (cb) {
+			self.getAccount({publicKey: keypair.publicKey.toString('hex')}, function (err, account) {
+				if (err) {
+					return cb(err.toString());
+				}
+				if (!account || !account.publicKey) {
+					return cb(errorCode("COMMON.OPEN_ACCOUNT"));
+				}
+
+				if (account.secondSignature && !body.secondSecret) {
+					return cb(errorCode("COMMON.SECOND_SECRET_KEY"));
+				}
+
+				var secondKeypair = null;
+
+				if (account.secondSignature) {
+					var secondHash = crypto.createHash('sha256').update(body.secondSecret, 'utf8').digest();
+					secondKeypair = ed.MakeKeypair(secondHash);
+				}
+
+				var transaction = library.logic.transaction.create({
+					type: TransactionTypes.USERNAME,
+					username: body.username,
+					sender: account,
+					keypair: keypair,
+					secondKeypair: secondKeypair
+				});
+				modules.transactions.receiveTransactions([transaction], cb);
+			});
+		}, function (err, transaction) {
+			if (err) {
+				return cb(err.toString());
+			}
+
+			cb(null, {transaction: transaction[0]});
+		});
+	});
+}
+
+shared.getAccount = function (query, cb) {
+	library.scheme.validate(query, {
+		type: "object",
+		properties: {
+			address: {
+				type: "string",
+				minLength: 1
+			}
+		},
+		required: ["address"]
+	}, function (err) {
+		if (err) {
+			return cb(err[0].message);
+		}
+
+		self.getAccount({address: query.address}, function (err, account) {
+			if (err) {
+				return cb(err.toString());
+			}
+			if (!account) {
+				return cb(errorCode("ACCOUNTS.ACCOUNT_DOESNT_FOUND"));
+			}
+
+			cb(null, {
+				account: {
+					address: account.address,
+					username: account.username,
+					unconfirmedBalance: account.u_balance,
+					balance: account.balance,
+					publicKey: account.publicKey,
+					unconfirmedSignature: account.unconfirmedSignature,
+					secondSignature: account.secondSignature,
+					secondPublicKey: account.secondPublicKey
+				}
 			});
 		});
 	});
