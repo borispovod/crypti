@@ -105,19 +105,7 @@ function DApp() {
 			return setImmediate(cb, errorCode("DAPPS.TOO_LONG_TAGS"));
 		}
 
-		library.dbLite.query("SELECT count(transactionId) FROM dapps WHERE (name = $name or nickname = $nickname or git = $git) and transactionId != $transactionId", {
-			name: trs.asset.dapp.name, nickname: trs.asset.dapp.nickname? trs.asset.dapp.nickname : null, git: trs.asset.dapp.git? trs.asset.dapp.git : null, transactionId : trs.id
-		}, ['count'], function (err, rows) {
-			if (err || rows.length == 0) {
-				return setImmediate(cb, "Sql error");
-			}
-
-			if (rows[0].count > 0) {
-				return setImmediate(cb, errorCode("DAPPS.EXISTS_DAPP_NAME"));
-			}
-
-			cb(null, trs);
-		});
+		return setImmediate(cb);
 	}
 
 	this.process = function (trs, sender, cb) {
@@ -170,7 +158,7 @@ function DApp() {
 	}
 
 	this.applyUnconfirmed = function (trs, sender, cb) {
-		debugger
+
 		if (private.unconfirmedNames[trs.asset.dapp.name]) {
 			setImmediate(cb, "dapp name is exists");
 		}
@@ -184,7 +172,19 @@ function DApp() {
 		private.unconfirmedLinks[trs.asset.dapp.git] = true;
 		private.unconfirmedNickNames[trs.asset.dapp.nickname] = true;
 
-		setImmediate(cb);
+		library.dbLite.query("SELECT count(transactionId) FROM dapps WHERE (name = $name or nickname = $nickname or git = $git) and transactionId != $transactionId", {
+			name: trs.asset.dapp.name, nickname: trs.asset.dapp.nickname? trs.asset.dapp.nickname : null, git: trs.asset.dapp.git? trs.asset.dapp.git : null, transactionId : trs.id
+		}, ['count'], function (err, rows) {
+			if (err || rows.length == 0) {
+				return setImmediate(cb, "Sql error");
+			}
+
+			if (rows[0].count > 0) {
+				return setImmediate(cb, errorCode("DAPPS.EXISTS_DAPP_NAME"));
+			}
+
+			return setImmediate(cb, null, trs);
+		});
 	}
 
 	this.undoUnconfirmed = function (trs, sender, cb) {
@@ -406,7 +406,6 @@ function attachApi() {
 						var secondHash = crypto.createHash('sha256').update(body.secondSecret, 'utf8').digest();
 						secondKeypair = ed.MakeKeypair(secondHash);
 					}
-
 
 					var transaction = library.logic.transaction.create({
 						type: TransactionTypes.DAPP,
@@ -876,7 +875,6 @@ private.list = function (filter, cb) {
 			return cb("Invalid field to sort");
 		}
 	}
-
 
 	// need to fix 'or' or 'and' in query
 	library.dbLite.query("select name, description, tags, nickname, git, type, category, transactionId " +

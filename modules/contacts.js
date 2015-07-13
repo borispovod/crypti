@@ -29,9 +29,9 @@ function Contact() {
 	}
 
 	this.verify = function (trs, sender, cb) {
-			if (!trs.asset.contact) {
-				return setImmediate(cb, "Invalid asset: " + trs.id);
-			}
+		if (!trs.asset.contact) {
+			return setImmediate(cb, "Invalid asset: " + trs.id);
+		}
 
 		if (!trs.asset.contact.address) {
 			return setImmediate(cb, "Empty following: " + trs.id);
