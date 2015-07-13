@@ -43,7 +43,8 @@ function DApp() {
 			tags: data.tags,
 			type: data.dapp_type,
 			nickname: data.nickname,
-			git: data.git
+			git: data.git,
+			icon: data.icon
 		}
 
 		return trs;
@@ -158,7 +159,6 @@ function DApp() {
 	}
 
 	this.applyUnconfirmed = function (trs, sender, cb) {
-
 		if (private.unconfirmedNames[trs.asset.dapp.name]) {
 			setImmediate(cb, "dapp name is exists");
 		}
@@ -230,6 +230,11 @@ function DApp() {
 					type: "string",
 					maxLength: 2000,
 					minLength: 1
+				},
+				icon: {
+					type: "string",
+					minLength: 1,
+					maxLength: 2000
 				}
 			},
 			required: ["type", "name", "category"]
@@ -253,7 +258,8 @@ function DApp() {
 				type: raw.dapp_type,
 				nickname: raw.dapp_nickname,
 				git: raw.dapp_git,
-				category: raw.dapp_category
+				category: raw.dapp_category,
+				icon: raw.dapp_icon
 			}
 
 			return {dapp: dapp};
@@ -261,13 +267,14 @@ function DApp() {
 	}
 
 	this.dbSave = function (trs, cb) {
-		library.dbLite.query("INSERT INTO dapps(type, name, description, tags, nickname, git, category, transactionId) VALUES($type, $name, $description, $tags, $nickname, $git, $category, $transactionId)", {
+		library.dbLite.query("INSERT INTO dapps(type, name, description, tags, nickname, git, category, icon, transactionId) VALUES($type, $name, $description, $tags, $nickname, $git, $category, $icon, $transactionId)", {
 			type: trs.asset.dapp.type,
 			name: trs.asset.dapp.name,
 			description: trs.asset.dapp.description || null,
 			tags: trs.asset.dapp.tags || null,
 			nickname: trs.asset.dapp.nickname || null,
 			git: trs.asset.dapp.git || null,
+			icon: trs.asset.dapp.icon || null,
 			category: trs.asset.dapp.category,
 			transactionId: trs.id
 		}, cb);
@@ -418,7 +425,8 @@ function attachApi() {
 						tags: body.tags,
 						dapp_type: body.type,
 						nickname: body.nickname,
-						git: body.git
+						git: body.git,
+						icon: body.icon
 					});
 
 					modules.transactions.receiveTransactions([transaction], cb);
@@ -605,7 +613,6 @@ function attachApi() {
 				}
 
 				// check that dapp already installed here in feature
-
 				if (private.removing[body.id] || private.loading[body.id]) {
 					return res.json({success: false, error: "This DApp already on downloading/removing"});
 				}
@@ -772,7 +779,6 @@ function attachApi() {
 					});
 				}
 			});
-
 		});
 	});
 
