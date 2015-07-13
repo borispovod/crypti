@@ -908,6 +908,42 @@ function attachApi() {
 		});
 	});
 
+	router.get("/username/get", function (req, res, next) {
+		req.sanitize(req.query, {
+			type: "object",
+			properties: {
+				username: {
+					type: "string",
+					minLength: 1
+				}
+			}
+		}, function (err, report, query) {
+			if (err) return next(err);
+			if (!report.isValid) return res.json({success: false, error: report.issues});
+
+			var address = private.username2address[query.username];
+			var account = self.getAccount(address);
+
+			if (!account) {
+				return res.json({success: false, error: errorCode("ACCOUNTS.ACCOUNT_DOESNT_FOUND")});
+			}
+
+			return res.json({
+				success: true,
+				account: {
+					address: account.address,
+					username: account.username,
+					unconfirmedBalance: account.unconfirmedBalance,
+					balance: account.balance,
+					publicKey: account.publicKey,
+					unconfirmedSignature: account.unconfirmedSignature,
+					secondSignature: account.secondSignature,
+					secondPublicKey: account.secondPublicKey
+				}
+			});
+		});
+	});
+
 	router.get("/", function (req, res, next) {
 		req.sanitize(req.query, {
 			type: "object",
