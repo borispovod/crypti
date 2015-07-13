@@ -823,16 +823,12 @@ shared.getPublickey = function (query, cb) {
 
 		self.getAccount({address: query.address}, function (err, account) {
 			if (err) {
-				return res.json({success: false, error: err.toString()});
+				return cb(err.toString());
 			}
 			if (!account || !account.publicKey) {
-				return res.json({
-					success: false,
-					error: errorCode("ACCOUNTS.ACCOUNT_PUBLIC_KEY_NOT_FOUND", {address: query.address})
-				});
+				return cb(errorCode("ACCOUNTS.ACCOUNT_PUBLIC_KEY_NOT_FOUND", {address: query.address}))
 			}
-
-			res.json({success: true, publicKey: account.publicKey});
+			cb(null, {publicKey: account.publicKey});
 		});
 	});
 }
