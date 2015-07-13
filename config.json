@@ -33,7 +33,7 @@
 		],
 		"blackList": [],
 		"options": {
-			"timeout": 20000
+			"timeout": 5000
 		}
 	},
 	"forging": {
