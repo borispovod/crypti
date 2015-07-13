@@ -6,17 +6,11 @@ var util = require('util'),
 	encryptHelper = require('../helpers/encrypt.js'),
 	sandboxHelper = require('../helpers/sandbox.js');
 
-var modules, library, self, private = {};
+var modules, library, self, private = {}, shared = {};
 
 private.loaded = false;
-private.shared = [
-	'encryptbox',
-	'decryptbox',
-	'sha256',
-	'keypair'
-];
 
-private.keypair = function (data, cb) {
+shared.keypair = function (data, cb) {
 	try {
 		var hash = crypto.createHash('sha256').update(data.secret, 'utf8').digest();
 		var keypair = ed.MakeKeypair(hash);
@@ -27,7 +21,7 @@ private.keypair = function (data, cb) {
 	return cb(null, keypair);
 }
 
-private.sha256 = function (data, cb) {
+shared.sha256 = function (data, cb) {
 	try {
 		var buf = new Buffer(data.data, 'utf8');
 		var hash = crypto.createHash('sha256').update(buf).toString('utf8');
@@ -38,7 +32,7 @@ private.sha256 = function (data, cb) {
 	return cb(null, hash);
 }
 
-private.encryptbox = function (data, cb) {
+shared.encryptbox = function (data, cb) {
 	library.scheme.validate(data, {
 		type: "object",
 		properties: {
@@ -71,7 +65,7 @@ private.encryptbox = function (data, cb) {
 	});
 }
 
-private.decryptbox = function (data, cb) {
+shared.decryptbox = function (data, cb) {
 	library.scheme.validate(data, {
 		type: "object",
 		properties: {
@@ -108,6 +102,7 @@ private.decryptbox = function (data, cb) {
 	});
 }
 
+//constructor
 function Crypto(cb, scope) {
 	library = scope;
 	self = this;
@@ -116,6 +111,12 @@ function Crypto(cb, scope) {
 	setImmediate(cb, null, self);
 }
 
+//public methods
+Crypto.prototype.sandboxApi = function (call, args, cb) {
+	sandboxHelper.callMethod(shared, call, args, cb);
+}
+
+//events
 Crypto.prototype.onBind = function (scope) {
 	modules = scope;
 }
@@ -124,9 +125,6 @@ Crypto.prototype.onBlockchainReady = function () {
 	private.loaded = true;
 }
 
-
-Crypto.prototype.sandboxApi = function (call, args, cb) {
-	sandboxHelper.callMethod(private, call, args, cb);
-}
+//shared
 
 module.exports = Crypto;

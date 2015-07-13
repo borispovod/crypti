@@ -3,12 +3,13 @@ var async = require('async'),
 	util = require('util'),
 	genesisBlock = require("../helpers/genesisblock.js"),
 	ip = require("ip"),
-	bignum = require('../helpers/bignum.js');
+	bignum = require('../helpers/bignum.js'),
+	sandboxHelper = require('../helpers/sandbox.js');
 
 require('colors');
 
 //private fields
-var modules, library, self, private = {};
+var modules, library, self, private = {}, shared = {};
 
 private.loaded = false;
 private.loadingLastBlock = genesisBlock;
@@ -21,31 +22,18 @@ function Loader(cb, scope) {
 	library = scope;
 	self = this;
 	self.__private = private;
-	attachApi();
+	private.attachApi();
 
 	setImmediate(cb, null, self);
 }
 
 //private methods
-function attachApi() {
+private.attachApi = function () {
 	var router = new Router();
 
-	router.get('/status', function (req, res) {
-		res.json({
-			success: true,
-			loaded: private.loaded,
-			now: private.loadingLastBlock.height,
-			blocksCount: private.total
-		});
-	});
-
-	router.get('/status/sync', function (req, res) {
-		res.json({
-			success: true,
-			sync: self.syncing(),
-			blocks: private.blocksToSync,
-			height: modules.blocks.getLastBlock().height
-		});
+	router.map(shared, {
+		"get /status": "status",
+		"get /sync": "sync"
 	});
 
 	library.network.app.use('/api/loader', router);
@@ -209,7 +197,7 @@ private.loadBlocks = function (lastBlock, cb) {
 
 		data.body.height = parseInt(data.body.height);
 
-		var report = library.scheme.validate(data.body.height, {type : "integer", required: true});
+		var report = library.scheme.validate(data.body.height, {type: "integer", required: true});
 
 		if (!report) {
 			library.logger.log("Can't parse blockchain height: " + peerStr + "\n" + library.scheme.getLastError());
@@ -240,7 +228,11 @@ private.loadUnconfirmedTransactions = function (cb) {
 			return cb()
 		}
 
-		var report = library.scheme.validate(data.body.transactions, {type: "array", required: true, uniqueItems: true});
+		var report = library.scheme.validate(data.body.transactions, {
+			type: "array",
+			required: true,
+			uniqueItems: true
+		});
 		if (!report) {
 			return cb();
 		}
@@ -312,6 +304,10 @@ Loader.prototype.syncing = function () {
 	return !!private.syncIntervalId;
 }
 
+Loader.prototype.sandboxApi = function (call, data, cb) {
+	sandboxHelper.callMethod(shared, call, args, cb);
+}
+
 //events
 Loader.prototype.onPeerReady = function () {
 	process.nextTick(function nextLoadBlock() {
@@ -347,6 +343,23 @@ Loader.prototype.onBind = function (scope) {
 
 Loader.prototype.onBlockchainReady = function () {
 	private.loaded = true;
+}
+
+//shared
+shared.status = function (query, cb) {
+	cb(null, {
+		loaded: private.loaded,
+		now: private.loadingLastBlock.height,
+		blocksCount: private.total
+	});
+}
+
+shared.sync = function (query, cb) {
+	cb(null, {
+		sync: self.syncing(),
+		blocks: private.blocksToSync,
+		height: modules.blocks.getLastBlock().height
+	});
 }
 
 //export

@@ -1,9 +1,30 @@
+var extend = require('extend');
+
+function map (root, map) {
+	var router = this;
+	Object.keys(map).forEach(function (params) {
+		var route = params.split(" ");
+		if (route.length != 2 || ["post", "get", "put"].indexOf(route[0]) == -1){
+			throw Error("wrong map config");
+		}
+		router[route[0]](route[1], function (req, res, next) {
+			root[params](map[route].method == "get" ? req.query : req.body, function (err, response) {
+				if (err) {
+					res.json({success: false, error: err});
+				} else {
+					return res.json(extend({}, {success: true}, response));
+				}
+			});
+		});
+	});
+}
+
 /**
  * @title Router
  * @overview Router stub
  * @returns {*}
  */
-module.exports = function () {
+var Router = function () {
 	var router = require('express').Router();
 
 	router.use(function (req, res, next) {
@@ -12,5 +33,9 @@ module.exports = function () {
 		next();
 	});
 
+	router.map = map;
+
 	return router;
-};
+}
+
+module.exports = Router;

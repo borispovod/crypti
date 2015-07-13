@@ -10,12 +10,13 @@ var crypto = require('crypto'),
 	util = require('util'),
 	async = require('async'),
 	TransactionTypes = require('../helpers/transaction-types.js'),
-	errorCode = require('../helpers/errorCodes.js').error;
+	errorCode = require('../helpers/errorCodes.js').error,
+	sandboxHelper = require('../helpers/sandbox.js');
 
 require('array.prototype.findindex'); //old node fix
 
 //private fields
-var modules, library, self, private = {};
+var modules, library, self, private = {}, shared = {};
 
 private.lastBlock = {};
 // @formatter:off
@@ -37,7 +38,7 @@ function Blocks(cb, scope) {
 	library = scope;
 	self = this;
 	self.__private = private;
-	attachApi();
+	private.attachApi();
 
 	private.saveGenesisBlock(function (err) {
 		setImmediate(cb, err, self);
@@ -45,7 +46,7 @@ function Blocks(cb, scope) {
 }
 
 //private methods
-function attachApi() {
+private.attachApi = function () {
 	var router = new Router();
 
 	router.use(function (req, res, next) {
@@ -53,86 +54,11 @@ function attachApi() {
 		res.status(500).send({success: false, error: errorCode('COMMON.LOADING')});
 	});
 
-	router.get('/get', function (req, res, next) {
-		req.sanitize(req.query, {
-			type: "object",
-			properties: {
-				id: {
-					type: 'string',
-					minLength: 1
-				}
-			},
-			required: ["id"]
-		}, function (err, report, query) {
-			if (err) return next(err);
-			if (!report.isValid) return res.json({success: false, error: report.issues});
-
-
-			private.getById(query.id, function (err, block) {
-				if (!block || err) {
-					return res.json({success: false, error: errorCode("BLOCKS.BLOCK_NOT_FOUND")});
-				}
-				res.json({success: true, block: block});
-			});
-		});
-	});
-
-	router.get('/', function (req, res, next) {
-		req.sanitize(req.query, {
-			type: "object",
-			properties: {
-				limit: {
-					type: "integer",
-					minimum: 0,
-					maximum: 100
-				},
-				orderBy: {
-					type: "string"
-				},
-				offset: {
-					type: "integer",
-					minimum: 0
-				},
-				generatorPublicKey: {
-					type: "string",
-					format: "publicKey"
-				},
-				totalAmount: {
-					type: "integer",
-					minimum: 0,
-					maximum: constants.totalAmount
-				},
-				totalFee: {
-					type: "integer",
-					minimum: 0,
-					maximum: constants.totalAmount
-				},
-				previousBlock: {
-					type: "string"
-				},
-				height: {
-					type: "integer"
-				}
-			}
-		}, function (err, report, query) {
-			if (err) return next(err);
-			if (!report.isValid) return res.json({success: false, error: report.issues});
-
-			private.list(query, function (err, data) {
-				if (err) {
-					return res.json({success: false, error: errorCode("BLOCKS.BLOCK_NOT_FOUND")});
-				}
-				res.json({success: true, blocks: data.blocks, count: data.count});
-			});
-		});
-	});
-
-	router.get('/getFee', function (req, res) {
-		res.json({success: true, fee: library.logic.block.calculateFee()});
-	});
-
-	router.get('/getHeight', function (req, res) {
-		res.json({success: true, height: private.lastBlock.height});
+	router.map(shared, {
+		"get /get": "getBlock",
+		"get /": "getBlocks",
+		"get /getHeight": "getHeight",
+		"get /getFee": "getFee"
 	});
 
 	router.use(function (req, res, next) {
@@ -1030,6 +956,10 @@ Blocks.prototype.generateBlock = function (keypair, timestamp, cb) {
 	});
 }
 
+Blocks.prototype.sandboxApi = function (call, data, cb) {
+	sandboxHelper.callMethod(shared, call, args, cb);
+}
+
 //events
 Blocks.prototype.onReceiveBlock = function (block) {
 	library.sequence.add(function (cb) {
@@ -1050,12 +980,92 @@ Blocks.prototype.onReceiveBlock = function (block) {
 	});
 }
 
-Blocks.prototype.sandboxApi = function (call, data, cb) {
-
-}
-
 Blocks.prototype.onBind = function (scope) {
 	modules = scope;
+}
+
+//shared
+shared.getBlock = function (query, cb) {
+	library.scheme.validate(query, {
+		type: "object",
+		properties: {
+			id: {
+				type: 'string',
+				minLength: 1
+			}
+		},
+		required: ["id"]
+	}, function (err) {
+		if (err) {
+			return cb(err[0].message);
+		}
+
+		private.getById(query.id, function (err, block) {
+			if (!block || err) {
+				return cb(errorCode("BLOCKS.BLOCK_NOT_FOUND"));
+			}
+			cb(null, {block: block});
+		});
+	});
+}
+
+shared.getBlocks = function (query, cb) {
+	library.scheme.validate(query, {
+		type: "object",
+		properties: {
+			limit: {
+				type: "integer",
+				minimum: 0,
+				maximum: 100
+			},
+			orderBy: {
+				type: "string"
+			},
+			offset: {
+				type: "integer",
+				minimum: 0
+			},
+			generatorPublicKey: {
+				type: "string",
+				format: "publicKey"
+			},
+			totalAmount: {
+				type: "integer",
+				minimum: 0,
+				maximum: constants.totalAmount
+			},
+			totalFee: {
+				type: "integer",
+				minimum: 0,
+				maximum: constants.totalAmount
+			},
+			previousBlock: {
+				type: "string"
+			},
+			height: {
+				type: "integer"
+			}
+		}
+	}, function (err) {
+		if (err) {
+			return cb(err[0].message);
+		}
+
+		private.list(query, function (err, data) {
+			if (err) {
+				return cb(errorCode("BLOCKS.BLOCK_NOT_FOUND"));
+			}
+			cb(null, {blocks: data.blocks, count: data.count});
+		});
+	});
+}
+
+shared.getHeight = function (query, cb) {
+	cb(null, {height: private.lastBlock.height});
+}
+
+shared.getFee = function (query, cb) {
+	cb(null, {fee: library.logic.block.calculateFee()});
 }
 
 //export

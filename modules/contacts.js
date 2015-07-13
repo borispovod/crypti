@@ -8,9 +8,10 @@ var encryptHelper = require('../helpers/encrypt.js'),
 	Diff = require('../helpers/diff.js'),
 	async = require('async'),
 	util = require('util'),
-	errorCode = require('../helpers/errorCodes.js').error;
+	errorCode = require('../helpers/errorCodes.js').error,
+	sandboxHelper = require('../helpers/sandbox.js');
 
-var modules, library, self, private = {};
+var modules, library, self, private = {}, shared = {};
 
 function Contact() {
 	this.create = function (data, trs) {
@@ -168,7 +169,20 @@ function Contact() {
 	}
 }
 
-function attachApi() {
+//constructor
+function Contacts(cb, scope) {
+	library = scope;
+	self = this;
+	self.__private = private;
+	private.attachApi();
+
+	library.logic.transaction.attachAssetType(TransactionTypes.FOLLOW, new Contact());
+
+	setImmediate(cb, null, self);
+}
+
+//private methods
+private.attachApi = function () {
 	var router = new Router();
 
 	router.use(function (req, res, next) {
@@ -176,148 +190,10 @@ function attachApi() {
 		res.status(500).send({success: false, error: errorCode('COMMON.LOADING')});
 	});
 
-	router.get('/fee', function (req, res) {
-		return res.json({success: true, fee: 1 * constants.fixedPoint})
-	});
-
-	router.get("/", function (req, res, next) {
-		req.sanitize(req.query, {
-			type: "object",
-			properties: {
-				publicKey: {
-					type: "string",
-					format: "publicKey"
-				}
-			},
-			required: ["publicKey"]
-		}, function (err, report, query) {
-			if (err) return next(err);
-			if (!report.isValid) return res.json({success: false, error: report.issues});
-
-			modules.accounts.getAccount({address: query.address}, function (err, account) {
-				if (err) {
-					return res.json({success: false, error: err.toString()});
-				}
-				if (!account) {
-					return res.json({
-						success: false,
-						error: errorCode("ACCOUNTS.ACCOUNT_DOESNT_FOUND", {address: query.address})
-					});
-				}
-
-				async.series({
-					contacts: function (cb) {
-						if (!account.contacts.length) {
-							return cb(null, []);
-						}
-						modules.accounts.getAccounts({address: {$in: account.contacts}} ["address", "username"], cb);
-					},
-					followers: function (cb) {
-						if (!account.followers.length) {
-							return cb(null, []);
-						}
-						modules.accounts.getAccounts({address: {$in: account.followers}} ["address", "username"], cb);
-					}
-				}, function (err, res) {
-					if (err) {
-						return res.json({success: false, error: err.toString()});
-					}
-					res.json({success: true, following: res.contacts, followers: res.followers});
-				});
-			});
-		});
-	});
-
-	router.put("/", function (req, res, next) {
-		req.sanitize(req.body, {
-			type: "object",
-			properties: {
-				secret: {
-					type: "string",
-					minLength: 1
-				},
-				secondSecret: {
-					type: "string"
-				},
-				publicKey: {
-					type: "string",
-					format: "publicKey"
-				},
-				following: {
-					type: "string",
-					minLength: 1
-				}
-			},
-			required: ["secret", "following"]
-		}, function (err, report, body) {
-			if (err) return next(err);
-			if (!report.isValid) return res.json({success: false, error: report.issues});
-
-			var hash = crypto.createHash('sha256').update(body.secret, 'utf8').digest();
-			var keypair = ed.MakeKeypair(hash);
-
-			if (body.publicKey) {
-				if (keypair.publicKey.toString('hex') != body.publicKey) {
-					return res.json({success: false, error: errorCode("COMMON.INVALID_SECRET_KEY")});
-				}
-			}
-
-			var query = {};
-
-			var followingAddress = body.following.substring(1, body.following.length);
-			var isAddress = /^[0-9]+[C|c]$/g;
-			if (isAddress.test(followingAddress)) {
-				query.address = body.recipientId;
-			} else {
-				query.username = body.recipientId;
-			}
-
-			library.sequence.add(function (cb) {
-				modules.accounts.getAccount(query, function (err, following) {
-					if (err) {
-						return cb(err.toString());
-					}
-					if (!following) {
-						return cb(errorCode("CONTACTS.USERNAME_DOESNT_FOUND"));
-					}
-					followingAddress = body.following[0] + following.address;
-
-					modules.accounts.getAccount({publicKey: keypair.publicKey.toString('hex')}, function (err, account) {
-						if (err) {
-							return cb(err.toString());
-						}
-						if (!account) {
-							return cb(errorCode("COMMON.OPEN_ACCOUNT"));
-						}
-
-						if (account.secondSignature && !body.secondSecret) {
-							return cb(errorCode("COMMON.SECOND_SECRET_KEY"));
-						}
-
-						if (account.secondSignature && body.secondSecret) {
-							var secondHash = crypto.createHash('sha256').update(body.secondSecret, 'utf8').digest();
-							var secondKeypair = ed.MakeKeypair(secondHash);
-						}
-
-						var transaction = library.logic.transaction.create({
-							type: TransactionTypes.FOLLOW,
-							sender: account,
-							keypair: keypair,
-							secondKeypair: secondKeypair,
-							contactAddress: followingAddress
-						});
-
-						modules.transactions.receiveTransactions([transaction], cb);
-					});
-				});
-			}, function (err, transaction) {
-				if (err) {
-					return res.json({success: false, error: err.toString()});
-				}
-
-				res.json({success: true, transaction: transaction[0]});
-			});
-		});
+	router.map(shared, {
+		"get /": "getContacts",
+		"put /": "addContact",
+		"get /fee": "getFee"
 	});
 
 	router.use(function (req, res) {
@@ -332,17 +208,7 @@ function attachApi() {
 	});
 }
 
-function Contacts(cb, scope) {
-	library = scope;
-	self = this;
-	self.__private = private;
-	attachApi();
-
-	library.logic.transaction.attachAssetType(TransactionTypes.FOLLOW, new Contact());
-
-	setImmediate(cb, null, self);
-}
-
+//public methods
 Contacts.prototype.checkContacts = function (publicKey, contacts, cb) {
 	if (util.isArray(contacts)) {
 		modules.accounts.getAccount({publicKey: publicKey}, function (err, account) {
@@ -408,11 +274,156 @@ Contacts.prototype.checkUnconfirmedContacts = function (publicKey, contacts, cb)
 }
 
 Contacts.prototype.sandboxApi = function (call, data, cb) {
-
+	sandboxHelper.callMethod(shared, call, args, cb);
 }
 
+//events
 Contacts.prototype.onBind = function (scope) {
 	modules = scope;
+}
+
+//shared
+shared.getContacts = function (query, cb) {
+	library.scheme.validate(query, {
+		type: "object",
+		properties: {
+			publicKey: {
+				type: "string",
+				format: "publicKey"
+			}
+		},
+		required: ["publicKey"]
+	}, function (err) {
+		if (err) {
+			return cb(err[0].message);
+		}
+
+		modules.accounts.getAccount({address: query.address}, function (err, account) {
+			if (err) {
+				return cb(err.toString());
+			}
+			if (!account) {
+				return cb(errorCode("ACCOUNTS.ACCOUNT_DOESNT_FOUND", {address: query.address}));
+			}
+
+			async.series({
+				contacts: function (cb) {
+					if (!account.contacts.length) {
+						return cb(null, []);
+					}
+					modules.accounts.getAccounts({address: {$in: account.contacts}} ["address", "username"], cb);
+				},
+				followers: function (cb) {
+					if (!account.followers.length) {
+						return cb(null, []);
+					}
+					modules.accounts.getAccounts({address: {$in: account.followers}} ["address", "username"], cb);
+				}
+			}, function (err, res) {
+				if (err) {
+					return cb(err.toString());
+				}
+				cb(null, {following: res.contacts, followers: res.followers});
+			});
+		});
+	});
+}
+
+shared.addContact = function (body, cb) {
+	library.scheme.validate(body, {
+		type: "object",
+		properties: {
+			secret: {
+				type: "string",
+				minLength: 1
+			},
+			secondSecret: {
+				type: "string"
+			},
+			publicKey: {
+				type: "string",
+				format: "publicKey"
+			},
+			following: {
+				type: "string",
+				minLength: 1
+			}
+		},
+		required: ["secret", "following"]
+	}, function (err) {
+		if (err) {
+			return cb(err[0].message);
+		}
+
+		var hash = crypto.createHash('sha256').update(body.secret, 'utf8').digest();
+		var keypair = ed.MakeKeypair(hash);
+
+		if (body.publicKey) {
+			if (keypair.publicKey.toString('hex') != body.publicKey) {
+				return cb(errorCode("COMMON.INVALID_SECRET_KEY"));
+			}
+		}
+
+		var query = {};
+
+		var followingAddress = body.following.substring(1, body.following.length);
+		var isAddress = /^[0-9]+[C|c]$/g;
+		if (isAddress.test(followingAddress)) {
+			query.address = body.recipientId;
+		} else {
+			query.username = body.recipientId;
+		}
+
+		library.sequence.add(function (cb) {
+			modules.accounts.getAccount(query, function (err, following) {
+				if (err) {
+					return cb(err.toString());
+				}
+				if (!following) {
+					return cb(errorCode("CONTACTS.USERNAME_DOESNT_FOUND"));
+				}
+				followingAddress = body.following[0] + following.address;
+
+				modules.accounts.getAccount({publicKey: keypair.publicKey.toString('hex')}, function (err, account) {
+					if (err) {
+						return cb(err.toString());
+					}
+					if (!account) {
+						return cb(errorCode("COMMON.OPEN_ACCOUNT"));
+					}
+
+					if (account.secondSignature && !body.secondSecret) {
+						return cb(errorCode("COMMON.SECOND_SECRET_KEY"));
+					}
+
+					if (account.secondSignature && body.secondSecret) {
+						var secondHash = crypto.createHash('sha256').update(body.secondSecret, 'utf8').digest();
+						var secondKeypair = ed.MakeKeypair(secondHash);
+					}
+
+					var transaction = library.logic.transaction.create({
+						type: TransactionTypes.FOLLOW,
+						sender: account,
+						keypair: keypair,
+						secondKeypair: secondKeypair,
+						contactAddress: followingAddress
+					});
+
+					modules.transactions.receiveTransactions([transaction], cb);
+				});
+			});
+		}, function (err, transaction) {
+			if (err) {
+				return cb(err.toString());
+			}
+
+			cb(null, {transaction: transaction[0]});
+		});
+	});
+}
+
+shared.getFee = function (query, cb) {
+	cb(null, {fee: 1 * constants.fixedPoint})
 }
 
 //export

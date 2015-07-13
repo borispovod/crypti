@@ -9,10 +9,11 @@ var ed = require('ed25519'),
 	Router = require('../helpers/router.js'),
 	async = require('async'),
 	TransactionTypes = require('../helpers/transaction-types.js'),
-	errorCode = require('../helpers/errorCodes.js').error;
+	errorCode = require('../helpers/errorCodes.js').error,
+	sandboxHelper = require('../helpers/sandbox.js');
 
 // private fields
-var modules, library, self, private = {};
+var modules, library, self, private = {}, shared = {};
 
 private.hiddenTransactions = [];
 private.unconfirmedTransactions = [];
@@ -118,7 +119,7 @@ function Transactions(cb, scope) {
 	library = scope;
 	self = this;
 	self.__private = private;
-	attachApi();
+	private.attachApi();
 
 	library.logic.transaction.attachAssetType(TransactionTypes.SEND, new Transfer());
 
@@ -126,7 +127,7 @@ function Transactions(cb, scope) {
 }
 
 //private methods
-function attachApi() {
+private.attachApi = function() {
 	var router = new Router();
 
 	router.use(function (req, res, next) {
@@ -468,10 +469,10 @@ private.list = function (filter, cb) {
 	}
 
 	library.dbLite.query("select count(t.id) " +
-	"from trs t " +
-	"inner join blocks b on t.blockId = b.id " +
-	(fields_or.length || owner ? "where " : "") + " " +
-	(fields_or.length ? "(" + fields_or.join(' or ') + ") " : "") + (fields_or.length && owner ? " and " + owner : owner), params, {"count": Number}, function (err, rows) {
+		"from trs t " +
+		"inner join blocks b on t.blockId = b.id " +
+		(fields_or.length || owner ? "where " : "") + " " +
+		(fields_or.length ? "(" + fields_or.join(' or ') + ") " : "") + (fields_or.length && owner ? " and " + owner : owner), params, {"count": Number}, function (err, rows) {
 		if (err) {
 			return cb(err);
 		}
@@ -480,13 +481,13 @@ private.list = function (filter, cb) {
 
 		// need to fix 'or' or 'and' in query
 		library.dbLite.query("select t.id, b.height, t.blockId, t.type, t.timestamp, lower(hex(t.senderPublicKey)), t.senderId, t.recipientId, t.senderUsername, t.recipientUsername, t.amount, t.fee, lower(hex(t.signature)), lower(hex(t.signSignature)), (select max(height) + 1 from blocks) - b.height " +
-		"from trs t " +
-		"inner join blocks b on t.blockId = b.id " +
-		(fields_or.length || owner ? "where " : "") + " " +
-		(fields_or.length ? "(" + fields_or.join(' or ') + ") " : "") + (fields_or.length && owner ? " and " + owner : owner) + " " +
-		(filter.orderBy ? 'order by ' + sortBy + ' ' + sortMethod : '') + " " +
-		(filter.limit ? 'limit $limit' : '') + " " +
-		(filter.offset ? 'offset $offset' : ''), params, ['t_id', 'b_height', 't_blockId', 't_type', 't_timestamp', 't_senderPublicKey', 't_senderId', 't_recipientId', 't_senderUsername', 't_recipientUsername', 't_amount', 't_fee', 't_signature', 't_signSignature', 'confirmations'], function (err, rows) {
+			"from trs t " +
+			"inner join blocks b on t.blockId = b.id " +
+			(fields_or.length || owner ? "where " : "") + " " +
+			(fields_or.length ? "(" + fields_or.join(' or ') + ") " : "") + (fields_or.length && owner ? " and " + owner : owner) + " " +
+			(filter.orderBy ? 'order by ' + sortBy + ' ' + sortMethod : '') + " " +
+			(filter.limit ? 'limit $limit' : '') + " " +
+			(filter.offset ? 'offset $offset' : ''), params, ['t_id', 'b_height', 't_blockId', 't_type', 't_timestamp', 't_senderPublicKey', 't_senderId', 't_recipientId', 't_senderUsername', 't_recipientUsername', 't_amount', 't_fee', 't_signature', 't_signSignature', 'confirmations'], function (err, rows) {
 			if (err) {
 				return cb(err);
 			}
@@ -506,9 +507,9 @@ private.list = function (filter, cb) {
 
 private.getById = function (id, cb) {
 	library.dbLite.query("select t.id, b.height, t.blockId, t.type, t.timestamp, lower(hex(t.senderPublicKey)), t.senderId, t.recipientId, t.senderUsername, t.recipientUsername, t.amount, t.fee, lower(hex(t.signature)), lower(hex(t.signSignature)), (select max(height) + 1 from blocks) - b.height " +
-	"from trs t " +
-	"inner join blocks b on t.blockId = b.id " +
-	"where t.id = $id", {id: id}, ['t_id', 'b_height', 't_blockId', 't_type', 't_timestamp', 't_senderPublicKey', 't_senderId', 't_recipientId', 't_senderUsername', 't_recipientUsername', 't_amount', 't_fee', 't_signature', 't_signSignature', 'confirmations'], function (err, rows) {
+		"from trs t " +
+		"inner join blocks b on t.blockId = b.id " +
+		"where t.id = $id", {id: id}, ['t_id', 'b_height', 't_blockId', 't_type', 't_timestamp', 't_senderPublicKey', 't_senderId', 't_recipientId', 't_senderUsername', 't_recipientUsername', 't_amount', 't_fee', 't_signature', 't_signSignature', 'confirmations'], function (err, rows) {
 		if (err || !rows.length) {
 			return cb(err || "Can't find transaction: " + id);
 		}
@@ -688,14 +689,16 @@ Transactions.prototype.receiveTransactions = function (transactions, cb) {
 	});
 }
 
+Transactions.prototype.sandboxApi = function (call, data, cb) {
+	sandboxHelper.callMethod(shared, call, args, cb);
+}
+
 //events
 Transactions.prototype.onBind = function (scope) {
 	modules = scope;
 }
 
-Transactions.prototype.sandboxApi = function (call, data, cb) {
-
-}
+//shared
 
 //export
 module.exports = Transactions;

@@ -2,10 +2,11 @@ var util = require('util'),
 	async = require('async'),
 	path = require('path'),
 	Router = require('../helpers/router.js'),
-	errorCode = require('../helpers/errorCodes.js').error;
+	errorCode = require('../helpers/errorCodes.js').error,
+	sandboxHelper = require('../helpers/sandbox.js');
 
 //private fields
-var modules, library, self, private = {};
+var modules, library, self, private = {}, shared = {};
 
 private.loaded = false
 
@@ -14,13 +15,13 @@ function Server(cb, scope) {
 	library = scope;
 	self = this;
 	self.__private = private;
-	attachApi();
+	private.attachApi();
 
 	setImmediate(cb, null, self);
 }
 
 //private methods
-function attachApi() {
+private.attachApi = function() {
 	var router = new Router();
 
 	router.use(function (req, res, next) {
@@ -49,6 +50,10 @@ function attachApi() {
 
 //public methods
 
+Server.prototype.sandboxApi = function (call, data, cb) {
+	sandboxHelper.callMethod(shared, call, args, cb);
+}
+
 //events
 Server.prototype.onBind = function (scope) {
 	modules = scope;
@@ -57,6 +62,8 @@ Server.prototype.onBind = function (scope) {
 Server.prototype.onBlockchainReady = function () {
 	private.loaded = true;
 }
+
+//shared
 
 //export
 module.exports = Server;

@@ -1,9 +1,10 @@
 var async = require('async'),
 	util = require('util'),
-	slots = require('../helpers/slots.js');
+	slots = require('../helpers/slots.js'),
+	sandboxHelper = require('../helpers/sandbox.js');
 
 //private fields
-var modules, library, self, private = {};
+var modules, library, self, private = {}, shared = {};
 private.tasks = [];
 private.feesByRound = {};
 private.delegatesByRound = {};
@@ -268,10 +269,16 @@ Round.prototype.runOnFinish = function (task) {
 	private.tasks.push(task);
 }
 
+Round.prototype.sandboxApi = function (call, data, cb) {
+	sandboxHelper.callMethod(shared, call, args, cb);
+}
+
 //events
 Round.prototype.onBind = function (scope) {
 	modules = scope;
 }
+
+//shared
 
 //export
 module.exports = Round;
