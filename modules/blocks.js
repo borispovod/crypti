@@ -46,7 +46,7 @@ function Blocks(cb, scope) {
 }
 
 //private methods
-private.attachApi = function() {
+private.attachApi = function () {
 	var router = new Router();
 
 	router.use(function (req, res, next) {
@@ -54,86 +54,11 @@ private.attachApi = function() {
 		res.status(500).send({success: false, error: errorCode('COMMON.LOADING')});
 	});
 
-	router.get('/get', function (req, res, next) {
-		req.sanitize(req.query, {
-			type: "object",
-			properties: {
-				id: {
-					type: 'string',
-					minLength: 1
-				}
-			},
-			required: ["id"]
-		}, function (err, report, query) {
-			if (err) return next(err);
-			if (!report.isValid) return res.json({success: false, error: report.issues});
-
-
-			private.getById(query.id, function (err, block) {
-				if (!block || err) {
-					return res.json({success: false, error: errorCode("BLOCKS.BLOCK_NOT_FOUND")});
-				}
-				res.json({success: true, block: block});
-			});
-		});
-	});
-
-	router.get('/', function (req, res, next) {
-		req.sanitize(req.query, {
-			type: "object",
-			properties: {
-				limit: {
-					type: "integer",
-					minimum: 0,
-					maximum: 100
-				},
-				orderBy: {
-					type: "string"
-				},
-				offset: {
-					type: "integer",
-					minimum: 0
-				},
-				generatorPublicKey: {
-					type: "string",
-					format: "publicKey"
-				},
-				totalAmount: {
-					type: "integer",
-					minimum: 0,
-					maximum: constants.totalAmount
-				},
-				totalFee: {
-					type: "integer",
-					minimum: 0,
-					maximum: constants.totalAmount
-				},
-				previousBlock: {
-					type: "string"
-				},
-				height: {
-					type: "integer"
-				}
-			}
-		}, function (err, report, query) {
-			if (err) return next(err);
-			if (!report.isValid) return res.json({success: false, error: report.issues});
-
-			private.list(query, function (err, data) {
-				if (err) {
-					return res.json({success: false, error: errorCode("BLOCKS.BLOCK_NOT_FOUND")});
-				}
-				res.json({success: true, blocks: data.blocks, count: data.count});
-			});
-		});
-	});
-
-	router.get('/getFee', function (req, res) {
-		res.json({success: true, fee: library.logic.block.calculateFee()});
-	});
-
-	router.get('/getHeight', function (req, res) {
-		res.json({success: true, height: private.lastBlock.height});
+	router.map(shared, {
+		"get /get": "getBlock",
+		"get /": "getBlocks",
+		"get /getHeight": "getHeight",
+		"get /getFee": "getFee"
 	});
 
 	router.use(function (req, res, next) {
@@ -1060,6 +985,88 @@ Blocks.prototype.onBind = function (scope) {
 }
 
 //shared
+shared.getBlock = function (query, cb) {
+	library.scheme.validate(query, {
+		type: "object",
+		properties: {
+			id: {
+				type: 'string',
+				minLength: 1
+			}
+		},
+		required: ["id"]
+	}, function (err) {
+		if (err) {
+			return cb(err[0].message);
+		}
+
+		private.getById(query.id, function (err, block) {
+			if (!block || err) {
+				return cb(errorCode("BLOCKS.BLOCK_NOT_FOUND"));
+			}
+			cb(null, {block: block});
+		});
+	});
+}
+
+shared.getBlocks = function (query, cb) {
+	library.scheme.validate(query, {
+		type: "object",
+		properties: {
+			limit: {
+				type: "integer",
+				minimum: 0,
+				maximum: 100
+			},
+			orderBy: {
+				type: "string"
+			},
+			offset: {
+				type: "integer",
+				minimum: 0
+			},
+			generatorPublicKey: {
+				type: "string",
+				format: "publicKey"
+			},
+			totalAmount: {
+				type: "integer",
+				minimum: 0,
+				maximum: constants.totalAmount
+			},
+			totalFee: {
+				type: "integer",
+				minimum: 0,
+				maximum: constants.totalAmount
+			},
+			previousBlock: {
+				type: "string"
+			},
+			height: {
+				type: "integer"
+			}
+		}
+	}, function (err) {
+		if (err) {
+			return cb(err[0].message);
+		}
+
+		private.list(query, function (err, data) {
+			if (err) {
+				return cb(errorCode("BLOCKS.BLOCK_NOT_FOUND"));
+			}
+			cb(null, {blocks: data.blocks, count: data.count});
+		});
+	});
+}
+
+shared.getHeight = function (query, cb) {
+	cb(null, {height: private.lastBlock.height});
+}
+
+shared.getFee = function (query, cb) {
+	cb(null, {fee: library.logic.block.calculateFee()});
+}
 
 //export
 module.exports = Blocks;
