@@ -90,12 +90,24 @@ function Contact() {
 	}
 
 	this.applyUnconfirmed = function (trs, sender, cb) {
-		self.checkUnconfirmedContacts(trs.senderPublicKey, [trs.asset.contact.address], function (err) {
+		library.dbLite.query("SELECT count(id) FROM trs where recipientId=$address", {
+			address: trs.asset.contact.address.slice(1)
+		}, ['count'], function (err, rows) {
 			if (err) {
-				return setImmediate(cb, errorCode("CONTACTS.ALREADY_ADDED_UNCONFIRMED", trs));
+				return setImmediate(cb, "Sql error");
 			}
 
-			this.scope.account.merge(sender.address, {u_contacts: [trs.asset.contact.address]}, cb);
+			if (rows.length == 0 || rows[0].count == 0) {
+				return setImmediate(cb, "Can't apply contact, recipient doesn't exists");
+			}
+
+			self.checkUnconfirmedContacts(trs.senderPublicKey, [trs.asset.contact.address], function (err) {
+				if (err) {
+					return setImmediate(cb, errorCode("CONTACTS.ALREADY_ADDED_UNCONFIRMED", trs));
+				}
+
+				this.scope.account.merge(sender.address, {u_contacts: [trs.asset.contact.address]}, cb);
+			}.bind(this));
 		}.bind(this));
 	}
 
