@@ -10,12 +10,13 @@ var crypto = require('crypto'),
 	util = require('util'),
 	async = require('async'),
 	TransactionTypes = require('../helpers/transaction-types.js'),
-	errorCode = require('../helpers/errorCodes.js').error;
+	errorCode = require('../helpers/errorCodes.js').error,
+	sandboxHelper = require('../helpers/sandbox.js');
 
 require('array.prototype.findindex'); //old node fix
 
 //private fields
-var modules, library, self, private = {};
+var modules, library, self, private = {}, shared = {};
 
 private.lastBlock = {};
 // @formatter:off
@@ -37,7 +38,7 @@ function Blocks(cb, scope) {
 	library = scope;
 	self = this;
 	self.__private = private;
-	attachApi();
+	private.attachApi();
 
 	private.saveGenesisBlock(function (err) {
 		setImmediate(cb, err, self);
@@ -45,7 +46,7 @@ function Blocks(cb, scope) {
 }
 
 //private methods
-function attachApi() {
+private.attachApi = function() {
 	var router = new Router();
 
 	router.use(function (req, res, next) {
@@ -1030,6 +1031,10 @@ Blocks.prototype.generateBlock = function (keypair, timestamp, cb) {
 	});
 }
 
+Blocks.prototype.sandboxApi = function (call, data, cb) {
+	sandboxHelper.callMethod(shared, call, args, cb);
+}
+
 //events
 Blocks.prototype.onReceiveBlock = function (block) {
 	library.sequence.add(function (cb) {
@@ -1050,13 +1055,11 @@ Blocks.prototype.onReceiveBlock = function (block) {
 	});
 }
 
-Blocks.prototype.sandboxApi = function (call, data, cb) {
-
-}
-
 Blocks.prototype.onBind = function (scope) {
 	modules = scope;
 }
+
+//shared
 
 //export
 module.exports = Blocks;

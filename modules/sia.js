@@ -1,11 +1,13 @@
 var util = require('util'),
 	request = require('request'),
-	fs = require('fs');
+	fs = require('fs'),
+	sandboxHelper = require('../helpers/sandbox.js');
 
-var modules, library, self, private = {};
+var modules, library, self, private = {}, shared = {};
 
 private.loaded = false;
 
+//constructor
 function Sia(cb, scope) {
 	library = scope;
 	self = this;
@@ -14,6 +16,9 @@ function Sia(cb, scope) {
 	setImmediate(cb, null, self);
 }
 
+//private fields
+
+//public methods
 Sia.prototype.download = function (nickname, path, cb) {
 	var peer = library.config.sia.peer;
 	var peerStr = "http://" + peer.address + ":" + peer.port;
@@ -47,6 +52,11 @@ Sia.prototype.download = function (nickname, path, cb) {
 	});
 }
 
+Sia.prototype.sandboxApi = function (call, data, cb) {
+	sandboxHelper.callMethod(shared, call, args, cb);
+}
+
+//events
 Sia.prototype.onBind = function (scope) {
 	modules = scope;
 }
@@ -55,8 +65,6 @@ Sia.prototype.onBlockchainReady = function () {
 	private.loaded = true;
 }
 
-Sia.prototype.sandboxApi = function (call, data, cb) {
-
-}
+//shared
 
 module.exports = Sia;

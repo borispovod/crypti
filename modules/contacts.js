@@ -8,9 +8,10 @@ var encryptHelper = require('../helpers/encrypt.js'),
 	Diff = require('../helpers/diff.js'),
 	async = require('async'),
 	util = require('util'),
-	errorCode = require('../helpers/errorCodes.js').error;
+	errorCode = require('../helpers/errorCodes.js').error,
+	sandboxHelper = require('../helpers/sandbox.js');
 
-var modules, library, self, private = {};
+var modules, library, self, private = {}, shared = {};
 
 function Contact() {
 	this.create = function (data, trs) {
@@ -29,9 +30,9 @@ function Contact() {
 	}
 
 	this.verify = function (trs, sender, cb) {
-			if (!trs.asset.contact) {
-				return setImmediate(cb, "Invalid asset: " + trs.id);
-			}
+		if (!trs.asset.contact) {
+			return setImmediate(cb, "Invalid asset: " + trs.id);
+		}
 
 		if (!trs.asset.contact.address) {
 			return setImmediate(cb, "Empty following: " + trs.id);
@@ -156,7 +157,20 @@ function Contact() {
 	}
 }
 
-function attachApi() {
+//constructor
+function Contacts(cb, scope) {
+	library = scope;
+	self = this;
+	self.__private = private;
+	private.attachApi();
+
+	library.logic.transaction.attachAssetType(TransactionTypes.FOLLOW, new Contact());
+
+	setImmediate(cb, null, self);
+}
+
+//private methods
+private.attachApi = function() {
 	var router = new Router();
 
 	router.use(function (req, res, next) {
@@ -320,17 +334,7 @@ function attachApi() {
 	});
 }
 
-function Contacts(cb, scope) {
-	library = scope;
-	self = this;
-	self.__private = private;
-	attachApi();
-
-	library.logic.transaction.attachAssetType(TransactionTypes.FOLLOW, new Contact());
-
-	setImmediate(cb, null, self);
-}
-
+//public methods
 Contacts.prototype.checkContacts = function (publicKey, contacts, cb) {
 	if (util.isArray(contacts)) {
 		modules.accounts.getAccount({publicKey: publicKey}, function (err, account) {
@@ -396,12 +400,15 @@ Contacts.prototype.checkUnconfirmedContacts = function (publicKey, contacts, cb)
 }
 
 Contacts.prototype.sandboxApi = function (call, data, cb) {
-
+	sandboxHelper.callMethod(shared, call, args, cb);
 }
 
+//events
 Contacts.prototype.onBind = function (scope) {
 	modules = scope;
 }
+
+//shared
 
 //export
 module.exports = Contacts;

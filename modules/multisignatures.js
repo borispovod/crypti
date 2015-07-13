@@ -11,10 +11,11 @@ var ed = require('ed25519'),
 	RequestSanitizer = require('../helpers/request-sanitizer.js'),
 	TransactionTypes = require('../helpers/transaction-types.js'),
 	Diff = require('../helpers/diff.js'),
-	errorCode = require('../helpers/errorCodes.js').error;
+	errorCode = require('../helpers/errorCodes.js').error,
+	sandboxHelper = require('../helpers/sandbox.js');
 
 // private fields
-var modules, library, self, private = {};
+var modules, library, self, private = {}, shared = {};
 
 function Multisignature() {
 	this.create = function (data, trs) {
@@ -198,7 +199,7 @@ function Multisignatures(cb, scope) {
 	library = scope;
 	self = this;
 	self.__private = private;
-	attachApi();
+	private.attachApi();
 
 	library.logic.transaction.attachAssetType(TransactionTypes.MULTI, new Multisignature());
 
@@ -206,7 +207,7 @@ function Multisignatures(cb, scope) {
 }
 
 //private methods
-function attachApi() {
+private.attachApi = function() {
 	var router = new Router();
 
 	router.use(function (req, res, next) {
@@ -383,16 +384,16 @@ function attachApi() {
 }
 
 //public methods
-
-
 Multisignatures.prototype.sandboxApi = function (call, data, cb) {
-
+	sandboxHelper.callMethod(shared, call, args, cb);
 }
 
 //events
 Multisignatures.prototype.onBind = function (scope) {
 	modules = scope;
 }
+
+//shared
 
 //export
 module.exports = Multisignatures;

@@ -3,12 +3,13 @@ var async = require('async'),
 	util = require('util'),
 	genesisBlock = require("../helpers/genesisblock.js"),
 	ip = require("ip"),
-	bignum = require('../helpers/bignum.js');
+	bignum = require('../helpers/bignum.js'),
+	sandboxHelper = require('../helpers/sandbox.js');
 
 require('colors');
 
 //private fields
-var modules, library, self, private = {};
+var modules, library, self, private = {}, shared = {};
 
 private.loaded = false;
 private.loadingLastBlock = genesisBlock;
@@ -21,13 +22,13 @@ function Loader(cb, scope) {
 	library = scope;
 	self = this;
 	self.__private = private;
-	attachApi();
+	private.attachApi();
 
 	setImmediate(cb, null, self);
 }
 
 //private methods
-function attachApi() {
+private.attachApi = function() {
 	var router = new Router();
 
 	router.get('/status', function (req, res) {
@@ -312,6 +313,10 @@ Loader.prototype.syncing = function () {
 	return !!private.syncIntervalId;
 }
 
+Loader.prototype.sandboxApi = function (call, data, cb) {
+	sandboxHelper.callMethod(shared, call, args, cb);
+}
+
 //events
 Loader.prototype.onPeerReady = function () {
 	process.nextTick(function nextLoadBlock() {
@@ -348,6 +353,8 @@ Loader.prototype.onBind = function (scope) {
 Loader.prototype.onBlockchainReady = function () {
 	private.loaded = true;
 }
+
+//shared
 
 //export
 module.exports = Loader;

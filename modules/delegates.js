@@ -9,12 +9,13 @@ var crypto = require('crypto'),
 	constants = require('../helpers/constants.js'),
 	TransactionTypes = require('../helpers/transaction-types.js'),
 	MilestoneBlocks = require("../helpers/milestoneBlocks.js"),
-	errorCode = require('../helpers/errorCodes.js').error;
+	errorCode = require('../helpers/errorCodes.js').error,
+	sandboxHelper = require('../helpers/sandbox.js');
 
 require('array.prototype.find'); //old node fix
 
 //private fields
-var modules, library, self, private = {};
+var modules, library, self, private = {}, shared = {};
 
 private.loaded = false;
 
@@ -238,7 +239,7 @@ function Delegates(cb, scope) {
 	library = scope;
 	self = this;
 	self.__private = private;
-	attachApi();
+	private.attachApi();
 
 	library.logic.transaction.attachAssetType(TransactionTypes.DELEGATE, new Delegate());
 
@@ -246,7 +247,7 @@ function Delegates(cb, scope) {
 }
 
 //private methods
-function attachApi() {
+private.attachApi = function() {
 	var router = new Router();
 
 	router.use(function (req, res, next) {
@@ -874,6 +875,10 @@ Delegates.prototype.validateBlockSlot = function (block) {
 	return false;
 }
 
+Delegates.prototype.sandboxApi = function (call, data, cb) {
+	sandboxHelper.callMethod(shared, call, args, cb);
+}
+
 //events
 Delegates.prototype.onBind = function (scope) {
 	modules = scope;
@@ -988,10 +993,7 @@ Delegates.prototype.onChangeUnconfirmedDelegates = function (balance, diff) {
 	}
 }
 
-
-Delegates.prototype.sandboxApi = function (call, data, cb) {
-
-}
+//shared
 
 //export
 module.exports = Delegates;

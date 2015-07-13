@@ -5,10 +5,11 @@ var Router = require('../helpers/router.js'),
 	util = require('util'),
 	_ = require('underscore'),
 	zlib = require('zlib'),
-	errorCode = require('../helpers/errorCodes.js').error;
+	errorCode = require('../helpers/errorCodes.js').error,
+	sandboxHelper = require('../helpers/sandbox.js');
 
 //private fields
-var modules, library, self, private = {};
+var modules, library, self, private = {}, shared = {};
 
 private.headers = {};
 private.loaded = false;
@@ -18,13 +19,13 @@ function Transport(cb, scope) {
 	library = scope;
 	self = this;
 	self.__private = private;
-	attachApi();
+	private.attachApi();
 
 	setImmediate(cb, null, self);
 }
 
 //private methods
-function attachApi() {
+private.attachApi = function() {
 	var router = new Router();
 
 	router.use(function (req, res, next) {
@@ -59,7 +60,7 @@ function attachApi() {
 					minimum: 0,
 					maximum: 1
 				},
-				'version' : {
+				'version': {
 					type: 'string',
 					maxLength: 11
 				}
@@ -142,7 +143,7 @@ function attachApi() {
 				});
 
 				var peerIp = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
-				var peerStr = peerIp ? peerIp + ":" + (isNaN(parseInt(req.headers['port']))? 'unkwnown' : parseInt(req.headers['port'])) : 'unknown';
+				var peerStr = peerIp ? peerIp + ":" + (isNaN(parseInt(req.headers['port'])) ? 'unkwnown' : parseInt(req.headers['port'])) : 'unknown';
 				library.logger.log('common block request is not valid, ban 60 min', peerStr);
 
 				if (report) {
@@ -175,7 +176,10 @@ function attachApi() {
 	router.get("/blocks", function (req, res) {
 		res.set(private.headers);
 
-		req.sanitize(req.query, {type: 'object', properties: { lastBlockId: { type : 'string' }}}, function (err, report, query) {
+		req.sanitize(req.query, {
+			type: 'object',
+			properties: {lastBlockId: {type: 'string'}}
+		}, function (err, report, query) {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
 
@@ -216,7 +220,7 @@ function attachApi() {
 			var block = library.logic.block.objectNormalize(req.body.block);
 		} catch (e) {
 			var peerIp = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
-			var peerStr = peerIp ? peerIp + ":" + (isNaN(parseInt(req.headers['port']))? 'unkwnown' : parseInt(req.headers['port'])) : 'unknown';
+			var peerStr = peerIp ? peerIp + ":" + (isNaN(parseInt(req.headers['port'])) ? 'unkwnown' : parseInt(req.headers['port'])) : 'unknown';
 			library.logger.log('block ' + (block ? block.id : 'null') + ' is not valid, ban 60 min', peerStr);
 
 			if (peerIp && report) {
@@ -257,7 +261,7 @@ function attachApi() {
 			var transaction = library.logic.transaction.objectNormalize(req.body.transaction);
 		} catch (e) {
 			var peerIp = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
-			var peerStr = peerIp ? peerIp + ":" + (isNaN(req.headers['port'])? 'unknown' : req.headers['port']) : 'unknown';
+			var peerStr = peerIp ? peerIp + ":" + (isNaN(req.headers['port']) ? 'unknown' : req.headers['port']) : 'unknown';
 			library.logger.log('recieved transaction ' + (transaction ? transaction.id : 'null') + ' is not valid, ban 60 min', peerStr);
 
 			if (peerIp && report) {
@@ -445,6 +449,10 @@ Transport.prototype.getFromPeer = function (peer, options, cb) {
 	});
 }
 
+Transport.prototype.sandboxApi = function (call, data, cb) {
+	sandboxHelper.callMethod(shared, call, args, cb);
+}
+
 //events
 Transport.prototype.onBind = function (scope) {
 	modules = scope;
@@ -475,9 +483,7 @@ Transport.prototype.onNewBlock = function (block, broadcast) {
 	}
 }
 
-Transport.prototype.sandboxApi = function (call, data, cb) {
-
-}
+//shared
 
 //export
 module.exports = Transport;

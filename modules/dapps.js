@@ -16,9 +16,10 @@ var async = require('async'),
 	Sandbox = require("crypti-sandbox"),
 	ed = require('ed25519'),
 	rmdir = require('rimraf'),
-	extend = require('extend');
+	extend = require('extend'),
+	sandboxHelper = require('../helpers/sandbox.js');
 
-var modules, library, self, private = {};
+var modules, library, self, private = {}, shared = {};
 
 private.launched = {};
 private.loading = {};
@@ -170,7 +171,6 @@ function DApp() {
 	}
 
 	this.applyUnconfirmed = function (trs, sender, cb) {
-		debugger
 		if (private.unconfirmedNames[trs.asset.dapp.name]) {
 			setImmediate(cb, "dapp name is exists");
 		}
@@ -285,12 +285,13 @@ function DApp() {
 	}
 }
 
+//constructor
 function DApps(cb, scope) {
 	library = scope;
 	self = this;
 	self.__private = private;
 	library.logic.transaction.attachAssetType(TransactionTypes.DAPP, new DApp());
-	attachApi();
+	private.attachApi();
 
 	process.on('exit', function () {
 		var keys = Object.keys(private.launched);
@@ -315,7 +316,7 @@ function DApps(cb, scope) {
 	});
 }
 
-function attachApi() {
+private.attachApi = function() {
 	var router = new Router();
 
 	router.use(function (req, res, next) {
@@ -737,13 +738,19 @@ function attachApi() {
 									if (err) {
 										private.launched[body.id] = false;
 										library.logger.error(err);
-										return res.json({success: false, error: "Can't create public link for: " + body.id});
+										return res.json({
+											success: false,
+											error: "Can't create public link for: " + body.id
+										});
 									} else {
 										private.launch(dapp, function (err) {
 											if (err) {
 												private.launched[body.id] = false;
 												library.logger.error(err);
-												return res.json({success: false, error: "Can't launch dapp, see logs: " + body.id});
+												return res.json({
+													success: false,
+													error: "Can't launch dapp, see logs: " + body.id
+												});
 											} else {
 												private.dappRoutes(dapp, function (err) {
 													if (err) {
@@ -752,7 +759,10 @@ function attachApi() {
 														private.stop(dapp, function (err) {
 															if (err) {
 																library.logger.error(err);
-																return res.json({success: false, error: "Can't stop dapp, check logs: " + body.id})
+																return res.json({
+																	success: false,
+																	error: "Can't stop dapp, check logs: " + body.id
+																})
 															}
 
 															return res.json({success: false});
@@ -822,6 +832,7 @@ function attachApi() {
 	});
 }
 
+//private methods
 private.get = function (id, cb) {
 	library.dbLite.query("SELECT name, description, tags, nickname, git, type, category, transactionId FROM dapps WHERE transactionId = $id", {id: id}, ['name', 'description', 'tags', 'nickname', 'git', 'type', 'category', 'transactionId'], function (err, rows) {
 		if (err || rows.length == 0) {
@@ -1112,7 +1123,7 @@ private.dappRoutes = function (dapp, cb) {
 						private.sandboxes[dapp.transactionId].sendMessage({
 							method: router.method,
 							path: router.path,
-							query: (router.method == "get")? req.query : req.body
+							query: (router.method == "get") ? req.query : req.body
 						}, function (err, body) {
 							if (!err && body.error) {
 								err = body.error;
@@ -1210,12 +1221,16 @@ private.stop = function (dApp, cb) {
 	});
 }
 
+//public methods
 DApps.prototype.sandboxApi = function (call, data, cb) {
-
+	sandboxHelper.callMethod(shared, call, args, cb);
 }
 
+//events
 DApps.prototype.onBind = function (scope) {
 	modules = scope;
 }
+
+//shared
 
 module.exports = DApps;

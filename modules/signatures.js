@@ -7,10 +7,11 @@ var ed = require('ed25519'),
 	async = require('async'),
 	TransactionTypes = require('../helpers/transaction-types.js'),
 	MilestoneBlocks = require("../helpers/milestoneBlocks.js"),
-	errorCode = require('../helpers/errorCodes.js').error;
+	errorCode = require('../helpers/errorCodes.js').error,
+	sandboxHelper = require('../helpers/sandbox.js');
 
 // private fields
-var modules, library, self, private = {};
+var modules, library, self, private = {}, shared = {};
 
 function Signature() {
 	this.create = function (data, trs) {
@@ -163,7 +164,7 @@ function Signatures(cb, scope) {
 	library = scope;
 	self = this;
 	self.__private = private;
-	attachApi();
+	private.attachApi();
 
 	library.logic.transaction.attachAssetType(TransactionTypes.SIGNATURE, new Signature());
 
@@ -171,7 +172,7 @@ function Signatures(cb, scope) {
 }
 
 //private methods
-function attachApi() {
+private.attachApi = function() {
 	var router = new Router();
 
 	router.use(function (req, res, next) {
@@ -269,14 +270,15 @@ function attachApi() {
 }
 
 //public methods
-
 Signatures.prototype.sandboxApi = function (call, data, cb) {
-
+	sandboxHelper.callMethod(shared, call, args, cb);
 }
 
 //events
 Signatures.prototype.onBind = function (scope) {
 	modules = scope;
 }
+
+//shared
 
 module.exports = Signatures;

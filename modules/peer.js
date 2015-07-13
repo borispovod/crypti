@@ -5,25 +5,26 @@ var async = require('async'),
 	extend = require('extend'),
 	fs = require('fs'),
 	path = require('path'),
-	errorCode = require('../helpers/errorCodes.js').error;
+	errorCode = require('../helpers/errorCodes.js').error,
+	sandboxHelper = require('../helpers/sandbox.js');
 
 require('array.prototype.find'); //old node fix
 
 //private fields
-var modules, library, self, private = {};
+var modules, library, self, private = {}, shared = {};
 
 //constructor
 function Peer(cb, scope) {
 	library = scope;
 	self = this;
 	self.__private = private;
-	attachApi();
+	private.attachApi();
 
 	setImmediate(cb, null, self);
 }
 
 //private methods
-function attachApi() {
+private.attachApi = function() {
 	var router = new Router();
 
 	router.use(function (req, res, next) {
@@ -391,6 +392,10 @@ Peer.prototype.update = function (peer, cb) {
 	})
 }
 
+Peer.prototype.sandboxApi = function (call, data, cb) {
+	sandboxHelper.callMethod(shared, call, args, cb);
+}
+
 //events
 Peer.prototype.onBind = function (scope) {
 	modules = scope;
@@ -438,6 +443,8 @@ Peer.prototype.onPeerReady = function () {
 		});
 	});
 }
+
+//shared
 
 //export
 module.exports = Peer;

@@ -11,48 +11,8 @@ var crypto = require('crypto'),
 	extend = require('extend'),
 	sandboxHelper = require('../helpers/sandbox.js');
 
-//private
-var modules, library, self, private = {};
-private.shared = [
-	'open'
-];
-
-private.open = function (body, cb) {
-	library.scheme.validate(body, {
-		type: "object",
-		properties: {
-			secret: {
-				type: "string",
-				minLength: 1,
-				maxLength: 100
-			}
-		},
-		required: ["secret"]
-	}, function (err) {
-		if (err) {
-			return cb(err[0].message);
-		}
-
-		private.openAccount(body.secret, function (err, account) {
-			var accountData = null;
-			if (!err) {
-				accountData = {
-					address: account.address,
-					unconfirmedBalance: account.u_balance,
-					balance: account.balance,
-					publicKey: account.publicKey,
-					unconfirmedSignature: account.unconfirmedSignature,
-					secondSignature: account.secondSignature,
-					secondPublicKey: account.secondPublicKey
-				};
-
-				return cb(null, {account: accountData});
-			} else {
-				return cb(err);
-			}
-		});
-	});
-}
+//private fields
+var modules, library, self, private = {}, shared = {};
 
 function Vote() {
 	this.create = function (data, trs) {
@@ -350,7 +310,7 @@ function Accounts(cb, scope) {
 	library = scope;
 	self = this;
 	self.__private = private;
-	attachApi();
+	private.attachApi();
 
 	library.logic.transaction.attachAssetType(TransactionTypes.VOTE, new Vote());
 	library.logic.transaction.attachAssetType(TransactionTypes.USERNAME, new Username());
@@ -359,7 +319,7 @@ function Accounts(cb, scope) {
 }
 
 //private methods
-function attachApi() {
+private.attachApi = function () {
 	var router = new Router();
 
 	router.use(function (req, res, next) {
@@ -368,7 +328,7 @@ function attachApi() {
 	});
 
 	router.post('/open', function (req, res, next) {
-		private.open(req.body, function (err, response) {
+		shared.open(req.body, function (err, response) {
 			if (err) {
 				res.json({success: false, error: err});
 			} else {
@@ -378,36 +338,12 @@ function attachApi() {
 	});
 
 	router.get('/getBalance', function (req, res, next) {
-		req.sanitize(req.query, {
-			type: "object",
-			properties: {
-				address: {
-					type: "string",
-					minLength: 1
-				}
-			},
-			required: ["address"]
-		}, function (err, report, query) {
-			if (err) return next(err);
-			if (!report.isValid) return res.json({success: false, error: report.issues});
-
-			var isAddress = /^[0-9]+c$/g;
-			if (!isAddress.test(query.address.toLowerCase())) {
-				return res.json({
-					success: false,
-					error: errorCode("ACCOUNTS.INVALID_ADDRESS", {address: query.address})
-				});
+		shared.getBalance(req.query, function (err, response) {
+			if (err) {
+				res.json({success: false, error: err});
+			} else {
+				return res.json(extend({}, {success: true}, response));
 			}
-
-			self.getAccount({address: query.address}, function (err, account) {
-				if (err) {
-					return res.json({success: false, error: err.toString()});
-				}
-				var balance = account ? account.balance : 0;
-				var unconfirmedBalance = account ? account.u_balance : 0;
-
-				res.json({success: true, balance: balance, unconfirmedBalance: unconfirmedBalance});
-			});
 		});
 	});
 
@@ -439,32 +375,12 @@ function attachApi() {
 	}
 
 	router.get('/getPublicKey', function (req, res, next) {
-		req.sanitize(req.query, {
-			type: "object",
-			properties: {
-				address: {
-					type: "string",
-					minLength: 1
-				}
-			},
-			required: ["address"]
-		}, function (err, report, query) {
-			if (err) return next(err);
-			if (!report.isValid) return res.json({success: false, error: report.issues});
-
-			self.getAccount({address: query.address}, function (err, account) {
-				if (err) {
-					return res.json({success: false, error: err.toString()});
-				}
-				if (!account || !account.publicKey) {
-					return res.json({
-						success: false,
-						error: errorCode("ACCOUNTS.ACCOUNT_PUBLIC_KEY_NOT_FOUND", {address: query.address})
-					});
-				}
-
-				res.json({success: true, publicKey: account.publicKey});
-			});
+		shared.getPublickey(req.query, function (err, response) {
+			if (err) {
+				res.json({success: false, error: err});
+			} else {
+				return res.json(extend({}, {success: true}, response));
+			}
 		});
 	});
 
@@ -818,6 +734,107 @@ Accounts.prototype.sandboxApi = function (call, args, cb) {
 //events
 Accounts.prototype.onBind = function (scope) {
 	modules = scope;
+}
+
+//shared
+shared.open = function (body, cb) {
+	library.scheme.validate(body, {
+		type: "object",
+		properties: {
+			secret: {
+				type: "string",
+				minLength: 1,
+				maxLength: 100
+			}
+		},
+		required: ["secret"]
+	}, function (err) {
+		if (err) {
+			return cb(err[0].message);
+		}
+
+		private.openAccount(body.secret, function (err, account) {
+			var accountData = null;
+			if (!err) {
+				accountData = {
+					address: account.address,
+					unconfirmedBalance: account.u_balance,
+					balance: account.balance,
+					publicKey: account.publicKey,
+					unconfirmedSignature: account.unconfirmedSignature,
+					secondSignature: account.secondSignature,
+					secondPublicKey: account.secondPublicKey
+				};
+
+				return cb(null, {account: accountData});
+			} else {
+				return cb(err);
+			}
+		});
+	});
+}
+
+shared.getBalance = function (query, cb) {
+	library.scheme.validate(query, {
+		type: "object",
+		properties: {
+			address: {
+				type: "string",
+				minLength: 1
+			}
+		},
+		required: ["address"]
+	}, function (err) {
+		if (err) {
+			return cb(err[0].message);
+		}
+
+		var isAddress = /^[0-9]+c$/g;
+		if (!isAddress.test(query.address.toLowerCase())) {
+			return cb(errorCode("ACCOUNTS.INVALID_ADDRESS", {address: query.address}))
+		}
+
+		self.getAccount({address: query.address}, function (err, account) {
+			if (err) {
+				return cb(err.toString());
+			}
+			var balance = account ? account.balance : 0;
+			var unconfirmedBalance = account ? account.u_balance : 0;
+
+			cb(null, {balance: balance, unconfirmedBalance: unconfirmedBalance});
+		});
+	});
+}
+
+shared.getPublickey = function (query, cb) {
+	library.scheme.validate(query, {
+		type: "object",
+		properties: {
+			address: {
+				type: "string",
+				minLength: 1
+			}
+		},
+		required: ["address"]
+	}, function (err) {
+		if (err) {
+			return cb(err[0].message);
+		}
+
+		self.getAccount({address: query.address}, function (err, account) {
+			if (err) {
+				return res.json({success: false, error: err.toString()});
+			}
+			if (!account || !account.publicKey) {
+				return res.json({
+					success: false,
+					error: errorCode("ACCOUNTS.ACCOUNT_PUBLIC_KEY_NOT_FOUND", {address: query.address})
+				});
+			}
+
+			res.json({success: true, publicKey: account.publicKey});
+		});
+	});
 }
 
 //export
