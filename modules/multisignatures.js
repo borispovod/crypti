@@ -207,7 +207,7 @@ function Multisignatures(cb, scope) {
 }
 
 //private methods
-private.attachApi = function() {
+private.attachApi = function () {
 	var router = new Router();
 
 	router.use(function (req, res, next) {
@@ -215,160 +215,10 @@ private.attachApi = function() {
 		res.status(500).send({success: false, error: errorCode('COMMON.LOADING')});
 	});
 
-	// return pending multisignature wallet
-	router.get('/pending', function (req, res) {
-		req.sanitize("query", {
-			publicKey: "hex!"
-		}, function (err, report, query) {
-			var transactions = modules.transactions.getUnconfirmedTransactionList();
-
-			var pendings = [];
-			async.forEach(transactions, function (item, cb) {
-				if (item.type != TransactionTypes.MULTI) {
-					return setImmediate(cb);
-				}
-
-				var signature = item.signatures.find(function (signature) {
-					return signature.publicKey == query.publicKey;
-				});
-
-				if (signature) {
-					return setImmediate(cb);
-				}
-
-				if (item.multisignature.keysgroup.indexOf("+" + publicKey) >= 0) {
-					pendings.push(item);
-				}
-
-				setImmediate(cb);
-			}, function () {
-				return res.json({success: true, transactions: pendings});
-			});
-		});
-	});
-
-	router.post('/sign/', function (req, res) {
-		req.sanitize("body", {
-			secret: "string!",
-			publicKey: "hex?",
-			transactionId: "string!"
-		}, function (err, report, body) {
-			if (err) return next(err);
-			if (!report.isValid) return res.json({success: false, error: report.issues});
-
-			var transaction = modules.transactions.getUnconfirmedTransaction(body.transactionId);
-
-			if (!transaction) {
-				return res.json({success: false, error: errorCode("TRANSACTIONS.TRANSACTION_NOT_FOUND")});
-			}
-
-			var hash = crypto.createHash('sha256').update(body.secret, 'utf8').digest();
-			var keypair = ed.MakeKeypair(hash);
-
-			if (body.publicKey) {
-				if (keypair.publicKey.toString('hex') != body.publicKey) {
-					return res.json({success: false, error: errorCode("COMMON.INVALID_SECRET_KEY")});
-				}
-			}
-
-			var sign = library.logic.transaction.sign(keypair, transaction);
-			if (transaction.type != TransactionTypes.MULTI || transaction.asset.multisignature.dependence.indexOf(keypair.publicKey.toString('hex')) == -1 || transaction.asset.multisignature.signatures.indexOf(sign) != -1) {
-				return res.json({success: false, error: errorCode("MULTISIGNATURES.SIGN_NOT_ALLOWED", transaction)});
-			}
-
-			modules.accounts.getAccount({publicKey: keypair.publicKey.toString('hex')}, function (err, account) {
-				if (err) {
-					return res.json({success: false, error: err.toString()});
-				}
-				if (!account || !account.publicKey) {
-					return res.json({success: false, error: errorCode("COMMON.OPEN_ACCOUNT")});
-				}
-
-				library.sequence.add(function (cb) {
-					var transaction = modules.transactions.getUnconfirmedTransaction(body.transactionId);
-					if (!transaction) {
-						return cb("Transaction not found");
-					}
-					transaction.signatures = transaction.signatures || [];
-					transaction.signatures.push(sign);
-					cb();
-				}, function (err) {
-					if (err) {
-						return res.json({success: false, error: err.toString()});
-					}
-
-					res.json({success: true, transactionId: transaction.id});
-				});
-			});
-		});
-	});
-
-	router.put('/', function (req, res) {
-		req.sanitize("body", {
-			secret: "string!",
-			publicKey: "hex?",
-			secondSecret: "string?",
-			min: "int!",
-			lifetime: "int!",
-			keysgroup: {
-				required: true,
-				array: true,
-				minLength: 1,
-				maxLength: 10
-			}
-		}, function (err, report, body) {
-			if (err) return next(err);
-			if (!report.isValid) return res.json({success: false, error: report.issues});
-
-			var hash = crypto.createHash('sha256').update(body.secret, 'utf8').digest();
-			var keypair = ed.MakeKeypair(hash);
-
-			if (body.publicKey) {
-				if (keypair.publicKey.toString('hex') != body.publicKey) {
-					return res.json({success: false, error: errorCode("COMMON.INVALID_SECRET_KEY")});
-				}
-			}
-
-			library.sequence.add(function (cb) {
-				modules.accounts.getAccount({publicKey: keypair.publicKey.toString('hex')}, function (err, account) {
-					if (err) {
-						return cb(err.toString());
-					}
-					if (!account || !account.publicKey) {
-						return cb(errorCode("COMMON.OPEN_ACCOUNT"));
-					}
-
-					if (account.secondSignature && !body.secondSecret) {
-						return cb(errorCode("COMMON.SECOND_SECRET_KEY"));
-					}
-
-					var secondKeypair = null;
-
-					if (account.secondSignature) {
-						var secondHash = crypto.createHash('sha256').update(body.secondSecret, 'utf8').digest();
-						secondKeypair = ed.MakeKeypair(secondHash);
-					}
-
-					var transaction = library.logic.transaction.create({
-						type: TransactionTypes.MULTI,
-						sender: account,
-						keypair: keypair,
-						secondKeypair: secondKeypair,
-						min: body.min,
-						keysgroup: body.keysgroup,
-						lifetime: body.lifetime
-					});
-
-					modules.transactions.receiveTransactions([transaction], cb);
-				});
-			}, function (err, transaction) {
-				if (err) {
-					return res.json({success: false, error: err.toString()});
-				}
-
-				res.json({success: true, transaction: transaction[0]});
-			});
-		});
+	router.map(shared, {
+		"get /pending": "pending",
+		"post /sign": "sign",
+		"put /": "addMultisignature"
 	});
 
 	router.use(function (req, res, next) {
@@ -394,6 +244,167 @@ Multisignatures.prototype.onBind = function (scope) {
 }
 
 //shared
+shared.pending = function (query, cb) {
+	library.scheme.validate(query, {
+		publicKey: "hex!"
+	}, function (err) {
+		if (err) {
+			return cb(err[0].message);
+		}
+
+		var transactions = modules.transactions.getUnconfirmedTransactionList();
+
+		var pendings = [];
+		async.forEach(transactions, function (item, cb) {
+			if (item.type != TransactionTypes.MULTI) {
+				return setImmediate(cb);
+			}
+
+			var signature = item.signatures.find(function (signature) {
+				return signature.publicKey == query.publicKey;
+			});
+
+			if (signature) {
+				return setImmediate(cb);
+			}
+
+			if (item.multisignature.keysgroup.indexOf("+" + publicKey) >= 0) {
+				pendings.push(item);
+			}
+
+			setImmediate(cb);
+		}, function () {
+			return cb(null, {transactions: pendings});
+		});
+	});
+}
+
+shared.sign = function (body, cb) {
+	library.scheme.validate(body, {
+		secret: "string!",
+		publicKey: "hex?",
+		transactionId: "string!"
+	}, function (err) {
+		if (err) {
+			return cb(err[0].message);
+		}
+
+		var transaction = modules.transactions.getUnconfirmedTransaction(body.transactionId);
+
+		if (!transaction) {
+			return cb(errorCode("TRANSACTIONS.TRANSACTION_NOT_FOUND"));
+		}
+
+		var hash = crypto.createHash('sha256').update(body.secret, 'utf8').digest();
+		var keypair = ed.MakeKeypair(hash);
+
+		if (body.publicKey) {
+			if (keypair.publicKey.toString('hex') != body.publicKey) {
+				return cb(errorCode("COMMON.INVALID_SECRET_KEY"));
+			}
+		}
+
+		var sign = library.logic.transaction.sign(keypair, transaction);
+		if (transaction.type != TransactionTypes.MULTI || transaction.asset.multisignature.dependence.indexOf(keypair.publicKey.toString('hex')) == -1 || transaction.asset.multisignature.signatures.indexOf(sign) != -1) {
+			return cb(errorCode("MULTISIGNATURES.SIGN_NOT_ALLOWED", transaction));
+		}
+
+		modules.accounts.getAccount({publicKey: keypair.publicKey.toString('hex')}, function (err, account) {
+			if (err) {
+				return cb(err.toString());
+			}
+			if (!account || !account.publicKey) {
+				return cb(errorCode("COMMON.OPEN_ACCOUNT"));
+			}
+
+			library.sequence.add(function (cb) {
+				var transaction = modules.transactions.getUnconfirmedTransaction(body.transactionId);
+				if (!transaction) {
+					return cb("Transaction not found");
+				}
+				transaction.signatures = transaction.signatures || [];
+				transaction.signatures.push(sign);
+				cb();
+			}, function (err) {
+				if (err) {
+					return cb(err.toString());
+				}
+
+				cb(null, {transactionId: transaction.id});
+			});
+		});
+	});
+}
+
+shared.addMultisignature = function (body, cb) {
+	library.scheme.validate(body, {
+		secret: "string!",
+		publicKey: "hex?",
+		secondSecret: "string?",
+		min: "int!",
+		lifetime: "int!",
+		keysgroup: {
+			required: true,
+			array: true,
+			minLength: 1,
+			maxLength: 10
+		}
+	}, function (err) {
+		if (err) {
+			return cb(err[0].message);
+		}
+
+		var hash = crypto.createHash('sha256').update(body.secret, 'utf8').digest();
+		var keypair = ed.MakeKeypair(hash);
+
+		if (body.publicKey) {
+			if (keypair.publicKey.toString('hex') != body.publicKey) {
+				return cb(errorCode("COMMON.INVALID_SECRET_KEY"));
+			}
+		}
+
+		library.sequence.add(function (cb) {
+			modules.accounts.getAccount({publicKey: keypair.publicKey.toString('hex')}, function (err, account) {
+				if (err) {
+					return cb(err.toString());
+				}
+				if (!account || !account.publicKey) {
+					return cb(errorCode("COMMON.OPEN_ACCOUNT"));
+				}
+
+				if (account.secondSignature && !body.secondSecret) {
+					return cb(errorCode("COMMON.SECOND_SECRET_KEY"));
+				}
+
+				var secondKeypair = null;
+
+				if (account.secondSignature) {
+					var secondHash = crypto.createHash('sha256').update(body.secondSecret, 'utf8').digest();
+					secondKeypair = ed.MakeKeypair(secondHash);
+				}
+
+				var transaction = library.logic.transaction.create({
+					type: TransactionTypes.MULTI,
+					sender: account,
+					keypair: keypair,
+					secondKeypair: secondKeypair,
+					min: body.min,
+					keysgroup: body.keysgroup,
+					lifetime: body.lifetime
+				});
+
+				modules.transactions.receiveTransactions([transaction], cb);
+			});
+		}, function (err, transaction) {
+			if (err) {
+				return cb(err.toString());
+			}
+
+			cb(null, {transaction: transaction[0]});
+		});
+	});
+}
+
 
 //export
 module.exports = Multisignatures;

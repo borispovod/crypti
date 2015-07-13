@@ -24,7 +24,7 @@ function Peer(cb, scope) {
 }
 
 //private methods
-private.attachApi = function() {
+private.attachApi = function () {
 	var router = new Router();
 
 	router.use(function (req, res, next) {
@@ -32,112 +32,10 @@ private.attachApi = function() {
 		res.status(500).send({success: false, error: errorCode('COMMON.LOADING')});
 	});
 
-	router.get('/', function (req, res, next) {
-		req.sanitize(req.query, {
-			type: "object",
-			properties: {
-				state: {
-					type: "integer",
-					minimum: 0,
-					maximum: 3
-				},
-				os: {
-					type: "string"
-				},
-				version: {
-					type: "string"
-				},
-				limit: {
-					type: "integer",
-					minimum: 0,
-					maximum: 100
-				},
-				shared: {
-					type: "integer",
-					minimum: 0,
-					maximum: 1
-				},
-				orderBy: {
-					type: "string"
-				},
-				offset: {
-					type: "integer",
-					minimum: 0
-				},
-				port: {
-					type: "integer",
-					minimum: 1,
-					maximum: 65535
-				}
-			}
-		}, function (err, report, query) {
-			if (err) return next(err);
-			if (!report.isValid) return res.json({success: false, error: report.issues});
-
-			if (query.limit < 0 || query.limit > 100) {
-				return res.json({success: false, error: errorCode("PEERS.LIMIT", query)});
-			}
-
-			private.getByFilter(query, function (err, peers) {
-				if (err) {
-					return res.json({success: false, error: errorCode("PEERS.PEER_NOT_FOUND")});
-				}
-
-				for (var i = 0; i < peers.length; i++) {
-					peers[i].ip = ip.fromLong(peers[i].ip);
-				}
-
-				res.json({success: true, peers: peers});
-			});
-		});
-	});
-
-	router.get('/version', function (req, res) {
-		return res.json({success: true, version: library.config.version, build: library.build});
-	})
-
-	router.get('/get', function (req, res, next) {
-		req.sanitize(req.query, {
-			type: "object",
-			properties: {
-				ip_str: {
-					type: "string",
-					minLength: 1
-				},
-				port: {
-					type: "integer",
-					minimum: 0,
-					maximum: 65535
-				}
-			},
-			required: ['ip_str', 'port']
-		}, function (err, report, query) {
-			if (err) return next(err);
-			if (!report.isValid) return res.json({success: false, error: report.issues});
-
-			try {
-				var ip_str = ip.toLong(query.ip_str);
-			} catch (e) {
-				return res.json({success: false, error: errorCode("PEERS.INVALID_PEER")});
-			}
-
-			private.getByFilter({
-				ip: ip_str,
-				port: port
-			}, function (err, peers) {
-				if (err) {
-					return res.json({success: false, error: errorCode("PEERS.PEER_NOT_FOUND")});
-				}
-
-				var peer = peers.length ? peers[0] : null;
-
-				if (peer) {
-					peer.ip = ip.fromLong(peer.ip);
-				}
-
-				res.json({success: true, peer: peer || {}});
-			});
-		});
+	router.map(shared, {
+		"get /": "getPeers",
+		"get /version": "version",
+		"get /get": "getPeer"
 	});
 
 	router.use(function (req, res) {
@@ -445,6 +343,115 @@ Peer.prototype.onPeerReady = function () {
 }
 
 //shared
+shared.getPeers = function (query, cb) {
+	library.scheme.validate(query, {
+		type: "object",
+		properties: {
+			state: {
+				type: "integer",
+				minimum: 0,
+				maximum: 3
+			},
+			os: {
+				type: "string"
+			},
+			version: {
+				type: "string"
+			},
+			limit: {
+				type: "integer",
+				minimum: 0,
+				maximum: 100
+			},
+			shared: {
+				type: "integer",
+				minimum: 0,
+				maximum: 1
+			},
+			orderBy: {
+				type: "string"
+			},
+			offset: {
+				type: "integer",
+				minimum: 0
+			},
+			port: {
+				type: "integer",
+				minimum: 1,
+				maximum: 65535
+			}
+		}
+	}, function (err) {
+		if (err) {
+			return cb(err[0].message);
+		}
+
+		if (query.limit < 0 || query.limit > 100) {
+			return cb(errorCode("PEERS.LIMIT", query));
+		}
+
+		private.getByFilter(query, function (err, peers) {
+			if (err) {
+				return cb(errorCode("PEERS.PEER_NOT_FOUND"));
+			}
+
+			for (var i = 0; i < peers.length; i++) {
+				peers[i].ip = ip.fromLong(peers[i].ip);
+			}
+
+			cb(null, {peers: peers});
+		});
+	});
+}
+
+shared.getPeer = function (query, cb) {
+	library.scheme.validate(query, {
+		type: "object",
+		properties: {
+			ip_str: {
+				type: "string",
+				minLength: 1
+			},
+			port: {
+				type: "integer",
+				minimum: 0,
+				maximum: 65535
+			}
+		},
+		required: ['ip_str', 'port']
+	}, function (err) {
+		if (err) {
+			return cb(err[0].message);
+		}
+
+		try {
+			var ip_str = ip.toLong(query.ip_str);
+		} catch (e) {
+			return cb(errorCode("PEERS.INVALID_PEER"));
+		}
+
+		private.getByFilter({
+			ip: ip_str,
+			port: port
+		}, function (err, peers) {
+			if (err) {
+				return cb(errorCode("PEERS.PEER_NOT_FOUND"));
+			}
+
+			var peer = peers.length ? peers[0] : null;
+
+			if (peer) {
+				peer.ip = ip.fromLong(peer.ip);
+			}
+
+			cb(null, {peer: peer || {}});
+		});
+	});
+}
+
+shared.version = function (query, cb) {
+	cb(null, {version: library.config.version, build: library.build});
+}
 
 //export
 module.exports = Peer;

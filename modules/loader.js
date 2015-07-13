@@ -28,25 +28,12 @@ function Loader(cb, scope) {
 }
 
 //private methods
-private.attachApi = function() {
+private.attachApi = function () {
 	var router = new Router();
 
-	router.get('/status', function (req, res) {
-		res.json({
-			success: true,
-			loaded: private.loaded,
-			now: private.loadingLastBlock.height,
-			blocksCount: private.total
-		});
-	});
-
-	router.get('/status/sync', function (req, res) {
-		res.json({
-			success: true,
-			sync: self.syncing(),
-			blocks: private.blocksToSync,
-			height: modules.blocks.getLastBlock().height
-		});
+	router.map(shared, {
+		"get /status": "status",
+		"get /sync": "sync"
 	});
 
 	library.network.app.use('/api/loader', router);
@@ -210,7 +197,7 @@ private.loadBlocks = function (lastBlock, cb) {
 
 		data.body.height = parseInt(data.body.height);
 
-		var report = library.scheme.validate(data.body.height, {type : "integer", required: true});
+		var report = library.scheme.validate(data.body.height, {type: "integer", required: true});
 
 		if (!report) {
 			library.logger.log("Can't parse blockchain height: " + peerStr + "\n" + library.scheme.getLastError());
@@ -241,7 +228,11 @@ private.loadUnconfirmedTransactions = function (cb) {
 			return cb()
 		}
 
-		var report = library.scheme.validate(data.body.transactions, {type: "array", required: true, uniqueItems: true});
+		var report = library.scheme.validate(data.body.transactions, {
+			type: "array",
+			required: true,
+			uniqueItems: true
+		});
 		if (!report) {
 			return cb();
 		}
@@ -355,6 +346,21 @@ Loader.prototype.onBlockchainReady = function () {
 }
 
 //shared
+shared.status = function (query, cb) {
+	cb(null, {
+		loaded: private.loaded,
+		now: private.loadingLastBlock.height,
+		blocksCount: private.total
+	});
+}
+
+shared.sync = function (query, cb) {
+	cb(null, {
+		sync: self.syncing(),
+		blocks: private.blocksToSync,
+		height: modules.blocks.getLastBlock().height
+	});
+}
 
 //export
 module.exports = Loader;
