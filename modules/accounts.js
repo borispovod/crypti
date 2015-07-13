@@ -327,24 +327,11 @@ private.attachApi = function () {
 		res.status(500).send({success: false, error: errorCode('COMMON.LOADING')});
 	});
 
-	router.post('/open', function (req, res, next) {
-		shared.open(req.body, function (err, response) {
-			if (err) {
-				res.json({success: false, error: err});
-			} else {
-				return res.json(extend({}, {success: true}, response));
-			}
-		});
-	});
-
-	router.get('/getBalance', function (req, res, next) {
-		shared.getBalance(req.query, function (err, response) {
-			if (err) {
-				res.json({success: false, error: err});
-			} else {
-				return res.json(extend({}, {success: true}, response));
-			}
-		});
+	router.map(shared, {
+		"/open": {"method": "post", "call": "open"},
+		"/getBalance": {"method": "get", "call": "getBalance"},
+		"/getPublicKey": {"method": "get", "call": "getPublickey"},
+		"/generatePublicKey": {"method": "post", "call": "generatePublicKey"}
 	});
 
 	if (process.env.DEBUG && process.env.DEBUG.toUpperCase() == "TRUE") {
@@ -373,44 +360,6 @@ private.attachApi = function () {
 			return res.json({success: true, accounts: arr});
 		});
 	}
-
-	router.get('/getPublicKey', function (req, res, next) {
-		shared.getPublickey(req.query, function (err, response) {
-			if (err) {
-				res.json({success: false, error: err});
-			} else {
-				return res.json(extend({}, {success: true}, response));
-			}
-		});
-	});
-
-	router.post("/generatePublicKey", function (req, res, next) {
-		req.sanitize(req.body, {
-			type: "object",
-			properties: {
-				secret: {
-					type: "string",
-					minLength: 1
-				}
-			},
-			required: ["secret"]
-		}, function (err, report, query) {
-			if (err) return next(err);
-			if (!report.isValid) return res.json({success: false, error: report.issues});
-
-			private.openAccount(query.secret, function (err, account) {
-				var publicKey = null;
-				if (!err) {
-					publicKey = account.publicKey;
-				}
-				res.json({
-					success: !err,
-					publicKey: account.publicKey
-				});
-			});
-		});
-
-	});
 
 	router.get("/delegates", function (req, res, next) {
 		req.sanitize(req.query, {
@@ -829,6 +778,33 @@ shared.getPublickey = function (query, cb) {
 				return cb(errorCode("ACCOUNTS.ACCOUNT_PUBLIC_KEY_NOT_FOUND", {address: query.address}))
 			}
 			cb(null, {publicKey: account.publicKey});
+		});
+	});
+}
+
+shared.generatePublickey = function (body, cb) {
+	library.scheme.validate(body, {
+		type: "object",
+		properties: {
+			secret: {
+				type: "string",
+				minLength: 1
+			}
+		},
+		required: ["secret"]
+	}, function (err) {
+		if (err) {
+			return cb(err[0].message);
+		}
+
+		private.openAccount(body.secret, function (err, account) {
+			var publicKey = null;
+			if (!err && account) {
+				publicKey = account.publicKey;
+			}
+			cd(err, {
+				publicKey: publicKey
+			});
 		});
 	});
 }
