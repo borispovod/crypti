@@ -39,9 +39,11 @@ function Contact() {
 			return setImmediate(cb, "Following is not address: " + trs.asset.contact.address);
 		}
 
+		/*
 		if (!modules.accounts.getAccount(trs.asset.contact.address.slice(1))) {
 			return setImmediate(cb, "Following is not exists: " + trs.id);
 		}
+		*/
 
 		if (trs.amount != 0) {
 			return setImmediate(cb, "Invalid amount: " + trs.id);
@@ -80,8 +82,21 @@ function Contact() {
 	}
 
 	this.applyUnconfirmed = function (trs, sender, cb) {
-		var res = sender.applyUnconfirmedContact(trs.asset.contact.address);
-		setImmediate(cb, !res ? "Can't apply contact: " + trs.id : null);
+		library.dbLite.query("SELECT count(id) FROM trs where recipientId=$address", {
+			address: trs.asset.contact.address.slice(1)
+		}, ['count'], function (err, rows) {
+			if (err) {
+				return setImmediate(cb, "Sql error");
+			}
+
+			if (rows.length == 0 || rows[0].count == 0) {
+				return setImmediate(cb, "Can't apply contact, recipient doesn't exists");
+			}
+
+
+			var res = sender.applyUnconfirmedContact(trs.asset.contact.address);
+			setImmediate(cb, !res ? "Can't apply contact: " + trs.id : null);
+		});
 	}
 
 	this.undoUnconfirmed = function (trs, sender) {

@@ -1,6 +1,6 @@
 {
 	"port": 4060,
-	"address": "127.0.0.1",
+	"address": "0.0.0.0",
 	"serveHttpAPI": true,
 	"serveHttpWallet": true,
 	"version": "0.3.0",
@@ -14,14 +14,10 @@
 	},
 	"peers": {
 		"list": [
-			{
-				"ip" : "127.0.0.1",
-				"port" : 8080
-			}
 		],
 		"blackList": [],
 		"options": {
-			"timeout": 20000
+			"timeout": 5000
 		}
 	},
 	"forging": {
@@ -143,12 +139,6 @@
 			"address": "0.0.0.0",
 			"key": "path_to_key",
 			"cert": "path_to_cert"
-		}
-	},
-	"mocha": {
-		"peers": {
-			"account" : "F3DP835EBuZMAhiuYn2AzhJh1lz8glLolghCMD4X8lRh5v2GlcBWws7plIDUuPjf3GUTOnyYEfXQx7cH",
-			"address" : "2334212999465599568C"
 		}
 	}
 }
