@@ -9,6 +9,7 @@ var node = require('./../variables.js');
 
 // Account info for a RANDOM account (which we create later) - 0 XCR amount | Will act as delegate
 var Raccount = node.randomAccount();
+var Uaccount = node.randomAccount();
 
 var test = 0;
 
@@ -761,5 +762,96 @@ describe('Delegates', function() {
         });
     });
 
+    describe('Register delegate AFTER username',function() {
+
+        before(function (done) {
+            // OPEN UACCOUNT
+            node.api.post('/accounts/open')
+                .set('Accept', 'application/json')
+                .send({
+                    secret: Uaccount.password
+                })
+                .expect('Content-Type', /json/)
+                .expect(200)
+                .end(function (err, res) {
+                    console.log(res.body);
+                    node.expect(res.body).to.have.property("success").to.be.true;
+                    if (res.body.success == true && res.body.account != null){
+                        Uaccount.address = res.body.account.address;
+                    }
+                    done();
+                });
+        });
+
+        before(function (done) {
+           // SEND XCR TO UAccount ADDRESS
+           var randomXCR = node.randomizeXCR();
+           node.api.put('/transactions')
+               .set('Accept', 'application/json')
+               .send({
+                   secret: node.Faccount.password,
+                   amount: randomXCR,
+                   recipientId: Uaccount.address
+               })
+               .expect('Content-Type', /json/)
+               .expect(200)
+               .end(function (err, res) {
+                   console.log(res.body);
+                   node.expect(res.body).to.have.property("success").to.be.true;
+                   done();
+               });
+        });
+
+        before(function (done) {
+            // REGISTER USERNAME
+            console.log(Uaccount);
+            node.onNewBlock(function(err) {
+                node.api.put('/accounts/username')
+                    .set('Accept', 'application/json')
+                    .send({
+                        secret: Uaccount.password,
+                        username: Uaccount.username
+                    })
+                    .expect('Content-Type', /json/)
+                    .expect(200)
+                    .end(function (err, res) {
+                        console.log(res.body);
+                        node.expect(res.body).to.have.property("success").to.be.true;
+                        done();
+                    });
+            });
+        });
+
+        test += 1;
+        it(test + '. We attempt to register as delegate from account with existing username: Account: ' + Uaccount.password + '. We expect success',function(done){
+            node.onNewBlock(function(err) {
+            node.api.put('/delegates')
+                .set('Accept', 'application/json')
+                .send({
+                    secret: Uaccount.password,
+                    username: Uaccount.username
+                })
+                .expect('Content-Type', /json/)
+                .expect(200)
+                .end(function (err, res) {
+                    console.log(res.body);
+                    node.expect(res.body).to.have.property("success").to.be.true;
+                    node.expect(res.body).to.have.property("transaction").that.is.an('object');
+                    if (res.body.success == true && res.body.transaction != null){
+                        node.expect(res.body.transaction.fee).to.equal(node.Fees.delegateRegistrationFee);
+                        node.expect(res.body.transaction.asset.delegate.username).to.equal(Uaccount.username);
+                        node.expect(res.body.transaction.type).to.equal(node.TxTypes.DELEGATE);
+                        node.expect(res.body.transaction.amount).to.equal(0);
+                    }
+                    else {
+                        console.log("Transaction failed or transaction object is null");
+                        console.log("Sent: secret: " + Uaccount.password + ", username: none. Should be automatic" + Uaccount.delegateName );
+                        node.expect("TEST").to.equal("FAILED");
+                    }
+                    done();
+                });
+            });
+        });
+    });
     console.log("Finished delegates-test suite");
 });

@@ -21,10 +21,14 @@ describe('Miscellaneous tests (peers, blocks, etc)', function() {
 
     describe('/peers tests', function(){
 
-        /*before(function (done) {
-            node.addPeers(50);
+        test = test + 1;
+        it(test + '. Add peers to local node',function(done){
+            var randomNumberOfPeers = node.randomNumber(1,3);
+            node.addPeers(randomNumberOfPeers, function () {
+                console.log('Added ' + randomNumberOfPeers + ' peers');
+            });
             done();
-        });*/
+        });
 
         test = test + 1;
         it(test + '. Get version of node. Expecting success',function(done){
@@ -167,8 +171,36 @@ describe('Miscellaneous tests (peers, blocks, etc)', function() {
                     done();
                 });
         });
-    });
 
+        test = test + 1;
+        it(test + '. Get peer by parameters. Sending missing information. Expecting error',function(done){
+            node.api.get('/peers/get')
+                .set('Accept', 'application/json')
+                .expect('Content-Type', /json/)
+                .expect(200)
+                .end(function (err, res){
+                    console.log(res.body);
+                    node.expect(res.body).to.have.property("success").to.be.false;
+                    node.expect(res.body).to.have.property("error");
+                    done();
+                });
+        });
+
+        test = test + 1;
+        it(test + '. Get peer by parameters. Expecting error',function(done){
+            node.api.get('/peers/get?ip="213.8.59.59"&port=8040')
+                .set('Accept', 'application/json')
+                .expect('Content-Type', /json/)
+                .expect(200)
+                .end(function (err, res){
+                    console.log(res.body);
+                    // WE DON'T KNOW IF PEER EXISTS SO WE ONLY CHECK IT DOESN'T CRASH THE NODE
+                    node.expect(res.body).to.have.property("success");
+                    done();
+                });
+        });
+    });
+});
     describe('/blocks', function() {
 
         test = test + 1;
@@ -325,5 +357,3 @@ describe('Miscellaneous tests (peers, blocks, etc)', function() {
                 });
         });
     });
-
-});

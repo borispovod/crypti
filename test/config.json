@@ -1,6 +1,6 @@
 {
-	"port": 4060,
-	"address": "127.0.0.1",
+	"port": 8040,
+	"address": "192.168.253.73",
 	"serveHttpAPI": true,
 	"serveHttpWallet": true,
 	"version": "0.3.0",
