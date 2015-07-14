@@ -1167,9 +1167,10 @@ private.launch = function (dApp, cb) {
 		return setImmediate(cb, "This DApp has no config file, can't launch it");
 	}
 
-	new library.dapp(dApp.transactionId, dappConfig.db, function (err, dbapi) {
+	//dappConfig.db
+	modules.sql.createTables(dApp.transactionId, dappConfig.db, function (err) {
 		if (err) {
-			return setImmediate(cb, err);
+			return setImmediate(err);
 		}
 
 		var sandbox = new Sandbox(path.join(dappPath, "index.js"), dApp.transactionId, private.apiHandler, true);
@@ -1200,9 +1201,19 @@ private.launch = function (dApp, cb) {
 }
 
 private.stop = function (dApp, cb) {
+	var dappPath = path.join(private.appPath, dApp.transactionId);
 	var dappPublicLink = path.join(private.appPath, "public", "dapps", dApp.transactionId);
 
+	try {
+		var dappConfig = require(path.join(dappPath, 'config.json'));
+	} catch (e) {
+		return setImmediate("Can't parse dapp config");
+	}
+
 	async.series([
+		function (cb) {
+			modules.sql.dropTables(dApp.transactionId, dappConfig.db, cb);
+		},
 		function (cb) {
 			fs.exists(dappPublicLink, function (exists) {
 				if (exists) {
