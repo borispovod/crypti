@@ -3,10 +3,12 @@ var jsonSql = require('json-sql')();
 var extend = require('extend');
 var sandboxHelper = require('../helpers/sandbox.js')
 
+// private fields
 var modules, library, self, private = {}, shared = {};
 
 private.loaded = false;
 
+//constructor
 function Sql(cb, scope) {
 	library = scope;
 	self = this;
@@ -15,6 +17,22 @@ function Sql(cb, scope) {
 	setImmediate(cb, null, sql);
 }
 
+//private methods
+private.query = function (action, config, cb) {
+	config.table = "dapp_" + config.dappid + "_" + config.table;
+
+	var defaultConfig = {
+		type: action
+	};
+
+	var sql = jsonSql.build(extend(config, defaultConfig));
+
+	private.dbLite.query(sql.query, sql.values, function (err, data) {
+		cb(err, data);
+	});
+}
+
+//public methods
 Sql.prototype.createTables = function (dappid, config, cb) {
 	var sqles = [];
 	for (var i = 0; i < config.length; i++) {
@@ -63,20 +81,20 @@ Sql.prototype.dropTables = function (dappid, config, cb) {
 	}, cb);
 }
 
-private.query = function (action, config, cb) {
-	config.table = "dapp_" + config.dappid + "_" + config.table;
-
-	var defaultConfig = {
-		type: action
-	};
-
-	var sql = jsonSql.build(extend(config, defaultConfig));
-
-	private.dbLite.query(sql.query, sql.values, function (err, data) {
-		cb(err, data);
-	});
+Sql.prototype.sandboxApi = function (call, data, cb) {
+	sandboxHelper.callMethod(shared, call, args, cb);
 }
 
+//events
+Sql.prototype.onBind = function (scope) {
+	modules = scope;
+}
+
+Sql.prototype.onBlockchainReady = function () {
+	private.loaded = true;
+}
+
+//shared
 shared.select = function (config, cb) {
 	private.query.call(this, "select", config, cb);
 }
@@ -91,18 +109,6 @@ shared.update = function (config, cb) {
 
 shared.remove = function (config, cb) {
 	private.query.call(this, "remove", config, cb);
-}
-
-Sql.prototype.onBind = function (scope) {
-	modules = scope;
-}
-
-Sql.prototype.onBlockchainReady = function () {
-	private.loaded = true;
-}
-
-Sql.prototype.sandboxApi = function (call, data, cb) {
-	sandboxHelper.callMethod(shared, call, args, cb);
 }
 
 module.exports = Sql;

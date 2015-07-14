@@ -174,7 +174,7 @@ function DApp() {
 		private.unconfirmedNickNames[trs.asset.dapp.nickname] = true;
 
 		library.dbLite.query("SELECT count(transactionId) FROM dapps WHERE (name = $name or nickname = $nickname or git = $git) and transactionId != $transactionId", {
-			name: trs.asset.dapp.name, nickname: trs.asset.dapp.nickname? trs.asset.dapp.nickname : null, git: trs.asset.dapp.git? trs.asset.dapp.git : null, transactionId : trs.id
+			name: trs.asset.dapp.name, nickname: trs.asset.dapp.nickname || null, git: trs.asset.dapp.git || null, transactionId : trs.id
 		}, ['count'], function (err, rows) {
 			if (err || rows.length == 0) {
 				return setImmediate(cb, "Sql error");
