@@ -3,7 +3,6 @@ var extend = require('extend');
 function map (root, config) {
 	var router = this;
 	Object.keys(config).forEach(function (params) {
-		debugger;
 		var route = params.split(" ");
 		if (route.length != 2 || ["post", "get", "put"].indexOf(route[0]) == -1){
 			throw Error("wrong map config");
