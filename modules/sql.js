@@ -14,7 +14,7 @@ function Sql(cb, scope) {
 	self = this;
 	self.__private = private;
 
-	setImmediate(cb, null, sql);
+	setImmediate(cb, null, self);
 }
 
 //private methods
