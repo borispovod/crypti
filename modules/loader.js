@@ -33,7 +33,7 @@ private.attachApi = function () {
 
 	router.map(shared, {
 		"get /status": "status",
-		"get /sync": "sync"
+		"get /status/sync": "sync"
 	});
 
 	library.network.app.use('/api/loader', router);
