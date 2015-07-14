@@ -1,5 +1,5 @@
 function callMethod(shared, call, args, cb) {
-	if (shared.indexOf(call) < 0) {
+	if (typeof shared[call] !== "function") {
 		return cb("This call not found in this module: " + call);
 	}
 

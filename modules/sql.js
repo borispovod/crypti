@@ -1,8 +1,9 @@
 var async = require('async');
 var jsonSql = require('json-sql')();
 var extend = require('extend');
+var sandboxHelper = require('../helpers/sandbox.js')
 
-var modules, library, self, private = {};
+var modules, library, self, private = {}, shared = {};
 
 private.loaded = false;
 
@@ -22,6 +23,8 @@ Sql.prototype.createTables = function (dappid, config, cb) {
 			config[i].type = "create";
 		} else if (config[i].type == "index") {
 			config[i].type = "index";
+		} else {
+			return setImmediate(cb, "Unknown table type: " + config[i].type);
 		}
 
 		var sql = jsonSql.build(config[i]);
@@ -37,6 +40,28 @@ Sql.prototype.createTables = function (dappid, config, cb) {
 	});
 }
 
+/*
+	Drop tables functional
+ */
+Sql.prototype.dropTables = function (dappid, config, cb) {
+	var tables = [];
+	for (var i = 0; i < config.length; i++) {
+		config[i].table = "dapp_" + dappid + "_" + config[i].table;
+		tables.push({ name: config[i].table.replace(/[^\w_]/gi, ''), type: config[i].type });
+	}
+
+	async.eachSeries(tables, function (table, cb) {
+		if (table.type == "table") {
+			library.dbLite.query("DROP TABLE " + table.name, function (err, rows) {
+				setImmediate(cb, err);
+			});
+		} else if (table.type == "index") {
+			library.dbLite.query("DROP INDEX " + table.name, function (err, rows) {
+				setImmediate(cb, err);
+			})
+		}
+	}, cb);
+}
 
 private.query = function (action, config, cb) {
 	config.table = "dapp_" + config.dappid + "_" + config.table;
@@ -52,19 +77,19 @@ private.query = function (action, config, cb) {
 	});
 }
 
-Sql.prototype.select = function (config, cb) {
+shared.select = function (config, cb) {
 	private.query.call(this, "select", config, cb);
 }
 
-Sql.prototype.insert = function (config, cb) {
+shared.insert = function (config, cb) {
 	private.query.call(this, "insert", config, cb);
 }
 
-Sql.prototype.update = function (config, cb) {
+shared.update = function (config, cb) {
 	private.query.call(this, "update", config, cb);
 }
 
-Sql.prototype.remove = function (config, cb) {
+shared.remove = function (config, cb) {
 	private.query.call(this, "remove", config, cb);
 }
 
@@ -77,7 +102,7 @@ Sql.prototype.onBlockchainReady = function () {
 }
 
 Sql.prototype.sandboxApi = function (call, data, cb) {
-
+	sandboxHelper.callMethod(shared, call, args, cb);
 }
 
 module.exports = Sql;

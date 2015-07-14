@@ -440,7 +440,7 @@ Accounts.prototype.mergeAccountAndGet = function (data, cb) {
 }
 
 Accounts.prototype.sandboxApi = function (call, args, cb) {
-	sandboxHelper.callMethod(private, call, args, cb);
+	sandboxHelper.callMethod(shared, call, args, cb);
 }
 
 //events
