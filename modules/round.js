@@ -109,6 +109,10 @@ Round.prototype.blocksStat = function (publicKey) {
 	}
 }
 
+Round.prototype.accountIsDelegate = function (publicKey) {
+	return private.forgedBlocks[publicKey];
+}
+
 Round.prototype.tick = function (block) {
 	private.forgedBlocks[block.generatorPublicKey] = (private.forgedBlocks[block.generatorPublicKey] || 0) + 1;
 	var round = self.calc(block.height);

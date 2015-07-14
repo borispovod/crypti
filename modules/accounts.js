@@ -921,7 +921,7 @@ function attachApi() {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
 
-			var address = private.username2address[query.username];
+			var address = private.username2address[query.username.toLowerCase()];
 
 			if (!address) {
 				return res.json({success: false, error: errorCode("ACCOUNTS.ACCOUNT_DOESNT_FOUND")});
