@@ -1,14 +1,15 @@
 var extend = require('extend');
 
-function map (root, map) {
+function map (root, config) {
 	var router = this;
-	Object.keys(map).forEach(function (params) {
+	Object.keys(config).forEach(function (params) {
+		debugger;
 		var route = params.split(" ");
 		if (route.length != 2 || ["post", "get", "put"].indexOf(route[0]) == -1){
 			throw Error("wrong map config");
 		}
 		router[route[0]](route[1], function (req, res, next) {
-			root[params](map[route].method == "get" ? req.query : req.body, function (err, response) {
+			root[config[params]](route[0] == "get" ? req.query : req.body, function (err, response) {
 				if (err) {
 					res.json({success: false, error: err});
 				} else {
