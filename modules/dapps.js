@@ -851,7 +851,7 @@ private.get = function (id, cb) {
 
 private.list = function (filter, cb) {
 	var sortFields = ['type', 'name', 'category', 'git'];
-	var params = {}, fields = [], owner = "";
+	var params = {}, fields = [];
 
 	if (filter.type >= 0) {
 		fields.push('type = $type');
@@ -896,11 +896,9 @@ private.list = function (filter, cb) {
 
 	// need to fix 'or' or 'and' in query
 	library.dbLite.query("select name, description, tags, nickname, git, type, category, transactionId " +
-		"from trs t " +
-		"inner join blocks b on t.blockId = b.id " +
-		(fields.length || owner ? "where " : "") + " " +
-		(fields.length ? "(" + fields.join(' or ') + ") " : "") + (fields.length && owner ? " and " + owner : owner) + " " +
-		(filter.orderBy ? ' order by ' + sortBy + ' ' + sortMethod : '') + " " +
+		"from dapps " +
+		(fields.length ? "where " + fields.join(' or ') + " " : "") +
+		(filter.orderBy ? 'order by ' + sortBy + ' ' + sortMethod : '') + " " +
 		(filter.limit ? 'limit $limit' : '') + " " +
 		(filter.offset ? 'offset $offset' : ''), params, ['name', 'description', 'tags', 'nickname', 'git', 'type', 'category', 'transactionId'], function (err, rows) {
 		if (err) {
