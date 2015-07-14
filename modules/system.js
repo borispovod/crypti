@@ -39,7 +39,7 @@ System.prototype.getSharePort = function () {
 	return private.sharePort;
 }
 
-System.prototype.sandboxApi = function (call, data, cb) {
+System.prototype.sandboxApi = function (call, args, cb) {
 	sandboxHelper.callMethod(shared, call, args, cb);
 }
 

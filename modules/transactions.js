@@ -127,7 +127,7 @@ function Transactions(cb, scope) {
 }
 
 //private methods
-private.attachApi = function() {
+private.attachApi = function () {
 	var router = new Router();
 
 	router.use(function (req, res, next) {
@@ -135,261 +135,12 @@ private.attachApi = function() {
 		res.status(500).send({success: false, error: errorCode('COMMON.LOADING')});
 	});
 
-	router.get('/', function (req, res) {
-		req.sanitize(req.query, {
-			type: "object",
-			properties: {
-				blockId: {
-					type: "string"
-				},
-				limit: {
-					type: "integer",
-					minimum: 0,
-					maximum: 100
-				},
-				type: {
-					type: "integer",
-					minimum: 0,
-					maximum: 10
-				},
-				orderBy: {
-					type: "string"
-				},
-				offset: {
-					type: "integer",
-					minimum: 0
-				},
-				senderPublicKey: {
-					type: "string",
-					format: "publicKey"
-				},
-				ownerPublicKey: {
-					type: "string",
-					format: "publicKey"
-				},
-				ownerAddress: {
-					type: "string"
-				},
-				senderId: {
-					type: "string"
-				},
-				recipientId: {
-					type: "string"
-				},
-				senderUsername: {
-					type: "string"
-				},
-				recipientUsername: {
-					type: "string"
-				},
-				amount: {
-					type: "integer",
-					minimum: 0,
-					maximum: constants.fixedPoint
-				},
-				fee: {
-					type: "integer",
-					minimum: 0,
-					maximum: constants.fixedPoint
-				}
-			}
-		}, function (err, report, query) {
-			if (err) return next(err);
-			if (!report.isValid) return res.json({success: false, error: report.issues});
-
-			private.list(query, function (err, data) {
-				if (err) {
-					return res.json({success: false, error: errorCode("TRANSACTIONS.TRANSACTIONS_NOT_FOUND")});
-				}
-
-				res.json({success: true, transactions: data.transactions, count: data.count});
-			});
-		});
-	});
-
-	router.get('/get', function (req, res) {
-		req.sanitize(req.query, {
-			type: 'object',
-			properties: {
-				id: {
-					type: 'string',
-					minLength: 1
-				}
-			},
-			required: ['id']
-		}, function (err, report, query) {
-			if (err) return next(err);
-			if (!report.isValid) return res.json({success: false, error: report.issues});
-
-			private.getById(query.id, function (err, transaction) {
-				if (!transaction || err) {
-					return res.json({success: false, error: errorCode("TRANSACTIONS.TRANSACTION_NOT_FOUND")});
-				}
-				res.json({success: true, transaction: transaction});
-			});
-		});
-	});
-
-	router.get('/unconfirmed/get', function (req, res) {
-		req.sanitize(req.query, {
-			type: 'object',
-			properties: {
-				id: {
-					type: 'string',
-					minLength: 1
-				}
-			},
-			required: ['id']
-		}, function (err, report, query) {
-			if (err) return next(err);
-			if (!report.isValid) return res.json({success: false, error: report.issues});
-
-			var unconfirmedTransaction = self.getUnconfirmedTransaction(query.id);
-
-			if (!unconfirmedTransaction) {
-				return res.json({success: false, error: errorCode("TRANSACTIONS.TRANSACTION_NOT_FOUND")});
-			}
-
-			res.json({success: true, transaction: unconfirmedTransaction});
-		});
-	});
-
-	router.get('/unconfirmed/', function (req, res) {
-		req.sanitize(req.query, {
-			type: "object",
-			properties: {
-				senderPublicKey: {
-					type: "string",
-					format: "publicKey"
-				},
-				address: {
-					type: "string"
-				}
-			}
-		}, function (err, report, query) {
-			if (err) return next(err);
-			if (!report.isValid) return res.json({success: false, error: report.issues});
-
-			var transactions = self.getUnconfirmedTransactionList(true),
-				toSend = [];
-
-			if (query.senderPublicKey || query.address) {
-				for (var i = 0; i < transactions.length; i++) {
-					if (transactions[i].senderPublicKey == query.senderPublicKey || transactions[i].recipientId == query.address) {
-						toSend.push(transactions[i]);
-					}
-				}
-			} else {
-				for (var i = 0; i < transactions.length; i++) {
-					toSend.push(transactions[i]);
-				}
-			}
-
-			res.json({success: true, transactions: toSend});
-		});
-	});
-
-	router.put('/', function (req, res) {
-		req.sanitize(req.body, {
-			type: "object",
-			properties: {
-				secret: {
-					type: "string",
-					minLength: 1,
-					maxLength: 100
-				},
-				amount: {
-					type: "integer",
-					minimum: 1,
-					maximum: constants.totalAmount
-				},
-				recipientId: {
-					type: "string",
-					minLength: 1
-				},
-				publicKey: {
-					type: "string",
-					format: "publicKey"
-				},
-				secondSecret: {
-					type: "string",
-					minLength: 1,
-					maxLength: 100
-				}
-			},
-			required: ["secret", "amount", "recipientId"]
-		}, function (err, report, body) {
-			if (err) return next(err);
-			if (!report.isValid) return res.json({success: false, error: report.issues});
-
-			var hash = crypto.createHash('sha256').update(body.secret, 'utf8').digest();
-			var keypair = ed.MakeKeypair(hash);
-
-			if (body.publicKey) {
-				if (keypair.publicKey.toString('hex') != body.publicKey) {
-					return res.json({success: false, error: errorCode("COMMON.INVALID_SECRET_KEY")});
-				}
-			}
-
-			var query = {};
-
-			var isAddress = /^[0-9]+[C|c]$/g;
-			if (isAddress.test(body.recipientId)) {
-				query.address = body.recipientId;
-			} else {
-				query.username = body.recipientId;
-			}
-
-			library.sequence.add(function (cb) {
-				modules.accounts.getAccount(query, function (err, recipient) {
-					if (err) {
-						return cb(err.toString());
-					}
-					if (!recipient && query.username) {
-						return cb(errorCode("TRANSACTIONS.RECIPIENT_NOT_FOUND"));
-					}
-					var recipientId = recipient ? recipient.address : body.recipientId;
-					var recipientUsername = recipient ? recipient.username : null;
-
-					modules.accounts.getAccount({publicKey: keypair.publicKey.toString('hex')}, function (err, account) {
-						if (err) {
-							return cb(err.toString());
-						}
-						if (!account || !account.publicKey) {
-							return cb(errorCode("COMMON.OPEN_ACCOUNT"));
-						}
-
-						if (account.secondSignature && !body.secondSecret) {
-							return cb(errorCode("COMMON.SECOND_SECRET_KEY"));
-						}
-
-						var secondKeypair = null;
-
-						if (account.secondSignature) {
-							var secondHash = crypto.createHash('sha256').update(body.secondSecret, 'utf8').digest();
-							secondKeypair = ed.MakeKeypair(secondHash);
-						}
-
-						var transaction = library.logic.transaction.create({
-							type: TransactionTypes.SEND,
-							amount: body.amount,
-							sender: account,
-							recipientId: recipientId,
-							recipientUsername: recipientUsername,
-							keypair: keypair,
-							secondKeypair: secondKeypair
-						});
-						modules.transactions.receiveTransactions([transaction], cb);
-					});
-				});
-			}, function (err, transaction) {
-				if (err) {
-					return res.json({success: false, error: err.toString()});
-				}
-
-				res.json({success: true, transactionId: transaction[0].id});
-			});
-		});
+	router.map(shared, {
+		"get /": "getTransactions",
+		"get /get": "getTransaction",
+		"get /unconfirmed/get": "getUnconfirmedTransaction",
+		"get /unconfirmed": "getUnconfirmedTransactions",
+		"put /": "addTransactions"
 	});
 
 	router.use(function (req, res, next) {
@@ -689,7 +440,7 @@ Transactions.prototype.receiveTransactions = function (transactions, cb) {
 	});
 }
 
-Transactions.prototype.sandboxApi = function (call, data, cb) {
+Transactions.prototype.sandboxApi = function (call, args, cb) {
 	sandboxHelper.callMethod(shared, call, args, cb);
 }
 
@@ -699,6 +450,267 @@ Transactions.prototype.onBind = function (scope) {
 }
 
 //shared
+shared.getTransactions = function (query, cb) {
+	library.scheme.validate(query, {
+		type: "object",
+		properties: {
+			blockId: {
+				type: "string"
+			},
+			limit: {
+				type: "integer",
+				minimum: 0,
+				maximum: 100
+			},
+			type: {
+				type: "integer",
+				minimum: 0,
+				maximum: 10
+			},
+			orderBy: {
+				type: "string"
+			},
+			offset: {
+				type: "integer",
+				minimum: 0
+			},
+			senderPublicKey: {
+				type: "string",
+				format: "publicKey"
+			},
+			ownerPublicKey: {
+				type: "string",
+				format: "publicKey"
+			},
+			ownerAddress: {
+				type: "string"
+			},
+			senderId: {
+				type: "string"
+			},
+			recipientId: {
+				type: "string"
+			},
+			senderUsername: {
+				type: "string"
+			},
+			recipientUsername: {
+				type: "string"
+			},
+			amount: {
+				type: "integer",
+				minimum: 0,
+				maximum: constants.fixedPoint
+			},
+			fee: {
+				type: "integer",
+				minimum: 0,
+				maximum: constants.fixedPoint
+			}
+		}
+	}, function (err) {
+		if (err) {
+			return cb(err[0].message);
+		}
+
+		private.list(query, function (err, data) {
+			if (err) {
+				return cb(errorCode("TRANSACTIONS.TRANSACTIONS_NOT_FOUND"));
+			}
+
+			cb(null, {transactions: data.transactions, count: data.count});
+		});
+	});
+}
+
+shared.getTransaction = function (query, cb) {
+	library.scheme.validate(query, {
+		type: 'object',
+		properties: {
+			id: {
+				type: 'string',
+				minLength: 1
+			}
+		},
+		required: ['id']
+	}, function (err) {
+		if (err) {
+			return cb(err[0].message);
+		}
+
+		private.getById(query.id, function (err, transaction) {
+			if (!transaction || err) {
+				return cb(errorCode("TRANSACTIONS.TRANSACTION_NOT_FOUND"));
+			}
+			cb(null, {transaction: transaction});
+		});
+	});
+}
+
+shared.getUnconfirmedTransaction = function (query, cb) {
+	library.scheme.validate(query, {
+		type: 'object',
+		properties: {
+			id: {
+				type: 'string',
+				minLength: 1
+			}
+		},
+		required: ['id']
+	}, function (err) {
+		if (err) {
+			return cb(err[0].message);
+		}
+
+		var unconfirmedTransaction = self.getUnconfirmedTransaction(query.id);
+
+		if (!unconfirmedTransaction) {
+			return cb(errorCode("TRANSACTIONS.TRANSACTION_NOT_FOUND"));
+		}
+
+		cb(null, {transaction: unconfirmedTransaction});
+	});
+}
+
+shared.getUnconfirmedTransactions = function (query, cb) {
+	library.scheme.validate(query, {
+		type: "object",
+		properties: {
+			senderPublicKey: {
+				type: "string",
+				format: "publicKey"
+			},
+			address: {
+				type: "string"
+			}
+		}
+	}, function (err) {
+		if (err) {
+			return cb(err[0].message);
+		}
+
+		var transactions = self.getUnconfirmedTransactionList(true),
+			toSend = [];
+
+		if (query.senderPublicKey || query.address) {
+			for (var i = 0; i < transactions.length; i++) {
+				if (transactions[i].senderPublicKey == query.senderPublicKey || transactions[i].recipientId == query.address) {
+					toSend.push(transactions[i]);
+				}
+			}
+		} else {
+			for (var i = 0; i < transactions.length; i++) {
+				toSend.push(transactions[i]);
+			}
+		}
+
+		cb(null, {transactions: toSend});
+	});
+}
+
+shared.addTransactions = function (body, cb) {
+	library.scheme.validate(body, {
+		type: "object",
+		properties: {
+			secret: {
+				type: "string",
+				minLength: 1,
+				maxLength: 100
+			},
+			amount: {
+				type: "integer",
+				minimum: 1,
+				maximum: constants.totalAmount
+			},
+			recipientId: {
+				type: "string",
+				minLength: 1
+			},
+			publicKey: {
+				type: "string",
+				format: "publicKey"
+			},
+			secondSecret: {
+				type: "string",
+				minLength: 1,
+				maxLength: 100
+			}
+		},
+		required: ["secret", "amount", "recipientId"]
+	}, function (err) {
+		if (err) {
+			return cb(err[0].message);
+		}
+
+		var hash = crypto.createHash('sha256').update(body.secret, 'utf8').digest();
+		var keypair = ed.MakeKeypair(hash);
+
+		if (body.publicKey) {
+			if (keypair.publicKey.toString('hex') != body.publicKey) {
+				return cb(errorCode("COMMON.INVALID_SECRET_KEY"));
+			}
+		}
+
+		var query = {};
+
+		var isAddress = /^[0-9]+[C|c]$/g;
+		if (isAddress.test(body.recipientId)) {
+			query.address = body.recipientId;
+		} else {
+			query.username = body.recipientId;
+		}
+
+		library.sequence.add(function (cb) {
+			modules.accounts.getAccount(query, function (err, recipient) {
+				if (err) {
+					return cb(err.toString());
+				}
+				if (!recipient && query.username) {
+					return cb(errorCode("TRANSACTIONS.RECIPIENT_NOT_FOUND"));
+				}
+				var recipientId = recipient ? recipient.address : body.recipientId;
+				var recipientUsername = recipient ? recipient.username : null;
+
+				modules.accounts.getAccount({publicKey: keypair.publicKey.toString('hex')}, function (err, account) {
+					if (err) {
+						return cb(err.toString());
+					}
+					if (!account || !account.publicKey) {
+						return cb(errorCode("COMMON.OPEN_ACCOUNT"));
+					}
+
+					if (account.secondSignature && !body.secondSecret) {
+						return cb(errorCode("COMMON.SECOND_SECRET_KEY"));
+					}
+
+					var secondKeypair = null;
+
+					if (account.secondSignature) {
+						var secondHash = crypto.createHash('sha256').update(body.secondSecret, 'utf8').digest();
+						secondKeypair = ed.MakeKeypair(secondHash);
+					}
+
+					var transaction = library.logic.transaction.create({
+						type: TransactionTypes.SEND,
+						amount: body.amount,
+						sender: account,
+						recipientId: recipientId,
+						recipientUsername: recipientUsername,
+						keypair: keypair,
+						secondKeypair: secondKeypair
+					});
+					modules.transactions.receiveTransactions([transaction], cb);
+				});
+			});
+		}, function (err, transaction) {
+			if (err) {
+				return cb(err.toString());
+			}
+
+			cb(null, {transactionId: transaction[0].id});
+		});
+	});
+}
 
 //export
 module.exports = Transactions;

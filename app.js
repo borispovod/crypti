@@ -334,13 +334,6 @@ d.run(function () {
 			dbLite.connect(config.db, cb);
 		},
 
-		dapp: ["dbLite", function (cb, scope) {
-			var Dapp = require('./logic/dapp.js');
-
-			cb(null, Dapp(scope.dbLite));
-		}],
-
-
 		logic: ['dbLite', 'bus', 'scheme', function (cb, scope) {
 			var Transaction = require('./logic/transaction.js');
 			var Block = require('./logic/block.js');

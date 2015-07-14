@@ -527,7 +527,7 @@ Delegates.prototype.validateBlockSlot = function (block) {
 	return false;
 }
 
-Delegates.prototype.sandboxApi = function (call, data, cb) {
+Delegates.prototype.sandboxApi = function (call, args, cb) {
 	sandboxHelper.callMethod(shared, call, args, cb);
 }
 

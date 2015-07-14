@@ -33,7 +33,7 @@ private.attachApi = function () {
 
 	router.map(shared, {
 		"get /status": "status",
-		"get /sync": "sync"
+		"get /status/sync": "sync"
 	});
 
 	library.network.app.use('/api/loader', router);
@@ -304,7 +304,7 @@ Loader.prototype.syncing = function () {
 	return !!private.syncIntervalId;
 }
 
-Loader.prototype.sandboxApi = function (call, data, cb) {
+Loader.prototype.sandboxApi = function (call, args, cb) {
 	sandboxHelper.callMethod(shared, call, args, cb);
 }
 

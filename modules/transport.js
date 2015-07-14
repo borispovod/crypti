@@ -449,7 +449,7 @@ Transport.prototype.getFromPeer = function (peer, options, cb) {
 	});
 }
 
-Transport.prototype.sandboxApi = function (call, data, cb) {
+Transport.prototype.sandboxApi = function (call, args, cb) {
 	sandboxHelper.callMethod(shared, call, args, cb);
 }
 

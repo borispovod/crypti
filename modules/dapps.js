@@ -107,7 +107,7 @@ function DApp() {
 			return setImmediate(cb, errorCode("DAPPS.TOO_LONG_TAGS"));
 		}
 
-		return setImmediate(cb);
+		setImmediate(cb);
 	}
 
 	this.process = function (trs, sender, cb) {
@@ -174,7 +174,7 @@ function DApp() {
 		private.unconfirmedNickNames[trs.asset.dapp.nickname] = true;
 
 		library.dbLite.query("SELECT count(transactionId) FROM dapps WHERE (name = $name or nickname = $nickname or git = $git) and transactionId != $transactionId", {
-			name: trs.asset.dapp.name, nickname: trs.asset.dapp.nickname? trs.asset.dapp.nickname : null, git: trs.asset.dapp.git? trs.asset.dapp.git : null, transactionId : trs.id
+			name: trs.asset.dapp.name, nickname: trs.asset.dapp.nickname || null, git: trs.asset.dapp.git || null, transactionId : trs.id
 		}, ['count'], function (err, rows) {
 			if (err || rows.length == 0) {
 				return setImmediate(cb, "Sql error");
@@ -851,7 +851,7 @@ private.get = function (id, cb) {
 
 private.list = function (filter, cb) {
 	var sortFields = ['type', 'name', 'category', 'git'];
-	var params = {}, fields = [], owner = "";
+	var params = {}, fields = [];
 
 	if (filter.type >= 0) {
 		fields.push('type = $type');
@@ -896,11 +896,9 @@ private.list = function (filter, cb) {
 
 	// need to fix 'or' or 'and' in query
 	library.dbLite.query("select name, description, tags, nickname, git, type, category, transactionId " +
-		"from trs t " +
-		"inner join blocks b on t.blockId = b.id " +
-		(fields.length || owner ? "where " : "") + " " +
-		(fields.length ? "(" + fields.join(' or ') + ") " : "") + (fields.length && owner ? " and " + owner : owner) + " " +
-		(filter.orderBy ? ' order by ' + sortBy + ' ' + sortMethod : '') + " " +
+		"from dapps " +
+		(fields.length ? "where " + fields.join(' or ') + " " : "") +
+		(filter.orderBy ? 'order by ' + sortBy + ' ' + sortMethod : '') + " " +
 		(filter.limit ? 'limit $limit' : '') + " " +
 		(filter.offset ? 'offset $offset' : ''), params, ['name', 'description', 'tags', 'nickname', 'git', 'type', 'category', 'transactionId'], function (err, rows) {
 		if (err) {
@@ -1234,7 +1232,7 @@ private.stop = function (dApp, cb) {
 }
 
 //public methods
-DApps.prototype.sandboxApi = function (call, data, cb) {
+DApps.prototype.sandboxApi = function (call, args, cb) {
 	sandboxHelper.callMethod(shared, call, args, cb);
 }
 

@@ -172,7 +172,7 @@ function Signatures(cb, scope) {
 }
 
 //private methods
-private.attachApi = function() {
+private.attachApi = function () {
 	var router = new Router();
 
 	router.use(function (req, res, next) {
@@ -180,81 +180,10 @@ private.attachApi = function() {
 		res.status(500).send({success: false, error: errorCode('COMMON.LOADING')});
 	});
 
-	router.get('/fee', function (req, res, next) {
-		var fee = null;
 
-		if (modules.blocks.getLastBlock().height >= MilestoneBlocks.FEE_BLOCK) {
-			fee = 5 * constants.fixedPoint;
-		} else {
-			fee = 5 * constants.fixedPoint;
-		}
-
-		return res.json({success: true, fee: fee})
-	});
-
-	router.put('/', function (req, res) {
-		req.sanitize(req.body, {
-			type: "object",
-			properties: {
-				secret: {
-					type: "string",
-					minLength: 1
-				},
-				secondSecret: {
-					type: "string",
-					minLength: 1
-				},
-				publicKey: {
-					type: "string",
-					format: "publicKey"
-				}
-			},
-			required: ["secret", "secondSecret"]
-		}, function (err, report, body) {
-			if (err) return next(err);
-			if (!report.isValid) return res.json({success: false, error: report.issues});
-
-			var hash = crypto.createHash('sha256').update(body.secret, 'utf8').digest();
-			var keypair = ed.MakeKeypair(hash);
-
-			if (body.publicKey) {
-				if (keypair.publicKey.toString('hex') != body.publicKey) {
-					return res.json({success: false, error: errorCode("COMMON.INVALID_SECRET_KEY")});
-				}
-			}
-
-			library.sequence.add(function (cb) {
-				modules.accounts.getAccount({publicKey: keypair.publicKey.toString('hex')}, function (err, account) {
-					if (err) {
-						return cb(err.toString());
-					}
-					if (!account || !account.publicKey) {
-						return cb(errorCode("COMMON.OPEN_ACCOUNT"));
-					}
-
-					if (account.secondSignature || account.unconfirmedSignature) {
-						return cb(errorCode("COMMON.SECOND_SECRET_KEY"));
-					}
-
-					var secondHash = crypto.createHash('sha256').update(body.secondSecret, 'utf8').digest();
-					var secondKeypair = ed.MakeKeypair(secondHash);
-
-					var transaction = library.logic.transaction.create({
-						type: TransactionTypes.SIGNATURE,
-						sender: account,
-						keypair: keypair,
-						secondKeypair: secondKeypair
-					});
-					modules.transactions.receiveTransactions([transaction], cb);
-				});
-			}, function (err, transaction) {
-				if (err) {
-					return res.json({success: false, error: err.toString()});
-				}
-				res.json({success: true, transaction: transaction[0]});
-			});
-
-		});
+	router.map(shared, {
+		"get /fee": "getFee",
+		"put /": "addSignature"
 	});
 
 	router.use(function (req, res, next) {
@@ -270,7 +199,7 @@ private.attachApi = function() {
 }
 
 //public methods
-Signatures.prototype.sandboxApi = function (call, data, cb) {
+Signatures.prototype.sandboxApi = function (call, args, cb) {
 	sandboxHelper.callMethod(shared, call, args, cb);
 }
 
@@ -280,5 +209,82 @@ Signatures.prototype.onBind = function (scope) {
 }
 
 //shared
+shared.getFee = function (query, cb) {
+	var fee = null;
+
+	if (modules.blocks.getLastBlock().height >= MilestoneBlocks.FEE_BLOCK) {
+		fee = 5 * constants.fixedPoint;
+	} else {
+		fee = 5 * constants.fixedPoint;
+	}
+
+	cb(null, {fee: fee})
+}
+
+shared.addSignature = function (body, cb) {
+	library.scheme.validate(body, {
+		type: "object",
+		properties: {
+			secret: {
+				type: "string",
+				minLength: 1
+			},
+			secondSecret: {
+				type: "string",
+				minLength: 1
+			},
+			publicKey: {
+				type: "string",
+				format: "publicKey"
+			}
+		},
+		required: ["secret", "secondSecret"]
+	}, function (err) {
+		if (err) {
+			return cb(err[0].message);
+		}
+
+		var hash = crypto.createHash('sha256').update(body.secret, 'utf8').digest();
+		var keypair = ed.MakeKeypair(hash);
+
+		if (body.publicKey) {
+			if (keypair.publicKey.toString('hex') != body.publicKey) {
+				return cb(errorCode("COMMON.INVALID_SECRET_KEY"));
+			}
+		}
+
+		library.sequence.add(function (cb) {
+			modules.accounts.getAccount({publicKey: keypair.publicKey.toString('hex')}, function (err, account) {
+				if (err) {
+					return cb(err.toString());
+				}
+				if (!account || !account.publicKey) {
+					return cb(errorCode("COMMON.OPEN_ACCOUNT"));
+				}
+
+				if (account.secondSignature || account.unconfirmedSignature) {
+					return cb(errorCode("COMMON.SECOND_SECRET_KEY"));
+				}
+
+				var secondHash = crypto.createHash('sha256').update(body.secondSecret, 'utf8').digest();
+				var secondKeypair = ed.MakeKeypair(secondHash);
+
+				var transaction = library.logic.transaction.create({
+					type: TransactionTypes.SIGNATURE,
+					sender: account,
+					keypair: keypair,
+					secondKeypair: secondKeypair
+				});
+				modules.transactions.receiveTransactions([transaction], cb);
+			});
+		}, function (err, transaction) {
+			if (err) {
+				return cb(err.toString());
+			}
+			cb(null, {transaction: transaction[0]});
+		});
+
+	});
+}
 
 module.exports = Signatures;

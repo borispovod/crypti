@@ -956,7 +956,7 @@ Blocks.prototype.generateBlock = function (keypair, timestamp, cb) {
 	});
 }
 
-Blocks.prototype.sandboxApi = function (call, data, cb) {
+Blocks.prototype.sandboxApi = function (call, args, cb) {
 	sandboxHelper.callMethod(shared, call, args, cb);
 }
 

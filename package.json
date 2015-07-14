@@ -21,7 +21,6 @@
     "change-case": "*",
     "colors": "*",
     "commander": "~2.6.0",
-    "crypti-sandbox": "git+ssh://git@github.com:crypti/crypti-sandbox.git",
     "cycle": "^1.0.3",
     "dblite": "https://github.com/crypti/dblite/tarball/master",
     "ed25519": "https://github.com/crypti/Ed25519/tarball/master",
