@@ -520,6 +520,10 @@ function attachApi() {
 	});
 
 	router.put('/', function (req, res, next) {
+		if (req.body.username == "") {
+			delete req.body.username;
+		}
+
 		req.sanitize(req.body, {
 			type: "object",
 			properties: {

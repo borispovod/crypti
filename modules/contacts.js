@@ -39,6 +39,11 @@ function Contact() {
 			return setImmediate(cb, "Following is not address: " + trs.asset.contact.address);
 		}
 
+		var address = modules.accounts.getAddressByPublicKey(trs.senderPublicKey);
+		if (address === trs.asset.contact.address.slice(1)) {
+			return setImmediate(cb, "You can't add your self: " + trs.id);
+		}
+
 		/*
 		if (!modules.accounts.getAccount(trs.asset.contact.address.slice(1))) {
 			return setImmediate(cb, "Following is not exists: " + trs.id);

@@ -152,21 +152,43 @@ function waitForNewBlock(height, cb) {
 }
 
 // Adds peers to local node
-function addPeers(numOfPeers){
-
+function addPeers(numOfPeers, cb) {
     var operatingSystems = ['win32','win64','linux','debian'];
     var versions = ['0.1.9','0.2.0','0.2.0a','0.3.0'];
     var ports = [4060, 5060, 8040, 7040];
     var sharePortOptions = [false,true];
     var os,version,port,sharePort;
 
-    for (var i = 0; i < numOfPeers; i++){
+    var i = 0;
+    async.whilst(function () {
+        return i < numOfPeers
+    }, function (next) {
         os = operatingSystems[randomizeSelection(operatingSystems.length)];
         version = versions[randomizeSelection(versions.length)];
         port = ports[randomizeSelection(ports.length)];
         sharePort = sharePortOptions[randomizeSelection(sharePortOptions.length)];
-        peer.get('/height').set('os',os).set('version',version).set('port',port).set('share-port',sharePort);
-    }
+
+        request({
+            type: "GET",
+            url: baseUrl + "/peer/height",
+            json: true,
+            headers: {
+                'version': version,
+                'port': port,
+                'share-port': sharePort,
+                'os': os
+            }
+        }, function (err, resp, body) {
+            if (err || resp.statusCode != 200) {
+                return next(err || "Status code is not 200 (getHeight)");
+            } else {
+                i++;
+                next();
+            }
+        })
+    }, function (err) {
+        return cb(err);
+    });
 }
 
 // Used to randomize selecting from within an array. Requires array length
