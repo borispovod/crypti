@@ -107,7 +107,7 @@ function DApp() {
 			return setImmediate(cb, errorCode("DAPPS.TOO_LONG_TAGS"));
 		}
 
-		return setImmediate(cb);
+		setImmediate(cb);
 	}
 
 	this.process = function (trs, sender, cb) {
