@@ -234,7 +234,7 @@ private.attachApi = function () {
 }
 
 //public methods
-Multisignatures.prototype.sandboxApi = function (call, data, cb) {
+Multisignatures.prototype.sandboxApi = function (call, args, cb) {
 	sandboxHelper.callMethod(shared, call, args, cb);
 }
 

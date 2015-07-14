@@ -290,7 +290,7 @@ Peer.prototype.update = function (peer, cb) {
 	})
 }
 
-Peer.prototype.sandboxApi = function (call, data, cb) {
+Peer.prototype.sandboxApi = function (call, args, cb) {
 	sandboxHelper.callMethod(shared, call, args, cb);
 }
 

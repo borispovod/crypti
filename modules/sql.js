@@ -81,7 +81,7 @@ Sql.prototype.dropTables = function (dappid, config, cb) {
 	}, cb);
 }
 
-Sql.prototype.sandboxApi = function (call, data, cb) {
+Sql.prototype.sandboxApi = function (call, args, cb) {
 	sandboxHelper.callMethod(shared, call, args, cb);
 }
 

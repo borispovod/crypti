@@ -199,7 +199,7 @@ private.attachApi = function () {
 }
 
 //public methods
-Signatures.prototype.sandboxApi = function (call, data, cb) {
+Signatures.prototype.sandboxApi = function (call, args, cb) {
 	sandboxHelper.callMethod(shared, call, args, cb);
 }
 

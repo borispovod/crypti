@@ -1236,7 +1236,7 @@ private.stop = function (dApp, cb) {
 }
 
 //public methods
-DApps.prototype.sandboxApi = function (call, data, cb) {
+DApps.prototype.sandboxApi = function (call, args, cb) {
 	sandboxHelper.callMethod(shared, call, args, cb);
 }
 

@@ -440,7 +440,7 @@ Transactions.prototype.receiveTransactions = function (transactions, cb) {
 	});
 }
 
-Transactions.prototype.sandboxApi = function (call, data, cb) {
+Transactions.prototype.sandboxApi = function (call, args, cb) {
 	sandboxHelper.callMethod(shared, call, args, cb);
 }
 

@@ -304,7 +304,7 @@ Loader.prototype.syncing = function () {
 	return !!private.syncIntervalId;
 }
 
-Loader.prototype.sandboxApi = function (call, data, cb) {
+Loader.prototype.sandboxApi = function (call, args, cb) {
 	sandboxHelper.callMethod(shared, call, args, cb);
 }
 

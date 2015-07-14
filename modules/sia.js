@@ -52,7 +52,7 @@ Sia.prototype.download = function (nickname, path, cb) {
 	});
 }
 
-Sia.prototype.sandboxApi = function (call, data, cb) {
+Sia.prototype.sandboxApi = function (call, args, cb) {
 	sandboxHelper.callMethod(shared, call, args, cb);
 }
 

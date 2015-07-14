@@ -269,7 +269,7 @@ Round.prototype.runOnFinish = function (task) {
 	private.tasks.push(task);
 }
 
-Round.prototype.sandboxApi = function (call, data, cb) {
+Round.prototype.sandboxApi = function (call, args, cb) {
 	sandboxHelper.callMethod(shared, call, args, cb);
 }
 

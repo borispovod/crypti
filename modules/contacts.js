@@ -273,7 +273,7 @@ Contacts.prototype.checkUnconfirmedContacts = function (publicKey, contacts, cb)
 	}
 }
 
-Contacts.prototype.sandboxApi = function (call, data, cb) {
+Contacts.prototype.sandboxApi = function (call, args, cb) {
 	sandboxHelper.callMethod(shared, call, args, cb);
 }
 
