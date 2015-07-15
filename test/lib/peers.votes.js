@@ -4,7 +4,7 @@ var node = require('./../variables.js'),
 var account = node.randomAccount();
 
 describe("Peers votes", function () {
-	it("Double vote for delegate. Should be not ok", function (done) {
+	it("Double vote for delegate. We expect error", function (done) {
 		var transaction = node.crypti.vote.createVote(node.peers_config.account, ["+badf44a77df894ccad87fa62bac892e63e5e39fd972f6a3e6e850ed1a1708e98"]);
 		node.peer.post('/transactions')
 			.set('Accept', 'application/json')
@@ -20,7 +20,7 @@ describe("Peers votes", function () {
 			});
 	});
 
-	it("Remove votes from delegate. Should be ok", function (done) {
+	it("Remove votes from delegate. We expect success", function (done) {
 		var transaction = node.crypti.vote.createVote(node.peers_config.account, ["-badf44a77df894ccad87fa62bac892e63e5e39fd972f6a3e6e850ed1a1708e98"]);
 		node.peer.post('/transactions')
 			.set('Accept', 'application/json')
@@ -36,7 +36,7 @@ describe("Peers votes", function () {
 			});
 	});
 
-	it("Remove votes from delegate and then vote again. Should be not ok", function (done) {
+	it("Remove votes from delegate and then vote again. We expect error", function (done) {
 		var transaction = node.crypti.vote.createVote(node.peers_config.account, ["-9062a3b2d585be13b66e705af3f40657a97d0e4a27ec56664e05cdb5c953b0f6"]);
 		node.peer.post('/transactions')
 			.set('Accept', 'application/json')
@@ -65,7 +65,7 @@ describe("Peers votes", function () {
 	});
 
 	// not right test, because sometimes new block came and we don't have time to vote
-	it("Create new delegate. Should return be ok.", function (done) {
+	it("Create new delegate. We expect success.", function (done) {
 		node.api.post('/accounts/open')
 			.set('Accept', 'application/json')
 			.send({
@@ -106,7 +106,7 @@ describe("Peers votes", function () {
 			});
 	});
 
-	it("Vote for created delegate. Should return not ok", function (done) {
+	it("Vote for created delegate. We expect error", function (done) {
 		var transaction = node.crypti.vote.createVote(node.peers_config.account, ["+" + account.publicKey]);
 		node.onNewBlock(function (err) {
 			node.expect(err).to.be.not.ok;

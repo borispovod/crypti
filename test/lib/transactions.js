@@ -9,6 +9,7 @@ var node = require('./../variables.js');
 var Account1 = node.randomTxAccount();
 var Account2 = node.randomTxAccount();
 var Account3 = node.randomTxAccount();
+var Uaccount = node.randomAccount();
 
 var transactionCount = 0;
 var transactionList = [];
@@ -1138,6 +1139,48 @@ describe('Transactions', function() {
             });
 
             test += 1;
+            it(test + '. We try to REGISTER USERNAME with capital letter. We expect success',function(done){
+                console.log(Account2);
+                var capitalUsername = node.randomCapitalUsername();
+                node.onNewBlock(function(err) {
+                    node.api.put('/accounts/username')
+                        .set('Accept', 'application/json')
+                        .send({
+                            secret: Account2.password,
+                            secondSecret: Account2.secondPassword,
+                            username: capitalUsername
+                        })
+                        .expect('Content-Type', /json/)
+                        .expect(200)
+                        .end(function (err, res) {
+                            console.log(res.body);
+                            node.expect(res.body).to.have.property("success").to.be.true;
+                            if (res.body.success == true && res.body.transaction != null){
+                                Account2.transactions.push(transactionCount);
+                                transactionCount += 1;
+                                Account2.balance -= node.Fees.usernameFee;
+                                Account2.username = capitalUsername;
+                                transactionList[transactionCount - 1] = {
+                                    'sender': Account2.address,
+                                    'recipient': 'SYSTEM',
+                                    'brutoSent': 0,
+                                    'fee': node.Fees.usernameFee,
+                                    'nettoSent': 0,
+                                    'txId': res.body.transaction.id,
+                                    'type':node.TxTypes.SIGNATURE
+                                }
+                            }
+                            else {
+                                console.log("Transaction failed or transaction object is null");
+                                console.log("Sent: secret: " + Account2.secret + ", secondSecret: " + Account2.secondPassword + ", username: " + capitalUsername);
+                                node.expect("TEST").to.equal("FAILED");
+                            }
+                            done();
+                        });
+                });
+            });
+
+            test += 1;
             it(test + '. We try to REGISTER SAME USERNAME FROM DIFFERENT ACCOUNT. We expect error',function(done){
                 node.onNewBlock(function(err) {
 					node.expect(err).to.be.not.ok;
@@ -1247,5 +1290,243 @@ describe('Transactions', function() {
                         });
                 }, 1000);
             });
+
+            test += 1;
+            it(test + '. We attempt to add self as contact. We expect error',function(done){
+                this.timeout(5000);
+                setTimeout(function(){
+                    node.api.put('/contacts')
+                        .set('Accept', 'application/json')
+                        .send({
+                            secret: Account1.password,
+                            secondSecret: Account1.secondPassword,
+                            following: Account1.address
+                        })
+                        .expect('Content-Type', /json/)
+                        .expect(200)
+                        .end(function (err, res) {
+                            console.log(res.body);
+                            node.expect(res.body).to.have.property("success").to.be.false;
+                            node.expect(res.body).to.have.property("error");
+                            done();
+                        });
+                }, 1000);
+            });
+
+            test += 1;
+            it(test + '. We attempt to add Account 2 as contact. No password. We expect error',function(done){
+                this.timeout(5000);
+                setTimeout(function(){
+                    node.api.put('/contacts')
+                        .set('Accept', 'application/json')
+                        .send({
+                            following: Account2.address
+                        })
+                        .expect('Content-Type', /json/)
+                        .expect(200)
+                        .end(function (err, res) {
+                            console.log(res.body);
+                            node.expect(res.body).to.have.property("success").to.be.false;
+                            node.expect(res.body).to.have.property("error");
+                            done();
+                        });
+                }, 1000);
+            });
+
+            test += 1;
+            it(test + '. We attempt to add contact. We do not send contact address. We expect error',function(done){
+                this.timeout(5000);
+                setTimeout(function(){
+                    node.api.put('/contacts')
+                        .set('Accept', 'application/json')
+                        .send({
+                            secret: Account1.password,
+                            secondSecret: Account1.secondPassword
+                        })
+                        .expect('Content-Type', /json/)
+                        .expect(200)
+                        .end(function (err, res) {
+                            console.log(res.body);
+                            node.expect(res.body).to.have.property("success").to.be.false;
+                            node.expect(res.body).to.have.property("error");
+                            done();
+                        });
+                }, 1000);
+            });
+
+            test += 1;
+            it(test + '. We attempt to add Account 2 as contact. We expect failure because Account 2 has 0 XCR',function(done){
+                this.timeout(5000);
+                setTimeout(function(){
+                    node.api.put('/contacts')
+                        .set('Accept', 'application/json')
+                        .send({
+                            secret: Account1.password,
+                            secondSecret: Account1.secondPassword,
+                            following: Account2.address
+                        })
+                        .expect('Content-Type', /json/)
+                        .expect(200)
+                        .end(function (err, res) {
+                            console.log(res.body);
+                            node.expect(res.body).to.have.property("success").to.be.false;
+                            done();
+                        });
+                }, 1000);
+            });
+
+            test += 1;
+            it(test + '. Get contacts by publicKey. We expect success',function(done){
+                node.onNewBlock(function(err) {
+                    node.api.get('/contacts/?publicKey=' + Account1.publicKey)
+                        .expect('Content-Type', /json/)
+                        .expect(200)
+                        .end(function (err, res) {
+                            console.log(res.body);
+                            node.expect(res.body).to.have.property("success").to.be.true;
+                            done();
+                        });
+                });
+            });
+
+            test += 1;
+            it(test + '. Get account by username. We expect success',function(done){
+                node.onNewBlock(function(err) {
+                    node.api.get('/accounts/username/get?username=' + Account1.username)
+                        .expect('Content-Type', /json/)
+                        .expect(200)
+                        .end(function (err, res) {
+                            console.log(res.body);
+                            node.expect(res.body).to.have.property("success").to.be.true;
+                            if (res.body.success == true && res.body.account != null){
+                                node.expect(res.body).to.have.property("account");
+                                node.expect(res.body.account.address).to.equal(Account1.address);
+                                node.expect(res.body.account.username).to.equal(Account1.username);
+                            }
+                            else {
+                                console.log("Transaction failed or account object is null");
+                                console.log("Sent: username= " + Account1.username);
+                                node.expect("TEST").to.equal("FAILED");
+                            }
+                            done();
+                        });
+                });
+            });
+
+            test += 1;
+            it(test + '. Get account by username (capital letter). We expect success',function(done){
+                node.onNewBlock(function(err) {
+                    node.api.get('/accounts/username/get?username=' + Account2.username)
+                        .expect('Content-Type', /json/)
+                        .expect(200)
+                        .end(function (err, res) {
+                            console.log(res.body);
+                            node.expect(res.body).to.have.property("success").to.be.true;
+                            done();
+                        });
+                });
+            });
+
+            test += 1;
+            it(test + '. Get account by username. We send INTEGER instead of string. We expect error',function(done){
+                node.onNewBlock(function(err) {
+                    node.api.get('/accounts/username/get?username=1234')
+                        .expect('Content-Type', /json/)
+                        .expect(200)
+                        .end(function (err, res) {
+                            console.log(res.body);
+                            node.expect(res.body).to.have.property("success").to.be.false;
+                            done();
+                        });
+                });
+            });
+        });
+
+    describe('Register username AFTER delegate',function() {
+
+        before(function (done) {
+            // OPEN UACCOUNT
+            console.log("Opening UACCOUNT. PWD: " + Uaccount.password);
+            node.api.post('/accounts/open')
+                .set('Accept', 'application/json')
+                .send({
+                    secret: Uaccount.password
+                })
+                .expect('Content-Type', /json/)
+                .expect(200)
+                .end(function (err, res) {
+                    console.log(res.body);
+                    node.expect(res.body).to.have.property("success").to.be.true;
+                    if (res.body.success == true && res.body.account != null){
+                        Uaccount.address = res.body.account.address;
+                    }
+                    else{
+                        console.log("Open account failed or account object is null");
+                        node.expect("true").to.equal("false");
+                    }
+                    done();
+                });
+        });
+
+        before(function (done) {
+            // SEND XCR TO UAccount ADDRESS
+            var randomXCR = node.randomizeXCR();
+            console.log("Sending XCR to UACCOUNT. Address: " + Uaccount.address);
+            node.api.put('/transactions')
+                .set('Accept', 'application/json')
+                .send({
+                    secret: node.Faccount.password,
+                    amount: randomXCR,
+                    recipientId: Uaccount.address
+                })
+                .expect('Content-Type', /json/)
+                .expect(200)
+                .end(function (err, res) {
+                    console.log(res.body);
+                    node.expect(res.body).to.have.property("success").to.be.true;
+                    done();
+                });
+        });
+
+        before(function (done) {
+            // REGISTER DELEGATE
+            node.onNewBlock(function(err) {
+                node.api.put('/delegates')
+                    .set('Accept', 'application/json')
+                    .send({
+                        secret: Uaccount.password,
+                        username: Uaccount.delegateName
+                    })
+                    .expect('Content-Type', /json/)
+                    .expect(200)
+                    .end(function (err, res) {
+                        console.log(res.body);
+                        node.expect(res.body).to.have.property("success").to.be.true;
+                        node.expect(res.body).to.have.property("transaction").that.is.an('object');
+                        done();
+                    });
+            });
+        });
+
+        test += 1;
+        it(test + '. We attempt to register as username from account that is delegate: Account: ' + Uaccount.password + '. We expect success',function(done){
+            // REGISTER USERNAME
+            console.log(Uaccount);
+            node.onNewBlock(function(err) {
+                node.api.put('/accounts/username')
+                    .set('Accept', 'application/json')
+                    .send({
+                        secret: Uaccount.password,
+                        username: Uaccount.username
+                    })
+                    .expect('Content-Type', /json/)
+                    .expect(200)
+                    .end(function (err, res) {
+                        console.log(res.body);
+                        node.expect(res.body).to.have.property("success").to.be.false;
+                        done();
+                    });
+            });
         });
     });
+});

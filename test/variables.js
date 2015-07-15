@@ -18,7 +18,7 @@ var _ = require('lodash'),
 var normalizer = 100000000; // Use this to convert XCR amount to normal value
 var blockTime = 10000; // Block time in miliseconds
 var blockTimePlus = 12000; // Block time + 2 seconds in miliseconds
-var version = "0.3.0" // Node version
+var version = "0.3.1" // Node version
 
 // Holds Fee amounts for different transaction types.
 var Fees = {
@@ -218,6 +218,17 @@ function randomUsername(){
     return username;
 }
 
+function randomCapitalUsername(){
+    var size = randomNumber(1,16); // Min. username size is 1, Max. username size is 16
+    var username = "A";
+    var possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@$&_.";
+
+    for( var i=0; i < size-1; i++ )
+        username += possible.charAt(Math.floor(Math.random() * possible.length));
+
+    return username;
+}
+
 // Used to create random basic accounts
 function randomAccount(){
     var account = {
@@ -276,6 +287,8 @@ module.exports = {
     randomAccount: randomAccount,
     randomTxAccount: randomTxAccount,
     randomUsername: randomUsername,
+    randomNumber: randomNumber,
+    randomCapitalUsername: randomCapitalUsername,
     expectedFee:expectedFee,
     addPeers:addPeers,
 	peers_config: config.mocha.peers,
