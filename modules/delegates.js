@@ -523,13 +523,17 @@ function attachApi() {
 				}
 			}
 
-			var transaction = library.logic.transaction.create({
-				type: TransactionTypes.DELEGATE,
-				username: username,
-				sender: account,
-				keypair: keypair,
-				secondKeypair: secondKeypair
-			});
+			try {
+				var transaction = library.logic.transaction.create({
+					type: TransactionTypes.DELEGATE,
+					username: username,
+					sender: account,
+					keypair: keypair,
+					secondKeypair: secondKeypair
+				});
+			} catch (e) {
+				return res.json({success: false, error: e.toString()});
+			}
 
 			library.sequence.add(function (cb) {
 				modules.transactions.receiveTransactions([transaction], cb);
@@ -805,7 +809,7 @@ Delegates.prototype.fork = function (block, cause) {
 		cause: cause
 	});
 	library.dbLite.query("INSERT INTO forks_stat (delegatePublicKey, blockTimestamp, blockId, blockHeight, previousBlock, cause) " +
-	"VALUES ($delegatePublicKey, $blockTimestamp, $blockId, $blockHeight, $previousBlock, $cause);", {
+		"VALUES ($delegatePublicKey, $blockTimestamp, $blockId, $blockHeight, $previousBlock, $cause);", {
 		delegatePublicKey: block.generatorPublicKey,
 		blockTimestamp: block.timestamp,
 		blockId: block.id,

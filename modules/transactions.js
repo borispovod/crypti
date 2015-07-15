@@ -278,15 +278,19 @@ function attachApi() {
 				secondKeypair = ed.MakeKeypair(secondHash);
 			}
 
-			var transaction = library.logic.transaction.create({
-				type: TransactionTypes.SEND,
-				amount: body.amount,
-				sender: account,
-				recipientId: recipientId,
-				recipientUsername: recipientUsername,
-				keypair: keypair,
-				secondKeypair: secondKeypair
-			});
+			try {
+				var transaction = library.logic.transaction.create({
+					type: TransactionTypes.SEND,
+					amount: body.amount,
+					sender: account,
+					recipientId: recipientId,
+					recipientUsername: recipientUsername,
+					keypair: keypair,
+					secondKeypair: secondKeypair
+				});
+			} catch (e) {
+				return res.json({success: false, error: e.toString()});
+			}
 
 			library.sequence.add(function (cb) {
 				modules.transactions.receiveTransactions([transaction], cb);
@@ -372,10 +376,10 @@ private.list = function (filter, cb) {
 	}
 
 	library.dbLite.query("select count(t.id) " +
-	"from trs t " +
-	"inner join blocks b on t.blockId = b.id " +
-	(fields_or.length || owner ? "where " : "") + " " +
-	(fields_or.length ? "(" + fields_or.join(' or ') + ") " : "") + (fields_or.length && owner ? " and " + owner : owner), params, {"count": Number}, function (err, rows) {
+		"from trs t " +
+		"inner join blocks b on t.blockId = b.id " +
+		(fields_or.length || owner ? "where " : "") + " " +
+		(fields_or.length ? "(" + fields_or.join(' or ') + ") " : "") + (fields_or.length && owner ? " and " + owner : owner), params, {"count": Number}, function (err, rows) {
 		if (err) {
 			return cb(err);
 		}
@@ -384,13 +388,13 @@ private.list = function (filter, cb) {
 
 		// need to fix 'or' or 'and' in query
 		library.dbLite.query("select t.id, b.height, t.blockId, t.type, t.timestamp, lower(hex(t.senderPublicKey)), t.senderId, t.recipientId, t.senderUsername, t.recipientUsername, t.amount, t.fee, lower(hex(t.signature)), lower(hex(t.signSignature)), (select max(height) + 1 from blocks) - b.height " +
-		"from trs t " +
-		"inner join blocks b on t.blockId = b.id " +
-		(fields_or.length || owner ? "where " : "") + " " +
-		(fields_or.length ? "(" + fields_or.join(' or ') + ") " : "") + (fields_or.length && owner ? " and " + owner : owner) + " " +
-		(filter.orderBy ? 'order by ' + sortBy + ' ' + sortMethod : '') + " " +
-		(filter.limit ? 'limit $limit' : '') + " " +
-		(filter.offset ? 'offset $offset' : ''), params, ['t_id', 'b_height', 't_blockId', 't_type', 't_timestamp', 't_senderPublicKey', 't_senderId', 't_recipientId', 't_senderUsername', 't_recipientUsername', 't_amount', 't_fee', 't_signature', 't_signSignature', 'confirmations'], function (err, rows) {
+			"from trs t " +
+			"inner join blocks b on t.blockId = b.id " +
+			(fields_or.length || owner ? "where " : "") + " " +
+			(fields_or.length ? "(" + fields_or.join(' or ') + ") " : "") + (fields_or.length && owner ? " and " + owner : owner) + " " +
+			(filter.orderBy ? 'order by ' + sortBy + ' ' + sortMethod : '') + " " +
+			(filter.limit ? 'limit $limit' : '') + " " +
+			(filter.offset ? 'offset $offset' : ''), params, ['t_id', 'b_height', 't_blockId', 't_type', 't_timestamp', 't_senderPublicKey', 't_senderId', 't_recipientId', 't_senderUsername', 't_recipientUsername', 't_amount', 't_fee', 't_signature', 't_signSignature', 'confirmations'], function (err, rows) {
 			if (err) {
 				return cb(err);
 			}
@@ -410,9 +414,9 @@ private.list = function (filter, cb) {
 
 private.getById = function (id, cb) {
 	library.dbLite.query("select t.id, b.height, t.blockId, t.type, t.timestamp, lower(hex(t.senderPublicKey)), t.senderId, t.recipientId, t.senderUsername, t.recipientUsername, t.amount, t.fee, lower(hex(t.signature)), lower(hex(t.signSignature)), (select max(height) + 1 from blocks) - b.height " +
-	"from trs t " +
-	"inner join blocks b on t.blockId = b.id " +
-	"where t.id = $id", {id: id}, ['t_id', 'b_height', 't_blockId', 't_type', 't_timestamp', 't_senderPublicKey', 't_senderId', 't_recipientId', 't_senderUsername', 't_recipientUsername', 't_amount', 't_fee', 't_signature', 't_signSignature', 'confirmations'], function (err, rows) {
+		"from trs t " +
+		"inner join blocks b on t.blockId = b.id " +
+		"where t.id = $id", {id: id}, ['t_id', 'b_height', 't_blockId', 't_type', 't_timestamp', 't_senderPublicKey', 't_senderId', 't_recipientId', 't_senderUsername', 't_recipientUsername', 't_amount', 't_fee', 't_signature', 't_signSignature', 'confirmations'], function (err, rows) {
 		if (err || !rows.length) {
 			return cb(err || "Can't find transaction: " + id);
 		}

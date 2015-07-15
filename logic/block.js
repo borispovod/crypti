@@ -69,9 +69,9 @@ Block.prototype.create = function (data) {
 		transactions: blockTransactions
 	};
 
-	block.blockSignature = this.sign(block, data.keypair);
-
 	try {
+		block.blockSignature = this.sign(block, data.keypair);
+
 		block = this.objectNormalize(block);
 	} catch (e) {
 		throw Error(e.toString());
