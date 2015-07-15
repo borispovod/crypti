@@ -292,7 +292,7 @@ private.attachApi = function () {
 	router.post("/dapp/message", function (req, res) {
 		res.set(private.headers);
 
-		modules.dapps.message(req.body.dappid, req.body.msg, function (err, body) {
+		modules.dapps.message(req.body.dappid, req.body.body, function (err, body) {
 			if (!err && body.error) {
 				err = body.error;
 			}
@@ -300,6 +300,7 @@ private.attachApi = function () {
 			if (err) {
 				res.status(200).json({success: false, message: err});
 			} else {
+				library.bus.message('message', req.body, true);
 				res.status(200).json(extend(body, {success: true}));
 			}
 		});
@@ -498,9 +499,17 @@ Transport.prototype.onNewBlock = function (block, broadcast) {
 	}
 }
 
+Transport.prototype.onMessage = function (msg, broadcast) {
+	if (broadcast) {
+		shared.message(msg);
+	}
+}
+
 //shared
-shared.message = function (req, cb) {
-	self.broadcast(100, {api: '/dapp/message', data: {dappid: req.dappid, msg: req.body}, method: "POST"});
+shared.message = function (msg, cb) {
+	self.broadcast(100, {api: '/dapp/message', data: msg, method: "POST"});
+
+	cb && setImmediate(cb);
 }
 
 //export
