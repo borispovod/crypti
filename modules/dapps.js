@@ -796,6 +796,10 @@ private.attachApi = function () {
 		});
 	});
 
+	router.get('/categories', function (req, res, next) {
+		return res.json({success: true, categories: dappCategory});
+	})
+
 	router.post('/stop', function (req, res, next) {
 		req.sanitize(req.body, {
 			type: "object",
@@ -989,7 +993,13 @@ private.removeDApp = function (dApp, cb) {
 				if (err) {
 					return setImmediate(cb, "Problem when removing folder of dapp: ", dappPath);
 				} else {
-					return setImmediate(cb);
+					try {
+						var dappConfig = require(path.join(dappPath, 'config.json'));
+					} catch (e) {
+						return setImmediate("Can't parse dapp config");
+					}
+
+					modules.sql.dropTables(dApp.transactionId, dappConfig.db, cb);
 				}
 			});
 		}
@@ -1202,19 +1212,9 @@ private.launch = function (dApp, cb) {
 }
 
 private.stop = function (dApp, cb) {
-	var dappPath = path.join(private.appPath, dApp.transactionId);
 	var dappPublicLink = path.join(private.appPath, "public", "dapps", dApp.transactionId);
 
-	try {
-		var dappConfig = require(path.join(dappPath, 'config.json'));
-	} catch (e) {
-		return setImmediate("Can't parse dapp config");
-	}
-
 	async.series([
-		function (cb) {
-			modules.sql.dropTables(dApp.transactionId, dappConfig.db, cb);
-		},
 		function (cb) {
 			fs.exists(dappPublicLink, function (exists) {
 				if (exists) {

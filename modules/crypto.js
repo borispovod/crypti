@@ -22,16 +22,65 @@ shared.keypair = function (req, cb) {
 	return cb(null, keypair);
 }
 
+shared.sign = function (data, cb) {
+	var data = req.body;
+	library.scheme.validate(data, {
+		type: "object",
+		properties: {
+			data: {
+				type: "string",
+				minLength: 1,
+				format: "hex"
+			},
+			secret: {
+				type: "string",
+				minLength: 1
+			}
+		},
+		required: ['data', 'secret']
+	}, function (err) {
+		if (err) {
+			return cb(err[0].message);
+		}
+
+		try {
+			var hash = new Buffer(data.data, 'hex');
+			var secretHash = crypto.createHash('sha256').update(data.secret, 'utf8').digest();
+			var keypair = ed.MakeKeypair(secretHash);
+
+			return setImmediate(cb, null, ed.Sign(hash, keypair).toString('hex'));
+		} catch (e) {
+			return setImmediate(cb, e.toString());
+		}
+	});
+}
+
 shared.sha256 = function (req, cb) {
 	var data = req.body;
-	try {
-		var buf = new Buffer(data.data, 'utf8');
-		var hash = crypto.createHash('sha256').update(buf).toString('utf8');
-	} catch (e) {
-		return cb(e);
-	}
+	library.scheme.validate(data, {
+		type: "object",
+		properties: {
+			data: {
+				type: "string",
+				minLength: 1,
+				format: "hex"
+			}
+		},
+		required: ['data']
+	}, function (err) {
+		if (err) {
+			return cb(err[0].message);
+		}
 
-	return cb(null, hash);
+		try {
+			var buf = new Buffer(data.data, 'hex');
+			var hash = crypto.createHash('sha256').update(buf).toString('utf8');
+		} catch (e) {
+			return cb(e.toString());
+		}
+
+		return cb(null, hash);
+	});
 }
 
 shared.encryptbox = function (req, cb) {
