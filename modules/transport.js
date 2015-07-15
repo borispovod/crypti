@@ -62,7 +62,6 @@ function attachApi() {
 			},
 			required: ["port", 'share-port', 'version']
 		}, function (err, report, headers) {
-			console.log(err, report);
 			if (err) return next();
 			if (!report.isValid) return next();
 
@@ -77,7 +76,6 @@ function attachApi() {
 			};
 
 			if (peer.port > 0 && peer.port <= 65535 && peer.version == library.config.version) {
-				console.log("update peer");
 				modules.peer.update(peer);
 			}
 
@@ -220,7 +218,6 @@ function attachApi() {
 			var peerIp = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
 			var peerStr = peerIp ? peerIp + ":" + (isNaN(port)? 'unknown' : port) : 'unknown';
 			library.logger.log('block ' + (block ? block.id : 'null') + ' is not valid, ban 60 min', peerStr);
-			console.log(req.body.block);
 
 			if (peerIp && report) {
 				modules.peer.state(ip.toLong(peerIp), port, 0, 3600);
@@ -265,7 +262,6 @@ function attachApi() {
 				library.logger.log('recieved transaction ' + (transaction ? transaction.id : 'null') + ' is not valid, ban 60 min', peerStr);
 
 				if (peerIp && report) {
-					console.log(peerIp, req.headers['port'], report);
 					modules.peer.state(ip.toLong(peerIp), req.headers['port'], 0, 3600);
 				}
 

@@ -25,12 +25,20 @@ describe('Miscellaneous tests (peers, blocks, etc)', function() {
         it(test + '. Add peers to local node',function(done){
             var randomNumberOfPeers = node.randomNumber(1,3);
             node.addPeers(randomNumberOfPeers, function (err) {
+                console.log('Added ' + randomNumberOfPeers + ' peers');
                 node.expect(err).to.be.not.ok;
 
-
-
-                console.log('Added ' + randomNumberOfPeers + ' peers');
-                done();
+                node.api.get('/peers')
+                    .set('Accept', 'application/json')
+                    .expect('Content-Type', /json/)
+                    .expect(200)
+                    .end(function (err, res) {
+                        console.log(res.body);
+                        node.expect(res.body).to.have.property("success").to.be.true;
+                        node.expect(res.body).to.have.property("peers").to.be.array;
+                        node.expect(res.body.peers.length).to.be.equal(randomNumberOfPeers);
+                        done();
+                    });
             });
         });
 
