@@ -781,7 +781,7 @@ private.attachApi = function () {
 					library.logger.error(err);
 					return res.json({success: false, error: "Can't find dapp"});
 				} else {
-					private.getInstalled(function (err, files) {
+					private.getInstalledIds(function (err, files) {
 						if (err) {
 							private.launched[body.id] = false;
 							library.logger.error(err);
