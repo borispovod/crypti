@@ -6,6 +6,7 @@ var Router = require('../helpers/router.js'),
 	_ = require('underscore'),
 	zlib = require('zlib'),
 	errorCode = require('../helpers/errorCodes.js').error,
+	extend = require('extend'),
 	sandboxHelper = require('../helpers/sandbox.js');
 
 //private fields
@@ -300,7 +301,7 @@ private.attachApi = function () {
 			if (err) {
 				res.status(200).json({success: false, message: err});
 			} else {
-				library.bus.message('message', req.body, true);
+				//library.bus.message('message', req.body, true);
 				res.status(200).json(extend(body, {success: true}));
 			}
 		});
@@ -500,16 +501,16 @@ Transport.prototype.onNewBlock = function (block, broadcast) {
 }
 
 Transport.prototype.onMessage = function (msg, broadcast) {
-	if (broadcast) {
-		shared.message(msg);
-	}
+	//if (broadcast) {
+	//	shared.message(msg);
+	//}
 }
 
 //shared
 shared.message = function (msg, cb) {
 	self.broadcast(100, {api: '/dapp/message', data: msg, method: "POST"});
 
-	cb && setImmediate(cb);
+	cb && cb(null, {});
 }
 
 //export
