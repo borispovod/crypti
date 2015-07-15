@@ -1178,7 +1178,7 @@ private.launch = function (dApp, cb) {
 		private.sandboxes[dApp.transactionId] = sandbox;
 
 		sandbox.on("exit", function () {
-			library.logger.info("DApp " + id + " closed");
+			library.logger.info("DApp " + dApp.transactionId + " closed");
 			private.stop(dApp, function (err) {
 				if (err) {
 					library.logger.error("Error on stop dapp: " + err);
@@ -1187,7 +1187,7 @@ private.launch = function (dApp, cb) {
 		});
 
 		sandbox.on("error", function (err) {
-			library.logger.info("Error in DApp " + id + " " + err.toString());
+			library.logger.info("Error in DApp " + dApp.transactionId + " " + err.toString());
 			private.stop(dApp, function (err) {
 				if (err) {
 					library.logger.error("Error on stop dapp: " + err);
