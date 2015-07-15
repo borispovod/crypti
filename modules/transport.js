@@ -25,7 +25,7 @@ function Transport(cb, scope) {
 }
 
 //private methods
-private.attachApi = function() {
+private.attachApi = function () {
 	var router = new Router();
 
 	router.use(function (req, res, next) {
@@ -244,7 +244,6 @@ private.attachApi = function() {
 	router.post("/transactions", function (req, res) {
 		res.set(private.headers);
 
-
 		var report = library.scheme.validate(req.headers, {
 			type: "object",
 			properties: {
@@ -287,6 +286,23 @@ private.attachApi = function() {
 		res.set(private.headers);
 		res.status(200).json({
 			height: modules.blocks.getLastBlock().height
+		});
+	});
+
+	router.post("/dapp/message", function (req, res) {
+		res.set(private.headers);
+
+		modules.dapps.message(req.body.dappid, req.body.body, function (err, body) {
+			if (!err && body.error) {
+				err = body.error;
+			}
+
+			if (err) {
+				res.status(200).json({success: false, message: err});
+			} else {
+				library.bus.message('message', req.body, true);
+				res.status(200).json(extend(body, {success: true}));
+			}
 		});
 	});
 
@@ -483,7 +499,18 @@ Transport.prototype.onNewBlock = function (block, broadcast) {
 	}
 }
 
+Transport.prototype.onMessage = function (msg, broadcast) {
+	if (broadcast) {
+		shared.message(msg);
+	}
+}
+
 //shared
+shared.message = function (msg, cb) {
+	self.broadcast(100, {api: '/dapp/message', data: msg, method: "POST"});
+
+	cb && setImmediate(cb);
+}
 
 //export
 module.exports = Transport;

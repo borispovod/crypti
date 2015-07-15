@@ -174,7 +174,10 @@ function DApp() {
 		private.unconfirmedNickNames[trs.asset.dapp.nickname] = true;
 
 		library.dbLite.query("SELECT count(transactionId) FROM dapps WHERE (name = $name or nickname = $nickname or git = $git) and transactionId != $transactionId", {
-			name: trs.asset.dapp.name, nickname: trs.asset.dapp.nickname || null, git: trs.asset.dapp.git || null, transactionId : trs.id
+			name: trs.asset.dapp.name,
+			nickname: trs.asset.dapp.nickname || null,
+			git: trs.asset.dapp.git || null,
+			transactionId: trs.id
 		}, ['count'], function (err, rows) {
 			if (err || rows.length == 0) {
 				return setImmediate(cb, "Sql error");
@@ -324,7 +327,7 @@ function DApps(cb, scope) {
 	});
 }
 
-private.attachApi = function() {
+private.attachApi = function () {
 	var router = new Router();
 
 	router.use(function (req, res, next) {
@@ -1109,7 +1112,7 @@ private.apiHandler = function (message, callback) {
 			return setImmediate(callback, "This module doesn't have sandbox api");
 		}
 
-		modules[module].sandboxApi(call, message.args, callback);
+		modules[module].sandboxApi(call, {"body": message.args, "dappid": message.dappid}, callback);
 	} catch (e) {
 		console.log(e);
 		return setImmediate(callback, "Incorrect call");
@@ -1185,7 +1188,7 @@ private.launch = function (dApp, cb) {
 		private.sandboxes[dApp.transactionId] = sandbox;
 
 		sandbox.on("exit", function () {
-			library.logger.info("DApp " + id + " closed");
+			library.logger.info("DApp " + dApp.transactionId + " closed");
 			private.stop(dApp, function (err) {
 				if (err) {
 					library.logger.error("Error on stop dapp: " + err);
@@ -1194,7 +1197,7 @@ private.launch = function (dApp, cb) {
 		});
 
 		sandbox.on("error", function (err) {
-			library.logger.info("Error in DApp " + id + " " + err.toString());
+			library.logger.info("Error in DApp " + dApp.transactionId + " " + err.toString());
 			private.stop(dApp, function (err) {
 				if (err) {
 					library.logger.error("Error on stop dapp: " + err);
@@ -1238,6 +1241,17 @@ private.stop = function (dApp, cb) {
 //public methods
 DApps.prototype.sandboxApi = function (call, args, cb) {
 	sandboxHelper.callMethod(shared, call, args, cb);
+}
+
+DApps.prototype.message = function (dappid, body, cb) {
+	if (!private.sandboxes[dappid]) {
+		return cd(errorCode("DAPPS.DAPPS_NOT_FOUND"));
+	}
+	private.sandboxes[dappid].sendMessage({
+		method: "post",
+		path: "/message",
+		query: body
+	}, cb);
 }
 
 //events

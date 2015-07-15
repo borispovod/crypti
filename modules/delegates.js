@@ -646,7 +646,8 @@ Delegates.prototype.onChangeUnconfirmedDelegates = function (balance, diff) {
 }
 
 //shared
-shared.getDelegate = function (query, cb) {
+shared.getDelegate = function (req, cb) {
+	var query = req.body;
 	library.scheme.validate(query, {
 		type: "object",
 		properties: {
@@ -696,7 +697,8 @@ shared.getDelegate = function (query, cb) {
 	});
 }
 
-shared.getDelegates = function (query, cb) {
+shared.getDelegates = function (req, cb) {
+	var query = req.body;
 	library.scheme.validate(query, {
 		type: 'object',
 		properties: {
@@ -773,7 +775,8 @@ shared.getDelegates = function (query, cb) {
 	});
 }
 
-shared.getFee = function (query, cb) {
+shared.getFee = function (req, cb) {
+	var query = req.body;
 	var fee = null;
 
 	if (modules.blocks.getLastBlock().height >= MilestoneBlocks.FEE_BLOCK) {
@@ -785,7 +788,8 @@ shared.getFee = function (query, cb) {
 	cb(null, {fee: fee})
 }
 
-shared.getForgedByAccount = function (query, cb) {
+shared.getForgedByAccount = function (req, cb) {
+	var query = req.body;
 	library.scheme.validate(query, {
 		type: "object",
 		properties: {
@@ -808,7 +812,8 @@ shared.getForgedByAccount = function (query, cb) {
 	});
 }
 
-shared.enableForging = function (body, cb) {
+shared.enableForging = function (req, cb) {
+	var body = req.body;
 	library.scheme.validate(body, {
 		type: "object",
 		properties: {
@@ -861,7 +866,8 @@ shared.enableForging = function (body, cb) {
 	});
 }
 
-shared.disableForging = function (body, cb) {
+shared.disableForging = function (req, cb) {
+	var body = req.body;
 	library.scheme.validate(body, {
 		type: "object",
 		properties: {
@@ -914,7 +920,8 @@ shared.disableForging = function (body, cb) {
 	});
 }
 
-shared.statusForging = function (query, cb) {
+shared.statusForging = function (req, cb) {
+	var query = req.body;
 	library.scheme.validate(query, {
 		type: "object",
 		properties: {
@@ -933,7 +940,8 @@ shared.statusForging = function (query, cb) {
 	});
 }
 
-shared.addDelegate = function (body, cb) {
+shared.addDelegate = function (req, cb) {
+	var body = req.body;
 	library.scheme.validate(body, {
 		type: "object",
 		properties: {
