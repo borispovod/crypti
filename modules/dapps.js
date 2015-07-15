@@ -620,13 +620,15 @@ private.attachApi = function () {
 										'nickname': String,
 										'git': String,
 										'type': Number,
-										'category': Number
+										'category': Number,
+										'icon': String,
+										'link': String
 									}, function (err, rows) {
 										if (err) {
 											library.logger.error(err);
 											return res.json({success: false, error: "Sql error, check logs"});
 										} else {
-											if (query.installed == 0) {
+											if (!query.installed) {
 												return res.json({success: true, dapps: rows});
 											} else {
 												private.getInstalledIds(function (err, installed) {
