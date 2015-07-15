@@ -200,8 +200,8 @@ describe('Miscellaneous tests (peers, blocks, etc)', function() {
                 });
         });
     });
-});
-    describe('/blocks', function() {
+
+    describe('/blocks tests', function() {
 
         test = test + 1;
         it(test + '. Get block height. Expecting success',function(done){
@@ -300,6 +300,49 @@ describe('Miscellaneous tests (peers, blocks, etc)', function() {
         });
 
         test = test + 1;
+        it(test + '. Get blocks list. No limit. Expecting success',function(done){
+            node.api.get('/blocks?totalFee=0')
+                .set('Accept', 'application/json')
+                .expect('Content-Type', /json/)
+                .expect(200)
+                .end(function (err, res){
+                    console.log(res.body);
+                    node.expect(res.body).to.have.property("success").to.be.true;
+                    node.expect(res.body).to.have.property("blocks").that.is.an('array');
+                    if (res.body.success == true && res.body.blocks != null){
+                        node.expect(res.body.blocks).length.to.be.at.most(100);
+                    }
+                    else{
+                        console.log("Transaction failed or blocks object is null");
+                        node.expect("true").to.equal("false");
+                    }
+                    done();
+                });
+        });
+
+        test = test + 1;
+        it(test + '. Get blocks list by generatorPublicKey with no limit. Expecting success',function(done){
+            node.api.get('/blocks?generatorPublicKey=' + node.Eaccount.publicKey)
+                .set('Accept', 'application/json')
+                .expect('Content-Type', /json/)
+                .expect(200)
+                .end(function (err, res){
+                    console.log(res.body);
+                    node.expect(res.body).to.have.property("success").to.be.true;
+                    node.expect(res.body).to.have.property("blocks").that.is.an('array');
+                    if (res.body.success == true && res.body.blocks != null){
+                        node.expect(res.body.blocks).length.to.be.at.most(100);
+                    }
+                    else{
+                        console.log("Transaction failed or blocks object is null");
+                        console.log("Sent: /blocks?generatorPublicKey=" + node.Eaccount.publicKey);
+                        node.expect("true").to.equal("false");
+                    }
+                    done();
+                });
+        });
+
+        test = test + 1;
         it(test + '. Get blocks list by parameters: totalAmount. Expecting success',function(done){
             var totalAmount = block.totalAmount, limit = 100, offset = 0;
             node.api.get('/blocks?totalAmount='+totalAmount+'&limit='+limit+'&offset='+offset)
@@ -321,19 +364,19 @@ describe('Miscellaneous tests (peers, blocks, etc)', function() {
         it(test + '. Get blocks list by parameters: previousBlock. Expecting success',function(done){
             var previousBlock = block.id;
             node.onNewBlock(function(err){
-				node.expect(err).to.be.not.ok;
-				node.api.get('/blocks?previousBlock='+previousBlock)
-					.set('Accept', 'application/json')
-					.expect('Content-Type', /json/)
-					.expect(200)
-					.end(function (err, res){
-						console.log(res.body);
-						node.expect(res.body).to.have.property("success").to.be.true;
-						node.expect(res.body).to.have.property("blocks").that.is.an('array');
-						node.expect(res.body.blocks).to.have.length(1);
-						node.expect(res.body.blocks[0].previousBlock).to.equal(block.id);
-						done();
-					});
+                node.expect(err).to.be.not.ok;
+                node.api.get('/blocks?previousBlock='+previousBlock)
+                    .set('Accept', 'application/json')
+                    .expect('Content-Type', /json/)
+                    .expect(200)
+                    .end(function (err, res){
+                        console.log(res.body);
+                        node.expect(res.body).to.have.property("success").to.be.true;
+                        node.expect(res.body).to.have.property("blocks").that.is.an('array');
+                        node.expect(res.body.blocks).to.have.length(1);
+                        node.expect(res.body.blocks[0].previousBlock).to.equal(block.id);
+                        done();
+                    });
             });
         });
 
@@ -357,3 +400,4 @@ describe('Miscellaneous tests (peers, blocks, etc)', function() {
                 });
         });
     });
+});
