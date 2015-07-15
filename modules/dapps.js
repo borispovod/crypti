@@ -797,7 +797,7 @@ private.attachApi = function () {
 	});
 
 	router.get('/categories', function (req, res, next) {
-		return res.json({success: true, categories: Object.keys(dappCategory)});
+		return res.json({success: true, categories: dappCategory});
 	})
 
 	router.post('/stop', function (req, res, next) {
