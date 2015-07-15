@@ -793,6 +793,10 @@ private.attachApi = function() {
 		});
 	});
 
+	router.get('/categories', function (req, res, next) {
+		return res.json({success: true, categories: Object.keys(dappCategory)});
+	})
+
 	router.post('/stop', function (req, res, next) {
 		req.sanitize(req.body, {
 			type: "object",

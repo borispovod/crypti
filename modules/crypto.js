@@ -21,6 +21,18 @@ shared.keypair = function (data, cb) {
 	return cb(null, keypair);
 }
 
+shared.sign = function (data, cb) {
+	try {
+		var hash = new Buffer(data.data, 'hex');
+		var secretHash = crypto.createHash('sha256').update(data.secret, 'utf8').digest();
+		var keypair = ed.MakeKeypair(secretHash);
+
+		return setImmediate(cb, null, ed.Sign(hash, keypair).toString('hex'));
+	} catch (e) {
+		return setImmediate(cb, e.toString());
+	}
+}
+
 shared.sha256 = function (data, cb) {
 	try {
 		var buf = new Buffer(data.data, 'utf8');
