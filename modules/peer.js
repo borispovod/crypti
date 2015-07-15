@@ -59,7 +59,7 @@ private.updatePeerList = function (cb) {
 			return cb();
 		}
 
-		var report = library.schema.validate(data.body.peers, {type: "array", required: true, uniqueItems: true});
+		var report = library.scheme.validate(data.body.peers, {type: "array", required: true, uniqueItems: true});
 
 		if (!report) {
 			return cb();
