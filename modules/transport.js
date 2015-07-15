@@ -35,10 +35,6 @@ function attachApi() {
 	router.use(function (req, res, next) {
 		var peerIp = req.headers['x-forwarded-for'] || req.connection.remoteAddress || 'unknown';
 
-		if (peerIp == "127.0.0.1") {
-			return next();
-		}
-
 		req.headers['port'] = parseInt(req.headers['port']);
 		req.headers['share-port'] = parseInt(req.headers['share-port']);
 
@@ -66,8 +62,10 @@ function attachApi() {
 			},
 			required: ["port", 'share-port', 'version']
 		}, function (err, report, headers) {
+			console.log(err, report);
 			if (err) return next();
 			if (!report.isValid) return next();
+
 
 			var peer = {
 				ip: ip.toLong(peerIp),
@@ -432,6 +430,7 @@ Transport.prototype.getFromPeer = function (peer, options, cb) {
 		});
 
 		var port = req.headers['port'];
+
 		if (!report) {
 			return cb && cb(null, {body: body, peer: peer});
 		}
@@ -442,7 +441,7 @@ Transport.prototype.getFromPeer = function (peer, options, cb) {
 				port: req.headers['port'],
 				state: 2,
 				os: response.headers['os'],
-				sharePort: Number(!!response.headers['share-port']),
+				sharePort: response.headers['share-port'],
 				version: response.headers['version']
 			});
 		}

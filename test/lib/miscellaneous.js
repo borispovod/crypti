@@ -24,10 +24,14 @@ describe('Miscellaneous tests (peers, blocks, etc)', function() {
         test = test + 1;
         it(test + '. Add peers to local node',function(done){
             var randomNumberOfPeers = node.randomNumber(1,3);
-            node.addPeers(randomNumberOfPeers, function () {
+            node.addPeers(randomNumberOfPeers, function (err) {
+                node.expect(err).to.be.not.ok;
+
+
+
                 console.log('Added ' + randomNumberOfPeers + ' peers');
+                done();
             });
-            done();
         });
 
         test = test + 1;
