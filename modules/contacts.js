@@ -283,7 +283,8 @@ Contacts.prototype.onBind = function (scope) {
 }
 
 //shared
-shared.getContacts = function (query, cb) {
+shared.getContacts = function (req, cb) {
+	var query = req.body;
 	library.scheme.validate(query, {
 		type: "object",
 		properties: {
@@ -329,7 +330,8 @@ shared.getContacts = function (query, cb) {
 	});
 }
 
-shared.addContact = function (body, cb) {
+shared.addContact = function (req, cb) {
+	var body = req.body;
 	library.scheme.validate(body, {
 		type: "object",
 		properties: {
@@ -422,7 +424,8 @@ shared.addContact = function (body, cb) {
 	});
 }
 
-shared.getFee = function (query, cb) {
+shared.getFee = function (req, cb) {
+	var query = req.body;
 	cb(null, {fee: 1 * constants.fixedPoint})
 }
 

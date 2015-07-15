@@ -449,7 +449,8 @@ Accounts.prototype.onBind = function (scope) {
 }
 
 //shared
-shared.open = function (body, cb) {
+shared.open = function (req, cb) {
+	var body = req.body;
 	library.scheme.validate(body, {
 		type: "object",
 		properties: {
@@ -486,7 +487,8 @@ shared.open = function (body, cb) {
 	});
 }
 
-shared.getBalance = function (query, cb) {
+shared.getBalance = function (req, cb) {
+	var query = req.body;
 	library.scheme.validate(query, {
 		type: "object",
 		properties: {
@@ -518,7 +520,8 @@ shared.getBalance = function (query, cb) {
 	});
 }
 
-shared.getPublickey = function (query, cb) {
+shared.getPublickey = function (req, cb) {
+	var query = req.body;
 	library.scheme.validate(query, {
 		type: "object",
 		properties: {
@@ -545,7 +548,8 @@ shared.getPublickey = function (query, cb) {
 	});
 }
 
-shared.generatePublickey = function (body, cb) {
+shared.generatePublickey = function (req, cb) {
+	var body = req.body;
 	library.scheme.validate(body, {
 		type: "object",
 		properties: {
@@ -572,7 +576,8 @@ shared.generatePublickey = function (body, cb) {
 	});
 }
 
-shared.getDelegates = function (query, cb) {
+shared.getDelegates = function (req, cb) {
+	var query = req.body;
 	library.scheme.validate(query, {
 		type: "object",
 		properties: {
@@ -622,11 +627,13 @@ shared.getDelegates = function (query, cb) {
 	});
 }
 
-shared.getDelegatesFee = function (query, cb) {
+shared.getDelegatesFee = function (req, cb) {
+	var query = req.body;
 	cb(null, {fee: 1 * constants.fixedPoint});
 }
 
-shared.addDelegates = function (body, cb) {
+shared.addDelegates = function (req, cb) {
+	var body = req.body;
 	library.scheme.validate(body, {
 		type: "object",
 		properties: {
@@ -696,11 +703,13 @@ shared.addDelegates = function (body, cb) {
 	});
 }
 
-shared.getUsernameFee = function (query, cb) {
+shared.getUsernameFee = function (req, cb) {
+	var query = req.body;
 	cb(null, {fee: 1 * constants.fixedPoint});
 }
 
-shared.addUsername = function (body, cb) {
+shared.addUsername = function (req, cb) {
+	var body = req.body;
 	library.scheme.validate(body, {
 		type: "object",
 		properties: {
@@ -775,7 +784,8 @@ shared.addUsername = function (body, cb) {
 	});
 }
 
-shared.getAccount = function (query, cb) {
+shared.getAccount = function (req, cb) {
+	var query = req.body;
 	library.scheme.validate(query, {
 		type: "object",
 		properties: {

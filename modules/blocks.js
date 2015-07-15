@@ -985,7 +985,8 @@ Blocks.prototype.onBind = function (scope) {
 }
 
 //shared
-shared.getBlock = function (query, cb) {
+shared.getBlock = function (req, cb) {
+	var query = req.body;
 	library.scheme.validate(query, {
 		type: "object",
 		properties: {
@@ -1009,7 +1010,8 @@ shared.getBlock = function (query, cb) {
 	});
 }
 
-shared.getBlocks = function (query, cb) {
+shared.getBlocks = function (req, cb) {
+	var query = req.body;
 	library.scheme.validate(query, {
 		type: "object",
 		properties: {
@@ -1060,11 +1062,13 @@ shared.getBlocks = function (query, cb) {
 	});
 }
 
-shared.getHeight = function (query, cb) {
+shared.getHeight = function (req, cb) {
+	var query = req.body;
 	cb(null, {height: private.lastBlock.height});
 }
 
-shared.getFee = function (query, cb) {
+shared.getFee = function (req, cb) {
+	var query = req.body;
 	cb(null, {fee: library.logic.block.calculateFee()});
 }
 

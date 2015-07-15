@@ -10,7 +10,8 @@ var modules, library, self, private = {}, shared = {};
 
 private.loaded = false;
 
-shared.keypair = function (data, cb) {
+shared.keypair = function (req, cb) {
+	var data = req.body;
 	try {
 		var hash = crypto.createHash('sha256').update(data.secret, 'utf8').digest();
 		var keypair = ed.MakeKeypair(hash);
@@ -21,7 +22,8 @@ shared.keypair = function (data, cb) {
 	return cb(null, keypair);
 }
 
-shared.sha256 = function (data, cb) {
+shared.sha256 = function (req, cb) {
+	var data = req.body;
 	try {
 		var buf = new Buffer(data.data, 'utf8');
 		var hash = crypto.createHash('sha256').update(buf).toString('utf8');
@@ -32,7 +34,8 @@ shared.sha256 = function (data, cb) {
 	return cb(null, hash);
 }
 
-shared.encryptbox = function (data, cb) {
+shared.encryptbox = function (req, cb) {
+	var data = req.body;
 	library.scheme.validate(data, {
 		type: "object",
 		properties: {
@@ -65,7 +68,8 @@ shared.encryptbox = function (data, cb) {
 	});
 }
 
-shared.decryptbox = function (data, cb) {
+shared.decryptbox = function (req, cb) {
+	var data = req.body;
 	library.scheme.validate(data, {
 		type: "object",
 		properties: {
