@@ -8,7 +8,7 @@ module.exports = function () {
 
 	router.use(function (req, res, next) {
 		res.header("Access-Control-Allow-Origin", "*");
-		res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
+		res.header("Access-Control-Allow-Headers", "origin, share-port, version, os, port, Content-Type, Accept");
 		next();
 	});
 

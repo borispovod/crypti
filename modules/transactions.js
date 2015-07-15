@@ -8,7 +8,6 @@ var ed = require('ed25519'),
 	extend = require('extend'),
 	Router = require('../helpers/router.js'),
 	async = require('async'),
-	RequestSanitizer = require('../helpers/request-sanitizer.js'),
 	TransactionTypes = require('../helpers/transaction-types.js'),
 	errorCode = require('../helpers/errorCodes.js').error;
 
@@ -116,26 +115,71 @@ function attachApi() {
 		res.status(500).send({success: false, error: errorCode('COMMON.LOADING')});
 	});
 
-	router.get('/', function (req, res) {
-		req.sanitize("query", {
-			blockId: "string?",
-			limit: {default: 20, int: true},
-			orderBy: "string?",
-			offset: {default: 0, int: true},
-			senderPublicKey: "hex?",
-			ownerPublicKey: "hex?",
-			ownerAddress: "string?",
-			senderId: "string?",
-			recipientId: "string?",
-			senderUsername: "string?",
-			recipientUsername: "string?"
+	router.get('/', function (req, res, next) {
+		req.sanitize(req.query, {
+			type: "object",
+			properties: {
+				blockId: {
+					type: "string"
+				},
+				limit: {
+					type: "integer",
+					minimum: 0,
+					maximum: 100
+				},
+				type: {
+					type: "integer",
+					minimum: 0,
+					maximum: 10
+				},
+				orderBy: {
+					type: "string"
+				},
+				offset: {
+					type: "integer",
+					minimum: 0
+				},
+				senderPublicKey: {
+					type: "string",
+					format: "publicKey"
+				},
+				ownerPublicKey: {
+					type: "string",
+					format: "publicKey"
+				},
+				ownerAddress: {
+					type: "string"
+				},
+				senderId: {
+					type: "string"
+				},
+				recipientId: {
+					type: "string"
+				},
+				senderUsername: {
+					type: "string"
+				},
+				recipientUsername: {
+					type: "string"
+				},
+				amount: {
+					type: "integer",
+					minimum: 0,
+					maximum: constants.fixedPoint
+				},
+				fee: {
+					type: "integer",
+					minimum: 0,
+					maximum: constants.fixedPoint
+				}
+			}
 		}, function (err, report, query) {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
 
-			query.limit = query.limit || 20;
-			query.limit = query.limit > 100 ? 100 : query.limit;
-			query.limit = query.limit < 1 ? 1 : query.limit;
+			if (!query.limit) {
+				query.limit = 100;
+			}
 
 			private.list(query, function (err, data) {
 				if (err) {
@@ -147,13 +191,16 @@ function attachApi() {
 		});
 	});
 
-	router.get('/get', function (req, res) {
-		req.sanitize("query", {
-			id: {
-				required: true,
-				string: true,
-				minLength: 1
-			}
+	router.get('/get', function (req, res, next) {
+		req.sanitize(req.query, {
+			type: 'object',
+			properties: {
+				id: {
+					type: 'string',
+					minLength: 1
+				}
+			},
+			required: ['id']
 		}, function (err, report, query) {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
@@ -167,13 +214,16 @@ function attachApi() {
 		});
 	});
 
-	router.get('/unconfirmed/get', function (req, res) {
-		req.sanitize("query", {
-			id: {
-				required: true,
-				string: true,
-				minLength: 1
-			}
+	router.get('/unconfirmed/get', function (req, res, next) {
+		req.sanitize(req.query, {
+			type: 'object',
+			properties: {
+				id: {
+					type: 'string',
+					minLength: 1
+				}
+			},
+			required: ['id']
 		}, function (err, report, query) {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
@@ -188,10 +238,18 @@ function attachApi() {
 		});
 	});
 
-	router.get('/unconfirmed/', function (req, res) {
-		req.sanitize("query", {
-			senderPublicKey: "hex?",
-			address: "string?"
+	router.get('/unconfirmed/', function (req, res, next) {
+		req.sanitize(req.query, {
+			type: "object",
+			properties: {
+				senderPublicKey: {
+					type: "string",
+					format: "publicKey"
+				},
+				address: {
+					type: "string"
+				}
+			}
 		}, function (err, report, query) {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
@@ -215,21 +273,35 @@ function attachApi() {
 		});
 	});
 
-	router.put('/', function (req, res) {
-		req.sanitize("body", {
-			secret: {
-				required: true,
-				string: true,
-				minLength: 1
+	router.put('/', function (req, res, next) {
+		req.sanitize(req.body, {
+			type: "object",
+			properties: {
+				secret: {
+					type: "string",
+					minLength: 1,
+					maxLength: 100
+				},
+				amount: {
+					type: "integer",
+					minimum: 1,
+					maximum: constants.totalAmount
+				},
+				recipientId: {
+					type: "string",
+					minLength: 1
+				},
+				publicKey: {
+					type: "string",
+					format: "publicKey"
+				},
+				secondSecret: {
+					type: "string",
+					minLength: 1,
+					maxLength: 100
+				}
 			},
-			amount: "int!",
-			recipientId: {
-				required: true,
-				string: true,
-				minLength: 1
-			},
-			publicKey: "hex?",
-			secondSecret: "string?"
+			required: ["secret", "amount", "recipientId"]
 		}, function (err, report, body) {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
@@ -318,6 +390,7 @@ function attachApi() {
 
 private.list = function (filter, cb) {
 	var sortFields = ['t.id', 't.blockId', 't.type', 't.timestamp', 't.senderPublicKey', 't.senderId', 't.recipientId', 't.senderUsername', 't.recipientUsername', 't.amount', 't.fee', 't.signature', 't.signSignature', 't.confirmations', 'b.height'];
+
 	var params = {}, fields_or = [], owner = "";
 	if (filter.blockId) {
 		fields_or.push('blockId = $blockId')
@@ -348,10 +421,25 @@ private.list = function (filter, cb) {
 		params.ownerPublicKey = filter.ownerPublicKey;
 		params.ownerAddress = filter.ownerAddress;
 	}
-	if (filter.limit) {
+
+	if (filter.amount >= 0) {
+		fields_or.push('amount = $amount');
+		params.amount = filter.amount;
+	}
+	if (filter.fee >= 0) {
+		fields_or.push('fee = $fee');
+		params.fee = filter.fee;
+	}
+
+	if (filter.type >= 0) {
+		fields_or.push('type = $type');
+		params.type = filter.type;
+	}
+
+	if (filter.limit >= 0) {
 		params.limit = filter.limit;
 	}
-	if (filter.offset) {
+	if (filter.offset >= 0) {
 		params.offset = filter.offset;
 	}
 
@@ -376,10 +464,10 @@ private.list = function (filter, cb) {
 	}
 
 	library.dbLite.query("select count(t.id) " +
-		"from trs t " +
-		"inner join blocks b on t.blockId = b.id " +
-		(fields_or.length || owner ? "where " : "") + " " +
-		(fields_or.length ? "(" + fields_or.join(' or ') + ") " : "") + (fields_or.length && owner ? " and " + owner : owner), params, {"count": Number}, function (err, rows) {
+	"from trs t " +
+	"inner join blocks b on t.blockId = b.id " +
+	(fields_or.length || owner ? "where " : "") + " " +
+	(fields_or.length ? "(" + fields_or.join(' or ') + ") " : "") + (fields_or.length && owner ? " and " + owner : owner), params, {"count": Number}, function (err, rows) {
 		if (err) {
 			return cb(err);
 		}
@@ -388,13 +476,13 @@ private.list = function (filter, cb) {
 
 		// need to fix 'or' or 'and' in query
 		library.dbLite.query("select t.id, b.height, t.blockId, t.type, t.timestamp, lower(hex(t.senderPublicKey)), t.senderId, t.recipientId, t.senderUsername, t.recipientUsername, t.amount, t.fee, lower(hex(t.signature)), lower(hex(t.signSignature)), (select max(height) + 1 from blocks) - b.height " +
-			"from trs t " +
-			"inner join blocks b on t.blockId = b.id " +
-			(fields_or.length || owner ? "where " : "") + " " +
-			(fields_or.length ? "(" + fields_or.join(' or ') + ") " : "") + (fields_or.length && owner ? " and " + owner : owner) + " " +
-			(filter.orderBy ? 'order by ' + sortBy + ' ' + sortMethod : '') + " " +
-			(filter.limit ? 'limit $limit' : '') + " " +
-			(filter.offset ? 'offset $offset' : ''), params, ['t_id', 'b_height', 't_blockId', 't_type', 't_timestamp', 't_senderPublicKey', 't_senderId', 't_recipientId', 't_senderUsername', 't_recipientUsername', 't_amount', 't_fee', 't_signature', 't_signSignature', 'confirmations'], function (err, rows) {
+		"from trs t " +
+		"inner join blocks b on t.blockId = b.id " +
+		(fields_or.length || owner ? "where " : "") + " " +
+		(fields_or.length ? "(" + fields_or.join(' or ') + ") " : "") + (fields_or.length && owner ? " and " + owner : owner) + " " +
+		(filter.orderBy ? 'order by ' + sortBy + ' ' + sortMethod : '') + " " +
+		(filter.limit ? 'limit $limit' : '') + " " +
+		(filter.offset ? 'offset $offset' : ''), params, ['t_id', 'b_height', 'b_id', 't_type', 't_timestamp', 't_senderPublicKey', 't_senderId', 't_recipientId', 't_senderUsername', 't_recipientUsername', 't_amount', 't_fee', 't_signature', 't_signSignature', 'confirmations'], function (err, rows) {
 			if (err) {
 				return cb(err);
 			}
@@ -414,9 +502,9 @@ private.list = function (filter, cb) {
 
 private.getById = function (id, cb) {
 	library.dbLite.query("select t.id, b.height, t.blockId, t.type, t.timestamp, lower(hex(t.senderPublicKey)), t.senderId, t.recipientId, t.senderUsername, t.recipientUsername, t.amount, t.fee, lower(hex(t.signature)), lower(hex(t.signSignature)), (select max(height) + 1 from blocks) - b.height " +
-		"from trs t " +
-		"inner join blocks b on t.blockId = b.id " +
-		"where t.id = $id", {id: id}, ['t_id', 'b_height', 't_blockId', 't_type', 't_timestamp', 't_senderPublicKey', 't_senderId', 't_recipientId', 't_senderUsername', 't_recipientUsername', 't_amount', 't_fee', 't_signature', 't_signSignature', 'confirmations'], function (err, rows) {
+	"from trs t " +
+	"inner join blocks b on t.blockId = b.id " +
+	"where t.id = $id", {id: id}, ['t_id', 'b_height', 't_blockId', 't_type', 't_timestamp', 't_senderPublicKey', 't_senderId', 't_recipientId', 't_senderUsername', 't_recipientUsername', 't_amount', 't_fee', 't_signature', 't_signSignature', 'confirmations'], function (err, rows) {
 		if (err || !rows.length) {
 			return cb(err || "Can't find transaction: " + id);
 		}

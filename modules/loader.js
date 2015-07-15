@@ -203,8 +203,22 @@ private.loadBlocks = function(lastBlock, cb) {
 
 		library.logger.info("Check blockchain on " + peerStr);
 
-		if (bignum(modules.blocks.getLastBlock().height).lt(RequestSanitizer.string(data.body.height || "0"))) { //diff in chainbases
-			private.blocksToSync = RequestSanitizer.int(data.body.height);
+		var report = library.scheme.validate(data.body.height, {type : "integer", required: true});
+
+		if (!report) {
+			library.logger.log("Can't parse blockchain height: " + peerStr);
+			return cb();
+		}
+
+		if (bignum(modules.blocks.getLastBlock().height).lt(data.body.height)) { //diff in chainbases
+			var report = library.scheme.validate(data.body.height, {type: "integer", required: true});
+
+			if (!report) {
+				library.logger.log("Failed to parse block height from " + peerStr);
+				return cb();
+			}
+
+			private.blocksToSync = data.body.height;
 
 			if (lastBlock.id != genesisBlock.block.id) { //have to found common block
 				private.findUpdate(lastBlock, data.peer, cb);
@@ -226,7 +240,11 @@ private.loadUnconfirmedTransactions = function(cb) {
 			return cb()
 		}
 
-		var transactions = RequestSanitizer.array(data.body.transactions);
+		var report = library.scheme.validate(data.body.transactions, {type: "array", required: true});
+		if (!report) {
+			return cb();
+		}
+		var transactions = data.body.transactions;
 
 		for (var i = 0; i < transactions.length; i++) {
 			try {

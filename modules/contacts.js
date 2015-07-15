@@ -1,6 +1,5 @@
 var encryptHelper = require('../helpers/encrypt.js'),
 	TransactionTypes = require('../helpers/transaction-types.js'),
-	RequestSanitizer = require('../helpers/request-sanitizer.js'),
 	Router = require('../helpers/router.js'),
 	constants = require('../helpers/constants.js'),
 	ed = require('ed25519'),
@@ -40,9 +39,11 @@ function Contact() {
 			return setImmediate(cb, "Following is not address: " + trs.asset.contact.address);
 		}
 
+		/*
 		if (!modules.accounts.getAccount(trs.asset.contact.address.slice(1))) {
 			return setImmediate(cb, "Following is not exists: " + trs.id);
 		}
+		*/
 
 		if (trs.amount != 0) {
 			return setImmediate(cb, "Invalid amount: " + trs.id);
@@ -81,8 +82,21 @@ function Contact() {
 	}
 
 	this.applyUnconfirmed = function (trs, sender, cb) {
-		var res = sender.applyUnconfirmedContact(trs.asset.contact.address);
-		setImmediate(cb, !res ? "Can't apply contact: " + trs.id : null);
+		library.dbLite.query("SELECT count(id) FROM trs where recipientId=$address", {
+			address: trs.asset.contact.address.slice(1)
+		}, ['count'], function (err, rows) {
+			if (err) {
+				return setImmediate(cb, "Sql error");
+			}
+
+			if (rows.length == 0 || rows[0].count == 0) {
+				return setImmediate(cb, "Can't apply contact, recipient doesn't exists");
+			}
+
+
+			var res = sender.applyUnconfirmedContact(trs.asset.contact.address);
+			setImmediate(cb, !res ? "Can't apply contact: " + trs.id : null);
+		});
 	}
 
 	this.undoUnconfirmed = function (trs, sender) {
@@ -90,22 +104,20 @@ function Contact() {
 	}
 
 	this.objectNormalize = function (trs) {
-		var report = RequestSanitizer.validate(trs.asset.contact, {
-			object: true,
+		var report = library.scheme.validate(trs.asset.contact, {
+			type: "object",
 			properties: {
 				address: {
-					required: true,
-					string: true,
+					type: "string",
 					minLength: 1
 				}
-			}
+			},
+			required: ["address"]
 		});
 
-		if (!report.isValid) {
-			throw Error(report.issues);
+		if (!report) {
+			throw Error("Incorrect address in contact transaction");
 		}
-
-		trs.asset.contact = report.value;
 
 		return trs;
 	}
@@ -147,9 +159,16 @@ function attachApi() {
 		return res.json({success: true, fee: 1 * constants.fixedPoint})
 	});
 
-	router.get("/", function (req, res) {
-		req.sanitize("query", {
-			publicKey: "hex!"
+	router.get("/", function (req, res, next) {
+		req.sanitize(req.query, {
+			type: "object",
+			properties: {
+				publicKey: {
+					type: "string",
+					format: "publicKey"
+				}
+			},
+			required: ["publicKey"]
 		}, function (err, report, query) {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
@@ -180,20 +199,27 @@ function attachApi() {
 		});
 	});
 
-	router.put("/", function (req, res) {
-		req.sanitize("body", {
-			secret: {
-				required: true,
-				string: true,
-				minLength: 1
+	router.put("/", function (req, res, next) {
+		req.sanitize(req.body, {
+			type: "object",
+			properties: {
+				secret: {
+					type: "string",
+					minLength: 1
+				},
+				secondSecret: {
+					type: "string"
+				},
+				publicKey: {
+					type: "string",
+					format: "publicKey"
+				},
+				following: {
+					type: "string",
+					minLength: 1
+				}
 			},
-			secondSecret: "string?",
-			publicKey: "hex?",
-			following: {
-				required: true,
-				string: true,
-				minLength: 1
-			}
+			required: ["secret", "following"]
 		}, function (err, report, body) {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});

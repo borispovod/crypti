@@ -6,7 +6,9 @@ var slots = require('../helpers/slots.js'),
 	ByteBuffer = require("bytebuffer"),
 	bignum = require('../helpers/bignum.js'),
 	extend = require('util-extend'),
-	RequestSanitizer = require('../helpers/request-sanitizer.js');
+	z_schema = require('z-schema');
+
+var scheme = new z_schema();
 
 //constructor
 function Transaction() {
@@ -390,32 +392,92 @@ Transaction.prototype.objectNormalize = function (trs) {
 		throw Error('Unknown transaction type ' + trs.type);
 	}
 
-	var report = RequestSanitizer.validate(trs, {
-		object: true,
-		properties: {
-			id: "string",
-			height: "int?",
-			blockId: "string",
-			type: "int!",
-			timestamp: "int!",
-			senderPublicKey: "hex!",
-			senderId: "string",
-			recipientId: "string?",
-			senderUsername: "string?",
-			recipientUsername: "string?",
-			amount: "int",
-			fee: "int",
-			signature: "hex!",
-			signSignature: "hex?",
-			asset: "object"
-		}
-	});
-
-	if (!report.isValid) {
-		throw Error(report.issues);
+	if (!trs.senderUsername) {
+		delete trs.senderUsername;
 	}
 
-	trs = report.value;
+	if (!trs.recipientUsername) {
+		delete trs.recipientUsername;
+	}
+
+	if (!trs.recipientId) {
+		delete trs.recipientId;
+	}
+
+	if (trs.signSignature == null) {
+		delete trs.signSignature;
+	}
+
+	if (trs.asset == null) {
+		delete trs.asset;
+	}
+
+	if (trs.height == null) {
+		delete trs.height;
+	}
+
+	var report = scheme.validate(trs, {
+		object: true,
+		properties: {
+			id: {
+				type: "string"
+			},
+			height: {
+				type: "integer"
+			},
+			blockId: {
+				type: "string"
+			},
+			type: {
+				type: "integer"
+			},
+			timestamp: {
+				type: "integer"
+			},
+			senderPublicKey: {
+				type: "string",
+				format: "publicKey"
+			},
+			senderId: {
+				type: "string"
+			},
+			recipientId: {
+				type: "string"
+			},
+			senderUsername: {
+				type: "string"
+			},
+			recipientUsername: {
+				type: "string"
+			},
+			amount: {
+				type: "integer",
+				minimum: 0,
+				maximum: constants.totalAmount
+			},
+			fee: {
+				type: "integer",
+				minimum: 0,
+				maximum: constants.totalAmount
+			},
+			signature: {
+				type: "string",
+				format: "signature"
+			},
+			signSignature: {
+				type: "string",
+				format: "signature"
+			},
+			asset: {
+				type: "object"
+			}
+		},
+		required: ['type', 'timestamp', 'senderPublicKey', 'signature']
+	});
+
+	if (!report) {
+		throw Error("Can't parse transaction");
+	}
 
 	try {
 		trs = private.types[trs.type].objectNormalize(trs);

@@ -1,10 +1,10 @@
 {
-	"port": 4060,
-	"address": "127.0.0.1",
+	"port": 8040,
+	"address": "192.168.253.73",
 	"serveHttpAPI": true,
 	"serveHttpWallet": true,
-	"version": "0.3.0",
-	"fileLogLevel": "info",
+	"version": "0.3.1",
+	"fileLogLevel": "log",
 	"consoleLogLevel": "log",
 	"sharePort": true,
 	"api": {
@@ -14,14 +14,10 @@
 	},
 	"peers": {
 		"list": [
-			{
-				"ip" : "127.0.0.1",
-				"port" : 8080
-			}
 		],
 		"blackList": [],
 		"options": {
-			"timeout": 20000
+			"timeout": 1
 		}
 	},
 	"forging": {
@@ -134,7 +130,7 @@
 	},
 	"loading": {
 		"verifyOnLoading": true,
-		"loadPerIteration": 5000
+		"loadPerIteration": 1000
 	},
 	"ssl": {
 		"enabled": false,

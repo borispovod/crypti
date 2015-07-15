@@ -5,7 +5,6 @@ var crypto = require('crypto'),
 	constants = require("../helpers/constants.js"),
 	genesisblock = require("../helpers/genesisblock.js"),
 	constants = require('../helpers/constants.js'),
-	RequestSanitizer = require('../helpers/request-sanitizer'),
 	Router = require('../helpers/router.js'),
 	slots = require('../helpers/slots.js'),
 	util = require('util'),
@@ -53,16 +52,18 @@ function attachApi() {
 	});
 
 	router.get('/get', function (req, res, next) {
-		req.sanitize("query", {
-			id: {
-				required: true,
-				string: true,
-				minLength: 1
-			}
+		req.sanitize(req.query, {
+			type: "object",
+			properties: {
+				id: {
+					type: 'string',
+					minLength: 1
+				}
+			},
+			required: ["id"]
 		}, function (err, report, query) {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
-
 
 			private.getById(query.id, function (err, block) {
 				if (!block || err) {
@@ -74,22 +75,49 @@ function attachApi() {
 	});
 
 	router.get('/', function (req, res, next) {
-		req.sanitize("query", {
-			limit: {default: 20, int: true},
-			orderBy: "string?",
-			offset: "int?",
-			generatorPublicKey: "hex?",
-			totalAmount: "int?",
-			totalFee: "int?",
-			previousBlock: "string?",
-			height: "int?"
+		req.sanitize(req.query, {
+			type: "object",
+			properties: {
+				limit: {
+					type: "integer",
+					minimum: 0,
+					maximum: 100
+				},
+				orderBy: {
+					type: "string"
+				},
+				offset: {
+					type: "integer",
+					minimum: 0
+				},
+				generatorPublicKey: {
+					type: "string",
+					format: "publicKey"
+				},
+				totalAmount: {
+					type: "integer",
+					minimum: 0,
+					maximum: constants.totalAmount
+				},
+				totalFee: {
+					type: "integer",
+					minimum: 0,
+					maximum: constants.totalAmount
+				},
+				previousBlock: {
+					type: "string"
+				},
+				height: {
+					type: "integer"
+				}
+			}
 		}, function (err, report, query) {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
 
-			query.limit = query.limit || 20;
-			query.limit = query.limit > 100 ? 100 : query.limit;
-			query.limit = query.limit < 1 ? 1 : query.limit;
+			if (!query.limit) {
+				query.limit = 100;
+			}
 
 			private.list(query, function (err, data) {
 				if (err) {
@@ -160,12 +188,12 @@ private.list = function (filter, cb) {
 		params.previousBlock = filter.previousBlock;
 	}
 
-	if (filter.totalAmount) {
+	if (filter.totalAmount >= 0) {
 		fields.push('totalAmount = $totalAmount');
 		params.totalAmount = filter.totalAmount;
 	}
 
-	if (filter.totalFee) {
+	if (filter.totalFee >= 0) {
 		fields.push('totalFee = $totalFee');
 		params.totalFee = filter.totalFee;
 	}
@@ -402,7 +430,7 @@ Blocks.prototype.getCommonBlock = function (peer, height, cb) {
 					method: "GET"
 				}, function (err, data) {
 					if (err || data.body.error) {
-						return next(err || RequestSanitizer.string(data.body.error));
+						return next(err || data.body.error);
 					}
 
 					if (!data.body.common) {
@@ -851,7 +879,7 @@ Blocks.prototype.loadBlocksFromPeer = function (peer, lastCommonBlockId, cb) {
 				api: '/blocks?lastBlockId=' + lastCommonBlockId
 			}, function (err, data) {
 				if (err || data.body.error) {
-					return next(err || RequestSanitizer.string(data.body.error));
+					return next(err || data.body.error);
 				}
 
 				var blocks = data.body.blocks;
@@ -860,7 +888,15 @@ Blocks.prototype.loadBlocksFromPeer = function (peer, lastCommonBlockId, cb) {
 				}
 
 				// not working of data.body is empty....
-				blocks = RequestSanitizer.array(blocks);
+				var report = library.scheme.validate(blocks, {
+					type: "array"
+				});
+
+				if (!report) {
+					return next("Error, can't parse blocks...");
+				}
+
+				//blocks = RequestSanitizer.array(blocks);
 
 				blocks = blocks.map(library.dbLite.row2parsed, library.dbLite.parseFields(private.blocksDataFields));
 				try {

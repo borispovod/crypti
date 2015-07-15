@@ -1,4 +1,4 @@
-var node = require('./variables.js'),
+var node = require('./../variables.js'),
 	crypto = require('crypto');
 
 var account = node.randomAccount();
@@ -26,13 +26,29 @@ describe("Peer contacts", function () {
 					.expect('Content-Type', /json/)
 					.expect(200)
 					.end(function (err, res) {
-						setTimeout(done, 10000);
+						node.onNewBlock(done);
 					});
 			});
 	});
 
 	it("Add not exists account to contacts. Should return not ok", function (done) {
 		var transaction = node.crypti.contact.createContact(account.password, "5819218109212912C");
+		node.peer.post('/transactions')
+			.set('Accept', 'application/json')
+			.send({
+				transaction: transaction
+			})
+			.expect('Content-Type', /json/)
+			.expect(200)
+			.end(function (err, res) {
+				console.log(res.body);
+				node.expect(res.body).to.have.property("success").to.be.false;
+				done();
+			});
+	});
+
+	it("Add self account to contacts. Should return not ok", function (done) {
+		var transaction = node.crypti.contact.createContact(account.password, account.address);
 		node.peer.post('/transactions')
 			.set('Accept', 'application/json')
 			.send({
@@ -60,7 +76,7 @@ describe("Peer contacts", function () {
 			.end(function (err, res) {
 				console.log(res.body);
 				node.expect(res.body).to.have.property("success").to.be.false;
-				setTimeout(done, 10000);
+				node.onNewBlock(done);
 			});
 	});
 
@@ -78,7 +94,7 @@ describe("Peer contacts", function () {
 			.end(function (err, res) {
 				console.log(res.body);
 				node.expect(res.body).to.have.property("success").to.be.true;
-				setTimeout(done, 10000);
+				node.onNewBlock(done);
 			});
 	});
 
@@ -94,7 +110,7 @@ describe("Peer contacts", function () {
 			.end(function (err, res) {
 				console.log(res.body);
 				node.expect(res.body).to.have.property("success").to.be.false;
-				setTimeout(done, 10000);
+				node.onNewBlock(done);
 			});
 	});
 });
