@@ -51,18 +51,22 @@ function Multisignature() {
 			return setImmediate(cb, "Wrong transaction asset for multisignature transaction: " + trs.id);
 		}
 
-		for (var s = 0; s < trs.asset.multisignature.keysgroup.length; s++) {
-			var verify = false;
-			if (trs.signatures) {
-				for (var d = 0; d < trs.signatures.length && !verify; d++) {
-					if (library.logic.transaction.verifySignature(trs, sender.multisignatures[s], trs.signatures[d])) {
-						verify = true;
+		try {
+			for (var s = 0; s < trs.asset.multisignature.keysgroup.length; s++) {
+				var verify = false;
+				if (trs.signatures) {
+					for (var d = 0; d < trs.signatures.length && !verify; d++) {
+						if (library.logic.transaction.verifySignature(trs, sender.multisignatures[s], trs.signatures[d])) {
+							verify = true;
+						}
 					}
 				}
+				if (!verify) {
+					return setImmediate(cb, "Failed multisignature: " + trs.id);
+				}
 			}
-			if (!verify) {
-				return setImmediate(cb, "Failed multisignature: " + trs.id);
-			}
+		} catch (e) {
+			return setImmediate(cb, "Failed multisignature: " + trs.id);
 		}
 
 		if (trs.asset.multisignature.keysgroup.indexOf(sender.publicKey) != -1) {
@@ -383,15 +387,19 @@ shared.addMultisignature = function (body, cb) {
 					secondKeypair = ed.MakeKeypair(secondHash);
 				}
 
-				var transaction = library.logic.transaction.create({
-					type: TransactionTypes.MULTI,
-					sender: account,
-					keypair: keypair,
-					secondKeypair: secondKeypair,
-					min: body.min,
-					keysgroup: body.keysgroup,
-					lifetime: body.lifetime
-				});
+				try {
+					var transaction = library.logic.transaction.create({
+						type: TransactionTypes.MULTI,
+						sender: account,
+						keypair: keypair,
+						secondKeypair: secondKeypair,
+						min: body.min,
+						keysgroup: body.keysgroup,
+						lifetime: body.lifetime
+					});
+				} catch (e) {
+					return cb(e.toString());
+				}
 
 				modules.transactions.receiveTransactions([transaction], cb);
 			});

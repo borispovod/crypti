@@ -454,21 +454,24 @@ private.attachApi = function () {
 						secondKeypair = ed.MakeKeypair(secondHash);
 					}
 
-					var transaction = library.logic.transaction.create({
-						type: TransactionTypes.DAPP,
-						sender: account,
-						keypair: keypair,
-						secondKeypair: secondKeypair,
-						category: body.category,
-						name: body.name,
-						description: body.description,
-						tags: body.tags,
-						dapp_type: body.type,
-						nickname: body.nickname,
-						git: body.git,
-						link: body.link,
-						icon: body.icon
-					});
+					try {
+						var transaction = library.logic.transaction.create({
+							type: TransactionTypes.DAPP,
+							sender: account,
+							keypair: keypair,
+							secondKeypair: secondKeypair,
+							category: body.category,
+							name: body.name,
+							description: body.description,
+							tags: body.tags,
+							dapp_type: body.type,
+							nickname: body.nickname,
+							git: body.git,
+							icon: body.icon
+						});
+					} catch (e) {
+						return cb(e.toString());
+					}
 
 					modules.transactions.receiveTransactions([transaction], cb);
 				});

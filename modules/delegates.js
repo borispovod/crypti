@@ -999,13 +999,17 @@ shared.addDelegate = function (req, cb) {
 					secondKeypair = ed.MakeKeypair(secondHash);
 				}
 
-				var transaction = library.logic.transaction.create({
-					type: TransactionTypes.DELEGATE,
-					username: body.username,
-					sender: account,
-					keypair: keypair,
-					secondKeypair: secondKeypair
-				});
+				try {
+					var transaction = library.logic.transaction.create({
+						type: TransactionTypes.DELEGATE,
+						username: body.username,
+						sender: account,
+						keypair: keypair,
+						secondKeypair: secondKeypair
+					});
+				} catch (e) {
+					return cb(e.toString());
+				}
 				modules.transactions.receiveTransactions([transaction], cb);
 			});
 		}, function (err, transaction) {

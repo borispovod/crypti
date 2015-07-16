@@ -269,12 +269,16 @@ shared.addSignature = function (body, cb) {
 				var secondHash = crypto.createHash('sha256').update(body.secondSecret, 'utf8').digest();
 				var secondKeypair = ed.MakeKeypair(secondHash);
 
-				var transaction = library.logic.transaction.create({
-					type: TransactionTypes.SIGNATURE,
-					sender: account,
-					keypair: keypair,
-					secondKeypair: secondKeypair
-				});
+				try {
+					var transaction = library.logic.transaction.create({
+						type: TransactionTypes.SIGNATURE,
+						sender: account,
+						keypair: keypair,
+						secondKeypair: secondKeypair
+					});
+				} catch (e) {
+					return cb(e.toString());
+				}
 				modules.transactions.receiveTransactions([transaction], cb);
 			});
 		}, function (err, transaction) {

@@ -403,13 +403,17 @@ shared.addContact = function (req, cb) {
 						var secondKeypair = ed.MakeKeypair(secondHash);
 					}
 
-					var transaction = library.logic.transaction.create({
-						type: TransactionTypes.FOLLOW,
-						sender: account,
-						keypair: keypair,
-						secondKeypair: secondKeypair,
-						contactAddress: followingAddress
-					});
+					try {
+						var transaction = library.logic.transaction.create({
+							type: TransactionTypes.FOLLOW,
+							sender: account,
+							keypair: keypair,
+							secondKeypair: secondKeypair,
+							contactAddress: followingAddress
+						});
+					} catch (e) {
+						return cb(e.toString());
+					}
 
 					modules.transactions.receiveTransactions([transaction], cb);
 				});
