@@ -1,5 +1,5 @@
 /**
- * Ask Sebastian if you have any questions. Last Edit: 22/06/2015
+ * Ask Sebastian if you have any questions. Last Edit: 16/07/2015
  */
 
 'use strict';
@@ -7,6 +7,7 @@
 // Requires and node configuration
 var node = require('./../variables.js');
 var test = 0;
+var peerTested;
 var block = {
     blockHeight : 0,
     id : 0,
@@ -23,11 +24,11 @@ describe('Miscellaneous tests (peers, blocks, etc)', function() {
 
         test = test + 1;
         it(test + '. Add peers to local node',function(done){
-            var randomNumberOfPeers = node.randomNumber(1,3);
+            var randomNumberOfPeers = node.randomNumber(2,3);
             node.addPeers(randomNumberOfPeers, function (err) {
                 console.log('Added ' + randomNumberOfPeers + ' peers');
                 node.expect(err).to.be.not.ok;
-
+                // VERIFY NUMBER OF PEERS ADDED
                 node.api.get('/peers')
                     .set('Accept', 'application/json')
                     .expect('Content-Type', /json/)
@@ -36,10 +37,46 @@ describe('Miscellaneous tests (peers, blocks, etc)', function() {
                         console.log(res.body);
                         node.expect(res.body).to.have.property("success").to.be.true;
                         node.expect(res.body).to.have.property("peers").to.be.array;
-                        node.expect(res.body.peers.length).to.be.equal(randomNumberOfPeers);
+                        if (res.body.success == true && res.body.peers != null){
+                            node.expect(res.body.peers.length).to.be.at.least(randomNumberOfPeers);
+                            if (res.body.peers.length > 0){
+                                peerTested = res.body.peers[0];
+                            }
+                        }
+                        else {
+                            console.log("Request failed or peers object is null");
+                            node.expect("true").to.equal("false");
+                        }
                         done();
                     });
             });
+        });
+
+
+        test = test + 1;
+        it(test + '. Get peer by IP and port. Expecting success',function(done){
+            node.api.get('/peers/get?ip=' + peerTested.ip + '&port=' + peerTested.port)
+                .set('Accept', 'application/json')
+                .expect('Content-Type', /json/)
+                .expect(200)
+                .end(function (err, res){
+                    console.log(res.body);
+                    if (peerTested != null){
+                        node.expect(res.body).to.have.property("success").to.be.true;
+                        if (res.body.success == true && res.body.peer != null){
+                            node.expect(res.body.peer.ip).to.equal(peerTested.ip);
+                            node.expect(res.body.peer.port).to.equal(peerTested.port);
+                        }
+                        else{
+                            console.log("Request failed or peer object is null");
+                            node.expect("true").to.equal("false");
+                        }
+                    }
+                    else{
+                        console.log("No peer was registered in previous test. Skipping this test");
+                    }
+                    done();
+                });
         });
 
         test = test + 1;

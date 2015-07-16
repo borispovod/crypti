@@ -166,7 +166,7 @@ function addPeers(numOfPeers, cb) {
         os = operatingSystems[randomizeSelection(operatingSystems.length)];
         version = versions[randomizeSelection(versions.length)];
         port = ports[randomizeSelection(ports.length)];
-        sharePort = sharePortOptions[randomizeSelection(sharePortOptions.length)];
+        // sharePort = sharePortOptions[randomizeSelection(sharePortOptions.length)];
 
         request({
             type: "GET",
@@ -198,11 +198,7 @@ function randomizeSelection(length){
 
 // Returns a random number between min (inclusive) and max (exclusive)
 function randomNumber(min, max) {
-<<<<<<< HEAD
-    return parseInt(Math.random() * (max - min) + min);
-=======
     return  Math.floor(Math.random() * (max - min) + min);
->>>>>>> 38f8f8eeadba2793b3b3bacd3b1fad71e7832a18
 }
 
 // Calculates the expected fee from a transaction
