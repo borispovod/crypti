@@ -158,6 +158,7 @@ function addPeers(numOfPeers, cb) {
     var sharePortOptions = [0,1];
     var os,version,port,sharePort;
 
+
     var i = 0;
     async.whilst(function () {
         return i < numOfPeers
@@ -178,6 +179,7 @@ function addPeers(numOfPeers, cb) {
                 'os': os
             }
         }, function (err, resp, body) {
+            console.log(body);
             if (err || resp.statusCode != 200) {
                 return next(err || "Status code is not 200 (getHeight)");
             } else {

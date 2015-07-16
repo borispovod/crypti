@@ -38,7 +38,7 @@ describe('Miscellaneous tests (peers, blocks, etc)', function() {
                         node.expect(res.body).to.have.property("success").to.be.true;
                         node.expect(res.body).to.have.property("peers").to.be.array;
                         if (res.body.success == true && res.body.peers != null){
-                            node.expect(res.body.peers.length).to.be.at.least(randomNumberOfPeers);
+                            node.expect(res.body.peers.length).to.be.equal(randomNumberOfPeers);
                             if (res.body.peers.length > 0){
                                 peerTested = res.body.peers[0];
                             }
@@ -47,6 +47,7 @@ describe('Miscellaneous tests (peers, blocks, etc)', function() {
                             console.log("Request failed or peers object is null");
                             node.expect("true").to.equal("false");
                         }
+
                         done();
                     });
             });

@@ -99,7 +99,7 @@ function attachApi() {
 		req.sanitize(req.query, {
 			type: "object",
 			properties: {
-				ip_str: {
+				ip: {
 					type: "string",
 					minLength: 1
 				},
@@ -109,17 +109,20 @@ function attachApi() {
 					maximum: 65535
 				}
 			},
-			required: ['ip_str', 'port']
+			required: ['ip', 'port']
 		}, function (err, report, query) {
+			if (err) return next(err);
+			if (!report.isValid) return res.json({success: false, error: report.issues});
+
 			try {
-				var ip_str = ip.toLong(query.ip_str);
+				var ip_str = ip.toLong(query.ip);
 			} catch (e) {
 				return res.json({success: false, error: errorCode("PEERS.INVALID_PEER")});
 			}
 
 			private.getByFilter({
 				ip: ip_str,
-				port: port
+				port: query.port
 			}, function (err, peers) {
 				if (err) {
 					return res.json({success: false, error: errorCode("PEERS.PEER_NOT_FOUND")});

@@ -33,7 +33,6 @@ function attachApi() {
 	});
 
 	router.use(function (req, res, next) {
-		console.log(req.headers);
 		var peerIp = req.headers['x-forwarded-for'] || req.connection.remoteAddress || 'unknown';
 
 		req.headers['port'] = parseInt(req.headers['port']);
@@ -63,7 +62,6 @@ function attachApi() {
 			},
 			required: ["port", 'share-port', 'version']
 		}, function (err, report, headers) {
-			console.log(report);
 			if (err) return next();
 			if (!report.isValid) return next();
 
