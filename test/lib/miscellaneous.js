@@ -40,7 +40,13 @@ describe('Miscellaneous tests (peers, blocks, etc)', function() {
                     console.log(res.body);
                     node.expect(res.body).to.have.property("success").to.be.true;
                     node.expect(res.body).to.have.property("build");
-                    node.expect(res.body).to.have.property("version").to.equal(node.version);
+                    if (res.body.success == true && res.body.build != null) {
+                        node.expect(res.body).to.have.property("version").to.equal(node.version);
+                    }
+                    else{
+                        console.log("Request failed or build object is null");
+                        node.expect("true").to.equal("false");
+                    }
                     done();
                 });
         });
@@ -71,10 +77,17 @@ describe('Miscellaneous tests (peers, blocks, etc)', function() {
                     console.log(res.body);
                     node.expect(res.body).to.have.property("success").to.be.true;
                     node.expect(res.body).to.have.property("peers").that.is.an('array');
-                    if (res.body.peers.length > 0){
-                        for (var i = 0; i < res.body.peers.length; i++){
-                           node.expect(res.body.peers[i].state).to.equal(parseInt(state));
+                    if (res.body.success == true && res.body.peers != null){
+                        if (res.body.peers.length > 0){
+                            node.expect(res.body.peers.length).to.be.at.most(100);
+                            for (var i = 0; i < res.body.peers.length; i++){
+                               node.expect(res.body.peers[i].state).to.equal(parseInt(state));
+                            }
                         }
+                    }
+                    else{
+                        console.log("Request failed or peers object is null");
+                        node.expect("true").to.equal("false");
                     }
                     done();
                 });
@@ -91,10 +104,16 @@ describe('Miscellaneous tests (peers, blocks, etc)', function() {
                     console.log(res.body);
                     node.expect(res.body).to.have.property("success").to.be.true;
                     node.expect(res.body).to.have.property("peers").that.is.an('array');
-                    if (res.body.peers.length > 0){
-                        for (var i = 0; i < res.body.peers.length; i++){
-                            node.expect(res.body.peers[i].sharePort).to.equal(parseInt(shared));
+                    if (res.body.success == true && res.body.peers != null) {
+                        if (res.body.peers.length > 0) {
+                            for (var i = 0; i < res.body.peers.length; i++) {
+                                node.expect(res.body.peers[i].sharePort).to.equal(parseInt(shared));
+                            }
                         }
+                    }
+                    else{
+                        console.log("Request failed or peers object is null");
+                        node.expect("true").to.equal("false");
                     }
                     done();
                 });
@@ -111,9 +130,14 @@ describe('Miscellaneous tests (peers, blocks, etc)', function() {
                     console.log(res.body);
                     node.expect(res.body).to.have.property("success").to.be.true;
                     node.expect(res.body).to.have.property("peers").that.is.an('array');
-
-					// to check it need to have peers
-                    node.expect(res.body.peers.length).to.be.at.most(limit);
+                    if (res.body.success == true && res.body.peers != null) {
+                        // to check it need to have peers
+                        node.expect(res.body.peers.length).to.be.at.most(limit);
+                    }
+                    else{
+                        console.log("Request failed or peers object is null");
+                        node.expect("true").to.equal("false");
+                    }
                     done();
                 });
         });
@@ -129,15 +153,19 @@ describe('Miscellaneous tests (peers, blocks, etc)', function() {
                     console.log(res.body);
                     node.expect(res.body).to.have.property("success").to.be.true;
                     node.expect(res.body).to.have.property("peers").that.is.an('array');
-
-                    if (res.body.peers.length > 0){
-                        for (var i = 0; i < res.body.peers.length; i++){
-                            if (res.body.peers[i+1] != null){
-                                node.expect(res.body.peers[i+1].state).to.at.most(res.body.peers[i].state);
+                    if (res.body.success == true && res.body.peers != null) {
+                        if (res.body.peers.length > 0) {
+                            for (var i = 0; i < res.body.peers.length; i++) {
+                                if (res.body.peers[i + 1] != null) {
+                                    node.expect(res.body.peers[i + 1].state).to.at.most(res.body.peers[i].state);
+                                }
                             }
                         }
                     }
-
+                    else{
+                        console.log("Request failed or peers object is null");
+                        node.expect("true").to.equal("false");
+                    }
                     done();
                 });
         });
@@ -213,8 +241,12 @@ describe('Miscellaneous tests (peers, blocks, etc)', function() {
                     console.log(res.body);
                     node.expect(res.body).to.have.property("success").to.be.true;
                     node.expect(res.body).to.have.property("height").to.be.above(0);
-                    if (res.body.success == true){
+                    if (res.body.success == true && res.body.height != null){
                         block.blockHeight = res.body.height;
+                    }
+                    else {
+                        console.log("Request failed or height object is null");
+                        node.expect("true").to.equal("false");
                     }
                     done();
                 });
@@ -230,7 +262,13 @@ describe('Miscellaneous tests (peers, blocks, etc)', function() {
                     console.log(res.body);
                     node.expect(res.body).to.have.property("success").to.be.true;
                     node.expect(res.body).to.have.property("fee");
-                    node.expect(res.body.fee).to.equal(node.Fees.transactionFee * 100);
+                    if (res.body.success == true && res.body.fee != null) {
+                        node.expect(res.body.fee).to.equal(node.Fees.transactionFee * 100);
+                    }
+                    else {
+                            console.log("Request failed or fee object is null");
+                            node.expect("true").to.equal("false");
+                    }
                     done();
                 });
         });
@@ -246,19 +284,25 @@ describe('Miscellaneous tests (peers, blocks, etc)', function() {
                     console.log(res.body);
                     node.expect(res.body).to.have.property("success").to.be.true;
                     node.expect(res.body).to.have.property("blocks").that.is.an('array');
-                    node.expect(res.body.blocks).to.have.length(1);
-                    node.expect(res.body.blocks[0]).to.have.property("previousBlock");
-                    node.expect(res.body.blocks[0]).to.have.property("totalAmount");
-                    node.expect(res.body.blocks[0]).to.have.property("totalFee");
-                    node.expect(res.body.blocks[0]).to.have.property("generatorId");
-                    node.expect(res.body.blocks[0]).to.have.property("confirmations");
-                    node.expect(res.body.blocks[0]).to.have.property("blockSignature");
-                    node.expect(res.body.blocks[0]).to.have.property("numberOfTransactions");
-                    node.expect(res.body.blocks[0].height).to.equal(block.blockHeight);
-                    block.id = res.body.blocks[0].id;
-                    block.generatorPublicKey = res.body.blocks[0].generatorPublicKey;
-                    block.totalAmount = res.body.blocks[0].totalAmount;
-                    block.totalFee = res.body.blocks[0].totalFee;
+                    if (res.body.success == true && res.body.blocks != null) {
+                        node.expect(res.body.blocks).to.have.length(1);
+                        node.expect(res.body.blocks[0]).to.have.property("previousBlock");
+                        node.expect(res.body.blocks[0]).to.have.property("totalAmount");
+                        node.expect(res.body.blocks[0]).to.have.property("totalFee");
+                        node.expect(res.body.blocks[0]).to.have.property("generatorId");
+                        node.expect(res.body.blocks[0]).to.have.property("confirmations");
+                        node.expect(res.body.blocks[0]).to.have.property("blockSignature");
+                        node.expect(res.body.blocks[0]).to.have.property("numberOfTransactions");
+                        node.expect(res.body.blocks[0].height).to.equal(block.blockHeight);
+                        block.id = res.body.blocks[0].id;
+                        block.generatorPublicKey = res.body.blocks[0].generatorPublicKey;
+                        block.totalAmount = res.body.blocks[0].totalAmount;
+                        block.totalFee = res.body.blocks[0].totalFee;
+                    }
+                    else {
+                        console.log("Request failed or blocks object is null");
+                        node.expect("true").to.equal("false");
+                    }
                     done();
                 });
         });
@@ -274,8 +318,14 @@ describe('Miscellaneous tests (peers, blocks, etc)', function() {
                     console.log(res.body);
                     node.expect(res.body).to.have.property("success").to.be.true;
                     node.expect(res.body).to.have.property("blocks").that.is.an('array');
-                    for (var i = 0; i < res.body.blocks.length; i++){
-                        node.expect(res.body.blocks[i].generatorPublicKey).to.equal(block.generatorPublicKey);
+                    if (res.body.success == true && res.body.blocks != null) {
+                        for (var i = 0; i < res.body.blocks.length; i++) {
+                            node.expect(res.body.blocks[i].generatorPublicKey).to.equal(block.generatorPublicKey);
+                        }
+                    }
+                    else {
+                        console.log("Request failed or blocks object is null");
+                        node.expect("true").to.equal("false");
                     }
                     done();
                 });
@@ -292,8 +342,14 @@ describe('Miscellaneous tests (peers, blocks, etc)', function() {
                     console.log(res.body);
                     node.expect(res.body).to.have.property("success").to.be.true;
                     node.expect(res.body).to.have.property("blocks").that.is.an('array');
-                    for (var i = 0; i < res.body.blocks.length; i++){
-                        node.expect(res.body.blocks[i].totalFee).to.equal(block.totalFee);
+                    if (res.body.success == true && res.body.blocks != null){
+                        for (var i = 0; i < res.body.blocks.length; i++){
+                            node.expect(res.body.blocks[i].totalFee).to.equal(block.totalFee);
+                        }
+                    }
+                    else {
+                        console.log("Request failed or blocks object is null");
+                        node.expect("true").to.equal("false");
                     }
                     done();
                 });
@@ -310,10 +366,10 @@ describe('Miscellaneous tests (peers, blocks, etc)', function() {
                     node.expect(res.body).to.have.property("success").to.be.true;
                     node.expect(res.body).to.have.property("blocks").that.is.an('array');
                     if (res.body.success == true && res.body.blocks != null){
-                        node.expect(res.body.blocks).length.to.be.at.most(100);
+                        node.expect(res.body.blocks.length).to.be.at.most(100);
                     }
                     else{
-                        console.log("Transaction failed or blocks object is null");
+                        console.log("Request failed or blocks object is null");
                         node.expect("true").to.equal("false");
                     }
                     done();
@@ -331,10 +387,10 @@ describe('Miscellaneous tests (peers, blocks, etc)', function() {
                     node.expect(res.body).to.have.property("success").to.be.true;
                     node.expect(res.body).to.have.property("blocks").that.is.an('array');
                     if (res.body.success == true && res.body.blocks != null){
-                        node.expect(res.body.blocks).length.to.be.at.most(100);
+                        node.expect(res.body.blocks.length).to.be.at.most(100);
                     }
                     else{
-                        console.log("Transaction failed or blocks object is null");
+                        console.log("Request failed or blocks object is null");
                         console.log("Sent: /blocks?generatorPublicKey=" + node.Eaccount.publicKey);
                         node.expect("true").to.equal("false");
                     }
@@ -353,8 +409,14 @@ describe('Miscellaneous tests (peers, blocks, etc)', function() {
                     console.log(res.body);
                     node.expect(res.body).to.have.property("success").to.be.true;
                     node.expect(res.body).to.have.property("blocks").that.is.an('array');
-                    for (var i = 0; i < res.body.blocks.length; i++){
-                        node.expect(res.body.blocks[i].totalAmount).to.equal(block.totalAmount);
+                    if (res.body.success == true && res.body.blocks != null) {
+                        for (var i = 0; i < res.body.blocks.length; i++) {
+                            node.expect(res.body.blocks[i].totalAmount).to.equal(block.totalAmount);
+                        }
+                    }
+                    else{
+                        console.log("Request failed or blocks object is null");
+                        node.expect("true").to.equal("false");
                     }
                     done();
                 });
@@ -373,8 +435,14 @@ describe('Miscellaneous tests (peers, blocks, etc)', function() {
                         console.log(res.body);
                         node.expect(res.body).to.have.property("success").to.be.true;
                         node.expect(res.body).to.have.property("blocks").that.is.an('array');
-                        node.expect(res.body.blocks).to.have.length(1);
-                        node.expect(res.body.blocks[0].previousBlock).to.equal(block.id);
+                        if (res.body.success == true && res.body.blocks != null) {
+                            node.expect(res.body.blocks).to.have.length(1);
+                            node.expect(res.body.blocks[0].previousBlock).to.equal(block.id);
+                        }
+                        else{
+                            console.log("Request failed or blocks object is null");
+                            node.expect("true").to.equal("false");
+                        }
                         done();
                     });
             });
@@ -391,10 +459,16 @@ describe('Miscellaneous tests (peers, blocks, etc)', function() {
                     console.log(res.body);
                     node.expect(res.body).to.have.property("success").to.be.true;
                     node.expect(res.body).to.have.property("blocks").that.is.an('array');
-                    for (var i = 0; i < res.body.blocks.length; i++){
-                        if (res.body.blocks[i+1] != null){
-                            node.expect(res.body.blocks[i].height).to.be.above(res.body.blocks[i+1].height);
+                    if (res.body.success == true && res.body.blocks != null) {
+                        for (var i = 0; i < res.body.blocks.length; i++) {
+                            if (res.body.blocks[i + 1] != null) {
+                                node.expect(res.body.blocks[i].height).to.be.above(res.body.blocks[i + 1].height);
+                            }
                         }
+                    }
+                    else{
+                        console.log("Request failed or blocks object is null");
+                        node.expect("true").to.equal("false");
                     }
                     done();
                 });

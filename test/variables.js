@@ -1,5 +1,5 @@
 /**
- * Ask Sebastian if you have any questions. Last Edit: 14/06/2015
+ * Ask Sebastian if you have any questions. Last Edit: 15/07/2015
  */
 
 'use strict';
@@ -198,7 +198,7 @@ function randomizeSelection(length){
 
 // Returns a random number between min (inclusive) and max (exclusive)
 function randomNumber(min, max) {
-    return Math.random() * (max - min) + min;
+    return parseInt(Math.random() * (max - min) + min);
 }
 
 // Calculates the expected fee from a transaction
