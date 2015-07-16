@@ -572,9 +572,7 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 					}
 					if (verify && block.id != genesisblock.block.id) {
 						library.logic.transaction.verify(transaction, sender, function (err) {
-							console.log(err);
 							if (err) {
-								console.log("here");
 								return setImmediate(cb, {
 									message: err,
 									transaction: transaction,

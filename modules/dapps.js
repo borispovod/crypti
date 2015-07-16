@@ -178,13 +178,13 @@ function DApp() {
 
 	this.applyUnconfirmed = function (trs, sender, cb) {
 		if (private.unconfirmedNames[trs.asset.dapp.name]) {
-			setImmediate(cb, "dapp name is exists");
+			return setImmediate(cb, "dapp name is exists");
 		}
-		if (private.unconfirmedLinks[trs.asset.dapp.git]) {
-			setImmediate(cb, "dapp link is exists");
+		if (trs.asset.dapp.git && private.unconfirmedLinks[trs.asset.dapp.git]) {
+			return setImmediate(cb, "dapp link is exists");
 		}
-		if (private.unconfirmedNickNames[trs.asset.dapp.nickname]) {
-			setImmediate(cb, "dapp nickname is exists");
+		if (trs.asset.dapp.nickname && private.unconfirmedNickNames[trs.asset.dapp.nickname]) {
+			return setImmediate(cb, "dapp nickname is exists");
 		}
 		private.unconfirmedNames[trs.asset.dapp.name] = true;
 		private.unconfirmedLinks[trs.asset.dapp.git] = true;
