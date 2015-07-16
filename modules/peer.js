@@ -157,10 +157,10 @@ private.updatePeerList = function (cb) {
 			return cb();
 		}
 
-		var report = library.schema.validate(data.body.peers, {type: "array", required: true});
+		var report = library.scheme.validate(data.body.peers, {type: "array", required: true});
 
 		//var peers = RequestSanitizer.array(data.body.peers);
-		async.eachLimit(peers, 2, function (peer, cb) {
+		async.eachLimit(data.body.peers, 2, function (peer, cb) {
 			var report = library.scheme.validate(peer, {
 				object: true,
 				properties: {
@@ -191,7 +191,7 @@ private.updatePeerList = function (cb) {
 			});
 
 			if (!report) {
-				setImmediate(cb, "Peers incorrect");
+				return setImmediate(cb, "Peers incorrect");
 			}
 
 			peer = report.value;

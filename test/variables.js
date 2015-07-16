@@ -154,7 +154,6 @@ function waitForNewBlock(height, cb) {
 // Adds peers to local node
 function addPeers(numOfPeers, cb) {
     var operatingSystems = ['win32','win64','linux','debian'];
-    var versions = ['0.1.9','0.2.0','0.2.0a','0.3.0'];
     var ports = [4060, 5060, 8040, 7040];
     var sharePortOptions = [0,1];
     var os,version,port,sharePort;
@@ -164,7 +163,7 @@ function addPeers(numOfPeers, cb) {
         return i < numOfPeers
     }, function (next) {
         os = operatingSystems[randomizeSelection(operatingSystems.length)];
-        version = versions[randomizeSelection(versions.length)];
+        version = config.version;
         port = ports[randomizeSelection(ports.length)];
         sharePort = sharePortOptions[randomizeSelection(sharePortOptions.length)];
 
@@ -198,11 +197,7 @@ function randomizeSelection(length){
 
 // Returns a random number between min (inclusive) and max (exclusive)
 function randomNumber(min, max) {
-<<<<<<< HEAD
-    return parseInt(Math.random() * (max - min) + min);
-=======
     return  Math.floor(Math.random() * (max - min) + min);
->>>>>>> 38f8f8eeadba2793b3b3bacd3b1fad71e7832a18
 }
 
 // Calculates the expected fee from a transaction

@@ -33,6 +33,7 @@ function attachApi() {
 	});
 
 	router.use(function (req, res, next) {
+		console.log(req.headers);
 		var peerIp = req.headers['x-forwarded-for'] || req.connection.remoteAddress || 'unknown';
 
 		req.headers['port'] = parseInt(req.headers['port']);
@@ -62,17 +63,18 @@ function attachApi() {
 			},
 			required: ["port", 'share-port', 'version']
 		}, function (err, report, headers) {
+			console.log(report);
 			if (err) return next();
 			if (!report.isValid) return next();
 
 
 			var peer = {
 				ip: ip.toLong(peerIp),
-				port: private.headers.port,
+				port: req.headers['port'],
 				state: 2,
-				os: private.headers.os,
-				sharePort: Number(private.headers['share-port']),
-				version: private.headers.version
+				os: req.headers['os'] || null,
+				sharePort: req.headers['share-port'],
+				version: req.headers['version']
 			};
 
 			if (peer.port > 0 && peer.port <= 65535 && peer.version == library.config.version) {
