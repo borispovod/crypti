@@ -513,7 +513,7 @@ shared.getTransactions = function (query, cb) {
 			return cb(err[0].message);
 		}
 
-		private.list(query, function (err, data) {
+		private.list(query.body, function (err, data) {
 			if (err) {
 				return cb(errorCode("TRANSACTIONS.TRANSACTIONS_NOT_FOUND"));
 			}
