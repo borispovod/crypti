@@ -3,10 +3,10 @@ module.exports = {
         "version": 0,
         "totalAmount": 10000000000000000,
         "totalFee": 0,
-        "payloadHash": "b2472fff1679b0f8b6b5fdfafa9000393c413b19d125526013e0170eebe5390f",
+        "payloadHash": "cb93e510130cf42b6e17efb9ec622ce3224fd3c9c54a9dadc5a0e9dd5d3eff2b",
         "timestamp": 0,
-        "numberOfTransactions": 104,
-        "payloadLength": 20514,
+        "numberOfTransactions": 103,
+        "payloadLength": 20326,
         "previousBlock": null,
         "generatorPublicKey": "22ebd6dca048c61ac83e2a677b8e39a399e2d1119381ba235d6bc71be674ca1c",
         "transactions": [
@@ -27,15 +27,15 @@ module.exports = {
                 "fee": 0,
                 "timestamp": 0,
                 "recipientId": null,
-                "senderId": "4033055606322944442C",
-                "senderPublicKey": "390e0a9d3d45353c77af95ee8bbea59ec33bc995f411a98cd55bc91e7dc4b25a",
+                "senderId": "16567862767866377660C",
+                "senderPublicKey": "e36063e0d3be04332fcade1890e6e9bc289557faf99e695be91702e769f5278d",
                 "asset": {
                     "delegate": {
-                        "username": "genesisDelegate52"
+                        "username": "genesisDelegate51"
                     }
                 },
-                "signature": "e3293d39ff852bee1e034bae4ed46102a9fc926846e4e396223b04c24563bb2b82b4796e4307687d50b2e4f278aeae8940670b0c439e1ac9c5fcf77015ee3108",
-                "id": "18367411627101670231"
+                "signature": "dc04d8f85ff12d95071a94c1c033ad3d8e2c2b6191266d33303b9ee742630181f2571c703d7b34fc132ca8fee710735ff95d80feeeee4ab08b732ebf26ff250f",
+                "id": "3969231863660932910"
             },
             {
                 "type": 2,
@@ -827,22 +827,6 @@ module.exports = {
                 "fee": 0,
                 "timestamp": 0,
                 "recipientId": null,
-                "senderId": "16567862767866377660C",
-                "senderPublicKey": "e36063e0d3be04332fcade1890e6e9bc289557faf99e695be91702e769f5278d",
-                "asset": {
-                    "delegate": {
-                        "username": "genesisDelegate51"
-                    }
-                },
-                "signature": "dc04d8f85ff12d95071a94c1c033ad3d8e2c2b6191266d33303b9ee742630181f2571c703d7b34fc132ca8fee710735ff95d80feeeee4ab08b732ebf26ff250f",
-                "id": "3969231863660932910"
-            },
-            {
-                "type": 2,
-                "amount": 0,
-                "fee": 0,
-                "timestamp": 0,
-                "recipientId": null,
                 "senderId": "14270066843430683515C",
                 "senderPublicKey": "708b04bd45cf1c2503c14c4465433de46f6461647b2e352c96d7bfa7ba32e124",
                 "asset": {
@@ -852,6 +836,22 @@ module.exports = {
                 },
                 "signature": "b9434988d7932bc24e7807ea90af2c80b45f1e988103901c0ea44ac278c2e1910606e4a764f1dbb86c8e194f5e5e7c311177a3fda080bacec5d28e95cf0b5d0d",
                 "id": "14816299744002842293"
+            },
+            {
+                "type": 2,
+                "amount": 0,
+                "fee": 0,
+                "timestamp": 0,
+                "recipientId": null,
+                "senderId": "4033055606322944442C",
+                "senderPublicKey": "390e0a9d3d45353c77af95ee8bbea59ec33bc995f411a98cd55bc91e7dc4b25a",
+                "asset": {
+                    "delegate": {
+                        "username": "genesisDelegate52"
+                    }
+                },
+                "signature": "e3293d39ff852bee1e034bae4ed46102a9fc926846e4e396223b04c24563bb2b82b4796e4307687d50b2e4f278aeae8940670b0c439e1ac9c5fcf77015ee3108",
+                "id": "18367411627101670231"
             },
             {
                 "type": 2,
@@ -1752,32 +1752,10 @@ module.exports = {
                 },
                 "signature": "34f836623665bf43715b785e0b52fac6194ff6db2c7f026b28077f30d79b02afae62de9da8a47b8e4206413511a4b94fa8761d829f865ad1c7dfc9c923846e03",
                 "id": "14218251037812642697"
-            },
-            {
-                "type": 9,
-                "amount": 0,
-                "fee": 0,
-                "timestamp": 0,
-                "recipientId": null,
-                "senderId": "8089060562636229509C",
-                "senderPublicKey": "db769b826286d86f23855eb86d1a0e2324f550a4933f22b8e6bc88bc9d329b59",
-                "asset": {
-                    "dapp": {
-                        "name": "testdapp",
-                        "nickname": "testdapp",
-                        "description": "test dapp",
-                        "tags": "test",
-                        "git": "git@github.com:crypti/testdapp.git",
-                        "type": 0,
-                        "category": 0
-                    }
-                },
-                "signature": "ce91f9ac366f308ed68a0e439ce644dfe1ae97a99a1612430c245bceef21acae02cee2c58a9efa868a3c5162f501a370dfb77c5ba74472ea3bbd05d118136c00",
-                "id": "15616498276233037701"
             }
         ],
         "height": 1,
-        "blockSignature": "2e6fd311b55727376dde72ac69b7d3d2148ef28e1d61f954f408874f3f1a45a19d831ec204982d1e9544f504a3c1501df31a0a7d4a4e21beb2a6dd368d658d0b",
-        "id": "1904506138016700155"
+        "blockSignature": "5bfd3ff93e6fbbb2970f9fdafe407ef149c339fca0811cdb2612a14ebe64c40860977978c4cdcfa44aca2d9d38f175290112f8cfb47e95a1001377017f58610e",
+        "id": "3051790244576518960"
     }
 }

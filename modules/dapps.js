@@ -466,6 +466,7 @@ private.attachApi = function () {
 							tags: body.tags,
 							dapp_type: body.type,
 							nickname: body.nickname,
+							link: body.link,
 							git: body.git,
 							icon: body.icon
 						});
@@ -689,6 +690,7 @@ private.attachApi = function () {
 
 				private.downloadDApp(dapp, function (err, dappPath) {
 					if (err) {
+						private.loading[body.id] = false;
 						return res.json({success: false, error: err});
 					} else {
 						if (dapp.type == 0) {
@@ -753,7 +755,7 @@ private.attachApi = function () {
 				return res.json({success: false, error: "Can't get installed dapps ids, see logs"});
 			}
 
-			return res.json({success: true, files: files});
+			return res.json({success: true, ids: files});
 		})
 	});
 
@@ -1007,12 +1009,12 @@ private.list = function (filter, cb) {
 	}
 
 	// need to fix 'or' or 'and' in query
-	library.dbLite.query("select name, description, tags, nickname, git, type, category, transactionId " +
+	library.dbLite.query("select name, description, tags, nickname, git, type, category, icon, link, transactionId " +
 		"from dapps " +
 		(fields.length ? "where " + fields.join(' or ') + " " : "") +
 		(filter.orderBy ? 'order by ' + sortBy + ' ' + sortMethod : '') + " " +
 		(filter.limit ? 'limit $limit' : '') + " " +
-		(filter.offset ? 'offset $offset' : ''), params, ['name', 'description', 'tags', 'nickname', 'git', 'type', 'category', 'transactionId'], function (err, rows) {
+		(filter.offset ? 'offset $offset' : ''), params, ['name', 'description', 'tags', 'nickname', 'git', 'type', 'category', 'icon', 'link', 'transactionId'], function (err, rows) {
 		if (err) {
 			return cb(err);
 		}
@@ -1183,6 +1185,8 @@ private.downloadDApp = function (dApp, cb) {
 							})
 						}
 					});
+				} else if (dApp.link) {
+					return setImmediate(cb);
 				}
 			});
 		}

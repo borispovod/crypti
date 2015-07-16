@@ -338,6 +338,16 @@ for (var i = 0; i < file.votes.publicKeys.length; i++) {
 
 console.log("Make dapps...");
 
+/*
+ {
+ 	"name": "Crypti DApp",
+ 	"description": "Example Crypti DApp. Welcome to try it!",
+ 	"git": "git@github.com:crypti/ExampleDapp.git",
+ 	"type": 0,
+ 	"category": 0
+ }
+ */
+
 for (var i = 0; i < file.dapps.length; i++) {
 	var dapp = file.dapps[i];
 
