@@ -95,20 +95,20 @@ Sql.prototype.onBlockchainReady = function () {
 }
 
 //shared
-shared.select = function (config, cb) {
-	private.query.call(this, "select", config, cb);
+shared.select = function (req, cb) {
+	private.query.call(this, "select", req, cb);
 }
 
-shared.insert = function (config, cb) {
-	private.query.call(this, "insert", config, cb);
+shared.insert = function (req, cb) {
+	private.query.call(this, "insert", req, cb);
 }
 
-shared.update = function (config, cb) {
-	private.query.call(this, "update", config, cb);
+shared.update = function (req, cb) {
+	private.query.call(this, "update", req, cb);
 }
 
-shared.remove = function (config, cb) {
-	private.query.call(this, "remove", config, cb);
+shared.remove = function (req, cb) {
+	private.query.call(this, "remove", req, cb);
 }
 
 module.exports = Sql;

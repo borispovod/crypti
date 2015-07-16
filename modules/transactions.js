@@ -450,7 +450,8 @@ Transactions.prototype.onBind = function (scope) {
 }
 
 //shared
-shared.getTransactions = function (query, cb) {
+shared.getTransactions = function (req, cb) {
+	var query = req.body;
 	library.scheme.validate(query, {
 		type: "object",
 		properties: {
@@ -513,7 +514,7 @@ shared.getTransactions = function (query, cb) {
 			return cb(err[0].message);
 		}
 
-		private.list(query.body, function (err, data) {
+		private.list(query, function (err, data) {
 			if (err) {
 				return cb(errorCode("TRANSACTIONS.TRANSACTIONS_NOT_FOUND"));
 			}
@@ -523,7 +524,8 @@ shared.getTransactions = function (query, cb) {
 	});
 }
 
-shared.getTransaction = function (query, cb) {
+shared.getTransaction = function (req, cb) {
+	var query = req.body;
 	library.scheme.validate(query, {
 		type: 'object',
 		properties: {
@@ -547,7 +549,8 @@ shared.getTransaction = function (query, cb) {
 	});
 }
 
-shared.getUnconfirmedTransaction = function (query, cb) {
+shared.getUnconfirmedTransaction = function (req, cb) {
+	var query = req.body;
 	library.scheme.validate(query, {
 		type: 'object',
 		properties: {
