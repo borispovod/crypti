@@ -169,8 +169,11 @@ Transaction.prototype.process = function (trs, sender, cb) {
 		return setImmediate(cb, "Transaction is not ready: " + trs.id);
 	}
 
-	var txId = this.getId(trs);
-
+	try {
+		var txId = this.getId(trs);
+	} catch (e) {
+		return setImmediate(cb, "Invalid transaction id");
+	}
 	if (trs.id && trs.id != txId) {
 		return setImmediate(cb, "Invalid transaction id");
 	} else {
