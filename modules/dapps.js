@@ -99,7 +99,6 @@ function DApp() {
 			if (isSia || isGit) {
 				return setImmediate(cb, errorCode("DAPPS.GIT_AND_SIA"));
 			}
-
 			if (!valid_url.isUri(trs.asset.dapp.link)){
 				return setImmediate(cb, errorCode("DAPPS.INVALID_GIT"));
 			}
@@ -1217,7 +1216,6 @@ private.apiHandler = function (message, callback) {
 
 		modules[module].sandboxApi(call, {"body": message.args, "dappid": message.dappid}, callback);
 	} catch (e) {
-		console.log(e);
 		return setImmediate(callback, "Incorrect call");
 	}
 }
