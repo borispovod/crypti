@@ -575,7 +575,8 @@ shared.getUnconfirmedTransaction = function (req, cb) {
 	});
 }
 
-shared.getUnconfirmedTransactions = function (query, cb) {
+shared.getUnconfirmedTransactions = function (req, cb) {
+	var query = req.body;
 	library.scheme.validate(query, {
 		type: "object",
 		properties: {
@@ -611,7 +612,8 @@ shared.getUnconfirmedTransactions = function (query, cb) {
 	});
 }
 
-shared.addTransactions = function (body, cb) {
+shared.addTransactions = function (req, cb) {
+	var body = req.body;
 	library.scheme.validate(body, {
 		type: "object",
 		properties: {
