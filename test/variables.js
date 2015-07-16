@@ -165,7 +165,7 @@ function addPeers(numOfPeers, cb) {
         os = operatingSystems[randomizeSelection(operatingSystems.length)];
         version = config.version;
         port = ports[randomizeSelection(ports.length)];
-        sharePort = sharePortOptions[randomizeSelection(sharePortOptions.length)];
+        // sharePort = sharePortOptions[randomizeSelection(sharePortOptions.length)];
 
         request({
             type: "GET",

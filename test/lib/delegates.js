@@ -43,35 +43,43 @@ describe('Delegates', function() {
                     console.log(res.body);
                     node.expect(res.body).to.have.property("success").to.be.true;
                     node.expect(res.body).to.have.property("account").that.is.an('object');
-                    Raccount.address = res.body.account.address;
-                    Raccount.publicKey = res.body.account.publicKey;
-                    Raccount.balance = res.body.account.balance;
+                    if (res.body.success == true && res.body.account != null){
+                        Raccount.address = res.body.account.address;
+                        Raccount.publicKey = res.body.account.publicKey;
+                        Raccount.balance = res.body.account.balance;
 
-                    node.onNewBlock(function(err) {
-                        node.expect(err).to.be.not.ok;
-                        node.api.put('/accounts/delegates')
-                            .set('Accept', 'application/json')
-                            .send({
-                                secret: Raccount.password,
-                                delegates: ["+" + node.Eaccount.publicKey]
-                            })
-                            .expect('Content-Type', /json/)
-                            .expect(200)
-                            .end(function (err, res) {
-                                console.log(res.body);
-                                node.expect(res.body).to.have.property("success").to.be.false;
-                                node.expect(res.body).to.have.property("error");
-                                /*if (res.body.success == false && res.body.error != null) {
-                                    node.expect(res.body.error).to.contain("balance");
-                                }
-                                else {
-                                    console.log("Expected test to fail but it succeeded");
-                                    console.log("Sent: secret: " + Raccount.password + ", delegates:[\"+\"" + node.Eaccount.publicKey);
-                                    node.expect("TEST").to.equal("FAILED");
-                                }*/
-                                done();
-                            });
-                    });
+                        node.onNewBlock(function(err) {
+                            node.expect(err).to.be.not.ok;
+                            node.api.put('/accounts/delegates')
+                                .set('Accept', 'application/json')
+                                .send({
+                                    secret: Raccount.password,
+                                    delegates: ["+" + node.Eaccount.publicKey]
+                                })
+                                .expect('Content-Type', /json/)
+                                .expect(200)
+                                .end(function (err, res) {
+                                    console.log(res.body);
+                                    node.expect(res.body).to.have.property("success").to.be.false;
+                                    node.expect(res.body).to.have.property("error");
+                                    /*if (res.body.success == false && res.body.error != null) {
+                                        node.expect(res.body.error).to.contain("balance");
+                                    }
+                                    else {
+                                        console.log("Expected test to fail but it succeeded");
+                                        console.log("Sent: secret: " + Raccount.password + ", delegates:[\"+\"" + node.Eaccount.publicKey);
+                                        node.expect("TEST").to.equal("FAILED");
+                                    }*/
+                                    done();
+                                });
+                        });
+                    }
+                    else{
+                        console.log("Opening account failed or account object is null");
+                        console.log("Sent: " + Raccount.password);
+                        node.expect(true).to.equal(false);
+                        done();
+                    }
                 });
         });
 
@@ -116,9 +124,8 @@ describe('Delegates', function() {
                     else{
                         console.log("Expected error and got success.");
                         console.log("Sent: secret: " + Raccount.password + ", username: " + Raccount.delegateName);
-                        node.expect("TEST").to.equal("FAILED");
+                        node.expect(true).to.equal(false);
                     }
-
                     done();
                 });
         });
