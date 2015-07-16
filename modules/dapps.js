@@ -17,6 +17,7 @@ var async = require('async'),
 	ed = require('ed25519'),
 	rmdir = require('rimraf'),
 	extend = require('extend'),
+	valid_url = require('valid-url'),
 	sandboxHelper = require('../helpers/sandbox.js');
 
 var modules, library, self, private = {}, shared = {};
@@ -45,6 +46,7 @@ function DApp() {
 			type: data.dapp_type,
 			nickname: data.nickname,
 			git: data.git,
+			link: data.link,
 			icon: data.icon
 		}
 
@@ -56,7 +58,7 @@ function DApp() {
 	}
 
 	this.verify = function (trs, sender, cb) {
-		var isSia = false;
+		var isSia = false, isGit = false;
 
 		if (trs.recipientId) {
 			return setImmediate(cb, errorCode("TRANSACTIONS.INVALID_RECIPIENT", trs));
@@ -86,7 +88,19 @@ function DApp() {
 				return setImmediate(cb, errorCode("DAPPS.GIT_AND_SIA"));
 			}
 
+			isGit = true;
+
 			if (!(/^git\@github\.com\:.+\.git$/.test(trs.asset.dapp.git))) {
+				return setImmediate(cb, errorCode("DAPPS.INVALID_GIT"));
+			}
+		}
+
+		if (trs.asset.dapp.link) {
+			if (isSia || isGit) {
+				return setImmediate(cb, errorCode("DAPPS.GIT_AND_SIA"));
+			}
+
+			if (!valid_url.isUri(trs.asset.dapp.link)){
 				return setImmediate(cb, errorCode("DAPPS.INVALID_GIT"));
 			}
 		}
@@ -138,6 +152,10 @@ function DApp() {
 				buf = Buffer.concat([buf, new Buffer(trs.asset.dapp.git, 'utf8')]);
 			}
 
+			if (trs.asset.dapp.link) {
+				buf = Buffer.concat([buf, new Buffer(trs.asset.dapp.link, 'utf8')]);
+			}
+
 			var bb = new ByteBuffer(4 + 4, true);
 			bb.writeInt(trs.asset.dapp.type);
 			bb.writeInt(trs.asset.dapp.category);
@@ -173,10 +191,11 @@ function DApp() {
 		private.unconfirmedLinks[trs.asset.dapp.git] = true;
 		private.unconfirmedNickNames[trs.asset.dapp.nickname] = true;
 
-		library.dbLite.query("SELECT count(transactionId) FROM dapps WHERE (name = $name or nickname = $nickname or git = $git) and transactionId != $transactionId", {
+		library.dbLite.query("SELECT count(transactionId) FROM dapps WHERE (name = $name or nickname = $nickname or git = $git or link = $link) and transactionId != $transactionId", {
 			name: trs.asset.dapp.name,
 			nickname: trs.asset.dapp.nickname || null,
 			git: trs.asset.dapp.git || null,
+			link: trs.asset.dapp.link || null,
 			transactionId: trs.id
 		}, ['count'], function (err, rows) {
 			if (err || rows.length == 0) {
@@ -235,6 +254,11 @@ function DApp() {
 					maxLength: 2000,
 					minLength: 1
 				},
+				link: {
+					type: "string",
+					minLength: 1,
+					maxLength: 2000
+				},
 				icon: {
 					type: "string",
 					minLength: 1,
@@ -262,6 +286,7 @@ function DApp() {
 				type: raw.dapp_type,
 				nickname: raw.dapp_nickname,
 				git: raw.dapp_git,
+				link: raw.dapp_link,
 				category: raw.dapp_category,
 				icon: raw.dapp_icon
 			}
@@ -271,13 +296,14 @@ function DApp() {
 	}
 
 	this.dbSave = function (trs, cb) {
-		library.dbLite.query("INSERT INTO dapps(type, name, description, tags, nickname, git, category, icon, transactionId) VALUES($type, $name, $description, $tags, $nickname, $git, $category, $icon, $transactionId)", {
+		library.dbLite.query("INSERT INTO dapps(type, name, description, tags, nickname, git, category, icon, link, transactionId) VALUES($type, $name, $description, $tags, $nickname, $git, $category, $icon, $link, $transactionId)", {
 			type: trs.asset.dapp.type,
 			name: trs.asset.dapp.name,
 			description: trs.asset.dapp.description || null,
 			tags: trs.asset.dapp.tags || null,
 			nickname: trs.asset.dapp.nickname || null,
 			git: trs.asset.dapp.git || null,
+			link: trs.asset.dapp.link || null,
 			icon: trs.asset.dapp.icon || null,
 			category: trs.asset.dapp.category,
 			transactionId: trs.id
@@ -382,6 +408,16 @@ private.attachApi = function () {
 					type: "string",
 					maxLength: 2000,
 					minLength: 1
+				},
+				link: {
+					type: "string",
+					minLength: 1,
+					maxLength: 2000
+				},
+				icon: {
+					type: "string",
+					minLength: 1,
+					maxLength: 2000
 				}
 			},
 			required: ["secret", "type", "name", "category"]
@@ -454,8 +490,8 @@ private.attachApi = function () {
 			type: "object",
 			properties: {
 				category: {
-					type: "integer",
-					minimum: 0
+					type: "string",
+					minLength: 1
 				},
 				name: {
 					type: "string",
@@ -534,6 +570,11 @@ private.attachApi = function () {
 				category: {
 					type: 'string',
 					minLength: 1
+				},
+				installed: {
+					type: 'integer',
+					minimum: 0,
+					maximum: 1
 				}
 			},
 			required: ["q"]
@@ -582,13 +623,32 @@ private.attachApi = function () {
 										'nickname': String,
 										'git': String,
 										'type': Number,
-										'category': Number
+										'category': Number,
+										'icon': String,
+										'link': String
 									}, function (err, rows) {
 										if (err) {
 											library.logger.error(err);
 											return res.json({success: false, error: "Sql error, check logs"});
 										} else {
-											return res.json({success: true, dapps: rows});
+											if (!query.installed) {
+												return res.json({success: true, dapps: rows});
+											} else {
+												private.getInstalledIds(function (err, installed) {
+													if (err) {
+														return res.json({success: false, error: "Can't get installed dapps ids"});
+													}
+
+													var dapps = [];
+													rows.forEach(function (dapp) {
+														if (installed.indexOf(dapp.transactionId) >= 0) {
+															dapps.push(dapp);
+														}
+													});
+
+													return res.json({success: true, dapps: dapps});
+												});
+											}
 										}
 									});
 								} else {
@@ -666,10 +726,32 @@ private.attachApi = function () {
 	});
 
 	router.get('/installed', function (req, res, next) {
-		private.getInstalled(function (err, files) {
+		private.getInstalledIds(function (err, files) {
 			if (err) {
 				library.logger.error(err);
-				return res.json({success: false, error: "Can't get installed dapps, see logs"});
+				return res.json({success: false, error: "Can't get installed dapps id, see logs"});
+			}
+
+			if (files.length == 0) {
+				return res.json({success: true, dapps: []});
+			}
+
+			private.getByIds(files, function (err, dapps) {
+				if (err) {
+					library.logger.error(err);
+					return res.json({success: false, error: "Can't get installed dapps, see logs"});
+				}
+
+				return res.json({success: true, dapps: dapps});
+			});
+		});
+	});
+
+	router.get('/installedIds', function (req, res, next) {
+		private.getInstalledIds(function (err, files) {
+			if (err) {
+				library.logger.error(err);
+				return res.json({success: false, error: "Can't get installed dapps ids, see logs"});
 			}
 
 			return res.json({success: true, files: files});
@@ -741,7 +823,7 @@ private.attachApi = function () {
 					library.logger.error(err);
 					return res.json({success: false, error: "Can't find dapp"});
 				} else {
-					private.getInstalled(function (err, files) {
+					private.getInstalledIds(function (err, files) {
 						if (err) {
 							private.launched[body.id] = false;
 							library.logger.error(err);
@@ -851,12 +933,26 @@ private.attachApi = function () {
 
 //private methods
 private.get = function (id, cb) {
-	library.dbLite.query("SELECT name, description, tags, nickname, git, type, category, transactionId FROM dapps WHERE transactionId = $id", {id: id}, ['name', 'description', 'tags', 'nickname', 'git', 'type', 'category', 'transactionId'], function (err, rows) {
+	library.dbLite.query("SELECT name, description, tags, nickname, git, type, category, icon, link, transactionId FROM dapps WHERE transactionId = $id", {id: id}, ['name', 'description', 'tags', 'nickname', 'git', 'type', 'category', 'icon', 'link', 'transactionId'], function (err, rows) {
 		if (err || rows.length == 0) {
 			return setImmediate(cb, err ? "Sql error" : "DApp not found");
 		}
 
 		return setImmediate(cb, null, rows[0]);
+	});
+}
+
+private.getByIds = function (ids, cb) {
+	for (var i = 0; i < ids.length; i++) {
+		ids[i] = "'" + ids[i] + "'";
+	}
+
+	library.dbLite.query("SELECT name, description, tags, nickname, git, type, category, icon, link, transactionId FROM dapps WHERE transactionId IN (" + ids.join(',') + ")", {}, ['name', 'description', 'tags', 'nickname', 'git', 'type', 'category', 'icon', 'link', 'transactionId'], function (err, rows) {
+		if (err) {
+			return setImmediate(cb, err ? "Sql error" : "DApp not found");
+		}
+
+		return setImmediate(cb, null, rows);
 	});
 }
 
@@ -873,9 +969,15 @@ private.list = function (filter, cb) {
 		fields.push('name = $name');
 		params.name = filter.name;
 	}
-	if (filter.category >= 0) {
-		fields.push('category = $category');
-		params.category = filter.category;
+	if (filter.category) {
+		var category = dappCategory[filter.category];
+
+		if (category !== null && category !== undefined) {
+			fields.push('category = $category');
+			params.category = category;
+		} else {
+			return setImmediate(cb, "Incorrect category");
+		}
 	}
 	if (filter.git) {
 		fields.push('git = $git');
@@ -976,7 +1078,7 @@ private.installDependencies = function (dApp, cb) {
 	});
 }
 
-private.getInstalled = function (cb) {
+private.getInstalledIds = function (cb) {
 	fs.readdir(private.dappsPath, function (err, files) {
 		if (err) {
 			return setImmediate(cb, err);

@@ -54,6 +54,7 @@
     "unzip": "*",
     "usage": "^0.6.0",
     "util-extend": "*",
+    "valid-url": "^1.0.9",
     "z-schema": "^3.12.0"
   },
   "devDependencies": {
