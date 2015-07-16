@@ -226,12 +226,16 @@ function attachApi() {
 			var secondHash = crypto.createHash('sha256').update(body.secondSecret, 'utf8').digest();
 			var secondKeypair = ed.MakeKeypair(secondHash);
 
-			var transaction = library.logic.transaction.create({
-				type: TransactionTypes.SIGNATURE,
-				sender: account,
-				keypair: keypair,
-				secondKeypair: secondKeypair
-			});
+			try {
+				var transaction = library.logic.transaction.create({
+					type: TransactionTypes.SIGNATURE,
+					sender: account,
+					keypair: keypair,
+					secondKeypair: secondKeypair
+				});
+			} catch (e) {
+				return res.json({success: false, error: e.toString()});
+			}
 
 			library.sequence.add(function (cb) {
 				modules.transactions.receiveTransactions([transaction], cb);

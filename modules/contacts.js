@@ -45,10 +45,10 @@ function Contact() {
 		}
 
 		/*
-		if (!modules.accounts.getAccount(trs.asset.contact.address.slice(1))) {
-			return setImmediate(cb, "Following is not exists: " + trs.id);
-		}
-		*/
+		 if (!modules.accounts.getAccount(trs.asset.contact.address.slice(1))) {
+		 return setImmediate(cb, "Following is not exists: " + trs.id);
+		 }
+		 */
 
 		if (trs.amount != 0) {
 			return setImmediate(cb, "Invalid amount: " + trs.id);
@@ -277,13 +277,17 @@ function attachApi() {
 			}
 			followingAddress = body.following[0] + following.address;
 
-			var transaction = library.logic.transaction.create({
-				type: TransactionTypes.FOLLOW,
-				sender: account,
-				keypair: keypair,
-				secondKeypair: secondKeypair,
-				contactAddress: followingAddress
-			});
+			try {
+				var transaction = library.logic.transaction.create({
+					type: TransactionTypes.FOLLOW,
+					sender: account,
+					keypair: keypair,
+					secondKeypair: secondKeypair,
+					contactAddress: followingAddress
+				});
+			} catch (e) {
+				return res.json({success: false, error: e.toString()});
+			}
 
 			library.sequence.add(function (cb) {
 				modules.transactions.receiveTransactions([transaction], cb);

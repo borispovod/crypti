@@ -35,10 +35,6 @@ function attachApi() {
 	router.use(function (req, res, next) {
 		var peerIp = req.headers['x-forwarded-for'] || req.connection.remoteAddress || 'unknown';
 
-		if (peerIp == "127.0.0.1") {
-			return next();
-		}
-
 		req.headers['port'] = parseInt(req.headers['port']);
 		req.headers['share-port'] = parseInt(req.headers['share-port']);
 
@@ -69,6 +65,7 @@ function attachApi() {
 			if (err) return next();
 			if (!report.isValid) return next();
 
+
 			var peer = {
 				ip: ip.toLong(peerIp),
 				port: private.headers.port,
@@ -79,7 +76,6 @@ function attachApi() {
 			};
 
 			if (peer.port > 0 && peer.port <= 65535 && peer.version == library.config.version) {
-				console.log("update peer");
 				modules.peer.update(peer);
 			}
 
@@ -222,7 +218,6 @@ function attachApi() {
 			var peerIp = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
 			var peerStr = peerIp ? peerIp + ":" + (isNaN(port)? 'unknown' : port) : 'unknown';
 			library.logger.log('block ' + (block ? block.id : 'null') + ' is not valid, ban 60 min', peerStr);
-			console.log(req.body.block);
 
 			if (peerIp && report) {
 				modules.peer.state(ip.toLong(peerIp), port, 0, 3600);
@@ -267,7 +262,6 @@ function attachApi() {
 				library.logger.log('recieved transaction ' + (transaction ? transaction.id : 'null') + ' is not valid, ban 60 min', peerStr);
 
 				if (peerIp && report) {
-					console.log(peerIp, req.headers['port'], report);
 					modules.peer.state(ip.toLong(peerIp), req.headers['port'], 0, 3600);
 				}
 
@@ -432,6 +426,7 @@ Transport.prototype.getFromPeer = function (peer, options, cb) {
 		});
 
 		var port = req.headers['port'];
+
 		if (!report) {
 			return cb && cb(null, {body: body, peer: peer});
 		}
@@ -442,7 +437,7 @@ Transport.prototype.getFromPeer = function (peer, options, cb) {
 				port: req.headers['port'],
 				state: 2,
 				os: response.headers['os'],
-				sharePort: Number(!!response.headers['share-port']),
+				sharePort: response.headers['share-port'],
 				version: response.headers['version']
 			});
 		}

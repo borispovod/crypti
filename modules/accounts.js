@@ -812,13 +812,17 @@ function attachApi() {
 				secondKeypair = ed.MakeKeypair(secondHash);
 			}
 
-			var transaction = library.logic.transaction.create({
-				type: TransactionTypes.VOTE,
-				votes: body.delegates,
-				sender: account,
-				keypair: keypair,
-				secondKeypair: secondKeypair
-			});
+			try {
+				var transaction = library.logic.transaction.create({
+					type: TransactionTypes.VOTE,
+					votes: body.delegates,
+					sender: account,
+					keypair: keypair,
+					secondKeypair: secondKeypair
+				});
+			} catch (e) {
+				return res.json({success: false, error: e.toString()});
+			}
 
 			library.sequence.add(function (cb) {
 				modules.transactions.receiveTransactions([transaction], cb);
@@ -888,13 +892,17 @@ function attachApi() {
 				secondKeypair = ed.MakeKeypair(secondHash);
 			}
 
-			var transaction = library.logic.transaction.create({
-				type: TransactionTypes.USERNAME,
-				username: body.username,
-				sender: account,
-				keypair: keypair,
-				secondKeypair: secondKeypair
-			});
+			try {
+				var transaction = library.logic.transaction.create({
+					type: TransactionTypes.USERNAME,
+					username: body.username,
+					sender: account,
+					keypair: keypair,
+					secondKeypair: secondKeypair
+				});
+			} catch (e) {
+				return res.json({success: false, error: e.toString()});
+			}
 
 			library.sequence.add(function (cb) {
 				modules.transactions.receiveTransactions([transaction], cb);
