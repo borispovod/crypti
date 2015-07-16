@@ -1,5 +1,5 @@
 /**
- * Ask Sebastian if you have any questions. Last Edit: 31/05/2015
+ * Ask Sebastian if you have any questions. Last Edit: 16/07/2015
  */
 
 'use strict';
@@ -14,7 +14,7 @@ var Uaccount = node.randomAccount();
 var test = 0;
 
 // Print data to console
-console.log("Starting delegates-test suite");
+console.log("Starting Delegates Test Suite");
 console.log("Password for random account is: " + Raccount.password);
 console.log("Random XCR is: " + (node.XCR / node.normalizer));
 console.log("Random delegate name is: " + Raccount.name);
@@ -743,13 +743,20 @@ describe('Delegates', function() {
                         console.log(res.body);
                         node.expect(res.body).to.have.property("success").to.be.true;
                         node.expect(res.body).to.have.property("delegates").that.is.an('array');
-                        node.expect(res.body.delegates).to.have.length.of.at.least(1);
-                        node.expect(res.body.delegates[0]).to.have.property("username");
-                        node.expect(res.body.delegates[0]).to.have.property("address");
-                        node.expect(res.body.delegates[0]).to.have.property("publicKey");
-                        node.expect(res.body.delegates[0]).to.have.property("vote");
-                        node.expect(res.body.delegates[0]).to.have.property("rate");
-                        node.expect(res.body.delegates[0]).to.have.property("productivity");
+                        if (res.body.success == true && res.body.delegates != null){
+                            node.expect(res.body.delegates).to.have.length.of.at.least(1);
+                            node.expect(res.body.delegates[0]).to.have.property("username");
+                            node.expect(res.body.delegates[0]).to.have.property("address");
+                            node.expect(res.body.delegates[0]).to.have.property("publicKey");
+                            node.expect(res.body.delegates[0]).to.have.property("vote");
+                            node.expect(res.body.delegates[0]).to.have.property("rate");
+                            node.expect(res.body.delegates[0]).to.have.property("productivity");
+                        }
+                        else{
+                            console.log("Request failed or delegates list is null");
+                            console.log("Sent: " + node.Faccount.address);
+                            node.expect(true).to.equal(false);
+                        }
                         done();
                     });
             });
@@ -860,5 +867,5 @@ describe('Delegates', function() {
             });
         });
     });
-    console.log("Finished delegates-test suite");
+    console.log("Finished Delegates Test Suite");
 });
