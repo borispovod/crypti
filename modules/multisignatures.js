@@ -248,7 +248,8 @@ Multisignatures.prototype.onBind = function (scope) {
 }
 
 //shared
-shared.pending = function (query, cb) {
+shared.pending = function (req, cb) {
+	var query = req.body;
 	library.scheme.validate(query, {
 		publicKey: "hex!"
 	}, function (err) {
@@ -283,7 +284,8 @@ shared.pending = function (query, cb) {
 	});
 }
 
-shared.sign = function (body, cb) {
+shared.sign = function (req, cb) {
+	var body = req.body;
 	library.scheme.validate(body, {
 		secret: "string!",
 		publicKey: "hex?",
@@ -340,7 +342,8 @@ shared.sign = function (body, cb) {
 	});
 }
 
-shared.addMultisignature = function (body, cb) {
+shared.addMultisignature = function (req, cb) {
+	var body = req.body;
 	library.scheme.validate(body, {
 		secret: "string!",
 		publicKey: "hex?",

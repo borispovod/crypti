@@ -22,7 +22,7 @@ shared.keypair = function (req, cb) {
 	return cb(null, keypair);
 }
 
-shared.sign = function (data, cb) {
+shared.sign = function (req, cb) {
 	var data = req.body;
 	library.scheme.validate(data, {
 		type: "object",

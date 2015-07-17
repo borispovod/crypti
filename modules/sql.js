@@ -59,13 +59,13 @@ Sql.prototype.createTables = function (dappid, config, cb) {
 }
 
 /*
-	Drop tables functional
+ Drop tables functional
  */
 Sql.prototype.dropTables = function (dappid, config, cb) {
 	var tables = [];
 	for (var i = 0; i < config.length; i++) {
 		config[i].table = "dapp_" + dappid + "_" + config[i].table;
-		tables.push({ name: config[i].table.replace(/[^\w_]/gi, ''), type: config[i].type });
+		tables.push({name: config[i].table.replace(/[^\w_]/gi, ''), type: config[i].type});
 	}
 
 	async.eachSeries(tables, function (table, cb) {
@@ -95,19 +95,23 @@ Sql.prototype.onBlockchainReady = function () {
 }
 
 //shared
-shared.select = function (config, cb) {
+shared.select = function (req, cb) {
+	var config = extend({}, req.body, {dappid: req.dappid});
 	private.query.call(this, "select", config, cb);
 }
 
-shared.insert = function (config, cb) {
+shared.insert = function (req, cb) {
+	var config = extend({}, req.body, {dappid: req.dappid});
 	private.query.call(this, "insert", config, cb);
 }
 
-shared.update = function (config, cb) {
+shared.update = function (req, cb) {
+	var config = extend({}, req.body, {dappid: req.dappid});
 	private.query.call(this, "update", config, cb);
 }
 
-shared.remove = function (config, cb) {
+shared.remove = function (req, cb) {
+	var config = extend({}, req.body, {dappid: req.dappid});
 	private.query.call(this, "remove", config, cb);
 }
 

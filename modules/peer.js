@@ -343,7 +343,8 @@ Peer.prototype.onPeerReady = function () {
 }
 
 //shared
-shared.getPeers = function (query, cb) {
+shared.getPeers = function (req, cb) {
+	var query = req.body;
 	library.scheme.validate(query, {
 		type: "object",
 		properties: {
@@ -404,7 +405,8 @@ shared.getPeers = function (query, cb) {
 	});
 }
 
-shared.getPeer = function (query, cb) {
+shared.getPeer = function (req, cb) {
+	var query = req.body;
 	library.scheme.validate(query, {
 		type: "object",
 		properties: {
@@ -449,7 +451,7 @@ shared.getPeer = function (query, cb) {
 	});
 }
 
-shared.version = function (query, cb) {
+shared.version = function (req, cb) {
 	cb(null, {version: library.config.version, build: library.build});
 }
 

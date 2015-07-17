@@ -209,7 +209,7 @@ Signatures.prototype.onBind = function (scope) {
 }
 
 //shared
-shared.getFee = function (query, cb) {
+shared.getFee = function (req, cb) {
 	var fee = null;
 
 	if (modules.blocks.getLastBlock().height >= MilestoneBlocks.FEE_BLOCK) {
@@ -221,7 +221,8 @@ shared.getFee = function (query, cb) {
 	cb(null, {fee: fee})
 }
 
-shared.addSignature = function (body, cb) {
+shared.addSignature = function (req, cb) {
+	var body = req.body;
 	library.scheme.validate(body, {
 		type: "object",
 		properties: {

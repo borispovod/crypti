@@ -331,7 +331,7 @@ private.attachApi = function () {
 		"post /open": "open",
 		"get /getBalance": "getBalance",
 		"get /getPublicKey": "getPublickey",
-		"post /generatePublicKey": "generatePublicKey",
+		"post /generatePublicKey": "generatePublickey",
 		"get /delegates": "getDelegates",
 		"get /delegates/fee": "getDelegatesFee",
 		"put /delegates": "addDelegates",
@@ -569,7 +569,7 @@ shared.generatePublickey = function (req, cb) {
 			if (!err && account) {
 				publicKey = account.publicKey;
 			}
-			cd(err, {
+			cb(err, {
 				publicKey: publicKey
 			});
 		});

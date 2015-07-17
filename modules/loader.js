@@ -346,7 +346,7 @@ Loader.prototype.onBlockchainReady = function () {
 }
 
 //shared
-shared.status = function (query, cb) {
+shared.status = function (req, cb) {
 	cb(null, {
 		loaded: private.loaded,
 		now: private.loadingLastBlock.height,
@@ -354,7 +354,7 @@ shared.status = function (query, cb) {
 	});
 }
 
-shared.sync = function (query, cb) {
+shared.sync = function (req, cb) {
 	cb(null, {
 		sync: self.syncing(),
 		blocks: private.blocksToSync,
