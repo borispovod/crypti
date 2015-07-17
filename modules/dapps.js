@@ -949,7 +949,7 @@ private.getByIds = function (ids, cb) {
 	}
 
 	library.dbLite.query("SELECT name, description, tags, nickname, git, type, category, icon, link, transactionId FROM dapps WHERE transactionId IN (" + ids.join(',') + ")", {}, ['name', 'description', 'tags', 'nickname', 'git', 'type', 'category', 'icon', 'link', 'transactionId'], function (err, rows) {
-		if (err) {
+		if (err || rows.length == 0) {
 			return setImmediate(cb, err ? "Sql error" : "DApp not found");
 		}
 
