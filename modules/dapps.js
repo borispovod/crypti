@@ -33,6 +33,88 @@ private.dappsPath = path.join(process.cwd(), 'dapps');
 private.sandboxes = {};
 private.routes = {};
 
+function Tree() {
+	this.create = function (data, trs) {
+		trs.recipientId = null;
+		trs.amount = 0;
+
+		trs.asset.tree = {
+			dappId: data.dappId,
+			previousHash: data.previousHash,
+			hash: data.hash
+		};
+
+		return trs;
+	}
+
+	this.calculateFee = function (trs) {
+		return 1;
+	}
+
+	this.verify = function (trs, sender, cb) {
+		setImmediate(cb);
+	}
+
+	this.process = function (trs, sender, cb) {
+		setImmediate(cb, null, trs);
+	}
+
+	this.getBytes = function (trs) {
+		var buf = new Buffer([]);
+
+		try {
+			var idBuf = new Buffer(trs.asset.tree.dappId, 'utf8');
+			buf = Buffer.concat([buf, idBuf]);
+
+			var previousHashBuf = new Buffer(trs.asset.tree.previousHash, 'hex')
+			buf = Buffer.concat([buf, previousHashBuf]);
+
+			var hashBuf = new Buffer(trs.asset.tree.hash, 'hex');
+			buf = Buffer.concat([buf, hashBuf]);
+		} catch (e) {
+			throw Error(e.toString());
+		}
+
+		return buf;
+	}
+
+	this.apply = function (trs, sender, cb) {
+		setImmediate(cb);
+	}
+
+	this.undo = function (trs, sender, cb) {
+		setImmediate(cb);
+	}
+
+	this.applyUnconfirmed = function (trs, sender, cb) {
+		setImmediate(cb);
+	}
+
+	this.objectNormalize = function (trs) {
+		return trs;
+	}
+
+	this.dbRead = function (raw) {
+		var tree = null;
+		return {tree: tree};
+	}
+
+	this.dbSave = function (trs, cb) {
+		return setImmediate(cb);
+	}
+
+	this.ready = function (trs, sender) {
+		if (sender.multisignatures.length) {
+			if (!trs.signatures) {
+				return false;
+			}
+			return trs.signatures.length >= sender.multimin;
+		} else {
+			return true;
+		}
+	}
+}
+
 function DApp() {
 	this.create = function (data, trs) {
 		trs.recipientId = null;
@@ -327,6 +409,7 @@ function DApps(cb, scope) {
 	self = this;
 	self.__private = private;
 	library.logic.transaction.attachAssetType(TransactionTypes.DAPP, new DApp());
+	library.logic.transaction.attachAssetType(TransactionTypes.TREE, new Tree());
 	private.attachApi();
 
 	process.on('exit', function () {
