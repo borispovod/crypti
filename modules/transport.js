@@ -7,6 +7,8 @@ var Router = require('../helpers/router.js'),
 	zlib = require('zlib'),
 	errorCode = require('../helpers/errorCodes.js').error,
 	extend = require('extend'),
+	crypto = require('crypto'),
+	bignum = require('../helpers/bignum.js'),
 	sandboxHelper = require('../helpers/sandbox.js');
 
 //private fields
@@ -14,6 +16,7 @@ var modules, library, self, private = {}, shared = {};
 
 private.headers = {};
 private.loaded = false;
+private.messages = {};
 
 //constructor
 function Transport(cb, scope) {
@@ -293,17 +296,32 @@ private.attachApi = function () {
 	router.post("/dapp/message", function (req, res) {
 		res.set(private.headers);
 
+		try {
+			if (!req.body.dappid) throw Error("missed dappid");
+			if (!req.body.timestamp || !req.body.hash) throw Error("missed hash sum");
+			var newHash = private.hashsum(req.body.body, req.body.timestamp);
+			if (newHash !== req.body.hash) throw Error("wrong hash sum");
+		} catch (e) {
+			return res.status(200).json({success: false, message: e.toString()});
+		}
+
+		if (private.messages[req.body.hash]) {
+			return res.status(200);
+		}
+
+		private.messages[req.body.hash] = true;
+
 		modules.dapps.message(req.body.dappid, req.body.body, function (err, body) {
 			if (!err && body.error) {
 				err = body.error;
 			}
 
 			if (err) {
-				res.status(200).json({success: false, message: err});
-			} else {
-				library.bus.message('message', req.body, true);
-				res.status(200).json(extend(body, {success: true}));
+				return res.status(200).json({success: false, message: err});
 			}
+
+			library.bus.message('message', req.body, true);
+			res.status(200).json(extend(body, {success: true}));
 		});
 	});
 
@@ -318,6 +336,17 @@ private.attachApi = function () {
 		library.logger.error(req.url, err.toString());
 		res.status(500).send({success: false, error: err.toString()});
 	});
+}
+
+private.hashsum = function (obj) {
+	var buf = new Buffer(JSON.stringify(obj), 'utf8');
+	var hashdig = crypto.createHash('sha256').update(buf).digest();
+	var temp = new Buffer(8);
+	for (var i = 0; i < 8; i++) {
+		temp[i] = hashdig[7 - i];
+	}
+
+	return bignum.fromBuffer(temp).toString();
 }
 
 //public methods
@@ -502,15 +531,18 @@ Transport.prototype.onNewBlock = function (block, broadcast) {
 
 Transport.prototype.onMessage = function (msg, broadcast) {
 	if (broadcast) {
-		shared.message(msg);
+		self.broadcast(100, {api: '/dapp/message', data: msg, method: "POST"});
 	}
 }
 
 //shared
 shared.message = function (msg, cb) {
+	msg.timestamp = (new Date()).getTime();
+	msg.hash = private.hashsum(msg.body, msg.timestamp);
+
 	self.broadcast(100, {api: '/dapp/message', data: msg, method: "POST"});
 
-	cb && cb(null, {});
+	cb(null, {});
 }
 
 //export

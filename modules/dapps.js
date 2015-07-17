@@ -90,6 +90,10 @@ function Tree() {
 		setImmediate(cb);
 	}
 
+	this.undoUnconfirmed = function (trs, sender, cb) {
+		setImmediate(cb);
+	}
+
 	this.objectNormalize = function (trs) {
 		return trs;
 	}
@@ -1379,7 +1383,7 @@ private.launch = function (dApp, cb) {
 		private.sandboxes[dApp.transactionId] = sandbox;
 
 		sandbox.on("exit", function () {
-			library.logger.info("DApp " + dApp.transactionId + " closed");
+			library.logger.info("DApp " + dApp.transactionId + " closed ");
 			private.stop(dApp, function (err) {
 				if (err) {
 					library.logger.error("Error on stop dapp: " + err);

@@ -724,5 +724,14 @@
 		]
 	},
 	"dapps": [
+		{
+			"name": "testdapp",
+			"nickname": "testdapp",
+			"description": "test dapp",
+			"tags": "test",
+			"git": "git@github.com:crypti/testdapp.git",
+			"type": 0,
+			"category": 0
+		}
 	]
 }
