@@ -25,6 +25,7 @@ module.exports.connect = function (connectString, cb) {
 		"CREATE TABLE IF NOT EXISTS forks_stat(delegatePublicKey BINARY(32) NOT NULL, blockTimestamp INT NOT NULL, blockId VARCHAR(20) NOT NULL, blockHeight INT NOT NULL, previousBlock VARCHAR(20) NOT NULL, cause INT NOT NULL)",
 		"CREATE TABLE IF NOT EXISTS multisignatures(min INT NOT NULL, lifetime INT NOT NULL, dependence TEXT NOT NULL, signatures TEXT NOT NULL, transactionId  VARCHAR(20) NOT NULL, FOREIGN KEY(transactionId) REFERENCES trs(id) ON DELETE CASCADE)",
 		"CREATe TABLE IF NOT EXISTS dapps(transactionId VARCHAR(20) NOT NULL, name VARCHAR(32) NOT NULL, description VARCHARH(160), tags VARCHARH(160), nickname TEXT, git TEXT, type INTEGER NOT NULL, category INTEGER NOT NULL, icon TEXT, link TEXT, FOREIGN KEY(transactionId) REFERENCES trs(id) ON DELETE CASCADE)",
+		"CREATE TABLE IF NOT EXISTS trees(transactionId VARCHAR(20) NOT NULL, previousHash BINARY(32) UNIQUE, hash BINARY(32) NOT NULL, FOREIGN KEY(transactionId) REFERENCES trs(id) ON DELETE CASCADE)",
 		// Indexes
 		"CREATE UNIQUE INDEX IF NOT EXISTS peers_unique ON peers(ip, port)",
 		"CREATE UNIQUE INDEX IF NOT EXISTS blocks_height ON blocks(height)",
@@ -39,7 +40,9 @@ module.exports.connect = function (connectString, cb) {
 		"CREATE INDEX IF NOT EXISTS contacts_trs_id ON contacts(transactionId)",
 		"CREATE INDEX IF NOT EXISTS multisignatures_trs_id ON multisignatures(transactionId)",
 		"CREATE INDEX IF NOT EXISTS dapps_trs_id ON dapps(transactionId)",
-		"CREATE INDEX IF NOT EXISTS dapp_name ON dapps(name)",
+		"CREATE INDEX IF NOT EXISTS dapps_name ON dapps(name)",
+		"CREATE INDEX IF NOT EXISTS trees_trs_id ON trees(transactionId)",
+		"CREATE INDEX IF NOT EXISTS trees_previousHash ON trees(hash)",
 		"PRAGMA foreign_keys = ON",
 		"UPDATE peers SET state = 1, clock = null where state != 0"
 	];

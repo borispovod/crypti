@@ -29,7 +29,8 @@ private.blocksDataFields = {
 	'c_address': String,
 	'u_alias': String,
 	'm_min': Number, 'm_lifetime': Number, 'm_dependence': String, 'm_signatures': String,
-	'dapp_name': String, 'dapp_description': String, 'dapp_tags': String, 'dapp_type': Number, 'dapp_nickname': String, 'dapp_git': String, 'dapp_category': Number, 'dapp_icon': String, 'dapp_link': String
+	'dapp_name': String, 'dapp_description': String, 'dapp_tags': String, 'dapp_type': Number, 'dapp_nickname': String, 'dapp_git': String, 'dapp_category': Number, 'dapp_icon': String, 'dapp_link': String,
+	'trees_previousHash': String, 'trees_hash': String
 };
 // @formatter:on
 
@@ -453,7 +454,8 @@ Blocks.prototype.loadBlocksData = function (filter, options, cb) {
 		"c.address, " +
 		"u.username, " +
 		"m.min, m.lifetime, m.dependence, m.signatures, " +
-		"dapp.name, dapp.description, dapp.tags, dapp.type, dapp.nickname, dapp.git, dapp.category, dapp.icon, dapp.link " +
+		"dapp.name, dapp.description, dapp.tags, dapp.type, dapp.nickname, dapp.git, dapp.category, dapp.icon, dapp.link, " +
+		"trees_previousHash, trees_hash " +
 		"FROM (select * from blocks " + (filter.id ? " where id = $id " : "") + (filter.lastId ? " where height > (SELECT height FROM blocks where id = $lastId) " : "") + " limit $limit) as b " +
 		"left outer join trs as t on t.blockId=b.id " +
 		"left outer join delegates as d on d.transactionId=t.id " +
@@ -497,7 +499,8 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 		"c.address, " +
 		"u.username, " +
 		"m.min, m.lifetime, m.dependence, m.signatures, " +
-		"dapp.name, dapp.description, dapp.tags, dapp.type, dapp.nickname, dapp.git, dapp.category, dapp.icon, dapp.link " +
+		"dapp.name, dapp.description, dapp.tags, dapp.type, dapp.nickname, dapp.git, dapp.category, dapp.icon, dapp.link, " +
+		"trees_previousHash, trees_hash " +
 		"FROM (select * from blocks limit $limit offset $offset) as b " +
 		"left outer join trs as t on t.blockId=b.id " +
 		"left outer join delegates as d on d.transactionId=t.id " +
