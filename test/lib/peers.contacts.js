@@ -47,6 +47,22 @@ describe("Peer contacts", function () {
 			});
 	});
 
+	it("Add self account to contacts. Should return not ok", function (done) {
+		var transaction = node.crypti.contact.createContact(account.password, account.address);
+		node.peer.post('/transactions')
+			.set('Accept', 'application/json')
+			.send({
+				transaction: transaction
+			})
+			.expect('Content-Type', /json/)
+			.expect(200)
+			.end(function (err, res) {
+				console.log(res.body);
+				node.expect(res.body).to.have.property("success").to.be.false;
+				done();
+			});
+	});
+
 
 	it("Add account to contact with minus. Should be not ok", function (done) {
 		var transaction = node.crypti.contact.createContact(account.password, "-" + node.peers_config.address);

@@ -39,11 +39,16 @@ function Contact() {
 			return setImmediate(cb, "Following is not address: " + trs.asset.contact.address);
 		}
 
-		/*
-		if (!modules.accounts.getAccount(trs.asset.contact.address.slice(1))) {
-			return setImmediate(cb, "Following is not exists: " + trs.id);
+		var address = modules.accounts.getAddressByPublicKey(trs.senderPublicKey);
+		if (address === trs.asset.contact.address.slice(1)) {
+			return setImmediate(cb, "You can't add your self: " + trs.id);
 		}
-		*/
+
+		/*
+		 if (!modules.accounts.getAccount(trs.asset.contact.address.slice(1))) {
+		 return setImmediate(cb, "Following is not exists: " + trs.id);
+		 }
+		 */
 
 		if (trs.amount != 0) {
 			return setImmediate(cb, "Invalid amount: " + trs.id);
@@ -90,7 +95,15 @@ function Contact() {
 			}
 
 			if (rows.length == 0 || rows[0].count == 0) {
-				return setImmediate(cb, "Can't apply contact, recipient doesn't exists");
+				var account = modules.accounts.getAccount(trs.asset.contact.address.slice(1));
+
+				if (!account || !account.publicKey) {
+					return setImmediate(cb, "Can't apply contact, recipient doesn't exists");
+				} else {
+					if (!modules.round.accountIsDelegate(account.publicKey)) {
+						return setImmediate(cb, "Can't apply contact, recipient doesn't exists");
+					}
+				}
 			}
 
 
@@ -264,13 +277,17 @@ function attachApi() {
 			}
 			followingAddress = body.following[0] + following.address;
 
-			var transaction = library.logic.transaction.create({
-				type: TransactionTypes.FOLLOW,
-				sender: account,
-				keypair: keypair,
-				secondKeypair: secondKeypair,
-				contactAddress: followingAddress
-			});
+			try {
+				var transaction = library.logic.transaction.create({
+					type: TransactionTypes.FOLLOW,
+					sender: account,
+					keypair: keypair,
+					secondKeypair: secondKeypair,
+					contactAddress: followingAddress
+				});
+			} catch (e) {
+				return res.json({success: false, error: e.toString()});
+			}
 
 			library.sequence.add(function (cb) {
 				modules.transactions.receiveTransactions([transaction], cb);

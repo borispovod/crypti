@@ -824,13 +824,17 @@ function attachApi() {
 				secondKeypair = ed.MakeKeypair(secondHash);
 			}
 
-			var transaction = library.logic.transaction.create({
-				type: TransactionTypes.VOTE,
-				votes: body.delegates,
-				sender: account,
-				keypair: keypair,
-				secondKeypair: secondKeypair
-			});
+			try {
+				var transaction = library.logic.transaction.create({
+					type: TransactionTypes.VOTE,
+					votes: body.delegates,
+					sender: account,
+					keypair: keypair,
+					secondKeypair: secondKeypair
+				});
+			} catch (e) {
+				return res.json({success: false, error: e.toString()});
+			}
 
 			library.sequence.add(function (cb) {
 				modules.transactions.receiveTransactions([transaction], cb);
@@ -900,13 +904,17 @@ function attachApi() {
 				secondKeypair = ed.MakeKeypair(secondHash);
 			}
 
-			var transaction = library.logic.transaction.create({
-				type: TransactionTypes.USERNAME,
-				username: body.username,
-				sender: account,
-				keypair: keypair,
-				secondKeypair: secondKeypair
-			});
+			try {
+				var transaction = library.logic.transaction.create({
+					type: TransactionTypes.USERNAME,
+					username: body.username,
+					sender: account,
+					keypair: keypair,
+					secondKeypair: secondKeypair
+				});
+			} catch (e) {
+				return res.json({success: false, error: e.toString()});
+			}
 
 			library.sequence.add(function (cb) {
 				modules.transactions.receiveTransactions([transaction], cb);
@@ -916,6 +924,48 @@ function attachApi() {
 				}
 
 				res.json({success: true, transaction: transaction});
+			});
+		});
+	});
+
+	router.get("/username/get", function (req, res, next) {
+		req.sanitize(req.query, {
+			type: "object",
+			properties: {
+				username: {
+					type: "string",
+					minLength: 1
+				}
+			}
+		}, function (err, report, query) {
+			if (err) return next(err);
+			if (!report.isValid) return res.json({success: false, error: report.issues});
+
+			var address = private.username2address[query.username.toLowerCase()];
+
+			if (!address) {
+				return res.json({success: false, error: errorCode("ACCOUNTS.ACCOUNT_DOESNT_FOUND")});
+			}
+
+			var account = self.getAccount(address);
+
+			if (!account) {
+				console.log('here');
+				return res.json({success: false, error: errorCode("ACCOUNTS.ACCOUNT_DOESNT_FOUND")});
+			}
+
+			return res.json({
+				success: true,
+				account: {
+					address: account.address,
+					username: account.username,
+					unconfirmedBalance: account.unconfirmedBalance,
+					balance: account.balance,
+					publicKey: account.publicKey,
+					unconfirmedSignature: account.unconfirmedSignature,
+					secondSignature: account.secondSignature,
+					secondPublicKey: account.secondPublicKey
+				}
 			});
 		});
 	});

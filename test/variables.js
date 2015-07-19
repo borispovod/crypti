@@ -1,5 +1,5 @@
 /**
- * Ask Sebastian if you have any questions. Last Edit: 14/06/2015
+ * Ask Sebastian if you have any questions. Last Edit: 15/07/2015
  */
 
 'use strict';
@@ -18,7 +18,7 @@ var _ = require('lodash'),
 var normalizer = 100000000; // Use this to convert XCR amount to normal value
 var blockTime = 10000; // Block time in miliseconds
 var blockTimePlus = 12000; // Block time + 2 seconds in miliseconds
-var version = "0.3.0" // Node version
+var version = "0.3.1" // Node version
 
 // Holds Fee amounts for different transaction types.
 var Fees = {
@@ -152,21 +152,44 @@ function waitForNewBlock(height, cb) {
 }
 
 // Adds peers to local node
-function addPeers(numOfPeers){
-
+function addPeers(numOfPeers, cb) {
     var operatingSystems = ['win32','win64','linux','debian'];
-    var versions = ['0.1.9','0.2.0','0.2.0a','0.3.0'];
     var ports = [4060, 5060, 8040, 7040];
-    var sharePortOptions = [false,true];
+    var sharePortOptions = [0,1];
     var os,version,port,sharePort;
 
-    for (var i = 0; i < numOfPeers; i++){
+
+    var i = 0;
+    async.whilst(function () {
+        return i < numOfPeers
+    }, function (next) {
         os = operatingSystems[randomizeSelection(operatingSystems.length)];
-        version = versions[randomizeSelection(versions.length)];
+        version = config.version;
         port = ports[randomizeSelection(ports.length)];
-        sharePort = sharePortOptions[randomizeSelection(sharePortOptions.length)];
-        peer.get('/height').set('os',os).set('version',version).set('port',port).set('share-port',sharePort);
-    }
+        // sharePort = sharePortOptions[randomizeSelection(sharePortOptions.length)];
+
+        request({
+            type: "GET",
+            url: baseUrl + "/peer/height",
+            json: true,
+            headers: {
+                'version': version,
+                'port': port,
+                'share-port': 0,
+                'os': os
+            }
+        }, function (err, resp, body) {
+            console.log(body);
+            if (err || resp.statusCode != 200) {
+                return next(err || "Status code is not 200 (getHeight)");
+            } else {
+                i++;
+                next();
+            }
+        })
+    }, function (err) {
+        return cb(err);
+    });
 }
 
 // Used to randomize selecting from within an array. Requires array length
@@ -176,7 +199,7 @@ function randomizeSelection(length){
 
 // Returns a random number between min (inclusive) and max (exclusive)
 function randomNumber(min, max) {
-    return Math.random() * (max - min) + min;
+    return  Math.floor(Math.random() * (max - min) + min);
 }
 
 // Calculates the expected fee from a transaction
@@ -191,6 +214,17 @@ function randomUsername(){
     var possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@$&_.";
 
     for( var i=0; i < size; i++ )
+        username += possible.charAt(Math.floor(Math.random() * possible.length));
+
+    return username;
+}
+
+function randomCapitalUsername(){
+    var size = randomNumber(1,16); // Min. username size is 1, Max. username size is 16
+    var username = "A";
+    var possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@$&_.";
+
+    for( var i=0; i < size-1; i++ )
         username += possible.charAt(Math.floor(Math.random() * possible.length));
 
     return username;
@@ -254,6 +288,8 @@ module.exports = {
     randomAccount: randomAccount,
     randomTxAccount: randomTxAccount,
     randomUsername: randomUsername,
+    randomNumber: randomNumber,
+    randomCapitalUsername: randomCapitalUsername,
     expectedFee:expectedFee,
     addPeers:addPeers,
 	peers_config: config.mocha.peers,

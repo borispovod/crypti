@@ -86,7 +86,6 @@ describe("Peers usernames", function () {
 			});
 	});
 
-
 	it("Register username and then register delegate. Should return not ok", function (done) {
 		node.api.post('/accounts/open')
 			.set('Accept', 'application/json')

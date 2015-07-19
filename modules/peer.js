@@ -99,7 +99,7 @@ function attachApi() {
 		req.sanitize(req.query, {
 			type: "object",
 			properties: {
-				ip_str: {
+				ip: {
 					type: "string",
 					minLength: 1
 				},
@@ -109,17 +109,20 @@ function attachApi() {
 					maximum: 65535
 				}
 			},
-			required: ['ip_str', 'port']
+			required: ['ip', 'port']
 		}, function (err, report, query) {
+			if (err) return next(err);
+			if (!report.isValid) return res.json({success: false, error: report.issues});
+
 			try {
-				var ip_str = ip.toLong(query.ip_str);
+				var ip_str = ip.toLong(query.ip);
 			} catch (e) {
 				return res.json({success: false, error: errorCode("PEERS.INVALID_PEER")});
 			}
 
 			private.getByFilter({
 				ip: ip_str,
-				port: port
+				port: query.port
 			}, function (err, peers) {
 				if (err) {
 					return res.json({success: false, error: errorCode("PEERS.PEER_NOT_FOUND")});
@@ -163,10 +166,8 @@ private.updatePeerList = function (cb) {
 			return cb();
 		}
 
-		var peers = data.body.peers;
-
 		//var peers = RequestSanitizer.array(data.body.peers);
-		async.eachLimit(peers, 2, function (peer, cb) {
+		async.eachLimit(data.body.peers, 2, function (peer, cb) {
 			var report = library.scheme.validate(peer, {
 				object: true,
 				properties: {
@@ -197,10 +198,8 @@ private.updatePeerList = function (cb) {
 			});
 
 			if (!report) {
-				setImmediate(cb, "Peers incorrect");
+				return setImmediate(cb, "Peers incorrect");
 			}
-
-			peer = report.value;
 
 			if (ip.toLong("127.0.0.1") == peer.ip || peer.port == 0 || peer.port > 65535) {
 				setImmediate(cb);
