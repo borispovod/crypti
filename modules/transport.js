@@ -273,7 +273,7 @@ function attachApi() {
 			modules.transactions.receiveTransactions([transaction], cb);
 		}, function (err) {
 			if (err) {
-				res.status(200).json({success: false, message: err});
+				res.status(200).json({success: false, error: err});
 			} else {
 				res.status(200).json({success: true});
 			}
