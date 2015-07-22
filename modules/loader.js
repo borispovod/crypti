@@ -202,8 +202,14 @@ private.loadBlocks = function(lastBlock, cb) {
 		}
 
 		library.logger.info("Check blockchain on " + peerStr);
+		console.log(data.body.height);
 
-		var report = library.scheme.validate(data.body.height, {type : "integer", required: true});
+		var report = library.scheme.validate(data.body, {type : "object", properties: {
+			'height': {
+				type: 'integer',
+				minimum: 0
+			}
+		}, required: ['height']});
 
 		if (!report) {
 			library.logger.log("Can't parse blockchain height: " + peerStr);
