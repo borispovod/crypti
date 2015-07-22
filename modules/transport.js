@@ -266,7 +266,7 @@ function attachApi() {
 					modules.peer.state(ip.toLong(peerIp), req.headers['port'], 0, 3600);
 				}
 
-				return res.status(200).json({success: false, message: "Invalid transaction body"});
+				return res.status(200).json({success: false, error: "Invalid transaction body"});
 		}
 
 		library.sequence.add(function (cb) {

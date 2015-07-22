@@ -950,7 +950,6 @@ function attachApi() {
 			var account = self.getAccount(address);
 
 			if (!account) {
-				console.log('here');
 				return res.json({success: false, error: errorCode("ACCOUNTS.ACCOUNT_DOESNT_FOUND")});
 			}
 
