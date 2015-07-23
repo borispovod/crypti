@@ -32,6 +32,7 @@ private.appPath = process.cwd();
 private.dappsPath = path.join(process.cwd(), 'dapps');
 private.sandboxes = {};
 private.routes = {};
+private.trees = {};
 
 function Tree() {
 	this.create = function (data, trs) {
@@ -79,32 +80,105 @@ function Tree() {
 	}
 
 	this.apply = function (trs, sender, cb) {
+		private.trees[trs.asset.dappId] = false;
 		setImmediate(cb);
 	}
 
 	this.undo = function (trs, sender, cb) {
+		private.trees[trs.asset.dappId] = true;
 		setImmediate(cb);
 	}
 
 	this.applyUnconfirmed = function (trs, sender, cb) {
-		setImmediate(cb);
+		if (private.trees[trs.asset.dappId]) {
+			return setImmediate(cb, "Tree in this block already processed for dapp: " + trs.asset.dappId);
+		}
+
+		library.dbLite.query("SELECT senderPublicKey from trs WHERE id=$id", {
+			id: trs.asset.dappId
+		}, ['senderPublicKey'], function (err, rows) {
+			if (err || rows.length == 0) {
+				return setImmediate(cb, "Can't find dapp: " + trs.asset.dappId);
+			}
+
+			var senderPublicKey = rows[0].senderPublicKey;
+
+			modules.accounts.getAccount({publicKey: senderPublicKey}, function (err, account) {
+				if (err || !account) {
+					return setImmediate(cb, err? err.toString() : "Sender of this transaction not found: " + trs.id);
+				}
+
+				function done() {
+					private.trees[trs.asset.dappId] = true;
+					setImmediate(cb);
+				}
+
+				if (account.publicKey == senderPublicKey) {
+					return done();
+				} else {
+					if (account.multisignatures.indexOf(senderPublicKey) < 0) {
+						return setImmediate(cb, "This account is not owner of dapp");
+					} else {
+						return done();
+					}
+				}
+			});
+		});
+
 	}
 
 	this.undoUnconfirmed = function (trs, sender, cb) {
+		private.trees[trs.asset.dappId] = false;
 		setImmediate(cb);
 	}
 
 	this.objectNormalize = function (trs) {
+		var report = library.scheme.validate(trs.asset.tree, {
+			object: true,
+			properties: {
+				dappId: {
+					type: "string",
+					minLength: 1
+				},
+				previousHash: {
+					type: "string",
+					format: "hex"
+				},
+				hash: {
+					type: "string",
+					format: "hex"
+				}
+			},
+			required: ["dappId", "previousHash", "hash"]
+		});
+
+		if (!report) {
+			throw Error("Can't verify dapp tree hash: " + library.scheme.getLastError());
+		}
+
 		return trs;
 	}
 
 	this.dbRead = function (raw) {
-		var tree = null;
-		return {tree: tree};
+		if (!raw.hash) {
+			return null;
+		} else {
+			var tree = {
+				dappId: raw.tree_dappId,
+				previousHash: raw.tree_previousHash,
+				hash: raw.tree_hash
+			}
+
+			return {tree: tree};
+		}
 	}
 
 	this.dbSave = function (trs, cb) {
-		return setImmediate(cb);
+		library.dbLite.query("INSERT INTO tree(dappId, previousHash, hash, transactionId) VALUES($dappId, $previousHash, $hash, $transactionId)", {
+			dappId: trs.asset.tree.dappId,
+			previousHash: trs.asset.tree.previousHash,
+			hash: trs.asset.tree.hash
+		}, cb);
 	}
 
 	this.ready = function (trs, sender) {
@@ -304,7 +378,7 @@ function DApp() {
 	}
 
 	this.objectNormalize = function (trs) {
-		var report = library.scheme.validate(trs.asset.delegate, {
+		var report = library.scheme.validate(trs.asset.dapp, {
 			object: true,
 			properties: {
 				category: {
