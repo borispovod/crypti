@@ -185,7 +185,7 @@ function DApp() {
 			if (isSia || isGit) {
 				return setImmediate(cb, errorCode("DAPPS.GIT_AND_SIA"));
 			}
-			if (!valid_url.isUri(trs.asset.dapp.link)){
+			if (!valid_url.isUri(trs.asset.dapp.link)) {
 				return setImmediate(cb, errorCode("DAPPS.INVALID_GIT"));
 			}
 		}
@@ -723,7 +723,10 @@ private.attachApi = function () {
 											} else {
 												private.getInstalledIds(function (err, installed) {
 													if (err) {
-														return res.json({success: false, error: "Can't get installed dapps ids"});
+														return res.json({
+															success: false,
+															error: "Can't get installed dapps ids"
+														});
 													}
 
 													var dapps = [];
@@ -1455,5 +1458,20 @@ DApps.prototype.onBind = function (scope) {
 }
 
 //shared
+shared.getDelegates = function (req, cb) {
+	library.dbLite.query("SELECT GROUP_CONCAT(m.dependentId), t.senderId as authorId FROM trs t " +
+		"left outer join mem_accounts2multisignatures m on m.accountId = t.senderId and t.id = $transactionId", {
+		transactionId: req.dappid
+	}, {multisignature: String, authorId: String}, function (err, rows) {
+		if (err || rows.length == 0) {
+			return cb("Sql error");
+		}
+
+		cb(null, {
+			authorId: rows[0].authorId,
+			associate: rows[0].multisignature ? rows[0].multisignature.split(",") : []
+		});
+	});
+}
 
 module.exports = DApps;
