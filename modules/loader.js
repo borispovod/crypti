@@ -202,7 +202,6 @@ private.loadBlocks = function(lastBlock, cb) {
 		}
 
 		library.logger.info("Check blockchain on " + peerStr);
-		console.log(data.body.height);
 
 		var report = library.scheme.validate(data.body, {type : "object", properties: {
 			'height': {
@@ -251,7 +250,7 @@ private.loadUnconfirmedTransactions = function(cb) {
 			return cb()
 		}
 
-		var report = library.scheme.validate(data.body.transactions, {type: "array", required: true});
+		var report = library.scheme.validate(data.body.transactions, {type: "array"});
 		if (!report) {
 			return cb();
 		}

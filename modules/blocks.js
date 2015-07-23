@@ -867,7 +867,6 @@ Blocks.prototype.simpleDeleteAfterBlock = function (blockId, cb) {
 Blocks.prototype.loadBlocksFromPeer = function (peer, lastCommonBlockId, cb) {
 	var loaded = false;
 	var count = 0;
-	console.log("load blocks from peer");
 
 	async.whilst(
 		function () {

@@ -134,6 +134,10 @@ d.run(function () {
 
 			z_schema.registerFormat('signature', function (str) {
 				try {
+					if (str.length == '') {
+						return true;
+					}
+
 					var signature = new Buffer(str, "hex");
 					return signature.length == 64;
 				} catch (e) {
