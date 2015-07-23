@@ -257,6 +257,7 @@ function attachApi() {
 		try {
 			transaction = library.logic.transaction.objectNormalize(req.body.transaction);
 		} catch (e) {
+			console.log(e);
 				var peerIp = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
 				var peerStr = peerIp ? peerIp + ":" + (isNaN(req.headers['port'])? 'unknown' : req.headers['port']) : 'unknown';
 				library.logger.log('recieved transaction ' + (transaction ? transaction.id : 'null') + ' is not valid, ban 60 min', peerStr);
