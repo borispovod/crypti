@@ -217,7 +217,12 @@ private.loadBlocks = function(lastBlock, cb) {
 		}
 
 		if (bignum(modules.blocks.getLastBlock().height).lt(data.body.height)) { //diff in chainbases
-			var report = library.scheme.validate(data.body.height, {type: "integer", required: true});
+			var report = library.scheme.validate(data.body, {type: "object", properties: {
+				'height': {
+					type: 'integer',
+					minimum: 0
+				}
+			}, required: ['height']});
 
 			if (!report) {
 				library.logger.log("Failed to parse block height from " + peerStr);
