@@ -7,7 +7,11 @@
 // Requires and node configuration
 var node = require('./../variables.js');
 var test = 0;
-var peerTested;
+var peerTested = {
+    ip : "1.1.1.1",
+    port : 4060
+};
+
 var block = {
     blockHeight : 0,
     id : 0,
@@ -38,7 +42,7 @@ describe('Miscellaneous tests (peers, blocks, etc)', function() {
                         node.expect(res.body).to.have.property("success").to.be.true;
                         node.expect(res.body).to.have.property("peers").to.be.array;
                         if (res.body.success == true && res.body.peers != null){
-                            node.expect(res.body.peers.length).to.be.equal(randomNumberOfPeers);
+                            node.expect(res.body.peers.length).to.be.at.least(randomNumberOfPeers);
                             if (res.body.peers.length > 0){
                                 peerTested = res.body.peers[0];
                             }
@@ -47,12 +51,10 @@ describe('Miscellaneous tests (peers, blocks, etc)', function() {
                             console.log("Request failed or peers object is null");
                             node.expect("true").to.equal("false");
                         }
-
                         done();
                     });
             });
         });
-
 
         test = test + 1;
         it(test + '. Get peer by IP and port. Expecting success',function(done){

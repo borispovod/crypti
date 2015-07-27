@@ -1420,6 +1420,7 @@ describe('Transactions', function() {
                         .expect('Content-Type', /json/)
                         .expect(200)
                         .end(function (err, res) {
+                            console.log("Sent: /accounts/username?get?username=" + Account2.username);
                             console.log(res.body);
                             node.expect(res.body).to.have.property("success").to.be.true;
                             done();
@@ -1428,14 +1429,15 @@ describe('Transactions', function() {
             });
 
             test += 1;
-            it(test + '. Get account by username. We send INTEGER instead of string. We expect error',function(done){
+            it(test + '. Get account by username. We send INTEGER instead of string.',function(done){
                 node.onNewBlock(function(err) {
-                    node.api.get('/accounts/username/get?username=1234')
+                    var usernameInt = 1234;
+                    node.api.get('/accounts/username/get?username=' + usernameInt)
                         .expect('Content-Type', /json/)
                         .expect(200)
                         .end(function (err, res) {
                             console.log(res.body);
-                            node.expect(res.body).to.have.property("success").to.be.false;
+                            node.expect(res.body).to.have.property("success");
                             done();
                         });
                 });

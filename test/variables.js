@@ -153,11 +153,10 @@ function waitForNewBlock(height, cb) {
 
 // Adds peers to local node
 function addPeers(numOfPeers, cb) {
-    var operatingSystems = ['win32','win64','linux','debian'];
+    var operatingSystems = ['win32','win64','ubuntu','debian', 'centos'];
     var ports = [4060, 5060, 8040, 7040];
     var sharePortOptions = [0,1];
     var os,version,port,sharePort;
-
 
     var i = 0;
     async.whilst(function () {
