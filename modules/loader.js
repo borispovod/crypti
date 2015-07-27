@@ -203,7 +203,12 @@ private.loadBlocks = function(lastBlock, cb) {
 
 		library.logger.info("Check blockchain on " + peerStr);
 
-		var report = library.scheme.validate(data.body.height, {type : "integer", required: true});
+		var report = library.scheme.validate(data.body, {type : "object", properties: {
+			'height': {
+				type: 'integer',
+				minimum: 0
+			}
+		}, required: ['height']});
 
 		if (!report) {
 			library.logger.log("Can't parse blockchain height: " + peerStr);
@@ -211,7 +216,12 @@ private.loadBlocks = function(lastBlock, cb) {
 		}
 
 		if (bignum(modules.blocks.getLastBlock().height).lt(data.body.height)) { //diff in chainbases
-			var report = library.scheme.validate(data.body.height, {type: "integer", required: true});
+			var report = library.scheme.validate(data.body, {type: "object", properties: {
+				'height': {
+					type: 'integer',
+					minimum: 0
+				}
+			}, required: ['height']});
 
 			if (!report) {
 				library.logger.log("Failed to parse block height from " + peerStr);
@@ -240,7 +250,7 @@ private.loadUnconfirmedTransactions = function(cb) {
 			return cb()
 		}
 
-		var report = library.scheme.validate(data.body.transactions, {type: "array", required: true});
+		var report = library.scheme.validate(data.body.transactions, {type: "array"});
 		if (!report) {
 			return cb();
 		}

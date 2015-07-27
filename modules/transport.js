@@ -257,6 +257,7 @@ function attachApi() {
 		try {
 			transaction = library.logic.transaction.objectNormalize(req.body.transaction);
 		} catch (e) {
+			console.log(e);
 				var peerIp = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
 				var peerStr = peerIp ? peerIp + ":" + (isNaN(req.headers['port'])? 'unknown' : req.headers['port']) : 'unknown';
 				library.logger.log('recieved transaction ' + (transaction ? transaction.id : 'null') + ' is not valid, ban 60 min', peerStr);
@@ -265,14 +266,14 @@ function attachApi() {
 					modules.peer.state(ip.toLong(peerIp), req.headers['port'], 0, 3600);
 				}
 
-				return res.status(200).json({success: false, message: "Invalid transaction body"});
+				return res.status(200).json({success: false, error: "Invalid transaction body"});
 		}
 
 		library.sequence.add(function (cb) {
 			modules.transactions.receiveTransactions([transaction], cb);
 		}, function (err) {
 			if (err) {
-				res.status(200).json({success: false, message: err});
+				res.status(200).json({success: false, error: err});
 			} else {
 				res.status(200).json({success: true});
 			}

@@ -106,7 +106,6 @@ function Contact() {
 				}
 			}
 
-
 			var res = sender.applyUnconfirmedContact(trs.asset.contact.address);
 			setImmediate(cb, !res ? "Can't apply contact: " + trs.id : null);
 		});
