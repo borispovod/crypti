@@ -105,7 +105,7 @@ function Tree() {
 
 			modules.accounts.getAccount({publicKey: senderPublicKey}, function (err, account) {
 				if (err || !account) {
-					return setImmediate(cb, err? err.toString() : "Sender of this transaction not found: " + trs.id);
+					return setImmediate(cb, err ? err.toString() : "Sender of this transaction not found: " + trs.id);
 				}
 
 				function done() {
@@ -963,87 +963,12 @@ private.attachApi = function () {
 	});
 
 	router.post('/launch', function (req, res, next) {
-		req.sanitize(req.body, {
-			type: "object",
-			properties: {
-				id: {
-					type: 'string',
-					minLength: 1
-				}
-			},
-			required: ["id"]
-		}, function (err, report, body) {
-			if (err) return next(err);
-			if (!report.isValid) return res.json({success: false, error: report.issues});
-
-			if (private.launched[body.id]) {
-				return res.json({success: false, error: "DApp already launched"});
+		private.launch(req.body, function (err) {
+			if (err) {
+				return res.json({"success": false, "error": err});
 			}
 
-			private.launched[body.id] = true;
-
-			private.get(body.id, function (err, dapp) {
-				if (err) {
-					private.launched[body.id] = false;
-					library.logger.error(err);
-					return res.json({success: false, error: "Can't find dapp"});
-				} else {
-					private.getInstalledIds(function (err, files) {
-						if (err) {
-							private.launched[body.id] = false;
-							library.logger.error(err);
-							return res.json({success: false, error: "Can't get installed dapps"});
-						} else {
-							if (files.indexOf(body.id) >= 0) {
-								private.symlink(dapp, function (err) {
-									if (err) {
-										private.launched[body.id] = false;
-										library.logger.error(err);
-										return res.json({
-											success: false,
-											error: "Can't create public link for: " + body.id
-										});
-									} else {
-										private.launch(dapp, function (err) {
-											if (err) {
-												private.launched[body.id] = false;
-												library.logger.error(err);
-												return res.json({
-													success: false,
-													error: "Can't launch dapp, see logs: " + body.id
-												});
-											} else {
-												private.dappRoutes(dapp, function (err) {
-													if (err) {
-														private.launched[body.id] = false;
-														library.logger.error(err);
-														private.stop(dapp, function (err) {
-															if (err) {
-																library.logger.error(err);
-																return res.json({
-																	success: false,
-																	error: "Can't stop dapp, check logs: " + body.id
-																})
-															}
-
-															return res.json({success: false});
-														});
-													} else {
-														return res.json({success: true});
-													}
-												});
-											}
-										});
-									}
-								});
-							} else {
-								private.launched[body.id] = false;
-								return res.json({success: false, error: "DApp didn't installed"});
-							}
-						}
-					});
-				}
-			});
+			res.json({"success": true});
 		});
 	});
 
@@ -1439,7 +1364,88 @@ private.dappRoutes = function (dapp, cb) {
 	});
 }
 
-private.launch = function (dApp, cb) {
+private.launch = function (body, cb) {
+	library.scheme.validate(body, {
+		type: "object",
+		properties: {
+			secret: {
+				type: 'string',
+				minLength: 1
+			},
+			id: {
+				type: 'string',
+				minLength: 1
+			}
+		},
+		required: ["id", "secret"]
+	}, function (err) {
+		if (err) {
+			return cb(err[0].message);
+		}
+
+		if (private.launched[body.id]) {
+			return cb("DApp already launched");
+		}
+
+		private.launched[body.id] = true;
+
+		private.get(body.id, function (err, dapp) {
+			if (err) {
+				private.launched[body.id] = false;
+				library.logger.error(err);
+				return cb("Can't find dapp");
+			} else {
+				private.getInstalledIds(function (err, files) {
+					if (err) {
+						private.launched[body.id] = false;
+						library.logger.error(err);
+						return cb("Can't get installed dapps");
+					} else {
+						if (files.indexOf(body.id) >= 0) {
+							private.symlink(dapp, function (err) {
+								if (err) {
+									private.launched[body.id] = false;
+									library.logger.error(err);
+									return cb("Can't create public link for: " + body.id);
+								} else {
+									private.launchApp(dapp, function (err) {
+										if (err) {
+											private.launched[body.id] = false;
+											library.logger.error(err);
+											return cb("Can't launch dapp, see logs: " + body.id);
+										} else {
+											private.dappRoutes(dapp, function (err) {
+												if (err) {
+													private.launched[body.id] = false;
+													library.logger.error(err);
+													private.stop(dapp, function (err) {
+														if (err) {
+															library.logger.error(err);
+															return cb("Can't stop dapp, check logs: " + body.id)
+														}
+
+														return cb("Can't start dapp");
+													});
+												} else {
+													return cb(null);
+												}
+											});
+										}
+									});
+								}
+							});
+						} else {
+							private.launched[body.id] = false;
+							return cb("DApp didn't installed");
+						}
+					}
+				});
+			}
+		});
+	});
+}
+
+private.launchApp = function (dApp, cb) {
 	var dappPath = path.join(private.dappsPath, dApp.transactionId);
 	var dappPublicPath = path.join(dappPath, "public");
 	var dappPublicLink = path.join(private.appPath, "public", "dapps", dApp.transactionId);
@@ -1529,6 +1535,21 @@ DApps.prototype.message = function (dappid, body, cb) {
 //events
 DApps.prototype.onBind = function (scope) {
 	modules = scope;
+}
+
+DApps.prototype.onBlockchainReady = function () {
+	if (library.config.dapp) {
+		setTimeout(function () {
+			async.eachSeries(library.config.dapp.autoexec || [], function (dapp, cb) {
+				private.launch({secret: dapp.secret, id: dapp.dappid}, function (err) {
+					if (!err) {
+						console.log("lanched " + dapp.dappid + " as " + dapp.secret, err)
+					}
+					cb();
+				});
+			});
+		}, 5000)
+	}
 }
 
 //shared

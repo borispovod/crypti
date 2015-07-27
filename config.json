@@ -125,7 +125,9 @@
 			"2LAgOflQnsF2iQ3JEJsMlKCdOXfr286IZTA"
 		],
 		"access": {
-			"whiteList": ["127.0.0.1"]
+			"whiteList": [
+				"127.0.0.1"
+			]
 		}
 	},
 	"loading": {
@@ -140,5 +142,13 @@
 			"key": "./ssl/crypti.key",
 			"cert": "./ssl/crypti.crt"
 		}
+	},
+	"dapp": {
+		"autoexec": [
+			{
+				"secret": "",
+				"dappid": "15616498276233037701"
+			}
+		]
 	}
 }
