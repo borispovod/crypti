@@ -278,7 +278,6 @@ function attachApi() {
 			var length = Math.min(limit, count);
 			var realLimit = Math.min(offset + limit, count);
 
-
 			if (active === true) {
 				publicKeys = publicKeys.slice(0, 101);
 			} else if (active === false) {
@@ -654,6 +653,8 @@ private.getDelegate = function (filter, rateSort) {
 	var productivity = novice ? 0 : parseFloat(Math.floor(percent * 100) / 100).toFixed(2)
 
 	return {
+		missed: stat.missed,
+		forged: stat.forged,
 		username: delegate.username,
 		address: delegate.address,
 		publicKey: delegate.publicKey,

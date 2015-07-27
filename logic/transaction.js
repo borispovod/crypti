@@ -12,7 +12,6 @@ var scheme = new z_schema();
 
 //constructor
 function Transaction() {
-
 }
 
 //private methods
@@ -476,7 +475,7 @@ Transaction.prototype.objectNormalize = function (trs) {
 	});
 
 	if (!report) {
-		throw Error("Can't parse transaction");
+		throw Error("Can't parse transaction: " + scheme.getLastError());
 	}
 
 	try {

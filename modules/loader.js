@@ -202,7 +202,6 @@ private.loadBlocks = function(lastBlock, cb) {
 		}
 
 		library.logger.info("Check blockchain on " + peerStr);
-		console.log(data.body.height);
 
 		var report = library.scheme.validate(data.body, {type : "object", properties: {
 			'height': {
@@ -217,6 +216,18 @@ private.loadBlocks = function(lastBlock, cb) {
 		}
 
 		if (bignum(modules.blocks.getLastBlock().height).lt(data.body.height)) { //diff in chainbases
+			report = library.scheme.validate(data.body, {type: "object", properties: {
+				'height': {
+					type: 'integer',
+					minimum: 0
+				}
+			}, required: ['height']});
+
+			if (!report) {
+				library.logger.log("Failed to parse block height from " + peerStr);
+				return cb();
+			}
+
 			private.blocksToSync = data.body.height;
 
 			if (lastBlock.id != genesisBlock.block.id) { //have to found common block
@@ -239,7 +250,7 @@ private.loadUnconfirmedTransactions = function(cb) {
 			return cb()
 		}
 
-		var report = library.scheme.validate(data.body.transactions, {type: "array", required: true});
+		var report = library.scheme.validate(data.body.transactions, {type: "array"});
 		if (!report) {
 			return cb();
 		}

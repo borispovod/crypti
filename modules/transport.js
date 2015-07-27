@@ -173,9 +173,17 @@ function attachApi() {
 	router.get("/blocks", function (req, res, next) {
 		res.set(private.headers);
 
+		if (query.lastBlockId) {
+			query.lastBlockId = query.lastBlockId.toString();
+		}
+
 		req.sanitize(req.query, {type: 'object', properties: { lastBlockId: { type : 'string' }}}, function (err, report, query) {
 			if (err) return next(err);
-			if (!report.isValid) return res.json({success: false, error: report.issues});
+			if (!report.isValid) {
+				console.log("here");
+				console.log(req.query);
+				return res.json({success: false, error: report.issues});
+			}
 
 			// get 1400+ blocks with all data (joins) from provided block id
 			var blocksLimit = 1440;
@@ -257,6 +265,7 @@ function attachApi() {
 		try {
 			transaction = library.logic.transaction.objectNormalize(req.body.transaction);
 		} catch (e) {
+			console.log(e);
 				var peerIp = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
 				var peerStr = peerIp ? peerIp + ":" + (isNaN(req.headers['port'])? 'unknown' : req.headers['port']) : 'unknown';
 				library.logger.log('recieved transaction ' + (transaction ? transaction.id : 'null') + ' is not valid, ban 60 min', peerStr);
