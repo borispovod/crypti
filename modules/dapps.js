@@ -17,6 +17,7 @@ var async = require('async'),
 	ed = require('ed25519'),
 	rmdir = require('rimraf'),
 	extend = require('extend'),
+	ip = require('ip'),
 	valid_url = require('valid-url'),
 	sandboxHelper = require('../helpers/sandbox.js');
 
@@ -1457,35 +1458,43 @@ private.launchApp = function (dApp, cb) {
 	}
 
 	//dappConfig.db
-	modules.sql.createTables(dApp.transactionId, dappConfig.db, function (err) {
-		if (err) {
-			return setImmediate(err);
-		}
+	async.eachSeries(dappConfig.peers, function (peer, cb) {
+		modules.peer.addDapp({
+			ip: ip.toLong(peer.ip),
+			port: peer.port,
+			dappid: dApp.transactionId
+		}, cb);
+	}, function () {
+		modules.sql.createTables(dApp.transactionId, dappConfig.db, function (err) {
+			if (err) {
+				return setImmediate(err);
+			}
 
-		var sandbox = new Sandbox(path.join(dappPath, "index.js"), dApp.transactionId, private.apiHandler, true);
-		private.sandboxes[dApp.transactionId] = sandbox;
+			var sandbox = new Sandbox(path.join(dappPath, "index.js"), dApp.transactionId, private.apiHandler, true);
+			private.sandboxes[dApp.transactionId] = sandbox;
 
-		sandbox.on("exit", function () {
-			library.logger.info("DApp " + dApp.transactionId + " closed ");
-			private.stop(dApp, function (err) {
-				if (err) {
-					library.logger.error("Error on stop dapp: " + err);
-				}
+			sandbox.on("exit", function () {
+				library.logger.info("DApp " + dApp.transactionId + " closed ");
+				private.stop(dApp, function (err) {
+					if (err) {
+						library.logger.error("Error on stop dapp: " + err);
+					}
+				});
 			});
-		});
 
-		sandbox.on("error", function (err) {
-			library.logger.info("Error in DApp " + dApp.transactionId + " " + err.toString());
-			private.stop(dApp, function (err) {
-				if (err) {
-					library.logger.error("Error on stop dapp: " + err);
-				}
+			sandbox.on("error", function (err) {
+				library.logger.info("Error in DApp " + dApp.transactionId + " " + err.toString());
+				private.stop(dApp, function (err) {
+					if (err) {
+						library.logger.error("Error on stop dapp: " + err);
+					}
+				});
 			});
+
+			sandbox.run();
+
+			return setImmediate(cb);
 		});
-
-		sandbox.run();
-
-		return setImmediate(cb);
 	});
 }
 
@@ -1542,9 +1551,7 @@ DApps.prototype.onBlockchainReady = function () {
 		setTimeout(function () {
 			async.eachSeries(library.config.dapp.autoexec || [], function (dapp, cb) {
 				private.launch({secret: dapp.secret, id: dapp.dappid}, function (err) {
-					if (!err) {
-						console.log("lanched " + dapp.dappid + " as " + dapp.secret, err)
-					}
+					console.log("lanched " + dapp.dappid + " as " + dapp.secret, err)
 					cb();
 				});
 			});

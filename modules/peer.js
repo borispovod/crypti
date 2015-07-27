@@ -212,11 +212,10 @@ private.getByFilter = function (filter, cb) {
 }
 
 //public methods
-Peer.prototype.list = function (limit, cb) {
-	limit = limit || 100;
-	var params = {limit: limit};
+Peer.prototype.list = function (options, cb) {
+	options.limit = options.limit || 100;
 
-	library.dbLite.query("select ip, port, state, os, sharePort, version from peers where state > 0 and sharePort = 1 ORDER BY RANDOM() LIMIT $limit", params, {
+	library.dbLite.query("select p.ip, p.port, p.state, p.os, p.sharePort, p.version from peers p " + (options.dappid ? " inner join peers_dapp pd on p.id = pd.peerId and pd.dappid = $dappid " : "") + " where p.state > 0 and p.sharePort = 1 ORDER BY RANDOM() LIMIT $limit", options, {
 		"ip": String,
 		"port": Number,
 		"state": Number,
@@ -266,7 +265,28 @@ Peer.prototype.remove = function (pip, port, cb) {
 	});
 }
 
+Peer.prototype.addDapp = function (config, cb) {
+	library.dbLite.query("SELECT id from peers where ip = $ip and port = $port", {
+		ip: config.ip,
+		port: config.port
+	}, ["id"], function (err, data) {
+		if (err) {
+			return cb(err);
+		}
+		if (!data.length) {
+			return cb();
+		}
+		var peerId = data[0].id;
+
+		library.dbLite.query("INSERT OR IGNORE INTO peers_dapp (peerId, dappId) VALUES ($peerId, $dappId);", {
+			dappId: config.dappid,
+			peerId: peerId
+		}, cb);
+	});
+}
+
 Peer.prototype.update = function (peer, cb) {
+	var dappid = peer.dappid;
 	var params = {
 		ip: peer.ip,
 		port: peer.port,
@@ -283,6 +303,14 @@ Peer.prototype.update = function (peer, cb) {
 				params.state = peer.state;
 			}
 			library.dbLite.query("UPDATE peers SET os = $os, sharePort = $sharePort, version = $version" + (peer.state !== undefined ? ", state = CASE WHEN state = 0 THEN state ELSE $state END " : "") + " WHERE ip = $ip and port = $port;", params, cb);
+		},
+		function (cb) {
+			if (dappid) {
+				self.addDapp({dappid: dappid, ip: peer.ip, port: peer.port}, cb);
+			} else {
+				setImmediate(cb);
+			}
+
 		}
 	], function (err) {
 		err && library.logger.error('Peer#update', err);

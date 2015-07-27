@@ -383,39 +383,6 @@ function Account(scope, cb) {
 
 	var sql = jsonSql.build({
 		type: 'create',
-		table: this.table + "2dapp",
-		tableFields: [
-			{
-				name: "accountId",
-				type: "String",
-				length: 21,
-				not_null: true
-			}, {
-				name: "dappId",
-				type: "String",
-				length: 21,
-				not_null: true
-			}, {
-				name: "ip",
-				type: "BigInt"
-			}, {
-				name: "port",
-				type: "BigInt"
-			},
-		],
-		foreignKeys: [
-			{
-				field: "accountId",
-				table: this.table,
-				table_field: "address",
-				on_delete: "cascade"
-			}
-		]
-	});
-	sqles.push(sql.query);
-
-	var sql = jsonSql.build({
-		type: 'create',
 		table: this.table + "2contacts",
 		tableFields: [
 			{
@@ -777,7 +744,6 @@ Account.prototype.merge = function (address, diff, cb) {
 				table: self.table + "2" + el,
 				condition: remove_object[el]
 			});
-			console.log(sql)
 			sqles.push(sql);
 		});
 	}
@@ -791,7 +757,6 @@ Account.prototype.merge = function (address, diff, cb) {
 					table: self.table + "2" + el,
 					values: insert_object[el]
 				});
-				console.log(sql)
 				sqles.push(sql);
 			}
 		});
