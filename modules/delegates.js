@@ -36,6 +36,7 @@ function Delegate() {
 		trs.amount = 0;
 		trs.asset.delegate = {
 			username: data.username,
+			address: modules.accounts.getAddressByPublicKey(data.sender.publicKey),
 			publicKey: data.sender.publicKey
 		};
 
@@ -71,6 +72,10 @@ function Delegate() {
 		var isAddress = /^[0-9]+c$/g;
 		if (isAddress.test(trs.asset.delegate.username.toLowerCase())) {
 			return setImmediate(cb, errorCode("DELEGATES.USERNAME_LIKE_ADDRESS", trs));
+		}
+
+		if (!isAddress.test(trs.asset.delegate.address.toLowerCase())) {
+			return setImmediate(cb, "Address missed for delegate transaction");
 		}
 
 		if (trs.asset.delegate.username.length < 1) {
@@ -651,6 +656,10 @@ private.getDelegate = function (filter, rateSort) {
 	var novice = stat.missed === null && stat.forged === null;
 	var outsider = rateSort[delegate.publicKey] > slots.delegates && novice;
 	var productivity = novice ? 0 : parseFloat(Math.floor(percent * 100) / 100).toFixed(2)
+
+	if (!delegate.address) {
+		console.log("here");
+	}
 
 	return {
 		missed: stat.missed,
