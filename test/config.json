@@ -1,6 +1,7 @@
 {
-	"port": 4060,
-	"address": "0.0.0.0",
+	"port": 5040,
+	"address": "192.168.253.73",
+  	"addressComment":"To run locally, ADDRESS Must be 127.0.0.1 for Windows",
 	"serveHttpAPI": true,
 	"serveHttpWallet": true,
 	"version": "0.3.1",

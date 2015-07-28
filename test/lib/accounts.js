@@ -15,8 +15,8 @@ process.on('close', function(code) {
     console.log('closing code: ' + code);
 });
 
-
 sleep.sleep(3);
+
 // Requires and node configuration
 var node = require('./../variables.js');
 var test = 0;

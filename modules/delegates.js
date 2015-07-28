@@ -36,6 +36,7 @@ function Delegate() {
 		trs.amount = 0;
 		trs.asset.delegate = {
 			username: data.username,
+			address: modules.accounts.getAddressByPublicKey(data.sender.publicKey),
 			publicKey: data.sender.publicKey
 		};
 

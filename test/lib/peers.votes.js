@@ -22,47 +22,51 @@ describe("Peers votes", function () {
 
 	it("Remove votes from delegate. We expect success", function (done) {
 		var transaction = node.crypti.vote.createVote(node.peers_config.account, ["-badf44a77df894ccad87fa62bac892e63e5e39fd972f6a3e6e850ed1a1708e98"]);
-		node.peer.post('/transactions')
-			.set('Accept', 'application/json')
-			.send({
-				transaction: transaction
-			})
-			.expect('Content-Type', /json/)
-			.expect(200)
-			.end(function (err, res) {
-				console.log(res.body);
-				node.expect(res.body).to.have.property("success").to.be.true;
-				done();
-			});
+		node.onNewBlock(function (err) {
+			node.peer.post('/transactions')
+				.set('Accept', 'application/json')
+				.send({
+					transaction: transaction
+				})
+				.expect('Content-Type', /json/)
+				.expect(200)
+				.end(function (err, res) {
+					console.log(res.body);
+					node.expect(res.body).to.have.property("success").to.be.true;
+					done();
+				});
+		}, 10000);
 	});
 
 	it("Remove votes from delegate and then vote again. We expect error", function (done) {
 		var transaction = node.crypti.vote.createVote(node.peers_config.account, ["-9062a3b2d585be13b66e705af3f40657a97d0e4a27ec56664e05cdb5c953b0f6"]);
-		node.peer.post('/transactions')
-			.set('Accept', 'application/json')
-			.send({
-				transaction: transaction
-			})
-			.expect('Content-Type', /json/)
-			.expect(200)
-			.end(function (err, res) {
-				node.expect(res.body).to.have.property("success").to.be.true;
+		node.onNewBlock(function (err) {
+			node.peer.post('/transactions')
+				.set('Accept', 'application/json')
+				.send({
+					transaction: transaction
+				})
+				.expect('Content-Type', /json/)
+				.expect(200)
+				.end(function (err, res) {
+					node.expect(res.body).to.have.property("success").to.be.true;
 
-				var transaction2 = node.crypti.vote.createVote(node.peers_config.account, ["+9062a3b2d585be13b66e705af3f40657a97d0e4a27ec56664e05cdb5c953b0f6"]);
-				node.peer.post('/transactions')
-					.set('Accept', 'application/json')
-					.send({
-						transaction: transaction2
-					})
-					.expect('Content-Type', /json/)
-					.expect(200)
-					.end(function (err, res) {
-						console.log(res.body);
-						node.expect(res.body).to.have.property("success").to.be.false;
-						done();
-					});
-			});
-	});
+					var transaction2 = node.crypti.vote.createVote(node.peers_config.account, ["+9062a3b2d585be13b66e705af3f40657a97d0e4a27ec56664e05cdb5c953b0f6"]);
+					node.peer.post('/transactions')
+						.set('Accept', 'application/json')
+						.send({
+							transaction: transaction2
+						})
+						.expect('Content-Type', /json/)
+						.expect(200)
+						.end(function (err, res) {
+							console.log(res.body);
+							node.expect(res.body).to.have.property("success").to.be.false;
+							done();
+						});
+				});
+		});
+	}, 10000);
 
 	// not right test, because sometimes new block came and we don't have time to vote
 	it("Create new delegate. We expect success.", function (done) {
@@ -110,7 +114,6 @@ describe("Peers votes", function () {
 		var transaction = node.crypti.vote.createVote(node.peers_config.account, ["+" + account.publicKey]);
 		node.onNewBlock(function (err) {
 			node.expect(err).to.be.not.ok;
-
 			node.peer.post('/transactions')
 				.set('Accept', 'application/json')
 				.send({
@@ -119,6 +122,7 @@ describe("Peers votes", function () {
 				.expect('Content-Type', /json/)
 				.expect(200)
 				.end(function (err, res) {
+					console.log(res.body);
 					node.expect(res.body).to.have.property("success").to.be.true;
 					done();
 				});

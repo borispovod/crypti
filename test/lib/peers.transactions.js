@@ -4,7 +4,7 @@ var node = require('./../variables.js'),
 var genesisblock = require('../../helpers/genesisblock.js');
 
 describe("Peers transactions", function () {
-	it("create transaction. should return ok", function (done) {
+	it("Create standard transaction. Should return ok", function (done) {
 		var transaction = node.crypti.transaction.createTransaction("1C", 1, node.peers_config.account);
 		node.peer.post('/transactions')
 			.set('Accept', 'application/json')
@@ -20,7 +20,7 @@ describe("Peers transactions", function () {
 			});
 	});
 
-	it("create transaction with negative amount. should return not ok", function (done) {
+	it("Create transaction with negative amount. should return not ok", function (done) {
 		var transaction = node.crypti.transaction.createTransaction("1C", -1, node.peers_config.account);
 		node.peer.post('/transactions')
 			.set('Accept', 'application/json')
@@ -32,7 +32,7 @@ describe("Peers transactions", function () {
 			.end(function (err, res) {
 				console.log(res.body);
 				node.expect(res.body).to.have.property("success").to.be.false;
-				node.expect(res.body).to.have.property("message");
+				node.expect(res.body).to.have.property("error");
 				done();
 			});
 	});
@@ -51,7 +51,7 @@ describe("Peers transactions", function () {
 			.end(function (err, res) {
 				console.log(res.body);
 				node.expect(res.body).to.have.property("success").to.be.false;
-				node.expect(res.body).to.have.property("message");
+				node.expect(res.body).to.have.property("error");
 				done();
 			});
 	});
@@ -68,7 +68,7 @@ describe("Peers transactions", function () {
 			.end(function (err, res) {
 				console.log(res.body);
 				node.expect(res.body).to.have.property("success").to.be.false;
-				node.expect(res.body).to.have.property("message");
+				node.expect(res.body).to.have.property("error");
 				done();
 			});
 	});
@@ -87,7 +87,7 @@ describe("Peers transactions", function () {
 			.end(function (err, res) {
 				console.log(res.body);
 				node.expect(res.body).to.have.property("success").to.be.false;
-				node.expect(res.body).to.have.property("message");
+				node.expect(res.body).to.have.property("error");
 				done();
 			});
 	});
@@ -106,7 +106,7 @@ describe("Peers transactions", function () {
 			.end(function (err, res) {
 				console.log(res.body);
 				node.expect(res.body).to.have.property("success").to.be.false;
-				node.expect(res.body).to.have.property("message");
+				node.expect(res.body).to.have.property("error");
 				done();
 			});
 	});
@@ -140,7 +140,7 @@ describe("Peers transactions", function () {
 			.end(function (err, res) {
 				console.log(res.body);
 				node.expect(res.body).to.have.property("success").to.be.false;
-				node.expect(res.body).to.have.property("message");
+				node.expect(res.body).to.have.property("error");
 				done();
 			});
 	});
@@ -157,7 +157,7 @@ describe("Peers transactions", function () {
 			.end(function (err, res) {
 				console.log(res.body);
 				node.expect(res.body).to.have.property("success").to.be.false;
-				node.expect(res.body).to.have.property("message");
+				node.expect(res.body).to.have.property("error");
 				done();
 			});
 	});

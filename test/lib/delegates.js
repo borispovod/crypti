@@ -651,7 +651,7 @@ describe('Delegates', function() {
         it(test + '. We attempt to get a list of all delegates. We expect success',function(done){
             var limit = 10;
             var offset = 0;
-            node.api.get('/delegates?limit='+limit+'&offset='+offset+'&oderBy=vote:asc')
+            node.api.get('/delegates?limit='+limit+'&offset='+offset+'&orderBy=vote:asc')
                 .set('Accept', 'application/json')
                 .expect('Content-Type', /json/)
                 .expect(200)
@@ -688,7 +688,7 @@ describe('Delegates', function() {
         it(test + '. We attempt to get a list of all delegates. Different parameters. We expect success',function(done){
             var limit = 20;
             var offset = 10;
-            node.api.get('/delegates?limit='+limit+'&offset='+offset+'&oderBy=rate:desc')
+            node.api.get('/delegates?limit='+limit+'&offset='+offset+'&orderBy=rate:desc')
                 .set('Accept', 'application/json')
                 .expect('Content-Type', /json/)
                 .expect(200)
@@ -704,7 +704,7 @@ describe('Delegates', function() {
                     if (num_of_delegates >= 1) {
                         for (var i = 0; i < num_of_delegates; i++) {
                             if (res.body.delegates[i + 1] != null) {
-                                node.expect(res.body.delegates[i].vote).to.be.at.least(res.body.delegates[i + 1].vote);
+                                node.expect(res.body.delegates[i].rate).to.be.at.least(res.body.delegates[i + 1].rate);
                             }
                         }
                     }
@@ -721,7 +721,7 @@ describe('Delegates', function() {
             // We expect success because invalid parameters that we send are optional parameters
             var limit = 'invalid';
             var offset = 'invalid';
-            node.api.get('/delegates?limit='+limit+'&offset='+offset+'&oderBy=invalid')
+            node.api.get('/delegates?limit='+limit+'&offset='+offset+'&orderBy=invalid')
                 .set('Accept', 'application/json')
                 .expect('Content-Type', /json/)
                 .expect(200)
