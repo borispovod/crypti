@@ -74,6 +74,10 @@ function Delegate() {
 			return setImmediate(cb, errorCode("DELEGATES.USERNAME_LIKE_ADDRESS", trs));
 		}
 
+		if (!isAddress.test(trs.asset.delegate.address.toLowerCase())) {
+			return setImmediate(cb, "Address missed for delegate transaction");
+		}
+
 		if (trs.asset.delegate.username.length < 1) {
 			return setImmediate(cb, errorCode("DELEGATES.USERNAME_IS_TOO_SHORT", trs));
 		}
