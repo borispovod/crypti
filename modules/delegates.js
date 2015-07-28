@@ -652,6 +652,10 @@ private.getDelegate = function (filter, rateSort) {
 	var outsider = rateSort[delegate.publicKey] > slots.delegates && novice;
 	var productivity = novice ? 0 : parseFloat(Math.floor(percent * 100) / 100).toFixed(2)
 
+	if (!delegate.address) {
+		console.log("here");
+	}
+
 	return {
 		missed: stat.missed,
 		forged: stat.forged,
