@@ -74,7 +74,7 @@ function Delegate() {
 			return setImmediate(cb, errorCode("DELEGATES.USERNAME_LIKE_ADDRESS", trs));
 		}
 
-		if (!isAddress.test(trs.asset.delegate.address.toLowerCase())) {
+		if (!trs.asset.delegate.address || !isAddress.test(trs.asset.delegate.address.toLowerCase())) {
 			return setImmediate(cb, "Address missed for delegate transaction");
 		}
 
