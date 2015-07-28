@@ -173,10 +173,6 @@ function attachApi() {
 	router.get("/blocks", function (req, res, next) {
 		res.set(private.headers);
 
-		if (query.lastBlockId) {
-			query.lastBlockId = query.lastBlockId.toString();
-		}
-
 		req.sanitize(req.query, {type: 'object', properties: { lastBlockId: { type : 'string' }}}, function (err, report, query) {
 			if (err) return next(err);
 			if (!report.isValid) {

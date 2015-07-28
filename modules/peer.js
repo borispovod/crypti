@@ -166,10 +166,6 @@ private.updatePeerList = function (cb) {
 			return cb(library.scheme.getLastError());
 		}
 
-		if (!report) {
-			return cb();
-		}
-
 		//var peers = RequestSanitizer.array(data.body.peers);
 		async.eachLimit(data.body.peers, 2, function (peer, cb) {
 			var peerReport = library.scheme.validate(peer, {
