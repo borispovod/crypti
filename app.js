@@ -382,13 +382,8 @@ d.run(function () {
 			});
 		}],
 
-		ready: ['modules', function (cb, scope) {
-			// need to load it as it written in config: server, accounts and etc.
-			Object.keys(scope.modules).forEach(function (name) {
-				if (typeof(scope.modules[name].onBind) == 'function') {
-					scope.modules[name].onBind(scope.modules);
-				}
-			});
+		ready: ['modules', 'bus', function (cb, scope) {
+			scope.bus.message("bind", scope.modules);
 			cb();
 		}]
 	}, function (err, scope) {
