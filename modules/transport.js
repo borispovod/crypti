@@ -71,15 +71,14 @@ function attachApi() {
 
 			var peer = {
 				ip: ip.toLong(peerIp),
-				port: private.headers.port,
+				port: req.headers['port'],
 				state: 2,
-				os: private.headers.os,
-				sharePort: Number(private.headers['share-port']),
-				version: private.headers.version
+				os: req.headers['os'],
+				sharePort: Number(req.headers['share-port']),
+				version: req.headers['version']
 			};
 
 			if (peer.port > 0 && peer.port <= 65535 && peer.version == library.config.version) {
-				console.log("update peer");
 				modules.peer.update(peer);
 			}
 

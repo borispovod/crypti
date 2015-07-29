@@ -1,0 +1,123 @@
+<div class="app-modal valign-wrapper">
+    <div class="container height100">
+        <div class="row height100">
+            <div class="col-md-6 col-md-offset-4 height100 valign-wrapper">
+
+
+                <div class="modal-content" ng-show="!passmode && !checkSecondPass">
+                    <div class="modal-header modal-iconed">
+                        <div class="close-modal" ng-click="close()"><span class="sr-only">Close modal</span></div>
+                    </div>
+                    <div class="modal-header clearfix">
+                        <div><h2>Send XCR</h2>
+                        </div>
+                        <div>Please type in an account name or ID below
+                        </div>
+                    </div>
+                    <div class="modal-body">
+                        <form ng-submit="passcheck()">
+                            <div class="input-group app-addon">
+                                <span class="input-group-addon search"></span>
+                                <input id="to" ng-focus="focus == 'to'" type="text" class="form-control"
+                                       placeholder="Account name or ID"
+                                       ng-model="to">
+                                <span class="input-group-addon clear" ng-click="clearRecipient()"></span>
+                            </div>
+                            <div class="field-padding">
+                                <div class="input-field">
+                                    <input id="amount" type="text" ng-model="amount" ng-focus="focus == 'amount'">
+                                    <label for="amount">XCR Amount</label>
+                                </div>
+                                <span class="pass-error"
+                                      ng-show="errorMessage && (rememberedPassword || presendError)">{{errorMessage}}</span>
+                            </div>
+                            <input type="submit" ng-show="false">
+                        </form>
+                    </div>
+                    <div class="modal-body bordered">
+                        <span class="send-info-text flat-text">Make sure you're sending XCR to the right contact. This action can't be undone later.</span>
+                    </div>
+                    <div class="modal-body">
+                        <ul class="nav modal-buttons pull-right">
+                            <li>
+                                <a href="#" ng-click="close()">Cancel
+                                </a>
+                            </li>
+                            <li><a href="#" class="green-link" ng-click="passcheck()">send xcr</a></li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="modal-content" ng-show="passmode && !checkSecondPass">
+                    <div class="modal-header modal-iconed">
+                        <div class="close-modal" ng-click="close()"><span class="sr-only">Close modal</span></div>
+                    </div>
+                    <div class="modal-header clearfix">
+                        <div><h2>Account Verification</h2>
+                        </div>
+                        <div>Please enter your passphrase below
+                        </div>
+                    </div>
+                    <div class="modal-body">
+                        <form ng-submit="sendXCR(secretPhrase)">
+                            <div class="field-padding">
+                                <div class="input-field">
+                                    <input id="passPhrase" type="password" ng-model="secretPhrase"
+                                           ng-focus="focus == 'secretPhrase'" ng-trim="false" autofocus
+                                           ng-class="{'invalid': errorMessage}">
+                                    <label for="passPhrase">Your Passphrase</label>
+                                </div>
+                                <span class="pass-error" ng-show="errorMessage && !secondSecret">{{errorMessage}}</span>
+                            </div>
+                            <input type="submit" ng-show="false">
+                        </form>
+                    </div>
+
+                    <div class="modal-body">
+                        <ul class="nav modal-buttons pull-right">
+                            <li>
+                                <a href="#" ng-click="passcheck()">BACK
+                                </a>
+                            </li>
+                            <li><a href="#" class="green-link" ng-click="sendXCR(secretPhrase)">send xcr</a></li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="modal-content" ng-show="checkSecondPass">
+                    <div class="modal-header modal-iconed">
+                        <div class="close-modal" ng-click="close()"><span class="sr-only">Close modal</span></div>
+                    </div>
+                    <div class="modal-header clearfix">
+                        <div><h2>Account Verification</h2>
+                        </div>
+                        <div>Please enter your second passphrase below
+                        </div>
+                    </div>
+                    <div class="modal-body">
+                        <form ng-submit="sendXCR(secretPhrase, true)">
+                            <div class="field-padding">
+                                <div class="input-field">
+                                    <input id="secondPhrase" type="password" ng-model="secondPhrase" ng-trim="false"
+                                           autofocus
+                                           ng-focus="focus == 'secondPhrase'" ng-class="{'invalid': errorMessage}">
+                                    <label for="secondPhrase">Your Second Passphrase</label>
+                                </div>
+                                <span class="pass-error" ng-show="errorMessage">{{errorMessage}}</span>
+                            </div>
+                            <input type="submit" ng-show="false">
+                        </form>
+                    </div>
+                    <div class="modal-body">
+                        <ul class="nav modal-buttons pull-right">
+                            <li>
+                                <a href="#" ng-click="passcheck(true)">BACK
+                                </a>
+                            </li>
+                            <li><a href="#" class="green-link" ng-click="sendXCR(secretPhrase, true)">send xcr</a>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
