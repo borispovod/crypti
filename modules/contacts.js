@@ -90,9 +90,16 @@ function Contact() {
 			}
 
 			if (rows.length == 0 || rows[0].count == 0) {
-				return setImmediate(cb, "Can't apply contact, recipient doesn't exists");
-			}
+				var account = modules.accounts.getAccount(trs.asset.contact.address.slice(1));
 
+				if (!account || !account.publicKey) {
+					return setImmediate(cb, "Can't apply contact, recipient doesn't exists");
+				} else {
+					if (!modules.round.accountIsDelegate(account.publicKey)) {
+						return setImmediate(cb, "Can't apply contact, recipient doesn't exists");
+					}
+				}
+			}
 
 			var res = sender.applyUnconfirmedContact(trs.asset.contact.address);
 			setImmediate(cb, !res ? "Can't apply contact: " + trs.id : null);

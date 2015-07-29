@@ -183,5 +183,9 @@ Round.prototype.onBind = function (scope) {
 	modules = scope;
 }
 
+Round.prototype.accountIsDelegate = function (publicKey) {
+	return private.forgedBlocks[publicKey];
+}
+
 //export
 module.exports = Round;
