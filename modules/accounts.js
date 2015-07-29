@@ -942,12 +942,15 @@ function attachApi() {
 			if (!report.isValid) return res.json({success: false, error: report.issues});
 
 			var address = private.username2address[query.username.toLowerCase()];
+			console.log(address);
+			console.log(query.username);
 
 			if (!address) {
 				return res.json({success: false, error: errorCode("ACCOUNTS.ACCOUNT_DOESNT_FOUND")});
 			}
 
 			var account = self.getAccount(address);
+			console.log(account);
 
 			if (!account) {
 				return res.json({success: false, error: errorCode("ACCOUNTS.ACCOUNT_DOESNT_FOUND")});
