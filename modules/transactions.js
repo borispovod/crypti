@@ -637,8 +637,7 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 				library.logic.transaction.verify(transaction, sender, done);
 			}
 		}
-	)
-	;
+	);
 }
 
 Transactions.prototype.applyUnconfirmedList = function (ids, cb) {

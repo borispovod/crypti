@@ -57,5 +57,9 @@ module.exports = {
 
 	getLastSlot: function (nextSlot) {
 		return nextSlot + this.delegates;
+	},
+
+	roundTime: function (date) {
+		Math.floor(date.getTime() / 1000) * 1000
 	}
 }

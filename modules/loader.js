@@ -56,7 +56,7 @@ function attachApi() {
 	});
 }
 
-private.syncTrigger = function(turnOn){
+private.syncTrigger = function (turnOn) {
 	if (turnOn === false && private.syncIntervalId) {
 		clearTimeout(private.syncIntervalId);
 		private.syncIntervalId = null;
@@ -72,7 +72,7 @@ private.syncTrigger = function(turnOn){
 	}
 }
 
-private.loadFullDb = function(peer, cb) {
+private.loadFullDb = function (peer, cb) {
 	var peerStr = peer ? ip.fromLong(peer.ip) + ":" + peer.port : 'unknown';
 
 	var commonBlockId = genesisBlock.block.id;
@@ -82,7 +82,7 @@ private.loadFullDb = function(peer, cb) {
 	modules.blocks.loadBlocksFromPeer(peer, commonBlockId, cb);
 }
 
-private.findUpdate = function(lastBlock, peer, cb) {
+private.findUpdate = function (lastBlock, peer, cb) {
 	var peerStr = peer ? ip.fromLong(peer.ip) + ":" + peer.port : 'unknown';
 
 	library.logger.info("Looking for common block with " + peerStr);
@@ -190,7 +190,7 @@ private.findUpdate = function(lastBlock, peer, cb) {
 	});
 }
 
-private.loadBlocks = function(lastBlock, cb) {
+private.loadBlocks = function (lastBlock, cb) {
 	modules.transport.getFromRandomPeer({
 		api: '/height',
 		method: 'GET'
@@ -203,12 +203,14 @@ private.loadBlocks = function(lastBlock, cb) {
 
 		library.logger.info("Check blockchain on " + peerStr);
 
-		var report = library.scheme.validate(data.body, {type : "object", properties: {
-			'height': {
-				type: 'integer',
-				minimum: 0
-			}
-		}, required: ['height']});
+		var report = library.scheme.validate(data.body, {
+			type: "object", properties: {
+				'height': {
+					type: 'integer',
+					minimum: 0
+				}
+			}, required: ['height']
+		});
 
 		if (!report) {
 			library.logger.log("Can't parse blockchain height: " + peerStr);
@@ -216,12 +218,14 @@ private.loadBlocks = function(lastBlock, cb) {
 		}
 
 		if (bignum(modules.blocks.getLastBlock().height).lt(data.body.height)) { //diff in chainbases
-			report = library.scheme.validate(data.body, {type: "object", properties: {
-				'height': {
-					type: 'integer',
-					minimum: 0
-				}
-			}, required: ['height']});
+			report = library.scheme.validate(data.body, {
+				type: "object", properties: {
+					'height': {
+						type: 'integer',
+						minimum: 0
+					}
+				}, required: ['height']
+			});
 
 			if (!report) {
 				library.logger.log("Failed to parse block height from " + peerStr);
@@ -241,7 +245,7 @@ private.loadBlocks = function(lastBlock, cb) {
 	});
 }
 
-private.loadUnconfirmedTransactions = function(cb) {
+private.loadUnconfirmedTransactions = function (cb) {
 	modules.transport.getFromRandomPeer({
 		api: '/transactions',
 		method: 'GET'
@@ -270,7 +274,7 @@ private.loadUnconfirmedTransactions = function(cb) {
 	});
 }
 
-private.loadBlockChain = function() {
+private.loadBlockChain = function () {
 	var offset = 0, limit = library.config.loading.loadPerIteration;
 
 	modules.blocks.count(function (err, count) {
@@ -317,18 +321,16 @@ private.loadBlockChain = function() {
 }
 
 //public methods
-Loader.prototype.syncing = function(){
- return !!private.syncIntervalId;
+Loader.prototype.syncing = function () {
+	return !!private.syncIntervalId;
 }
 
 //events
 Loader.prototype.onPeerReady = function () {
 	process.nextTick(function nextLoadBlock() {
-		library.sequence.add(function (cb) {
-			private.syncTrigger(true);
-			var lastBlock = modules.blocks.getLastBlock();
-			private.loadBlocks(lastBlock, cb);
-		}, function (err) {
+		private.syncTrigger(true);
+		var lastBlock = modules.blocks.getLastBlock();
+		private.loadBlocks(lastBlock, function (err) {
 			err && library.logger.error('loadBlocks timer', err);
 			private.syncTrigger(false);
 			private.blocksToSync = 0;
