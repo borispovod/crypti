@@ -11,6 +11,9 @@ var node = require('./../variables.js');
 var Raccount = node.randomAccount();
 var Uaccount = node.randomAccount();
 
+// Used for get account by username (capital) after delegate registration
+var account2 = node.randomAccount();
+
 var test = 0;
 
 // Print data to console
@@ -643,6 +646,126 @@ describe('Delegates', function() {
                     });
             });
         });
+
+        describe('Get account by username AFTER delegate registration', function(){
+
+            before(function (done) {
+                // OPEN ACCOUNT2
+                node.api.post('/accounts/open')
+                    .set('Accept', 'application/json')
+                    .send({
+                        secret: account2.password
+                    })
+                    .expect('Content-Type', /json/)
+                    .expect(200)
+                    .end(function (err, res) {
+                        console.log(res.body);
+                        node.expect(res.body).to.have.property("success").to.be.true;
+                        if (res.body.success == true && res.body.account != null){
+                            account2.address = res.body.account.address;
+                        }
+                        done();
+                    });
+            });
+
+            before(function (done) {
+                // SEND XCR TO Account2 ADDRESS
+                var randomXCR = node.randomizeXCR();
+                node.api.put('/transactions')
+                    .set('Accept', 'application/json')
+                    .send({
+                        secret: node.Faccount.password,
+                        amount: randomXCR,
+                        recipientId: account2.address
+                    })
+                    .expect('Content-Type', /json/)
+                    .expect(200)
+                    .end(function (err, res) {
+                        console.log(res.body);
+                        node.expect(res.body).to.have.property("success").to.be.true;
+                        done();
+                    });
+            });
+
+            before(function (done) {
+                // REGISTER DELEGATE NAME with CAPITAL LETTER
+                account2.delegateName = node.randomCapitalUsername();
+                node.onNewBlock(function(err) {
+                    node.api.put('/delegates')
+                        .set('Accept', 'application/json')
+                        .send({
+                            secret: account2.password,
+                            username: account2.delegateName
+                        })
+                        .expect('Content-Type', /json/)
+                        .expect(200)
+                        .end(function (err, res) {
+                            console.log(res.body);
+                            node.expect(res.body).to.have.property("success").to.be.true;
+                            node.expect(res.body).to.have.property("transaction").that.is.an('object');
+                            done();
+                        });
+                });
+            });
+
+            test += 1;
+            it(test + '. Get account by username. We expect success',function(done){
+                node.onNewBlock(function(err) {
+                    node.api.get('/accounts/username/get?username=' + Raccount.delegateName)
+                        .expect('Content-Type', /json/)
+                        .expect(200)
+                        .end(function (err, res) {
+                            console.log(res.body);
+                            node.expect(res.body).to.have.property("success").to.be.true;
+                            if (res.body.success == true && res.body.account != null){
+                                node.expect(res.body).to.have.property("account").that.is.an('object');
+                                node.expect(res.body.account.address).to.equal(Raccount.address);
+                                node.expect(res.body.account.username).to.equal(Raccount.delegateName);
+                            }
+                            else {
+                                console.log("Transaction failed or account object is null");
+                                console.log("Sent: username= " + Raccount.delegateName);
+                                node.expect(true).to.equal(false);
+                            }
+                            done();
+                        });
+                });
+            });
+
+            test += 1;
+            it(test + '. Get account by username (capital letter). We expect success',function(done){
+                node.onNewBlock(function(err) {
+                    node.api.get('/accounts/username/get?username=' + account2.delegateName)
+                        .expect('Content-Type', /json/)
+                        .expect(200)
+                        .end(function (err, res) {
+                            console.log(res.body);
+                            console.log("Sent: /accounts/username/get?username=" + account2.delegateName);
+                            node.expect(res.body).to.have.property("success").to.be.true;
+                            node.expect(res.body).to.have.property("account").that.is.an('object');
+                            done();
+                        });
+                });
+            });
+
+            test += 1;
+            it(test + '. Get account by username. We send INTEGER instead of string.',function(done){
+                node.onNewBlock(function(err) {
+                    var usernameInt = 1234;
+                    node.api.get('/accounts/username/get?username=' + usernameInt)
+                        .expect('Content-Type', /json/)
+                        .expect(200)
+                        .end(function (err, res) {
+                            console.log(res.body);
+                            // We cannot validate success because 1234 may (or not) actually exist
+                            // This exists to ensure this command doesn't crash the node
+                            node.expect(res.body).to.have.property("success");
+                            done();
+                        });
+                });
+            });
+        });
+
     });
 
     describe('Get Delegates list',function() {

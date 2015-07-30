@@ -1204,8 +1204,7 @@ describe('Transactions', function() {
 
             test += 1;
             it(test + '. We try to REGISTER SAME USERNAME FROM FROM SAME ACCOUNT. We expect error',function(done){
-                this.timeout(5000);
-                setTimeout(function(){
+                node.onNewBlock(function(err){
                     node.api.put('/accounts/username')
                         .set('Accept', 'application/json')
                         .send({
@@ -1221,7 +1220,7 @@ describe('Transactions', function() {
                             node.expect(res.body).to.have.property("error");
                             done();
                         });
-                }, 1000);
+                });
             });
 
             test += 1;
