@@ -36,6 +36,7 @@ function Delegate() {
 		trs.amount = 0;
 		trs.asset.delegate = {
 			username: data.username,
+			address: modules.accounts.getAddressByPublicKey(data.sender.publicKey),
 			publicKey: data.sender.publicKey
 		};
 
@@ -71,6 +72,10 @@ function Delegate() {
 		var isAddress = /^[0-9]+c$/g;
 		if (isAddress.test(trs.asset.delegate.username.toLowerCase())) {
 			return setImmediate(cb, errorCode("DELEGATES.USERNAME_LIKE_ADDRESS", trs));
+		}
+
+		if (!trs.asset.delegate.address || !isAddress.test(trs.asset.delegate.address.toLowerCase())) {
+			return setImmediate(cb, "Address missed for delegate transaction");
 		}
 
 		if (trs.asset.delegate.username.length < 1) {
@@ -277,7 +282,6 @@ function attachApi() {
 			var count = publicKeys.length;
 			var length = Math.min(limit, count);
 			var realLimit = Math.min(offset + limit, count);
-
 
 			if (active === true) {
 				publicKeys = publicKeys.slice(0, 101);
@@ -653,7 +657,13 @@ private.getDelegate = function (filter, rateSort) {
 	var outsider = rateSort[delegate.publicKey] > slots.delegates && novice;
 	var productivity = novice ? 0 : parseFloat(Math.floor(percent * 100) / 100).toFixed(2)
 
+	if (!delegate.address) {
+		console.log("here");
+	}
+
 	return {
+		missed: stat.missed,
+		forged: stat.forged,
 		username: delegate.username,
 		address: delegate.address,
 		publicKey: delegate.publicKey,
@@ -692,9 +702,7 @@ private.getBlockSlotData = function (slot, height) {
 	return null;
 }
 
-private.loop = function (cb) {
-	setImmediate(cb);
-
+private.loop = function () {
 	if (!Object.keys(private.keypairs).length) {
 		library.logger.debug('loop', 'exit: have no delegates');
 		return;
@@ -960,15 +968,19 @@ Delegates.prototype.onBlockchainReady = function () {
 	private.loadMyDelegates(); //temp
 
 	process.nextTick(function nextLoop() {
-		private.loop(function (err) {
-			err && library.logger.error('delegate loop', err);
+		var nextSlot = slots.getNextSlot();
 
-			var nextSlot = slots.getNextSlot();
-
-			var scheduledTime = slots.getSlotTime(nextSlot);
-			scheduledTime = scheduledTime <= slots.getTime() ? scheduledTime + 1 : scheduledTime;
-			schedule.scheduleJob(new Date(slots.getRealTime(scheduledTime) + 1000), nextLoop);
-		})
+		var scheduledTime = slots.getSlotTime(nextSlot);
+		scheduledTime = scheduledTime <= slots.getTime() ? scheduledTime + 1 : scheduledTime;
+		var realTime = new Date(slots.getRealTime(scheduledTime) + 1000);
+		schedule.scheduleJob(realTime, function (time) {
+			nextLoop();
+			if (slots.roundTime(new Date()) == slots.roundTime(new Date(time))) {
+				private.loop();
+			} else {
+				library.logger.log('loop', 'missed slot');
+			}
+		}.bind(this, realTime));
 	});
 }
 
