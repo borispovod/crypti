@@ -542,7 +542,8 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 
 	var params = {};
 	params.limit = offset+limit;
-	params.offset = offset - 1;
+	params.offset = offset;
+
 
 	library.dbLite.query("SELECT " +
 	"b.id, b.version, b.timestamp, b.height, b.previousBlock, b.numberOfTransactions, b.totalAmount, b.totalFee, b.payloadLength, lower(hex(b.payloadHash)), lower(hex(b.generatorPublicKey)), lower(hex(b.blockSignature)), " +
@@ -559,7 +560,7 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 	"left outer join signatures as s on s.transactionId=t.id " +
 	"left outer join contacts as c on c.transactionId=t.id " +
 	"left outer join usernames as u on u.transactionId=t.id " +
-    "WHERE b.height > $offset AND b.height < $limit " +
+    "WHERE b.height > $offset AND b.height <= $limit " +
 	"ORDER BY b.height, t.rowid" +
 	"", params, private.blocksDataFields, function (err, rows) {
 		// Some notes:
