@@ -14,6 +14,10 @@
 	},
 	"peers": {
 		"list": [
+			{
+				"ip": "104.155.53.172",
+				"port": 7040
+			}
 		],
 		"blackList": [],
 		"options": {
@@ -146,7 +150,7 @@
 	"dapp": {
 		"autoexec": [
 			{
-				"secret": "",
+				"secret": "test2",
 				"dappid": "15616498276233037701"
 			}
 		]
