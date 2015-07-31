@@ -538,6 +538,8 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 
 	var params = {limit: limit, offset: offset || 0};
 
+	var start = new Date().getTime();
+
 	library.dbLite.query("SELECT " +
 	"b.id, b.version, b.timestamp, b.height, b.previousBlock, b.numberOfTransactions, b.totalAmount, b.totalFee, b.payloadLength, lower(hex(b.payloadHash)), lower(hex(b.generatorPublicKey)), lower(hex(b.blockSignature)), " +
 	"t.id, t.type, t.timestamp, lower(hex(t.senderPublicKey)), t.senderId, t.recipientId, t.senderUsername, t.recipientUsername, t.amount, t.fee, lower(hex(t.signature)), lower(hex(t.signSignature)), " +
@@ -546,7 +548,7 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 	"v.votes, " +
 	"c.address, " +
 	"u.username " +
-	"FROM (select * from blocks limit $limit offset $offset) as b " +
+	"FROM (select * from blocks where height > $offset and height < $limit) as b " +
 	"left outer join trs as t on t.blockId=b.id " +
 	"left outer join delegates as d on d.transactionId=t.id " +
 	"left outer join votes as v on v.transactionId=t.id " +
@@ -561,6 +563,11 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 		if (err) {
 			return cb(err);
 		}
+
+		var end = new Date().getTime();
+		var time = end - start;
+		console.log("Milliseconds: " + time);
+
 
 		var blocks = private.readDbRows(rows);
 
@@ -887,7 +894,7 @@ Blocks.prototype.loadBlocksFromPeer = function (peer, lastCommonBlockId, cb) {
 					blocks = library.dbLite.parseCSV(blocks);
 				}
 
-				// not working of data.body is empty....
+				// not working if data.body is empty....
 				var report = library.scheme.validate(blocks, {
 					type: "array"
 				});
@@ -899,6 +906,7 @@ Blocks.prototype.loadBlocksFromPeer = function (peer, lastCommonBlockId, cb) {
 				//blocks = RequestSanitizer.array(blocks);
 
 				blocks = blocks.map(library.dbLite.row2parsed, library.dbLite.parseFields(private.blocksDataFields));
+
 				try {
 					blocks = private.readDbRows(blocks);
 				} catch (e) {

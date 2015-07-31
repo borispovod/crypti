@@ -40,9 +40,9 @@ function Contact() {
 		}
 
 		var address = modules.accounts.getAddressByPublicKey(trs.senderPublicKey);
-		if (address === trs.asset.contact.address.slice(1)) {
+		/*if (address === trs.asset.contact.address.slice(1)) {
 			return setImmediate(cb, "You can't add your self: " + trs.id);
-		}
+		}*/
 
 		/*
 		 if (!modules.accounts.getAccount(trs.asset.contact.address.slice(1))) {
@@ -87,28 +87,8 @@ function Contact() {
 	}
 
 	this.applyUnconfirmed = function (trs, sender, cb) {
-		library.dbLite.query("SELECT count(id) FROM trs where recipientId=$address", {
-			address: trs.asset.contact.address.slice(1)
-		}, ['count'], function (err, rows) {
-			if (err) {
-				return setImmediate(cb, "Sql error");
-			}
-
-			if (rows.length == 0 || rows[0].count == 0) {
-				var account = modules.accounts.getAccount(trs.asset.contact.address.slice(1));
-
-				if (!account || !account.publicKey) {
-					return setImmediate(cb, "Can't apply contact, recipient doesn't exists");
-				} else {
-					if (!modules.round.accountIsDelegate(account.publicKey)) {
-						return setImmediate(cb, "Can't apply contact, recipient doesn't exists");
-					}
-				}
-			}
-
-			var res = sender.applyUnconfirmedContact(trs.asset.contact.address);
-			setImmediate(cb, !res ? "Can't apply contact: " + trs.id : null);
-		});
+		var res = sender.applyUnconfirmedContact(trs.asset.contact.address);
+		setImmediate(cb, !res ? "Can't apply contact: " + trs.id : null);
 	}
 
 	this.undoUnconfirmed = function (trs, sender) {

@@ -929,6 +929,7 @@ Delegates.prototype.cache = function (delegate) {
 	library.network.io.sockets.emit('delegates/change', {});
 }
 
+
 Delegates.prototype.uncache = function (delegate) {
 	delete private.votes[delegate.publicKey];
 	delete private.unconfirmedVotes[delegate.publicKey];

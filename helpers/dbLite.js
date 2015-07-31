@@ -38,12 +38,7 @@ module.exports.connect = function (connectString, cb) {
 		"CREATE INDEX IF NOT EXISTS contacts_trs_id ON contacts(transactionId)",
 		"PRAGMA foreign_keys = ON",
 		"UPDATE peers SET state = 1, clock = null where state != 0",
-		"PRAGMA main.page_size = 4096",
-		"PRAGMA main.cache_size=10000",
-		"PRAGMA main.locking_mode=EXCLUSIVE",
-		"PRAGMA main.synchronous=NORMAL",
-		"PRAGMA main.journal_mode=WAL",
-		"PRAGMA main.cache_size=5000"
+		"PRAGMA journal_mode=WAL"
 	];
 
 	async.eachSeries(sql, function (command, cb) {

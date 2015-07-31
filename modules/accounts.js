@@ -942,12 +942,20 @@ function attachApi() {
 			if (!report.isValid) return res.json({success: false, error: report.issues});
 
 			var address = private.username2address[query.username.toLowerCase()];
+			var account;
 
 			if (!address) {
-				return res.json({success: false, error: errorCode("ACCOUNTS.ACCOUNT_DOESNT_FOUND")});
+				// check delegate
+				var delegate = modules.delegates.getDelegateByUsername(query.username);
+
+				if (!delegate) {
+					return res.json({success: false, error: errorCode("ACCOUNTS.ACCOUNT_DOESNT_FOUND")});
+				} else {
+					address = delegate.address;
+				}
 			}
 
-			var account = self.getAccount(address);
+			account = self.getAccount(address);
 
 			if (!account) {
 				return res.json({success: false, error: errorCode("ACCOUNTS.ACCOUNT_DOESNT_FOUND")});
