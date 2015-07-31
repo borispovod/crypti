@@ -536,9 +536,13 @@ Blocks.prototype.loadBlocksPart = function (filter, cb) {
 Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 	var verify = library.config.loading.verifyOnLoading;
 
-	var params = {limit: limit, offset: offset || 0};
+	if (!offset) {
+		offset = 0;
+	}
 
-	var start = new Date().getTime();
+	var params = {};
+	params.limit = offset+limit;
+	params.offset = offset - 1;
 
 	library.dbLite.query("SELECT " +
 	"b.id, b.version, b.timestamp, b.height, b.previousBlock, b.numberOfTransactions, b.totalAmount, b.totalFee, b.payloadLength, lower(hex(b.payloadHash)), lower(hex(b.generatorPublicKey)), lower(hex(b.blockSignature)), " +
@@ -548,13 +552,14 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 	"v.votes, " +
 	"c.address, " +
 	"u.username " +
-	"FROM (select * from blocks where height > $offset and height < $limit) as b " +
+	"FROM blocks b " +
 	"left outer join trs as t on t.blockId=b.id " +
 	"left outer join delegates as d on d.transactionId=t.id " +
 	"left outer join votes as v on v.transactionId=t.id " +
 	"left outer join signatures as s on s.transactionId=t.id " +
 	"left outer join contacts as c on c.transactionId=t.id " +
 	"left outer join usernames as u on u.transactionId=t.id " +
+    "WHERE b.height > $offset AND b.height < $limit " +
 	"ORDER BY b.height, t.rowid" +
 	"", params, private.blocksDataFields, function (err, rows) {
 		// Some notes:
@@ -563,10 +568,6 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 		if (err) {
 			return cb(err);
 		}
-
-		var end = new Date().getTime();
-		var time = end - start;
-		console.log("Milliseconds: " + time);
 
 
 		var blocks = private.readDbRows(rows);
