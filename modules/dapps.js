@@ -1559,6 +1559,21 @@ DApps.prototype.onBlockchainReady = function () {
 	}
 }
 
+DApps.prototype.onNewBlock = function (block, broadcast) {
+	Object.keys(private.sandboxes).forEach(function (dappId) {
+		private.sandboxes[dappId].sendMessage({
+			method: "post",
+			path: "/message",
+			query: {
+				topic: "point",
+				message: {id: block.id, height: block.height}
+			}
+		}, function (err, body) {
+			library.logger.error("dapp", err)
+		});
+	})
+}
+
 //shared
 shared.getDelegates = function (req, cb) {
 	library.dbLite.query("SELECT GROUP_CONCAT(m.dependentId), t.senderId as authorId FROM trs t " +
