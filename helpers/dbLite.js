@@ -7,9 +7,10 @@ var isWin = /^win/.test(process.platform);
 
 if (isWin) {
 	dblite.bin = path.join(process.cwd(), 'sqlite', 'sqlite3.exe');
-}/* else if (isMac) {
-	dblite.bin = path.join(process.cwd(), 'sqlite', 'sqlite3');
-}*/
+}
+/* else if (isMac) {
+ dblite.bin = path.join(process.cwd(), 'sqlite', 'sqlite3');
+ }*/
 
 module.exports.connect = function (connectString, cb) {
 	var db = dblite(connectString);
@@ -46,11 +47,15 @@ module.exports.connect = function (connectString, cb) {
 		"CREATE INDEX IF NOT EXISTS trees_trs_id ON trees(transactionId)",
 		"CREATE INDEX IF NOT EXISTS trees_previousHash ON trees(hash)",
 		"PRAGMA foreign_keys = ON",
-		"UPDATE peers SET state = 1, clock = null where state != 0"
+		"UPDATE peers SET state = 1, clock = null where state != 0",
+		"PRAGMA synchronous=OFF",
+		"PRAGMA journal_mode=MEMORY",
+		"PRAGMA default_cache_size=10000",
+		"PRAGMA locking_mode=EXCLUSIVE",
 	];
 
 	async.eachSeries(sql, function (command, cb) {
-		db.query(command, function(err, data){
+		db.query(command, function (err, data) {
 			cb(err, data);
 		});
 	}, function (err) {
