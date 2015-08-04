@@ -1148,7 +1148,7 @@ private.installDependencies = function (dApp, cb) {
 	try {
 		config = JSON.parse(fs.readFileSync(packageJson));
 	} catch (e) {
-		return setImmediate(cb, "Incorrect package.json file for " + id + " DApp");
+		return setImmediate(cb, "Incorrect package.json file for " + dApp.transactionId + " DApp");
 	}
 
 	npm.load(config, function (err) {
@@ -1233,7 +1233,7 @@ private.downloadDApp = function (dApp, cb) {
 						}
 					});
 				} else if (dApp.nickname) {
-					var dappZip = path.joind(dappPath, dApp.id + ".zip");
+					var dappZip = path.joind(dappPath, dApp.transactionId + ".zip");
 
 					// fetch from sia
 					modules.sia.download(dApp.nickname, dappZip, function (err, dappZip) {
@@ -1409,7 +1409,7 @@ private.launch = function (body, cb) {
 									library.logger.error(err);
 									return cb("Can't create public link for: " + body.id);
 								} else {
-									private.launchApp(dapp, function (err) {
+									private.launchApp(dapp, body.secret, function (err) {
 										if (err) {
 											private.launched[body.id] = false;
 											library.logger.error(err);
@@ -1446,7 +1446,7 @@ private.launch = function (body, cb) {
 	});
 }
 
-private.launchApp = function (dApp, cb) {
+private.launchApp = function (dApp, secret, cb) {
 	var dappPath = path.join(private.dappsPath, dApp.transactionId);
 	var dappPublicPath = path.join(dappPath, "public");
 	var dappPublicLink = path.join(private.appPath, "public", "dapps", dApp.transactionId);
@@ -1470,7 +1470,7 @@ private.launchApp = function (dApp, cb) {
 				return setImmediate(err);
 			}
 
-			var sandbox = new Sandbox(path.join(dappPath, "index.js"), dApp.transactionId, private.apiHandler, true);
+			var sandbox = new Sandbox(path.join(dappPath, "index.js"), dApp.transactionId, secret, private.apiHandler, true);
 			private.sandboxes[dApp.transactionId] = sandbox;
 
 			sandbox.on("exit", function () {
