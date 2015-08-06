@@ -303,8 +303,6 @@ private.getBlockSlotData = function (slot, height) {
 }
 
 private.loop = function (cb) {
-	setImmediate(cb);
-
 	if (!Object.keys(private.keypairs).length) {
 		library.logger.debug('loop', 'exit: have no delegates');
 		return;
@@ -540,16 +538,19 @@ Delegates.prototype.onBlockchainReady = function () {
 	private.loaded = true;
 
 	private.loadMyDelegates(function nextLoop(err) {
-		err && library.logger.error('loading delegates', err);
-		private.loop(function (err) {
-			err && library.logger.error('delegate loop', err);
+		var nextSlot = slots.getNextSlot();
 
-			var nextSlot = slots.getNextSlot();
-
-			var scheduledTime = slots.getSlotTime(nextSlot);
-			scheduledTime = scheduledTime <= slots.getTime() ? scheduledTime + 1 : scheduledTime;
-			schedule.scheduleJob(new Date(slots.getRealTime(scheduledTime) + 1000), nextLoop);
-		})
+		var scheduledTime = slots.getSlotTime(nextSlot);
+		scheduledTime = scheduledTime <= slots.getTime() ? scheduledTime + 1 : scheduledTime;
+		var realTime = new Date(slots.getRealTime(scheduledTime) + 1000);
+		schedule.scheduleJob(realTime, function (time) {
+			nextLoop();
+			if (slots.roundTime(new Date()) == slots.roundTime(new Date(time))) {
+				private.loop();
+			} else {
+				library.logger.log('loop', 'missed slot');
+			}
+		}.bind(this, realTime));
 	}); //temp
 
 }

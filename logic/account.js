@@ -655,7 +655,7 @@ Account.prototype.set = function (address, fields, cb) {
 }
 
 Account.prototype.merge = function (address, diff, cb) {
-	var update = {}, remove = {}, insert = {};
+	var update = {}, remove = {}, insert = {}, insert_object = {}, remove_object = {};
 
 	var self = this;
 
@@ -674,15 +674,30 @@ Account.prototype.merge = function (address, diff, cb) {
 					}
 					break;
 				case Array:
-					for (var i = 0; i < trueValue.length; i++) {
-						var math = trueValue[i][0];
-						var val = trueValue[i].slice(1);
-						if (math == "-") {
-							remove[value] = remove[value] || [];
-							remove[value].push(val);
-						} else if (math == "+") {
-							insert[value] = insert[value] || [];
-							insert[value].push(val)
+					if (Object.prototype.toString.call(trueValue[0]) == "[object Object]") {
+						for (var i = 0; i < trueValue.length; i++) {
+							var val = trueValue[i];
+							if (val.action == "-") {
+								delete val.action;
+								remove_object[value] = remove_object[value] || [];
+								remove_object[value].push(val);
+							} else if (val.action == "+") {
+								delete val.action;
+								insert_object[value] = insert_object[value] || [];
+								insert_object[value].push(val)
+							}
+						}
+					} else {
+						for (var i = 0; i < trueValue.length; i++) {
+							var math = trueValue[i][0];
+							var val = trueValue[i].slice(1);
+							if (math == "-") {
+								remove[value] = remove[value] || [];
+								remove[value].push(val);
+							} else if (math == "+") {
+								insert[value] = insert[value] || [];
+								insert[value].push(val)
+							}
 						}
 					}
 					break;
@@ -715,6 +730,32 @@ Account.prototype.merge = function (address, diff, cb) {
 						accountId: address,
 						dependentId: insert[el][i]
 					}
+				});
+				sqles.push(sql);
+			}
+		});
+	}
+
+	if (Object.keys(remove_object).length) {
+		Object.keys(remove_object).forEach(function (el) {
+			remove_object[el].accountId = address;
+			var sql = jsonSql.build({
+				type: 'remove',
+				table: self.table + "2" + el,
+				condition: remove_object[el]
+			});
+			sqles.push(sql);
+		});
+	}
+
+	if (Object.keys(insert_object).length) {
+		Object.keys(insert_object).forEach(function (el) {
+			insert_object[el].accountId = address;
+			for (var i = 0; i < insert_object[el].length; i++) {
+				var sql = jsonSql.build({
+					type: 'insert',
+					table: self.table + "2" + el,
+					values: insert_object[el]
 				});
 				sqles.push(sql);
 			}

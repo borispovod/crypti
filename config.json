@@ -14,6 +14,10 @@
 	},
 	"peers": {
 		"list": [
+			{
+				"ip": "104.155.53.172",
+				"port": 7040
+			}
 		],
 		"blackList": [],
 		"options": {
@@ -125,7 +129,9 @@
 			"2LAgOflQnsF2iQ3JEJsMlKCdOXfr286IZTA"
 		],
 		"access": {
-			"whiteList": ["127.0.0.1"]
+			"whiteList": [
+				"127.0.0.1"
+			]
 		}
 	},
 	"loading": {
@@ -140,5 +146,13 @@
 			"key": "./ssl/crypti.key",
 			"cert": "./ssl/crypti.crt"
 		}
+	},
+	"dapp": {
+		"autoexec": [
+			{
+				"secret": "2LAgOflQnsF2iQ3JEJsMlKCdOXfr286IZTA",
+				"dappid": "15616498276233037701"
+			}
+		]
 	}
 }

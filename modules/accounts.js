@@ -420,7 +420,7 @@ Accounts.prototype.setAccountAndGet = function (data, cb) {
 		if (data.publicKey) {
 			address = self.generateAddressByPublicKey(data.publicKey);
 		} else {
-			cb("must provide address or publicKey");
+			return cb("must provide address or publicKey");
 		}
 	}
 	library.logic.account.set(address, data, function (err) {
@@ -437,7 +437,7 @@ Accounts.prototype.mergeAccountAndGet = function (data, cb) {
 		if (data.publicKey) {
 			address = self.generateAddressByPublicKey(data.publicKey);
 		} else {
-			cb("must provide address or publicKey");
+			return cb("must provide address or publicKey");
 		}
 	}
 	library.logic.account.merge(address, data, cb);

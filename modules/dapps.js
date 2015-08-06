@@ -17,6 +17,7 @@ var async = require('async'),
 	ed = require('ed25519'),
 	rmdir = require('rimraf'),
 	extend = require('extend'),
+	ip = require('ip'),
 	valid_url = require('valid-url'),
 	sandboxHelper = require('../helpers/sandbox.js');
 
@@ -105,7 +106,7 @@ function Tree() {
 
 			modules.accounts.getAccount({publicKey: senderPublicKey}, function (err, account) {
 				if (err || !account) {
-					return setImmediate(cb, err? err.toString() : "Sender of this transaction not found: " + trs.id);
+					return setImmediate(cb, err ? err.toString() : "Sender of this transaction not found: " + trs.id);
 				}
 
 				function done() {
@@ -259,7 +260,7 @@ function DApp() {
 			if (isSia || isGit) {
 				return setImmediate(cb, errorCode("DAPPS.GIT_AND_SIA"));
 			}
-			if (!valid_url.isUri(trs.asset.dapp.link)){
+			if (!valid_url.isUri(trs.asset.dapp.link)) {
 				return setImmediate(cb, errorCode("DAPPS.INVALID_GIT"));
 			}
 		}
@@ -797,7 +798,10 @@ private.attachApi = function () {
 											} else {
 												private.getInstalledIds(function (err, installed) {
 													if (err) {
-														return res.json({success: false, error: "Can't get installed dapps ids"});
+														return res.json({
+															success: false,
+															error: "Can't get installed dapps ids"
+														});
 													}
 
 													var dapps = [];
@@ -960,87 +964,12 @@ private.attachApi = function () {
 	});
 
 	router.post('/launch', function (req, res, next) {
-		req.sanitize(req.body, {
-			type: "object",
-			properties: {
-				id: {
-					type: 'string',
-					minLength: 1
-				}
-			},
-			required: ["id"]
-		}, function (err, report, body) {
-			if (err) return next(err);
-			if (!report.isValid) return res.json({success: false, error: report.issues});
-
-			if (private.launched[body.id]) {
-				return res.json({success: false, error: "DApp already launched"});
+		private.launch(req.body, function (err) {
+			if (err) {
+				return res.json({"success": false, "error": err});
 			}
 
-			private.launched[body.id] = true;
-
-			private.get(body.id, function (err, dapp) {
-				if (err) {
-					private.launched[body.id] = false;
-					library.logger.error(err);
-					return res.json({success: false, error: "Can't find dapp"});
-				} else {
-					private.getInstalledIds(function (err, files) {
-						if (err) {
-							private.launched[body.id] = false;
-							library.logger.error(err);
-							return res.json({success: false, error: "Can't get installed dapps"});
-						} else {
-							if (files.indexOf(body.id) >= 0) {
-								private.symlink(dapp, function (err) {
-									if (err) {
-										private.launched[body.id] = false;
-										library.logger.error(err);
-										return res.json({
-											success: false,
-											error: "Can't create public link for: " + body.id
-										});
-									} else {
-										private.launch(dapp, function (err) {
-											if (err) {
-												private.launched[body.id] = false;
-												library.logger.error(err);
-												return res.json({
-													success: false,
-													error: "Can't launch dapp, see logs: " + body.id
-												});
-											} else {
-												private.dappRoutes(dapp, function (err) {
-													if (err) {
-														private.launched[body.id] = false;
-														library.logger.error(err);
-														private.stop(dapp, function (err) {
-															if (err) {
-																library.logger.error(err);
-																return res.json({
-																	success: false,
-																	error: "Can't stop dapp, check logs: " + body.id
-																})
-															}
-
-															return res.json({success: false});
-														});
-													} else {
-														return res.json({success: true});
-													}
-												});
-											}
-										});
-									}
-								});
-							} else {
-								private.launched[body.id] = false;
-								return res.json({success: false, error: "DApp didn't installed"});
-							}
-						}
-					});
-				}
-			});
+			res.json({"success": true});
 		});
 	});
 
@@ -1219,7 +1148,7 @@ private.installDependencies = function (dApp, cb) {
 	try {
 		config = JSON.parse(fs.readFileSync(packageJson));
 	} catch (e) {
-		return setImmediate(cb, "Incorrect package.json file for " + id + " DApp");
+		return setImmediate(cb, "Incorrect package.json file for " + dApp.transactionId + " DApp");
 	}
 
 	npm.load(config, function (err) {
@@ -1304,7 +1233,7 @@ private.downloadDApp = function (dApp, cb) {
 						}
 					});
 				} else if (dApp.nickname) {
-					var dappZip = path.joind(dappPath, dApp.id + ".zip");
+					var dappZip = path.joind(dappPath, dApp.transactionId + ".zip");
 
 					// fetch from sia
 					modules.sia.download(dApp.nickname, dappZip, function (err, dappZip) {
@@ -1436,7 +1365,88 @@ private.dappRoutes = function (dapp, cb) {
 	});
 }
 
-private.launch = function (dApp, cb) {
+private.launch = function (body, cb) {
+	library.scheme.validate(body, {
+		type: "object",
+		properties: {
+			secret: {
+				type: 'string',
+				minLength: 1
+			},
+			id: {
+				type: 'string',
+				minLength: 1
+			}
+		},
+		required: ["id", "secret"]
+	}, function (err) {
+		if (err) {
+			return cb(err[0].message);
+		}
+
+		if (private.launched[body.id]) {
+			return cb("DApp already launched");
+		}
+
+		private.launched[body.id] = true;
+
+		private.get(body.id, function (err, dapp) {
+			if (err) {
+				private.launched[body.id] = false;
+				library.logger.error(err);
+				return cb("Can't find dapp");
+			} else {
+				private.getInstalledIds(function (err, files) {
+					if (err) {
+						private.launched[body.id] = false;
+						library.logger.error(err);
+						return cb("Can't get installed dapps");
+					} else {
+						if (files.indexOf(body.id) >= 0) {
+							private.symlink(dapp, function (err) {
+								if (err) {
+									private.launched[body.id] = false;
+									library.logger.error(err);
+									return cb("Can't create public link for: " + body.id);
+								} else {
+									private.launchApp(dapp, body.secret, function (err) {
+										if (err) {
+											private.launched[body.id] = false;
+											library.logger.error(err);
+											return cb("Can't launch dapp, see logs: " + body.id);
+										} else {
+											private.dappRoutes(dapp, function (err) {
+												if (err) {
+													private.launched[body.id] = false;
+													library.logger.error(err);
+													private.stop(dapp, function (err) {
+														if (err) {
+															library.logger.error(err);
+															return cb("Can't stop dapp, check logs: " + body.id)
+														}
+
+														return cb("Can't start dapp");
+													});
+												} else {
+													return cb(null);
+												}
+											});
+										}
+									});
+								}
+							});
+						} else {
+							private.launched[body.id] = false;
+							return cb("DApp didn't installed");
+						}
+					}
+				});
+			}
+		});
+	});
+}
+
+private.launchApp = function (dApp, secret, cb) {
 	var dappPath = path.join(private.dappsPath, dApp.transactionId);
 	var dappPublicPath = path.join(dappPath, "public");
 	var dappPublicLink = path.join(private.appPath, "public", "dapps", dApp.transactionId);
@@ -1448,35 +1458,43 @@ private.launch = function (dApp, cb) {
 	}
 
 	//dappConfig.db
-	modules.sql.createTables(dApp.transactionId, dappConfig.db, function (err) {
-		if (err) {
-			return setImmediate(err);
-		}
+	async.eachSeries(dappConfig.peers, function (peer, cb) {
+		modules.peer.addDapp({
+			ip: ip.toLong(peer.ip),
+			port: peer.port,
+			dappid: dApp.transactionId
+		}, cb);
+	}, function () {
+		modules.sql.createTables(dApp.transactionId, dappConfig.db, function (err) {
+			if (err) {
+				return setImmediate(err);
+			}
 
-		var sandbox = new Sandbox(path.join(dappPath, "index.js"), dApp.transactionId, private.apiHandler, true);
-		private.sandboxes[dApp.transactionId] = sandbox;
+			var sandbox = new Sandbox(path.join(dappPath, "index.js"), dApp.transactionId, secret, private.apiHandler, true);
+			private.sandboxes[dApp.transactionId] = sandbox;
 
-		sandbox.on("exit", function () {
-			library.logger.info("DApp " + dApp.transactionId + " closed ");
-			private.stop(dApp, function (err) {
-				if (err) {
-					library.logger.error("Error on stop dapp: " + err);
-				}
+			sandbox.on("exit", function () {
+				library.logger.info("DApp " + dApp.transactionId + " closed ");
+				private.stop(dApp, function (err) {
+					if (err) {
+						library.logger.error("Error on stop dapp: " + err);
+					}
+				});
 			});
-		});
 
-		sandbox.on("error", function (err) {
-			library.logger.info("Error in DApp " + dApp.transactionId + " " + err.toString());
-			private.stop(dApp, function (err) {
-				if (err) {
-					library.logger.error("Error on stop dapp: " + err);
-				}
+			sandbox.on("error", function (err) {
+				library.logger.info("Error in DApp " + dApp.transactionId + " " + err.toString());
+				private.stop(dApp, function (err) {
+					if (err) {
+						library.logger.error("Error on stop dapp: " + err);
+					}
+				});
 			});
+
+			sandbox.run();
+
+			return setImmediate(cb);
 		});
-
-		sandbox.run();
-
-		return setImmediate(cb);
 	});
 }
 
@@ -1528,6 +1546,50 @@ DApps.prototype.onBind = function (scope) {
 	modules = scope;
 }
 
+DApps.prototype.onBlockchainReady = function () {
+	if (library.config.dapp) {
+		setTimeout(function () {
+			async.eachSeries(library.config.dapp.autoexec || [], function (dapp, cb) {
+				private.launch({secret: dapp.secret, id: dapp.dappid}, function (err) {
+					console.log("lanched " + dapp.dappid + " as " + dapp.secret, err)
+					cb();
+				});
+			});
+		}, 5000)
+	}
+}
+
+DApps.prototype.onNewBlock = function (block, broadcast) {
+	Object.keys(private.sandboxes).forEach(function (dappId) {
+		private.sandboxes[dappId].sendMessage({
+			method: "post",
+			path: "/message",
+			query: {
+				topic: "point",
+				message: {id: block.id, height: block.height}
+			}
+		}, function (err, body) {
+			library.logger.error("dapp", err)
+		});
+	})
+}
+
 //shared
+shared.getGenesis = function (req, cb) {
+	library.dbLite.query("SELECT b.height, b.id, GROUP_CONCAT(m.dependentId), t.senderId FROM trs t " +
+		"inner join blocks b on t.blockId = b.id and t.id = $id " +
+		"left outer join mem_accounts2multisignatures m on m.accountId = t.senderId and t.id = $id", {id: req.dappid}, {height: Number, id: String, multisignature: String, authorId: String}, function (err, rows) {
+		if (err || rows.length == 0) {
+			return cb("Sql error");
+		}
+
+		cb(null, {
+			pointId: rows[0].id,
+			pointHeight: rows[0].height,
+			authorId: rows[0].authorId,
+			associate: rows[0].multisignature ? rows[0].multisignature.split(",") : []
+		});
+	});
+}
 
 module.exports = DApps;

@@ -38,7 +38,7 @@ private.attachApi = function () {
 	});
 
 	router.use(function (req, res, next) {
-		var peerIp = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+		var peerIp = req.headers['x-forwarded-for'] = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
 
 		if (peerIp == "127.0.0.1") {
 			return next();
@@ -84,6 +84,9 @@ private.attachApi = function () {
 				version: private.headers.version
 			};
 
+			if (req.body && req.body.dappid) {
+				peer.dappid = req.body.dappid;
+			}
 
 			if (peer.port > 0 && peer.port <= 65535 && peer.version == library.config.version) {
 				modules.peer.update(peer);
@@ -96,7 +99,7 @@ private.attachApi = function () {
 
 	router.get('/list', function (req, res) {
 		res.set(private.headers);
-		modules.peer.list(100, function (err, peers) {
+		modules.peer.list({limit: 100}, function (err, peers) {
 			return res.status(200).json({peers: !err ? peers : []});
 		})
 	});
@@ -350,10 +353,9 @@ private.hashsum = function (obj) {
 }
 
 //public methods
-Transport.prototype.broadcast = function (peersCount, options, cb) {
-	peersCount = peersCount || 1;
-
-	modules.peer.list(peersCount, function (err, peers) {
+Transport.prototype.broadcast = function (config, options, cb) {
+	config.limit = config.limit || 1;
+	modules.peer.list(config, function (err, peers) {
 		if (!err) {
 			async.eachLimit(peers, 3, function (peer, cb) {
 				self.getFromPeer(peer, options);
@@ -370,7 +372,7 @@ Transport.prototype.broadcast = function (peersCount, options, cb) {
 
 Transport.prototype.getFromRandomPeer = function (options, cb) {
 	async.retry(20, function (cb) {
-		modules.peer.list(1, function (err, peers) {
+		modules.peer.list({limit: 1}, function (err, peers) {
 			if (!err && peers.length) {
 				var peer = peers[0];
 				self.getFromPeer(peer, options, cb);
@@ -413,12 +415,12 @@ Transport.prototype.getFromPeer = function (peer, options, cb) {
 		headers: _.extend({}, private.headers, options.headers),
 		timeout: library.config.peers.options.timeout
 	};
-
 	if (Object.prototype.toString.call(options.data) === "[object Object]" || util.isArray(options.data)) {
 		req.json = options.data;
 	} else {
 		req.body = options.data;
 	}
+
 
 	return request(req, function (err, response, body) {
 		if (err || response.statusCode != 200) {
@@ -517,21 +519,21 @@ Transport.prototype.onBlockchainReady = function () {
 
 Transport.prototype.onUnconfirmedTransaction = function (transaction, broadcast) {
 	if (broadcast) {
-		self.broadcast(100, {api: '/transactions', data: {transaction: transaction}, method: "POST"});
+		self.broadcast({limit: 100}, {api: '/transactions', data: {transaction: transaction}, method: "POST"});
 		library.network.io.sockets.emit('transactions/change', {});
 	}
 }
 
 Transport.prototype.onNewBlock = function (block, broadcast) {
 	if (broadcast) {
-		self.broadcast(100, {api: '/blocks', data: {block: block}, method: "POST"});
+		self.broadcast({limit: 100}, {api: '/blocks', data: {block: block}, method: "POST"});
 		library.network.io.sockets.emit('blocks/change', {});
 	}
 }
 
 Transport.prototype.onMessage = function (msg, broadcast) {
 	if (broadcast) {
-		self.broadcast(100, {api: '/dapp/message', data: msg, method: "POST"});
+		self.broadcast({limit: 100, dappid: msg.dappid}, {api: '/dapp/message', data: msg, method: "POST"});
 	}
 }
 
@@ -540,7 +542,7 @@ shared.message = function (msg, cb) {
 	msg.timestamp = (new Date()).getTime();
 	msg.hash = private.hashsum(msg.body, msg.timestamp);
 
-	self.broadcast(100, {api: '/dapp/message', data: msg, method: "POST"});
+	self.broadcast({limit: 100, dappid: msg.dappid}, {api: '/dapp/message', data: msg, method: "POST"});
 
 	cb(null, {});
 }
