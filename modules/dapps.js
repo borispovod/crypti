@@ -1575,16 +1575,17 @@ DApps.prototype.onNewBlock = function (block, broadcast) {
 }
 
 //shared
-shared.getDelegates = function (req, cb) {
-	library.dbLite.query("SELECT GROUP_CONCAT(m.dependentId), t.senderId as authorId FROM trs t " +
-		"left outer join mem_accounts2multisignatures m on m.accountId = t.senderId and t.id = $transactionId", {
-		transactionId: req.dappid
-	}, {multisignature: String, authorId: String}, function (err, rows) {
+shared.getGenesis = function (req, cb) {
+	library.dbLite.query("SELECT b.height, b.id, GROUP_CONCAT(m.dependentId), t.senderId FROM trs t " +
+		"inner join blocks b on t.blockId = b.id and t.id = $id " +
+		"left outer join mem_accounts2multisignatures m on m.accountId = t.senderId and t.id = $id", {id: req.dappid}, {height: Number, id: String, multisignature: String, authorId: String}, function (err, rows) {
 		if (err || rows.length == 0) {
 			return cb("Sql error");
 		}
 
 		cb(null, {
+			pointId: rows[0].id,
+			pointHeight: rows[0].height,
 			authorId: rows[0].authorId,
 			associate: rows[0].multisignature ? rows[0].multisignature.split(",") : []
 		});
