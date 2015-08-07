@@ -144,5 +144,11 @@
 		}
 	},
 	"dapp": {
+		"autoexec": [
+			{
+				"params": ["2LAgOflQnsF2iQ3JEJsMlKCdOXfr286IZTA"],
+				"dappid": "15616498276233037701"
+			}
+		]
 	}
 }

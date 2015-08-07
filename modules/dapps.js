@@ -1045,6 +1045,7 @@ private.installDependencies = function (dApp, cb) {
 private.getInstalledIds = function (cb) {
 	fs.readdir(private.dappsPath, function (err, files) {
 		if (err) {
+			console.log('here');
 			return setImmediate(cb, err);
 		}
 
@@ -1250,8 +1251,8 @@ private.launch = function (body, cb) {
 	library.scheme.validate(body, {
 		type: "object",
 		properties: {
-			secret: {
-				type: 'string',
+			params: {
+				type: "array",
 				minLength: 1
 			},
 			id: {
@@ -1259,7 +1260,7 @@ private.launch = function (body, cb) {
 				minLength: 1
 			}
 		},
-		required: ["id", "secret"]
+		required: ["id", "params"]
 	}, function (err) {
 		if (err) {
 			return cb(err[0].message);
@@ -1290,7 +1291,7 @@ private.launch = function (body, cb) {
 									library.logger.error(err);
 									return cb("Can't create public link for: " + body.id);
 								} else {
-									private.launchApp(dapp, body.secret, function (err) {
+									private.launchApp(dapp, body.params, function (err) {
 										if (err) {
 											private.launched[body.id] = false;
 											library.logger.error(err);
@@ -1337,7 +1338,7 @@ private.downloadSiaFile = function (id, ascii, icon, path, cb) {
 	});
 }
 
-private.launchApp = function (dApp, secret, cb) {
+private.launchApp = function (dApp, params, cb) {
 	var dappPath = path.join(private.dappsPath, dApp.transactionId);
 	var dappPublicPath = path.join(dappPath, "public");
 	var dappPublicLink = path.join(private.appPath, "public", "dapps", dApp.transactionId);
@@ -1361,7 +1362,7 @@ private.launchApp = function (dApp, secret, cb) {
 				return setImmediate(err);
 			}
 
-			var sandbox = new Sandbox(path.join(dappPath, "index.js"), dApp.transactionId, secret, private.apiHandler, true);
+			var sandbox = new Sandbox(path.join(dappPath, "index.js"), dApp.transactionId, params, private.apiHandler, true);
 			private.sandboxes[dApp.transactionId] = sandbox;
 
 			sandbox.on("exit", function () {
@@ -1441,8 +1442,8 @@ DApps.prototype.onBlockchainReady = function () {
 	if (library.config.dapp) {
 		setTimeout(function () {
 			async.eachSeries(library.config.dapp.autoexec || [], function (dapp, cb) {
-				private.launch({secret: dapp.secret, id: dapp.dappid}, function (err) {
-					console.log("lanched " + dapp.dappid + " as " + dapp.secret, err)
+				private.launch({params: dapp.params, id: dapp.dappid}, function (err) {
+					console.log("lanched " + dapp.dappid + " as " + dapp.params[0], err)
 					cb();
 				});
 			});
@@ -1469,7 +1470,12 @@ DApps.prototype.onNewBlock = function (block, broadcast) {
 shared.getGenesis = function (req, cb) {
 	library.dbLite.query("SELECT b.height, b.id, GROUP_CONCAT(m.dependentId), t.senderId FROM trs t " +
 		"inner join blocks b on t.blockId = b.id and t.id = $id " +
-		"left outer join mem_accounts2multisignatures m on m.accountId = t.senderId and t.id = $id", {id: req.dappid}, {height: Number, id: String, multisignature: String, authorId: String}, function (err, rows) {
+		"left outer join mem_accounts2multisignatures m on m.accountId = t.senderId and t.id = $id", {id: req.dappid}, {
+		height: Number,
+		id: String,
+		multisignature: String,
+		authorId: String
+	}, function (err, rows) {
 		if (err || rows.length == 0) {
 			return cb("Sql error");
 		}
