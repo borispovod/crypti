@@ -17,14 +17,16 @@ function Sia(cb, scope) {
 }
 
 //private fields
-Sia.prototype.uploadAscii = function (ascii, cb) {
+Sia.prototype.uploadAscii = function (id, ascii, icon, cb) {
 	var peer = library.config.sia.peer;
 	var peerStr = "http://" + peer.address + ":" + peer.port;
 
 	request.post({
 		url: peerStr + "/upload",
 		json: {
-			ascii: ascii
+			ascii: ascii,
+			id: id,
+			icon: icon
 		},
 		timeout: 1000 * 60 * 2
 	}, function (err, resp, body) {
@@ -33,7 +35,7 @@ Sia.prototype.uploadAscii = function (ascii, cb) {
 		}
 
 		if (body.success) {
-			return cb();
+			return cb(null, body.file);
 		} else {
 			return cb("Can't add this file, this file already added");
 		}
@@ -57,17 +59,33 @@ Sia.prototype.download = function (nickname, path, cb) {
 		}
 
 		if (body.success || (!body.success && body.error == "This file already downloaded, use /get to get file.")) {
-			request.post({
-				url: peerStr + "/get",
-				json: {
-					nickname: nickname
-				},
-				timeout: 1000 * 60
-			}).on("error", function (err) {
-				return setImmediate(cb, err);
-			}).on('end', function () {
-				return setImmediate(cb, null, path);
-			}).pipe(fs.createWriteStream(path));
+			if (typeof path === 'string') {
+				// to file
+				request.post({
+					url: peerStr + "/get",
+					json: {
+						nickname: nickname
+					},
+					timeout: 1000 * 60
+				}).on("error", function (err) {
+					return setImmediate(cb, err);
+				}).on('end', function () {
+					return setImmediate(cb, null, path);
+				}).pipe(fs.createWriteStream(path));
+			} else {
+				// to stream
+				request.post({
+					url: peerStr + "/get",
+					json: {
+						nickname: nickname
+					},
+					timeout: 1000 * 60
+				}).on("error", function (err) {
+					return setImmediate(cb, err);
+				}).on('end', function () {
+					return setImmediate(cb, null, path);
+				}).pipe(path);
+			}
 		} else {
 			return setImmediate(cb, "Error downloading from sia: " + body);
 		}

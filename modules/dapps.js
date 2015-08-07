@@ -256,12 +256,19 @@ function DApp() {
 	}
 
 	this.objectNormalize = function (trs) {
+		for (var i in trs.asset.dapp) {
+			if (trs.asset.dapp[i] === null || typeof trs.asset.dapp[i] === 'undefined') {
+				delete trs.asset.dapp[i];
+			}
+		}
+
 		var report = library.scheme.validate(trs.asset.dapp, {
 			object: true,
 			properties: {
 				category: {
-					type: "string",
-					minLength: 0
+					type: "integer",
+					minimum: 0,
+					maximum: 8
 				},
 				name: {
 					type: "string",
@@ -282,18 +289,10 @@ function DApp() {
 					type: "integer",
 					minimum: 0
 				},
-				siaIcon: {
-					type: "string",
-					minLength: 1
-				},
-				siaAscii: {
-					type: "string",
-					minLength: 1
-				},
 				git: {
 					type: "string",
-					maxLength: 2000,
-					minLength: 1
+					minLength: 1,
+					maxLength: 2000
 				},
 				icon: {
 					type: "string",
@@ -1189,6 +1188,16 @@ private.apiHandler = function (message, callback) {
 	}
 }
 
+private.getIcon = function (dapp, cb) {
+	if (dapp.icon) {
+		return setImmediate(cb, dapp.icon);
+	} else if (dapp.siaIcon) {
+
+	} else {
+		return setImmediate(cb);
+	}
+}
+
 private.dappRoutes = function (dapp, cb) {
 	var dappPath = path.join(private.dappsPath, dapp.transactionId);
 	var dappRoutesPath = path.join(dappPath, "routes.json");
@@ -1315,6 +1324,16 @@ private.launch = function (body, cb) {
 				});
 			}
 		});
+	});
+}
+
+private.downloadSiaFile = function (id, ascii, icon, path, cb) {
+	modules.sia.uploadAscii(id, ascii, icon, function (err, file) {
+		if (err) {
+			return setImmediate(cb, err);
+		} else {
+			modules.sia.download(file, path, cb);
+		}
 	});
 }
 
