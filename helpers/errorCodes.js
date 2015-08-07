@@ -319,6 +319,26 @@ var errorCodes = {
 		DAPPS_NOT_FOUND: {
 			message: "DApps not found",
 			args: []
+		},
+		MISSED_SIA_ASCII: {
+			message: "Missed sia ascii link",
+			args: []
+		},
+		INCORRECT_ASCII_SIA: {
+			message: "Incorrect sia ascii code: %s",
+			args: ["siaAscii"]
+		},
+		INCORRECT_SIA_ICON: {
+			message: "Incorrect sia ascii icon: %s",
+			args: ["siaIcon"]
+		},
+		ALREADY_SIA_ICON: {
+			message: "This dapp already based on sia icon code",
+			args: []
+		},
+		INCORRECT_ICON_LINK: {
+			message: "Incorrect sia link: %s",
+			args: ['icon']
 		}
 	}
 }

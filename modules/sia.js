@@ -17,6 +17,28 @@ function Sia(cb, scope) {
 }
 
 //private fields
+Sia.prototype.uploadAscii = function (ascii, cb) {
+	var peer = library.config.sia.peer;
+	var peerStr = "http://" + peer.address + ":" + peer.port;
+
+	request.post({
+		url: peerStr + "/upload",
+		json: {
+			ascii: ascii
+		},
+		timeout: 1000 * 60 * 2
+	}, function (err, resp, body) {
+		if (err || resp.statusCode != 200) {
+			return setImmediate(cb, err || "Can't download file");
+		}
+
+		if (body.success) {
+			return cb();
+		} else {
+			return cb("Can't add this file, this file already added");
+		}
+	});
+}
 
 //public methods
 Sia.prototype.download = function (nickname, path, cb) {
@@ -28,7 +50,7 @@ Sia.prototype.download = function (nickname, path, cb) {
 		json: {
 			nickname: nickname
 		},
-		timeout: 1000 * 60
+		timeout: 1000 * 60 * 2
 	}, function (err, resp, body) {
 		if (err || resp.statusCode != 200) {
 			return setImmediate(cb, err || "Can't download file");
