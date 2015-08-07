@@ -28,7 +28,7 @@ private.loading = {};
 private.removing = {};
 private.unconfirmedNames = {};
 private.unconfirmedLinks = {};
-private.unconfirmedNickNames = {};
+private.unconfirmedAscii = {};
 private.appPath = process.cwd();
 private.dappsPath = path.join(process.cwd(), 'dapps');
 private.sandboxes = {};
@@ -175,16 +175,20 @@ function DApp() {
 				buf = Buffer.concat([buf, tagsBuf]);
 			}
 
-			if (trs.asset.dapp.nickname) {
-				buf = Buffer.concat([buf, new Buffer(trs.asset.dapp.nickname, 'utf8')]);
+			if (trs.asset.dapp.siaAscii) {
+				buf = Buffer.concat([buf, new Buffer(trs.asset.dapp.siaAscii, 'ascii')]);
+			}
+
+			if (trs.asset.dapp.siaIcon) {
+				buf = Buffer.concat([buf, new Buffer(trs.asset.dapp.siaIcon, 'ascii')]);
 			}
 
 			if (trs.asset.dapp.git) {
 				buf = Buffer.concat([buf, new Buffer(trs.asset.dapp.git, 'utf8')]);
 			}
 
-			if (trs.asset.dapp.link) {
-				buf = Buffer.concat([buf, new Buffer(trs.asset.dapp.link, 'utf8')]);
+			if (trs.asset.dapp.icon) {
+				buf = Buffer.concat([buf, new Buffer(trs.asset.dapp.icon, 'utf8')]);
 			}
 
 			var bb = new ByteBuffer(4 + 4, true);
@@ -212,21 +216,23 @@ function DApp() {
 		if (private.unconfirmedNames[trs.asset.dapp.name]) {
 			return setImmediate(cb, "dapp name is exists");
 		}
+
 		if (trs.asset.dapp.git && private.unconfirmedLinks[trs.asset.dapp.git]) {
-			return setImmediate(cb, "dapp link is exists");
+			return setImmediate(cb, "dapp git link is exists");
 		}
-		if (trs.asset.dapp.nickname && private.unconfirmedNickNames[trs.asset.dapp.nickname]) {
-			return setImmediate(cb, "dapp nickname is exists");
+
+		if (trs.asset.dapp.siAscii && private.unconfirmedAscii[trs.asset.dapp.siaAscii]) {
+			return setImmediate(cb, "dapp ascii is exists");
 		}
+
 		private.unconfirmedNames[trs.asset.dapp.name] = true;
 		private.unconfirmedLinks[trs.asset.dapp.git] = true;
-		private.unconfirmedNickNames[trs.asset.dapp.nickname] = true;
+		private.unconfirmedAscii[trs.asset.dapp.siaAscii] = true;
 
-		library.dbLite.query("SELECT count(transactionId) FROM dapps WHERE (name = $name or nickname = $nickname or git = $git or link = $link) and transactionId != $transactionId", {
+		library.dbLite.query("SELECT count(transactionId) FROM dapps WHERE (name = $name or siaAscii = $siaAscii or git = $git) and transactionId != $transactionId", {
 			name: trs.asset.dapp.name,
-			nickname: trs.asset.dapp.nickname || null,
+			siaAscii: trs.asset.dapp.siaAscii || null,
 			git: trs.asset.dapp.git || null,
-			link: trs.asset.dapp.link || null,
 			transactionId: trs.id
 		}, ['count'], function (err, rows) {
 			if (err || rows.length == 0) {
@@ -244,7 +250,7 @@ function DApp() {
 	this.undoUnconfirmed = function (trs, sender, cb) {
 		delete private.unconfirmedNames[trs.asset.dapp.name];
 		delete private.unconfirmedLinks[trs.asset.dapp.git];
-		delete private.unconfirmedNickNames[trs.asset.dapp.nickname];
+		delete private.unconfirmedAscii[trs.asset.dapp.siaAscii];
 
 		setImmediate(cb);
 	}
@@ -276,7 +282,11 @@ function DApp() {
 					type: "integer",
 					minimum: 0
 				},
-				nickname: {
+				siaIcon: {
+					type: "string",
+					minLength: 1
+				},
+				siaAscii: {
 					type: "string",
 					minLength: 1
 				},
@@ -284,11 +294,6 @@ function DApp() {
 					type: "string",
 					maxLength: 2000,
 					minLength: 1
-				},
-				link: {
-					type: "string",
-					minLength: 1,
-					maxLength: 2000
 				},
 				icon: {
 					type: "string",
@@ -315,9 +320,9 @@ function DApp() {
 				description: raw.dapp_description,
 				tags: raw.dapp_tags,
 				type: raw.dapp_type,
-				nickname: raw.dapp_nickname,
+				siaAscii: raw.dapp_siaAscii,
+				siaIcon : raw.dapp_siaIcon,
 				git: raw.dapp_git,
-				link: raw.dapp_link,
 				category: raw.dapp_category,
 				icon: raw.dapp_icon
 			}
@@ -327,14 +332,14 @@ function DApp() {
 	}
 
 	this.dbSave = function (trs, cb) {
-		library.dbLite.query("INSERT INTO dapps(type, name, description, tags, nickname, git, category, icon, link, transactionId) VALUES($type, $name, $description, $tags, $nickname, $git, $category, $icon, $link, $transactionId)", {
+		library.dbLite.query("INSERT INTO dapps(type, name, description, tags, siaAscii, siaIcon, git, category, icon, transactionId) VALUES($type, $name, $description, $tags, $siaAscii, $siaIcon, $git, $category, $icon, $transactionId)", {
 			type: trs.asset.dapp.type,
 			name: trs.asset.dapp.name,
 			description: trs.asset.dapp.description || null,
 			tags: trs.asset.dapp.tags || null,
-			nickname: trs.asset.dapp.nickname || null,
+			siaAscii: trs.asset.dapp.siaAscii || null,
+			siaIcon: trs.asset.dapp.siaIcon || null,
 			git: trs.asset.dapp.git || null,
-			link: trs.asset.dapp.link || null,
 			icon: trs.asset.dapp.icon || null,
 			category: trs.asset.dapp.category,
 			transactionId: trs.id
@@ -359,7 +364,6 @@ function DApps(cb, scope) {
 	self = this;
 	self.__private = private;
 	library.logic.transaction.attachAssetType(TransactionTypes.DAPP, new DApp());
-	library.logic.transaction.attachAssetType(TransactionTypes.TREE, new Tree());
 	private.attachApi();
 
 	process.on('exit', function () {
@@ -647,17 +651,17 @@ private.attachApi = function () {
 										categorySql = " AND category = $category"
 									}
 
-									library.dbLite.query("SELECT transactionId, name, description, tags, nickname, git, type, category FROM dapps WHERE rowid IN (" + rows.join(',') + ")" + categorySql, {category: category}, {
+									library.dbLite.query("SELECT transactionId, name, description, tags, siaAscii, siaIcon, git, type, category FROM dapps WHERE rowid IN (" + rows.join(',') + ")" + categorySql, {category: category}, {
 										'transactionId': String,
 										'name': String,
 										'description': String,
 										'tags': String,
-										'nickname': String,
+										'siaAscii': String,
+										'siaIcon' : String,
 										'git': String,
 										'type': Number,
 										'category': Number,
-										'icon': String,
-										'link': String
+										'icon': String
 									}, function (err, rows) {
 										if (err) {
 											library.logger.error(err);
@@ -894,7 +898,7 @@ private.attachApi = function () {
 
 //private methods
 private.get = function (id, cb) {
-	library.dbLite.query("SELECT name, description, tags, nickname, git, type, category, icon, link, transactionId FROM dapps WHERE transactionId = $id", {id: id}, ['name', 'description', 'tags', 'nickname', 'git', 'type', 'category', 'icon', 'link', 'transactionId'], function (err, rows) {
+	library.dbLite.query("SELECT name, description, tags, siaAscii, siaIcon, git, type, category, icon, transactionId FROM dapps WHERE transactionId = $id", {id: id}, ['name', 'description', 'tags', 'siaAscii', 'siaIcon', 'git', 'type', 'category', 'icon', 'transactionId'], function (err, rows) {
 		if (err || rows.length == 0) {
 			return setImmediate(cb, err ? "Sql error" : "DApp not found");
 		}
@@ -908,7 +912,7 @@ private.getByIds = function (ids, cb) {
 		ids[i] = "'" + ids[i] + "'";
 	}
 
-	library.dbLite.query("SELECT name, description, tags, nickname, git, type, category, icon, link, transactionId FROM dapps WHERE transactionId IN (" + ids.join(',') + ")", {}, ['name', 'description', 'tags', 'nickname', 'git', 'type', 'category', 'icon', 'link', 'transactionId'], function (err, rows) {
+	library.dbLite.query("SELECT name, description, tags, siaAscii, siaIcon, git, type, category, icon, transactionId FROM dapps WHERE transactionId IN (" + ids.join(',') + ")", {}, ['name', 'description', 'tags', 'siaAscii', 'siaIcon', 'git', 'type', 'category', 'icon', 'transactionId'], function (err, rows) {
 		if (err || rows.length == 0) {
 			return setImmediate(cb, err ? "Sql error" : "DApp not found");
 		}
@@ -969,12 +973,12 @@ private.list = function (filter, cb) {
 	}
 
 	// need to fix 'or' or 'and' in query
-	library.dbLite.query("select name, description, tags, nickname, git, type, category, icon, link, transactionId " +
+	library.dbLite.query("select name, description, tags, siaAscii, siaIcon, git, type, category, icon, transactionId " +
 		"from dapps " +
 		(fields.length ? "where " + fields.join(' or ') + " " : "") +
 		(filter.orderBy ? 'order by ' + sortBy + ' ' + sortMethod : '') + " " +
 		(filter.limit ? 'limit $limit' : '') + " " +
-		(filter.offset ? 'offset $offset' : ''), params, ['name', 'description', 'tags', 'nickname', 'git', 'type', 'category', 'icon', 'link', 'transactionId'], function (err, rows) {
+		(filter.offset ? 'offset $offset' : ''), params, ['name', 'description', 'tags', 'siaAscii', 'siaIcon', 'git', 'type', 'category', 'icon', 'transactionId'], function (err, rows) {
 		if (err) {
 			return cb(err);
 		}
@@ -1102,11 +1106,11 @@ private.downloadDApp = function (dApp, cb) {
 							return setImmediate(cb, null, dappPath);
 						}
 					});
-				} else if (dApp.nickname) {
+				} else if (dApp.siaAscii) {
 					var dappZip = path.joind(dappPath, dApp.transactionId + ".zip");
 
 					// fetch from sia
-					modules.sia.download(dApp.nickname, dappZip, function (err, dappZip) {
+					modules.sia.download(dApp.siaAscii, dappZip, function (err, dappZip) {
 						if (err) {
 							library.logger.error(err);
 
@@ -1115,7 +1119,7 @@ private.downloadDApp = function (dApp, cb) {
 									library.logger.error(err);
 								}
 
-								return setImmediate(cb, "Failed to fetch ascii code from sia: \n" + dApp.nickname + " \n " + dappPath);
+								return setImmediate(cb, "Failed to fetch ascii code from sia: \n" + dApp.siaAscii + " \n " + dappPath);
 							});
 						} else {
 							fs.createReadStream(dappZip).pipe(unzip.Extract({path: dappPath})).on('end', function () {
@@ -1145,8 +1149,6 @@ private.downloadDApp = function (dApp, cb) {
 							})
 						}
 					});
-				} else if (dApp.link) {
-					return setImmediate(cb);
 				}
 			});
 		}

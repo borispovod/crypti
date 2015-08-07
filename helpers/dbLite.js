@@ -43,8 +43,6 @@ module.exports.connect = function (connectString, cb) {
 		"CREATE INDEX IF NOT EXISTS multisignatures_trs_id ON multisignatures(transactionId)",
 		"CREATE INDEX IF NOT EXISTS dapps_trs_id ON dapps(transactionId)",
 		"CREATE INDEX IF NOT EXISTS dapps_name ON dapps(name)",
-		"CREATE INDEX IF NOT EXISTS trees_trs_id ON trees(transactionId)",
-		"CREATE INDEX IF NOT EXISTS trees_previousHash ON trees(hash)",
 		"PRAGMA foreign_keys = ON",
 		"UPDATE peers SET state = 1, clock = null where state != 0",
 		"PRAGMA synchronous=OFF",
