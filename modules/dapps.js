@@ -1313,7 +1313,7 @@ private.apiHandler = function (message, callback) {
 
 		modules[module].sandboxApi(call, {"body": message.args, "dappid": message.dappid}, callback);
 	} catch (e) {
-		return setImmediate(callback, "Incorrect call");
+		return setImmediate(callback, "Incorrect call " + e.toString());
 	}
 }
 

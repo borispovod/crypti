@@ -27,7 +27,7 @@ private.query = function (action, config, cb) {
 
 	var sql = jsonSql.build(extend(config, defaultConfig));
 
-	private.dbLite.query(sql.query, sql.values, function (err, data) {
+	library.dbLite.query(sql.query, sql.values, function (err, data) {
 		cb(err, data);
 	});
 }
