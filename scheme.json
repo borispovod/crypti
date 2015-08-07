@@ -726,7 +726,8 @@
 	"dapps": [
 		{
 			"name": "testdapp",
-			"nickname": "testdapp",
+			"asciiCode": null,
+		    "asciiIcon": null,
 			"description": "test dapp",
 			"tags": "test",
 			"git": "git@github.com:crypti/testdapp.git",

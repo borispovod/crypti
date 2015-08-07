@@ -367,6 +367,10 @@ private.attachApi = function () {
 		});
 	}
 
+	router.get('/count', function (req, res) {
+		return res.json({success: true, count: Object.keys(private.accounts).length});
+	});
+
 	router.use(function (req, res, next) {
 		res.status(500).send({success: false, error: errorCode('COMMON.INVALID_API')});
 	});

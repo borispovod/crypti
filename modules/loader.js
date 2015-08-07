@@ -209,7 +209,6 @@ private.loadBlocks = function (lastBlock, cb) {
 			return cb();
 		}
 
-
 		if (bignum(modules.blocks.getLastBlock().height).lt(data.body.height)) { //diff in chainbases
 			private.blocksToSync = data.body.height;
 

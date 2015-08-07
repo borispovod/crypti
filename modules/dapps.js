@@ -28,170 +28,14 @@ private.loading = {};
 private.removing = {};
 private.unconfirmedNames = {};
 private.unconfirmedLinks = {};
-private.unconfirmedNickNames = {};
+private.unconfirmedAscii = {};
 private.appPath = process.cwd();
 private.dappsPath = path.join(process.cwd(), 'dapps');
 private.sandboxes = {};
 private.routes = {};
-private.trees = {};
 
-function Tree() {
-	this.create = function (data, trs) {
-		trs.recipientId = null;
-		trs.amount = 0;
-
-		trs.asset.tree = {
-			dappId: data.dappId,
-			previousHash: data.previousHash,
-			hash: data.hash
-		};
-
-		return trs;
-	}
-
-	this.calculateFee = function (trs) {
-		return 1;
-	}
-
-	this.verify = function (trs, sender, cb) {
-		setImmediate(cb);
-	}
-
-	this.process = function (trs, sender, cb) {
-		setImmediate(cb, null, trs);
-	}
-
-	this.getBytes = function (trs) {
-		var buf = new Buffer([]);
-
-		try {
-			var idBuf = new Buffer(trs.asset.tree.dappId, 'utf8');
-			buf = Buffer.concat([buf, idBuf]);
-
-			var previousHashBuf = new Buffer(trs.asset.tree.previousHash, 'hex')
-			buf = Buffer.concat([buf, previousHashBuf]);
-
-			var hashBuf = new Buffer(trs.asset.tree.hash, 'hex');
-			buf = Buffer.concat([buf, hashBuf]);
-		} catch (e) {
-			throw Error(e.toString());
-		}
-
-		return buf;
-	}
-
-	this.apply = function (trs, sender, cb) {
-		private.trees[trs.asset.dappId] = false;
-		setImmediate(cb);
-	}
-
-	this.undo = function (trs, sender, cb) {
-		private.trees[trs.asset.dappId] = true;
-		setImmediate(cb);
-	}
-
-	this.applyUnconfirmed = function (trs, sender, cb) {
-		if (private.trees[trs.asset.dappId]) {
-			return setImmediate(cb, "Tree in this block already processed for dapp: " + trs.asset.dappId);
-		}
-
-		library.dbLite.query("SELECT senderPublicKey from trs WHERE id=$id", {
-			id: trs.asset.dappId
-		}, ['senderPublicKey'], function (err, rows) {
-			if (err || rows.length == 0) {
-				return setImmediate(cb, "Can't find dapp: " + trs.asset.dappId);
-			}
-
-			var senderPublicKey = rows[0].senderPublicKey;
-
-			modules.accounts.getAccount({publicKey: senderPublicKey}, function (err, account) {
-				if (err || !account) {
-					return setImmediate(cb, err ? err.toString() : "Sender of this transaction not found: " + trs.id);
-				}
-
-				function done() {
-					private.trees[trs.asset.dappId] = true;
-					setImmediate(cb);
-				}
-
-				if (account.publicKey == senderPublicKey) {
-					return done();
-				} else {
-					if (account.multisignatures.indexOf(senderPublicKey) < 0) {
-						return setImmediate(cb, "This account is not owner of dapp");
-					} else {
-						return done();
-					}
-				}
-			});
-		});
-
-	}
-
-	this.undoUnconfirmed = function (trs, sender, cb) {
-		private.trees[trs.asset.dappId] = false;
-		setImmediate(cb);
-	}
-
-	this.objectNormalize = function (trs) {
-		var report = library.scheme.validate(trs.asset.tree, {
-			object: true,
-			properties: {
-				dappId: {
-					type: "string",
-					minLength: 1
-				},
-				previousHash: {
-					type: "string",
-					format: "hex"
-				},
-				hash: {
-					type: "string",
-					format: "hex"
-				}
-			},
-			required: ["dappId", "previousHash", "hash"]
-		});
-
-		if (!report) {
-			throw Error("Can't verify dapp tree hash: " + library.scheme.getLastError());
-		}
-
-		return trs;
-	}
-
-	this.dbRead = function (raw) {
-		if (!raw.hash) {
-			return null;
-		} else {
-			var tree = {
-				dappId: raw.tree_dappId,
-				previousHash: raw.tree_previousHash,
-				hash: raw.tree_hash
-			}
-
-			return {tree: tree};
-		}
-	}
-
-	this.dbSave = function (trs, cb) {
-		library.dbLite.query("INSERT INTO tree(dappId, previousHash, hash, transactionId) VALUES($dappId, $previousHash, $hash, $transactionId)", {
-			dappId: trs.asset.tree.dappId,
-			previousHash: trs.asset.tree.previousHash,
-			hash: trs.asset.tree.hash
-		}, cb);
-	}
-
-	this.ready = function (trs, sender) {
-		if (sender.multisignatures.length) {
-			if (!trs.signatures) {
-				return false;
-			}
-			return trs.signatures.length >= sender.multimin;
-		} else {
-			return true;
-		}
-	}
+function isASCII(str, extended) {
+	return (extended ? /^[\x00-\xFF]*$/ : /^[\x00-\x7F]*$/).test(str);
 }
 
 function DApp() {
@@ -205,11 +49,11 @@ function DApp() {
 			description: data.description,
 			tags: data.tags,
 			type: data.dapp_type,
-			nickname: data.nickname,
+			siaAscii: data.siaAscii,
 			git: data.git,
-			link: data.link,
-			icon: data.icon
-		}
+			icon: data.icon,
+			siaIcon: data.siaIcon
+		};
 
 		return trs;
 	}
@@ -219,7 +63,8 @@ function DApp() {
 	}
 
 	this.verify = function (trs, sender, cb) {
-		var isSia = false, isGit = false;
+		var isSia = false;
+		var isSiaIcon = false;
 
 		if (trs.recipientId) {
 			return setImmediate(cb, errorCode("TRANSACTIONS.INVALID_RECIPIENT", trs));
@@ -233,10 +78,47 @@ function DApp() {
 			return setImmediate(cb, errorCode("DAPPS.UNKNOWN_CATEGORY"));
 		}
 
-		if (trs.asset.dapp.nickname) {
+		if (trs.asset.dapp.siaAscii) {
 			isSia = true;
-			if (!trs.asset.dapp.nickname || trs.asset.dapp.nickname.trim().length == 0) {
-				return setImmediate(cb, errorCode("DAPPS.EMPTY_NICKNAME"));
+
+			if (typeof trs.asset.dapp.siaAscii !== 'string') {
+				return setImmediate(cb, errorCode("DAPPS.MISSED_SIA_ASCII"));
+			}
+
+			if (!isASCII(trs.asset.dapp.siaAscii)) {
+				return setImmediate(cb, errorCode("DAPP.INCORRECT_ASCII_SIA", trs.asset.dapp));
+			}
+		}
+
+		if (trs.asset.dapp.siaIcon) {
+			isSiaIcon = true;
+
+			if (typeof trs.asset.dapp.siaIcon !== 'string') {
+				return setImmediate(cb, errorCode("DAPPS.INCORRECT_SIA_ICON", trs.asset.dapp));
+			}
+
+			if (!isASCII(trs.asset.dapp.siaIcon)) {
+				return setImmediate(cb, errorCode("DAPPS.INCORRECT_SIA_ICON", trs.asset.dapp));
+			}
+		}
+
+		if (trs.asset.dapp.icon) {
+			if (isSiaIcon) {
+				return setImmediate(cb, errorCode("DAPPS.ALREADY_SIA_ICON"));
+			}
+
+			if (!valid_url.isUri(trs.asset.dapp.icon)) {
+				return setImmediate(cb, errorCode("DAPPS.INCORRECT_ICON_LINK", trs.asset.dapp));
+			}
+
+			var length = trs.asset.dapp.icon.length;
+
+			if (
+				trs.asset.dapp.icon.indexOf('png') != length - 3 &&
+				trs.asset.dapp.icon.indexOf('jpg') != length - 3 &&
+				trs.asset.dapp.icon.indexOf('jpeg') != length - 4
+			) {
+				return setImmediate(cb, errorCode("DAPPS.INCORRECT_ICON_LINK", trs.asset.dapp))
 			}
 		}
 
@@ -249,18 +131,7 @@ function DApp() {
 				return setImmediate(cb, errorCode("DAPPS.GIT_AND_SIA"));
 			}
 
-			isGit = true;
-
 			if (!(/^git\@github\.com\:.+\.git$/.test(trs.asset.dapp.git))) {
-				return setImmediate(cb, errorCode("DAPPS.INVALID_GIT"));
-			}
-		}
-
-		if (trs.asset.dapp.link) {
-			if (isSia || isGit) {
-				return setImmediate(cb, errorCode("DAPPS.GIT_AND_SIA"));
-			}
-			if (!valid_url.isUri(trs.asset.dapp.link)) {
 				return setImmediate(cb, errorCode("DAPPS.INVALID_GIT"));
 			}
 		}
@@ -304,16 +175,20 @@ function DApp() {
 				buf = Buffer.concat([buf, tagsBuf]);
 			}
 
-			if (trs.asset.dapp.nickname) {
-				buf = Buffer.concat([buf, new Buffer(trs.asset.dapp.nickname, 'utf8')]);
+			if (trs.asset.dapp.siaAscii) {
+				buf = Buffer.concat([buf, new Buffer(trs.asset.dapp.siaAscii, 'ascii')]);
+			}
+
+			if (trs.asset.dapp.siaIcon) {
+				buf = Buffer.concat([buf, new Buffer(trs.asset.dapp.siaIcon, 'ascii')]);
 			}
 
 			if (trs.asset.dapp.git) {
 				buf = Buffer.concat([buf, new Buffer(trs.asset.dapp.git, 'utf8')]);
 			}
 
-			if (trs.asset.dapp.link) {
-				buf = Buffer.concat([buf, new Buffer(trs.asset.dapp.link, 'utf8')]);
+			if (trs.asset.dapp.icon) {
+				buf = Buffer.concat([buf, new Buffer(trs.asset.dapp.icon, 'utf8')]);
 			}
 
 			var bb = new ByteBuffer(4 + 4, true);
@@ -341,21 +216,23 @@ function DApp() {
 		if (private.unconfirmedNames[trs.asset.dapp.name]) {
 			return setImmediate(cb, "dapp name is exists");
 		}
+
 		if (trs.asset.dapp.git && private.unconfirmedLinks[trs.asset.dapp.git]) {
-			return setImmediate(cb, "dapp link is exists");
+			return setImmediate(cb, "dapp git link is exists");
 		}
-		if (trs.asset.dapp.nickname && private.unconfirmedNickNames[trs.asset.dapp.nickname]) {
-			return setImmediate(cb, "dapp nickname is exists");
+
+		if (trs.asset.dapp.siAscii && private.unconfirmedAscii[trs.asset.dapp.siaAscii]) {
+			return setImmediate(cb, "dapp ascii is exists");
 		}
+
 		private.unconfirmedNames[trs.asset.dapp.name] = true;
 		private.unconfirmedLinks[trs.asset.dapp.git] = true;
-		private.unconfirmedNickNames[trs.asset.dapp.nickname] = true;
+		private.unconfirmedAscii[trs.asset.dapp.siaAscii] = true;
 
-		library.dbLite.query("SELECT count(transactionId) FROM dapps WHERE (name = $name or nickname = $nickname or git = $git or link = $link) and transactionId != $transactionId", {
+		library.dbLite.query("SELECT count(transactionId) FROM dapps WHERE (name = $name or siaAscii = $siaAscii or git = $git) and transactionId != $transactionId", {
 			name: trs.asset.dapp.name,
-			nickname: trs.asset.dapp.nickname || null,
+			siaAscii: trs.asset.dapp.siaAscii || null,
 			git: trs.asset.dapp.git || null,
-			link: trs.asset.dapp.link || null,
 			transactionId: trs.id
 		}, ['count'], function (err, rows) {
 			if (err || rows.length == 0) {
@@ -373,18 +250,25 @@ function DApp() {
 	this.undoUnconfirmed = function (trs, sender, cb) {
 		delete private.unconfirmedNames[trs.asset.dapp.name];
 		delete private.unconfirmedLinks[trs.asset.dapp.git];
-		delete private.unconfirmedNickNames[trs.asset.dapp.nickname];
+		delete private.unconfirmedAscii[trs.asset.dapp.siaAscii];
 
 		setImmediate(cb);
 	}
 
 	this.objectNormalize = function (trs) {
+		for (var i in trs.asset.dapp) {
+			if (trs.asset.dapp[i] === null || typeof trs.asset.dapp[i] === 'undefined') {
+				delete trs.asset.dapp[i];
+			}
+		}
+
 		var report = library.scheme.validate(trs.asset.dapp, {
 			object: true,
 			properties: {
 				category: {
-					type: "string",
-					minLength: 0
+					type: "integer",
+					minimum: 0,
+					maximum: 8
 				},
 				name: {
 					type: "string",
@@ -405,16 +289,7 @@ function DApp() {
 					type: "integer",
 					minimum: 0
 				},
-				nickname: {
-					type: "string",
-					minLength: 1
-				},
 				git: {
-					type: "string",
-					maxLength: 2000,
-					minLength: 1
-				},
-				link: {
 					type: "string",
 					minLength: 1,
 					maxLength: 2000
@@ -444,9 +319,9 @@ function DApp() {
 				description: raw.dapp_description,
 				tags: raw.dapp_tags,
 				type: raw.dapp_type,
-				nickname: raw.dapp_nickname,
+				siaAscii: raw.dapp_siaAscii,
+				siaIcon : raw.dapp_siaIcon,
 				git: raw.dapp_git,
-				link: raw.dapp_link,
 				category: raw.dapp_category,
 				icon: raw.dapp_icon
 			}
@@ -456,14 +331,14 @@ function DApp() {
 	}
 
 	this.dbSave = function (trs, cb) {
-		library.dbLite.query("INSERT INTO dapps(type, name, description, tags, nickname, git, category, icon, link, transactionId) VALUES($type, $name, $description, $tags, $nickname, $git, $category, $icon, $link, $transactionId)", {
+		library.dbLite.query("INSERT INTO dapps(type, name, description, tags, siaAscii, siaIcon, git, category, icon, transactionId) VALUES($type, $name, $description, $tags, $siaAscii, $siaIcon, $git, $category, $icon, $transactionId)", {
 			type: trs.asset.dapp.type,
 			name: trs.asset.dapp.name,
 			description: trs.asset.dapp.description || null,
 			tags: trs.asset.dapp.tags || null,
-			nickname: trs.asset.dapp.nickname || null,
+			siaAscii: trs.asset.dapp.siaAscii || null,
+			siaIcon: trs.asset.dapp.siaIcon || null,
 			git: trs.asset.dapp.git || null,
-			link: trs.asset.dapp.link || null,
 			icon: trs.asset.dapp.icon || null,
 			category: trs.asset.dapp.category,
 			transactionId: trs.id
@@ -488,7 +363,6 @@ function DApps(cb, scope) {
 	self = this;
 	self.__private = private;
 	library.logic.transaction.attachAssetType(TransactionTypes.DAPP, new DApp());
-	library.logic.transaction.attachAssetType(TransactionTypes.TREE, new Tree());
 	private.attachApi();
 
 	process.on('exit', function () {
@@ -561,7 +435,7 @@ private.attachApi = function () {
 					type: "integer",
 					minimum: 0
 				},
-				nickname: {
+				siaAscii: {
 					type: "string",
 					minLength: 1
 				},
@@ -570,15 +444,14 @@ private.attachApi = function () {
 					maxLength: 2000,
 					minLength: 1
 				},
-				link: {
-					type: "string",
-					minLength: 1,
-					maxLength: 2000
-				},
 				icon: {
 					type: "string",
 					minLength: 1,
 					maxLength: 2000
+				},
+				siaIcon: {
+					type: "string",
+					minLength: 1
 				}
 			},
 			required: ["secret", "type", "name", "category"]
@@ -627,10 +500,10 @@ private.attachApi = function () {
 							description: body.description,
 							tags: body.tags,
 							dapp_type: body.type,
-							nickname: body.nickname,
-							link: body.link,
+							siaAscii: body.siaAscii,
 							git: body.git,
-							icon: body.icon
+							icon: body.icon,
+							siaIcon: body.siaIcon
 						});
 					} catch (e) {
 						return cb(e.toString());
@@ -777,17 +650,17 @@ private.attachApi = function () {
 										categorySql = " AND category = $category"
 									}
 
-									library.dbLite.query("SELECT transactionId, name, description, tags, nickname, git, type, category FROM dapps WHERE rowid IN (" + rows.join(',') + ")" + categorySql, {category: category}, {
+									library.dbLite.query("SELECT transactionId, name, description, tags, siaAscii, siaIcon, git, type, category FROM dapps WHERE rowid IN (" + rows.join(',') + ")" + categorySql, {category: category}, {
 										'transactionId': String,
 										'name': String,
 										'description': String,
 										'tags': String,
-										'nickname': String,
+										'siaAscii': String,
+										'siaIcon' : String,
 										'git': String,
 										'type': Number,
 										'category': Number,
-										'icon': String,
-										'link': String
+										'icon': String
 									}, function (err, rows) {
 										if (err) {
 											library.logger.error(err);
@@ -1024,7 +897,7 @@ private.attachApi = function () {
 
 //private methods
 private.get = function (id, cb) {
-	library.dbLite.query("SELECT name, description, tags, nickname, git, type, category, icon, link, transactionId FROM dapps WHERE transactionId = $id", {id: id}, ['name', 'description', 'tags', 'nickname', 'git', 'type', 'category', 'icon', 'link', 'transactionId'], function (err, rows) {
+	library.dbLite.query("SELECT name, description, tags, siaAscii, siaIcon, git, type, category, icon, transactionId FROM dapps WHERE transactionId = $id", {id: id}, ['name', 'description', 'tags', 'siaAscii', 'siaIcon', 'git', 'type', 'category', 'icon', 'transactionId'], function (err, rows) {
 		if (err || rows.length == 0) {
 			return setImmediate(cb, err ? "Sql error" : "DApp not found");
 		}
@@ -1038,7 +911,7 @@ private.getByIds = function (ids, cb) {
 		ids[i] = "'" + ids[i] + "'";
 	}
 
-	library.dbLite.query("SELECT name, description, tags, nickname, git, type, category, icon, link, transactionId FROM dapps WHERE transactionId IN (" + ids.join(',') + ")", {}, ['name', 'description', 'tags', 'nickname', 'git', 'type', 'category', 'icon', 'link', 'transactionId'], function (err, rows) {
+	library.dbLite.query("SELECT name, description, tags, siaAscii, siaIcon, git, type, category, icon, transactionId FROM dapps WHERE transactionId IN (" + ids.join(',') + ")", {}, ['name', 'description', 'tags', 'siaAscii', 'siaIcon', 'git', 'type', 'category', 'icon', 'transactionId'], function (err, rows) {
 		if (err || rows.length == 0) {
 			return setImmediate(cb, err ? "Sql error" : "DApp not found");
 		}
@@ -1099,12 +972,12 @@ private.list = function (filter, cb) {
 	}
 
 	// need to fix 'or' or 'and' in query
-	library.dbLite.query("select name, description, tags, nickname, git, type, category, icon, link, transactionId " +
+	library.dbLite.query("select name, description, tags, siaAscii, siaIcon, git, type, category, icon, transactionId " +
 		"from dapps " +
 		(fields.length ? "where " + fields.join(' or ') + " " : "") +
 		(filter.orderBy ? 'order by ' + sortBy + ' ' + sortMethod : '') + " " +
 		(filter.limit ? 'limit $limit' : '') + " " +
-		(filter.offset ? 'offset $offset' : ''), params, ['name', 'description', 'tags', 'nickname', 'git', 'type', 'category', 'icon', 'link', 'transactionId'], function (err, rows) {
+		(filter.offset ? 'offset $offset' : ''), params, ['name', 'description', 'tags', 'siaAscii', 'siaIcon', 'git', 'type', 'category', 'icon', 'transactionId'], function (err, rows) {
 		if (err) {
 			return cb(err);
 		}
@@ -1172,6 +1045,7 @@ private.installDependencies = function (dApp, cb) {
 private.getInstalledIds = function (cb) {
 	fs.readdir(private.dappsPath, function (err, files) {
 		if (err) {
+			console.log('here');
 			return setImmediate(cb, err);
 		}
 
@@ -1232,11 +1106,11 @@ private.downloadDApp = function (dApp, cb) {
 							return setImmediate(cb, null, dappPath);
 						}
 					});
-				} else if (dApp.nickname) {
+				} else if (dApp.siaAscii) {
 					var dappZip = path.joind(dappPath, dApp.transactionId + ".zip");
 
 					// fetch from sia
-					modules.sia.download(dApp.nickname, dappZip, function (err, dappZip) {
+					modules.sia.download(dApp.siaAscii, dappZip, function (err, dappZip) {
 						if (err) {
 							library.logger.error(err);
 
@@ -1245,7 +1119,7 @@ private.downloadDApp = function (dApp, cb) {
 									library.logger.error(err);
 								}
 
-								return setImmediate(cb, "Failed to fetch ascii code from sia: \n" + dApp.nickname + " \n " + dappPath);
+								return setImmediate(cb, "Failed to fetch ascii code from sia: \n" + dApp.siaAscii + " \n " + dappPath);
 							});
 						} else {
 							fs.createReadStream(dappZip).pipe(unzip.Extract({path: dappPath})).on('end', function () {
@@ -1275,8 +1149,6 @@ private.downloadDApp = function (dApp, cb) {
 							})
 						}
 					});
-				} else if (dApp.link) {
-					return setImmediate(cb);
 				}
 			});
 		}
@@ -1314,6 +1186,16 @@ private.apiHandler = function (message, callback) {
 		modules[module].sandboxApi(call, {"body": message.args, "dappid": message.dappid}, callback);
 	} catch (e) {
 		return setImmediate(callback, "Incorrect call " + e.toString());
+	}
+}
+
+private.getIcon = function (dapp, cb) {
+	if (dapp.icon) {
+		return setImmediate(cb, dapp.icon);
+	} else if (dapp.siaIcon) {
+
+	} else {
+		return setImmediate(cb);
 	}
 }
 
@@ -1443,6 +1325,16 @@ private.launch = function (body, cb) {
 				});
 			}
 		});
+	});
+}
+
+private.downloadSiaFile = function (id, ascii, icon, path, cb) {
+	modules.sia.uploadAscii(id, ascii, icon, function (err, file) {
+		if (err) {
+			return setImmediate(cb, err);
+		} else {
+			modules.sia.download(file, path, cb);
+		}
 	});
 }
 
