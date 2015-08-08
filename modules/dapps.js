@@ -886,6 +886,14 @@ private.attachApi = function () {
 		});
 	});
 
+	router.get('/installing', function (req, res, next) {
+		return res.json({success: true, installing: Object.keys(private.loading)});
+	});
+
+	router.get('/removing', function (req, res, next) {
+		return res.json({success: true, removing: Object.keys(private.removing)});
+	});
+
 	router.get('/launched', function (req, res, next) {
 		return res.json({success: true, launched: Object.keys(private.launched)});
 	});
