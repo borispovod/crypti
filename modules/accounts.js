@@ -335,6 +335,7 @@ private.attachApi = function () {
 		"get /delegates": "getDelegates",
 		"get /delegates/fee": "getDelegatesFee",
 		"put /delegates": "addDelegates",
+		"get /username/get": "getUsername",
 		"get /username/fee": "getUsernameFee",
 		"put /username": "addUsername",
 		"get /": "getAccount"
@@ -478,7 +479,7 @@ shared.open = function (req, cb) {
 					unconfirmedBalance: account.u_balance,
 					balance: account.balance,
 					publicKey: account.publicKey,
-					unconfirmedSignature: account.unconfirmedSignature,
+					unconfirmedSignature: account.u_secondSignature,
 					secondSignature: account.secondSignature,
 					secondPublicKey: account.secondPublicKey
 				};
@@ -827,7 +828,45 @@ shared.getAccount = function (req, cb) {
 					unconfirmedBalance: account.u_balance,
 					balance: account.balance,
 					publicKey: account.publicKey,
-					unconfirmedSignature: account.unconfirmedSignature,
+					unconfirmedSignature: account.u_secondSignature,
+					secondSignature: account.secondSignature,
+					secondPublicKey: account.secondPublicKey
+				}
+			});
+		});
+	});
+}
+
+shared.getUsername = function (req, cb) {
+	var query = req.body;
+	library.scheme.validate(query, {
+		type: "object",
+		properties: {
+			username: {
+				type: "string",
+				minLength: 1
+			}
+		}
+	}, function (err) {
+		if (err) {
+			return cb(err[0].message);
+		}
+
+		self.getAccount({
+			username: {$like: query.username.toLowerCase()}
+		}, function (err, account) {
+			if (err || !account) {
+				return cb(errorCode("ACCOUNTS.ACCOUNT_DOESNT_FOUND", account));
+			}
+
+			cb(null, {
+				account: {
+					address: account.address,
+					username: account.username,
+					unconfirmedBalance: account.u_balance,
+					balance: account.balance,
+					publicKey: account.publicKey,
+					unconfirmedSignature: account.u_secondSignature,
 					secondSignature: account.secondSignature,
 					secondPublicKey: account.secondPublicKey
 				}

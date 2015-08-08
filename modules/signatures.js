@@ -91,7 +91,7 @@ function Signature() {
 	}
 
 	this.applyUnconfirmed = function (trs, sender, cb) {
-		if (sender.unconfirmedSignature || sender.secondSignature) {
+		if (sender.u_secondSignature || sender.secondSignature) {
 			return setImmediate(cb, "Failed secondSignature: " + trs.id);
 		}
 
@@ -263,7 +263,7 @@ shared.addSignature = function (req, cb) {
 					return cb(errorCode("COMMON.OPEN_ACCOUNT"));
 				}
 
-				if (account.secondSignature || account.unconfirmedSignature) {
+				if (account.secondSignature || account.u_secondSignature) {
 					return cb(errorCode("COMMON.SECOND_SECRET_KEY"));
 				}
 
