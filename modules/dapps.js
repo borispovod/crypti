@@ -44,7 +44,7 @@ function DApp() {
 		trs.amount = 0;
 
 		trs.asset.dapp = {
-			category: dappCategory[data.category],
+			category: data.category,
 			name: data.name,
 			description: data.description,
 			tags: data.tags,
@@ -75,6 +75,18 @@ function DApp() {
 		}
 
 		if (trs.asset.dapp.category != 0 && !trs.asset.dapp.category) {
+			return setImmediate(cb, errorCode("DAPPS.UNKNOWN_CATEGORY"));
+		}
+
+		var foundCategory = false;
+		for (var i in dappCategory) {
+			if (dappCategory[i] == trs.asset.dapp.category) {
+				foundCategory = true;
+				break;
+			}
+		}
+
+		if (!foundCategory) {
 			return setImmediate(cb, errorCode("DAPPS.UNKNOWN_CATEGORY"));
 		}
 
@@ -441,8 +453,8 @@ private.attachApi = function () {
 					format: "publicKey"
 				},
 				category: {
-					type: "string",
-					minLength: 0
+					type: "integer",
+					minimum: 0
 				},
 				name: {
 					type: "string",
