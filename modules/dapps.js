@@ -1073,7 +1073,6 @@ private.installDependencies = function (dApp, cb) {
 private.getInstalledIds = function (cb) {
 	fs.readdir(private.dappsPath, function (err, files) {
 		if (err) {
-			console.log('here');
 			return setImmediate(cb, err);
 		}
 
@@ -1234,7 +1233,6 @@ private.apiHandler = function (message, callback) {
 
 private.getIcon = function (dapp, res) {
 	modules.sia.uploadAscii(dapp.transactionId, dapp.siaIcon, true, function (err, file) {
-		console.log(file);
 		if (err) {
 			console.log(err);
 			return res.json({success: false, error: "Internal error"});

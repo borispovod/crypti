@@ -39,7 +39,6 @@ private.attachApi = function() {
 
 	router.use(function (req, res, next) {
 		if (req.url.indexOf('/api/') == -1 && req.url.indexOf('/peer/') == -1) {
-			console.log('here');
 			return res.redirect('/');
 		}
 		next();
