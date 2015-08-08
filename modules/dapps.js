@@ -9,7 +9,7 @@ var async = require('async'),
 	npm = require('npm'),
 	slots = require('../helpers/slots.js'),
 	Router = require('../helpers/router.js'),
-	unzip = require('unzip'),
+	DecompressZip = require('decompress-zip'),
 	crypto = require('crypto'),
 	constants = require('../helpers/constants.js'),
 	errorCode = require('../helpers/errorCodes.js').error,
@@ -396,6 +396,34 @@ private.attachApi = function () {
 		res.status(500).send({success: false, error: errorCode('COMMON.LOADING')});
 	});
 
+	router.get('/icon', function (req, res, next) {
+		req.sanitize(req.query, {
+			type: "object",
+			properties: {
+				id: {
+					type: "string",
+					minLength: 1
+				}
+			},
+			required: ['id']
+		}, function (err, report, query) {
+			if (err) return next(err);
+			if (!report.isValid) return res.json({success: false, error: report.issues});
+
+			private.get(query.id, function (err, dapp) {
+				if (err) {
+					return res.json({success: false, error: err});
+				}
+
+				if (!dapp.siaIcon) {
+					return res.json({success: false, error: "This dapp don't have sia icon."})
+				}
+
+				private.getIcon(dapp, res);
+			});
+		});
+	});
+
 	router.put('/', function (req, res, next) {
 		req.sanitize(req.body, {
 			type: "object",
@@ -650,7 +678,7 @@ private.attachApi = function () {
 										categorySql = " AND category = $category"
 									}
 
-									library.dbLite.query("SELECT transactionId, name, description, tags, siaAscii, siaIcon, git, type, category FROM dapps WHERE rowid IN (" + rows.join(',') + ")" + categorySql, {category: category}, {
+									library.dbLite.query("SELECT transactionId, name, description, tags, siaAscii, siaIcon, git, type, category, icon FROM dapps WHERE rowid IN (" + rows.join(',') + ")" + categorySql, {category: category}, {
 										'transactionId': String,
 										'name': String,
 										'description': String,
@@ -1067,7 +1095,7 @@ private.removeDApp = function (dApp, cb) {
 					try {
 						var dappConfig = require(path.join(dappPath, 'config.json'));
 					} catch (e) {
-						return setImmediate("Can't parse dapp config");
+						return setImmediate(cb);
 					}
 
 					modules.sql.dropTables(dApp.transactionId, dappConfig.db, cb);
@@ -1107,48 +1135,63 @@ private.downloadDApp = function (dApp, cb) {
 						}
 					});
 				} else if (dApp.siaAscii) {
-					var dappZip = path.joind(dappPath, dApp.transactionId + ".zip");
+					var dappZip = path.join(dappPath, dApp.transactionId + ".zip");
 
 					// fetch from sia
-					modules.sia.download(dApp.siaAscii, dappZip, function (err, dappZip) {
+					modules.sia.uploadAscii(dApp.transactionId, dApp.siaAscii, false, function (err, file) {
 						if (err) {
-							library.logger.error(err);
+							return setImmediate(cb, "Failed to download file: " + err);
+						}
 
-							rmdir(dappPath, function (err) {
-								if (err) {
-									library.logger.error(err);
-								}
-
-								return setImmediate(cb, "Failed to fetch ascii code from sia: \n" + dApp.siaAscii + " \n " + dappPath);
-							});
-						} else {
-							fs.createReadStream(dappZip).pipe(unzip.Extract({path: dappPath})).on('end', function () {
-								fs.unlink(dappZip, function (err) {
-									if (err) {
-										return setImmediate(cb, "Can't remove zip file of app: " + dappZip);
-									} else {
-										return setImmediate(cb, null, dappPath);
-									}
-								});
-							}).on('error', function (err) {
+						modules.sia.download(file, dappZip, function (err, dappZip) {
+							if (err) {
 								library.logger.error(err);
 
-								fs.unlink(dappZip, function (err) {
+								rmdir(dappPath, function (err) {
 									if (err) {
 										library.logger.error(err);
 									}
 
-									rmdir(dappPath, function (err) {
+									return setImmediate(cb, "Failed to fetch ascii code from sia: \n" + dApp.siaAscii + " \n " + dappPath);
+								});
+							} else {
+								var unzipper = new DecompressZip(dappZip);
+
+								unzipper.on('error', function (err) {
+									library.logger.error(err);
+
+									fs.unlink(dappZip, function (err) {
 										if (err) {
 											library.logger.error(err);
 										}
 
-										return setImmediate(cb, "Can't unzip file of app: " + dappZip);
+										rmdir(dappPath, function (err) {
+											if (err) {
+												library.logger.error(err);
+											}
+
+											return cb("Can't unzip file of app: " + dappZip);
+										});
 									});
 								});
-							})
-						}
+
+								unzipper.on('extract', function (log) {
+									fs.unlink(dappZip, function (err) {
+										if (err) {
+											return cb("Can't remove zip file of app: " + dappZip);
+										} else {
+											return cb(null, dappPath);
+										}
+									});
+								});
+
+								unzipper.extract({
+									path: dappPath
+								});
+							}
+						});
 					});
+
 				}
 			});
 		}
@@ -1189,14 +1232,16 @@ private.apiHandler = function (message, callback) {
 	}
 }
 
-private.getIcon = function (dapp, cb) {
-	if (dapp.icon) {
-		return setImmediate(cb, dapp.icon);
-	} else if (dapp.siaIcon) {
-
-	} else {
-		return setImmediate(cb);
-	}
+private.getIcon = function (dapp, res) {
+	modules.sia.uploadAscii(dapp.transactionId, dapp.siaIcon, true, function (err, file) {
+		console.log(file);
+		if (err) {
+			console.log(err);
+			return res.json({success: false, error: "Internal error"});
+		} else {
+			modules.sia.download(file, res);
+		}
+	});
 }
 
 private.dappRoutes = function (dapp, cb) {

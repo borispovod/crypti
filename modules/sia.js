@@ -60,6 +60,8 @@ Sia.prototype.download = function (nickname, path, cb) {
 
 		if (body.success || (!body.success && body.error == "This file already downloaded, use /get to get file.")) {
 			if (typeof path === 'string') {
+				var stream = fs.createWriteStream(path);
+
 				// to file
 				request.post({
 					url: peerStr + "/get",
@@ -68,10 +70,14 @@ Sia.prototype.download = function (nickname, path, cb) {
 					},
 					timeout: 1000 * 60
 				}).on("error", function (err) {
-					return setImmediate(cb, err);
+					if (cb) {
+						return setImmediate(cb, err);
+					}
 				}).on('end', function () {
-					return setImmediate(cb, null, path);
-				}).pipe(fs.createWriteStream(path));
+					if (cb) {
+						return setImmediate(cb, null, path);
+					}
+				}).pipe(stream);
 			} else {
 				// to stream
 				request.post({
@@ -81,9 +87,13 @@ Sia.prototype.download = function (nickname, path, cb) {
 					},
 					timeout: 1000 * 60
 				}).on("error", function (err) {
-					return setImmediate(cb, err);
+					if (cb) {
+						return setImmediate(cb, err);
+					}
 				}).on('end', function () {
-					return setImmediate(cb, null, path);
+					if (cb) {
+						return setImmediate(cb, null, path);
+					}
 				}).pipe(path);
 			}
 		} else {
