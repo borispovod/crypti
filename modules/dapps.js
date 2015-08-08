@@ -874,6 +874,10 @@ private.attachApi = function () {
 		});
 	});
 
+	router.get('/launched', function (req, res, next) {
+		return res.json({success: true, launched: Object.keys(private.launched)});
+	});
+
 	router.get('/categories', function (req, res, next) {
 		return res.json({success: true, categories: dappCategory});
 	})
