@@ -395,8 +395,18 @@ function DApps(cb, scope) {
 		});
 	});
 
-	private.createBasePathes(function (err) {
-		setImmediate(cb, err, self);
+	fs.exists(path.join('.', 'public', 'dapps'), function (exists) {
+		if (exists) {
+			rmdir(path.join('.', 'public', 'dapps'), function (err) {
+				if (err) {
+					library.logger.error(err);
+				}
+
+				private.createBasePathes(function (err) {
+					setImmediate(cb, err, self);
+				});
+			})
+		}
 	});
 }
 
@@ -759,46 +769,55 @@ private.attachApi = function () {
 					return res.json({success: false, error: err});
 				}
 
-				// check that dapp already installed here in feature
-				if (private.removing[body.id] || private.loading[body.id]) {
-					return res.json({success: false, error: "This DApp already on downloading/removing"});
-				}
-
-				private.loading[body.id] = true;
-
-				private.downloadDApp(dapp, function (err, dappPath) {
+				private.getInstalledIds(function (err, ids) {
 					if (err) {
-						private.loading[body.id] = false;
 						return res.json({success: false, error: err});
-					} else {
-						if (dapp.type == 0) {
-							private.installDependencies(dapp, function (err) {
-								if (err) {
-									library.logger.error(err);
-									private.removing[body.id] = true;
-									private.removeDApp(dapp, function (err) {
-										private.removing[body.id] = false;
-
-										if (err) {
-											library.logger.error(err);
-										}
-
-										private.loading[body.id] = false;
-										return res.json({
-											success: false,
-											error: "Can't install DApp dependencies, check logs"
-										});
-									});
-								} else {
-									private.loading[body.id] = false;
-									return res.json({success: true, path: dappPath});
-								}
-							})
-						} else {
-							private.loading[body.id] = false;
-							return res.json({success: true, path: dappPath});
-						}
 					}
+
+					if (ids.indexOf(body.id) >= 0) {
+						return res.json({success: false, error: "This dapp already installed"});
+					}
+
+					if (private.removing[body.id] || private.loading[body.id]) {
+						return res.json({success: false, error: "This DApp already on downloading/removing"});
+					}
+
+					private.loading[body.id] = true;
+
+					private.downloadDApp(dapp, function (err, dappPath) {
+						if (err) {
+							private.loading[body.id] = false;
+							return res.json({success: false, error: err});
+						} else {
+							if (dapp.type == 0) {
+								private.installDependencies(dapp, function (err) {
+									if (err) {
+										library.logger.error(err);
+										private.removing[body.id] = true;
+										private.removeDApp(dapp, function (err) {
+											private.removing[body.id] = false;
+
+											if (err) {
+												library.logger.error(err);
+											}
+
+											private.loading[body.id] = false;
+											return res.json({
+												success: false,
+												error: "Can't install DApp dependencies, check logs"
+											});
+										});
+									} else {
+										private.loading[body.id] = false;
+										return res.json({success: true, path: dappPath});
+									}
+								})
+							} else {
+								private.loading[body.id] = false;
+								return res.json({success: true, path: dappPath});
+							}
+						}
+					});
 				});
 			});
 		});
@@ -887,15 +906,36 @@ private.attachApi = function () {
 	});
 
 	router.get('/installing', function (req, res, next) {
-		return res.json({success: true, installing: Object.keys(private.loading)});
+		var ids = [];
+		for (var i in private.loading) {
+			if (private.loading[i]) {
+				ids.push(i);
+			}
+		}
+
+		return res.json({success: true, installing: ids});
 	});
 
 	router.get('/removing', function (req, res, next) {
-		return res.json({success: true, removing: Object.keys(private.removing)});
+		var ids = [];
+		for (var i in private.removing) {
+			if (private.removing[i]) {
+				ids.push(i);
+			}
+		}
+
+		return res.json({success: true, removing: ids});
 	});
 
 	router.get('/launched', function (req, res, next) {
-		return res.json({success: true, launched: Object.keys(private.launched)});
+		var ids = [];
+		for (var i in private.launched) {
+			if (private.launched[i]) {
+				ids.push(i);
+			}
+		}
+
+		return res.json({success: true, launched: ids});
 	});
 
 	router.get('/categories', function (req, res, next) {
