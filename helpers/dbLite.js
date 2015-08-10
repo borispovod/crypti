@@ -3,14 +3,17 @@ var async = require('async');
 var path = require('path');
 
 var isWin = /^win/.test(process.platform);
-//var isMac = /^darwin/.test(process.platform);
+var isMac = /^darwin/.test(process.platform);
 
+/*
 if (isWin) {
-	dblite.bin = path.join(process.cwd(), 'sqlite', 'sqlite3.exe');
+	dblite.bin = path.join(process.cwd(), 'sqlite', 'windows', 'sqlite3.exe');
+} else if (isMac) {
+	dblite.bin = path.join(process.cwd(), 'sqlite', 'macos', 'sqlite3');
+} else {
+	dblite.bin = path.join(process.cwd(), 'sqlite', 'linux', 'sqlite3');
 }
-/* else if (isMac) {
- dblite.bin = path.join(process.cwd(), 'sqlite', 'sqlite3');
- }*/
+*/
 
 module.exports.connect = function (connectString, cb) {
 	var db = dblite(connectString);

@@ -418,34 +418,6 @@ private.attachApi = function () {
 		res.status(500).send({success: false, error: errorCode('COMMON.LOADING')});
 	});
 
-	router.get('/icon', function (req, res, next) {
-		req.sanitize(req.query, {
-			type: "object",
-			properties: {
-				id: {
-					type: "string",
-					minLength: 1
-				}
-			},
-			required: ['id']
-		}, function (err, report, query) {
-			if (err) return next(err);
-			if (!report.isValid) return res.json({success: false, error: report.issues});
-
-			private.get(query.id, function (err, dapp) {
-				if (err) {
-					return res.json({success: false, error: err});
-				}
-
-				if (!dapp.siaIcon) {
-					return res.json({success: false, error: "This dapp don't have sia icon."})
-				}
-
-				private.getIcon(dapp, res);
-			});
-		});
-	});
-
 	router.put('/', function (req, res, next) {
 		req.sanitize(req.body, {
 			type: "object",
@@ -592,10 +564,22 @@ private.attachApi = function () {
 					maxLength: 2000,
 					minLength: 1
 				},
+				siaAscii: {
+					type: "string",
+					minLength: 1
+				},
+				siaIcon: {
+					type: "string",
+					minLength: 1
+				},
 				limit: {
 					type: "integer",
 					minimum: 0,
 					maximum: 100
+				},
+				icon: {
+					type: "string",
+					minLength: 1
 				},
 				offset: {
 					type: "integer",
@@ -979,6 +963,34 @@ private.attachApi = function () {
 		});
 	});
 
+	router.get('/icon', function (req, res, next) {
+		req.sanitize(req.query, {
+			type: "object",
+			properties: {
+				id: {
+					type: "string",
+					minLength: 1
+				}
+			},
+			required: ['id']
+		}, function (err, report, query) {
+			if (err) return next(err);
+			if (!report.isValid) return res.json({success: false, error: report.issues});
+
+			private.get(query.id, function (err, dapp) {
+				if (err) {
+					return res.json({success: false, error: err});
+				}
+
+				if (!dapp.siaIcon) {
+					return res.json({success: false, error: "This dapp don't have sia icon."})
+				}
+
+				private.getIcon(dapp, res);
+			});
+		});
+	});
+
 	library.network.app.use('/api/dapps', router);
 	library.network.app.use(function (err, req, res, next) {
 		if (!err) return next();
@@ -1040,9 +1052,18 @@ private.list = function (filter, cb) {
 		params.git = filter.git;
 	}
 
+	if (!filter.limit && filter.limit != 0) {
+		filter.limit = 100;
+	}
+
+	if (!filter.offset && filter.offset != 0) {
+		filter.offset = 0;
+	}
+
 	if (filter.limit >= 0) {
 		params.limit = filter.limit;
 	}
+
 	if (filter.offset >= 0) {
 		params.offset = filter.offset;
 	}

@@ -1,6 +1,13 @@
 var moment = require('moment');
 
 module.exports = function (grunt) {
+	var os = grunt.option('os');
+	var sqliteFile = "sqlite3";
+
+	if (os == 'win') {
+		sqliteFile += '.exe';
+	}
+
 	var files = [
 		'logger.js',
 		'helpers/**/*.js',
@@ -74,6 +81,7 @@ module.exports = function (grunt) {
 						"cp -rf ./public//node_modules/chart.js ./builded/" + config.version + "/public/node_modules/ &&" +
 						"mkdir -p ./builded/" + config.version + "/public/bower_components &&" +
 						"mkdir -p ./builded/" + config.version + "/public/socket.io &&" +
+						"mkdir -p ./builded/" + config.version + "/sqlite/ &&" +
 						"cp -rf ./public/bower_components/jquery  ./builded/" + config.version + "/public/bower_components/jquery/ &&" +
 						"cp -rf ./public/bower_components/materialize ./builded/" + config.version + "/public/bower_components/materialize &&" +
 						"cp -rf ./public/bower_components/blob ./builded/" + config.version + "/public/bower_components/blob &&" +

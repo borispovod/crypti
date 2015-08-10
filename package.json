@@ -32,6 +32,7 @@
     "express-domain-middleware": "*",
     "express-query-int": "https://github.com/crypti/express-query-int/tarball/master",
     "extend": "^2.0.0",
+    "gift": "^0.6.1",
     "image-type": "^2.0.2",
     "ip": "^0.3.2",
     "js-nacl": "^0.6.0",
