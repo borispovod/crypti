@@ -30,6 +30,7 @@ module.exports.connect = function (connectString, cb) {
 		"CREATE TABLE IF NOT EXISTS forks_stat(delegatePublicKey BINARY(32) NOT NULL, blockTimestamp INT NOT NULL, blockId VARCHAR(20) NOT NULL, blockHeight INT NOT NULL, previousBlock VARCHAR(20) NOT NULL, cause INT NOT NULL)",
 		"CREATE TABLE IF NOT EXISTS multisignatures(min INT NOT NULL, lifetime INT NOT NULL, dependence TEXT NOT NULL, signatures TEXT NOT NULL, transactionId  VARCHAR(20) NOT NULL, FOREIGN KEY(transactionId) REFERENCES trs(id) ON DELETE CASCADE)",
 		"CREATe TABLE IF NOT EXISTS dapps(transactionId VARCHAR(20) NOT NULL, name VARCHAR(32) NOT NULL, description VARCHARH(160), tags VARCHARH(160), siaAscii TEXT, siaIcon TEXT, git TEXT, type INTEGER NOT NULL, category INTEGER NOT NULL, icon TEXT, FOREIGN KEY(transactionId) REFERENCES trs(id) ON DELETE CASCADE)",
+		"CREATE TABLE IF NOT EXISTS dapptransfers(dappid VARCHAR(20) NOT NULL, transactionId VARCHAR(20) NOT NULL, FOREIGN KEY(transactionId) REFERENCES trs(id) ON DELETE CASCADE)",
 		// Indexes
 		"CREATE UNIQUE INDEX IF NOT EXISTS peers_unique ON peers(ip, port)",
 		"CREATE UNIQUE INDEX IF NOT EXISTS peers_dapp_unique ON peers_dapp(peerId, dappid)",
