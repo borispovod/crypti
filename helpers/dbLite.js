@@ -59,6 +59,7 @@ module.exports.connect = function (connectString, cb) {
 			cb(err, data);
 		});
 	}, function (err) {
+		console.log('db err:' + err);
 		cb(err, db);
 	});
 }

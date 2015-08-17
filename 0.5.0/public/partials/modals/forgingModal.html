@@ -1,0 +1,47 @@
+<div class="app-modal valign-wrapper">
+    <div class="container height100">
+        <div class="row height100">
+            <div class="col-md-6 col-md-offset-4 height100 valign-wrapper">
+                <div class="modal-content">
+                    <div class="modal-content">
+                        <div class="modal-header modal-iconed">
+                            <div class="close-modal" ng-click="close()"><span class="sr-only">Close modal</span>
+                            </div>
+                        </div>
+                        <div class="modal-header clearfix">
+                            <div><h2>{{label}}</h2>
+                            </div>
+                            <div>Please enter your passphrase below
+                            </div>
+                        </div>
+                        <div class="modal-body">
+                            <form ng-submit="forgingState()">
+                                <div class="field-padding">
+                                    <div class="input-field">
+                                        <input ng-focus="focus=='secretPhrase'" id="passPhrase" type="password"
+                                               ng-model="secretPhrase" ng-trim="false"
+                                               autofocus
+                                               ng-class="{'invalid': error}">
+                                        <label for="passPhrase">Your Passphrase</label>
+                                    </div>
+                                    <span class="pass-error" ng-show="error">{{error}}</span>
+                                </div>
+                                <input type="submit" ng-show="false">
+                            </form>
+                            <div class="modal-body">
+                                <ul class="nav modal-buttons pull-right">
+                                    <li>
+                                        <a href="#" ng-click="close()">Cancel
+                                        </a>
+                                    </li>
+                                    <li><a href="#" ng-click="forgingState()">{{label}}</a></li>
+                                </ul>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

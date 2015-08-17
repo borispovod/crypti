@@ -387,6 +387,7 @@ d.run(function () {
 			cb();
 		}]
 	}, function (err, scope) {
+		console.log('finished apps');
 		if (err) {
 			logger.fatal(err)
 		}

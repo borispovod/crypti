@@ -1,0 +1,115 @@
+<div class="app-modal valign-wrapper">
+    <div class="container height100">
+        <div class="row height100">
+            <div class="col-md-6 col-md-offset-4 height100 valign-wrapper">
+                <div class="modal-content" ng-show="false">
+                    <div class="modal-header modal-iconed">
+                        <div class="close-modal" ng-click="close()"><span class="sr-only">Close modal</span></div>
+                    </div>
+                    <div class="modal-header clearfix">
+                        <div><h2>Step 1/3 - Setup a Multisignature Account</h2>
+                        </div>
+                        <div>This walkthrough will guide you to create a multisignature
+                            Crypti Account. It is very important that you know what multisignatures are and for what
+                            they are used for.
+                        </div>
+                    </div>
+                    <div class="modal-body">
+
+                    </div>
+                    <div class="scrolling">
+                        <div class="modal-body">
+                        <span class="multi-info-text flat-text"><p>Lorem ipsum dolor sit amet, consectetur adipisicing
+                            elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+
+                        </p><p>Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea
+                            commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum
+                            dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in
+                            culpa qui officia deserunt mollit anim id est laborum. Sed ut perspiciatis unde omnis iste
+                            natus error sit voluptatem accusantium.
+
+                        </p>
+                            <p>Ddoloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et
+                                quasi architecto beatae vitae dicta sunt explicabo. Nemo enim ipsam voluptatem quia
+                                voluptas
+                                sit aspernatur aut odit aut fugit, sed quia consequuntur magni dolores eos qui ratione
+                                voluptatem sequi nesciunt. Neque porro quisquam est, qui dolorem ipsum quia dolor sit
+                                amet,
+                                consectetur, adipisci velit, sed quia non numquam eius modi tempora incidunt ut labore
+                                et
+                                dolore magnam aliquam quaerat voluptatem.</span>
+                            </p>
+                            <p>Ddoloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et
+                                quasi architecto beatae vitae dicta sunt explicabo. Nemo enim ipsam voluptatem quia
+                                voluptas
+                                sit aspernatur aut odit aut fugit, sed quia consequuntur magni dolores eos qui ratione
+                                voluptatem sequi nesciunt. Neque porro quisquam est, qui dolorem ipsum quia dolor sit
+                                amet,
+                                consectetur, adipisci velit, sed quia non numquam eius modi tempora incidunt ut labore
+                                et
+                                dolore magnam aliquam quaerat voluptatem.</span>
+                            </p>
+
+                            <p>Ddoloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et
+                                quasi architecto beatae vitae dicta sunt explicabo. Nemo enim ipsam voluptatem quia
+                                voluptas
+                                sit aspernatur aut odit aut fugit, sed quia consequuntur magni dolores eos qui ratione
+                                voluptatem sequi nesciunt. Neque porro quisquam est, qui dolorem ipsum quia dolor sit
+                                amet,
+                                consectetur, adipisci velit, sed quia non numquam eius modi tempora incidunt ut labore
+                                et
+                                dolore magnam aliquam quaerat voluptatem.</span>
+                            </p></div>
+                    </div>
+                    <div class="modal-body">
+                        <ul class="nav modal-buttons pull-right">
+                            <li>
+                                <a href="#" ng-click="close()">visit faq.
+                                </a>
+                            </li>
+                            <li><a href="#" class="green-link" ng-click="passcheck()">NEXT</a></li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="modal-content" ng-show="true">
+                    <div class="modal-header modal-iconed">
+                        <div class="close-modal" ng-click="close()"><span class="sr-only">Close modal</span></div>
+                    </div>
+                    <div class="modal-header clearfix">
+                        <div><h2>Step 2/3 - Specify Account Owners</h2>
+                        </div>
+                        <div>You now need to specify the owners out of your contact list and setup
+                            the authorizations needed for a transaction.
+                        </div>
+                    </div>
+                    <div class="modal-body">
+                        <form ng-submit="passcheck()">
+                            <div class="input-group app-addon">
+                                <span class="input-group-addon search"></span>
+                                <input ng-focus="focus == 'contact'" id="contact" type="text" class="form-control"
+                                       placeholder="Account name or ID"
+                                       ng-model="contact">
+                                <span class="input-group-addon clear" ng-click="contact='';"></span>
+                            </div>
+                            <span class="app-addon-error"
+                                  ng-show="errorMessage && rememberedPassword">{{errorMessage}}</span>
+                            <input type="submit" ng-show="false">
+                        </form>
+                    </div>
+                    <div class="modal-body">
+                        <span class="send-info-text flat-text">Start adding owners in order to setup the authorizations.</span>
+                    </div>
+                    <div class="modal-body">
+                        <ul class="nav modal-buttons pull-right">
+                            <li>
+                                <a href="#" ng-click="close()">Cancel
+                                </a>
+                            </li>
+                            <li><a href="#" class="green-link" ng-click="passcheck()">next</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

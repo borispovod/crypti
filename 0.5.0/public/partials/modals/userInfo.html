@@ -1,0 +1,104 @@
+<div class="app-modal valign-wrapper">
+    <div class="container height100">
+        <div class="row height100">
+            <div class="col-md-9 col-md-offset-2 height100 valign-wrapper">
+                <div class="modal-content">
+                    <div class="modal-header clearfix">
+                        <div class="media user">
+                            <div class="media-left">
+                                <a href="#">
+                                    <img class="media-object" src="images/samples/account.png">
+                                </a>
+                            </div>
+                            <div class="media-body text-left">
+                                <h2 class="media-heading">Account: <span class="id">{{account.address}}</span><span
+                                        class="blockchain-icon" clip-copy="account.address"></span></h2>
+                                {{account.username}}
+                            </div>
+                        </div>
+                        <div class="close-modal" ng-click="close()"><span class="sr-only">Close modal</span></div>
+                    </div>
+                    <div class="modal-nav">
+                        <ul class="nav nav-justified nav-actions">
+                            <li><a href="#" class="green-link" ng-click="sendCryptiToUser()"><i class="mdi-content-send"></i> Send XCR</a></li>
+                            <!--<li><a href="#"><i class="mdi-communication-message"></i> Send Message</a></li>-->
+                            <!--<li><a href="#"><i class="mdi-action-stars"></i> Add Favorite</a></li>-->
+                            <li><a href="#" ng-click="addContact(account.address)"><i class="mdi-social-person-add"></i> Contact Request</a></li>
+                        </ul>
+                    </div>
+                    <div class="scrolling">
+                        <div class="modal-body">
+                            <ul class="list-group">
+                                <li class="list-group-item summary">Summary
+                                </li>
+                                <li class="list-group-item bordered">Total Balance<span
+                                        class="pull-right small-text">{{account.unconfirmedBalance  | xcrFilter }} XCR</span></li>
+                                <li class="list-group-item">USD Equivalent<span class="pull-right small-text">{{convertToUSD(account.unconfirmedBalance)| number: 2}}$</span>
+                                </li>
+                            </ul>
+                        </div>
+                        <div class="modal-chapter clearfix">
+                            <div class="multiline">
+                                <h2>Transactions </h2>
+
+                                <div class="chapter-more pull-right" ng-class="{'open': transactions.view}"
+                                     ng-click="toggleTransactions()">{{transactions.list.length || '0'}} Transactions
+                                </div>
+                            </div>
+                        </div>
+                        <div ng-repeat="transaction in transactions.list" ng-show="transactions.view">
+                            <div class="modal-header"><h2>Transaction ID: </h2>
+                                {{transaction.id}}<span class="blockchain-icon" clip-copy="transaction.id"></span>
+                            </div>
+                            <div class="modal-body">
+                                <ul class="list-group">
+                                    <li class="list-group-item bordered">Confirmations<span
+                                            class="pull-right small-text">{{transaction.confirmations}}</span>
+                                    </li>
+                                    <li class="list-group-item">Amount<span class="pull-right small-text">{{transaction.amount / 100000000}} XCR</span>
+                                    </li>
+                                    <li class="list-group-item bordered">Fee<span
+                                            class="pull-right small-text">{{transaction.fee / 100000000}} XCR</span></li>
+                                    <li class="list-group-item">USD Equivalent<span
+                                            class="pull-right small-text">{{convertToUSD(transaction.amount)| number: 2}}$</span>
+                                    </li>
+                                    <li class="list-group-item bordered">Time<span class="pull-right small-text">{{transaction.timestamp | timestampFilter}}</span>
+                                    </li>
+                                </ul>
+                                <ul class="list-group transactions">
+                                    <!-- ngRepeat: transaction in transactions -->
+                                    <li class="list-group-item">
+                                        <div class="transaction-data">{{transaction.id}} <span class="pull-right">{{transaction.timestamp | timestampFilter}}</span>
+                                        </div>
+                                        <div class="transaction-path">
+                                            <div class="transaction-part pull-left"><a
+                                                    href="#" ng-click="getAccountDetail(transaction.senderId)">{{transaction.senderId}}</a> <span
+                                                    class="xcr">{{transaction.amount  | xcrFilter}} XCR</span>
+                                            </div>
+                                            <div class="transaction-direction"></div>
+                                            <div class="transaction-part pull-right"><a href="#"
+                                                                                        ng-click="getAccountDetail(transaction.recipientId)">{{transaction.recipientId
+                                                || ""}}</a><span
+                                                    class="xcr">{{transaction.amount  | xcrFilter}} XCR</span>
+                                            </div>
+                                        </div>
+                                        <div class="transaction-bottom">
+                                            <div class="fee">FEE: {{transaction.fee  | xcrFilter}} XCR
+                                            </div>
+                                            <div class="xcr">{{transaction.amount  | xcrFilter}} XCR
+                                            </div>
+                                            <div class="confirmations">{{transaction.confirmations || 0 }} CONFIRMATIONS
+                                            </div>
+                                        </div>
+                                    </li>
+                                    <!-- end ngRepeat: transaction in transactions -->
+
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

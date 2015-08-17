@@ -1,0 +1,146 @@
+<div class="row">
+    <div class="col-sm-12 col-xs-12 col-md-8">
+        <div class="info-panel info-panel-grey">
+            <span class="title" ng-if="delegate.username">
+                {{delegate.username}}
+            </span>
+                <span class="title" ng-if="!delegate.username">
+               To become a delegate, click on the 'Delegate Registration' button.
+            </span>
+               <span class="plain-text" ng-show="delegate.time">
+              Registered on {{delegate.time | timestampFilter}}
+            </span>
+        </div>
+    </div>
+    <div class="col-md-4 col-xs-12 col-sm-12">
+
+        <div class="info-panel info-panel-grey">
+            <span class="title">
+               XCR Earned
+            </span>
+               <span class="plain-text">
+             {{totalForged  | xcrFilter }} XCR
+            </span>
+        </div>
+        <!-- <div class="light-graph">
+             <div class="light-graph-heading">XCR Earned</div>
+             <div class="light-graph-body">
+                 <div class="chart-legend">{{totalForged / 100000000 | feeFilter }}<span
+                         class="small-text">XCR</span>
+                 </div>
+                 <div class="chart-container">
+                 </div>
+             </div>
+         </div>-->
+    </div>
+</div>
+<div class="row">
+    <div class="col-lg-4 col-md-6 col-sm-6 col-xs-6">
+        <div class="light-graph">
+            <div class="light-graph-heading">Rank</div>
+            <div class="light-graph-body">
+                <div class="chart-legend">{{rank}}
+                </div>
+                <canvas id="rank" class="chart chart-doughnut" data="graphs.rank.values"
+                        labels="graphs.rank.labels" options="graphs.rank.options"
+                        colours="graphs.rank.colours"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-4 col-md-6 col-sm-6 col-xs-6">
+        <div class="light-graph">
+            <div class="light-graph-heading">Uptime</div>
+            <div class="light-graph-body">
+                <div class="chart-legend">{{uptime | number:2}} %
+                </div>
+                <canvas id="uptime" class="chart chart-doughnut" data="graphs.uptime.values"
+                        labels="graphs.uptime.labels" options="graphs.uptime.options"
+                        colours="graphs.uptime.colours"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="clearfix visible-md visible-sm visible-xs"></div>
+    <div class="col-lg-4 col-md-6 col-sm-6 col-xs-6">
+        <div class="light-graph">
+            <div class="light-graph-heading">Approval</div>
+            <div class="light-graph-body">
+                <div class="chart-legend">{{approval | number:2}} %
+                </div>
+                <canvas id="approval" class="chart chart-doughnut" data="graphs.approval.values"
+                        labels="graphs.approval.labels" options="graphs.approval.options"
+                        colours="graphs.approval.colours"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+<!--
+<div class="col-md-3 col-sm-12">
+    <div class="light-graph line-graph">
+        <div class="light-graph-heading">No Data Available</div>
+        <div class="light-graph-sub-heading">Return when you have forged at least 100 XCR</div>
+        <div class="light-graph-body">
+
+            <canvas id="line" class="chart chart-line" data="graphs.amountForged.data"
+                    colours="graphs.amountForged.colours"
+                    labels="graphs.amountForged.labels" legend="false" series="graphs.amountForged.series"
+                    options="graphs.amountForged.options">
+            </canvas>
+        </div>
+        <div class="light-graph-footer">
+            <div class="row">
+                <div class="col-xs-6 description">Amount Forged</br>in last year
+                </div>
+                <div class="col-xs-6 forged-amount"><span class="value">0.00 <span class="legend">XCR</span></span>
+                </div>
+                <div class="clearfix visible-lg visible-md visible-sm visible-xs"></div>
+            </div>
+        </div>
+    </div>
+</div>
+-->
+<div class="row">
+    <div class="col-md-12 col-sm-12 col-xs-12">
+        <div class="panel panel-default" ng-class="{'paginated': countForgingBlocks}">
+            <div class="panel-heading"><h2>Forged Blocks</h2>
+            </div>
+            <table ng-table="tableBlocks" border="0" width="100%" cellpadding="0" cellspacing="0"
+                   ng-show="countForgingBlocks">
+                <div class="table-menu" ng-show="countForgingBlocks">
+                    <div class="more-down-table" dropdown
+                         on-toggle="toggled(open)" is-open="moreDownTable.isopen">
+                        <i class="mdi-navigation-more-vert" dropdown-toggle aria-haspopup="true"
+                           aria-expanded="false"></i>
+
+                        <div class="dropdown-menu" role="menu">
+                            <p ng-click="check($event)"><input type="checkbox" class="filled-in violet" id="advanced"
+                                                               ng-model="showAllColumns">
+                                <label for="advanced"> Show All Columns</label></p>
+
+                            <p ng-click="check($event)"><input type="checkbox" class="filled-in violet" id="fulltime"
+                                                               ng-model="showFullTime">
+                                <label for="fulltime">Show Full Time</label></p>
+                        </div>
+                    </div>
+                </div>
+                <tr ng-repeat="block in $data">
+                    <td data-title="'Height'" sortable="'height'">{{block.height}}</td>
+                    <td data-title="'Block ID'" ng-click="blockInfo(block)" class="pointer" ng-show="showAllColumns"><a
+                            href="#">{{block.id}}</a></td>
+
+                    <td data-title="'Time'" sortable="'timestamp'"><span
+                            ng-show="block.timestamp > 0">{{block.timestamp | timeAgoFilter : showFullTime}}</span>
+                        <span ng-show="block.timestamp == 0">-</span></td>
+
+                    <td data-title="'Fee'" sortable="'totalFee'">{{block.totalFee | xcrFilter}}</td>
+                    <td data-title="" class="width-80"></td>
+                </tr>
+            </table>
+            <div class="panel-body empty-body empty-table without-margin-top" ng-if="!countForgingBlocks">
+                <div class="logo-gray-iconed"></div>
+                <p class="empty-state-text">You haven't forged any blocks yet.</p>
+            </div>
+    </div>
+
+</div>
+</div>
+

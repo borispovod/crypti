@@ -1,0 +1,36 @@
+<div class="top-margin"></div>
+<div class="row">
+    <div class="col-xs-12">
+        <div class="panel panel-default" ng-class="{'paginated': contactsView.followersCount}">
+            <div class="panel-heading"><h2>Pending Requests</h2>
+            </div>
+            <table ng-table="tableFollowers" border="0" width="100%" cellpadding="0" cellspacing="0"
+                   template-pagination="custom/pager" ng-show="contactsView.followersCount">
+                <tr ng-repeat="follower in $data">
+                    <td data-title="''" class="user-icon-col"><img src="images/samples/account.png"
+                                                                   class="small-user-icon"></td>
+                    <td data-title="'Username'" sortable="'username'">{{follower.username || 'noname'}}</td>
+                    <td data-title="'Address'" sortable="'address'">{{follower.address}}</td>
+                    <td data-title="''"><a class="btn btn-dark-meant" ng-click="addContact(follower.address)"><i
+                            class="mdi-action-done left"></i>CONFIRM
+                    </a></td>
+                    <td data-title="">
+                        <div class="dropdown-more-group" dropdown><span class="table-more-actions" dropdown-toggle><span
+                                class="dots"></span></span>
+                            <ul class="list-group" role="menu">
+                                <li class="list-group-item"><a href="#" clip-copy="follower.address">Copy Address</a>
+                                </li>
+                                <li ng-if="follower.username" class="list-group-item"><a href="#"
+                                                                                        clip-copy="follower.username">Copy
+                                    Name</a></li>
+                            </ul>
+                        </div>
+                    </td>
+                </tr>
+            </table>
+            <div class="panel-body empty-body empty-table" ng-show="!contactsView.followersCount">
+                <p class="empty-state-icon"><i class="mdi-social-people medium"></i></p>
+                <p class="empty-state-text">You don't have any pending contact!</p></div>
+        </div>
+    </div>
+</div>
