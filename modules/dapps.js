@@ -84,7 +84,7 @@ function Transfer() {
 	}
 
 	this.apply = function (trs, sender, cb) {
-		setImmediate(cb);
+		self.message(trs.asset.dapptransfer.dappid, {recipientId: sender.address, amount: trs.amount, transactionId: trs.id}, cb);
 	}
 
 	this.undo = function (trs, sender, cb) {
@@ -1763,13 +1763,14 @@ private.addTransactions = function (req, cb) {
 
 					try {
 						var transaction = library.logic.transaction.create({
-							type: TransactionTypes.SEND,
+							type: TransactionTypes.DAPPTRANSFER,
 							amount: body.amount,
 							sender: account,
 							recipientId: recipientId,
 							recipientUsername: recipientUsername,
 							keypair: keypair,
-							secondKeypair: secondKeypair
+							secondKeypair: secondKeypair,
+							dappid: body.dappid
 						});
 					} catch (e) {
 						return cb(e.toString());
