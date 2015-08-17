@@ -50,7 +50,7 @@ private.syncTrigger = function (turnOn) {
 		private.syncIntervalId = null;
 	}
 	if (turnOn === true && !private.syncIntervalId) {
-		process.nextTick(function nextSyncTrigger() {
+		setImmediate(function nextSyncTrigger() {
 			library.network.io.sockets.emit('loader/sync', {
 				blocks: private.blocksToSync,
 				height: modules.blocks.getLastBlock().height
@@ -272,7 +272,7 @@ private.loadBlockChain = function () {
 				return count < offset
 			}, function (cb) {
 				library.logger.info('current ' + offset);
-				process.nextTick(function () {
+				setImmediate(function () {
 					modules.blocks.loadBlocksOffset(limit, offset, function (err, lastBlockOffset) {
 						if (err) {
 							return cb(err);
@@ -314,7 +314,7 @@ Loader.prototype.sandboxApi = function (call, args, cb) {
 
 //events
 Loader.prototype.onPeerReady = function () {
-	process.nextTick(function nextLoadBlock() {
+	setImmediate(function nextLoadBlock() {
 		library.sequence.add(function (cb) {
 			private.syncTrigger(true);
 			var lastBlock = modules.blocks.getLastBlock();
@@ -328,7 +328,7 @@ Loader.prototype.onPeerReady = function () {
 		});
 	});
 
-	process.nextTick(function nextLoadUnconfirmedTransactions() {
+	setImmediate(function nextLoadUnconfirmedTransactions() {
 		library.sequence.add(function (cb) {
 			private.loadUnconfirmedTransactions(cb);
 		}, function (err) {

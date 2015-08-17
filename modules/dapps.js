@@ -38,6 +38,123 @@ function isASCII(str, extended) {
 	return (extended ? /^[\x00-\xFF]*$/ : /^[\x00-\x7F]*$/).test(str);
 }
 
+function Transfer() {
+	this.create = function (data, trs) {
+		trs.recipientId = data.recipientId;
+		trs.recipientUsername = data.recipientUsername;
+		trs.amount = 0;
+
+		trs.asset.dapptransfer = {
+			dappid: data.dappid
+		};
+
+		return trs;
+	}
+
+	this.calculateFee = function (trs) {
+		return 1 * constants.fixedPoint;
+	}
+
+	this.verify = function (trs, sender, cb) {
+		if (!trs.recipientId) {
+			return setImmediate(cb, errorCode("TRANSACTIONS.INVALID_RECIPIENT", trs));
+		}
+
+		if (trs.amount != 0) {
+			return setImmediate(cb, errorCode("TRANSACTIONS.INVALID_AMOUNT", trs));
+		}
+
+		setImmediate(cb);
+	}
+
+	this.process = function (trs, sender, cb) {
+		setImmediate(cb, null, trs);
+	}
+
+	this.getBytes = function (trs) {
+		try {
+			var buf = new Buffer([]);
+			var nameBuf = new Buffer(trs.asset.dapptransfer.dappid, 'utf8');
+			buf = Buffer.concat([buf, nameBuf]);
+		} catch (e) {
+			throw Error(e.toString());
+		}
+
+		return buf;
+	}
+
+	this.apply = function (trs, sender, cb) {
+		setImmediate(cb);
+	}
+
+	this.undo = function (trs, sender, cb) {
+		setImmediate(cb);
+	}
+
+	this.applyUnconfirmed = function (trs, sender, cb) {
+		setImmediate(cb);
+	}
+
+	this.undoUnconfirmed = function (trs, sender, cb) {
+		setImmediate(cb);
+	}
+
+	this.objectNormalize = function (trs) {
+		for (var i in trs.asset.dapptransfer) {
+			if (trs.asset.dapptransfer[i] === null || typeof trs.asset.dapptransfer[i] === 'undefined') {
+				delete trs.asset.dapptransfer[i];
+			}
+		}
+
+		var report = library.scheme.validate(trs.asset.dapptransfer, {
+			object: true,
+			properties: {
+				dappid: {
+					type: "string",
+					minLength: 1
+				},
+			},
+			required: ["dappid"]
+		});
+
+		if (!report) {
+			throw Error("Can't verify dapp transaction, incorrect parameters: " + library.scheme.getLastError());
+		}
+
+		return trs;
+	}
+
+	this.dbRead = function (raw) {
+		if (!raw.dapptransfer_dappid) {
+			return null;
+		} else {
+			var dapptransfer = {
+				dappid: raw.dapptransfer_dappid
+			}
+
+			return {dapptransfer: dapptransfer};
+		}
+	}
+
+	this.dbSave = function (trs, cb) {
+		library.dbLite.query("INSERT INTO dapptransfer(dappid, transactionId) VALUES($dappid, $transactionId)", {
+			type: trs.asset.dapptransfer.dappid,
+			transactionId: trs.id
+		}, cb);
+	}
+
+	this.ready = function (trs, sender) {
+		if (sender.multisignatures.length) {
+			if (!trs.signatures) {
+				return false;
+			}
+			return trs.signatures.length >= sender.multimin;
+		} else {
+			return true;
+		}
+	}
+}
+
 function DApp() {
 	this.create = function (data, trs) {
 		trs.recipientId = null;
@@ -332,7 +449,7 @@ function DApp() {
 				tags: raw.dapp_tags,
 				type: raw.dapp_type,
 				siaAscii: raw.dapp_siaAscii,
-				siaIcon : raw.dapp_siaIcon,
+				siaIcon: raw.dapp_siaIcon,
 				git: raw.dapp_git,
 				category: raw.dapp_category,
 				icon: raw.dapp_icon
@@ -375,6 +492,7 @@ function DApps(cb, scope) {
 	self = this;
 	self.__private = private;
 	library.logic.transaction.attachAssetType(TransactionTypes.DAPP, new DApp());
+	library.logic.transaction.attachAssetType(TransactionTypes.DAPPTRANSFER, new Transfer());
 	private.attachApi();
 
 	process.on('exit', function () {
@@ -406,6 +524,10 @@ function DApps(cb, scope) {
 					setImmediate(cb, err, self);
 				});
 			})
+		} else {
+			private.createBasePathes(function (err) {
+				setImmediate(cb, null, self);
+			});
 		}
 	});
 }
@@ -690,7 +812,7 @@ private.attachApi = function () {
 										'description': String,
 										'tags': String,
 										'siaAscii': String,
-										'siaIcon' : String,
+										'siaIcon': String,
 										'git': String,
 										'type': Number,
 										'category': Number,
@@ -989,6 +1111,10 @@ private.attachApi = function () {
 				private.getIcon(dapp, res);
 			});
 		});
+	});
+
+	router.map(private, {
+		"put /transaction": "addTransactions"
 	});
 
 	library.network.app.use('/api/dapps', router);
@@ -1344,6 +1470,9 @@ private.dappRoutes = function (dapp, cb) {
 			routes.forEach(function (router) {
 				if (router.method == "get" || router.method == "post" || router.method == "put") {
 					private.routes[dapp.transactionId][router.method](router.path, function (req, res) {
+						if (!private.sandboxes[dapp.transactionId]) {
+							return res.status(500).send({success: false, error: "dapp doesn´t run"})
+						}
 						private.sandboxes[dapp.transactionId].sendMessage({
 							method: router.method,
 							path: router.path,
@@ -1545,6 +1674,119 @@ private.stop = function (dApp, cb) {
 	});
 }
 
+private.addTransactions = function (req, cb) {
+	var body = req.body;
+	library.scheme.validate(body, {
+		type: "object",
+		properties: {
+			secret: {
+				type: "string",
+				minLength: 1,
+				maxLength: 100
+			},
+			amount: {
+				type: "integer",
+				minimum: 1,
+				maximum: constants.totalAmount
+			},
+			recipientId: {
+				type: "string",
+				minLength: 1
+			},
+			publicKey: {
+				type: "string",
+				format: "publicKey"
+			},
+			secondSecret: {
+				type: "string",
+				minLength: 1,
+				maxLength: 100
+			},
+			dappid: {
+				type: "string",
+				minLength: 1
+			}
+		},
+		required: ["secret", "amount", "recipientId", "dappid"]
+	}, function (err) {
+		if (err) {
+			return cb(err[0].message);
+		}
+
+		var hash = crypto.createHash('sha256').update(body.secret, 'utf8').digest();
+		var keypair = ed.MakeKeypair(hash);
+
+		if (body.publicKey) {
+			if (keypair.publicKey.toString('hex') != body.publicKey) {
+				return cb(errorCode("COMMON.INVALID_SECRET_KEY"));
+			}
+		}
+
+		var query = {};
+
+		var isAddress = /^[0-9]+[C|c]$/g;
+		if (isAddress.test(body.recipientId)) {
+			query.address = body.recipientId;
+		} else {
+			query.username = body.recipientId;
+		}
+
+		library.sequence.add(function (cb) {
+			modules.accounts.getAccount(query, function (err, recipient) {
+				if (err) {
+					return cb(err.toString());
+				}
+				if (!recipient && query.username) {
+					return cb(errorCode("TRANSACTIONS.RECIPIENT_NOT_FOUND"));
+				}
+				var recipientId = recipient ? recipient.address : body.recipientId;
+				var recipientUsername = recipient ? recipient.username : null;
+
+				modules.accounts.getAccount({publicKey: keypair.publicKey.toString('hex')}, function (err, account) {
+					if (err) {
+						return cb(err.toString());
+					}
+					if (!account || !account.publicKey) {
+						return cb(errorCode("COMMON.OPEN_ACCOUNT"));
+					}
+
+					if (account.secondSignature && !body.secondSecret) {
+						return cb(errorCode("COMMON.SECOND_SECRET_KEY"));
+					}
+
+					var secondKeypair = null;
+
+					if (account.secondSignature) {
+						var secondHash = crypto.createHash('sha256').update(body.secondSecret, 'utf8').digest();
+						secondKeypair = ed.MakeKeypair(secondHash);
+					}
+
+					try {
+						var transaction = library.logic.transaction.create({
+							type: TransactionTypes.SEND,
+							amount: body.amount,
+							sender: account,
+							recipientId: recipientId,
+							recipientUsername: recipientUsername,
+							keypair: keypair,
+							secondKeypair: secondKeypair
+						});
+					} catch (e) {
+						return cb(e.toString());
+					}
+					modules.transactions.receiveTransactions([transaction], cb);
+				});
+			});
+		}, function (err, transaction) {
+			if (err) {
+				return cb(err.toString());
+			}
+
+			cb(null, {transactionId: transaction[0].id});
+		});
+	});
+}
+
 //public methods
 DApps.prototype.sandboxApi = function (call, args, cb) {
 	sandboxHelper.callMethod(shared, call, args, cb);
@@ -1614,6 +1856,21 @@ shared.getGenesis = function (req, cb) {
 			authorId: rows[0].authorId,
 			associate: rows[0].multisignature ? rows[0].multisignature.split(",") : []
 		});
+	});
+}
+
+shared.getCommonBlock = function (req, cb) {
+	library.dbLite.query("SELECT b.height, t.id, t.senderId, t.amount FROM trs t " +
+		"inner join blocks b on t.blockId = b.id and t.id = $id and t.type = $type" +
+		"inner join dapptransfers dt on dt.transactionId = t.id and dt.dappid = $dappid", {
+		dappid: req.dappid,
+		type: TransactionTypes.DAPPTRANSFER
+	}, function (err, rows) {
+		if (err) {
+			return cb("Sql error");
+		}
+
+		cb(null, rows);
 	});
 }
 

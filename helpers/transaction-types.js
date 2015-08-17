@@ -9,5 +9,5 @@ module.exports = {
 	AVATAR : 7,
 	MULTI: 8,
 	DAPP: 9,
-	TREE: 10
+	DAPPTRANSFER: 10
 }
