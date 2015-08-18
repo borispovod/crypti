@@ -75,6 +75,7 @@ module.exports = function (grunt) {
 						"cp ./public/wallet.html ./builded/" + config.version + "/public/" + "&&" +
 						"cp ./public/loading.html ./builded/" + config.version + "/public/" + "&&" +
 						"cp -rf ./public/images ./builded/" + config.version + "/public/" + "&&" +
+						"cp -rf ./public/font ./builded/" + config.version + "/public/" + "&&" +
 						"cp -rf ./public/partials ./builded/" + config.version + "/public/" + "&&" +
 						"cp -rf ./public/static ./builded/" + config.version + "/public/" + "&&" +
 						"mkdir -p ./builded/" + config.version + "/public/node_modules" + "&&" +

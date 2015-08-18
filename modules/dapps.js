@@ -265,6 +265,10 @@ function DApp() {
 			}
 		}
 
+		if (!isSia && !trs.asset.dapp.git) {
+			return setImmediate(cb, errorCode("DAPPS.STORAGE_MISSED"));
+		}
+
 		if (!trs.asset.dapp.name || trs.asset.dapp.name.trim().length == 0) {
 			return setImmediate(cb, errorCode("DAPPS.EMPTY_NAME"));
 		}
@@ -1413,11 +1417,17 @@ private.symlink = function (dApp, cb) {
 	var dappPublicPath = path.join(dappPath, "public");
 	var dappPublicLink = path.join(private.appPath, "public", "dapps", dApp.transactionId);
 
-	fs.exists(dappPublicLink, function (exists) {
+	fs.exists(dappPublicPath, function (exists) {
 		if (exists) {
-			return setImmediate(cb);
+			fs.exists(dappPublicLink, function (exists) {
+				if (exists) {
+					return setImmediate(cb);
+				} else {
+					fs.symlink(dappPublicPath, dappPublicLink, cb);
+				}
+			});
 		} else {
-			fs.symlink(dappPublicPath, dappPublicLink, cb);
+			return setImmediate(cb);
 		}
 	});
 }
