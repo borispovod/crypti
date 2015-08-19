@@ -1494,11 +1494,12 @@ private.dappRoutes = function (dapp, cb) {
 						}, function (err, body) {
 							if (!err && body.error) {
 								err = body.error;
-							} else if (err) {
+							}
+							if (err) {
 								body = {error: err.toString()}
 							}
-
-							res.json({success: !err, result: body});
+							body.success = !err
+							res.json(body);
 						});
 					});
 				}
@@ -1636,7 +1637,7 @@ private.launchApp = function (dApp, params, cb) {
 				return setImmediate(cb, err);
 			}
 
-			var sandbox = new Sandbox(path.join(dappPath, "index.js"), dApp.transactionId, params, private.apiHandler, false);
+			var sandbox = new Sandbox(path.join(dappPath, "index.js"), dApp.transactionId, params, private.apiHandler, true);
 			private.sandboxes[dApp.transactionId] = sandbox;
 
 			sandbox.on("exit", function () {
