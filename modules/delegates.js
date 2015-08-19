@@ -680,8 +680,8 @@ shared.getDelegate = function (req, cb) {
 		}
 
 		modules.accounts.getAccounts(filter, ["username", "address", "publicKey"], function (err, delegates) {
-			if (err) {
-				return cb(err.toString());
+			if (err || delegates.length == 0) {
+				return cb(err? err.toString() : "This delegate not found");
 			}
 
 			var delegate = delegates[0];

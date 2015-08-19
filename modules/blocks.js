@@ -128,11 +128,6 @@ private.list = function (filter, cb) {
 		params.height = filter.height;
 	}
 
-	if (filter.limit) {
-		params.limit = filter.limit;
-	}
-
-
 	if (filter.totalAmount >= 0) {
 		fields.push('totalAmount = $totalAmount');
 		params.totalAmount = filter.totalAmount;
@@ -161,13 +156,20 @@ private.list = function (filter, cb) {
 		}
 	}
 
-	if (filter.offset >= 0) {
-		params.offset = filter.offset;
+	if (!filter.limit) {
+		filter.limit = 100;
+	}
+
+	if (!filter.offset) {
+		filter.offset = 0;
 	}
 
 	if (filter.limit > 100) {
 		return cb('Maximum of limit is 100');
 	}
+
+	params.limit = filter.limit;
+	params.offset = filter.offset;
 
 	library.dbLite.query("select count(b.id) " +
 		"from blocks b " +
@@ -178,13 +180,14 @@ private.list = function (filter, cb) {
 
 		var count = rows.length ? rows[0].count : 0;
 
+		console.log('get block');
 		library.dbLite.query("select b.id, b.version, b.timestamp, b.height, b.previousBlock, b.numberOfTransactions, b.totalAmount, b.totalFee, b.payloadLength,  lower(hex(b.payloadHash)), lower(hex(b.generatorPublicKey)), lower(hex(b.blockSignature)), (select max(height) + 1 from blocks) - b.height " +
 			"from blocks b " +
-			(fields.length ? "where " + fields.join(' and ') : '') + " " +
-			(filter.orderBy ? 'order by ' + sortBy + ' ' + sortMethod : '') + " " +
-			(filter.limit ? 'limit $limit' : '') + " " +
-			(filter.offset ? 'offset $offset' : ''), params, ['b_id', 'b_version', 'b_timestamp', 'b_height', 'b_previousBlock', 'b_numberOfTransactions', 'b_totalAmount', 'b_totalFee', 'b_payloadLength', 'b_payloadHash', 'b_generatorPublicKey', 'b_blockSignature', 'b_confirmations'], function (err, rows) {
+			"where " + (fields.length ? fields.join(' and ') : '') + (fields.length? " and" : "") + " b.id in (select b.id from blocks b " +
+			(filter.orderBy ? 'order by ' + sortBy + ' ' + sortMethod : '') + " limit $limit offset $offset) " + (filter.orderBy ? 'order by ' + sortBy + ' ' + sortMethod : ''), params, ['b_id', 'b_version', 'b_timestamp', 'b_height', 'b_previousBlock', 'b_numberOfTransactions', 'b_totalAmount', 'b_totalFee', 'b_payloadLength', 'b_payloadHash', 'b_generatorPublicKey', 'b_blockSignature', 'b_confirmations'], function (err, rows) {
 			if (err) {
+
+				console.log(err);
 				return cb(err);
 			}
 
@@ -1052,12 +1055,14 @@ shared.getBlocks = function (req, cb) {
 			return cb(err[0].message);
 		}
 
-		private.list(query, function (err, data) {
-			if (err) {
-				return cb(errorCode("BLOCKS.BLOCK_NOT_FOUND"));
-			}
-			cb(null, {blocks: data.blocks, count: data.count});
-		});
+		library.dbSequence.add(function (cb) {
+			private.list(query, function (err, data) {
+				if (err) {
+					return cb(errorCode("BLOCKS.BLOCK_NOT_FOUND"));
+				}
+				cb(null, {blocks: data.blocks, count: data.count});
+			});
+		}, cb);
 	});
 }
 
