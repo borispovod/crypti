@@ -6,14 +6,14 @@ var isWin = /^win/.test(process.platform);
 var isMac = /^darwin/.test(process.platform);
 
 /*
-if (isWin) {
-	dblite.bin = path.join(process.cwd(), 'sqlite', 'windows', 'sqlite3.exe');
-} else if (isMac) {
-	dblite.bin = path.join(process.cwd(), 'sqlite', 'macos', 'sqlite3');
-} else {
-	dblite.bin = path.join(process.cwd(), 'sqlite', 'linux', 'sqlite3');
-}
-*/
+ if (isWin) {
+ dblite.bin = path.join(process.cwd(), 'sqlite', 'windows', 'sqlite3.exe');
+ } else if (isMac) {
+ dblite.bin = path.join(process.cwd(), 'sqlite', 'macos', 'sqlite3');
+ } else {
+ dblite.bin = path.join(process.cwd(), 'sqlite', 'linux', 'sqlite3');
+ }
+ */
 
 module.exports.connect = function (connectString, cb) {
 	var db = dblite(connectString);
@@ -52,7 +52,7 @@ module.exports.connect = function (connectString, cb) {
 		"PRAGMA synchronous=OFF",
 		"PRAGMA journal_mode=MEMORY",
 		"PRAGMA default_cache_size=10000",
-		"PRAGMA locking_mode=EXCLUSIVE",
+		"PRAGMA locking_mode=EXCLUSIVE"
 	];
 
 	async.eachSeries(sql, function (command, cb) {
@@ -60,7 +60,9 @@ module.exports.connect = function (connectString, cb) {
 			cb(err, data);
 		});
 	}, function (err) {
-		console.log('db err:' + err);
+		if (err) {
+			console.log('db err:' + err);
+		}
 		cb(err, db);
 	});
 }
