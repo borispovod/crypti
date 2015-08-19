@@ -156,7 +156,7 @@ Round.prototype.tick = function (block, cb) {
 	function done(err) {
 		delete private.feesByRound[round];
 		delete private.delegatesByRound[round];
-		cb && cb(err);
+		cb && setImmediate(cb, err);
 	}
 
 	private.forgedBlocks[block.generatorPublicKey] = (private.forgedBlocks[block.generatorPublicKey] || 0) + 1;
