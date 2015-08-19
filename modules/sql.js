@@ -58,12 +58,18 @@ private.query = function (action, config, cb) {
 
 	var sql = jsonSql.build(extend(config, defaultConfig));
 
-	library.dbLite.query(sql.query, sql.values, config.fields || null, function (err, data) {
+	function done(err, data) {
 		if (err) {
 			err = err.toString();
 		}
 		cb(err, data);
-	});
+	}
+
+	if (action == "select") {
+		library.dbLite.query(sql.query, sql.values, null, done);
+	} else {
+		library.dbLite.query(sql.query, sql.values, done);
+	}
 }
 
 //public methods
