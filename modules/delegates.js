@@ -256,6 +256,7 @@ private.attachApi = function () {
 	});
 
 	router.map(shared, {
+		"get /voters": "getVoters",
 		"get /get": "getDelegate",
 		"get /": "getDelegates",
 		"get /fee": "getFee",
@@ -696,6 +697,62 @@ shared.getDelegate = function (req, cb) {
 				cb(errorCode("DELEGATES.DELEGATE_NOT_FOUND"));
 			}
 		});
+	});
+}
+
+shared.getVoters = function (req, cb) {
+	var query = req.body;
+	library.scheme.validate(query, {
+		type: 'object',
+		properties: {
+			publicKey: {
+				type: "string",
+				format: "publicKey"
+			}
+		},
+		required: ['publicKey']
+	}, function (err) {
+		if (err) {
+			return cb(err[0].message);
+		}
+
+		library.dbLite.query("select GROUP_CONCAT(accountId) from mem_accounts2delegates where dependentId = $publicKey", {
+			publicKey: query.publicKey
+		}, ['accountId'], function (err, rows) {
+			if (err) {
+				library.logger.error(err);
+				return cb("Internal sql error");
+			}
+
+			var addresses = rows.map(function (item) {
+				return item.accountId;
+			})
+
+			modules.accounts.getAccounts({
+				address: {$in: addresses},
+				sort: 'balance'
+			}, ['address', 'balance'], function (err, rows) {
+				if (err) {
+					library.logger.error(err);
+					return cb("Internal sql error");
+				}
+
+				return cb(null, {delegates: rows});
+			});
+		})
+		//select GROUP_CONCAT(accountId) from mem_accounts2delegates where dependentId =
+		/*
+		modules.accounts.getAccounts({
+			isDelegate: 1,
+			address: address
+		}, ["delegates"], function (err, delegates) {
+			if (err) {
+				return cb(err[0].message);
+			}
+
+			return cb(null, {delegates: delegates});
+		});
+		*/
 	});
 }
 

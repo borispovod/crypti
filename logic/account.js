@@ -561,6 +561,7 @@ Account.prototype.get = function (filter, fields, cb) {
 			return field.alias || field.field;
 		});
 	}
+
 	this.getAll(filter, fields, function (err, data) {
 		cb(err, data && data.length ? data[0] : null)
 	})
