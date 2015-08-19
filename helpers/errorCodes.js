@@ -260,6 +260,10 @@ var errorCodes = {
 		}
 	},
 	DAPPS: {
+		STORAGE_MISSED: {
+			message: "Missed storage: sia/git for this dapp",
+			args: []
+		},
 		EXISTS_DAPP: {
 			message: "This DApp already exists",
 			args: []
@@ -337,7 +341,7 @@ var errorCodes = {
 			args: []
 		},
 		INCORRECT_ICON_LINK: {
-			message: "Incorrect sia link: %s",
+			message: "Incorrect icon link: %s",
 			args: ['icon']
 		}
 	}

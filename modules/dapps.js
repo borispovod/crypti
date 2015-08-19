@@ -269,6 +269,10 @@ function DApp() {
 			}
 		}
 
+		if (!isSia && !trs.asset.dapp.git) {
+			return setImmediate(cb, errorCode("DAPPS.STORAGE_MISSED"));
+		}
+
 		if (!trs.asset.dapp.name || trs.asset.dapp.name.trim().length == 0) {
 			return setImmediate(cb, errorCode("DAPPS.EMPTY_NAME"));
 		}
@@ -1146,7 +1150,7 @@ private.getByIds = function (ids, cb) {
 	}
 
 	library.dbLite.query("SELECT name, description, tags, siaAscii, siaIcon, git, type, category, icon, transactionId FROM dapps WHERE transactionId IN (" + ids.join(',') + ")", {}, ['name', 'description', 'tags', 'siaAscii', 'siaIcon', 'git', 'type', 'category', 'icon', 'transactionId'], function (err, rows) {
-		if (err || rows.length == 0) {
+		if (err) {
 			return setImmediate(cb, err ? "Sql error" : "DApp not found");
 		}
 
@@ -1417,11 +1421,17 @@ private.symlink = function (dApp, cb) {
 	var dappPublicPath = path.join(dappPath, "public");
 	var dappPublicLink = path.join(private.appPath, "public", "dapps", dApp.transactionId);
 
-	fs.exists(dappPublicLink, function (exists) {
+	fs.exists(dappPublicPath, function (exists) {
 		if (exists) {
-			return setImmediate(cb);
+			fs.exists(dappPublicLink, function (exists) {
+				if (exists) {
+					return setImmediate(cb);
+				} else {
+					fs.symlink(dappPublicPath, dappPublicLink, cb);
+				}
+			});
 		} else {
-			fs.symlink(dappPublicPath, dappPublicLink, cb);
+			return setImmediate(cb);
 		}
 	});
 }

@@ -299,6 +299,8 @@ shared.getContacts = function (req, cb) {
 			return cb(err[0].message);
 		}
 
+		query.address = modules.accounts.generateAddressByPublicKey(query.publicKey);
+
 		modules.accounts.getAccount({address: query.address}, function (err, account) {
 			if (err) {
 				return cb(err.toString());
@@ -312,13 +314,13 @@ shared.getContacts = function (req, cb) {
 					if (!account.contacts.length) {
 						return cb(null, []);
 					}
-					modules.accounts.getAccounts({address: {$in: account.contacts}} ["address", "username"], cb);
+					modules.accounts.getAccounts({address: {$in: account.contacts}}, ["address", "username"], cb);
 				},
 				followers: function (cb) {
 					if (!account.followers.length) {
 						return cb(null, []);
 					}
-					modules.accounts.getAccounts({address: {$in: account.followers}} ["address", "username"], cb);
+					modules.accounts.getAccounts({address: {$in: account.followers}}, ["address", "username"], cb);
 				}
 			}, function (err, res) {
 				if (err) {
@@ -371,9 +373,9 @@ shared.addContact = function (req, cb) {
 		var followingAddress = body.following.substring(1, body.following.length);
 		var isAddress = /^[0-9]+[C|c]$/g;
 		if (isAddress.test(followingAddress)) {
-			query.address = body.recipientId;
+			query.address = followingAddress;
 		} else {
-			query.username = body.recipientId;
+			query.username = followingAddress;
 		}
 
 		library.sequence.add(function (cb) {
@@ -381,9 +383,11 @@ shared.addContact = function (req, cb) {
 				if (err) {
 					return cb(err.toString());
 				}
+
 				if (!following) {
 					return cb(errorCode("CONTACTS.USERNAME_DOESNT_FOUND"));
 				}
+
 				followingAddress = body.following[0] + following.address;
 
 				modules.accounts.getAccount({publicKey: keypair.publicKey.toString('hex')}, function (err, account) {
