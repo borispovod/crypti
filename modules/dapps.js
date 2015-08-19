@@ -247,9 +247,9 @@ function DApp() {
 			var length = trs.asset.dapp.icon.length;
 
 			if (
-				trs.asset.dapp.icon.indexOf('png') != length - 3 &&
-				trs.asset.dapp.icon.indexOf('jpg') != length - 3 &&
-				trs.asset.dapp.icon.indexOf('jpeg') != length - 4
+				trs.asset.dapp.icon.indexOf('.png') != length - 4 &&
+				trs.asset.dapp.icon.indexOf('.jpg') != length - 4 &&
+				trs.asset.dapp.icon.indexOf('.jpeg') != length - 5
 			) {
 				return setImmediate(cb, errorCode("DAPPS.INCORRECT_ICON_LINK", trs.asset.dapp))
 			}
