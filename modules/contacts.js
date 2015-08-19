@@ -307,7 +307,7 @@ shared.getUnconfirmedContacts = function (req, cb) {
 				return setImmediate(cb);
 			}
 
-			if (transactions.senderPublicKey == query.publicKey) {
+			if (item.senderPublicKey == query.publicKey) {
 				contacts.push(item);
 			}
 
