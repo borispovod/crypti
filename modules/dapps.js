@@ -84,7 +84,11 @@ function Transfer() {
 	}
 
 	this.apply = function (trs, sender, cb) {
-		self.message(trs.asset.dapptransfer.dappid, {recipientId: sender.address, amount: trs.amount, transactionId: trs.id}, cb);
+		self.message(trs.asset.dapptransfer.dappid, {
+			recipientId: sender.address,
+			amount: trs.amount,
+			transactionId: trs.id
+		}, cb);
 	}
 
 	this.undo = function (trs, sender, cb) {
@@ -807,7 +811,7 @@ private.attachApi = function () {
 							library.logger.error(err);
 							return res.json({success: false, error: "Sql error, check logs"})
 						} else {
-							library.dbLite.query("SELECT rowid FROM dapps_search WHERE dapps_search MATCH $q", {q: query.q + "*"}, function (err, rows) {
+							library.dbLite.query("SELECT rowid FROM dapps_search WHERE dapps_search MATCH $q", {q: query.q + "*"}, ["rowid"], function (err, rows) {
 								if (err) {
 									library.logger.error(err);
 									return res.json({success: false, error: "Sql error, check logs"});
@@ -1499,10 +1503,11 @@ private.dappRoutes = function (dapp, cb) {
 							if (!err && body.error) {
 								err = body.error;
 							}
-
-							body = ((err || typeof body != "object") ? {error: err} : body);
-							var resultBody = extend(body, {success: !err});
-							res.json(resultBody);
+							if (err) {
+								body = {error: err.toString()}
+							}
+							body.success = !err
+							res.json(body);
 						});
 					});
 				}
@@ -1631,10 +1636,13 @@ private.launchApp = function (dApp, params, cb) {
 			port: peer.port,
 			dappid: dApp.transactionId
 		}, cb);
-	}, function () {
+	}, function (err) {
+		if (err) {
+			return setImmediate(cb, err);
+		}
 		modules.sql.createTables(dApp.transactionId, dappConfig.db, function (err) {
 			if (err) {
-				return setImmediate(err);
+				return setImmediate(cb, err);
 			}
 
 			var sandbox = new Sandbox(path.join(dappPath, "index.js"), dApp.transactionId, params, private.apiHandler, true);
@@ -1850,7 +1858,9 @@ DApps.prototype.onNewBlock = function (block, broadcast) {
 				message: {id: block.id, height: block.height}
 			}
 		}, function (err, body) {
-			library.logger.error("dapp", err)
+			if (err) {
+				library.logger.error("onNewBlock message", err)
+			}
 		});
 	})
 }
@@ -1884,6 +1894,11 @@ shared.getCommonBlock = function (req, cb) {
 		"inner join dapptransfers dt on dt.transactionId = t.id and dt.dappid = $dappid", {
 		dappid: req.dappid,
 		type: TransactionTypes.DAPPTRANSFER
+	}, {
+		height: Number,
+		id: String,
+		senderId: String,
+		amount: String
 	}, function (err, rows) {
 		if (err) {
 			return cb("Sql error");

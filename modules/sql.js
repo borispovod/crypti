@@ -17,9 +17,40 @@ function Sql(cb, scope) {
 	setImmediate(cb, null, self);
 }
 
+private.pass = function (obj, dappid) {
+	for (var property in obj) {
+		if (typeof obj[property] == "object") {
+			private.pass(obj[property], dappid);
+		}
+		if (property == "table") {
+			obj[property] = "dapp_" + dappid + "_" + obj[property];
+		}
+		if (property == "join" && obj[property].length === undefined) {
+			for (var table in obj[property]) {
+				var tmp = obj[property][table];
+				delete obj[property][table];
+				obj[property]["dapp_" + dappid + "_" + table] = tmp;
+			}
+		}
+		if (property == "on") {
+			for (var firstTable in obj[property]) {
+				var secondTable = obj[property][firstTable];
+				delete obj[property][firstTable];
+				var firstTableRaw = firstTable.split(".");
+				firstTable = "dapp_" + dappid + "_" + firstTableRaw[0];
+
+				var secondTableRaw = secondTable.split(".");
+				secondTable = "dapp_" + dappid + "_" + secondTableRaw[0];
+
+				obj[property][firstTable] = secondTable;
+			}
+		}
+	}
+}
+
 //private methods
 private.query = function (action, config, cb) {
-	config.table = "dapp_" + config.dappid + "_" + config.table;
+	private.pass(config, config.dappid);
 
 	var defaultConfig = {
 		type: action
@@ -27,7 +58,10 @@ private.query = function (action, config, cb) {
 
 	var sql = jsonSql.build(extend(config, defaultConfig));
 
-	library.dbLite.query(sql.query, sql.values, function (err, data) {
+	library.dbLite.query(sql.query, sql.values, config.fields || null, function (err, data) {
+		if (err) {
+			err = err.toString();
+		}
 		cb(err, data);
 	});
 }
