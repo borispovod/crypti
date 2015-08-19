@@ -479,7 +479,15 @@ function DApp() {
 			icon: trs.asset.dapp.icon || null,
 			category: trs.asset.dapp.category,
 			transactionId: trs.id
-		}, cb);
+		}, function (err) {
+			if (err) {
+				return setImmediate(cb, err);
+			} else {
+				// broadcast
+				library.network.io.sockets.emit('dapps/change', {});
+				return setImmediate(cb);
+			}
+		});
 	}
 
 	this.ready = function (trs, sender) {
@@ -922,11 +930,15 @@ private.attachApi = function () {
 											});
 										});
 									} else {
+										library.network.io.sockets.emit('dapps/change', {});
+
 										private.loading[body.id] = false;
 										return res.json({success: true, path: dappPath});
 									}
 								})
 							} else {
+								library.network.io.sockets.emit('dapps/change', {});
+
 								private.loading[body.id] = false;
 								return res.json({success: true, path: dappPath});
 							}
@@ -1002,6 +1014,8 @@ private.attachApi = function () {
 					if (err) {
 						return res.json({success: false, error: err});
 					} else {
+						library.network.io.sockets.emit('dapps/change', {});
+
 						return res.json({success: true});
 					}
 				})
@@ -1015,6 +1029,7 @@ private.attachApi = function () {
 				return res.json({"success": false, "error": err});
 			}
 
+			library.network.io.sockets.emit('dapps/change', {});
 			res.json({"success": true});
 		});
 	});
@@ -1084,6 +1099,8 @@ private.attachApi = function () {
 							library.logger.error(err);
 							return res.json({success: false, error: "Can't stop dapp, check logs"});
 						} else {
+
+							library.network.io.sockets.emit('dapps/change', {});
 							private.launched[body.id] = false;
 							return res.json({success: true});
 						}

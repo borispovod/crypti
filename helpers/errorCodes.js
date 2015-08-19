@@ -3,23 +3,23 @@ var util = require('util');
 var errorCodes = {
 	VOTES: {
 		INCORRECT_RECIPIENT: {
-			message: "Incorrect recipient %s, in vote transaction recipient is same that sender",
+			message: "Incorrect recipient %s in vote transaction, recipient is the same as sender",
 			args: ['recipientId']
 		},
 		MINIMUM_DELEGATES_VOTE: {
-			message: "Empty votes: %s",
+			message: "Not enough spare votes available: %s",
 			args: ["id"]
 		},
 		MAXIMUM_DELEGATES_VOTE: {
-			message: "You can only vote for a maximum of 33 delegates at any one time: %s",
+			message: "Maximum of 33 delegate votes at any one time: %s",
 			args: ["id"]
 		},
 		ALREADY_VOTED_UNCONFIRMED: {
-			message: "Can't verify votes, you already voted for this delegate: %s",
+			message: "Can't verify votes, you have already voted for this delegate: %s",
 			args: ["id"]
 		},
 		ALREADY_VOTED_CONFIRMED: {
-			message: "Can't verify votes, you already voted for this delegate: %s",
+			message: "Can't verify votes, you have already voted for this delegate: %s",
 			args: ["id"]
 		}
 	},
@@ -29,7 +29,7 @@ var errorCodes = {
 			args: []
 		},
 		INVALID_AMOUNT: {
-			message: "Invalid amount of transaction: %s",
+			message: "Invalid transaction amount: %s",
 			args: ["id"]
 		},
 		EMPTY_ASSET: {
@@ -49,21 +49,21 @@ var errorCodes = {
 			args: ["asset.username.alias"]
 		},
 		EXISTS_USERNAME: {
-			message: "The username you entered is already in use. Please try a different name.: %s",
+			message: "Username already exists. Please try a different name.: %s",
 			args: ["id"]
 		},
 		ALREADY_HAVE_USERNAME: {
-			message: "The account already has username",
+			message: "Account already has a username",
 			args: ["id"]
 		}
 	},
 	ACCOUNTS: {
 		ACCOUNT_PUBLIC_KEY_NOT_FOUND: {
-			message: "Account public key can't be found: %s",
+			message: "Account with this public key not found: %s",
 			args: ["address"]
 		},
 		ACCOUNT_DOESNT_FOUND: {
-			message: "Account doesn't found: %s",
+			message: "Account not found: %s",
 			args: ["address"]
 		},
 		INVALID_ADDRESS: {
@@ -97,15 +97,15 @@ var errorCodes = {
 			args: ["asset.delegate.username"]
 		},
 		USERNAME_IS_TOO_LONG: {
-			message: "Delegate name is longer then 20 chars: ",
+			message: "Delegate name is too long, maximum is 20 chars: ",
 			args: ["asset.delegate.username"]
 		},
 		EXISTS_USERNAME: {
-			message: "The delegate name you entered is already in use. Please try a different name.: %s",
+			message: "Delegate name already exists. Please try a different name.: %s",
 			args: ["asset.delegate.username"]
 		},
 		EXISTS_DELEGATE: {
-			message: "Your account are delegate already",
+			message: "Account already registered as a delegate",
 			args: []
 		},
 		DELEGATE_NOT_FOUND: {
@@ -113,15 +113,15 @@ var errorCodes = {
 			args: []
 		},
 		FORGER_PUBLIC_KEY: {
-			message: "Provide generatorPublicKey in request",
+			message: "Missing generatorPublicKey in request",
 			args: []
 		},
 		FORGING_ALREADY_ENABLED: {
-			message: "Forging on this account already enabled",
+			message: "Forging on this account is already enabled",
 			args: []
 		},
 		DELEGATE_NOT_FOUND: {
-			message: "Delegate for this secret not found",
+			message: "Delegate with this passphrase not found",
 			args: []
 		},
 		FORGER_NOT_FOUND: {
@@ -139,7 +139,7 @@ var errorCodes = {
 			args: []
 		},
 		LIMIT: {
-			message: "Max limit is %i",
+			message: "Maximum limit is %i",
 			args: ['limit']
 		},
 		INVALID_PEER: {
@@ -161,15 +161,15 @@ var errorCodes = {
 			args: []
 		},
 		INVALID_SECRET_KEY: {
-			message: "Please, provide valid secret key of your account",
+			message: "Invalid passphrase, please provide a valid passphrase",
 			args: []
 		},
 		OPEN_ACCOUNT: {
-			message: "Open your account to make transaction",
+			message: "Please open your account to send a transaction",
 			args: []
 		},
 		SECOND_SECRET_KEY: {
-			message: "Provide second secret key",
+			message: "Please provide your second passphrase",
 			args: []
 		},
 		ACCESS_DENIED: {
@@ -205,7 +205,7 @@ var errorCodes = {
 			args: []
 		},
 		RECIPIENT_NOT_FOUND: {
-			message: "Recipient is not found",
+			message: "Recipient not found",
 			args: []
 		}
 	},
@@ -219,35 +219,35 @@ var errorCodes = {
 			args: ["amount"]
 		},
 		INVALID_LENGTH: {
-			message: "Invalid length for signature public key: %s",
+			message: "Invalid public key signature key length: %s",
 			args: ["id"]
 		},
 		INVALID_HEX: {
-			message: "Invalid hex in signature public key: %s",
+			message: "Invalid public key signature hex value: %s",
 			args: ["id"]
 		}
 	},
 	CONTACTS: {
 		USERNAME_DOESNT_FOUND: {
-			message: "Account doesn't found: %s",
+			message: "Account not found: %s",
 			args: []
 		},
 		SELF_FRIENDING: {
-			message: "Can´t add yourself in contacts",
+			message: "Can't add own account to contacts",
 			args: []
 		},
 		ALREADY_ADDED_UNCONFIRMED: {
-			message: "Can´t add account in contacts",
+			message: "Can't add account to contacts",
 			args: []
 		},
 		ALREADY_ADDED_CONFIRMED: {
-			message: "Can´t add account in contacts",
+			message: "Can't add account to contacts",
 			args: []
 		}
 	},
 	MULTISIGNATURES: {
 		SIGN_NOT_ALLOWED: {
-			message: "You can't sign this transaction: %s",
+			message: "Permission to sign transaction denied: %s",
 			args: ["id"]
 		},
 		NOT_UNIQUE_SET: {
@@ -255,53 +255,53 @@ var errorCodes = {
 			args: []
 		},
 		SELF_SIGN: {
-			message: "Prohibited to use self publicKey to sign",
+			message: "Permission to sign transaction using own public key denied",
 			args: []
 		}
 	},
 	DAPPS: {
 		STORAGE_MISSED: {
-			message: "Missed storage: sia/git for this dapp",
+			message: "Missing DApp sia/git storage option",
 			args: []
 		},
 		EXISTS_DAPP: {
-			message: "This DApp already exists",
+			message: "DApp already exists",
 			args: []
 		},
 		UNKNOWN_CATEGORY: {
-			message: "Unknown category of DApp",
+			message: "Unknown DApp category",
 			args: []
 		},
 		EMPTY_NICKNAME: {
-			message: "Empty sia file nickname of DApp",
+			message: "Empty DApp sia file nickname",
 			args: []
 		},
 		UNKNOWN_TYPE: {
-			message: "Unknown type of DApp",
+			message: "Unknown DApp type",
 			args: []
 		},
 		GIT_AND_SIA: {
-			message: "DApp contains link to github and sia storage in same time, it's not possible",
+			message: "DApp must contain either a github or sia storage link, not both",
 			args: []
 		},
 		INVALID_GIT: {
-			message: "DApp contains incorrect git link",
+			message: "DApp git link is invalid",
 			args: []
 		},
 		EMPTY_NAME: {
-			message: "Incorrect DApp name, it's empty",
+			message: "Empty DApp name",
 			args: []
 		},
 		TOO_LONG_NAME: {
-			message: "Incorrect DApp name, it's too long",
+			message: "DApp name is too long",
 			args: []
 		},
 		TOO_LONG_DESCRIPTION: {
-			message: "Too long description of DApp",
+			message: "DApp description is too long",
 			args: []
 		},
 		TOO_LONG_TAGS: {
-			message: "Too long tags of DApp",
+			message: "One or more DApp tags are too long",
 			args: []
 		},
 		EXISTS_DAPP_NAME: {
@@ -317,7 +317,7 @@ var errorCodes = {
 			args: []
 		},
 		INCORRECT_LINK: {
-			message: "DApp must contain sia file nickname or link",
+			message: "DApp must contain either a sia file nickname or link",
 			args: []
 		},
 		DAPPS_NOT_FOUND: {
@@ -325,7 +325,7 @@ var errorCodes = {
 			args: []
 		},
 		MISSED_SIA_ASCII: {
-			message: "Missed sia ascii link",
+			message: "Missing sia ascii link",
 			args: []
 		},
 		INCORRECT_ASCII_SIA: {
@@ -337,7 +337,7 @@ var errorCodes = {
 			args: ["siaIcon"]
 		},
 		ALREADY_SIA_ICON: {
-			message: "This dapp already based on sia icon code",
+			message: "Dapp already has a sia icon code",
 			args: []
 		},
 		INCORRECT_ICON_LINK: {

@@ -220,9 +220,9 @@ private.attachApi = function () {
 	});
 
 	router.map(shared, {
-		"get /pending": "pending",
-		"post /sign": "sign",
-		"put /": "addMultisignature"
+		"get /pending": "pending", // get pendings transactions
+		"post /sign": "sign", // sign transaction
+		"put /": "addMultisignature" // enable
 	});
 
 	router.use(function (req, res, next) {

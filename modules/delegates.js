@@ -672,17 +672,18 @@ shared.getDelegate = function (req, cb) {
 			filter.transactionId = query.transactionId;
 		}
 		if (query.publicKey) {
-			filter.publicKey = query.publicKey;
+			filter.address = modules.accounts.generateAddressByPublicKey(query.publicKey);
 		}
 		if (query.username) {
 			filter.username = query.username;
 		}
 
-		modules.accounts.getAccounts(filter, ["username", "address", "publicKey"], function (err, delegate) {
+		modules.accounts.getAccounts(filter, ["username", "address", "publicKey"], function (err, delegates) {
 			if (err) {
 				return cb(err.toString());
 			}
 
+			var delegate = delegates[0];
 			var stat = modules.delegates.getStats();
 
 			delegate.vote = stat.votes[delegate.publicKey];

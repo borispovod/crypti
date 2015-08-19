@@ -191,6 +191,7 @@ private.attachApi = function () {
 	});
 
 	router.map(shared, {
+		"get /unconfirmed": "getUnconfirmedContacts",
 		"get /": "getContacts",
 		"put /": "addContact",
 		"get /fee": "getFee"
@@ -280,6 +281,41 @@ Contacts.prototype.sandboxApi = function (call, args, cb) {
 //events
 Contacts.prototype.onBind = function (scope) {
 	modules = scope;
+}
+
+shared.getUnconfirmedContacts = function (req, cb) {
+	var query = req.body;
+	library.scheme.validate(query, {
+		type: "object",
+		properties: {
+			publicKey: {
+				type: "string",
+				format: "publicKey"
+			}
+		},
+		required: ['publicKey']
+	}, function (err) {
+		if (err) {
+			return cb(err[0].message);
+		}
+
+		var transactions = modules.transactions.getUnconfirmedTransactionList();
+
+		var contacts = [];
+		async.forEach(transactions, function (item, cb) {
+			if (item.type != TransactionTypes.FOLLOW) {
+				return setImmediate(cb);
+			}
+
+			if (transactions.senderPublicKey == query.publicKey) {
+				contacts.push(item);
+			}
+
+			setImmediate(cb);
+		}, function () {
+			return cb(null, {contacts: contacts});
+		});
+	});
 }
 
 //shared
