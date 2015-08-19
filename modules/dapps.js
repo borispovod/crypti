@@ -475,7 +475,15 @@ function DApp() {
 			icon: trs.asset.dapp.icon || null,
 			category: trs.asset.dapp.category,
 			transactionId: trs.id
-		}, cb);
+		}, function (err) {
+			if (err) {
+				return setImmediate(cb, err);
+			} else {
+				// broadcast
+
+				return setImmediate(cb);
+			}
+		});
 	}
 
 	this.ready = function (trs, sender) {
