@@ -101,26 +101,21 @@ private.deleteBlock = function (blockId, cb) {
 }
 
 private.list = function (filter, cb) {
-	var sortFields = ['b.id', 'b.version', 'b.timestamp', 'b.height', 'b.previousBlock', 'b.numberOfTransactions', 'b.totalAmount', 'b.totalFee', 'b.payloadLength', 'b.payloadHash', 'b.generatorPublicKey', 'b.blockSignature', 'b.confirmations'];
+	var sortFields = ['b.id', 'b.timestamp', 'b.height', 'b.previousBlock',  'b.totalAmount', 'b.totalFee', 'b.numberOfTransactions', 'b.generatorPublicKey'];
 	var params = {}, fields = [], sortMethod = '', sortBy = '';
 	if (filter.generatorPublicKey) {
 		fields.push('lower(hex(generatorPublicKey)) = $generatorPublicKey')
 		params.generatorPublicKey = filter.generatorPublicKey;
 	}
 
+	if (filter.numberOfTransactions) {
+		fields.push('numberOfTransactions = $numberOfTransactions');
+		params.numberOfTransactions = filter.numberOfTransactions;
+	}
+
 	if (filter.previousBlock) {
 		fields.push('previousBlock = $previousBlock');
 		params.previousBlock = filter.previousBlock;
-	}
-
-	if (filter.totalAmount) {
-		fields.push('totalAmount = $totalAmount');
-		params.totalAmount = filter.totalAmount;
-	}
-
-	if (filter.totalFee) {
-		fields.push('totalFee = $totalFee');
-		params.totalFee = filter.totalFee;
 	}
 
 	if (filter.height === 0 || filter.height > 0) {
@@ -168,9 +163,6 @@ private.list = function (filter, cb) {
 		return cb('Maximum of limit is 100');
 	}
 
-	params.limit = filter.limit;
-	params.offset = filter.offset;
-
 	library.dbLite.query("select count(b.id) " +
 		"from blocks b " +
 		(fields.length ? "where " + fields.join(' and ') : ''), params, {count: Number}, function (err, rows) {
@@ -180,13 +172,31 @@ private.list = function (filter, cb) {
 
 		var count = rows.length ? rows[0].count : 0;
 
-		console.log('get block');
+		if (sortMethod == "asc") {
+			params.offset = filter.offset;
+			params.limit = filter.limit + filter.offset;
+		} else if (sortMethod == "desc") {
+			var end = count - filter.offset;
+
+			if (end < 0) {
+				end = 0;
+			}
+
+			var start = end - filter.limit + 1;
+
+			if (start < 0) {
+				start = 0;
+			}
+
+			params.limit = end;
+			params.offset = start;
+		}
+
 		library.dbLite.query("select b.id, b.version, b.timestamp, b.height, b.previousBlock, b.numberOfTransactions, b.totalAmount, b.totalFee, b.payloadLength,  lower(hex(b.payloadHash)), lower(hex(b.generatorPublicKey)), lower(hex(b.blockSignature)), (select max(height) + 1 from blocks) - b.height " +
 			"from blocks b " +
-			"where " + (fields.length ? fields.join(' and ') : '') + (fields.length? " and" : "") + " b.id in (select b.id from blocks b " +
-			(filter.orderBy ? 'order by ' + sortBy + ' ' + sortMethod : '') + " limit $limit offset $offset) " + (filter.orderBy ? 'order by ' + sortBy + ' ' + sortMethod : ''), params, ['b_id', 'b_version', 'b_timestamp', 'b_height', 'b_previousBlock', 'b_numberOfTransactions', 'b_totalAmount', 'b_totalFee', 'b_payloadLength', 'b_payloadHash', 'b_generatorPublicKey', 'b_blockSignature', 'b_confirmations'], function (err, rows) {
+			"where " + (fields.length ? + fields.join(' and ') : '') + (fields.length? " and " : "") + " b.height >= $offset and b.height <= $limit " +
+			(filter.orderBy ? 'order by ' + sortBy + ' ' + sortMethod : ''), params, ['b_id', 'b_version', 'b_timestamp', 'b_height', 'b_previousBlock', 'b_numberOfTransactions', 'b_totalAmount', 'b_totalFee', 'b_payloadLength', 'b_payloadHash', 'b_generatorPublicKey', 'b_blockSignature', 'b_confirmations'], function (err, rows) {
 			if (err) {
-
 				console.log(err);
 				return cb(err);
 			}
