@@ -160,15 +160,14 @@ private.attachApi = function () {
 				return res.json({success: false, error: errorCode("BLOCKS.WRONG_ID_SEQUENCE")});
 			}
 
-			library.dbLite.query("select max(height), id, previousBlock, timestamp, lower(hex(blockSignature)) from blocks where id in (" + escapedIds.join(',') + ") and height >= $min and height <= $max", {
+			library.dbLite.query("select max(height), id, previousBlock, timestamp from blocks where id in (" + escapedIds.join(',') + ") and height >= $min and height <= $max", {
 				"max": max,
 				"min": min
 			}, {
 				"height": Number,
 				"id": String,
 				"previousBlock": String,
-				"timestamp": Number,
-				"blockSignature": String
+				"timestamp": Number
 			}, function (err, rows) {
 				if (err) {
 					return res.json({success: false, error: errorCode("COMMON.DB_ERR")});
