@@ -156,7 +156,7 @@ private.attachApi = function () {
 }
 
 private.list = function (filter, cb) {
-	var sortFields = ['t.id', 't.blockId', 't.type', 't.timestamp', 't.senderPublicKey', 't.senderId', 't.recipientId', 't.senderUsername', 't.recipientUsername', 't.amount', 't.fee', 't.signature', 't.signSignature', 't.confirmations', 'b.height'];
+	var sortFields = ['t.id', 't.blockId', 't.type', 't.timestamp', 't.senderPublicKey', 't.senderId', 't.recipientId', 't.senderUsername', 't.recipientUsername', 't.confirmations', 'b.height'];
 	var params = {}, fields_or = [], owner = "";
 	if (filter.blockId) {
 		fields_or.push('blockId = $blockId')
