@@ -112,7 +112,7 @@ private.updatePeerList = function (cb) {
 }
 
 private.count = function (cb) {
-	library.dbLite.query("select count(rowid) from peers", {"count": Number}, function (err, rows) {
+	library.dbLite.query("select count(*) from peers", {"count": Number}, function (err, rows) {
 		if (err) {
 			library.logger.error('Peer#count', err);
 			return cb(err);

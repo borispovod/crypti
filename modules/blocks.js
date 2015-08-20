@@ -194,9 +194,11 @@ private.list = function (filter, cb) {
 
 		library.dbLite.query("select b.id, b.version, b.timestamp, b.height, b.previousBlock, b.numberOfTransactions, b.totalAmount, b.totalFee, b.payloadLength,  lower(hex(b.payloadHash)), lower(hex(b.generatorPublicKey)), lower(hex(b.blockSignature)), (select max(height) + 1 from blocks) - b.height " +
 			"from blocks b " +
-			"where " + (fields.length ? + fields.join(' and ') : '') + (fields.length? " and " : "") + " b.height >= $offset and b.height <= $limit " +
+			"where " + (fields.length ? fields.join(' and ') : '') + (fields.length? " and " : "") + " b.height >= $offset and b.height <= $limit " +
 			(filter.orderBy ? 'order by ' + sortBy + ' ' + sortMethod : ''), params, ['b_id', 'b_version', 'b_timestamp', 'b_height', 'b_previousBlock', 'b_numberOfTransactions', 'b_totalAmount', 'b_totalFee', 'b_payloadLength', 'b_payloadHash', 'b_generatorPublicKey', 'b_blockSignature', 'b_confirmations'], function (err, rows) {
 			if (err) {
+				console.log('here');
+				console.log(err);
 				return cb(err);
 			}
 
