@@ -197,7 +197,6 @@ private.list = function (filter, cb) {
 			"where " + (fields.length ? + fields.join(' and ') : '') + (fields.length? " and " : "") + " b.height >= $offset and b.height <= $limit " +
 			(filter.orderBy ? 'order by ' + sortBy + ' ' + sortMethod : ''), params, ['b_id', 'b_version', 'b_timestamp', 'b_height', 'b_previousBlock', 'b_numberOfTransactions', 'b_totalAmount', 'b_totalFee', 'b_payloadLength', 'b_payloadHash', 'b_generatorPublicKey', 'b_blockSignature', 'b_confirmations'], function (err, rows) {
 			if (err) {
-				console.log(err);
 				return cb(err);
 			}
 
@@ -441,6 +440,10 @@ Blocks.prototype.loadBlocksData = function (filter, options, cb) {
 
 	options = options || {};
 
+	if (filter.lastId && filter.id) {
+		return cb("LastId and Id can't go in one request");
+	}
+
 	//console.time('loading');
 	var params = {limit: filter.limit || 1};
 	filter.lastId && (params['lastId'] = filter.lastId);
@@ -456,27 +459,55 @@ Blocks.prototype.loadBlocksData = function (filter, options, cb) {
 		method = 'query';
 	}
 
-	library.dbLite[method]("SELECT " +
-		"b.id, b.version, b.timestamp, b.height, b.previousBlock, b.numberOfTransactions, b.totalAmount, b.totalFee, b.payloadLength, lower(hex(b.payloadHash)), lower(hex(b.generatorPublicKey)), lower(hex(b.blockSignature)), " +
-		"t.id, t.type, t.timestamp, lower(hex(t.senderPublicKey)), t.senderId, t.recipientId, t.senderUsername, t.recipientUsername, t.amount, t.fee, lower(hex(t.signature)), lower(hex(t.signSignature)), t.multisignatures, " +
-		"lower(hex(s.publicKey)), " +
-		"d.username, " +
-		"v.votes, " +
-		"c.address, " +
-		"u.username, " +
-		"m.min, m.lifetime, m.dependence, m.signatures, " +
-		"dapp.name, dapp.description, dapp.tags, dapp.type, dapp.siaAscii, dapp.siaIcon, dapp.git, dapp.category, dapp.icon " +
-		"FROM (select * from blocks " + (filter.id ? " where id = $id " : "") + (filter.lastId ? " where height > (SELECT height FROM blocks where id = $lastId) " : "") + " limit $limit) as b " +
-		"left outer join trs as t on t.blockId=b.id " +
-		"left outer join delegates as d on d.transactionId=t.id " +
-		"left outer join votes as v on v.transactionId=t.id " +
-		"left outer join signatures as s on s.transactionId=t.id " +
-		"left outer join contacts as c on c.transactionId=t.id " +
-		"left outer join usernames as u on u.transactionId=t.id " +
-		"left outer join multisignatures as m on m.transactionId=t.id " +
-		"left outer join dapps as dapp on dapp.transactionId=t.id " +
-		"ORDER BY b.height, t.rowid" +
-		"", params, fields, cb);
+	library.dbSequence.add(function (cb) {
+		//	"FROM (select * from blocks " + (filter.id ? " where id = $id " : "") + (filter.lastId ? " where height > (SELECT height FROM blocks where id = $lastId) " : "") + " limit $limit) as b " +
+
+		library.dbLite.query("SELECT height FROM blocks where id = $lastId", {
+			lastId: filter.lastId || null
+		}, ['height'], function (err, rows) {
+			if (err) {
+				return cb(err);
+			}
+
+			//(filter.lastId? " where height > (SELECT height FROM blocks where id = $lastId)" : "") +
+
+			var height = rows.length? rows[0].height : 0;
+			var realLimit = height + (filter.limit || 1);
+			params.limit = realLimit;
+			params.height = height;
+
+			var limitPart = "";
+
+			if (!filter.id && !filter.lastId) {
+				limitPart = "where b.height < $limit ";
+			}
+
+			library.dbLite[method]("SELECT " +
+				"b.id, b.version, b.timestamp, b.height, b.previousBlock, b.numberOfTransactions, b.totalAmount, b.totalFee, b.payloadLength, lower(hex(b.payloadHash)), lower(hex(b.generatorPublicKey)), lower(hex(b.blockSignature)), " +
+				"t.id, t.type, t.timestamp, lower(hex(t.senderPublicKey)), t.senderId, t.recipientId, t.senderUsername, t.recipientUsername, t.amount, t.fee, lower(hex(t.signature)), lower(hex(t.signSignature)), t.multisignatures, " +
+				"lower(hex(s.publicKey)), " +
+				"d.username, " +
+				"v.votes, " +
+				"c.address, " +
+				"u.username, " +
+				"m.min, m.lifetime, m.dependence, m.signatures, " +
+				"dapp.name, dapp.description, dapp.tags, dapp.type, dapp.siaAscii, dapp.siaIcon, dapp.git, dapp.category, dapp.icon " +
+				"FROM blocks b " +
+				"left outer join trs as t on t.blockId=b.id " +
+				"left outer join delegates as d on d.transactionId=t.id " +
+				"left outer join votes as v on v.transactionId=t.id " +
+				"left outer join signatures as s on s.transactionId=t.id " +
+				"left outer join contacts as c on c.transactionId=t.id " +
+				"left outer join usernames as u on u.transactionId=t.id " +
+				"left outer join multisignatures as m on m.transactionId=t.id " +
+				"left outer join dapps as dapp on dapp.transactionId=t.id " +
+				(filter.id ? " where id = $id " : "") + (filter.lastId ? " where b.height > $height and b.height < $limit " : "") +
+				limitPart +
+				"ORDER BY b.height, t.rowid" +
+				"", params, fields, cb);
+		});
+
+	}, cb);
 };
 
 Blocks.prototype.loadBlocksPart = function (filter, cb) {
