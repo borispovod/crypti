@@ -222,7 +222,8 @@ private.attachApi = function () {
 	router.map(shared, {
 		"get /pending": "pending", // get pendings transactions
 		"post /sign": "sign", // sign transaction
-		"put /": "addMultisignature" // enable
+		"put /": "addMultisignature", // enable
+		"get /accounts": "getAccounts"
 	});
 
 	router.use(function (req, res, next) {
@@ -247,11 +248,61 @@ Multisignatures.prototype.onBind = function (scope) {
 	modules = scope;
 }
 
+shared.getAccounts = function (req, cb) {
+	var query = req.body;
+
+	library.scheme.validate(query, {
+		type: "object",
+		properties: {
+			publicKey: {
+				type: "string",
+				format: "publicKey"
+			}
+		}
+	}, function (err) {
+		if (err) {
+			return cb(err[0].message);
+		}
+
+		library.dbLite.query("select GROUP_CONCAT(accountId) from mem_accounts2multisignatures where dependentId = $publicKey", {
+			publicKey: query.publicKey
+		}, ['accountId'], function (err, rows) {
+			if (err) {
+				library.logger.error(err.toString());
+				return cb("Internal sql error");
+			}
+
+			var addresses = rows.map(function (item) {
+				return item.accountId;
+			});
+
+			modules.accounts.getAccounts({
+				address: {$in: addresses},
+				sort: 'balance'
+			}, ['address', 'balance'], function (err, rows) {
+				if (err) {
+					library.logger.error(err);
+					return cb("Internal sql error");
+				}
+
+				return cb(null, {accounts: rows});
+			});
+		});
+	});
+}
+
 //shared
 shared.pending = function (req, cb) {
 	var query = req.body;
 	library.scheme.validate(query, {
-		publicKey: "hex!"
+		type: "object",
+		properties: {
+			publicKey: {
+				type: "string",
+				format: "publicKey"
+			}
+		},
+		required: ['publicKey']
 	}, function (err) {
 		if (err) {
 			return cb(err[0].message);
@@ -261,10 +312,6 @@ shared.pending = function (req, cb) {
 
 		var pendings = [];
 		async.forEach(transactions, function (item, cb) {
-			if (item.type != TransactionTypes.MULTI) {
-				return setImmediate(cb);
-			}
-
 			var signature = item.signatures.find(function (signature) {
 				return signature.publicKey == query.publicKey;
 			});
