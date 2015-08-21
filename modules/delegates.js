@@ -668,7 +668,7 @@ shared.getDelegate = function (req, cb) {
 			return cb(err[0].message);
 		}
 
-		var filter = {};
+		var filter = {isDelegate: 1};
 		if (query.transactionId) {
 			filter.transactionId = query.transactionId;
 		}
@@ -687,6 +687,7 @@ shared.getDelegate = function (req, cb) {
 			var delegate = delegates[0];
 			var stat = modules.delegates.getStats();
 
+			console.log('here');
 			delegate.vote = stat.votes[delegate.publicKey];
 			delegate.rate = stat.rates[delegate.publicKey];
 			delegate.productivity = stat.productivities[delegate.publicKey];
