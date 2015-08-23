@@ -457,6 +457,7 @@ shared.sign = function (req, cb) {
 
 			transaction.signatures = transaction.signatures || [];
 			transaction.signatures.push(sign);
+
 			cb();
 		}, function (err) {
 			if (err) {

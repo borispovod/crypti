@@ -223,6 +223,31 @@ private.loadBlocks = function (lastBlock, cb) {
 	});
 }
 
+private.loadSignatures = function (cb) {
+	modules.transport.getFromRandomPeer({
+		api: '/signatures',
+		method: 'GET'
+	}, function (err, data) {
+		if (err) {
+			return cb();
+		}
+
+		library.scheme.validate(data.body.signatures, {
+			type: "array",
+			required: true,
+			uniqueItems: true
+		}, function (err) {
+			if (err) {
+				return cb();
+			}
+
+			async.eachSeries(data.body.signatures, function (signature, cb) {
+				modules.multisignatures.processSignature(signature, cb);
+			}, cb);
+		});
+	});
+}
+
 private.loadUnconfirmedTransactions = function (cb) {
 	modules.transport.getFromRandomPeer({
 		api: '/transactions',
@@ -335,6 +360,16 @@ Loader.prototype.onPeerReady = function () {
 			err && library.logger.error('loadUnconfirmedTransactions timer', err);
 
 			setTimeout(nextLoadUnconfirmedTransactions, 14 * 1000)
+		})
+	});
+
+	setImmediate(function nextLoadSignatures() {
+		library.sequence.add(function (cb) {
+			private.loadSignatures(cb);
+		}, function (err) {
+			err && library.logger.error('loadSignatures timer', err);
+
+			setTimeout(nextLoadSignatures, 14 * 1000)
 		})
 	});
 }

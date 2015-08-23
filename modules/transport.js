@@ -270,7 +270,7 @@ private.attachApi = function () {
 				return res.status(200).json({success: false, error: "Validation error"});
 			}
 
-			modules.transactions.processSignature(signature, function (err) {
+			modules.multisignatures.processSignature(signature, function (err) {
 				if (err) {
 					return res.status(200).json({success: false, error: "Process signature error"});
 				} else {
@@ -572,6 +572,13 @@ Transport.prototype.onBind = function (scope) {
 
 Transport.prototype.onBlockchainReady = function () {
 	private.loaded = true;
+}
+
+Transport.prototype.onSignature = function (signature, broadcast) {
+	if (broadcast) {
+		self.broadcast({limit: 100}, {api: '/signatures', data: {signature: signature}, method: "POST"});
+		library.network.io.sockets.emit('signature/change', {});
+	}
 }
 
 Transport.prototype.onUnconfirmedTransaction = function (transaction, broadcast) {
