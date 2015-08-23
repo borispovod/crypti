@@ -347,18 +347,39 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 			return done(err);
 		}
 
-		library.logic.transaction.process(transaction, sender, function (err, transaction) {
-			if (err) {
-				return done(err);
-			}
+		if (transaction.requesterPublicKey && sender.multisignatures && sender.multisignatures.length) {
+			modules.accounts.getAccount({publicKey: transaction.requesterPublicKey}, function (err, requester) {
+				if (err) {
+					return done(err);
+				}
 
-			// check in confirmed transactions
-			if (private.unconfirmedTransactionsIdIndex[transaction.id] !== undefined || private.doubleSpendingTransactions[transaction.id]) {
-				return cb("This transaction already exists");
-			}
+				library.logic.transaction.process(transaction, sender, requester, function (err, transaction) {
+					if (err) {
+						return done(err);
+					}
 
-			library.logic.transaction.verify(transaction, sender, done);
-		});
+					// check in confirmed transactions
+					if (private.unconfirmedTransactionsIdIndex[transaction.id] !== undefined || private.doubleSpendingTransactions[transaction.id]) {
+						return cb("This transaction already exists");
+					}
+
+					library.logic.transaction.verify(transaction, sender, done);
+				});
+			});
+		} else {
+			library.logic.transaction.process(transaction, sender, function (err, transaction) {
+				if (err) {
+					return done(err);
+				}
+
+				// check in confirmed transactions
+				if (private.unconfirmedTransactionsIdIndex[transaction.id] !== undefined || private.doubleSpendingTransactions[transaction.id]) {
+					return cb("This transaction already exists");
+				}
+
+				library.logic.transaction.verify(transaction, sender, done);
+			});
+		}
 	});
 }
 
@@ -412,10 +433,25 @@ Transactions.prototype.applyUnconfirmed = function (transaction, cb) {
 		if (err) {
 			return cb(err);
 		}
+
 		if (!sender && transaction.blockId != genesisblock.block.id) {
 			return cb('Failed account: ' + transaction.id);
 		} else {
-			library.logic.transaction.applyUnconfirmed(transaction, sender, cb);
+			if (transaction.requesterPublicKey) {
+				modules.accounts.getAccount({publicKey: transaction.requesterPublicKey}, function (err, requester) {
+					if (err) {
+						return cb(err);
+					}
+
+					if (!requester) {
+						return cb('Failed requester: ' + transaction.id);
+					}
+
+					library.logic.transaction.applyUnconfirmed(transaction, sender, requester, cb);
+				});
+			} else {
+				library.logic.transaction.applyUnconfirmed(transaction, sender, cb);
+			}
 		}
 	});
 }
@@ -695,28 +731,46 @@ shared.addTransactions = function (req, cb) {
 							return cb("This account don't added to multisignature");
 						}
 
-						var secondKeypair = null;
+						modules.accounts.getAccount({publicKey: keypair.publicKey}, function (err, requester) {
+							if (err) {
+								return cb(err.toString());
+							}
 
-						if (account.secondSignature) {
-							var secondHash = crypto.createHash('sha256').update(body.secondSecret, 'utf8').digest();
-							secondKeypair = ed.MakeKeypair(secondHash);
-						}
+							if (!requester || !requester.publicKey) {
+								return cb(errorCode("COMMON.OPEN_ACCOUNT"));
+							}
 
-						try {
-							var transaction = library.logic.transaction.create({
-								type: TransactionTypes.SEND,
-								amount: body.amount,
-								sender: account,
-								recipientId: recipientId,
-								recipientUsername: recipientUsername,
-								keypair: keypair,
-								requester: keypair,
-								secondKeypair: secondKeypair
-							});
-						} catch (e) {
-							return cb(e.toString());
-						}
-						modules.transactions.receiveTransactions([transaction], cb);
+							if (requester.secondSignature && !body.secondSecret) {
+								return cb(errorCode("COMMON.SECOND_SECRET_KEY"));
+							}
+
+							if (requester.publicKey == account.publicKey) {
+								return cb("Incorrect requester");
+							}
+
+							var secondKeypair = null;
+
+							if (requester.secondSignature) {
+								var secondHash = crypto.createHash('sha256').update(body.secondSecret, 'utf8').digest();
+								secondKeypair = ed.MakeKeypair(secondHash);
+							}
+
+							try {
+								var transaction = library.logic.transaction.create({
+									type: TransactionTypes.SEND,
+									amount: body.amount,
+									sender: account,
+									recipientId: recipientId,
+									recipientUsername: recipientUsername,
+									keypair: keypair,
+									requester: keypair,
+									secondKeypair: secondKeypair
+								});
+							} catch (e) {
+								return cb(e.toString());
+							}
+							modules.transactions.receiveTransactions([transaction], cb);
+						});
 					});
 				} else {
 					modules.accounts.getAccount({publicKey: keypair.publicKey.toString('hex')}, function (err, account) {

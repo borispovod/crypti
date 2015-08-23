@@ -62,7 +62,7 @@ function Multisignature() {
 							if (trs.asset.multisignature.keysgroup[s][0] != '-' && trs.asset.multisignature.keysgroup[s][0] != '+') {
 								verify = false;
 							} else {
-								verify = library.logic.transaction.verifySecondSignature(trs, trs.asset.multisignature.keysgroup[s].substring(1), trs.signatures[d]);
+								verify = library.logic.transaction.verifySignature(trs, trs.asset.multisignature.keysgroup[s].substring(1), trs.signatures[d]);
 							}
 						}
 					}
@@ -117,7 +117,25 @@ function Multisignature() {
 			multisignatures: trs.asset.multisignature.keysgroup,
 			multimin: trs.asset.multisignature.min,
 			multilifetime: trs.asset.multisignature.lifetime
-		}, cb);
+		}, function (err) {
+			if (err) {
+				return cb(err);
+			}
+
+			// get public keys
+			async.eachSeries(trs.asset.multisignature.keysgroup, function (item, cb) {
+				var key = item.substring(1);
+				var address = modules.accounts.generateAddressByPublicKey(key);
+
+				// create accounts
+				modules.accounts.setAccountAndGet({
+					address: address,
+					publicKey: key
+				}, function (err) {
+					cb(err);
+				})
+			},cb);
+		});
 	}
 
 	this.undo = function (trs, sender, cb) {
@@ -394,7 +412,7 @@ Multisignatures.prototype.processSignature = function (tx, cb) {
 		try {
 			for (var i = 0; i < transaction.asset.multisignature.keysgroup && !verify; i++) {
 				var key = transaction.asset.multisignature.keysgroup[i].substring(1);
-				verify = library.logic.transaction.verifySecondSignature(transaction, key, tx.signature);
+				verify = library.logic.transaction.verifySignature(transaction, key, tx.signature);
 			}
 		} catch (e) {
 			return cb("Failed to signature verification");
@@ -484,7 +502,7 @@ shared.sign = function (req, cb) {
 			}
 		}
 
-		var sign = library.logic.transaction.sign(keypair, transaction);
+		var sign = library.logic.transaction.multisign(keypair, transaction);
 
 		function done(cb) {
 			library.sequence.add(function (cb) {
@@ -533,7 +551,7 @@ shared.sign = function (req, cb) {
 					}
 				}
 
-				if (transaction.signatures && transaction.signatures.indexOf(sign.toString('hex')) != -1) {
+				if (transaction.signatures && transaction.signatures.indexOf(sign) != -1) {
 					return cb(errorCode("MULTISIGNATURES.SIGN_NOT_ALLOWED", transaction));
 				}
 

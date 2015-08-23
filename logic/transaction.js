@@ -73,6 +73,12 @@ Transaction.prototype.sign = function (keypair, trs) {
 	return ed.Sign(hash, keypair).toString('hex');
 }
 
+Transaction.prototype.multisign = function (keypair, trs) {
+	var bytes = this.getBytes(trs, true, true);
+	var hash = crypto.createHash('sha256').update(bytes).digest();
+	return ed.Sign(hash, keypair).toString('hex');
+}
+
 Transaction.prototype.getId = function (trs) {
 	var hash = this.getHash(trs);
 	var temp = new Buffer(8);
@@ -167,7 +173,11 @@ Transaction.prototype.ready = function (trs, sender) {
 	return private.types[trs.type].ready.call(this, trs, sender);
 }
 
-Transaction.prototype.process = function (trs, sender, cb) {
+Transaction.prototype.process = function (trs, sender, requester, cb) {
+	if (typeof requester === 'function') {
+		cb = requester;
+	}
+
 	if (!private.types[trs.type]) {
 		return setImmediate(cb, 'Unknown transaction type ' + trs.type);
 	}
@@ -236,7 +246,11 @@ Transaction.prototype.process = function (trs, sender, cb) {
 	}.bind(this));
 }
 
-Transaction.prototype.verify = function (trs, sender, cb) { //inheritance
+Transaction.prototype.verify = function (trs, sender, requester, cb) { //inheritance
+	if (typeof requester === 'function') {
+		cb = requester;
+	}
+
 	if (!private.types[trs.type]) {
 		return setImmediate(cb, 'Unknown transaction type ' + trs.type);
 	}
@@ -280,9 +294,18 @@ Transaction.prototype.verify = function (trs, sender, cb) { //inheritance
 	}
 
 	//verify second signature
-	if (sender.secondSignature) {
+	if (!trs.requesterPublicKey && sender.secondSignature) {
 		try {
 			var valid = this.verifySecondSignature(trs, sender.secondPublicKey, trs.signSignature);
+		} catch (e) {
+			return setImmediate(cb, e.toString());
+		}
+		if (!valid) {
+			return setImmediate(cb, "Can't verify second signature: " + trs.id);
+		}
+	} else if (trs.requesterPublicKey && requester.secondSignature) {
+		try {
+			var valid = this.verifySecondSignature(trs, requester.secondPublicKey, trs.signSignature);
 		} catch (e) {
 			return setImmediate(cb, e.toString());
 		}
@@ -318,7 +341,7 @@ Transaction.prototype.verify = function (trs, sender, cb) { //inheritance
 
 		if (trs.signatures) {
 			for (var d = 0; d < trs.signatures.length && !verify; d++) {
-				if (this.verifySecondSignature(trs, multisignatures[s], trs.signatures[d])) {
+				if (this.verifySignature(trs, multisignatures[s], trs.signatures[d])) {
 					verify = true;
 				}
 			}
@@ -460,16 +483,28 @@ Transaction.prototype.undo = function (trs, sender, cb) {
 	}.bind(this));
 }
 
-Transaction.prototype.applyUnconfirmed = function (trs, sender, cb) {
+Transaction.prototype.applyUnconfirmed = function (trs, sender, requester, cb) {
+	if (typeof requester === 'function') {
+		cb = requester;
+	}
+
 	if (!private.types[trs.type]) {
 		return setImmediate(cb, 'Unknown transaction type ' + trs.type);
 	}
 
-	if (sender.secondSignature && !trs.signSignature) {
+	if (!trs.requesterPublicKey && sender.secondSignature && !trs.signSignature) {
 		return setImmediate(cb, 'Failed second signature: ' + trs.id);
 	}
 
-	if (!sender.secondSignature && (trs.signSignature && trs.signSignature.length > 0)) {
+	if (!trs.requesterPublicKey && !sender.secondSignature && (trs.signSignature && trs.signSignature.length > 0)) {
+		return setImmediate(cb, "Account doesn't have second signature");
+	}
+
+	if (trs.requesterPublicKey && requester.secondSignature && !trs.signSignature) {
+		return setImmediate(cb, 'Failed second signature: ' + trs.id);
+	}
+
+	if (trs.requesterPublicKey && !requester.secondSignature && (trs.signSignature && trs.signSignature.length > 0)) {
 		return setImmediate(cb, "Account doesn't have second signature");
 	}
 
@@ -527,16 +562,18 @@ Transaction.prototype.dbSave = function (trs, cb) {
 		var senderPublicKey = new Buffer(trs.senderPublicKey, 'hex');
 		var signature = new Buffer(trs.signature, 'hex');
 		var signSignature = trs.signSignature ? new Buffer(trs.signSignature, 'hex') : null;
+		var requesterPublicKey = trs.requesterPublicKey ? new Buffer(trs.requesterPublicKey, 'hex') : null;
 	} catch (e) {
 		return cb(e.toString())
 	}
 
-	this.scope.dbLite.query("INSERT INTO trs(id, blockId, type, timestamp, senderPublicKey, senderId, recipientId, senderUsername, recipientUsername, amount, fee, signature, signSignature, signatures) VALUES($id, $blockId, $type, $timestamp, $senderPublicKey, $senderId, $recipientId, $senderUsername, $recipientUsername, $amount, $fee, $signature, $signSignature, $signatures)", {
+	this.scope.dbLite.query("INSERT INTO trs(id, blockId, type, timestamp, senderPublicKey, requesterPublicKey, senderId, recipientId, senderUsername, recipientUsername, amount, fee, signature, signSignature, signatures) VALUES($id, $blockId, $type, $timestamp, $senderPublicKey, $requesterPublicKey, $senderId, $recipientId, $senderUsername, $recipientUsername, $amount, $fee, $signature, $signSignature, $signatures)", {
 		id: trs.id,
 		blockId: trs.blockId,
 		type: trs.type,
 		timestamp: trs.timestamp,
 		senderPublicKey: senderPublicKey,
+		requesterPublicKey: requesterPublicKey,
 		senderId: trs.senderId,
 		recipientId: trs.recipientId || null,
 		senderUsername: trs.senderUsername || null,
