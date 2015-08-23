@@ -363,6 +363,7 @@ private.loadMyDelegates = function (cb) {
 			if (err) {
 				return cb(err);
 			}
+
 			if (account.isDelegate) {
 				private.keypairs[keypair.publicKey.toString('hex')] = keypair;
 				library.logger.info("Forging enabled on account: " + account.address);
@@ -687,7 +688,6 @@ shared.getDelegate = function (req, cb) {
 			var delegate = delegates[0];
 			var stat = modules.delegates.getStats();
 
-			console.log('here');
 			delegate.vote = stat.votes[delegate.publicKey];
 			delegate.rate = stat.rates[delegate.publicKey];
 			delegate.productivity = stat.productivities[delegate.publicKey];
@@ -740,20 +740,7 @@ shared.getVoters = function (req, cb) {
 
 				return cb(null, {delegates: rows});
 			});
-		})
-		//select GROUP_CONCAT(accountId) from mem_accounts2delegates where dependentId =
-		/*
-		modules.accounts.getAccounts({
-			isDelegate: 1,
-			address: address
-		}, ["delegates"], function (err, delegates) {
-			if (err) {
-				return cb(err[0].message);
-			}
-
-			return cb(null, {delegates: delegates});
 		});
-		*/
 	});
 }
 

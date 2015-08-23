@@ -346,13 +346,13 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 			return done(err);
 		}
 
-		if (!library.logic.transaction.ready(transaction, sender)) {
-			return done();
-		}
-
 		library.logic.transaction.process(transaction, sender, function (err, transaction) {
 			if (err) {
 				return done(err);
+			}
+
+			if (!library.logic.transaction.ready(transaction, sender)) {
+				return done();
 			}
 
 			// check in confirmed transactions

@@ -22,13 +22,13 @@ private.lastBlock = {};
 // @formatter:off
 private.blocksDataFields = {
 	'b_id': String, 'b_version': String, 'b_timestamp': Number, 'b_height': Number, 'b_previousBlock': String, 'b_numberOfTransactions': String, 'b_totalAmount': String, 'b_totalFee': String, 'b_payloadLength': String, 'b_payloadHash': String, 'b_generatorPublicKey': String, 'b_blockSignature': String,
-	't_id': String, 't_type': Number, 't_timestamp': Number, 't_senderPublicKey': String, 't_senderId': String, 't_recipientId': String, 't_senderUsername': String, 't_recipientUsername': String, 't_amount': String, 't_fee': String, 't_signature': String, 't_signSignature': String, 't_multisignatures': String,
+	't_id': String, 't_type': Number, 't_timestamp': Number, 't_senderPublicKey': String, 't_requesterPublicKey': String, 't_senderId': String, 't_recipientId': String, 't_senderUsername': String, 't_recipientUsername': String, 't_amount': String, 't_fee': String, 't_signature': String, 't_signSignature': String, 't_signatures': String,
 	's_publicKey': String,
 	'd_username': String,
 	'v_votes': String,
 	'c_address': String,
 	'u_alias': String,
-	'm_min': Number, 'm_lifetime': Number, 'm_dependence': String, 'm_signatures': String,
+	'm_min': Number, 'm_lifetime': Number, 'm_keysgroup': String,
 	'dapp_name': String, 'dapp_description': String, 'dapp_tags': String, 'dapp_type': Number, 'dapp_siaAscii': String, 'dapp_siaIcon': String, 'dapp_git': String, 'dapp_category': Number, 'dapp_icon': String
 };
 // @formatter:on
@@ -197,8 +197,6 @@ private.list = function (filter, cb) {
 			"where " + (fields.length ? fields.join(' and ') : '') + (fields.length? " and " : "") + " b.height >= $offset and b.height <= $limit " +
 			(filter.orderBy ? 'order by ' + sortBy + ' ' + sortMethod : ''), params, ['b_id', 'b_version', 'b_timestamp', 'b_height', 'b_previousBlock', 'b_numberOfTransactions', 'b_totalAmount', 'b_totalFee', 'b_payloadLength', 'b_payloadHash', 'b_generatorPublicKey', 'b_blockSignature', 'b_confirmations'], function (err, rows) {
 			if (err) {
-				console.log('here');
-				console.log(err);
 				return cb(err);
 			}
 
@@ -486,13 +484,13 @@ Blocks.prototype.loadBlocksData = function (filter, options, cb) {
 
 			library.dbLite[method]("SELECT " +
 				"b.id, b.version, b.timestamp, b.height, b.previousBlock, b.numberOfTransactions, b.totalAmount, b.totalFee, b.payloadLength, lower(hex(b.payloadHash)), lower(hex(b.generatorPublicKey)), lower(hex(b.blockSignature)), " +
-				"t.id, t.type, t.timestamp, lower(hex(t.senderPublicKey)), t.senderId, t.recipientId, t.senderUsername, t.recipientUsername, t.amount, t.fee, lower(hex(t.signature)), lower(hex(t.signSignature)), t.multisignatures, " +
+				"t.id, t.type, t.timestamp, lower(hex(t.senderPublicKey)), lower(hex(t.requesterPublicKey)), t.senderId, t.recipientId, t.senderUsername, t.recipientUsername, t.amount, t.fee, lower(hex(t.signature)), lower(hex(t.signSignature)), t.signatures, " +
 				"lower(hex(s.publicKey)), " +
 				"d.username, " +
 				"v.votes, " +
 				"c.address, " +
 				"u.username, " +
-				"m.min, m.lifetime, m.dependence, m.signatures, " +
+				"m.min, m.lifetime, m.keysgroup, " +
 				"dapp.name, dapp.description, dapp.tags, dapp.type, dapp.siaAscii, dapp.siaIcon, dapp.git, dapp.category, dapp.icon " +
 				"FROM blocks b " +
 				"left outer join trs as t on t.blockId=b.id " +
@@ -537,13 +535,13 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 	library.dbSequence.add(function (cb) {
 		library.dbLite.query("SELECT " +
 			"b.id, b.version, b.timestamp, b.height, b.previousBlock, b.numberOfTransactions, b.totalAmount, b.totalFee, b.payloadLength, lower(hex(b.payloadHash)), lower(hex(b.generatorPublicKey)), lower(hex(b.blockSignature)), " +
-			"t.id, t.type, t.timestamp, lower(hex(t.senderPublicKey)), t.senderId, t.recipientId, t.senderUsername, t.recipientUsername, t.amount, t.fee, lower(hex(t.signature)), lower(hex(t.signSignature)), t.multisignatures, " +
+			"t.id, t.type, t.timestamp, lower(hex(t.senderPublicKey)), lower(hex(t.requesterPublicKey)), t.senderId, t.recipientId, t.senderUsername, t.recipientUsername, t.amount, t.fee, lower(hex(t.signature)), lower(hex(t.signSignature)), t.signatures, " +
 			"lower(hex(s.publicKey)), " +
 			"d.username, " +
 			"v.votes, " +
 			"c.address, " +
 			"u.username, " +
-			"m.min, m.lifetime, m.dependence, m.signatures, " +
+			"m.min, m.lifetime, m.keysgroup, " +
 			"dapp.name, dapp.description, dapp.tags, dapp.type, dapp.siaAscii, dapp.siaIcon, dapp.git, dapp.category, dapp.icon " +
 			"FROM blocks b " +
 			"left outer join trs as t on t.blockId=b.id " +
@@ -829,15 +827,15 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 				}
 
 				if (errors.length > 0) {
-					for (var i = 0; i < block.transactions.length; i++) {
-						var transaction = block.transactions[i];
-
+					async.eachSeries(block.transactions, function (transaction, cb) {
 						if (appliedTransactions[transaction.id]) {
-							modules.transactions.undoUnconfirmed(transaction, function () {
-								setImmediate(done, errors[0]);
-							});
+							modules.transactions.undoUnconfirmed(transaction, cb);
+						} else {
+							setImmediate(cb);
 						}
-					}
+					}, function () {
+						done(errors[0]);
+					});
 				} else {
 					try {
 						block = library.logic.block.objectNormalize(block);

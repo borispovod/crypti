@@ -16,6 +16,7 @@ var ed = require('ed25519'),
 
 // private fields
 var modules, library, self, private = {}, shared = {};
+private.unconfirmedSignatures = {};
 
 function Multisignature() {
 	this.create = function (data, trs) {
@@ -43,12 +44,12 @@ function Multisignature() {
 			return setImmediate(cb, "Wrong transaction asset for multisignature transaction: " + trs.id);
 		}
 
-		if (!trs.asset.multisignature.min < 1 || trs.asset.multisignature.min > 10) {
-			return setImmediate(cb, "Wrong transaction asset for multisignature transaction: " + trs.id);
+		if (trs.asset.multisignature.min < 1 || trs.asset.multisignature.min > 16) {
+			return setImmediate(cb, "Wrong transaction asset min for multisignature transaction: " + trs.id);
 		}
 
 		if (trs.asset.multisignature.lifetime < 1 || trs.asset.multisignature.lifetime > 72) {
-			return setImmediate(cb, "Wrong transaction asset for multisignature transaction: " + trs.id);
+			return setImmediate(cb, "Wrong transaction asset lifetime for multisignature transaction: " + trs.id);
 		}
 
 		try {
@@ -56,17 +57,19 @@ function Multisignature() {
 				var verify = false;
 				if (trs.signatures) {
 					for (var d = 0; d < trs.signatures.length && !verify; d++) {
-						if (library.logic.transaction.verifySignature(trs, sender.multisignatures[s], trs.signatures[d])) {
-							verify = true;
+						if (trs.asset.multisignature.keysgroup[s][0] != '-' && trs.asset.multisignature.keysgroup[s][0] != '+') {
+							verify = false;
+						} else {
+							verify = library.logic.transaction.verifySecondSignature(trs, trs.asset.multisignature.keysgroup[s], trs.signatures[d]);
 						}
 					}
 				}
 				if (!verify) {
-					return setImmediate(cb, "Failed multisignature: " + trs.id);
+					return setImmediate(cb, "Failed multisignature verification: " + trs.id);
 				}
 			}
 		} catch (e) {
-			return setImmediate(cb, "Failed multisignature: " + trs.id);
+			return setImmediate(cb, "Failed multisignature exception: " + trs.id);
 		}
 
 		if (trs.asset.multisignature.keysgroup.indexOf(sender.publicKey) != -1) {
@@ -104,6 +107,8 @@ function Multisignature() {
 	}
 
 	this.apply = function (trs, sender, cb) {
+		private.unconfirmedSignatures[sender.address] = false;
+
 		this.scope.account.merge(sender.address, {
 			multisignatures: trs.asset.multisignature.keysgroup,
 			multimin: trs.asset.multisignature.min,
@@ -114,6 +119,7 @@ function Multisignature() {
 	this.undo = function (trs, sender, cb) {
 		var multiInvert = Diff.reverse(trs.asset.multisignature.keysgroup);
 
+		private.unconfirmedSignatures[sender.address] = true;
 		this.scope.account.merge(sender.address, {
 			multisignatures: multiInvert,
 			multimin: -trs.asset.multisignature.min,
@@ -122,16 +128,29 @@ function Multisignature() {
 	}
 
 	this.applyUnconfirmed = function (trs, sender, cb) {
+		if (private.unconfirmedSignatures[sender.address]) {
+			return setImmediate(cb, "Signature on this account wait for confirmation");
+		}
+
+		if (sender.multisignatures.length) {
+			return setImmediate(cb, "This account already have multisignature");
+		}
+
+		private.unconfirmedSignatures[sender.address] = true;
+
 		this.scope.account.merge(sender.address, {
 			u_multisignatures: trs.asset.multisignature.keysgroup,
 			u_multimin: trs.asset.multisignature.min,
 			u_multilifetime: trs.asset.multisignature.lifetime
-		}, cb);
+		}, function (err) {
+			cb();
+		});
 	}
 
 	this.undoUnconfirmed = function (trs, sender, cb) {
 		var multiInvert = Diff.reverse(trs.asset.multisignature.keysgroup);
 
+		private.unconfirmedSignatures[sender.address] = false;
 		this.scope.account.merge(sender.address, {
 			u_multisignatures: multiInvert,
 			u_multimin: -trs.asset.multisignature.min,
@@ -140,31 +159,37 @@ function Multisignature() {
 	}
 
 	this.objectNormalize = function (trs) {
-		var report = RequestSanitizer.validate(trs.asset.multisignature, {
-			object: true,
+		var report = library.scheme.validate(trs.asset.multisignature, {
+			type: "object",
 			properties: {
-				min: "int!",
-				dependence: {
-					required: true,
-					array: true,
+				min: {
+					type: "integer",
+					minimum: 2,
+					maximum: 16
+				},
+				keysgroup: {
+					type: "array",
 					minLength: 2,
 					maxLength: 10
 				},
-				lifetime: "int!"
-			}
+				lifetime: {
+					type: "integer",
+					minimum: 1,
+					maximum: 24
+				}
+			},
+			required: ['min', 'keysgroup', 'lifetime']
 		});
 
-		if (!report.isValid) {
-			throw Error(report.issues);
+		if (!report) {
+			throw Error(report.getLastError());
 		}
-
-		trs.asset.multisignature = report.value;
 
 		return trs;
 	}
 
 	this.dbRead = function (raw) {
-		if (!raw.m_dependence) {
+		if (!raw.m_keysgroup) {
 			return null
 		} else {
 			var multisignature = {
@@ -334,9 +359,27 @@ shared.pending = function (req, cb) {
 shared.sign = function (req, cb) {
 	var body = req.body;
 	library.scheme.validate(body, {
-		secret: "string!",
-		publicKey: "hex?",
-		transactionId: "string!"
+		type: "object",
+		properties: {
+			secret: {
+				type: "string",
+				minLength: 1,
+				maxLength: 100
+			},
+			secondSecret: {
+				type: "string",
+				minLength: 1,
+				maxLength: 100
+			},
+			publicKey: {
+				type: "string",
+				format: "publicKey"
+			},
+			transactionId: {
+				type: "string"
+			}
+		},
+		required: ['transactionId', 'secret']
 	}, function (err) {
 		if (err) {
 			return cb(err[0].message);
@@ -358,7 +401,8 @@ shared.sign = function (req, cb) {
 		}
 
 		var sign = library.logic.transaction.sign(keypair, transaction);
-		if (transaction.type != TransactionTypes.MULTI || transaction.asset.multisignature.dependence.indexOf(keypair.publicKey.toString('hex')) == -1 || transaction.asset.multisignature.signatures.indexOf(sign) != -1) {
+
+		if (transaction.type != TransactionTypes.MULTI || transaction.asset.multisignature.keysgroup.indexOf("+" + keypair.publicKey.toString('hex')) == -1 || (transaction.asset.multisignature.signatures && transaction.asset.multisignature.signatures.indexOf(sign) != -1)) {
 			return cb(errorCode("MULTISIGNATURES.SIGN_NOT_ALLOWED", transaction));
 		}
 
@@ -392,17 +436,39 @@ shared.sign = function (req, cb) {
 shared.addMultisignature = function (req, cb) {
 	var body = req.body;
 	library.scheme.validate(body, {
-		secret: "string!",
-		publicKey: "hex?",
-		secondSecret: "string?",
-		min: "int!",
-		lifetime: "int!",
-		keysgroup: {
-			required: true,
-			array: true,
-			minLength: 1,
-			maxLength: 10
-		}
+		type: "object",
+		properties: {
+			secret: {
+				type: "string",
+				minLength: 1,
+				maxLength: 100
+			},
+			publicKey: {
+				type: "string",
+				format: "publicKey"
+			},
+			secondSecret: {
+				type: "string",
+				minLength: 1,
+				maxLength: 100
+			},
+			min: {
+				type: "integer",
+				minimum: 2,
+				maximum: 16
+			},
+			lifetime: {
+				type: "integer",
+				minimum: 1,
+				maximum: 24
+			},
+			keysgroup: {
+				type: "array",
+				minLength: 1,
+				maxLength: 10
+			}
+		},
+		required: ['min', 'lifetime', 'keysgroup', 'secret']
 	}, function (err) {
 		if (err) {
 			return cb(err[0].message);

@@ -686,16 +686,26 @@ Account.prototype.merge = function (address, diff, cb) {
 								delete val.action;
 								insert_object[value] = insert_object[value] || [];
 								insert_object[value].push(val)
+							} else {
+								delete val.action;
+								insert_object[value] = insert_object[value] || [];
+								insert_object[value].push(val)
 							}
 						}
 					} else {
 						for (var i = 0; i < trueValue.length; i++) {
 							var math = trueValue[i][0];
-							var val = trueValue[i].slice(1);
+							var val = null;
 							if (math == "-") {
+								val = trueValue[i].slice(1);
 								remove[value] = remove[value] || [];
 								remove[value].push(val);
 							} else if (math == "+") {
+								val = trueValue[i].slice(1);
+								insert[value] = insert[value] || [];
+								insert[value].push(val)
+							} else {
+								val = trueValue[i];
 								insert[value] = insert[value] || [];
 								insert[value].push(val)
 							}
@@ -801,6 +811,7 @@ Account.prototype.merge = function (address, diff, cb) {
 	if (sqles.length > 1) {
 		self.scope.dbLite.query('BEGIN TRANSACTION;');
 	}
+
 	async.eachSeries(sqles, function (sql, cb) {
 		self.scope.dbLite.query(sql.query, sql.values, function (err, data) {
 			cb(err, data);

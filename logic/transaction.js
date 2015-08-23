@@ -35,6 +35,7 @@ Transaction.prototype.create = function (data) {
 		type: data.type,
 		amount: 0,
 		senderPublicKey: data.sender.publicKey,
+		requesterPublicKey: data.requester? data.requester.publicKey : null,
 		timestamp: slots.getTime(),
 		asset: {}
 	};
@@ -97,13 +98,20 @@ Transaction.prototype.getBytes = function (trs, skipSignature, skipSecondSignatu
 		var assetBytes = private.types[trs.type].getBytes.call(this, trs, skipSignature, skipSecondSignature);
 		var assetSize = assetBytes ? assetBytes.length : 0;
 
-		var bb = new ByteBuffer(1 + 4 + 32 + 8 + 8 + 64 + 64 + assetSize, true);
+		var bb = new ByteBuffer(1 + 4 + 32 + 32 + 8 + 8 + 64 + 64 + assetSize, true);
 		bb.writeByte(trs.type);
 		bb.writeInt(trs.timestamp);
 
 		var senderPublicKeyBuffer = new Buffer(trs.senderPublicKey, 'hex');
 		for (var i = 0; i < senderPublicKeyBuffer.length; i++) {
 			bb.writeByte(senderPublicKeyBuffer[i]);
+		}
+
+		if (trs.requesterPublicKey) {
+			var requesterPublicKey = new Buffer(trs.requesterPublicKey, 'hex');
+			for (var i = 0; i < requesterPublicKey.length; i++) {
+				bb.writeByte(requesterPublicKey[i]);
+			}
 		}
 
 		if (trs.recipientId) {
@@ -165,9 +173,11 @@ Transaction.prototype.process = function (trs, sender, cb) {
 		return setImmediate(cb, 'Unknown transaction type ' + trs.type);
 	}
 
+	/*
 	if (!this.ready(trs, sender)) {
 		return setImmediate(cb, "Transaction is not ready: " + trs.id);
 	}
+	*/
 
 	try {
 		var txId = this.getId(trs);
@@ -186,8 +196,23 @@ Transaction.prototype.process = function (trs, sender, cb) {
 
 	trs.senderId = sender.address;
 
-	if (!this.verifySignature(trs, trs.senderPublicKey, trs.signature)) {
-		return setImmediate(cb, "Can't verify signature");
+
+	// verify that requester in multisignature
+	if (trs.requesterPublicKey) {
+		if (sender.multisignatures.indexOf(trs.requesterPublicKey) < 0) {
+			return setImmediate(cb, "Can't verify requester signature");
+		}
+	}
+
+	if (trs.requesterPublicKey) {
+		if (!this.verifySignature(trs.requesterPublicKey, trs.signature)) {
+			return setImmediate(cb, "Can't verify signature");
+		}
+	}
+	else {
+		if (!this.verifySignature(trs, trs.senderPublicKey, trs.signature)) {
+			return setImmediate(cb, "Can't verify signature");
+		}
 	}
 
 	private.types[trs.type].process.call(this, trs, sender, function (err, trs) {
@@ -225,9 +250,21 @@ Transaction.prototype.verify = function (trs, sender, cb) { //inheritance
 		return setImmediate(cb, "Can't find sender");
 	}
 
+	if (trs.requesterPublicKey) {
+		if (sender.multisignatures.indexOf(trs.requesterPublicKey) < 0) {
+			return setImmediate(cb, "Can't verify requester signature");
+		}
+	}
+
 	//verify signature
 	try {
-		var valid = this.verifySignature(trs, trs.senderPublicKey, trs.signature);
+		var valid = false;
+
+		if (trs.requesterPublicKey) {
+			valid = this.verifySignature(trs, trs.requesterPublicKey, trs.signature);
+		} else {
+			valid = this.verifySignature(trs, trs.senderPublicKey, trs.signature);
+		}
 	} catch (e) {
 		return setImmediate(cb, e.toString());
 	}
@@ -248,7 +285,7 @@ Transaction.prototype.verify = function (trs, sender, cb) { //inheritance
 	}
 
 	for (var s = 0; s < sender.multisignatures.length; s++) {
-		var verify = false;
+		verify = false;
 
 		if (trs.signatures) {
 			for (var d = 0; d < trs.signatures.length && !verify; d++) {
@@ -283,7 +320,9 @@ Transaction.prototype.verify = function (trs, sender, cb) { //inheritance
 	}
 
 	//spec
-	private.types[trs.type].verify.call(this, trs, sender, cb);
+	private.types[trs.type].verify.call(this, trs, sender, function (err) {
+		cb(err);
+	});
 }
 
 Transaction.prototype.verifySignature = function (trs, publicKey, signature) {
@@ -462,7 +501,7 @@ Transaction.prototype.dbSave = function (trs, cb) {
 		return cb(e.toString())
 	}
 
-	this.scope.dbLite.query("INSERT INTO trs(id, blockId, type, timestamp, senderPublicKey, senderId, recipientId, senderUsername, recipientUsername, amount, fee, signature, signSignature, multisignatures) VALUES($id, $blockId, $type, $timestamp, $senderPublicKey, $senderId, $recipientId, $senderUsername, $recipientUsername, $amount, $fee, $signature, $signSignature, $multisignatures)", {
+	this.scope.dbLite.query("INSERT INTO trs(id, blockId, type, timestamp, senderPublicKey, senderId, recipientId, senderUsername, recipientUsername, amount, fee, signature, signSignature, signatures) VALUES($id, $blockId, $type, $timestamp, $senderPublicKey, $senderId, $recipientId, $senderUsername, $recipientUsername, $amount, $fee, $signature, $signSignature, $signatures)", {
 		id: trs.id,
 		blockId: trs.blockId,
 		type: trs.type,
@@ -476,7 +515,7 @@ Transaction.prototype.dbSave = function (trs, cb) {
 		fee: trs.fee,
 		signature: signature,
 		signSignature: signSignature,
-		multisignatures: trs.signatures ? trs.signatures.join(',') : null
+		signatures: trs.signatures ? trs.signatures.join(',') : null
 	}, function (err) {
 		if (err) {
 			return cb(err);
@@ -492,28 +531,10 @@ Transaction.prototype.objectNormalize = function (trs) {
 		throw Error('Unknown transaction type ' + trs.type);
 	}
 
-	if (!trs.senderUsername) {
-		delete trs.senderUsername;
-	}
-
-	if (!trs.recipientUsername) {
-		delete trs.recipientUsername;
-	}
-
-	if (!trs.recipientId) {
-		delete trs.recipientId;
-	}
-
-	if (trs.signSignature == null) {
-		delete trs.signSignature;
-	}
-
-	if (trs.asset == null) {
-		delete trs.asset;
-	}
-
-	if (trs.height == null) {
-		delete trs.height;
+	for (var i in trs) {
+		if (trs[i] === null || typeof trs[i] === 'undefined') {
+			delete trs[i];
+		}
 	}
 
 	var report = this.scope.scheme.validate(trs, {
@@ -535,6 +556,10 @@ Transaction.prototype.objectNormalize = function (trs) {
 				type: "integer"
 			},
 			senderPublicKey: {
+				type: "string",
+				format: "publicKey"
+			},
+			requesterPublicKey: {
 				type: "string",
 				format: "publicKey"
 			},
@@ -599,6 +624,7 @@ Transaction.prototype.dbRead = function (raw) {
 			type: parseInt(raw.t_type),
 			timestamp: parseInt(raw.t_timestamp),
 			senderPublicKey: raw.t_senderPublicKey,
+			requesterPublicKey: raw.t_requesterPublicKey,
 			senderId: raw.t_senderId,
 			recipientId: raw.t_recipientId,
 			senderUsername: raw.t_senderUsername,
@@ -607,7 +633,7 @@ Transaction.prototype.dbRead = function (raw) {
 			fee: parseInt(raw.t_fee),
 			signature: raw.t_signature,
 			signSignature: raw.t_signSignature,
-			signatures: raw.t_multisignatures ? raw.t_multisignatures.split(',') : null,
+			signatures: raw.t_signatures ? raw.t_signatures.split(',') : null,
 			confirmations: raw.confirmations,
 			asset: {}
 		}
