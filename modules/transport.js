@@ -74,14 +74,13 @@ private.attachApi = function () {
 			if (err) return next(err);
 			if (!report.isValid) return res.status(500).send({status: false, error: report.issues});
 
-
 			var peer = {
 				ip: ip.toLong(peerIp),
-				port: private.headers.port,
+				port: headers.port,
 				state: 2,
-				os: private.headers.os,
-				sharePort: Number(private.headers['share-port']),
-				version: private.headers.version
+				os: headers.os,
+				sharePort: Number(headers['share-port']),
+				version: headers.version
 			};
 
 			if (req.body && req.body.dappid) {
@@ -239,6 +238,65 @@ private.attachApi = function () {
 		library.bus.message('receiveBlock', block);
 
 		res.sendStatus(200);
+	});
+
+	router.post('/signatures', function (req, res) {
+		res.set(private.headers);
+
+		library.scheme.validate(res.body, {
+			type: "object",
+			properties: {
+				signature: {
+					type: "object",
+					properties: {
+						transaction: {
+							type: "string"
+						},
+						signature: {
+							type: "string",
+							format: "signature"
+						},
+						publicKey: {
+							type: "string",
+							format: "publicKey"
+						}
+					},
+					required: ['transaction', 'signature']
+				}
+			},
+			required: ['signature']
+		}, function (err) {
+			if (err) {
+				return res.status(200).json({success: false, error: "Validation error"});
+			}
+
+			modules.transactions.processSignature(signature, function (err) {
+				if (err) {
+					return res.status(200).json({success: false, error: "Process signature error"});
+				} else {
+					return res.status(200).json({success: true});
+				}
+			});
+		});
+	});
+
+	router.get('/signatures', function (req, res) {
+		res.set(private.headers);
+
+		var unconfirmedList = modules.transactions.getUnconfirmedTransactionList();
+		var signatures = [];
+		async.eachSeries(unconfirmedList, function (trs, cb) {
+			if (trs.signatures && trs.signatures.length) {
+				signatures.push({
+					transaction: trs.id,
+					signatures: trs.signatures
+				})
+			}
+
+			setImmediate(cb);
+		}, function () {
+			return res.status(200).json({success: true, signatures: signatures});
+		});
 	});
 
 	router.get("/transactions", function (req, res) {

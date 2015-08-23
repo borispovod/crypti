@@ -325,6 +325,7 @@ Transaction.prototype.verify = function (trs, sender, cb) { //inheritance
 	});
 }
 
+
 Transaction.prototype.verifySignature = function (trs, publicKey, signature) {
 	if (!private.types[trs.type]) {
 		throw Error('Unknown transaction type ' + trs.type);
