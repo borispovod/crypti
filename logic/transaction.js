@@ -35,13 +35,12 @@ Transaction.prototype.create = function (data) {
 		type: data.type,
 		amount: 0,
 		senderPublicKey: data.sender.publicKey,
-		requesterPublicKey: data.requester? data.requester.publicKey : null,
+		requesterPublicKey: data.requester? data.requester.publicKey.toString('hex') : null,
 		timestamp: slots.getTime(),
 		asset: {}
 	};
 
 	trs = private.types[trs.type].create.call(this, data, trs);
-
 	trs.signature = this.sign(data.keypair, trs);
 
 	if (data.sender.secondSignature && data.secondKeypair) {
@@ -205,7 +204,7 @@ Transaction.prototype.process = function (trs, sender, cb) {
 	}
 
 	if (trs.requesterPublicKey) {
-		if (!this.verifySignature(trs.requesterPublicKey, trs.signature)) {
+		if (!this.verifySignature(trs, trs.requesterPublicKey, trs.signature)) {
 			return setImmediate(cb, "Can't verify signature");
 		}
 	}
@@ -214,6 +213,7 @@ Transaction.prototype.process = function (trs, sender, cb) {
 			return setImmediate(cb, "Can't verify signature");
 		}
 	}
+
 
 	private.types[trs.type].process.call(this, trs, sender, function (err, trs) {
 		if (err) {
@@ -241,9 +241,11 @@ Transaction.prototype.verify = function (trs, sender, cb) { //inheritance
 		return setImmediate(cb, 'Unknown transaction type ' + trs.type);
 	}
 
+	/*
 	if (!this.ready(trs, sender)) {
 		return setImmediate(cb, "Transaction is not ready: " + trs.id);
 	}
+	*/
 
 	//check sender
 	if (!sender) {
@@ -253,6 +255,10 @@ Transaction.prototype.verify = function (trs, sender, cb) { //inheritance
 	if (trs.requesterPublicKey) {
 		if (sender.multisignatures.indexOf(trs.requesterPublicKey) < 0) {
 			return setImmediate(cb, "Can't verify requester signature");
+		}
+
+		if (sender.publicKey != trs.senderPublicKey) {
+			return setImmediate(cb, "Incorrect sender public key");
 		}
 	}
 
@@ -268,6 +274,7 @@ Transaction.prototype.verify = function (trs, sender, cb) { //inheritance
 	} catch (e) {
 		return setImmediate(cb, e.toString());
 	}
+
 	if (!valid) {
 		return setImmediate(cb, "Can't verify signature");
 	}
@@ -284,19 +291,41 @@ Transaction.prototype.verify = function (trs, sender, cb) { //inheritance
 		}
 	}
 
-	for (var s = 0; s < sender.multisignatures.length; s++) {
+	// check that signatures unique
+	if (trs.signatures && trs.signatures.length) {
+		var signatures = trs.signatures.reduce(function (p, c) {
+			if (p.indexOf(c) < 0) p.push(c);
+			return p;
+		}, []);
+
+		if (signatures.length != trs.signatures.length) {
+			return setImmediate(cb, "Dublicates signatures");
+		}
+	}
+
+	var multisignatures = sender.multisignatures;
+
+	if (trs.requesterPublicKey) {
+		multisignatures.push(trs.senderPublicKey);
+	}
+
+	for (var s = 0; s < multisignatures.length; s++) {
 		verify = false;
+
+		if (trs.requesterPublicKey && multisignatures[s] == trs.requesterPublicKey) {
+			continue;
+		}
 
 		if (trs.signatures) {
 			for (var d = 0; d < trs.signatures.length && !verify; d++) {
-				if (this.verifySecondSignature(trs, sender.multisignatures[s], trs.signatures[d])) {
+				if (this.verifySecondSignature(trs, multisignatures[s], trs.signatures[d])) {
 					verify = true;
 				}
 			}
-		}
 
-		if (!verify) {
-			return setImmediate(cb, "Failed multisignature: " + trs.id);
+			if (!verify) {
+				return setImmediate(cb, "Failed multisignature: " + trs.id);
+			}
 		}
 	}
 

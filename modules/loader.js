@@ -242,7 +242,10 @@ private.loadSignatures = function (cb) {
 			}
 
 			async.eachSeries(data.body.signatures, function (signature, cb) {
-				modules.multisignatures.processSignature(signature, cb);
+				modules.multisignatures.processSignature(signature, function (err) {
+					// important!
+					setImmediate(cb);
+				});
 			}, cb);
 		});
 	});

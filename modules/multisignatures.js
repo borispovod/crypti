@@ -52,24 +52,28 @@ function Multisignature() {
 			return setImmediate(cb, "Wrong transaction asset lifetime for multisignature transaction: " + trs.id);
 		}
 
-		try {
-			for (var s = 0; s < trs.asset.multisignature.keysgroup.length; s++) {
-				var verify = false;
-				if (trs.signatures) {
-					for (var d = 0; d < trs.signatures.length && !verify; d++) {
-						if (trs.asset.multisignature.keysgroup[s][0] != '-' && trs.asset.multisignature.keysgroup[s][0] != '+') {
-							verify = false;
-						} else {
-							verify = library.logic.transaction.verifySecondSignature(trs, trs.asset.multisignature.keysgroup[s].substring(1), trs.signatures[d]);
+		// if it's ready
+		if (this.ready(trs, sender)) {
+			try {
+				for (var s = 0; s < trs.asset.multisignature.keysgroup.length; s++) {
+					var verify = false;
+					if (trs.signatures) {
+						for (var d = 0; d < trs.signatures.length && !verify; d++) {
+							if (trs.asset.multisignature.keysgroup[s][0] != '-' && trs.asset.multisignature.keysgroup[s][0] != '+') {
+								verify = false;
+							} else {
+								verify = library.logic.transaction.verifySecondSignature(trs, trs.asset.multisignature.keysgroup[s].substring(1), trs.signatures[d]);
+							}
 						}
 					}
+
+					if (!verify) {
+						return setImmediate(cb, "Failed multisignature verification: " + trs.id);
+					}
 				}
-				if (!verify) {
-					return setImmediate(cb, "Failed multisignature verification: " + trs.id);
-				}
+			} catch (e) {
+				return setImmediate(cb, "Failed multisignature exception: " + trs.id);
 			}
-		} catch (e) {
-			return setImmediate(cb, "Failed multisignature exception: " + trs.id);
 		}
 
 		if (trs.asset.multisignature.keysgroup.indexOf(sender.publicKey) != -1) {
@@ -164,13 +168,13 @@ function Multisignature() {
 			properties: {
 				min: {
 					type: "integer",
-					minimum: 2,
-					maximum: 16
+					minimum: 1,
+					maximum: 15
 				},
 				keysgroup: {
 					type: "array",
-					minLength: 2,
-					maxLength: 10
+					minLength: 1,
+					maxLength: 16
 				},
 				lifetime: {
 					type: "integer",
@@ -380,7 +384,7 @@ Multisignatures.prototype.processSignature = function (tx, cb) {
 	}
 
 	if (transaction.type == TransactionTypes.MULTI) {
-		if (transaction.asset.multisignature.signatures && transaction.asset.multisignature.signatures.indexOf(tx.signature) != -1) {
+		if (transaction.asset.multisignature.signatures && transaction.signatures.indexOf(tx.signature) != -1) {
 			return cb(errorCode("MULTISIGNATURES.SIGN_NOT_ALLOWED", transaction));
 		}
 
@@ -410,12 +414,21 @@ Multisignatures.prototype.processSignature = function (tx, cb) {
 			}
 
 			var verify = false;
+			var multisignatures = account.multisignatures;
+
+			if (transaction.requesterPublicKey) {
+				multisignatures.push(transaction.senderPublicKey);
+			}
 			try {
-				for (var i = 0; i < account.multisignatures.length && !verify; i++) {
-					verify = library.logic.transaction.verifySecondSignature(transaction, account.multisignatures[i].substring(1), tx.signature);
+				for (var i = 0; i < multisignatures.length && !verify; i++) {
+					verify = library.logic.transaction.verifySecondSignature(transaction, multisignatures[i].substring(1), tx.signature);
 				}
 			} catch (e) {
 				return cb("Failed to verify signature: " + transaction.id);
+			}
+
+			if (transaction.signatures.indexOf(tx.signature) >= 0) {
+				return cb("This signature already exists");
 			}
 
 			if (!verify) {
@@ -497,7 +510,7 @@ shared.sign = function (req, cb) {
 		}
 
 		if (transaction.type == TransactionTypes.MULTI) {
-			if (transaction.asset.multisignature.keysgroup.indexOf("+" + keypair.publicKey.toString('hex')) == -1 || (transaction.asset.multisignature.signatures && transaction.asset.multisignature.signatures.indexOf(sign) != -1)) {
+			if (transaction.asset.multisignature.keysgroup.indexOf("+" + keypair.publicKey.toString('hex')) == -1 || (transaction.signatures && transaction.signatures.indexOf(sign.toString('hex')) != -1)) {
 				return cb(errorCode("MULTISIGNATURES.SIGN_NOT_ALLOWED", transaction));
 			}
 
@@ -510,7 +523,17 @@ shared.sign = function (req, cb) {
 					return cb("Error, account for multisignature transaction not found");
 				}
 
-				if (account.multisignatures.indexOf("+" + keypair.publicKey.toString('hex')) < 0) {
+				if (!transaction.requesterPublicKey) {
+					if (account.multisignatures.indexOf(keypair.publicKey.toString('hex')) < 0) {
+						return cb(errorCode("MULTISIGNATURES.SIGN_NOT_ALLOWED", transaction));
+					}
+				} else {
+					if (account.publicKey != keypair.publicKey.toString('hex') || transaction.senderPublicKey != keypair.publicKey.toString('hex')) {
+						return cb(errorCode("MULTISIGNATURES.SIGN_NOT_ALLOWED", transaction));
+					}
+				}
+
+				if (transaction.signatures && transaction.signatures.indexOf(sign.toString('hex')) != -1) {
 					return cb(errorCode("MULTISIGNATURES.SIGN_NOT_ALLOWED", transaction));
 				}
 
@@ -541,7 +564,7 @@ shared.addMultisignature = function (req, cb) {
 			},
 			min: {
 				type: "integer",
-				minimum: 2,
+				minimum: 1,
 				maximum: 16
 			},
 			lifetime: {
