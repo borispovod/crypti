@@ -359,6 +359,22 @@ shared.pending = function (req, cb) {
 Multisignatures.prototype.processSignature = function (tx, cb) {
 	var transaction = modules.transactions.getUnconfirmedTransaction(tx.transaction);
 
+	function done(cb) {
+		library.sequence.add(function (cb) {
+			var transaction = modules.transactions.getUnconfirmedTransaction(tx.transaction);
+
+			if (!transaction) {
+				return cb("Transaction not found");
+			}
+
+			transaction.signatures = transaction.signatures || [];
+			transaction.signatures.push(tx.signature);
+			library.bus.message('signature', transaction, true);
+
+			cb();
+		}, cb);
+	}
+
 	if (!transaction) {
 		return cb(errorCode("TRANSACTIONS.TRANSACTION_NOT_FOUND"));
 	}
@@ -383,21 +399,32 @@ Multisignatures.prototype.processSignature = function (tx, cb) {
 		if (!verify) {
 			return cb("Failed to signature verification")
 		}
+
+		done(cb);
 	} else {
-		// other transactions
+		modules.accounts.getAccount({
+			address: transaction.senderId
+		}, function (err, account) {
+			if (err) {
+				return cb("Error, account for multisignature transaction not found");
+			}
+
+			var verify = false;
+			try {
+				for (var i = 0; i < account.multisignatures.length && !verify; i++) {
+					verify = library.logic.transaction.verifySecondSignature(transaction, account.multisignatures[i].substring(1), tx.signature);
+				}
+			} catch (e) {
+				return cb("Failed to verify signature: " + transaction.id);
+			}
+
+			if (!verify) {
+				return cb("Failed to verify signature: " + transaction.id);
+			}
+
+			return done(cb);
+		});
 	}
-
-	library.sequence.add(function (cb) {
-		var transaction = modules.transactions.getUnconfirmedTransaction(tx.transaction);
-
-		if (!transaction) {
-			return cb("Transaction not found");
-		}
-
-		transaction.signatures = transaction.signatures || [];
-		transaction.signatures.push(tx.signature);
-		cb();
-	}, cb);
 }
 
 shared.sign = function (req, cb) {
@@ -446,32 +473,50 @@ shared.sign = function (req, cb) {
 
 		var sign = library.logic.transaction.sign(keypair, transaction);
 
+		function done(cb) {
+			library.sequence.add(function (cb) {
+				var transaction = modules.transactions.getUnconfirmedTransaction(body.transactionId);
+
+				if (!transaction) {
+					return cb("Transaction not found");
+				}
+
+				transaction.signatures = transaction.signatures || [];
+				transaction.signatures.push(sign);
+
+				library.bus.message('signature', transaction, true);
+
+				cb();
+			}, function (err) {
+				if (err) {
+					return cb(err.toString());
+				}
+
+				cb(null, {transactionId: transaction.id});
+			});
+		}
+
 		if (transaction.type == TransactionTypes.MULTI) {
 			if (transaction.asset.multisignature.keysgroup.indexOf("+" + keypair.publicKey.toString('hex')) == -1 || (transaction.asset.multisignature.signatures && transaction.asset.multisignature.signatures.indexOf(sign) != -1)) {
 				return cb(errorCode("MULTISIGNATURES.SIGN_NOT_ALLOWED", transaction));
 			}
+
+			done(cb);
 		} else {
-			// other transactions
+			modules.accounts.getAccount({
+				address: transaction.senderId
+			}, function (err, account) {
+				if (err) {
+					return cb("Error, account for multisignature transaction not found");
+				}
+
+				if (account.multisignatures.indexOf("+" + keypair.publicKey.toString('hex')) < 0) {
+					return cb(errorCode("MULTISIGNATURES.SIGN_NOT_ALLOWED", transaction));
+				}
+
+				done(cb);
+			});
 		}
-
-		library.sequence.add(function (cb) {
-			var transaction = modules.transactions.getUnconfirmedTransaction(body.transactionId);
-
-			if (!transaction) {
-				return cb("Transaction not found");
-			}
-
-			transaction.signatures = transaction.signatures || [];
-			transaction.signatures.push(sign);
-
-			cb();
-		}, function (err) {
-			if (err) {
-				return cb(err.toString());
-			}
-
-			cb(null, {transactionId: transaction.id});
-		});
 	});
 }
 
