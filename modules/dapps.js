@@ -85,9 +85,12 @@ function Transfer() {
 
 	this.apply = function (trs, sender, cb) {
 		self.message(trs.asset.dapptransfer.dappid, {
-			recipientId: sender.address,
-			amount: trs.amount,
-			transactionId: trs.id
+			topic: "balance",
+			message: {
+				publicKey: sender.publicKey,
+				amount: trs.amount,
+				transactionId: trs.id
+			}
 		}, cb);
 	}
 
