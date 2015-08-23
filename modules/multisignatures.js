@@ -364,18 +364,24 @@ Multisignatures.prototype.processSignature = function (tx, cb) {
 	}
 
 	if (transaction.type == TransactionTypes.MULTI) {
-		if (transaction.asset.multisignature.keysgroup.indexOf("+" + tx.publicKey) == -1 || (transaction.asset.multisignature.signatures && transaction.asset.multisignature.signatures.indexOf(tx.signature) != -1)) {
+		if (transaction.asset.multisignature.signatures && transaction.asset.multisignature.signatures.indexOf(tx.signature) != -1) {
 			return cb(errorCode("MULTISIGNATURES.SIGN_NOT_ALLOWED", transaction));
 		}
 
+		// find public key
+		var verify = false;
+
 		try {
-			var verify = library.logic.transaction.verifySecondSignature(transaction, tx.publicKey, tx.signature);
+			for (var i = 0; i < transaction.asset.multisignature.keysgroup && !verify; i++) {
+				var key = transaction.asset.multisignature.keysgroup[i].substring(1);
+				verify = library.logic.transaction.verifySecondSignature(transaction, key, tx.signature);
+			}
 		} catch (e) {
-			return cb("Failed signature verification");
+			return cb("Failed to signature verification");
 		}
 
 		if (!verify) {
-			return cb("Failed signature verification")
+			return cb("Failed to signature verification")
 		}
 	} else {
 		// other transactions

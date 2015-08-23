@@ -255,10 +255,6 @@ private.attachApi = function () {
 						signature: {
 							type: "string",
 							format: "signature"
-						},
-						publicKey: {
-							type: "string",
-							format: "publicKey"
 						}
 					},
 					required: ['transaction', 'signature']
