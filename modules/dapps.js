@@ -1807,7 +1807,7 @@ DApps.prototype.sandboxApi = function (call, args, cb) {
 
 DApps.prototype.message = function (dappid, body, cb) {
 	if (!private.sandboxes[dappid]) {
-		return cd(errorCode("DAPPS.DAPPS_NOT_FOUND"));
+		return cb(errorCode("DAPPS.DAPPS_NOT_FOUND"));
 	}
 	private.sandboxes[dappid].sendMessage({
 		method: "post",
