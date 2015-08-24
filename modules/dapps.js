@@ -83,12 +83,7 @@ function Transfer() {
 	}
 
 	this.apply = function (trs, sender, cb) {
-		self.message(trs.asset.dapptransfer.dappid, {
-			topic: "balance",
-			message: {
-				transactionId: trs.id
-			}
-		}, cb);
+		setImmediate(cb);
 	}
 
 	this.undo = function (trs, sender, cb) {
@@ -138,7 +133,17 @@ function Transfer() {
 		library.dbLite.query("INSERT INTO dapptransfers(dappid, transactionId) VALUES($dappid, $transactionId)", {
 			dappid: trs.asset.dapptransfer.dappid,
 			transactionId: trs.id
-		}, cb);
+		}, function (err) {
+			if (err) {
+				return cb(err);
+			}
+			self.message(trs.asset.dapptransfer.dappid, {
+				topic: "balance",
+				message: {
+					transactionId: trs.id
+				}
+			}, cb);
+		});
 	}
 
 	this.ready = function (trs, sender) {
