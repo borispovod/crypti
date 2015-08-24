@@ -387,6 +387,10 @@ shared.addContact = function (req, cb) {
 			following: {
 				type: "string",
 				minLength: 1
+			},
+			multisigAccountPublicKey: {
+				type: "string",
+				format: "publicKey"
 			}
 		},
 		required: ["secret", "following"]
@@ -415,49 +419,115 @@ shared.addContact = function (req, cb) {
 		}
 
 		library.sequence.add(function (cb) {
-			modules.accounts.getAccount(query, function (err, following) {
-				if (err) {
-					return cb(err.toString());
-				}
-
-				if (!following) {
-					return cb(errorCode("CONTACTS.USERNAME_DOESNT_FOUND"));
-				}
-
-				followingAddress = body.following[0] + following.address;
-
-				modules.accounts.getAccount({publicKey: keypair.publicKey.toString('hex')}, function (err, account) {
+			if (body.multisigAccountPublicKey) {
+				modules.accounts.getAccount({publicKey: body.multisigAccountPublicKey}, function (err, account) {
 					if (err) {
 						return cb(err.toString());
 					}
-					if (!account) {
-						return cb(errorCode("COMMON.OPEN_ACCOUNT"));
+
+					if (!account || !account.publicKey) {
+						return cb("Multisignature account not found");
 					}
 
-					if (account.secondSignature && !body.secondSecret) {
-						return cb(errorCode("COMMON.SECOND_SECRET_KEY"));
+					if (!account.multisignatures || !account.multisignatures) {
+						return cb("This account don't have multisignature");
 					}
 
-					if (account.secondSignature && body.secondSecret) {
-						var secondHash = crypto.createHash('sha256').update(body.secondSecret, 'utf8').digest();
-						var secondKeypair = ed.MakeKeypair(secondHash);
+					if (account.multisignatures.indexOf(keypair.publicKey.toString('hex')) < 0) {
+						return cb("This account don't added to multisignature");
 					}
 
-					try {
-						var transaction = library.logic.transaction.create({
-							type: TransactionTypes.FOLLOW,
-							sender: account,
-							keypair: keypair,
-							secondKeypair: secondKeypair,
-							contactAddress: followingAddress
-						});
-					} catch (e) {
-						return cb(e.toString());
-					}
+					modules.accounts.getAccount({publicKey: keypair.publicKey}, function (err, requester) {
+						if (err) {
+							return cb(err.toString());
+						}
 
-					modules.transactions.receiveTransactions([transaction], cb);
+						if (!requester || !requester.publicKey) {
+							return cb(errorCode("COMMON.OPEN_ACCOUNT"));
+						}
+
+						if (requester.secondSignature && !body.secondSecret) {
+							return cb(errorCode("COMMON.SECOND_SECRET_KEY"));
+						}
+
+						if (requester.publicKey == account.publicKey) {
+							return cb("Incorrect requester");
+						}
+
+						if (!following) {
+							return cb(errorCode("CONTACTS.USERNAME_DOESNT_FOUND"));
+						}
+
+						followingAddress = body.following[0] + following.address;
+
+						var secondKeypair = null;
+
+						if (requester.secondSignature) {
+							var secondHash = crypto.createHash('sha256').update(body.secondSecret, 'utf8').digest();
+							secondKeypair = ed.MakeKeypair(secondHash);
+						}
+
+						try {
+							var transaction = library.logic.transaction.create({
+								type: TransactionTypes.FOLLOW,
+								sender: account,
+								keypair: keypair,
+								secondKeypair: secondKeypair,
+								contactAddress: followingAddress,
+								requester: keypair
+							});
+						} catch (e) {
+							return cb(e.toString());
+						}
+						modules.transactions.receiveTransactions([transaction], cb);
+					});
 				});
-			});
+			} else {
+				modules.accounts.getAccount(query, function (err, following) {
+					if (err) {
+						return cb(err.toString());
+					}
+
+					if (!following) {
+						return cb(errorCode("CONTACTS.USERNAME_DOESNT_FOUND"));
+					}
+
+					followingAddress = body.following[0] + following.address;
+
+					modules.accounts.getAccount({publicKey: keypair.publicKey.toString('hex')}, function (err, account) {
+						if (err) {
+							return cb(err.toString());
+						}
+						if (!account) {
+							return cb(errorCode("COMMON.OPEN_ACCOUNT"));
+						}
+
+						if (account.secondSignature && !body.secondSecret) {
+							return cb(errorCode("COMMON.SECOND_SECRET_KEY"));
+						}
+
+						if (account.secondSignature && body.secondSecret) {
+							var secondHash = crypto.createHash('sha256').update(body.secondSecret, 'utf8').digest();
+							var secondKeypair = ed.MakeKeypair(secondHash);
+						}
+
+						try {
+							var transaction = library.logic.transaction.create({
+								type: TransactionTypes.FOLLOW,
+								sender: account,
+								keypair: keypair,
+								secondKeypair: secondKeypair,
+								contactAddress: followingAddress
+							});
+						} catch (e) {
+							return cb(e.toString());
+						}
+
+						modules.transactions.receiveTransactions([transaction], cb);
+					});
+				});
+			}
+
 		}, function (err, transaction) {
 			if (err) {
 				return cb(err.toString());
