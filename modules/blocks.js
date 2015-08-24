@@ -29,7 +29,8 @@ private.blocksDataFields = {
 	'c_address': String,
 	'u_alias': String,
 	'm_min': Number, 'm_lifetime': Number, 'm_keysgroup': String,
-	'dapp_name': String, 'dapp_description': String, 'dapp_tags': String, 'dapp_type': Number, 'dapp_siaAscii': String, 'dapp_siaIcon': String, 'dapp_git': String, 'dapp_category': Number, 'dapp_icon': String
+	'dapp_name': String, 'dapp_description': String, 'dapp_tags': String, 'dapp_type': Number, 'dapp_siaAscii': String, 'dapp_siaIcon': String, 'dapp_git': String, 'dapp_category': Number, 'dapp_icon': String,
+	'dapptransfer_dappid': String
 };
 // @formatter:on
 
@@ -101,7 +102,7 @@ private.deleteBlock = function (blockId, cb) {
 }
 
 private.list = function (filter, cb) {
-	var sortFields = ['b.id', 'b.timestamp', 'b.height', 'b.previousBlock',  'b.totalAmount', 'b.totalFee', 'b.numberOfTransactions', 'b.generatorPublicKey'];
+	var sortFields = ['b.id', 'b.timestamp', 'b.height', 'b.previousBlock', 'b.totalAmount', 'b.totalFee', 'b.numberOfTransactions', 'b.generatorPublicKey'];
 	var params = {}, fields = [], sortMethod = '', sortBy = '';
 	if (filter.generatorPublicKey) {
 		fields.push('lower(hex(generatorPublicKey)) = $generatorPublicKey')
@@ -187,14 +188,14 @@ private.list = function (filter, cb) {
 
 			params.limit = end;
 			params.offset = start;
-		} else  {
+		} else {
 			params.offset = filter.offset;
 			params.limit = filter.limit + filter.offset;
 		}
 
 		library.dbLite.query("select b.id, b.version, b.timestamp, b.height, b.previousBlock, b.numberOfTransactions, b.totalAmount, b.totalFee, b.payloadLength,  lower(hex(b.payloadHash)), lower(hex(b.generatorPublicKey)), lower(hex(b.blockSignature)), (select max(height) + 1 from blocks) - b.height " +
 			"from blocks b " +
-			"where " + (fields.length ? fields.join(' and ') : '') + (fields.length? " and " : "") + " b.height >= $offset and b.height <= $limit " +
+			"where " + (fields.length ? fields.join(' and ') : '') + (fields.length ? " and " : "") + " b.height >= $offset and b.height <= $limit " +
 			(filter.orderBy ? 'order by ' + sortBy + ' ' + sortMethod : ''), params, ['b_id', 'b_version', 'b_timestamp', 'b_height', 'b_previousBlock', 'b_numberOfTransactions', 'b_totalAmount', 'b_totalFee', 'b_payloadLength', 'b_payloadHash', 'b_generatorPublicKey', 'b_blockSignature', 'b_confirmations'], function (err, rows) {
 			if (err) {
 				return cb(err);
@@ -471,7 +472,7 @@ Blocks.prototype.loadBlocksData = function (filter, options, cb) {
 
 			//(filter.lastId? " where height > (SELECT height FROM blocks where id = $lastId)" : "") +
 
-			var height = rows.length? rows[0].height : 0;
+			var height = rows.length ? rows[0].height : 0;
 			var realLimit = height + (filter.limit || 1);
 			params.limit = realLimit;
 			params.height = height;
@@ -491,7 +492,8 @@ Blocks.prototype.loadBlocksData = function (filter, options, cb) {
 				"c.address, " +
 				"u.username, " +
 				"m.min, m.lifetime, m.keysgroup, " +
-				"dapp.name, dapp.description, dapp.tags, dapp.type, dapp.siaAscii, dapp.siaIcon, dapp.git, dapp.category, dapp.icon " +
+				"dapp.name, dapp.description, dapp.tags, dapp.type, dapp.siaAscii, dapp.siaIcon, dapp.git, dapp.category, dapp.icon, " +
+				"dt.dappid " +
 				"FROM blocks b " +
 				"left outer join trs as t on t.blockId=b.id " +
 				"left outer join delegates as d on d.transactionId=t.id " +
@@ -501,6 +503,7 @@ Blocks.prototype.loadBlocksData = function (filter, options, cb) {
 				"left outer join usernames as u on u.transactionId=t.id " +
 				"left outer join multisignatures as m on m.transactionId=t.id " +
 				"left outer join dapps as dapp on dapp.transactionId=t.id " +
+				"left outer join dapptransfers dt on dt.transactionId=t.id " +
 				(filter.id ? " where id = $id " : "") + (filter.lastId ? " where b.height > $height and b.height < $limit " : "") +
 				limitPart +
 				"ORDER BY b.height, t.rowid" +
@@ -542,7 +545,8 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 			"c.address, " +
 			"u.username, " +
 			"m.min, m.lifetime, m.keysgroup, " +
-			"dapp.name, dapp.description, dapp.tags, dapp.type, dapp.siaAscii, dapp.siaIcon, dapp.git, dapp.category, dapp.icon " +
+			"dapp.name, dapp.description, dapp.tags, dapp.type, dapp.siaAscii, dapp.siaIcon, dapp.git, dapp.category, dapp.icon, " +
+			"dt.dappid " +
 			"FROM blocks b " +
 			"left outer join trs as t on t.blockId=b.id " +
 			"left outer join delegates as d on d.transactionId=t.id " +
@@ -552,6 +556,7 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 			"left outer join usernames as u on u.transactionId=t.id " +
 			"left outer join multisignatures as m on m.transactionId=t.id " +
 			"left outer join dapps as dapp on dapp.transactionId=t.id " +
+			"left outer join dapptransfers dt on dt.transactionId=t.id " +
 			"where b.height >= $offset and b.height < $limit " +
 			"ORDER BY b.height, t.rowid" +
 			"", params, private.blocksDataFields, function (err, rows) {

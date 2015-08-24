@@ -40,9 +40,8 @@ function isASCII(str, extended) {
 
 function Transfer() {
 	this.create = function (data, trs) {
-		trs.recipientId = data.recipientId;
-		trs.recipientUsername = data.recipientUsername;
-		trs.amount = 0;
+		trs.recipientId = null;
+		trs.amount = data.amount;
 
 		trs.asset.dapptransfer = {
 			dappid: data.dappid
@@ -56,11 +55,11 @@ function Transfer() {
 	}
 
 	this.verify = function (trs, sender, cb) {
-		if (!trs.recipientId) {
+		if (trs.recipientId) {
 			return setImmediate(cb, errorCode("TRANSACTIONS.INVALID_RECIPIENT", trs));
 		}
 
-		if (trs.amount != 0) {
+		if (!trs.amount) {
 			return setImmediate(cb, errorCode("TRANSACTIONS.INVALID_AMOUNT", trs));
 		}
 
@@ -87,8 +86,6 @@ function Transfer() {
 		self.message(trs.asset.dapptransfer.dappid, {
 			topic: "balance",
 			message: {
-				publicKey: sender.publicKey,
-				amount: trs.amount,
 				transactionId: trs.id
 			}
 		}, cb);
@@ -107,12 +104,6 @@ function Transfer() {
 	}
 
 	this.objectNormalize = function (trs) {
-		for (var i in trs.asset.dapptransfer) {
-			if (trs.asset.dapptransfer[i] === null || typeof trs.asset.dapptransfer[i] === 'undefined') {
-				delete trs.asset.dapptransfer[i];
-			}
-		}
-
 		var report = library.scheme.validate(trs.asset.dapptransfer, {
 			object: true,
 			properties: {
@@ -144,8 +135,8 @@ function Transfer() {
 	}
 
 	this.dbSave = function (trs, cb) {
-		library.dbLite.query("INSERT INTO dapptransfer(dappid, transactionId) VALUES($dappid, $transactionId)", {
-			type: trs.asset.dapptransfer.dappid,
+		library.dbLite.query("INSERT INTO dapptransfers(dappid, transactionId) VALUES($dappid, $transactionId)", {
+			dappid: trs.asset.dapptransfer.dappid,
 			transactionId: trs.id
 		}, cb);
 	}
@@ -1727,10 +1718,6 @@ private.addTransactions = function (req, cb) {
 				minimum: 1,
 				maximum: constants.totalAmount
 			},
-			recipientId: {
-				type: "string",
-				minLength: 1
-			},
 			publicKey: {
 				type: "string",
 				format: "publicKey"
@@ -1745,7 +1732,7 @@ private.addTransactions = function (req, cb) {
 				minLength: 1
 			}
 		},
-		required: ["secret", "amount", "recipientId", "dappid"]
+		required: ["secret", "amount", "dappid"]
 	}, function (err) {
 		if (err) {
 			return cb(err[0].message);
@@ -1770,51 +1757,38 @@ private.addTransactions = function (req, cb) {
 		}
 
 		library.sequence.add(function (cb) {
-			modules.accounts.getAccount(query, function (err, recipient) {
+			modules.accounts.getAccount({publicKey: keypair.publicKey.toString('hex')}, function (err, account) {
 				if (err) {
 					return cb(err.toString());
 				}
-				if (!recipient && query.username) {
-					return cb(errorCode("TRANSACTIONS.RECIPIENT_NOT_FOUND"));
+				if (!account || !account.publicKey) {
+					return cb(errorCode("COMMON.OPEN_ACCOUNT"));
 				}
-				var recipientId = recipient ? recipient.address : body.recipientId;
-				var recipientUsername = recipient ? recipient.username : null;
 
-				modules.accounts.getAccount({publicKey: keypair.publicKey.toString('hex')}, function (err, account) {
-					if (err) {
-						return cb(err.toString());
-					}
-					if (!account || !account.publicKey) {
-						return cb(errorCode("COMMON.OPEN_ACCOUNT"));
-					}
+				if (account.secondSignature && !body.secondSecret) {
+					return cb(errorCode("COMMON.SECOND_SECRET_KEY"));
+				}
 
-					if (account.secondSignature && !body.secondSecret) {
-						return cb(errorCode("COMMON.SECOND_SECRET_KEY"));
-					}
+				var secondKeypair = null;
 
-					var secondKeypair = null;
+				if (account.secondSignature) {
+					var secondHash = crypto.createHash('sha256').update(body.secondSecret, 'utf8').digest();
+					secondKeypair = ed.MakeKeypair(secondHash);
+				}
 
-					if (account.secondSignature) {
-						var secondHash = crypto.createHash('sha256').update(body.secondSecret, 'utf8').digest();
-						secondKeypair = ed.MakeKeypair(secondHash);
-					}
-
-					try {
-						var transaction = library.logic.transaction.create({
-							type: TransactionTypes.DAPPTRANSFER,
-							amount: body.amount,
-							sender: account,
-							recipientId: recipientId,
-							recipientUsername: recipientUsername,
-							keypair: keypair,
-							secondKeypair: secondKeypair,
-							dappid: body.dappid
-						});
-					} catch (e) {
-						return cb(e.toString());
-					}
-					modules.transactions.receiveTransactions([transaction], cb);
-				});
+				try {
+					var transaction = library.logic.transaction.create({
+						type: TransactionTypes.DAPPTRANSFER,
+						amount: body.amount,
+						sender: account,
+						keypair: keypair,
+						secondKeypair: secondKeypair,
+						dappid: body.dappid
+					});
+				} catch (e) {
+					return cb(e.toString());
+				}
+				modules.transactions.receiveTransactions([transaction], cb);
 			});
 		}, function (err, transaction) {
 			if (err) {
