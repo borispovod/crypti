@@ -32,10 +32,11 @@ private.pass = function (obj, dappid) {
 				obj[property]["dapp_" + dappid + "_" + table] = tmp;
 			}
 		}
-		if (property == "on") {
+		if (property == "on" && !obj.alias) {
 			for (var firstTable in obj[property]) {
 				var secondTable = obj[property][firstTable];
 				delete obj[property][firstTable];
+
 				var firstTableRaw = firstTable.split(".");
 				firstTable = "dapp_" + dappid + "_" + firstTableRaw[0];
 
