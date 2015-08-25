@@ -78,6 +78,10 @@ private.query = function (action, config, cb) {
 
 //public methods
 Sql.prototype.createTables = function (dappid, config, cb) {
+	if (!config) {
+		return cb("wrong tables format");
+	}
+
 	var sqles = [];
 	for (var i = 0; i < config.length; i++) {
 		config[i].table = "dapp_" + dappid + "_" + config[i].table;

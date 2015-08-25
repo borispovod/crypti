@@ -518,7 +518,7 @@ function DApps(cb, scope) {
 				return setImmediate(cb);
 			}
 
-			self.stop({
+			private.stop({
 				transactionId: id
 			}, function (err) {
 				cb(err);
@@ -1327,12 +1327,12 @@ private.removeDApp = function (dApp, cb) {
 					return setImmediate(cb, "Problem when removing folder of dapp: ", dappPath);
 				} else {
 					try {
-						var dappConfig = require(path.join(dappPath, 'config.json'));
+						var blockchain = require(path.join(dappPath, 'blockchain.json'));
 					} catch (e) {
 						return setImmediate(cb);
 					}
 
-					modules.sql.dropTables(dApp.transactionId, dappConfig.db, cb);
+					modules.sql.dropTables(dApp.transactionId, blockchain, cb);
 				}
 			});
 		}
@@ -1648,7 +1648,13 @@ private.launchApp = function (dApp, params, cb) {
 		if (err) {
 			return setImmediate(cb, err);
 		}
-		modules.sql.createTables(dApp.transactionId, dappConfig.db, function (err) {
+		try {
+			var blockchain = require(path.join(dappPath, "blockchain.json"));
+		} catch (e) {
+			return setImmediate(cb, "This DApp has no blockchain file, can't launch it");
+		}
+
+		modules.sql.createTables(dApp.transactionId, blockchain, function (err) {
 			if (err) {
 				return setImmediate(cb, err);
 			}
