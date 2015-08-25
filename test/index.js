@@ -9,3 +9,4 @@ require('./lib/peers.delegates.js');
 require('./lib/peers.votes.js');
 require('./lib/delegates.js');
 require('./lib/peers.usernames.js');
+require('./lib/dapps.js');

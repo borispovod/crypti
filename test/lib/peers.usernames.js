@@ -57,7 +57,8 @@ describe("Peers usernames", function () {
 				.expect('Content-Type', /json/)
 				.expect(200)
 				.end(function (err, res) {
-					console.log("Trying to register username on new account. Got reply:" + res.body);
+					console.log("Trying to register username on new account. Got reply:");
+					console.log(res.body);
 					node.expect(res.body).to.have.property("success").to.be.true;
 					transaction = node.crypti.username.createUsername(account1.password, node.randomDelegateName());
 					node.peer.post('/transactions')
@@ -97,7 +98,7 @@ describe("Peers usernames", function () {
 					.end(function (err, res) {
 						node.onNewBlock(function (err) {
 							node.expect(err).to.be.not.ok;
-
+							console.log(res.body);
 							var transaction = node.crypti.delegate.createDelegate(account.password, node.randomDelegateName());
 							node.peer.post('/transactions')
 								.set('Accept', 'application/json')
@@ -107,10 +108,11 @@ describe("Peers usernames", function () {
 								.expect('Content-Type', /json/)
 								.expect(200)
 								.end(function (err, res) {
+									console.log("Registered Delegate. Got reply: ");
+									console.log(res.body);
 									node.expect(res.body).to.have.property("success").to.be.true;
 
 									transaction = node.crypti.username.createUsername(account.password, node.randomDelegateName());
-
 									node.peer.post('/transactions')
 										.set('Accept', 'application/json')
 										.send({
@@ -119,6 +121,7 @@ describe("Peers usernames", function () {
 										.expect('Content-Type', /json/)
 										.expect(200)
 										.end(function (err, res) {
+											console.log("Tried to register username. Got reply:");
 											console.log(res.body);
 											node.expect(res.body).to.have.property("success").to.be.false;
 											done();
@@ -205,8 +208,8 @@ describe("Peers usernames", function () {
 					.end(function (err, res) {
 						node.onNewBlock(function (err) {
 							node.expect(err).to.be.not.ok;
-
-							var transaction = node.crypti.username.createUsername(account3.password, node.randomDelegateName());
+							username = node.randomDelegateName();
+							var transaction = node.crypti.username.createUsername(account3.password, username);
 
 							node.peer.post('/transactions')
 								.set('Accept', 'application/json')
@@ -232,7 +235,7 @@ describe("Peers usernames", function () {
 										});
 								});
 
-						}, 10000);
+						});
 					});
 			});
 	});
@@ -259,7 +262,7 @@ describe("Peers usernames", function () {
 					.end(function (err, res) {
 						node.onNewBlock(function (err) {
 							node.expect(err).to.be.not.ok;
-							username = node.randomDelegateName();
+							var username = node.randomDelegateName();
 							var transaction = node.crypti.username.createUsername(account4.password, username);
 
 							node.peer.post('/transactions')
@@ -270,6 +273,8 @@ describe("Peers usernames", function () {
 								.expect('Content-Type', /json/)
 								.expect(200)
 								.end(function (err, res) {
+									console.log("Registered Username. Got reply:");
+									console.log(res.body);
 									node.expect(res.body).to.have.property("success").to.be.true;
 									node.onNewBlock(function (err) {
 										transaction = node.crypti.delegate.createDelegate(account4.password, username);
@@ -281,13 +286,15 @@ describe("Peers usernames", function () {
 											.expect('Content-Type', /json/)
 											.expect(200)
 											.end(function (err, res) {
+												console.log("Registered Delegate. Got reply:");
+												console.log(res.body);
 												node.expect(res.body).to.have.property("success").to.be.true;
 												done();
 											});
 									});
 								});
 
-						}, 10000);
+						});
 					});
 			});
 	});

@@ -29,7 +29,7 @@ console.log("Password for Account 2 is: " + Account2.password);
 
 // Starting tests //
 
-describe('Transactions', function() {
+describe ('Transactions', function() {
 
     before(function (done) {
         /*
@@ -895,7 +895,7 @@ describe('Transactions', function() {
             });
 
             test += 1;
-            it(test + '. We attempt to created 2nd password' + (Account1.secondPassword) + ' for Account 1. We expect success',function(done){
+            it(test + '. We attempt to create 2nd password' + (Account1.secondPassword) + ' for Account 1. We expect success',function(done){
                 this.timeout(5000);
                 setTimeout(function(){
                 node.api.put('/signatures')
@@ -1419,7 +1419,7 @@ describe('Transactions', function() {
                         .expect('Content-Type', /json/)
                         .expect(200)
                         .end(function (err, res) {
-                            console.log("Sent: /accounts/username?get?username=" + Account2.username);
+                            console.log("Sent: /accounts/username/get?username=" + Account2.username);
                             console.log(res.body);
                             node.expect(res.body).to.have.property("success").to.be.true;
                             done();
