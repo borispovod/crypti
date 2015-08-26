@@ -66,6 +66,7 @@ private.query = function (action, config, cb) {
 		if (err) {
 			err = err.toString();
 		}
+
 		cb(err, data);
 	}
 
