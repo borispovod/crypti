@@ -641,9 +641,11 @@ shared.request = function (msg, cb) {
 	msg.timestamp = (new Date()).getTime();
 	msg.hash = private.hashsum(msg.body, msg.timestamp);
 
-	console.log(msg)
-
-	self.getFromRandomPeer({dappid: msg.dappid}, {api: '/dapp/request', data: msg, method: "POST"}, cb);
+	if (msg.body.peer) {
+		self.getFromPeer({ip: msg.body.peer.ip, port: msg.body.peer.port}, {api: '/dapp/request', data: msg, method: "POST"}, cb);
+	} else {
+		self.getFromRandomPeer({dappid: msg.dappid}, {api: '/dapp/request', data: msg, method: "POST"}, cb);
+	}
 }
 
 //export
