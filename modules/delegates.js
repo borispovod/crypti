@@ -510,6 +510,14 @@ Delegates.prototype.fork = function (block, cause) {
 	});
 }
 
+Delegates.prototype.loadDelegatesList = function (list) {
+	for (var i in list) {
+		var delegate = list[i];
+		private.delegates[delegate.publicKey] = 0;
+		private.unconfirmedDelegates[delegate.publicKey] = 0;
+	}
+}
+
 Delegates.prototype.addFee = function (publicKey, value) {
 	private.fees[publicKey] = (private.fees[publicKey] || 0) + value;
 }

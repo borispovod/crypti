@@ -1,6 +1,7 @@
 var async = require('async');
 var jsonSql = require('json-sql')();
 var constants = require('../helpers/constants.js');
+var genesisBlock = require('../helpers/genesisblock.js').block;
 
 var private = {};
 
@@ -271,6 +272,17 @@ function Account(scope, cb) {
 			},
 			conv: Number,
 			default: 0
+		}, {
+			name: "blockId",
+			type: "String",
+			length: 20,
+			filter: {
+				type: "string",
+				minLength: 1,
+				maxLength: 20
+			},
+			conv: String,
+			default: genesisBlock.id
 		}
 	];
 
@@ -319,6 +331,11 @@ function Account(scope, cb) {
 		}
 	}.bind(this));
 
+	setImmediate(cb, null, this);
+}
+
+Account.prototype.initialize = function (cb) {
+	var scope = this.scope;
 	var sqles = [];
 
 	var sql = jsonSql.build({
@@ -664,6 +681,9 @@ Account.prototype.merge = function (address, diff, cb) {
 		if (diff[value]) {
 			var trueValue = diff[value];
 			switch (self.conv[value]) {
+				case String:
+					update[value] = trueValue;
+					break;
 				case Number:
 					if (Math.abs(trueValue) === trueValue && trueValue !== 0) {
 						update.$inc = update.$inc || {};

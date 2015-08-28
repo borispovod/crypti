@@ -296,6 +296,8 @@ describe('Transactions', function() {
             it(test + '. Attempting to get transactions list. Expecting success', function (done) {
                 var senderId = node.Faccount.address, blockId = '', recipientId = Account1.address, limit = 10, offset = 0, orderBy = 't_amount:asc';
 
+                console.log(Account1);
+                console.log('/transactions?blockId=' + blockId + '&senderId=' + senderId + '&recipientId=' + recipientId + '&limit=' + limit + '&offset=' + offset + '&orderBy=' + orderBy);
                 node.api.get('/transactions?blockId=' + blockId + '&senderId=' + senderId + '&recipientId=' + recipientId + '&limit=' + limit + '&offset=' + offset + '&orderBy=' + orderBy)
                     .set('Accept', 'application/json')
                     .expect('Content-Type', /json/)

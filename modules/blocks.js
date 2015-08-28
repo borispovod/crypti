@@ -529,9 +529,7 @@ Blocks.prototype.loadBlocksPart = function (filter, cb) {
 	});
 }
 
-Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
-	var verify = library.config.loading.verifyOnLoading;
-
+Blocks.prototype.loadBlocksOffset = function (limit, offset, verify, cb) {
 	var newLimit = limit + (offset || 0);
 	var params = {limit: newLimit, offset: offset || 0};
 
@@ -571,14 +569,14 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 
 			async.eachSeries(blocks, function (block, cb) {
 				if (block.id != genesisblock.block.id) {
-					if (block.previousBlock != private.lastBlock.id) {
-						return cb({
-							message: "Can't verify previous block",
-							block: block
-						});
-					}
-
 					if (verify) {
+						if (block.previousBlock != private.lastBlock.id) {
+							return cb({
+								message: "Can't verify previous block",
+								block: block
+							});
+						}
+
 						try {
 							var valid = library.logic.block.verifySignature(block);
 						} catch (e) {
@@ -613,30 +611,34 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 				}
 
 				async.eachSeries(block.transactions, function (transaction, cb) {
-					modules.accounts.setAccountAndGet({publicKey: transaction.senderPublicKey}, function (err, sender) {
-						if (err) {
-							return cb({
-								message: err,
-								transaction: transaction,
-								block: block
-							});
-						}
-						if (verify && block.id != genesisblock.block.id) {
-							library.logic.transaction.verify(transaction, sender, function (err) {
-								if (err) {
-									return setImmediate(cb, {
-										message: err,
-										transaction: transaction,
-										block: block
-									});
-								}
+					if (verify) {
+						modules.accounts.setAccountAndGet({publicKey: transaction.senderPublicKey}, function (err, sender) {
+							if (err) {
+								return cb({
+									message: err,
+									transaction: transaction,
+									block: block
+								});
+							}
+							if (verify && block.id != genesisblock.block.id) {
+								library.logic.transaction.verify(transaction, sender, function (err) {
+									if (err) {
+										return setImmediate(cb, {
+											message: err,
+											transaction: transaction,
+											block: block
+										});
+									}
 
+									private.applyTransaction(block, transaction, cb);
+								});
+							} else {
 								private.applyTransaction(block, transaction, cb);
-							});
-						} else {
-							private.applyTransaction(block, transaction, cb);
-						}
-					});
+							}
+						});
+					} else {
+						setImmediate(cb);
+					}
 				}, function (err) {
 					if (err) {
 						var lastValidTransaction = block.transactions.findIndex(function (trs) {

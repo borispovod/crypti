@@ -7,7 +7,7 @@
 console.log("Please, wait 3s...");
 
 var path = require('path');
-var sleep = require('sleep');
+//var sleep = require('sleep');
 var spawn = require('child_process').spawn;
 /*var process = spawn('node', [path.join(__dirname, '..', '..', 'app.js'), '-c', path.join(__dirname, '..', 'config.json')]);
 
@@ -16,7 +16,7 @@ process.on('close', function(code) {
 });*/
 
 
-sleep.sleep(3);
+//sleep.sleep(3);
 // Requires and node configuration
 var node = require('./../variables.js');
 var test = 0;

@@ -1475,7 +1475,6 @@ private.apiHandler = function (message, callback) {
 private.getIcon = function (dapp, res) {
 	modules.sia.uploadAscii(dapp.transactionId, dapp.siaIcon, true, function (err, file) {
 		if (err) {
-			console.log(err);
 			return res.json({success: false, error: "Internal error"});
 		} else {
 			modules.sia.download(file, res);
@@ -1503,11 +1502,14 @@ private.dappRoutes = function (dapp, cb) {
 						if (!private.sandboxes[dapp.transactionId]) {
 							return res.status(500).send({success: false, error: "dapp doesn´t run"})
 						}
+
+						console.log('sent');
 						private.sandboxes[dapp.transactionId].sendMessage({
 							method: router.method,
 							path: router.path,
 							query: (router.method == "get") ? req.query : req.body
 						}, function (err, body) {
+							console.log(router.method, router.path, err, body);
 							if (!err && body.error) {
 								err = body.error;
 							}

@@ -445,6 +445,7 @@ Accounts.prototype.mergeAccountAndGet = function (data, cb) {
 }
 
 Accounts.prototype.sandboxApi = function (call, args, cb) {
+	console.log('method');
 	sandboxHelper.callMethod(shared, call, args, cb);
 }
 
@@ -484,6 +485,7 @@ shared.open = function (req, cb) {
 					secondPublicKey: account.secondPublicKey
 				};
 
+				console.log(accountData);
 				return cb(null, {account: accountData});
 			} else {
 				return cb(err);

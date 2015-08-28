@@ -18,7 +18,7 @@ var _ = require('lodash'),
 var normalizer = 100000000; // Use this to convert XCR amount to normal value
 var blockTime = 10000; // Block time in miliseconds
 var blockTimePlus = 12000; // Block time + 2 seconds in miliseconds
-var version = "0.3.0" // Node version
+var version = "0.5.0" // Node version
 
 // Holds Fee amounts for different transaction types.
 var Fees = {
