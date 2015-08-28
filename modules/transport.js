@@ -324,7 +324,6 @@ private.attachApi = function () {
 			library.logger.log('recieved transaction ' + (transaction ? transaction.id : 'null') + ' is not valid, ban 60 min', peerStr);
 
 			if (peerIp && report) {
-				console.log(peerIp, req.headers['port'], report);
 				modules.peer.state(ip.toLong(peerIp), req.headers['port'], 0, 3600);
 			}
 
@@ -381,6 +380,31 @@ private.attachApi = function () {
 		});
 	});
 
+	router.post("/dapp/request", function (req, res) {
+		res.set(private.headers);
+
+		try {
+			if (!req.body.dappid) throw Error("missed dappid");
+			if (!req.body.timestamp || !req.body.hash) throw Error("missed hash sum");
+			var newHash = private.hashsum(req.body.body, req.body.timestamp);
+			if (newHash !== req.body.hash) throw Error("wrong hash sum");
+		} catch (e) {
+			return res.status(200).json({success: false, message: e.toString()});
+		}
+
+		modules.dapps.request(req.body.dappid, req.body.body.method, req.body.body.path, req.body.body.query, function (err, body) {
+			if (!err && body.error) {
+				err = body.error;
+			}
+
+			if (err) {
+				return res.status(200).json({success: false, message: err});
+			}
+
+			res.status(200).json(extend(body, {success: true}));
+		});
+	});
+
 	router.use(function (req, res, next) {
 		res.status(500).send({success: false, error: errorCode('COMMON.INVALID_API')});
 	});
@@ -423,9 +447,15 @@ Transport.prototype.broadcast = function (config, options, cb) {
 	});
 }
 
-Transport.prototype.getFromRandomPeer = function (options, cb) {
+Transport.prototype.getFromRandomPeer = function (config, options, cb) {
+	if (typeof options == 'function') {
+		cb = options;
+		options = config;
+		config = {};
+	}
+	config.limit = 1;
 	async.retry(20, function (cb) {
-		modules.peer.list({limit: 1}, function (err, peers) {
+		modules.peer.list(config, function (err, peers) {
 			if (!err && peers.length) {
 				var peer = peers[0];
 				self.getFromPeer(peer, options, cb);
@@ -605,6 +635,17 @@ shared.message = function (msg, cb) {
 	self.broadcast({limit: 100, dappid: msg.dappid}, {api: '/dapp/message', data: msg, method: "POST"});
 
 	cb(null, {});
+}
+
+shared.request = function (msg, cb) {
+	msg.timestamp = (new Date()).getTime();
+	msg.hash = private.hashsum(msg.body, msg.timestamp);
+
+	if (msg.body.peer) {
+		self.getFromPeer({ip: msg.body.peer.ip, port: msg.body.peer.port}, {api: '/dapp/request', data: msg, method: "POST"}, cb);
+	} else {
+		self.getFromRandomPeer({dappid: msg.dappid}, {api: '/dapp/request', data: msg, method: "POST"}, cb);
+	}
 }
 
 //export
