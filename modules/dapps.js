@@ -1500,14 +1500,7 @@ private.dappRoutes = function (dapp, cb) {
 			routes.forEach(function (router) {
 				if (router.method == "get" || router.method == "post" || router.method == "put") {
 					private.routes[dapp.transactionId][router.method](router.path, function (req, res) {
-						if (!private.sandboxes[dapp.transactionId]) {
-							return res.status(500).send({success: false, error: "dapp doesn´t run"})
-						}
-						private.sandboxes[dapp.transactionId].sendMessage({
-							method: router.method,
-							path: router.path,
-							query: (router.method == "get") ? req.query : req.body
-						}, function (err, body) {
+						self.request(dapp.transactionId, router.method, router.path, (router.method == "get") ? req.query : req.body, function (err, body) {
 							if (!err && body.error) {
 								err = body.error;
 							}
@@ -1817,13 +1810,17 @@ DApps.prototype.sandboxApi = function (call, args, cb) {
 }
 
 DApps.prototype.message = function (dappid, body, cb) {
+	self.request(dappid, "post", "/message", body, cb);
+}
+
+DApps.prototype.request = function (dappid, method, path, query, cb) {
 	if (!private.sandboxes[dappid]) {
 		return cb(errorCode("DAPPS.DAPPS_NOT_FOUND"));
 	}
 	private.sandboxes[dappid].sendMessage({
-		method: "post",
-		path: "/message",
-		query: body
+		method: method,
+		path: path,
+		query: query
 	}, cb);
 }
 
@@ -1847,14 +1844,10 @@ DApps.prototype.onBlockchainReady = function () {
 
 DApps.prototype.onNewBlock = function (block, broadcast) {
 	Object.keys(private.sandboxes).forEach(function (dappId) {
-		private.sandboxes[dappId].sendMessage({
-			method: "post",
-			path: "/message",
-			query: {
-				topic: "point",
-				message: {id: block.id, height: block.height}
-			}
-		}, function (err, body) {
+		self.request(dappId, "post", "/message", {
+			topic: "point",
+			message: {id: block.id, height: block.height}
+		}, function (err) {
 			if (err) {
 				library.logger.error("onNewBlock message", err)
 			}
