@@ -334,7 +334,7 @@ function Account(scope, cb) {
 	setImmediate(cb, null, this);
 }
 
-Account.prototype.initialize = function (cb) {
+Account.prototype.createTables = function (cb) {
 	var scope = this.scope;
 	var sqles = [];
 
@@ -532,6 +532,19 @@ Account.prototype.initialize = function (cb) {
 		]
 	});
 	sqles.push(sql.query);
+
+	async.eachSeries(sqles, function (command, cb) {
+		scope.dbLite.query(command, function (err, data) {
+			cb(err, data);
+		});
+	}.bind(this), function (err) {
+		setImmediate(cb, err, this);
+	}.bind(this));
+}
+
+Account.prototype.removeTables = function (cb) {
+	var scope = this.scope;
+	var sqles = [];
 
 	var sql = jsonSql.build({
 		type: 'remove',

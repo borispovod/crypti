@@ -14,7 +14,6 @@
 	},
 	"peers": {
 		"list": [
-			{"ip": "104.155.53.172", "port": 7040}
 		],
 		"blackList": [],
 		"options": {
@@ -132,7 +131,7 @@
 		}
 	},
 	"loading": {
-		"verifyOnLoading": false,
+		"verifyOnLoading": true,
 		"loadPerIteration": 5000
 	},
     "sia": {

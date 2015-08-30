@@ -293,106 +293,121 @@ private.loadBlockChain = function () {
 		verify = true;
 		private.total = count;
 
-		library.logic.account.initialize(function (err) {
+		library.logic.account.removeTables(function (err) {
 			if (err) {
-				library.logger.error(err);
-				process.exit(0);
-				return;
-			}
-
-			async.until(
-				function () {
-					return count < offset
-				}, function (cb) {
-					library.logger.info('current ' + offset);
-					setImmediate(function () {
-						modules.blocks.loadBlocksOffset(limit, offset, verify, function (err, lastBlockOffset) {
-							if (err) {
-								return cb(err);
-							}
-
-							offset = offset + limit;
-							private.loadingLastBlock = lastBlockOffset;
-
-							cb();
-						});
-					})
-				}, function (err) {
+				throw err;
+			} else {
+				library.logic.account.createTables(function (err) {
 					if (err) {
-						library.logger.error('loadBlocksOffset', err);
-						if (err.block) {
-							library.logger.error('blockchain failed at ', err.block.height)
-							modules.blocks.simpleDeleteAfterBlock(err.block.id, function (err, res) {
-								library.logger.error('blockchain clipped');
-								library.bus.message('blockchainReady');
-							})
-						}
+						throw err;
 					} else {
-						library.logger.info('blockchain ready');
-						library.bus.message('blockchainReady');
+						async.until(
+							function () {
+								return count < offset
+							}, function (cb) {
+								library.logger.info('current ' + offset);
+								setImmediate(function () {
+									modules.blocks.loadBlocksOffset(limit, offset, verify, function (err, lastBlockOffset) {
+										if (err) {
+											return cb(err);
+										}
+
+										offset = offset + limit;
+										private.loadingLastBlock = lastBlockOffset;
+
+										cb();
+									});
+								})
+							}, function (err) {
+								if (err) {
+									library.logger.error('loadBlocksOffset', err);
+									if (err.block) {
+										library.logger.error('blockchain failed at ', err.block.height)
+										modules.blocks.simpleDeleteAfterBlock(err.block.id, function (err, res) {
+											library.logger.error('blockchain clipped');
+											library.bus.message('blockchainReady');
+										})
+									}
+								} else {
+									library.logger.info('blockchain ready');
+									library.bus.message('blockchainReady');
+								}
+							}
+						)
 					}
-				}
-			)
+				});
+			}
 		});
 	}
 
-	library.dbLite.query("select count(*) from mem_accounts where blockId = (select id from blocks where numberOfTransactions > 0 order by height desc limit 1)", ['count'], function (err, rows) {
-		var reject = !(rows[0].count);
+	library.logic.account.createTables(function (err) {
+		if (err) {
+			throw err;
+		} else {
+			library.dbLite.query("select count(*) from mem_accounts where blockId = (select id from blocks where numberOfTransactions > 0 order by height desc limit 1)", {'count': Number}, function (err, rows) {
+				if (err) {
+					throw err;
+				}
 
-		modules.blocks.count(function (err, count) {
-			if (err) {
-				return library.logger.error('blocks.count', err)
-			}
+				var reject = !(rows[0].count);
 
-			library.logger.info('blocks ' + count);
+				modules.blocks.count(function (err, count) {
+					if (err) {
+						return library.logger.error('blocks.count', err)
+					}
 
-			// check if previous loading missed
-			if (reject || verify || count == 1) {
-				load(count);
-			} else {
-				library.dbLite.query(
-					"UPDATE mem_accounts SET u_isDelegate=isDelegate,u_secondSignature=secondSignature,u_username=username,u_balance=balance,u_delegates=delegates,u_contacts=contacts,u_followers=followers,u_multisignatures=multisignatures"
-					, function (err, updated) {
-						if (err) {
-							library.logger.error(err);
-							library.logger.info("Can't load without verifying, clear accounts from database and load");
-							load(count);
-						} else {
-							library.dbLite.query("select a.blockId, b.id from mem_accounts a left outer join blocks b on b.id = a.blockId where b.id is null", {}, ['a_blockId', 'b_id'], function (err, rows) {
-								if (err || rows.length > 0) {
-									library.logger.error(err || "Found missed block, looks like node went down on block processing");
+					library.logger.info('blocks ' + count);
+
+					// check if previous loading missed
+					if (reject || verify || count == 1) {
+						load(count);
+					} else {
+						library.dbLite.query(
+							"UPDATE mem_accounts SET u_isDelegate=isDelegate,u_secondSignature=secondSignature,u_username=username,u_balance=balance,u_delegates=delegates,u_contacts=contacts,u_followers=followers,u_multisignatures=multisignatures"
+							, function (err, updated) {
+								if (err) {
+									library.logger.error(err);
 									library.logger.info("Can't load without verifying, clear accounts from database and load");
 									load(count);
 								} else {
-									// load delegates
-									library.dbLite.query("SELECT lower(hex(publicKey)) FROM mem_accounts WHERE isDelegate=1", ['publicKey'], function (err, delegates) {
-										if (err || delegates.length == 0) {
-											library.logger.error(err || "No delegates, reload database");
+									library.dbLite.query("select a.blockId, b.id from mem_accounts a left outer join blocks b on b.id = a.blockId where b.id is null", {}, ['a_blockId', 'b_id'], function (err, rows) {
+										if (err || rows.length > 0) {
+											library.logger.error(err || "Found missed block, looks like node went down on block processing");
 											library.logger.info("Can't load without verifying, clear accounts from database and load");
 											load(count);
 										} else {
-											modules.delegates.loadDelegatesList(delegates);
-
-											modules.blocks.loadBlocksOffset(1, count, verify, function (err, lastBlock) {
-												if (err) {
-													library.logger.error(err || "Can't load last block");
+											// load delegates
+											library.dbLite.query("SELECT lower(hex(publicKey)) FROM mem_accounts WHERE isDelegate=1", ['publicKey'], function (err, delegates) {
+												if (err || delegates.length == 0) {
+													library.logger.error(err || "No delegates, reload database");
 													library.logger.info("Can't load without verifying, clear accounts from database and load");
 													load(count);
 												} else {
-													library.logger.info('blockchain ready');
-													library.bus.message('blockchainReady');
+													modules.delegates.loadDelegatesList(delegates);
+
+													modules.blocks.loadBlocksOffset(1, count, verify, function (err, lastBlock) {
+														if (err) {
+															library.logger.error(err || "Can't load last block");
+															library.logger.info("Can't load without verifying, clear accounts from database and load");
+															load(count);
+														} else {
+															library.logger.info('blockchain ready');
+															library.bus.message('blockchainReady');
+														}
+													});
 												}
 											});
 										}
 									});
 								}
 							});
-						}
-					});
-			}
+					}
 
-		});
+				});
+			});
+		}
 	});
+
 }
 
 //public methods

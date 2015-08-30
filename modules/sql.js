@@ -118,14 +118,16 @@ Sql.prototype.dropTables = function (dappid, config, cb) {
 	}
 
 	async.eachSeries(tables, function (table, cb) {
-		if (table.type == "table") {
-			library.dbLite.query("DROP TABLE " + table.name, function (err, rows) {
+		if (table.type == "create") {
+			library.dbLite.query("DROP TABLE IF EXISTS " + table.name, function (err, rows) {
 				setImmediate(cb, err);
 			});
 		} else if (table.type == "index") {
-			library.dbLite.query("DROP INDEX " + table.name, function (err, rows) {
+			library.dbLite.query("DROP INDEX IF EXISTS " + table.name, function (err, rows) {
 				setImmediate(cb, err);
 			})
+		} else {
+			setImmediate(cb);
 		}
 	}, cb);
 }
