@@ -367,11 +367,17 @@ shared.pending = function (req, cb) {
 				return setImmediate(cb);
 			}
 
-			if (item.multisignature.keysgroup.indexOf("+" + publicKey) >= 0) {
-				pendings.push(item);
-			}
+			modules.accounts.getAccount({
+				publicKey: item.senderPublicKey
+			}, function (err, sender) {
+				if (err) {
+					return cb(err);
+				}
 
-			setImmediate(cb);
+				if (sender.multisignatures.indexOf(query.publicKey) >= 0) {
+					pendings.push(item);
+				}
+			});
 		}, function () {
 			return cb(null, {transactions: pendings});
 		});
@@ -516,7 +522,6 @@ shared.sign = function (req, cb) {
 				transaction.signatures.push(sign);
 
 				library.bus.message('signature', transaction, true);
-
 				cb();
 			}, function (err) {
 				if (err) {
@@ -652,7 +657,7 @@ shared.addMultisignature = function (req, cb) {
 				return cb(err.toString());
 			}
 
-			cb(null, {transaction: transaction[0]});
+			cb(null, {transactionId: transaction[0].id});
 		});
 	});
 }
