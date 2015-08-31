@@ -746,7 +746,7 @@ shared.getVoters = function (req, cb) {
 					return cb("Internal sql error");
 				}
 
-				return cb(null, {delegates: rows});
+				return cb(null, {accounts: rows});
 			});
 		});
 	});
