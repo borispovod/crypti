@@ -951,7 +951,9 @@ shared.getAccount = function (req, cb) {
 					publicKey: account.publicKey,
 					unconfirmedSignature: account.u_secondSignature,
 					secondSignature: account.secondSignature,
-					secondPublicKey: account.secondPublicKey
+					secondPublicKey: account.secondPublicKey,
+					multisignatures: account.multisignatures,
+					u_multisignatures: account.u_multisignatures
 				}
 			});
 		});
