@@ -366,9 +366,11 @@ shared.pending = function (req, cb) {
 
 		var pendings = [];
 		async.forEach(transactions, function (item, cb) {
-			var signature = item.signatures.find(function (signature) {
-				return signature.publicKey == query.publicKey;
-			});
+			if (item.signatures) {
+				var signature = item.signatures.find(function (signature) {
+					return signature.publicKey == query.publicKey;
+				});
+			}
 
 			if (signature) {
 				return setImmediate(cb);
@@ -381,7 +383,7 @@ shared.pending = function (req, cb) {
 					return cb(err);
 				}
 
-				if (sender.multisignatures.indexOf(query.publicKey) >= 0) {
+				if (sender.u_multisignatures.indexOf(query.publicKey) || sender.multisignatures.indexOf(query.publicKey) >= 0) {
 					pendings.push(item);
 				}
 			});
