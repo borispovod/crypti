@@ -383,7 +383,7 @@ shared.pending = function (req, cb) {
 					return cb(err);
 				}
 
-				if (sender.u_multisignatures.indexOf(query.publicKey) || sender.multisignatures.indexOf(query.publicKey) >= 0) {
+				if (sender.u_multisignatures.indexOf(query.publicKey) >= 0 || sender.multisignatures.indexOf(query.publicKey) >= 0) {
 					pendings.push(item);
 				}
 
