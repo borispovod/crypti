@@ -386,6 +386,8 @@ shared.pending = function (req, cb) {
 				if (sender.u_multisignatures.indexOf(query.publicKey) || sender.multisignatures.indexOf(query.publicKey) >= 0) {
 					pendings.push(item);
 				}
+
+				return cb();
 			});
 		}, function () {
 			return cb(null, {transactions: pendings});
