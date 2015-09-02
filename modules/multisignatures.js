@@ -384,13 +384,15 @@ shared.pending = function (req, cb) {
 				}
 
 				if (sender.u_multisignatures.indexOf(query.publicKey) >= 0 || sender.multisignatures.indexOf(query.publicKey) >= 0) {
-					var multisig = sender.u_multisignatures || sender.multisignatures;
+					var min = sender.u_multimin || sender.multimin;
+					var lifetime = sender.u_multilifetime || sender.multilifetime;;
+					var signatures = sender.u_multisignatures.length;
 
 					pendings.push({
-						max: multisig.keysgroup.length,
-						min: multisig.min,
-						lifetime: multisig.lifetime,
-						tansaction: item
+						max: signatures.length,
+						min: min,
+						lifetime: lifetime,
+						transaction: item
 					});
 				}
 
