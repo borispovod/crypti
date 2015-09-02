@@ -8,6 +8,9 @@ describe("Peer contacts", function () {
 	before(function (done) {
 		node.api.post('/accounts/open')
 			.set('Accept', 'application/json')
+			.set('Version',node.version)
+			.set('share-port',1)
+			.set('port',node.config.port)
 			.send({
 				secret: account.password
 			})
@@ -18,6 +21,9 @@ describe("Peer contacts", function () {
 				account.publicKey = res.body.account.publicKey;
 				node.api.put('/transactions')
 					.set('Accept', 'application/json')
+					.set('Version',node.version)
+					.set('share-port',1)
+					.set('port',node.config.port)
 					.send({
 						secret: node.peers_config.account,
 						amount: 100000000000,
@@ -35,6 +41,9 @@ describe("Peer contacts", function () {
 		var transaction = node.crypti.contact.createContact(account.password, "5819218109212912C");
 		node.peer.post('/transactions')
 			.set('Accept', 'application/json')
+			.set('Version',node.version)
+			.set('share-port',1)
+			.set('port',node.config.port)
 			.send({
 				transaction: transaction
 			})
@@ -52,6 +61,9 @@ describe("Peer contacts", function () {
 		var transaction = node.crypti.contact.createContact(account.password, "-" + node.peers_config.address);
 		node.peer.post('/transactions')
 			.set('Accept', 'application/json')
+			.set('Version',node.version)
+			.set('share-port',1)
+			.set('port',node.config.port)
 			.send({
 				transaction: transaction
 			})
@@ -70,6 +82,9 @@ describe("Peer contacts", function () {
 		var transaction = node.crypti.contact.createContact(account.password, "+" + node.peers_config.address);
 		node.peer.post('/transactions')
 			.set('Accept', 'application/json')
+			.set('Version',node.version)
+			.set('share-port',1)
+			.set('port',node.config.port)
 			.send({
 				transaction: transaction
 			})
@@ -86,6 +101,9 @@ describe("Peer contacts", function () {
 		var transaction = node.crypti.contact.createContact(account.password, "+" + node.peers_config.address);
 		node.peer.post('/transactions')
 			.set('Accept', 'application/json')
+			.set('Version',node.version)
+			.set('share-port',1)
+			.set('port',node.config.port)
 			.send({
 				transaction: transaction
 			})
