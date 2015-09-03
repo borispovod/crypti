@@ -76,7 +76,7 @@ function Multisignature() {
 			}
 		}
 
-		if (trs.asset.multisignature.keysgroup.indexOf(sender.publicKey) != -1) {
+		if (trs.asset.multisignature.keysgroup.indexOf("+" + sender.publicKey) != -1) {
 			return setImmediate(cb, errorCode("MULTISIGNATURES.SELF_SIGN"));
 		}
 
