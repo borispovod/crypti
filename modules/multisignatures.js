@@ -339,7 +339,29 @@ shared.getAccounts = function (req, cb) {
 					return cb("Internal sql error");
 				}
 
-				return cb(null, {accounts: rows});
+				async.eachSeries(rows, function (account, cb) {
+					var addresses = [];
+					for (var i = 0; i < account.multisignatures.length; i++) {
+						addresses.push(modules.accounts.generateAddressByPublicKey(account.multisignatures[i]));
+					}
+
+					modules.accounts.getAccounts({
+						address: {$in: addresses}
+					}, ['address', 'publicKey', 'balance', 'username'], function (err, multisigaccounts) {
+						if (err) {
+							return cb(err);
+						}
+
+						account.multisigaccounts = multisigaccounts;
+						return cb();
+					});
+				}, function (err) {
+					if (err) {
+						return cb(err);
+					}
+
+					return cb(null, {accounts: rows});
+				});
 			});
 		});
 	});
