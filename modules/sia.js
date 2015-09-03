@@ -1,11 +1,92 @@
 var util = require('util'),
 	request = require('request'),
 	fs = require('fs'),
-	sandboxHelper = require('../helpers/sandbox.js');
+	sandboxHelper = require('../helpers/sandbox.js'),
+	async = require('async');
 
 var modules, library, self, private = {}, shared = {};
 
 private.loaded = false;
+
+//get random peer
+private.getRandomPeers = function(count, cb) {
+	library.dbLite.query("SELECT ip, port FROM sia_peers ORDER BY RANDOM() LIMIT " + count, {
+		"ip": Number,
+		"port": Number
+	}, function (err, rows) {
+		if (err || rows.length == 0) {
+			return cb(err || "Sia peers not found")
+		} else {
+			var peers = [];
+			for (var i in rows) {
+				peers.push(
+					{
+						ip: ip.fromLong(rows[i].ip),
+						port: rows[i].port
+					}
+				);
+			}
+
+			return cb(null, peers);
+		}
+	});
+}
+
+private.removePeer = function(peer, cb) {
+	var generalPeer = library.config.sia.peers.find(function (item) {
+		return item.ip == peer.ip && item.port == peer.port;
+	});
+
+	if (generalPeer) {
+		return setImmediate(cb);
+	}
+
+	library.dbLite.query("DELETE FROM sia_peers WHERE ip = $ip and port = $port", {
+		ip: ip.toLong(peer.ip),
+		port: peer.port
+	}, cb);
+}
+
+//download peers
+private.downloadPeers = function(peer, cb) {
+	request.get({
+		url: "http://" + peer.ip + ":" + peer.port + "/peers",
+		json: true
+	}, function (err, resp, body) {
+		if (err) {
+			return cb(err);
+		} else {
+			// validate peers
+			async.eachSeries(body.peers, function (peer, cb) {
+				library.schema.validate(peer, {
+					type: "object",
+					properties: {
+						"ip": {
+							type: "string",
+							format: "ip"
+						},
+						"port": {
+							type: "integer",
+							minimum: 1,
+							maximum: 65535
+						}
+					}
+				}, function (err) {
+					if (err) {
+						return setImmediate(cb);
+					}
+
+					library.dbLite.query("INSERT OR IGNORE INTO sia_peers(ip, port) VALUES($ip, $port)", {
+						ip: ip.toLong(peer.ip),
+						port: peer.port
+					}, function (err, r) {
+						setImmediate(cb, err);
+					});
+				})
+			}, cb);
+		}
+	});
+}
 
 //constructor
 function Sia(cb, scope) {
@@ -18,28 +99,42 @@ function Sia(cb, scope) {
 
 //private fields
 Sia.prototype.uploadAscii = function (id, ascii, icon, cb) {
-	var peer = library.config.sia.peer;
-	var peerStr = "http://" + peer.address + ":" + peer.port;
+	function uploadAsciiRecursive() {
+		private.getRandomPeers(1, function (err, peers) {
+			if (err) {
+				library.logger.error(err);
+				uploadAsciiRecursive();
+			} else {
+				var peer = peers[0];
+				var peerStr = "http://" + peer.ip + ":" + peer.port;
 
-	request.post({
-		url: peerStr + "/upload",
-		json: {
-			ascii: ascii,
-			id: id,
-			icon: icon
-		},
-		timeout: 1000 * 60 * 2
-	}, function (err, resp, body) {
-		if (err || resp.statusCode != 200) {
-			return setImmediate(cb, err || "Can't download file");
-		}
+				request.post({
+					url: peerStr + "/upload",
+					json: {
+						ascii: ascii,
+						id: id,
+						icon: icon
+					},
+					timeout: 1000 * 60 * 2
+				}, function (err, resp, body) {
+					if (err || resp.statusCode != 200) {
+						library.logger.error(err.toString() || "Can't download file");
+						private.removePeer(peer, function (removeErr) {
+							library.logger.error(removeErr.toString() || err.toString() || "Can't download file");
+							return uploadAsciiRecursive();
+						});
+						//return setImmediate(cb, err || "Can't download file");
+					}
 
-		if (body.success) {
-			return cb(null, body.file);
-		} else {
-			return cb("Can't add this file, this file already added");
-		}
-	});
+					if (body.success) {
+						return cb(null, body.file);
+					} else {
+						return cb("Can't add this file, this file already added");
+					}
+				});
+			}
+		});
+	}
 }
 
 //public methods
@@ -113,6 +208,40 @@ Sia.prototype.onBind = function (scope) {
 
 Sia.prototype.onBlockchainReady = function () {
 	private.loaded = true;
+
+	function downloadPeers(cb) {
+		private.getRandomPeers(1, function (err, peers) {
+			if (err) {
+				cb(err);
+			} else {
+				private.downloadPeers(peers[0], function (err) {
+					if (err) {
+						private.removePeer(function (removeErr) {
+							cb(removeErr || err);
+						});
+					};
+				});
+			}
+		});
+	}
+
+
+	downloadPeers(function (err) {
+		if (err) {
+			library.logger.error(err);
+		} else {
+			setTimeout(function downloadPeersTimeout() {
+				downloadPeersTimeout(function (err) {
+					if (err) {
+						library.logger.error(err);
+					}
+
+					setTimeout(downloadPeersTimeout, 1000 * 60);
+				})
+			}, 1000 * 60);
+		}
+	});
+
 }
 
 //shared

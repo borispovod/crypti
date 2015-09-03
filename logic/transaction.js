@@ -446,7 +446,7 @@ Transaction.prototype.apply = function (trs, sender, cb) {
 		return setImmediate(cb, "Balance has no XCR: " + trs.id);
 	}
 
-	this.scope.account.merge(sender.address, {balance: -amount}, function (err, sender) {
+	this.scope.account.merge(sender.address, {balance: -amount, blockId: trs.blockId}, function (err, sender) {
 		if (err) {
 			return cb(err);
 		}

@@ -837,9 +837,9 @@ private.attachApi = function () {
 											library.logger.error(err);
 											return res.json({success: false, error: "Sql error, check logs"});
 										} else {
-											if (!query.installed) {
+											if (query.installed === null || typeof query.installed === 'undefined') {
 												return res.json({success: true, dapps: rows});
-											} else {
+											} else if (query.installed == 1) {
 												private.getInstalledIds(function (err, installed) {
 													if (err) {
 														return res.json({
@@ -851,6 +851,24 @@ private.attachApi = function () {
 													var dapps = [];
 													rows.forEach(function (dapp) {
 														if (installed.indexOf(dapp.transactionId) >= 0) {
+															dapps.push(dapp);
+														}
+													});
+
+													return res.json({success: true, dapps: dapps});
+												});
+											} else {
+												private.getInstalledIds(function (err, installed) {
+													if (err) {
+														return res.json({
+															success: false,
+															error: "Can't get installed dapps ids to get uninstalled"
+														});
+													}
+
+													var dapps = [];
+													rows.forEach(function (dapp) {
+														if (installed.indexOf(dapp.transactionId) < 0) {
 															dapps.push(dapp);
 														}
 													});
@@ -921,6 +939,7 @@ private.attachApi = function () {
 											if (err) {
 												library.logger.error(err);
 											}
+
 
 											private.loading[body.id] = false;
 											return res.json({
@@ -1006,18 +1025,40 @@ private.attachApi = function () {
 
 				private.removing[body.id] = true;
 
-				// later - first we run uninstall
-				private.removeDApp(dapp, function (err) {
-					private.removing[body.id] = false;
+				if (private.launched[body.id]) {
+					// stop dapp first
+					private.stop(dapp, function (err) {
+						if (err) {
+							library.logger.error(err);
+							return res.json({success: false, error: "Can't stop dapp, check logs"});
+						} else {
+							private.launched[body.id] = false;
+							private.removeDApp(dapp, function (err) {
+								private.removing[body.id] = false;
 
-					if (err) {
-						return res.json({success: false, error: err});
-					} else {
-						library.network.io.sockets.emit('dapps/change', {});
+								if (err) {
+									return res.json({success: false, error: err});
+								} else {
+									library.network.io.sockets.emit('dapps/change', {});
 
-						return res.json({success: true});
-					}
-				})
+									return res.json({success: true});
+								}
+							});
+						}
+					});
+				} else {
+					private.removeDApp(dapp, function (err) {
+						private.removing[body.id] = false;
+
+						if (err) {
+							return res.json({success: false, error: err});
+						} else {
+							library.network.io.sockets.emit('dapps/change', {});
+
+							return res.json({success: true});
+						}
+					});
+				}
 			});
 		});
 	});
@@ -1240,7 +1281,7 @@ private.list = function (filter, cb) {
 		(fields.length ? "where " + fields.join(' or ') + " " : "") +
 		(filter.orderBy ? 'order by ' + sortBy + ' ' + sortMethod : '') + " " +
 		(filter.limit ? 'limit $limit' : '') + " " +
-		(filter.offset ? 'offset $offset' : ''), params, ['name', 'description', 'tags', 'siaAscii', 'siaIcon', 'git', 'type', 'category', 'icon', 'transactionId'], function (err, rows) {
+		(filter.offset ? 'offset $offset' : ''), params, {name: String, description: String, tags: String, siaAscii: String, siaIcon: String, git: String, type: Number, category: Number, icon: String, transactionId:String}, function (err, rows) {
 		if (err) {
 			return cb(err);
 		}
@@ -1322,18 +1363,24 @@ private.removeDApp = function (dApp, cb) {
 		if (!exists) {
 			return setImmediate(cb, "This dapp not found");
 		} else {
-			rmdir(dappPath, function (err) {
-				if (err) {
-					return setImmediate(cb, "Problem when removing folder of dapp: ", dappPath);
-				} else {
-					try {
-						var blockchain = require(path.join(dappPath, 'blockchain.json'));
-					} catch (e) {
-						return setImmediate(cb);
-					}
+			try {
+				var blockchain = require(path.join(dappPath, 'blockchain.json'));
+			} catch (e) {
+				return setImmediate(cb);
+			}
 
-					modules.sql.dropTables(dApp.transactionId, blockchain, cb);
+			modules.sql.dropTables(dApp.transactionId, blockchain, function (err) {
+				if (err) {
+					library.logger.error("Can't remove tables of dapp: " + err);
 				}
+
+				rmdir(dappPath, function (err) {
+					if (err) {
+						return setImmediate(cb, "Can't removed dapp folder: " + err);
+					} else {
+						return cb();
+					}
+				});
 			});
 		}
 	});
@@ -1475,7 +1522,6 @@ private.apiHandler = function (message, callback) {
 private.getIcon = function (dapp, res) {
 	modules.sia.uploadAscii(dapp.transactionId, dapp.siaIcon, true, function (err, file) {
 		if (err) {
-			console.log(err);
 			return res.json({success: false, error: "Internal error"});
 		} else {
 			modules.sia.download(file, res);
@@ -1500,6 +1546,7 @@ private.dappRoutes = function (dapp, cb) {
 			routes.forEach(function (router) {
 				if (router.method == "get" || router.method == "post" || router.method == "put") {
 					private.routes[dapp.transactionId][router.method](router.path, function (req, res) {
+
 						self.request(dapp.transactionId, router.method, router.path, (router.method == "get") ? req.query : req.body, function (err, body) {
 							if (!err && body.error) {
 								err = body.error;
@@ -1541,7 +1588,7 @@ private.launch = function (body, cb) {
 				minLength: 1
 			}
 		},
-		required: ["id", "params"]
+		required: ["id"]
 	}, function (err) {
 		if (err) {
 			return cb(err[0].message);
@@ -1572,7 +1619,7 @@ private.launch = function (body, cb) {
 									library.logger.error(err);
 									return cb("Can't create public link for: " + body.id);
 								} else {
-									private.launchApp(dapp, body.params, function (err) {
+									private.launchApp(dapp, body.params || [], function (err) {
 										if (err) {
 											private.launched[body.id] = false;
 											library.logger.error(err);
@@ -1695,7 +1742,12 @@ private.stop = function (dApp, cb) {
 			});
 		},
 		function (cb) {
+			if (private.sandboxes[dApp.transactionId]) {
+				private.sandboxes[dApp.transactionId].exit();
+			}
+
 			delete private.sandboxes[dApp.transactionId];
+
 			setImmediate(cb)
 		},
 		function (cb) {

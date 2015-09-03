@@ -14,7 +14,6 @@
 	},
 	"peers": {
 		"list": [
-			{"ip": "104.155.53.172", "port": 7040}
 		],
 		"blackList": [],
 		"options": {
@@ -136,10 +135,12 @@
 		"loadPerIteration": 5000
 	},
     "sia": {
-	  "peer": {
-		"address": "127.0.0.1",
-		"port": 8080
-	  }
+	  "pees": [
+		{
+		  "ip": "127.0.0.1",
+		  "port": 8080
+		}
+	  ]
 	},
 	"ssl": {
 		"enabled": false,
@@ -152,10 +153,6 @@
 	},
 	"dapp": {
 		"autoexec": [
-			{
-				"params": ["F3DP835EBuZMAhiuYn2AzhJh1lz8glLolghCMD4X8lRh5v2GlcBWws7plIDUuPjf3GUTOnyYEfXQx7cH", "modules.full.json"],
-				"dappid": "15616498276233037701"
-			}
 		]
 	}
 }

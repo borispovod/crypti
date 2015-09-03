@@ -268,7 +268,7 @@ d.run(function () {
 			scope.network.app.use(bodyParser.json());
 			scope.network.app.use(methodOverride());
 
-			var ignore = ['id', 'lastBlockId', 'blockId', 'transactionId', 'address', 'recipientId', 'senderId', 'senderUsername', 'recipientUsername', 'previousBlock'];
+			var ignore = ['id', 'name', 'lastBlockId', 'blockId', 'transactionId', 'address', 'recipientId', 'senderId', 'senderUsername', 'recipientUsername', 'previousBlock'];
 			scope.network.app.use(queryParser({
 				parser: function (value, radix, name) {
 					if (ignore.indexOf(name) >= 0) {

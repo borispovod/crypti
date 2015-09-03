@@ -76,7 +76,7 @@ function Multisignature() {
 			}
 		}
 
-		if (trs.asset.multisignature.keysgroup.indexOf(sender.publicKey) != -1) {
+		if (trs.asset.multisignature.keysgroup.indexOf("+" + sender.publicKey) != -1) {
 			return setImmediate(cb, errorCode("MULTISIGNATURES.SELF_SIGN"));
 		}
 
@@ -230,7 +230,14 @@ function Multisignature() {
 			lifetime: trs.asset.multisignature.lifetime,
 			keysgroup: trs.asset.multisignature.keysgroup.join(','),
 			transactionId: trs.id
-		}, cb);
+		}, function (err, rows) {
+			if (err) {
+				return cb(err);
+			} else {
+				library.network.io.sockets.emit('mutlsigiantures/change', {});
+				return cb();
+			}
+		});
 	}
 
 	this.ready = function (trs, sender) {
@@ -326,13 +333,35 @@ shared.getAccounts = function (req, cb) {
 			modules.accounts.getAccounts({
 				address: {$in: addresses},
 				sort: 'balance'
-			}, ['address', 'balance'], function (err, rows) {
+			}, ['address', 'balance', 'multisignatures', 'multilifetime', 'multimin'], function (err, rows) {
 				if (err) {
 					library.logger.error(err);
 					return cb("Internal sql error");
 				}
 
-				return cb(null, {accounts: rows});
+				async.eachSeries(rows, function (account, cb) {
+					var addresses = [];
+					for (var i = 0; i < account.multisignatures.length; i++) {
+						addresses.push(modules.accounts.generateAddressByPublicKey(account.multisignatures[i]));
+					}
+
+					modules.accounts.getAccounts({
+						address: {$in: addresses}
+					}, ['address', 'publicKey', 'balance', 'username'], function (err, multisigaccounts) {
+						if (err) {
+							return cb(err);
+						}
+
+						account.multisigaccounts = multisigaccounts;
+						return cb();
+					});
+				}, function (err) {
+					if (err) {
+						return cb(err);
+					}
+
+					return cb(null, {accounts: rows});
+				});
 			});
 		});
 	});
@@ -359,19 +388,50 @@ shared.pending = function (req, cb) {
 
 		var pendings = [];
 		async.forEach(transactions, function (item, cb) {
-			var signature = item.signatures.find(function (signature) {
-				return signature.publicKey == query.publicKey;
+			if (item.signatures && item.signatures.length > 0) {
+				var verify = false;
+
+				for (var i in item.signatures) {
+					var signature = item.signatures[i];
+
+					try {
+						verify = library.logic.transaction.verifySignature(item, query.publicKey, item.signatures[i]);
+					} catch (e) {
+						verify = false;
+					}
+
+					if (verify) {
+						break;
+					}
+				}
+
+				if (verify) {
+					return setImmediate(cb);
+				}
+			}
+
+			modules.accounts.getAccount({
+				publicKey: item.senderPublicKey
+			}, function (err, sender) {
+				if (err) {
+					return cb(err);
+				}
+
+				if (sender.u_multisignatures.indexOf(query.publicKey) >= 0 || sender.multisignatures.indexOf(query.publicKey) >= 0) {
+					var min = sender.u_multimin || sender.multimin;
+					var lifetime = sender.u_multilifetime || sender.multilifetime;;
+					var signatures = sender.u_multisignatures.length;
+
+					pendings.push({
+						max: signatures.length,
+						min: min,
+						lifetime: lifetime,
+						transaction: item
+					});
+				}
+
+				return cb();
 			});
-
-			if (signature) {
-				return setImmediate(cb);
-			}
-
-			if (item.multisignature.keysgroup.indexOf("+" + publicKey) >= 0) {
-				pendings.push(item);
-			}
-
-			setImmediate(cb);
 		}, function () {
 			return cb(null, {transactions: pendings});
 		});
@@ -453,6 +513,7 @@ Multisignatures.prototype.processSignature = function (tx, cb) {
 				return cb("Failed to verify signature: " + transaction.id);
 			}
 
+			library.network.io.sockets.emit('mutlsigiantures/singature/change', {});
 			return done(cb);
 		});
 	}
@@ -516,7 +577,6 @@ shared.sign = function (req, cb) {
 				transaction.signatures.push(sign);
 
 				library.bus.message('signature', transaction, true);
-
 				cb();
 			}, function (err) {
 				if (err) {
@@ -532,6 +592,7 @@ shared.sign = function (req, cb) {
 				return cb(errorCode("MULTISIGNATURES.SIGN_NOT_ALLOWED", transaction));
 			}
 
+			library.network.io.sockets.emit('mutlsigiantures/singature/change', {});
 			done(cb);
 		} else {
 			modules.accounts.getAccount({
@@ -555,6 +616,7 @@ shared.sign = function (req, cb) {
 					return cb(errorCode("MULTISIGNATURES.SIGN_NOT_ALLOWED", transaction));
 				}
 
+				library.network.io.sockets.emit('mutlsigiantures/singature/change', {});
 				done(cb);
 			});
 		}
@@ -652,7 +714,8 @@ shared.addMultisignature = function (req, cb) {
 				return cb(err.toString());
 			}
 
-			cb(null, {transaction: transaction[0]});
+			library.network.io.sockets.emit('mutlsigiantures/change', {});
+			cb(null, {transactionId: transaction[0].id});
 		});
 	});
 }
