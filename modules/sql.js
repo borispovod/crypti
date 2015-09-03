@@ -1,5 +1,6 @@
 var async = require('async');
 var jsonSql = require('json-sql')();
+jsonSql.setDialect("sqlite")
 var extend = require('extend');
 var sandboxHelper = require('../helpers/sandbox.js')
 
@@ -60,8 +61,11 @@ private.query = function (action, config, cb) {
 	var map = config.map || null;
 	delete config.map;
 
-	var sql = jsonSql.build(extend(config, defaultConfig));
-
+	try {
+		var sql = jsonSql.build(extend(config, defaultConfig));
+	} catch (e) {
+		return done(e.toString());
+	}
 	function done(err, data) {
 		if (err) {
 			err = err.toString();
