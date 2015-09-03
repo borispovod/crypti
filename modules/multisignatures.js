@@ -366,14 +366,14 @@ shared.pending = function (req, cb) {
 
 		var pendings = [];
 		async.forEach(transactions, function (item, cb) {
-			if (item.signatures) {
+			if (item.signatures && item.signatures.length > 0) {
 				var verify = false;
 
 				for (var i in item.signatures) {
 					var signature = item.signatures[i];
 
 					try {
-						verify = library.logic.transaction.verifySignature(item, publicKey, item.signatures[i]);
+						verify = library.logic.transaction.verifySignature(item, query.publicKey, item.signatures[i]);
 					} catch (e) {
 						verify = false;
 					}
@@ -386,10 +386,6 @@ shared.pending = function (req, cb) {
 				if (verify) {
 					return setImmediate(cb);
 				}
-			}
-
-			if (signature) {
-				return setImmediate(cb);
 			}
 
 			modules.accounts.getAccount({
