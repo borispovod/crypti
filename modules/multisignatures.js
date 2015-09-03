@@ -367,9 +367,25 @@ shared.pending = function (req, cb) {
 		var pendings = [];
 		async.forEach(transactions, function (item, cb) {
 			if (item.signatures) {
-				var signature = item.signatures.find(function (signature) {
-					return signature.publicKey == query.publicKey;
-				});
+				var verify = false;
+
+				for (var i in item.signatures) {
+					var signature = item.signatures[i];
+
+					try {
+						verify = library.logic.transaction.verifySignature(item, publicKey, item.signatures[i]);
+					} catch (e) {
+						verify = false;
+					}
+
+					if (verify) {
+						break;
+					}
+				}
+
+				if (verify) {
+					return setImmediate(cb);
+				}
 			}
 
 			if (signature) {
