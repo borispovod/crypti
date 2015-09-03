@@ -333,7 +333,7 @@ shared.getAccounts = function (req, cb) {
 			modules.accounts.getAccounts({
 				address: {$in: addresses},
 				sort: 'balance'
-			}, ['address', 'balance'], function (err, rows) {
+			}, ['address', 'balance', 'multisignatures', 'multilifetime', 'multimin'], function (err, rows) {
 				if (err) {
 					library.logger.error(err);
 					return cb("Internal sql error");
