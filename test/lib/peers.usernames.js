@@ -9,6 +9,9 @@ describe("Peers usernames", function () {
 		var transaction = node.crypti.username.createUsername(node.peers_config.account, node.randomDelegateName());
 		node.peer.post('/transactions')
 			.set('Accept', 'application/json')
+			.set('Version',node.version)
+			.set('share-port',1)
+			.set('port',node.config.port)
 			.send({
 				transaction: transaction
 			})
@@ -20,6 +23,9 @@ describe("Peers usernames", function () {
 
 				node.peer.post('/transactions')
 					.set('Accept', 'application/json')
+					.set('Version',node.version)
+					.set('share-port',1)
+					.set('port',node.config.port)
 					.send({
 						transaction: transaction
 					})
@@ -35,6 +41,9 @@ describe("Peers usernames", function () {
 	it("Register delegate and then username. Should return not ok", function (done) {
 		node.api.post('/accounts/open')
 			.set('Accept', 'application/json')
+			.set('Version',node.version)
+			.set('share-port',1)
+			.set('port',node.config.port)
 			.send({
 				secret: account.password
 			})
@@ -44,6 +53,9 @@ describe("Peers usernames", function () {
 				account.address = res.body.account.address;
 				node.api.put('/transactions')
 					.set('Accept', 'application/json')
+					.set('Version',node.version)
+					.set('share-port',1)
+					.set('port',node.config.port)
 					.send({
 						secret: node.peers_config.account,
 						amount: 100000000000,
@@ -58,6 +70,9 @@ describe("Peers usernames", function () {
 							var transaction = node.crypti.delegate.createDelegate(account.password, node.randomDelegateName());
 							node.peer.post('/transactions')
 								.set('Accept', 'application/json')
+								.set('Version',node.version)
+								.set('share-port',1)
+								.set('port',node.config.port)
 								.send({
 									transaction: transaction
 								})
@@ -70,6 +85,9 @@ describe("Peers usernames", function () {
 
 									node.peer.post('/transactions')
 										.set('Accept', 'application/json')
+										.set('Version',node.version)
+										.set('share-port',1)
+										.set('port',node.config.port)
 										.send({
 											transaction: transaction
 										})
@@ -90,6 +108,9 @@ describe("Peers usernames", function () {
 	it("Register username and then register delegate. Should return not ok", function (done) {
 		node.api.post('/accounts/open')
 			.set('Accept', 'application/json')
+			.set('Version',node.version)
+			.set('share-port',1)
+			.set('port',node.config.port)
 			.send({
 				secret: account2.password
 			})
@@ -99,6 +120,9 @@ describe("Peers usernames", function () {
 				account2.address = res.body.account.address;
 				node.api.put('/transactions')
 					.set('Accept', 'application/json')
+					.set('Version',node.version)
+					.set('share-port',1)
+					.set('port',node.config.port)
 					.send({
 						secret: node.peers_config.account,
 						amount: 100000000000,
@@ -114,6 +138,9 @@ describe("Peers usernames", function () {
 
 							node.peer.post('/transactions')
 								.set('Accept', 'application/json')
+								.set('Version',node.version)
+								.set('share-port',1)
+								.set('port',node.config.port)
 								.send({
 									transaction: transaction
 								})
@@ -125,6 +152,9 @@ describe("Peers usernames", function () {
 									transaction = node.crypti.delegate.createDelegate(account2.password, node.randomDelegateName());
 									node.peer.post('/transactions')
 										.set('Accept', 'application/json')
+										.set('Version',node.version)
+										.set('share-port',1)
+										.set('port',node.config.port)
 										.send({
 											transaction: transaction
 										})
