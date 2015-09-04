@@ -32,11 +32,13 @@ module.exports.connect = function (connectString, cb) {
 		"CREATe TABLE IF NOT EXISTS dapps(transactionId VARCHAR(20) NOT NULL, name VARCHAR(32) NOT NULL, description VARCHARH(160), tags VARCHARH(160), siaAscii TEXT, siaIcon TEXT, git TEXT, type INTEGER NOT NULL, category INTEGER NOT NULL, icon TEXT, FOREIGN KEY(transactionId) REFERENCES trs(id) ON DELETE CASCADE)",
 		"CREATE TABLE IF NOT EXISTS dapptransfers(dappid VARCHAR(20) NOT NULL, transactionId VARCHAR(20) NOT NULL, FOREIGN KEY(transactionId) REFERENCES trs(id) ON DELETE CASCADE)",
 		"CREATE TABLE IF NOT EXISTS sia_peers(ip INTEGER NOT NULL PRIMARY KEY, port TINYINT NOT NULL)",
+		"CREATe TABLE IF NOT EXISTS outtransfer(transactionId VARCHAR(20) NOT NULL, dappId VARCHAR(20) NOT NULL, outTransactionId VARCHAR(20) NOT NULL UNIQUE, FOREIGN KEY(transactionId) REFERENCES trs(id) ON DELETE CASCADE, FOREIGN KEY(dappId) REFERENCES dapps(transactionId) ON DELEte CASCADE)",
 		// Indexes
 		"CREATE UNIQUE INDEX IF NOT EXISTS peers_unique ON peers(ip, port)",
 		"CREATE UNIQUE INDEX IF NOT EXISTS peers_dapp_unique ON peers_dapp(peerId, dappid)",
 		"CREATE UNIQUE INDEX IF NOT EXISTS blocks_height ON blocks(height)",
 		"CREATE UNIQUE INDEX IF NOT EXISTS blocks_previousBlock ON blocks(previousBlock)",
+		"CREATE UNIQUE INDEX IF Not EXISts out_transaction_id ON outtransfer(outTransactionId)",
 		"CREATE INDEX IF NOT EXISTS blocks_generator_public_key ON blocks(generatorPublicKey)",
 		"CREATE INDEX IF NOT EXISTS blocks_totalFee ON blocks(totalFee)",
 		"CREATE INDEX IF NOT EXISTS blocks_totalAmount ON blocks(totalAmount)",

@@ -33,9 +33,206 @@ private.appPath = process.cwd();
 private.dappsPath = path.join(process.cwd(), 'dapps');
 private.sandboxes = {};
 private.routes = {};
+private.unconfirmedOutTansfers = {};
 
 function isASCII(str, extended) {
 	return (extended ? /^[\x00-\xFF]*$/ : /^[\x00-\x7F]*$/).test(str);
+}
+
+function OutTransfer() {
+	this.create = function (data, trs) {
+		trs.recipientId = data.recipientId;
+		trs.amount = data.amount;
+
+		trs.asset.outTransfer = {
+			dappId: data.dappId,
+			transactionId: data.transactionId
+		};
+
+		return trs;
+	}
+
+	this.calculateFee = function (trs) {
+		var fee = parseInt(trs.amount / 100 * library.logic.block.calculateFee());
+		return fee || 1;
+	}
+
+	this.verify = function (trs, sender, cb) {
+		if (!trs.recipientId) {
+			return setImmediate(cb, errorCode("TRANSACTIONS.INVALID_RECIPIENT", trs));
+		}
+
+		if (!trs.amount) {
+			return setImmediate(cb, errorCode("TRANSACTIONS.INVALID_AMOUNT", trs));
+		}
+
+		if (!trs.asset.outTransfer.dappId) {
+			return setImmediate(cb, "DApp Id missed for out transfer transaction");
+		}
+
+		if (!trs.asset.outTransfer.transactionId) {
+			return setImmediate(cb, "DApp Id missed for input transfer transaction");
+		}
+
+		// find dapp by id
+		library.dbLite.query("SELECT count(*) FROM dapps WHERE id=$id", {
+			id: trs.asset.outTransfer.dappId
+		}, ['count'], function (err, rows) {
+			if (err) {
+				library.logger.error(err.toString());
+				return setImmediate(cb, "This dapp not found: " + trs.asset.outTransfer.dappId);
+			}
+
+			var count = rows[0].count;
+
+			if (count == 0) {
+				return setImmediate(cb, "This dapp not found: " + trs.asset.outTransfer.dappId);
+			}
+
+			if (private.unconfirmedOutTansfers[trs.asset.outTransfer.transactionId]) {
+				return setImmediate(cb, "This transaction already on processing: " + trs.asset.outTransfer.transactionId);
+			}
+
+			library.dbLite.query("SELECT count(*) FROM outtransfer WHERE outTransactionId = $transactionId", {
+				transactionId: trs.asset.outTransfer.transactionId
+			}, function (err) {
+				if (err) {
+					library.logger.error(err.toString());
+					return setImmediate(cb, "This transaction already confirmed: " + trs.asset.outTransfer.transactionId);
+				} else {
+					return setImmediate(cb);
+				}
+			})
+		});
+
+	}
+
+	this.process = function (trs, sender, cb) {
+		setImmediate(cb, null, trs);
+	}
+
+	this.getBytes = function (trs) {
+		try {
+			var buf = new Buffer([]);
+			var dappIdBuf = new Buffer(trs.asset.outTransfer.dappId, 'utf8');
+			var transactionIdBuff = new Buffer(trs.asset.outTransfer.transactionId, 'utf8');
+			buf = Buffer.concat([buf, dappIdBuf, transactionIdBuff]);
+		} catch (e) {
+			throw Error(e.toString());
+		}
+
+		return buf;
+	}
+
+	this.apply = function (trs, sender, cb) {
+		private.unconfirmedOutTansfers[trs.asset.outTransfer.transactionId] = false;
+
+		modules.accounts.setAccountAndGet({address: trs.recipientId}, function (err, recipient) {
+			if (err) {
+				return cb(err);
+			}
+
+			modules.accounts.mergeAccountAndGet({
+				address: trs.recipientId,
+				balance: trs.amount,
+				u_balance: trs.amount,
+				blockId: trs.blockId
+			}, cb);
+		});
+	}
+
+	this.undo = function (trs, sender, cb) {
+		private.unconfirmedOutTansfers[trs.asset.outTransfer.transactionId] = true;
+
+		modules.accounts.setAccountAndGet({address: trs.recipientId}, function (err, recipient) {
+			if (err) {
+				return cb(err);
+			}
+			modules.accounts.mergeAccountAndGet({
+				address: trs.recipientId,
+				balance: -trs.amount,
+				u_balance: -trs.amount
+			}, cb);
+		});
+	}
+
+	this.applyUnconfirmed = function (trs, sender, cb) {
+		private.unconfirmedOutTansfers[trs.asset.outTransfer.transactionId] = true;
+		setImmediate(cb);
+	}
+
+	this.undoUnconfirmed = function (trs, sender, cb) {
+		private.unconfirmedOutTansfers[trs.asset.outTransfer.transactionId] = false;
+		setImmediate(cb);
+	}
+
+	this.objectNormalize = function (trs) {
+		var report = library.scheme.validate(trs.asset.outTransfer, {
+			object: true,
+			properties: {
+				dappId: {
+					type: "string",
+					minLength: 1
+				},
+				transactionId: {
+					type: "string",
+					minLength: 1
+				}
+			},
+			required: ["dappId", "transactionId"]
+		});
+
+		if (!report) {
+			throw Error("Can't verify dapp transaction, incorrect parameters: " + library.scheme.getLastError());
+		}
+
+		return trs;
+	}
+
+	this.dbRead = function (raw) {
+		if (!raw.outtransfer_dappId) {
+			return null;
+		} else {
+			var outTransfer = {
+				dappId: raw.outtransfer_dappId,
+				transactionId: raw.outtransfer_transactionId
+			}
+
+			return {outTransfer: outTransfer};
+		}
+	}
+
+	this.dbSave = function (trs, cb) {
+		var self = this;
+
+		library.dbLite.query("INSERT INTO outtransfer(dappId, transactionId, outTransactionId) VALUES($dappId, $transactionId, $outTransactionId)", {
+			dappId: trs.asset.outTransfer.dappId,
+			outTransactionId: trs.asset.outTransfer.transactionId,
+			transactionId: trs.id
+		}, function (err) {
+			if (err) {
+				return cb(err);
+			}
+
+			self.message(trs.asset.outTransfer.dappId, {
+				topic: "withdrawal",
+				message: {
+					transactionId: trs.id
+				}
+			}, cb);
+		});
+	}
+
+	this.ready = function (trs, sender) {
+		if (sender.multisignatures.length) {
+			if (!trs.signatures) {
+				return false;
+			}
+			return trs.signatures.length >= sender.multimin;
+		} else {
+			return true;
+		}
+	}
 }
 
 function Transfer() {
@@ -118,7 +315,7 @@ function Transfer() {
 	}
 
 	this.dbRead = function (raw) {
-		if (!raw.dapptransfer_dappid) {
+		if (!raw.outtransfer) {
 			return null;
 		} else {
 			var dapptransfer = {
