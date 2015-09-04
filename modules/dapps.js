@@ -235,20 +235,21 @@ function OutTransfer() {
 	}
 }
 
-function Transfer() {
+function InTransfer() {
 	this.create = function (data, trs) {
 		trs.recipientId = null;
 		trs.amount = data.amount;
 
-		trs.asset.dapptransfer = {
-			dappid: data.dappid
+		trs.asset.inTransfer = {
+			dappId: data.dappId
 		};
 
 		return trs;
 	}
 
 	this.calculateFee = function (trs) {
-		return 1 * constants.fixedPoint;
+		var fee = parseInt(trs.amount / 100 * library.logic.block.calculateFee());
+		return fee || 1;
 	}
 
 	this.verify = function (trs, sender, cb) {
@@ -260,7 +261,22 @@ function Transfer() {
 			return setImmediate(cb, errorCode("TRANSACTIONS.INVALID_AMOUNT", trs));
 		}
 
-		setImmediate(cb);
+		library.dbLite.query("SELECT count(*) FROM dapps WHERE id=$id", {
+			id: trs.asset.outTransfer.dappId
+		}, ['count'], function (err, rows) {
+			if (err) {
+				library.logger.error(err.toString());
+				return setImmediate(cb, "This dapp not found: " + trs.asset.outTransfer.dappId);
+			}
+
+			var count = rows[0].count;
+			if (count == 0) {
+				return setImmediate(cb, "This dapp not found: " + trs.asset.outTransfer.dappId);
+			}
+
+			setImmediate(cb);
+		});
+
 	}
 
 	this.process = function (trs, sender, cb) {
@@ -270,7 +286,7 @@ function Transfer() {
 	this.getBytes = function (trs) {
 		try {
 			var buf = new Buffer([]);
-			var nameBuf = new Buffer(trs.asset.dapptransfer.dappid, 'utf8');
+			var nameBuf = new Buffer(trs.asset.inTransfer.dappId, 'utf8');
 			buf = Buffer.concat([buf, nameBuf]);
 		} catch (e) {
 			throw Error(e.toString());
@@ -296,10 +312,10 @@ function Transfer() {
 	}
 
 	this.objectNormalize = function (trs) {
-		var report = library.scheme.validate(trs.asset.dapptransfer, {
+		var report = library.scheme.validate(trs.asset.inTransfer, {
 			object: true,
 			properties: {
-				dappid: {
+				dappId: {
 					type: "string",
 					minLength: 1
 				},
@@ -315,26 +331,27 @@ function Transfer() {
 	}
 
 	this.dbRead = function (raw) {
-		if (!raw.outtransfer) {
+		if (!raw.in_dappid) {
 			return null;
 		} else {
-			var dapptransfer = {
-				dappid: raw.dapptransfer_dappid
+			var inTransfer = {
+				dappId: raw.in_dappId
 			}
 
-			return {dapptransfer: dapptransfer};
+			return {inTransfer: inTransfer};
 		}
 	}
 
 	this.dbSave = function (trs, cb) {
 		library.dbLite.query("INSERT INTO dapptransfers(dappid, transactionId) VALUES($dappid, $transactionId)", {
-			dappid: trs.asset.dapptransfer.dappid,
+			dappId: trs.asset.inTransfer.dappId,
 			transactionId: trs.id
 		}, function (err) {
 			if (err) {
 				return cb(err);
 			}
-			self.message(trs.asset.dapptransfer.dappid, {
+
+			self.message(trs.asset.inTransfer.dappId, {
 				topic: "balance",
 				message: {
 					transactionId: trs.id
@@ -704,7 +721,9 @@ function DApps(cb, scope) {
 	self = this;
 	self.__private = private;
 	library.logic.transaction.attachAssetType(TransactionTypes.DAPP, new DApp());
-	library.logic.transaction.attachAssetType(TransactionTypes.DAPPTRANSFER, new Transfer());
+	library.logic.transaction.attachAssetType(TransactionTypes.IN_TRANSFER, new InTransfer());
+	library.logic.transaction.attachAssetType(TransactionTypes.OUT_TRANSFER, new OutTransfer());
+
 	private.attachApi();
 
 	process.on('exit', function () {

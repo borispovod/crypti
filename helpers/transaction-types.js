@@ -9,5 +9,6 @@ module.exports = {
 	AVATAR : 7,
 	MULTI: 8,
 	DAPP: 9,
-	DAPPTRANSFER: 10
+	IN_TRANSFER: 10,
+	OUT_TRANSFER: 11
 }

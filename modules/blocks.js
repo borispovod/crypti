@@ -30,7 +30,7 @@ private.blocksDataFields = {
 	'u_alias': String,
 	'm_min': Number, 'm_lifetime': Number, 'm_keysgroup': String,
 	'dapp_name': String, 'dapp_description': String, 'dapp_tags': String, 'dapp_type': Number, 'dapp_siaAscii': String, 'dapp_siaIcon': String, 'dapp_git': String, 'dapp_category': Number, 'dapp_icon': String,
-	'dapptransfer_dappid': String,
+	'in_dappId': String,
 	'ot_dappId': String, 'ot_outTransactionId': String
 };
 // @formatter:on
@@ -494,7 +494,7 @@ Blocks.prototype.loadBlocksData = function (filter, options, cb) {
 				"u.username, " +
 				"m.min, m.lifetime, m.keysgroup, " +
 				"dapp.name, dapp.description, dapp.tags, dapp.type, dapp.siaAscii, dapp.siaIcon, dapp.git, dapp.category, dapp.icon, " +
-				"dt.dappid, " +
+				"it.dappId, " +
 				"ot.dappId, ot.outTransactionId " +
 				"FROM blocks b " +
 				"left outer join trs as t on t.blockId=b.id " +
@@ -505,7 +505,7 @@ Blocks.prototype.loadBlocksData = function (filter, options, cb) {
 				"left outer join usernames as u on u.transactionId=t.id " +
 				"left outer join multisignatures as m on m.transactionId=t.id " +
 				"left outer join dapps as dapp on dapp.transactionId=t.id " +
-				"left outer join dapptransfers dt on dt.transactionId=t.id " +
+				"left outer join intransfer it on it.transactionId=t.id " +
 				"left outer join outtransfer ot on ot.transactionId=t.id " +
 				(filter.id ? " where id = $id " : "") + (filter.lastId ? " where b.height > $height and b.height < $limit " : "") +
 				limitPart +
@@ -547,7 +547,7 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, verify, cb) {
 			"u.username, " +
 			"m.min, m.lifetime, m.keysgroup, " +
 			"dapp.name, dapp.description, dapp.tags, dapp.type, dapp.siaAscii, dapp.siaIcon, dapp.git, dapp.category, dapp.icon, " +
-			"dt.dappid, " +
+			"id.dappId, " +
 			"ot.dappId, ot.outTransactionId " +
 			"FROM blocks b " +
 			"left outer join trs as t on t.blockId=b.id " +
@@ -558,7 +558,7 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, verify, cb) {
 			"left outer join usernames as u on u.transactionId=t.id " +
 			"left outer join multisignatures as m on m.transactionId=t.id " +
 			"left outer join dapps as dapp on dapp.transactionId=t.id " +
-			"left outer join dapptransfers dt on dt.transactionId=t.id " +
+			"left outer join intransfer it on it.transactionId=t.id " +
 			"left outer join outtransfer ot on ot.transactionId=t.id " +
 			"where b.height >= $offset and b.height < $limit " +
 			"ORDER BY b.height, t.rowid" +
