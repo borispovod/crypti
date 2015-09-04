@@ -190,12 +190,12 @@ function OutTransfer() {
 	}
 
 	this.dbRead = function (raw) {
-		if (!raw.outtransfer_dappId) {
+		if (!raw.ot_dappId) {
 			return null;
 		} else {
 			var outTransfer = {
-				dappId: raw.outtransfer_dappId,
-				transactionId: raw.outtransfer_transactionId
+				dappId: raw.ot_dappId,
+				transactionId: raw.ot_outTransactionId
 			}
 
 			return {outTransfer: outTransfer};
