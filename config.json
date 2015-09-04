@@ -153,6 +153,13 @@
 	},
 	"dapp": {
 		"autoexec": [
+		  {
+			"params": [
+			  "123",
+			  "modules.full.json"
+			],
+			"dappid": "15616498276233037701"
+		  }
 		]
 	}
 }
