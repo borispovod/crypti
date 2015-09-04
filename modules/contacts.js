@@ -255,6 +255,10 @@ Contacts.prototype.checkUnconfirmedContacts = function (publicKey, contacts, cb)
 				var math = contacts[i][0];
 				var contactAddress = contacts[i].slice(1);
 
+				if (math != '+' && math != '-') {
+					return cb(errorCode('Incorrect math'));
+				}
+
 				if (contactAddress == selfAddress) {
 					return cb(errorCode("CONTACTS.SELF_FRIENDING"));
 				}

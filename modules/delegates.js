@@ -427,6 +427,11 @@ Delegates.prototype.checkDelegates = function (publicKey, votes, cb) {
 
 			for (var i = 0; i < votes.length; i++) {
 				var math = votes[i][0];
+
+				if (math !== '+' && math !== '-') {
+					return cb("Wrong math");
+				}
+
 				var publicKey = votes[i].slice(1);
 
 				try {

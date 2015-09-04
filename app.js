@@ -394,9 +394,11 @@ d.run(function () {
 			Object.keys(config.modules).forEach(function (name) {
 				tasks[name] = function (cb) {
 					var d = require('domain').create();
+
 					d.on('error', function (err) {
 						scope.logger.fatal('domain ' + name, {message: err.message, stack: err.stack});
 					});
+
 					d.run(function () {
 						logger.debug('loading module', name)
 						var Klass = require(config.modules[name]);
