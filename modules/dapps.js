@@ -32,6 +32,7 @@ private.unconfirmedAscii = {};
 private.appPath = process.cwd();
 private.dappsPath = path.join(process.cwd(), 'dapps');
 private.sandboxes = {};
+private.dappready = {};
 private.routes = {};
 
 function isASCII(str, extended) {
@@ -1869,6 +1870,9 @@ DApps.prototype.request = function (dappid, method, path, query, cb) {
 	if (!private.sandboxes[dappid]) {
 		return cb(errorCode("DAPPS.DAPPS_NOT_FOUND"));
 	}
+	if (!private.dappready[dappid]){
+		return cb(errorCode("DAPPS.DAPPS_NOT_READY"));
+	}
 	private.sandboxes[dappid].sendMessage({
 		method: method,
 		path: path,
@@ -1928,6 +1932,11 @@ shared.getGenesis = function (req, cb) {
 			associate: rows[0].multisignature ? rows[0].multisignature.split(",") : []
 		});
 	});
+}
+
+shared.setReady = function (req, cb) {
+	private.dappready[req.dappid] = true;
+	cb(null, {});
 }
 
 shared.getCommonBlock = function (req, cb) {
