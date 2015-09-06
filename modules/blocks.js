@@ -547,7 +547,7 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, verify, cb) {
 			"u.username, " +
 			"m.min, m.lifetime, m.keysgroup, " +
 			"dapp.name, dapp.description, dapp.tags, dapp.type, dapp.siaAscii, dapp.siaIcon, dapp.git, dapp.category, dapp.icon, " +
-			"id.dappId, " +
+			"it.dappId, " +
 			"ot.dappId, ot.outTransactionId " +
 			"FROM blocks b " +
 			"left outer join trs as t on t.blockId=b.id " +

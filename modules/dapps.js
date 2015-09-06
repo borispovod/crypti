@@ -1366,6 +1366,34 @@ private.attachApi = function () {
 		});
 	});
 
+	router.get('/file', function (req, res, next) {
+		req.sanitize(req.query, {
+			type: "object",
+			properties: {
+				id: {
+					type: "string",
+					minLength: 1
+				}
+			},
+			required: ['id']
+		}, function (err, report, query) {
+			if (err) return next(err);
+			if (!report.isValid) return res.json({success: false, error: report.issues});
+
+			private.get(query.id, function (err, dapp) {
+				if (err) {
+					return res.json({success: false, error: err});
+				}
+
+				if (!dapp.siaIcon) {
+					return res.json({success: false, error: "This dapp don't have sia icon."})
+				}
+
+				private.getFile(dapp, res);
+			});
+		});
+	})
+
 	router.get('/icon', function (req, res, next) {
 		req.sanitize(req.query, {
 			type: "object",
@@ -1733,6 +1761,23 @@ private.apiHandler = function (message, callback) {
 	} catch (e) {
 		return setImmediate(callback, "Incorrect call " + e.toString());
 	}
+}
+
+private.getFile = function (dapp, res) {
+	modules.sia.uploadAscii(dapp.transactionId, dapp.siaAscii, false, function (err, file) {
+		if (err) {
+			return res.json({success: false, error: "Internal error"});
+		} else {
+			res.writeHead(200, {
+				'Content-Type': 'application/vnd.android.package-archive',
+				'Content-Disposition': 'attachment; filename=' + file
+			});
+
+			console.log('download');
+
+			modules.sia.download(file, res);
+		}
+	});
 }
 
 private.getIcon = function (dapp, res) {

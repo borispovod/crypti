@@ -164,6 +164,10 @@ d.run(function () {
 				return true;
 			});
 
+			z_schema.registerFormat('ip', function (value) {
+
+			});
+
 			cb(null, new z_schema())
 		},
 
