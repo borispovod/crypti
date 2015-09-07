@@ -38,7 +38,7 @@ module.exports.connect = function (connectString, cb) {
 		"CREATE UNIQUE INDEX IF NOT EXISTS peers_dapp_unique ON peers_dapp(peerId, dappid)",
 		"CREATE UNIQUE INDEX IF NOT EXISTS blocks_height ON blocks(height)",
 		"CREATE UNIQUE INDEX IF NOT EXISTS blocks_previousBlock ON blocks(previousBlock)",
-		"CREATE UNIQUE INDEX IF Not EXISts out_transaction_id ON outtransfer(outTransactionId)",
+		"CREATE UNIQUE INDEX IF Not EXISTS out_transaction_id ON outtransfer(outTransactionId)",
 		"CREATE INDEX IF NOT EXISTS blocks_generator_public_key ON blocks(generatorPublicKey)",
 		"CREATE INDEX IF NOT EXISTS blocks_totalFee ON blocks(totalFee)",
 		"CREATE INDEX IF NOT EXISTS blocks_totalAmount ON blocks(totalAmount)",

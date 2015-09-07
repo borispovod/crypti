@@ -52,7 +52,6 @@ private.pass = function (obj, dappid) {
 
 //private methods
 private.query = function (action, config, cb) {
-	console.log("Config: ", config);
 	private.pass(config, config.dappid);
 
 	var defaultConfig = {
