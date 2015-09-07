@@ -75,7 +75,7 @@ function OutTransfer() {
 		}
 
 		// find dapp by id
-		library.dbLite.query("SELECT count(*) FROM dapps WHERE id=$id", {
+		library.dbLite.query("SELECT count(*) FROM dapps WHERE transactionId=$id", {
 			id: trs.asset.outTransfer.dappId
 		}, ['count'], function (err, rows) {
 			if (err) {
@@ -244,6 +244,8 @@ function InTransfer() {
 			dappId: data.dappId
 		};
 
+		console.log(trs.asset);
+
 		return trs;
 	}
 
@@ -261,17 +263,17 @@ function InTransfer() {
 			return setImmediate(cb, errorCode("TRANSACTIONS.INVALID_AMOUNT", trs));
 		}
 
-		library.dbLite.query("SELECT count(*) FROM dapps WHERE id=$id", {
-			id: trs.asset.outTransfer.dappId
+		library.dbLite.query("SELECT count(*) FROM dapps WHERE transactionId=$id", {
+			id: trs.asset.inTransfer.dappId
 		}, ['count'], function (err, rows) {
 			if (err) {
 				library.logger.error(err.toString());
-				return setImmediate(cb, "This dapp not found: " + trs.asset.outTransfer.dappId);
+				return setImmediate(cb, "This dapp not found: " + trs.asset.inTransfer.dappId);
 			}
 
 			var count = rows[0].count;
 			if (count == 0) {
-				return setImmediate(cb, "This dapp not found: " + trs.asset.outTransfer.dappId);
+				return setImmediate(cb, "This dapp not found: " + trs.asset.inTransfer.dappId);
 			}
 
 			setImmediate(cb);
@@ -285,6 +287,7 @@ function InTransfer() {
 
 	this.getBytes = function (trs) {
 		try {
+			console.log(trs);
 			var buf = new Buffer([]);
 			var nameBuf = new Buffer(trs.asset.inTransfer.dappId, 'utf8');
 			buf = Buffer.concat([buf, nameBuf]);
@@ -320,7 +323,7 @@ function InTransfer() {
 					minLength: 1
 				},
 			},
-			required: ["dappid"]
+			required: ["dappId"]
 		});
 
 		if (!report) {
@@ -331,7 +334,7 @@ function InTransfer() {
 	}
 
 	this.dbRead = function (raw) {
-		if (!raw.in_dappid) {
+		if (!raw.in_dappId) {
 			return null;
 		} else {
 			var inTransfer = {
@@ -343,7 +346,7 @@ function InTransfer() {
 	}
 
 	this.dbSave = function (trs, cb) {
-		library.dbLite.query("INSERT INTO dapptransfers(dappid, transactionId) VALUES($dappid, $transactionId)", {
+		library.dbLite.query("INSERT INTO intransfer(dappId, transactionId) VALUES($dappId, $transactionId)", {
 			dappId: trs.asset.inTransfer.dappId,
 			transactionId: trs.id
 		}, function (err) {
@@ -356,7 +359,9 @@ function InTransfer() {
 				message: {
 					transactionId: trs.id
 				}
-			}, cb);
+			}, function (err) {
+				return cb();
+			});
 		});
 	}
 
@@ -1773,8 +1778,6 @@ private.getFile = function (dapp, res) {
 				'Content-Disposition': 'attachment; filename=' + file
 			});
 
-			console.log('download');
-
 			modules.sia.download(file, res);
 		}
 	});
@@ -2044,12 +2047,12 @@ private.addTransactions = function (req, cb) {
 				minLength: 1,
 				maxLength: 100
 			},
-			dappid: {
+			dappId: {
 				type: "string",
 				minLength: 1
 			}
 		},
-		required: ["secret", "amount", "dappid"]
+		required: ["secret", "amount", "dappId"]
 	}, function (err) {
 		if (err) {
 			return cb(err[0].message);
@@ -2095,16 +2098,17 @@ private.addTransactions = function (req, cb) {
 
 				try {
 					var transaction = library.logic.transaction.create({
-						type: TransactionTypes.DAPPTRANSFER,
+						type: TransactionTypes.IN_TRANSFER,
 						amount: body.amount,
 						sender: account,
 						keypair: keypair,
 						secondKeypair: secondKeypair,
-						dappid: body.dappid
+						dappId: body.dappId
 					});
 				} catch (e) {
 					return cb(e.toString());
 				}
+
 				modules.transactions.receiveTransactions([transaction], cb);
 			});
 		}, function (err, transaction) {
@@ -2194,9 +2198,9 @@ shared.getGenesis = function (req, cb) {
 shared.getCommonBlock = function (req, cb) {
 	library.dbLite.query("SELECT b.height, t.id, t.senderId, t.amount FROM trs t " +
 		"inner join blocks b on t.blockId = b.id and t.id = $id and t.type = $type" +
-		"inner join dapptransfers dt on dt.transactionId = t.id and dt.dappid = $dappid", {
+		"inner join intransfer dt on dt.transactionId = t.id and dt.dappid = $dappid", {
 		dappid: req.dappid,
-		type: TransactionTypes.DAPPTRANSFER
+		type: TransactionTypes.IN_TRANSFER
 	}, {
 		height: Number,
 		id: String,
