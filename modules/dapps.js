@@ -245,8 +245,6 @@ function InTransfer() {
 			dappId: data.dappId
 		};
 
-		console.log(trs.asset);
-
 		return trs;
 	}
 
@@ -288,7 +286,6 @@ function InTransfer() {
 
 	this.getBytes = function (trs) {
 		try {
-			console.log(trs);
 			var buf = new Buffer([]);
 			var nameBuf = new Buffer(trs.asset.inTransfer.dappId, 'utf8');
 			buf = Buffer.concat([buf, nameBuf]);
