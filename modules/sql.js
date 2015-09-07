@@ -59,9 +59,6 @@ private.query = function (action, config, cb) {
 		type: action
 	};
 
-	var map = config.map || null;
-	delete config.map;
-
 	try {
 		var sql = jsonSql.build(extend(config, defaultConfig));
 	} catch (e) {
@@ -76,7 +73,7 @@ private.query = function (action, config, cb) {
 	}
 
 	if (action == "select") {
-		library.dbLite.query(sql.query, sql.values, map, done);
+		library.dbLite.query(sql.query, sql.values, null, done);
 	} else {
 		library.dbLite.query(sql.query, sql.values, done);
 	}
