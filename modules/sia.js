@@ -228,7 +228,7 @@ Sia.prototype.onBlockchainReady = function () {
 			} else {
 				private.downloadPeers(peers[0], function (err) {
 					if (err) {
-						private.removePeer(function (removeErr) {
+						private.removePeer(peers[0], function (removeErr) {
 							cb(removeErr || err);
 						});
 					};
