@@ -893,6 +893,7 @@ Blocks.prototype.simpleDeleteAfterBlock = function (blockId, cb) {
 Blocks.prototype.loadBlocksFromPeer = function (peer, lastCommonBlockId, cb) {
 	var loaded = false;
 	var count = 0;
+	var lastValidBlock = null;
 
 	async.whilst(
 		function () {
@@ -941,6 +942,7 @@ Blocks.prototype.loadBlocksFromPeer = function (peer, lastCommonBlockId, cb) {
 						self.processBlock(block, false, function (err) {
 							if (!err) {
 								lastCommonBlockId = block.id;
+								lastValidBlock = block;
 							} else {
 								var peerStr = data.peer ? ip.fromLong(data.peer.ip) + ":" + data.peer.port : 'unknown';
 								library.logger.log('block ' + (block ? block.id : 'null') + ' is not valid, ban 60 min', peerStr);
@@ -954,27 +956,24 @@ Blocks.prototype.loadBlocksFromPeer = function (peer, lastCommonBlockId, cb) {
 			});
 		},
 		function (err) {
-			setImmediate(cb, err);
+			setImmediate(cb, err, lastValidBlock);
 		}
 	)
 }
 
 Blocks.prototype.deleteBlocksBefore = function (block, cb) {
-	var blocks = [];
-
 	async.whilst(
 		function () {
 			return !(block.height >= private.lastBlock.height)
 		},
 		function (next) {
-			blocks.unshift(private.lastBlock);
 			private.popLastBlock(private.lastBlock, function (err, newLastBlock) {
 				private.lastBlock = newLastBlock;
 				next(err);
 			});
 		},
 		function (err) {
-			setImmediate(cb, err, blocks);
+			setImmediate(cb, err);
 		}
 	);
 }

@@ -2160,6 +2160,19 @@ DApps.prototype.onBlockchainReady = function () {
 	}
 }
 
+DApps.prototype.onDeleteBlocksBefore = function (block) {
+	Object.keys(private.sandboxes).forEach(function (dappId) {
+		self.request(dappId, "post", "/message", {
+			topic: "rollback",
+			message: {pointId: block.id, pointHeight: block.height}
+		}, function (err) {
+			if (err) {
+				library.logger.error("onDeleteBlocksBefore message", err)
+			}
+		});
+	});
+}
+
 DApps.prototype.onNewBlock = function (block, broadcast) {
 	Object.keys(private.sandboxes).forEach(function (dappId) {
 		self.request(dappId, "post", "/message", {
@@ -2170,7 +2183,7 @@ DApps.prototype.onNewBlock = function (block, broadcast) {
 				library.logger.error("onNewBlock message", err)
 			}
 		});
-	})
+	});
 }
 
 //shared

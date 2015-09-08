@@ -104,7 +104,9 @@ private.findUpdate = function (lastBlock, peer, cb) {
 				modules.round.directionSwap('backward');
 			}
 
-			modules.blocks.deleteBlocksBefore(commonBlock, function (err, backupBlocks) {
+			self.scope.bus.message('deleteBlocksBefore', commonBlock);
+
+			modules.blocks.deleteBlocksBefore(commonBlock, function (err) {
 				if (commonBlock.id != lastBlock.id) {
 					modules.round.directionSwap('forward');
 				}
@@ -115,50 +117,38 @@ private.findUpdate = function (lastBlock, peer, cb) {
 
 				library.logger.debug("Load blocks from peer " + peerStr);
 
-				modules.blocks.loadBlocksFromPeer(peer, commonBlock.id, function (err) {
+				modules.blocks.loadBlocksFromPeer(peer, commonBlock.id, function (err, lastValidBlock) {
 					if (err) {
 						modules.transactions.deleteHiddenTransaction();
 						library.logger.error(err);
 						library.logger.log("can't load blocks, ban 60 min", peerStr);
 						modules.peer.state(peer.ip, peer.port, 0, 3600);
 
-						library.logger.info("Remove blocks again until " + commonBlock.id + " (at " + commonBlock.height + ")");
-						if (commonBlock.id != lastBlock.id) {
-							modules.round.directionSwap('backward');
-						}
+						if (lastValidBlock) {
+							library.logger.info("Remove blocks again until " + lastValidBlock.id + " (at " + lastValidBlock.height + ")");
 
-						// fix 1000 blocks and check, if you need to remove more 1000 blocks - ban node
-
-						modules.blocks.deleteBlocksBefore(commonBlock, function (err) {
-							if (commonBlock.id != lastBlock.id) {
-								modules.round.directionSwap('forward');
-							}
-							if (err) {
-								library.logger.fatal('delete blocks before', err);
-								process.exit(1);
+							if (lastValidBlock.id != lastBlock.id) {
+								modules.round.directionSwap('backward');
 							}
 
-							if (backupBlocks.length) {
-								library.logger.info("Restore stored blocks until " + backupBlocks[backupBlocks.length - 1].height);
-								async.series([
-									function (cb) {
-										async.eachSeries(backupBlocks, function (block, cb) {
-											modules.blocks.processBlock(block, false, cb);
-										}, cb)
-									}, function (cb) {
-										async.eachSeries(overTransactionList, function (trs, cb) {
-											modules.transactions.processUnconfirmedTransaction(trs, false, function () {
-												cb()
-											});
-										}, cb);
-									}
-								], cb);
-							} else {
+							modules.blocks.deleteBlocksBefore(lastValidBlock, function (err) {
+								if (lastValidBlock.id != lastBlock.id) {
+									modules.round.directionSwap('forward');
+								}
+								if (err) {
+									library.logger.fatal('delete blocks before', err);
+									process.exit(1);
+								}
+
 								async.eachSeries(overTransactionList, function (trs, cb) {
 									modules.transactions.processUnconfirmedTransaction(trs, false, cb);
 								}, cb);
-							}
-						});
+							});
+						} else {
+							async.eachSeries(overTransactionList, function (trs, cb) {
+								modules.transactions.processUnconfirmedTransaction(trs, false, cb);
+							}, cb);
+						}
 					} else {
 						for (var i = 0; i < overTransactionList.length; i++) {
 							modules.transactions.pushHiddenTransaction(overTransactionList[i]);
@@ -197,12 +187,14 @@ private.loadBlocks = function (lastBlock, cb) {
 
 		data.body.height = parseInt(data.body.height);
 
-		var report = library.scheme.validate(data.body.height, {type: "object", properties: {
-			"height": {
-				type: "integer",
-				minimum: 0
-			}
-		}, required: ['height']});
+		var report = library.scheme.validate(data.body.height, {
+			type: "object", properties: {
+				"height": {
+					type: "integer",
+					minimum: 0
+				}
+			}, required: ['height']
+		});
 
 		if (!report) {
 			library.logger.log("Can't parse blockchain height: " + peerStr + "\n" + library.scheme.getLastError());
