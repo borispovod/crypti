@@ -1881,7 +1881,7 @@ private.launch = function (body, cb) {
 									library.logger.error(err);
 									return cb("Can't create public link for: " + body.id);
 								} else {
-									private.launchApp(dapp, ["F3DP835EBuZMAhiuYn2AzhJh1lz8glLolghCMD4X8lRh5v2GlcBWws7plIDUuPjf3GUTOnyYEfXQx7cH", "modules.full.json"], function (err) {
+									private.launchApp(dapp, body.params || [], function (err) {
 										if (err) {
 											private.launched[body.id] = false;
 											library.logger.error(err);
