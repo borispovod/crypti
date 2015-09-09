@@ -153,7 +153,6 @@ shared.select = function (req, cb) {
 }
 
 shared.insert = function (req, cb) {
-	console.log("insert", req);
 	var config = extend({}, req.body, {dappid: req.dappid});
 	private.query.call(this, "insert", config, cb);
 }
