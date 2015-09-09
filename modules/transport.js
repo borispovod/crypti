@@ -376,7 +376,7 @@ private.attachApi = function () {
 			}
 
 			library.bus.message('message', req.body, true);
-			res.status(200).json(extend(body, {success: true}));
+			res.status(200).json(extend({}, body, {success: true}));
 		});
 	});
 
@@ -401,7 +401,7 @@ private.attachApi = function () {
 				return res.status(200).json({success: false, message: err});
 			}
 
-			res.status(200).json(extend(body, {success: true}));
+			res.status(200).json(extend({}, body, {success: true}));
 		});
 	});
 

@@ -59,7 +59,7 @@ private.query = function (action, config, cb) {
 	};
 
 	try {
-		var sql = jsonSql.build(extend(config, defaultConfig));
+		var sql = jsonSql.build(extend({}, config, defaultConfig));
 	} catch (e) {
 		return done(e.toString());
 	}
