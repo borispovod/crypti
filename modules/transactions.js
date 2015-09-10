@@ -60,6 +60,7 @@ function Transfer() {
 			if (err) {
 				return cb(err);
 			}
+
 			modules.accounts.mergeAccountAndGet({
 				address: trs.recipientId,
 				balance: trs.amount,
@@ -74,6 +75,7 @@ function Transfer() {
 			if (err) {
 				return cb(err);
 			}
+
 			modules.accounts.mergeAccountAndGet({
 				address: trs.recipientId,
 				balance: -trs.amount,
@@ -714,7 +716,7 @@ shared.addTransactions = function (req, cb) {
 				var recipientId = recipient ? recipient.address : body.recipientId;
 				var recipientUsername = recipient ? recipient.username : null;
 
-				if (body.multisigAccountPublicKey) {
+				if (body.multisigAccountPublicKey && body.multisigAccountPublicKey != keypair.publicKey) {
 					modules.accounts.getAccount({publicKey: body.multisigAccountPublicKey}, function (err, account) {
 						if (err) {
 							return cb(err.toString());

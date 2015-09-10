@@ -187,8 +187,9 @@ private.loadBlocks = function (lastBlock, cb) {
 
 		data.body.height = parseInt(data.body.height);
 
-		var report = library.scheme.validate(data.body.height, {
-			type: "object", properties: {
+		var report = library.scheme.validate(data.body, {
+			type: "object",
+			properties: {
 				"height": {
 					type: "integer",
 					minimum: 0
