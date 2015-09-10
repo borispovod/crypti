@@ -605,7 +605,7 @@ Transaction.prototype.objectNormalize = function (trs) {
 	}
 
 	var report = this.scope.scheme.validate(trs, {
-		object: true,
+		type: "object",
 		properties: {
 			id: {
 				type: "string"

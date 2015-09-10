@@ -114,6 +114,10 @@ d.run(function () {
 			});
 
 			z_schema.registerFormat('publicKey', function (str) {
+				if (str.length == 0) {
+					return true;
+				}
+
 				try {
 					var publicKey = new Buffer(str, "hex");
 
@@ -137,6 +141,10 @@ d.run(function () {
 			});
 
 			z_schema.registerFormat('signature', function (str) {
+				if (str.length == 0) {
+					return true;
+				}
+
 				try {
 					var signature = new Buffer(str, "hex");
 					return signature.length == 64;

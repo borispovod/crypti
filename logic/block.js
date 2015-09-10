@@ -186,7 +186,7 @@ Block.prototype.dbSave = function (block, cb) {
 
 Block.prototype.objectNormalize = function (block) {
 	var report = this.scope.scheme.validate(block, {
-		object: true,
+		type: "object",
 		properties: {
 			id: {
 				type: "string"
