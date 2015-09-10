@@ -349,13 +349,13 @@ private.attachApi = function () {
 	});
 
 	router.post("/dapp/message", function (req, res) {
-		res.set(private.headers);
+		//res.set(private.headers);
 
 		try {
-			if (!req.body.dappid) throw Error("missed dappid");
-			if (!req.body.timestamp || !req.body.hash) throw Error("missed hash sum");
+			if (!req.body.dappid) res.status(200).json({success: false, message: "missed dappid"});
+			if (!req.body.timestamp || !req.body.hash) res.status(200).json({success: false, message: "missed hash sum"});
 			var newHash = private.hashsum(req.body.body, req.body.timestamp);
-			if (newHash !== req.body.hash) throw Error("wrong hash sum");
+			if (newHash !== req.body.hash) res.status(200).json({success: false, message: "wrong hash sum"});
 		} catch (e) {
 			return res.status(200).json({success: false, message: e.toString()});
 		}
@@ -376,7 +376,7 @@ private.attachApi = function () {
 			}
 
 			library.bus.message('message', req.body, true);
-			res.status(200).json(extend(body, {success: true}));
+			res.status(200).json(extend({}, body, {success: true}));
 		});
 	});
 
@@ -401,7 +401,7 @@ private.attachApi = function () {
 				return res.status(200).json({success: false, message: err});
 			}
 
-			res.status(200).json(extend(body, {success: true}));
+			res.status(200).json(extend({}, body, {success: true}));
 		});
 	});
 

@@ -59,7 +59,7 @@ private.query = function (action, config, cb) {
 	};
 
 	try {
-		var sql = jsonSql.build(extend(config, defaultConfig));
+		var sql = jsonSql.build(extend({}, config, defaultConfig));
 	} catch (e) {
 		return done(e.toString());
 	}
@@ -153,7 +153,6 @@ shared.select = function (req, cb) {
 }
 
 shared.insert = function (req, cb) {
-	console.log("insert", req);
 	var config = extend({}, req.body, {dappid: req.dappid});
 	private.query.call(this, "insert", config, cb);
 }
