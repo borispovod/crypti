@@ -128,7 +128,7 @@ private.attachApi = function () {
 
 			var max = query.max;
 			var min = query.min;
-			var ids = query.ids.filter(function (id) {
+			var ids = query.ids.split(",").filter(function (id) {
 				return /^\d+$/.test(id);
 			});
 			var escapedIds = ids.map(function (id) {
@@ -381,7 +381,7 @@ private.attachApi = function () {
 	});
 
 	router.post("/dapp/request", function (req, res) {
-		res.set(private.headers);
+		//res.set(private.headers);
 
 		try {
 			if (!req.body.dappid) throw Error("missed dappid");
