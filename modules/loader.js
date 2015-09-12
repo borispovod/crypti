@@ -234,7 +234,7 @@ private.loadSignatures = function (cb) {
 				return cb();
 			}
 
-			library.balancesSequence.add(function (cb) {
+			library.sequence.add(function (cb) {
 				async.eachSeries(data.body.signatures, function (signature, cb) {
 					modules.multisignatures.processSignature(signature, function (err) {
 						setImmediate(cb);

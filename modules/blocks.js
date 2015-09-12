@@ -1020,7 +1020,10 @@ Blocks.prototype.sandboxApi = function (call, args, cb) {
 
 //events
 Blocks.prototype.onReceiveBlock = function (block) {
-	// return false if sync enabled
+	if (modules.loader.syncing()) {
+		return;
+	}
+
 	library.sequence.add(function (cb) {
 		if (block.previousBlock == private.lastBlock.id && private.lastBlock.height + 1 == block.height) {
 			library.logger.log('recieved new block id:' + block.id + ' height:' + block.height + ' slot:' + slots.getSlotNumber(block.timestamp))
