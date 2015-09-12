@@ -2175,7 +2175,7 @@ DApps.prototype.onDeleteBlocksBefore = function (block) {
 
 DApps.prototype.onNewBlock = function (block, broadcast) {
 	Object.keys(private.sandboxes).forEach(function (dappId) {
-		self.request(dappId, "post", "/message", {
+		broadcast && self.request(dappId, "post", "/message", {
 			topic: "point",
 			message: {id: block.id, height: block.height}
 		}, function (err) {

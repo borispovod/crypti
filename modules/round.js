@@ -124,6 +124,8 @@ Round.prototype.backwardTick = function (block, previousBlock, cb) {
 								});
 							}, cb);
 						});
+					}else{
+						cb();
 					}
 				},
 				function (cb) {

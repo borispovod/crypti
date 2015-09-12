@@ -507,7 +507,7 @@ Blocks.prototype.loadBlocksData = function (filter, options, cb) {
 				"left outer join dapps as dapp on dapp.transactionId=t.id " +
 				"left outer join intransfer it on it.transactionId=t.id " +
 				"left outer join outtransfer ot on ot.transactionId=t.id " +
-				(filter.id ? " where id = $id " : "") + (filter.lastId ? " where b.height > $height and b.height < $limit " : "") +
+				(filter.id ? " where b.id = $id " : "") + (filter.lastId ? " where b.height > $height and b.height < $limit " : "") +
 				limitPart +
 				"ORDER BY b.height, t.rowid" +
 				"", params, fields, cb);
