@@ -104,7 +104,7 @@ private.findUpdate = function (lastBlock, peer, cb) {
 				modules.round.directionSwap('backward');
 			}
 
-			self.scope.bus.message('deleteBlocksBefore', commonBlock);
+			library.bus.message('deleteBlocksBefore', commonBlock);
 
 			modules.blocks.deleteBlocksBefore(commonBlock, function (err) {
 				if (commonBlock.id != lastBlock.id) {
