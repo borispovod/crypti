@@ -257,35 +257,37 @@ private.saveBlock = function (block, cb) {
 }
 
 private.popLastBlock = function (oldLastBlock, cb) {
-	self.loadBlocksPart({id: oldLastBlock.previousBlock}, function (err, previousBlock) {
-		if (err || !previousBlock.length) {
-			return cb(err || 'previousBlock is null');
-		}
-		previousBlock = previousBlock[0];
+	library.balancesSequence.add(function (cb) {
+		self.loadBlocksPart({id: oldLastBlock.previousBlock}, function (err, previousBlock) {
+			if (err || !previousBlock.length) {
+				return cb(err || 'previousBlock is null');
+			}
+			previousBlock = previousBlock[0];
 
-		async.eachSeries(oldLastBlock.transactions.reverse(), function (transaction, cb) {
-			async.series([
-				function (cb) {
-					modules.transactions.undo(transaction, cb);
-				}, function (cb) {
-					modules.transactions.undoUnconfirmed(transaction, cb);
-				}, function (cb) {
-					modules.transactions.pushHiddenTransaction(transaction);
-					setImmediate(cb);
-				}
-			], cb);
-		}, function (err) {
-			modules.round.backwardTick(oldLastBlock, previousBlock, function () {
-				private.deleteBlock(oldLastBlock.id, function (err) {
-					if (err) {
-						return cb(err);
+			async.eachSeries(oldLastBlock.transactions.reverse(), function (transaction, cb) {
+				async.series([
+					function (cb) {
+						modules.transactions.undo(transaction, cb);
+					}, function (cb) {
+						modules.transactions.undoUnconfirmed(transaction, cb);
+					}, function (cb) {
+						modules.transactions.pushHiddenTransaction(transaction);
+						setImmediate(cb);
 					}
+				], cb);
+			}, function (err) {
+				modules.round.backwardTick(oldLastBlock, previousBlock, function () {
+					private.deleteBlock(oldLastBlock.id, function (err) {
+						if (err) {
+							return cb(err);
+						}
 
-					cb(null, previousBlock);
+						cb(null, previousBlock);
+					});
 				});
 			});
 		});
-	});
+	},cb);
 }
 
 private.getIdSequence = function (height, cb) {
