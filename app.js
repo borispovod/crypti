@@ -236,7 +236,34 @@ d.run(function () {
 		},
 
 		sequence: function (cb) {
+			var sequence = [];
+			setImmediate(function nextSequenceTick() {
+				var task = sequence.shift();
+				if (!task) {
+					return setTimeout(nextSequenceTick, 100);
+				}
+				task(function () {
+					setTimeout(nextSequenceTick, 100);
+				});
+			});
+			cb(null, {
+				add: function (worker, done) {
+					sequence.push(function (cb) {
+						if (worker && typeof(worker) == 'function') {
+							worker(function (err, res) {
+								setImmediate(cb);
+								done && setImmediate(done, err, res);
+							});
+						} else {
+							setImmediate(cb);
+							done && setImmediate(done);
+						}
+					});
+				}
+			});
+		},
 
+		balancesSequence: function (cb) {
 			var sequence = [];
 			setImmediate(function nextSequenceTick() {
 				var task = sequence.shift();
@@ -348,7 +375,6 @@ d.run(function () {
 				}
 			});
 
-
 		}],
 
 		bus: function (cb) {
@@ -401,7 +427,7 @@ d.run(function () {
 			}, cb);
 		}],
 
-		modules: ['network', 'connect', 'config', 'logger', 'bus', 'sequence', 'dbSequence', 'dbLite', 'logic', function (cb, scope) {
+		modules: ['network', 'connect', 'config', 'logger', 'bus', 'sequence', 'dbSequence', 'balancesSequence', 'dbLite', 'logic', function (cb, scope) {
 			var tasks = {};
 			Object.keys(config.modules).forEach(function (name) {
 				tasks[name] = function (cb) {

@@ -234,11 +234,12 @@ private.loadSignatures = function (cb) {
 				return cb();
 			}
 
-			async.eachSeries(data.body.signatures, function (signature, cb) {
-				modules.multisignatures.processSignature(signature, function (err) {
-					// important!
-					setImmediate(cb);
-				});
+			library.balancesSequence.add(function (cb) {
+				async.eachSeries(data.body.signatures, function (signature, cb) {
+					modules.multisignatures.processSignature(signature, function (err) {
+						setImmediate(cb);
+					});
+				}, cb);
 			}, cb);
 		});
 	});
@@ -274,7 +275,10 @@ private.loadUnconfirmedTransactions = function (cb) {
 				return setImmediate(cb);
 			}
 		}
-		modules.transactions.receiveTransactions(transactions, cb);
+
+		library.balancesSequence.add(function (cb) {
+			modules.transactions.receiveTransactions(transactions, cb);
+		}, cb);
 	});
 }
 
@@ -429,23 +433,19 @@ Loader.prototype.onPeerReady = function () {
 	});
 
 	setImmediate(function nextLoadUnconfirmedTransactions() {
-		library.sequence.add(function (cb) {
-			private.loadUnconfirmedTransactions(cb);
-		}, function (err) {
-			err && library.logger.error('loadUnconfirmedTransactions timer', err);
+			private.loadUnconfirmedTransactions(function (err) {
+				err && library.logger.error('loadUnconfirmedTransactions timer', err);
+				setTimeout(nextLoadUnconfirmedTransactions, 14 * 1000)
+			});
 
-			setTimeout(nextLoadUnconfirmedTransactions, 14 * 1000)
-		})
 	});
 
 	setImmediate(function nextLoadSignatures() {
-		library.sequence.add(function (cb) {
-			private.loadSignatures(cb);
-		}, function (err) {
+		private.loadSignatures(function (err) {
 			err && library.logger.error('loadSignatures timer', err);
 
 			setTimeout(nextLoadSignatures, 14 * 1000)
-		})
+		});
 	});
 }
 

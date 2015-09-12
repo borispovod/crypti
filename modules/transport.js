@@ -330,7 +330,7 @@ private.attachApi = function () {
 			return res.status(200).json({success: false, message: "Invalid transaction body"});
 		}
 
-		library.sequence.add(function (cb) {
+		library.balancesSequence.add(function (cb) {
 			modules.transactions.receiveTransactions([transaction], cb);
 		}, function (err) {
 			if (err) {

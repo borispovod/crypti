@@ -442,7 +442,7 @@ Multisignatures.prototype.processSignature = function (tx, cb) {
 	var transaction = modules.transactions.getUnconfirmedTransaction(tx.transaction);
 
 	function done(cb) {
-		library.sequence.add(function (cb) {
+		library.balancesSequence.add(function (cb) {
 			var transaction = modules.transactions.getUnconfirmedTransaction(tx.transaction);
 
 			if (!transaction) {
@@ -566,7 +566,7 @@ shared.sign = function (req, cb) {
 		var sign = library.logic.transaction.multisign(keypair, transaction);
 
 		function done(cb) {
-			library.sequence.add(function (cb) {
+			library.balancesSequence.add(function (cb) {
 				var transaction = modules.transactions.getUnconfirmedTransaction(body.transactionId);
 
 				if (!transaction) {
@@ -673,7 +673,7 @@ shared.addMultisignature = function (req, cb) {
 			}
 		}
 
-		library.sequence.add(function (cb) {
+		library.balancesSequence.add(function (cb) {
 			modules.accounts.getAccount({publicKey: keypair.publicKey.toString('hex')}, function (err, account) {
 				if (err) {
 					return cb(err.toString());

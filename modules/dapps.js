@@ -846,7 +846,7 @@ private.attachApi = function () {
 				}
 			}
 
-			library.sequence.add(function (cb) {
+			library.balancesSequence.add(function (cb) {
 				modules.accounts.getAccount({publicKey: keypair.publicKey.toString('hex')}, function (err, account) {
 					if (err) {
 						return cb("Sql error");
@@ -2074,7 +2074,7 @@ private.addTransactions = function (req, cb) {
 			query.username = body.recipientId;
 		}
 
-		library.sequence.add(function (cb) {
+		library.balancesSequence.add(function (cb) {
 			modules.accounts.getAccount({publicKey: keypair.publicKey.toString('hex')}, function (err, account) {
 				if (err) {
 					return cb(err.toString());

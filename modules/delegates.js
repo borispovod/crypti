@@ -1038,7 +1038,7 @@ shared.addDelegate = function (req, cb) {
 			}
 		}
 
-		library.sequence.add(function (cb) {
+		library.balancesSequence.add(function (cb) {
 			if (body.multisigAccountPublicKey) {
 				modules.accounts.getAccount({publicKey: body.multisigAccountPublicKey}, function (err, account) {
 					if (err) {

@@ -705,7 +705,7 @@ shared.addTransactions = function (req, cb) {
 			query.username = body.recipientId;
 		}
 
-		library.sequence.add(function (cb) {
+		library.balancesSequence.add(function (cb) {
 			modules.accounts.getAccount(query, function (err, recipient) {
 				if (err) {
 					return cb(err.toString());
