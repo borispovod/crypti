@@ -52,27 +52,52 @@ private.pass = function (obj, dappid) {
 
 //private methods
 private.query = function (action, config, cb) {
-	private.pass(config, config.dappid);
+	var sql = null;
+	if (action != "batch") {
+		private.pass(config, config.dappid);
 
-	var defaultConfig = {
-		type: action
-	};
+		var defaultConfig = {
+			type: action
+		};
 
-	try {
-		var sql = jsonSql.build(extend({}, config, defaultConfig));
-	} catch (e) {
-		return done(e.toString());
-	}
-	function done(err, data) {
-		if (err) {
-			err = err.toString();
+		try {
+			sql = jsonSql.build(extend({}, config, defaultConfig));
+		} catch (e) {
+			return done(e.toString());
 		}
+		function done(err, data) {
+			if (err) {
+				err = err.toString();
+			}
 
-		cb(err, data);
+			cb(err, data);
+		}
+	} else {
+		sql = "INSERT INTO " + "dapp_" + dappid + "_" + config.table;
+		var rows = [];
+		config.values.forEach(function (value, rowIndex) {
+			var currentRow = config.values[rowIndex];
+			if (rowIndex == 1) {
+				var fields = [];
+				Object.keys(config.fields).forEach(function (field, index) {
+					fields.push(currentRow[index] + " as '" + config.fields[field] + "'");
+				});
+				rows.push("select " + fields.join(","));
+			} else {
+				var fields = [];
+				for (var i = 0; i < currentRow.length; i++){
+					fields.push("'" + currentRow[i] + "'");
+				}
+				rows.push("select " + fields.join(","));
+			}
+		});
+		sql = sql + " " + rows.join(" UNION ");
 	}
 
 	if (action == "select") {
 		library.dbLite.query(sql.query, sql.values, null, done);
+	} else if (action == "batch") {
+		library.dbLite.query(sql, {}, null, done);
 	} else {
 		library.dbLite.query(sql.query, sql.values, done);
 	}
@@ -150,6 +175,11 @@ Sql.prototype.onBlockchainReady = function () {
 shared.select = function (req, cb) {
 	var config = extend({}, req.body, {dappid: req.dappid});
 	private.query.call(this, "select", config, cb);
+}
+
+shared.batch = function (req, cb) {
+	var config = extend({}, req.body, {dappid: req.dappid});
+	private.query.call(this, "batch", config, cb);
 }
 
 shared.insert = function (req, cb) {
