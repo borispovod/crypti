@@ -96,12 +96,21 @@ function OutTransfer() {
 
 			library.dbLite.query("SELECT count(*) FROM outtransfer WHERE outTransactionId = $transactionId", {
 				transactionId: trs.asset.outTransfer.transactionId
-			}, function (err) {
+			}, {'count': Number}, function (err, rows) {
 				if (err) {
 					library.logger.error(err.toString());
 					return setImmediate(cb, "This transaction already confirmed: " + trs.asset.outTransfer.transactionId);
 				} else {
-					return setImmediate(cb);
+					var count = rows[0].count;
+
+					console.log('count', count);
+					if (count) {
+						console.log('not confirmed');
+						return setImmediate(cb, "This transaction already confirmed");
+					} else {
+						console.log('applied');
+						return setImmediate(cb);
+					}
 				}
 			})
 		});
@@ -2048,6 +2057,10 @@ private.addTransactions = function (req, cb) {
 			dappId: {
 				type: "string",
 				minLength: 1
+			},
+			multisigAccountPublicKey: {
+				type: "string",
+				format: "publicKey"
 			}
 		},
 		required: ["secret", "amount", "dappId"]
@@ -2067,48 +2080,102 @@ private.addTransactions = function (req, cb) {
 
 		var query = {};
 
-		var isAddress = /^[0-9]+[C|c]$/g;
-		if (isAddress.test(body.recipientId)) {
-			query.address = body.recipientId;
-		} else {
-			query.username = body.recipientId;
-		}
-
 		library.balancesSequence.add(function (cb) {
-			modules.accounts.getAccount({publicKey: keypair.publicKey.toString('hex')}, function (err, account) {
-				if (err) {
-					return cb(err.toString());
-				}
-				if (!account || !account.publicKey) {
-					return cb(errorCode("COMMON.OPEN_ACCOUNT"));
-				}
+			if (body.multisigAccountPublicKey && body.multisigAccountPublicKey != keypair.publicKey.toString('hex')) {
+				modules.accounts.getAccount({publicKey: body.multisigAccountPublicKey}, function (err, account) {
+					if (err) {
+						return cb(err.toString());
+					}
 
-				if (account.secondSignature && !body.secondSecret) {
-					return cb(errorCode("COMMON.SECOND_SECRET_KEY"));
-				}
+					if (!account || !account.publicKey) {
+						return cb("Multisignature account not found");
+					}
 
-				var secondKeypair = null;
+					if (!account.multisignatures || !account.multisignatures) {
+						return cb("This account don't have multisignature");
+					}
 
-				if (account.secondSignature) {
-					var secondHash = crypto.createHash('sha256').update(body.secondSecret, 'utf8').digest();
-					secondKeypair = ed.MakeKeypair(secondHash);
-				}
+					if (account.multisignatures.indexOf(keypair.publicKey.toString('hex')) < 0) {
+						return cb("This account don't added to multisignature");
+					}
 
-				try {
-					var transaction = library.logic.transaction.create({
-						type: TransactionTypes.IN_TRANSFER,
-						amount: body.amount,
-						sender: account,
-						keypair: keypair,
-						secondKeypair: secondKeypair,
-						dappId: body.dappId
+					modules.accounts.getAccount({publicKey: keypair.publicKey}, function (err, requester) {
+						if (err) {
+							return cb(err.toString());
+						}
+
+						if (!requester || !requester.publicKey) {
+							return cb(errorCode("COMMON.OPEN_ACCOUNT"));
+						}
+
+						if (requester.secondSignature && !body.secondSecret) {
+							return cb(errorCode("COMMON.SECOND_SECRET_KEY"));
+						}
+
+						if (requester.publicKey == account.publicKey) {
+							return cb("Incorrect requester");
+						}
+
+						var secondKeypair = null;
+
+						if (requester.secondSignature) {
+							var secondHash = crypto.createHash('sha256').update(body.secondSecret, 'utf8').digest();
+							secondKeypair = ed.MakeKeypair(secondHash);
+						}
+
+						try {
+							var transaction = library.logic.transaction.create({
+								type: TransactionTypes.IN_TRANSFER,
+								amount: body.amount,
+								sender: account,
+								keypair: keypair,
+								requester: keypair,
+								secondKeypair: secondKeypair,
+								dappId: body.dappId
+							});
+						} catch (e) {
+							return cb(e.toString());
+						}
+
+						modules.transactions.receiveTransactions([transaction], cb);
 					});
-				} catch (e) {
-					return cb(e.toString());
-				}
+				});
+			} else {
+				modules.accounts.getAccount({publicKey: keypair.publicKey.toString('hex')}, function (err, account) {
+					if (err) {
+						return cb(err.toString());
+					}
+					if (!account || !account.publicKey) {
+						return cb(errorCode("COMMON.OPEN_ACCOUNT"));
+					}
 
-				modules.transactions.receiveTransactions([transaction], cb);
-			});
+					if (account.secondSignature && !body.secondSecret) {
+						return cb(errorCode("COMMON.SECOND_SECRET_KEY"));
+					}
+
+					var secondKeypair = null;
+
+					if (account.secondSignature) {
+						var secondHash = crypto.createHash('sha256').update(body.secondSecret, 'utf8').digest();
+						secondKeypair = ed.MakeKeypair(secondHash);
+					}
+
+					try {
+						var transaction = library.logic.transaction.create({
+							type: TransactionTypes.IN_TRANSFER,
+							amount: body.amount,
+							sender: account,
+							keypair: keypair,
+							secondKeypair: secondKeypair,
+							dappId: body.dappId
+						});
+					} catch (e) {
+						return cb(e.toString());
+					}
+
+					modules.transactions.receiveTransactions([transaction], cb);
+				});
+			}
 		}, function (err, transaction) {
 			if (err) {
 				return cb(err.toString());
@@ -2229,8 +2296,166 @@ shared.getCommonBlock = function (req, cb) {
 		if (err) {
 			return cb("Sql error");
 		}
-
 		cb(null, rows);
+	});
+}
+
+shared.sendWithdrawal = function (req, cb) {
+	var body = req.body;
+	library.scheme.validate(body, {
+		type: "object",
+		properties: {
+			secret: {
+				type: "string",
+				minLength: 1,
+				maxLength: 100
+			},
+			amount: {
+				type: "integer",
+				minimum: 1,
+				maximum: constants.totalAmount
+			},
+			recipientId: {
+				type: "string",
+				minLength: 2,
+				maxLength: 21
+			},
+			secondSecret: {
+				type: "string",
+				minLength: 1,
+				maxLength: 100
+			},
+			transactionId: {
+				type: "string",
+				minLength: 1,
+				maxLength: 20
+			},
+			multisigAccountPublicKey: {
+				type: "string",
+				format: "publicKey"
+			}
+		},
+		required: ["secret", 'recipientId', "amount", "transactionId"]
+	}, function (err) {
+		if (err) {
+			return cb(err[0].message);
+		}
+
+		var hash = crypto.createHash('sha256').update(body.secret, 'utf8').digest();
+		var keypair = ed.MakeKeypair(hash);
+		var query = {};
+
+		var isAddress = /^[0-9]+[C|c]$/g;
+		if (!isAddress.test(body.recipientId)) {
+			return cb("Incorrect address");
+		}
+
+		library.balancesSequence.add(function (cb) {
+			if (body.multisigAccountPublicKey && body.multisigAccountPublicKey != keypair.publicKey.toString('hex')) {
+				modules.accounts.getAccount({publicKey: body.multisigAccountPublicKey}, function (err, account) {
+					if (err) {
+						return cb(err.toString());
+					}
+
+					if (!account || !account.publicKey) {
+						return cb("Multisignature account not found");
+					}
+
+					if (!account.multisignatures || !account.multisignatures) {
+						return cb("This account don't have multisignature");
+					}
+
+					if (account.multisignatures.indexOf(keypair.publicKey.toString('hex')) < 0) {
+						return cb("This account don't added to multisignature");
+					}
+
+					modules.accounts.getAccount({publicKey: keypair.publicKey}, function (err, requester) {
+						if (err) {
+							return cb(err.toString());
+						}
+
+						if (!requester || !requester.publicKey) {
+							return cb(errorCode("COMMON.OPEN_ACCOUNT"));
+						}
+
+						if (requester.secondSignature && !body.secondSecret) {
+							return cb(errorCode("COMMON.SECOND_SECRET_KEY"));
+						}
+
+						if (requester.publicKey == account.publicKey) {
+							return cb("Incorrect requester");
+						}
+
+						var secondKeypair = null;
+
+						if (requester.secondSignature) {
+							var secondHash = crypto.createHash('sha256').update(body.secondSecret, 'utf8').digest();
+							secondKeypair = ed.MakeKeypair(secondHash);
+						}
+
+						try {
+							var transaction = library.logic.transaction.create({
+								type: TransactionTypes.OUT_TRANSFER,
+								amount: body.amount,
+								sender: account,
+								recipientId: body.recipientId,
+								keypair: keypair,
+								secondKeypair: secondKeypair,
+								requester: keypair,
+								dappId: req.dappid,
+								transactionId: body.transactionId
+							});
+						} catch (e) {
+							return cb(e.toString());
+						}
+						modules.transactions.receiveTransactions([transaction], cb);
+					});
+				});
+			} else {
+				modules.accounts.getAccount({publicKey: keypair.publicKey.toString('hex')}, function (err, account) {
+					if (err) {
+						return cb(err.toString());
+					}
+					if (!account || !account.publicKey) {
+						return cb(errorCode("COMMON.OPEN_ACCOUNT"));
+					}
+
+					if (account.secondSignature && !body.secondSecret) {
+						return cb(errorCode("COMMON.SECOND_SECRET_KEY"));
+					}
+
+					var secondKeypair = null;
+
+					if (account.secondSignature) {
+						var secondHash = crypto.createHash('sha256').update(body.secondSecret, 'utf8').digest();
+						secondKeypair = ed.MakeKeypair(secondHash);
+					}
+
+					try {
+						var transaction = library.logic.transaction.create({
+							type: TransactionTypes.OUT_TRANSFER,
+							amount: body.amount,
+							sender: account,
+							recipientId: body.recipientId,
+							keypair: keypair,
+							secondKeypair: secondKeypair,
+							dappId: req.dappid,
+							transactionId: body.transactionId
+						});
+					} catch (e) {
+						return cb(e.toString());
+					}
+
+					modules.transactions.receiveTransactions([transaction], cb);
+				});
+			}
+		}, function (err, transaction) {
+			if (err) {
+				return cb(err.toString());
+			}
+
+			cb(null, {transactionId: transaction[0].id});
+		});
 	});
 }
 

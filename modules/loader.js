@@ -82,7 +82,7 @@ private.findUpdate = function (lastBlock, peer, cb) {
 
 		library.logger.info("Found common block " + commonBlock.id + " (at " + commonBlock.height + ")" + " with peer " + peerStr);
 
-		if (lastBlock.height - commonBlock.height > 1440) {
+		if (lastBlock.height - commonBlock.height > 101) {
 			library.logger.log("long fork, ban 60 min", peerStr);
 			modules.peer.state(peer.ip, peer.port, 0, 3600);
 			return cb();
@@ -106,7 +106,7 @@ private.findUpdate = function (lastBlock, peer, cb) {
 
 			library.bus.message('deleteBlocksBefore', commonBlock);
 
-			modules.blocks.deleteBlocksBefore(commonBlock, function (err) {
+			modules.blocks.deleteBlocksBefore(commonBlock, function (err, backupBlocks) {
 				if (commonBlock.id != lastBlock.id) {
 					modules.round.directionSwap('forward');
 				}

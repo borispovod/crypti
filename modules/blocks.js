@@ -965,18 +965,21 @@ Blocks.prototype.loadBlocksFromPeer = function (peer, lastCommonBlockId, cb) {
 }
 
 Blocks.prototype.deleteBlocksBefore = function (block, cb) {
+	var blocks = [];
+
 	async.whilst(
 		function () {
 			return !(block.height >= private.lastBlock.height)
 		},
 		function (next) {
+			blocks.unshift(private.lastBlock);
 			private.popLastBlock(private.lastBlock, function (err, newLastBlock) {
 				private.lastBlock = newLastBlock;
 				next(err);
 			});
 		},
 		function (err) {
-			setImmediate(cb, err);
+			setImmediate(cb, err, blocks);
 		}
 	);
 }

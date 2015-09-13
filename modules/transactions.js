@@ -716,7 +716,7 @@ shared.addTransactions = function (req, cb) {
 				var recipientId = recipient ? recipient.address : body.recipientId;
 				var recipientUsername = recipient ? recipient.username : null;
 
-				if (body.multisigAccountPublicKey && body.multisigAccountPublicKey != keypair.publicKey) {
+				if (body.multisigAccountPublicKey && body.multisigAccountPublicKey != keypair.publicKey.toString('hex')) {
 					modules.accounts.getAccount({publicKey: body.multisigAccountPublicKey}, function (err, account) {
 						if (err) {
 							return cb(err.toString());

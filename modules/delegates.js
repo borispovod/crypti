@@ -1039,7 +1039,7 @@ shared.addDelegate = function (req, cb) {
 		}
 
 		library.balancesSequence.add(function (cb) {
-			if (body.multisigAccountPublicKey) {
+			if (body.multisigAccountPublicKey && body.multisigAccountPublicKey != keypair.publicKey.toString('hex')) {
 				modules.accounts.getAccount({publicKey: body.multisigAccountPublicKey}, function (err, account) {
 					if (err) {
 						return cb(err.toString());
