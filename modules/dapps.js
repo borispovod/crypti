@@ -1537,7 +1537,18 @@ private.list = function (filter, cb) {
 		(fields.length ? "where " + fields.join(' or ') + " " : "") +
 		(filter.orderBy ? 'order by ' + sortBy + ' ' + sortMethod : '') + " " +
 		(filter.limit ? 'limit $limit' : '') + " " +
-		(filter.offset ? 'offset $offset' : ''), params, {name: String, description: String, tags: String, siaAscii: String, siaIcon: String, git: String, type: Number, category: Number, icon: String, transactionId:String}, function (err, rows) {
+		(filter.offset ? 'offset $offset' : ''), params, {
+		name: String,
+		description: String,
+		tags: String,
+		siaAscii: String,
+		siaIcon: String,
+		git: String,
+		type: Number,
+		category: Number,
+		icon: String,
+		transactionId: String
+	}, function (err, rows) {
 		if (err) {
 			return cb(err);
 		}
@@ -2199,7 +2210,7 @@ DApps.prototype.request = function (dappid, method, path, query, cb) {
 	if (!private.sandboxes[dappid]) {
 		return cb(errorCode("DAPPS.DAPPS_NOT_FOUND"));
 	}
-	if (!private.dappready[dappid]){
+	if (!private.dappready[dappid]) {
 		return cb(errorCode("DAPPS.DAPPS_NOT_READY"));
 	}
 	private.sandboxes[dappid].sendMessage({

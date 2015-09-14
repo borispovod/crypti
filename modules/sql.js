@@ -9,6 +9,10 @@ var modules, library, self, private = {}, shared = {};
 
 private.loaded = false;
 
+private.DOUBLE_DOUBLE_QUOTES = /""/g;
+private.SINGLE_QUOTES = /'/g;
+private.SINGLE_QUOTES_DOUBLED = "''";
+
 //constructor
 function Sql(cb, scope) {
 	library = scope;
@@ -16,6 +20,30 @@ function Sql(cb, scope) {
 	self.__private = private;
 
 	setImmediate(cb, null, self);
+}
+
+private.escape = function (what) {
+	switch (typeof what) {
+		case 'string':
+			return "'" + what.replace(
+					private.SINGLE_QUOTES, private.SINGLE_QUOTES_DOUBLED
+				) + "'";
+		case 'object':
+			if (what == null) {
+				return 'null';
+			} else if (Buffer.isBuffer(what)) {
+				return "X'" + what.toString('hex') + "'";
+			} else {
+				return ("'" + JSON.stringify(what).replace(
+					private.SINGLE_QUOTES, private.SINGLE_QUOTES_DOUBLED
+				) + "'");
+			}
+		case 'boolean':
+			return what ? '1' : '0'; // 1 => true, 0 => false
+		case 'number':
+			if (isFinite(what)) return '' + what;
+	}
+	throw new Error('unsupported data', typeof what);
 }
 
 private.pass = function (obj, dappid) {
@@ -53,6 +81,15 @@ private.pass = function (obj, dappid) {
 //private methods
 private.query = function (action, config, cb) {
 	var sql = null;
+
+	function done(err, data) {
+		if (err) {
+			err = err.toString();
+		}
+
+		cb(err, data);
+	}
+
 	if (action != "batch") {
 		private.pass(config, config.dappid);
 
@@ -65,28 +102,21 @@ private.query = function (action, config, cb) {
 		} catch (e) {
 			return done(e.toString());
 		}
-		function done(err, data) {
-			if (err) {
-				err = err.toString();
-			}
-
-			cb(err, data);
-		}
 	} else {
-		sql = "INSERT INTO " + "dapp_" + dappid + "_" + config.table;
+		sql = "INSERT INTO " + "dapp_" + config.dappid + "_" + config.table;
 		var rows = [];
 		config.values.forEach(function (value, rowIndex) {
 			var currentRow = config.values[rowIndex];
-			if (rowIndex == 1) {
+			if (rowIndex === 0) {
 				var fields = [];
 				Object.keys(config.fields).forEach(function (field, index) {
-					fields.push(currentRow[index] + " as '" + config.fields[field] + "'");
+					fields.push(private.escape(currentRow[index]) + " as " + private.escape(config.fields[field]));
 				});
 				rows.push("select " + fields.join(","));
 			} else {
 				var fields = [];
-				for (var i = 0; i < currentRow.length; i++){
-					fields.push("'" + currentRow[i] + "'");
+				for (var i = 0; i < currentRow.length; i++) {
+					fields.push(private.escape(currentRow[i]));
 				}
 				rows.push("select " + fields.join(","));
 			}
@@ -97,7 +127,10 @@ private.query = function (action, config, cb) {
 	if (action == "select") {
 		library.dbLite.query(sql.query, sql.values, null, done);
 	} else if (action == "batch") {
-		library.dbLite.query(sql, {}, null, done);
+		library.dbLite.query(sql, {}, null, function (err) {
+			console.log("batch", err)
+			done(err);
+		});
 	} else {
 		library.dbLite.query(sql.query, sql.values, done);
 	}
