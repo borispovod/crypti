@@ -214,7 +214,7 @@ transactionHelper.attachAssetType(TransactionTypes.VOTE, new Vote());
 transactionHelper.attachAssetType(TransactionTypes.USERNAME, new Username());
 transactionHelper.attachAssetType(TransactionTypes.DAPP, new DApp());
 
-console.log("Address: " + address + ", pubic key: " + keypair.publicKey.toString('hex'));
+console.log("Address: " + address + ", public key: " + keypair.publicKey.toString('hex'));
 
 var payloadLength = 0,
 	payloadHash = crypto.createHash('sha256'),
