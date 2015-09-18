@@ -10,7 +10,7 @@ describe("Peers second signature transactions", function () {
 		var transaction = node.crypti.transaction.createTransaction("1C", 1, node.peers_config.account, account.secondPassword);
 		node.peer.post('/transactions')
 			.set('Accept', 'application/json')
-			.set('Version',node.version)
+			.set('version',node.version)
 			.set('share-port',1)
 			.set('port',node.config.port)
 			.send({
@@ -29,7 +29,7 @@ describe("Peers second signature transactions", function () {
 		var transaction = node.crypti.signature.createSignature(node.randomPassword(), node.randomPassword());
 		node.peer.post('/transactions')
 			.set('Accept', 'application/json')
-			.set('Version',node.version)
+			.set('version',node.version)
 			.set('share-port',1)
 			.set('port',node.config.port)
 			.send({
@@ -47,7 +47,7 @@ describe("Peers second signature transactions", function () {
 	it("Fund random account and enable second signature. Should return ok.", function (done) {
 		node.api.post('/accounts/open')
 			.set('Accept', 'application/json')
-			.set('Version',node.version)
+			.set('version',node.version)
 			.set('share-port',1)
 			.set('port',node.config.port)
 			.send({
@@ -59,7 +59,7 @@ describe("Peers second signature transactions", function () {
 				account.address = res.body.account.address;
 				node.api.put('/transactions')
 					.set('Accept', 'application/json')
-					.set('Version',node.version)
+					.set('version',node.version)
 					.set('share-port',1)
 					.set('port',node.config.port)
 					.send({
@@ -78,7 +78,7 @@ describe("Peers second signature transactions", function () {
 							var transaction = node.crypti.signature.createSignature(account.password, account.secondPassword);
 							node.peer.post('/transactions')
 								.set('Accept', 'application/json')
-								.set('Version',node.version)
+								.set('version',node.version)
 								.set('share-port',1)
 								.set('port',node.config.port)
 								.send({
@@ -101,7 +101,7 @@ describe("Peers second signature transactions", function () {
 		var transaction = node.crypti.transaction.createTransaction("1C", 1, account.password, account.secondPassword);
 		node.peer.post('/transactions')
 			.set('Accept', 'application/json')
-			.set('Version',node.version)
+			.set('version',node.version)
 			.set('share-port',1)
 			.set('port',node.config.port)
 			.send({
@@ -120,7 +120,7 @@ describe("Peers second signature transactions", function () {
 		var transaction = node.crypti.transaction.createTransaction("1C", 1, account.password);
 		node.peer.post('/transactions')
 			.set('Accept', 'application/json')
-			.set('Version',node.version)
+			.set('version',node.version)
 			.set('share-port',1)
 			.set('port',node.config.port)
 			.send({
@@ -141,7 +141,7 @@ describe("Peers second signature transactions", function () {
 		transaction.id = node.crypti.crypto.getId(transaction);
 		node.peer.post('/transactions')
 			.set('Accept', 'application/json')
-			.set('Version',node.version)
+			.set('version',node.version)
 			.set('share-port',1)
 			.set('port',node.config.port)
 			.send({
@@ -159,7 +159,7 @@ describe("Peers second signature transactions", function () {
 	it("Create new account with second signature and send transaction without second signature. Should return not ok", function (done) {
 		node.api.post('/accounts/open')
 			.set('Accept', 'application/json')
-			.set('Version',node.version)
+			.set('version',node.version)
 			.set('share-port',1)
 			.set('port',node.config.port)
 			.send({
@@ -173,7 +173,7 @@ describe("Peers second signature transactions", function () {
 				account2.address = res.body.account.address;
 				node.api.put('/transactions')
 					.set('Accept', 'application/json')
-					.set('Version',node.version)
+					.set('version',node.version)
 					.set('share-port',1)
 					.set('port',node.config.port)
 					.send({
@@ -191,7 +191,7 @@ describe("Peers second signature transactions", function () {
 							var transaction = node.crypti.signature.createSignature(account2.password, account2.secondPassword);
 							node.peer.post('/transactions')
 								.set('Accept', 'application/json')
-								.set('Version',node.version)
+								.set('version',node.version)
 								.set('share-port',1)
 								.set('port',node.config.port)
 								.send({
@@ -203,7 +203,7 @@ describe("Peers second signature transactions", function () {
 									var sendTransaction = node.crypti.transaction.createTransaction("1C", 1, account.password);
 									node.peer.post('/transactions')
 										.set('Accept', 'application/json')
-										.set('Version',node.version)
+										.set('version',node.version)
 										.set('share-port',1)
 										.set('port',node.config.port)
 										.send({
@@ -225,7 +225,7 @@ describe("Peers second signature transactions", function () {
 	it("Create transaction from account and then send second signature to enable", function (done) {
 		node.api.post('/accounts/open')
 			.set('Accept', 'application/json')
-			.set('Version',node.version)
+			.set('version',node.version)
 			.set('share-port',1)
 			.set('port',node.config.port)
 			.send({
@@ -251,7 +251,7 @@ describe("Peers second signature transactions", function () {
 							var sendTransaction = node.crypti.transaction.createTransaction("1C", 1, account3.password);
 							node.peer.post('/transactions')
 								.set('Accept', 'application/json')
-								.set('Version',node.version)
+								.set('version',node.version)
 								.set('share-port',1)
 								.set('port',node.config.port)
 								.send({
@@ -265,7 +265,7 @@ describe("Peers second signature transactions", function () {
 									var transaction = node.crypti.signature.createSignature(account3.password, account3.secondPassword);
 									node.peer.post('/transactions')
 										.set('Accept', 'application/json')
-										.set('Version',node.version)
+										.set('version',node.version)
 										.set('share-port',1)
 										.set('port',node.config.port)
 										.send({
@@ -281,7 +281,7 @@ describe("Peers second signature transactions", function () {
 
 												node.api.get('/transactions/get?id=' + sendTransaction.id)
 													.set('Accept', 'application/json')
-													.set('Version',node.version)
+													.set('version',node.version)
 													.set('share-port',1)
 													.set('port',node.config.port)
 													.expect('Content-Type', /json/)
@@ -292,7 +292,7 @@ describe("Peers second signature transactions", function () {
 
 														node.api.get('/transactions/get?id=' + transaction.id)
 															.set('Accept', 'application/json')
-															.set('Version',node.version)
+															.set('version',node.version)
 															.set('share-port',1)
 															.set('port',node.config.port)
 															.expect('Content-Type', /json/)

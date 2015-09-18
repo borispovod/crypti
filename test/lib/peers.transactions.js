@@ -8,7 +8,7 @@ describe("Peers transactions", function () {
 		var transaction = node.crypti.transaction.createTransaction("1C", 1, node.peers_config.account);
 		node.peer.post('/transactions')
 			.set('Accept', 'application/json')
-			.set('Version',node.version)
+			.set('version',node.version)
 			.set('share-port',1)
 			.set('port',node.config.port)
 			.send({
@@ -27,7 +27,7 @@ describe("Peers transactions", function () {
 		var transaction = node.crypti.transaction.createTransaction("1C", -1, node.peers_config.account);
 		node.peer.post('/transactions')
 			.set('Accept', 'application/json')
-			.set('Version',node.version)
+			.set('version',node.version)
 			.set('share-port',1)
 			.set('port',node.config.port)
 			.send({
@@ -49,7 +49,7 @@ describe("Peers transactions", function () {
 		transaction.id = node.crypti.crypto.getId(transaction);
 		node.peer.post('/transactions')
 			.set('Accept', 'application/json')
-			.set('Version',node.version)
+			.set('version',node.version)
 			.set('share-port',1)
 			.set('port',node.config.port)
 			.send({
@@ -69,7 +69,7 @@ describe("Peers transactions", function () {
 		var transaction = node.crypti.transaction.createTransaction("1C", 1, "randomstring");
 		node.peer.post('/transactions')
 			.set('Accept', 'application/json')
-			.set('Version',node.version)
+			.set('version',node.version)
 			.set('share-port',1)
 			.set('port',node.config.port)
 			.send({
@@ -91,7 +91,7 @@ describe("Peers transactions", function () {
 		transaction.id = node.crypti.crypto.getId(transaction);
 		node.peer.post('/transactions')
 			.set('Accept', 'application/json')
-			.set('Version',node.version)
+			.set('version',node.version)
 			.set('share-port',1)
 			.set('port',node.config.port)
 			.send({
@@ -113,7 +113,7 @@ describe("Peers transactions", function () {
 		transaction.senderPublicKey = node.randomPassword();
 		node.peer.post('/transactions')
 			.set('Accept', 'application/json')
-			.set('Version',node.version)
+			.set('version',node.version)
 			.set('share-port',1)
 			.set('port',node.config.port)
 			.send({
@@ -134,7 +134,7 @@ describe("Peers transactions", function () {
 		transaction.blockId = genesisblock.block.id;
 		node.peer.post('/transactions')
 			.set('Accept', 'application/json')
-			.set('Version',node.version)
+			.set('version',node.version)
 			.set('share-port',1)
 			.set('port',node.config.port)
 			.send({
@@ -153,7 +153,7 @@ describe("Peers transactions", function () {
 		var transaction = node.crypti.transaction.createTransaction("12C", 184819291270000000012910218291201281920128129, node.peers_config.account);
 		node.peer.post('/transactions')
 			.set('Accept', 'application/json')
-			.set('Version',node.version)
+			.set('version',node.version)
 			.set('share-port',1)
 			.set('port',node.config.port)
 			.send({
@@ -173,7 +173,7 @@ describe("Peers transactions", function () {
 		var transaction = node.crypti.transaction.createTransaction("12C", 1.3, node.peers_config.account);
 		node.peer.post('/transactions')
 			.set('Accept', 'application/json')
-			.set('Version',node.version)
+			.set('version',node.version)
 			.set('share-port',1)
 			.set('port',node.config.port)
 			.send({
