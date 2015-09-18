@@ -2,7 +2,7 @@ var ed = require('ed25519'),
 	util = require('util'),
 	ByteBuffer = require("bytebuffer"),
 	crypto = require('crypto'),
-	genesisblock = require('../helpers/genesisblock.js'),
+	genesisblock = null,
 	constants = require("../helpers/constants.js"),
 	slots = require('../helpers/slots.js'),
 	extend = require('extend'),
@@ -121,6 +121,7 @@ function Transfer() {
 //constructor
 function Transactions(cb, scope) {
 	library = scope;
+	genesisblock = library.genesisblock;
 	self = this;
 	self.__private = private;
 	private.attachApi();
@@ -350,10 +351,14 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 			return done(err);
 		}
 
-		if (transaction.requesterPublicKey && sender.multisignatures && sender.multisignatures.length) {
+		if (transaction.requesterPublicKey && sender && sender.multisignatures && sender.multisignatures.length) {
 			modules.accounts.getAccount({publicKey: transaction.requesterPublicKey}, function (err, requester) {
 				if (err) {
 					return done(err);
+				}
+
+				if (!requester) {
+					return cb("Requester didn't found");
 				}
 
 				library.logic.transaction.process(transaction, sender, requester, function (err, transaction) {
@@ -418,6 +423,11 @@ Transactions.prototype.apply = function (transaction, cb) {
 		if (err) {
 			return cb(err);
 		}
+
+		if (!sender) {
+			return cb("Sender didn't found");
+		}
+
 		library.logic.transaction.apply(transaction, sender, cb);
 	});
 }

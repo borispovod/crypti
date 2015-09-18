@@ -1,7 +1,7 @@
 var async = require('async'),
 	Router = require('../helpers/router.js'),
 	util = require('util'),
-	genesisBlock = require("../helpers/genesisblock.js"),
+	genesisBlock = null,
 	ip = require("ip"),
 	bignum = require('../helpers/bignum.js'),
 	sandboxHelper = require('../helpers/sandbox.js');
@@ -20,6 +20,7 @@ private.syncIntervalId = null;
 //constructor
 function Loader(cb, scope) {
 	library = scope;
+	genesisBlock = library.genesisblock;
 	self = this;
 	self.__private = private;
 	private.attachApi();
@@ -81,8 +82,9 @@ private.findUpdate = function (lastBlock, peer, cb) {
 		}
 
 		library.logger.info("Found common block " + commonBlock.id + " (at " + commonBlock.height + ")" + " with peer " + peerStr);
+		var toRemove = lastBlock.height - commonBlock.height;
 
-		if (lastBlock.height - commonBlock.height > 101) {
+		if (toRemove > 4320) {
 			library.logger.log("long fork, ban 60 min", peerStr);
 			modules.peer.state(peer.ip, peer.port, 0, 3600);
 			return cb();
@@ -125,25 +127,49 @@ private.findUpdate = function (lastBlock, peer, cb) {
 						modules.peer.state(peer.ip, peer.port, 0, 3600);
 
 						if (lastValidBlock) {
-							library.logger.info("Remove blocks again until " + lastValidBlock.id + " (at " + lastValidBlock.height + ")");
+							var uploaded = lastValidBlock.height - commonBlock.height;
 
-							if (lastValidBlock.id != lastBlock.id) {
-								modules.round.directionSwap('backward');
-							}
+							if (toRemove < uploaded) {
+								library.logger.info("Remove blocks again until " + lastValidBlock.id + " (at " + lastValidBlock.height + ")");
 
-							modules.blocks.deleteBlocksBefore(lastValidBlock, function (err) {
 								if (lastValidBlock.id != lastBlock.id) {
-									modules.round.directionSwap('forward');
-								}
-								if (err) {
-									library.logger.fatal('delete blocks before', err);
-									process.exit(1);
+									modules.round.directionSwap('backward');
 								}
 
-								async.eachSeries(overTransactionList, function (trs, cb) {
-									modules.transactions.processUnconfirmedTransaction(trs, false, cb);
-								}, cb);
-							});
+								modules.blocks.deleteBlocksBefore(lastValidBlock, function (err) {
+									if (lastValidBlock.id != lastBlock.id) {
+										modules.round.directionSwap('forward');
+									}
+									if (err) {
+										library.logger.fatal('delete blocks before', err);
+										process.exit(1);
+									}
+
+									async.eachSeries(overTransactionList, function (trs, cb) {
+										modules.transactions.processUnconfirmedTransaction(trs, false, cb);
+									}, cb);
+								});
+							} else {
+								library.logger.info("Remove blocks again until common " + commonBlock.id + " (at " + commonBlock.height + ")");
+
+								if (commonBlock.id != lastBlock.id) {
+									modules.round.directionSwap('backward');
+								}
+
+								modules.blocks.deleteBlocksBefore(commonBlock, function (err) {
+									if (commonBlock.id != lastBlock.id) {
+										modules.round.directionSwap('forward');
+									}
+									if (err) {
+										library.logger.fatal('delete blocks before', err);
+										process.exit(1);
+									}
+
+									async.eachSeries(overTransactionList, function (trs, cb) {
+										modules.transactions.processUnconfirmedTransaction(trs, false, cb);
+									}, cb);
+								});
+							}
 						} else {
 							async.eachSeries(overTransactionList, function (trs, cb) {
 								modules.transactions.processUnconfirmedTransaction(trs, false, cb);

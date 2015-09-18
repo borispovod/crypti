@@ -2,6 +2,7 @@ var program = require('commander');
 var packageJson = require('./package.json');
 var Logger = require('./logger.js');
 var appConfig = require("./config.json");
+var genesisblock = require('./genesisBlock.json');
 var async = require('async');
 var extend = require('extend');
 var path = require('path');
@@ -34,7 +35,6 @@ if (program.address) {
 }
 
 if (program.peers) {
-
 	if (typeof program.peers === 'string') {
 		appConfig.peers.list = program.peers.split(',').map(function (peer) {
 			peer = peer.split(":");
@@ -100,6 +100,12 @@ d.run(function () {
 
 		build: function (cb) {
 			cb(null, versionBuild);
+		},
+
+		genesisblock: function (cb) {
+			cb(null, {
+				block: genesisblock
+			});
 		},
 
 		scheme: function (cb) {
@@ -291,7 +297,7 @@ d.run(function () {
 			});
 		},
 
-		connect: ['config', 'logger', 'build', 'network', function (cb, scope) {
+		connect: ['config', 'genesisblock', 'logger', 'build', 'network', function (cb, scope) {
 			var path = require('path');
 			var bodyParser = require('body-parser');
 			var methodOverride = require('method-override');
@@ -307,7 +313,7 @@ d.run(function () {
 			scope.network.app.use(bodyParser.json());
 			scope.network.app.use(methodOverride());
 
-			var ignore = ['id', 'name', 'lastBlockId', 'blockId', 'transactionId', 'address', 'recipientId', 'senderId', 'senderUsername', 'recipientUsername', 'previousBlock'];
+			var ignore = ['id', 'name', 'lastBlockId', 'blockId', 'username', 'transactionId', 'address', 'recipientId', 'senderId', 'senderUsername', 'recipientUsername', 'previousBlock'];
 			scope.network.app.use(queryParser({
 				parser: function (value, radix, name) {
 					if (ignore.indexOf(name) >= 0) {
@@ -400,7 +406,7 @@ d.run(function () {
 			dbLite.connect(config.db, cb);
 		},
 
-		logic: ['dbLite', 'bus', 'scheme', function (cb, scope) {
+		logic: ['dbLite', 'bus', 'scheme', 'genesisblock', function (cb, scope) {
 			var Transaction = require('./logic/transaction.js');
 			var Block = require('./logic/block.js');
 			var Account = require('./logic/account.js');
@@ -415,13 +421,18 @@ d.run(function () {
 				scheme: function (cb) {
 					cb(null, scope.scheme);
 				},
-				account: ["dbLite", "bus", "scheme", function (cb, scope) {
+				genesisblock: function (cb) {
+					cb(null, {
+						block: genesisblock
+					});
+				},
+				account: ["dbLite", "bus", "scheme", 'genesisblock', function (cb, scope) {
 					new Account(scope, cb);
 				}],
-				transaction: ["dbLite", "bus", "scheme", "account", function (cb, scope) {
+				transaction: ["dbLite", "bus", "scheme", 'genesisblock', "account", function (cb, scope) {
 					new Transaction(scope, cb);
 				}],
-				block: ["dbLite", "bus", "scheme", "account", "transaction", function (cb, scope) {
+				block: ["dbLite", "bus", "scheme", 'genesisblock', "account", "transaction", function (cb, scope) {
 					new Block(scope, cb);
 				}]
 			}, cb);

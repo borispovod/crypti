@@ -1,7 +1,7 @@
 var slots = require('../helpers/slots.js'),
 	ed = require('ed25519'),
 	crypto = require('crypto'),
-	genesisblock = require("../helpers/genesisblock.js"),
+	genesisblock = null,
 	constants = require('../helpers/constants.js'),
 	ByteBuffer = require("bytebuffer"),
 	bignum = require('../helpers/bignum.js'),
@@ -10,6 +10,7 @@ var slots = require('../helpers/slots.js'),
 //constructor
 function Transaction(scope, cb) {
 	this.scope = scope;
+	genesisblock = this.scope.genesisblock;
 	cb && setImmediate(cb, null, this);
 }
 

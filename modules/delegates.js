@@ -364,6 +364,10 @@ private.loadMyDelegates = function (cb) {
 				return cb(err);
 			}
 
+			if (!account) {
+				return cb("Account " + keypair.publicKey.toString('hex') + " not found");
+			}
+
 			if (account.isDelegate) {
 				private.keypairs[keypair.publicKey.toString('hex')] = keypair;
 				library.logger.info("Forging enabled on account: " + account.address);
@@ -1097,7 +1101,6 @@ shared.addDelegate = function (req, cb) {
 					});
 				});
 			} else {
-
 				modules.accounts.getAccount({publicKey: keypair.publicKey.toString('hex')}, function (err, account) {
 					if (err) {
 						return cb(err.toString());

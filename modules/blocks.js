@@ -3,7 +3,7 @@ var crypto = require('crypto'),
 	ip = require('ip'),
 	ByteBuffer = require("bytebuffer"),
 	constants = require("../helpers/constants.js"),
-	genesisblock = require("../helpers/genesisblock.js"),
+	genesisblock = null,
 	constants = require('../helpers/constants.js'),
 	Router = require('../helpers/router.js'),
 	slots = require('../helpers/slots.js'),
@@ -38,6 +38,7 @@ private.blocksDataFields = {
 //constructor
 function Blocks(cb, scope) {
 	library = scope;
+	genesisblock = library.genesisblock;
 	self = this;
 	self.__private = private;
 	private.attachApi();
@@ -617,6 +618,7 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, verify, cb) {
 					});
 				}
 
+				console.log('apply transactions');
 				async.eachSeries(block.transactions, function (transaction, cb) {
 					if (verify) {
 						modules.accounts.setAccountAndGet({publicKey: transaction.senderPublicKey}, function (err, sender) {
@@ -648,6 +650,7 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, verify, cb) {
 					}
 				}, function (err) {
 					if (err) {
+						library.logger.error(err);
 						var lastValidTransaction = block.transactions.findIndex(function (trs) {
 							return trs.id == err.transaction.id;
 						});
@@ -913,11 +916,11 @@ Blocks.prototype.loadBlocksFromPeer = function (peer, lastCommonBlockId, cb) {
 				}
 
 				var blocks = data.body.blocks;
+
 				if (typeof blocks === "string") {
 					blocks = library.dbLite.parseCSV(blocks);
 				}
 
-				// not working of data.body is empty....
 				var report = library.scheme.validate(blocks, {
 					type: "array"
 				});
@@ -986,11 +989,11 @@ Blocks.prototype.deleteBlocksBefore = function (block, cb) {
 
 Blocks.prototype.generateBlock = function (keypair, timestamp, cb) {
 	var transactions = modules.transactions.getUnconfirmedTransactionList();
-	var ready = []
+	var ready = [];
 
 	async.eachSeries(transactions, function (transaction, cb) {
 		modules.accounts.getAccount({publicKey: transaction.senderPublicKey}, function (err, sender) {
-			if (err) {
+			if (err || !sender) {
 				return cb("sender doesn´t found");
 			}
 

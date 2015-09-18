@@ -2,7 +2,7 @@ var ed = require('ed25519'),
 	util = require('util'),
 	ByteBuffer = require("bytebuffer"),
 	crypto = require('crypto'),
-	genesisblock = require('../helpers/genesisblock.js'),
+	genesisblock = null,
 	constants = require("../helpers/constants.js"),
 	slots = require('../helpers/slots.js'),
 	extend = require('extend'),
@@ -44,6 +44,10 @@ function Multisignature() {
 			return setImmediate(cb, "Wrong transaction asset for multisignature transaction: " + trs.id);
 		}
 
+		if (trs.asset.multisignature.keysgroup.length == 0) {
+			return setImmediate(cb, "Multisignature can't contain less then one member");
+		}
+
 		if (trs.asset.multisignature.min < 1 || trs.asset.multisignature.min > 16) {
 			return setImmediate(cb, "Wrong transaction asset min for multisignature transaction: " + trs.id);
 		}
@@ -79,6 +83,25 @@ function Multisignature() {
 		if (trs.asset.multisignature.keysgroup.indexOf("+" + sender.publicKey) != -1) {
 			return setImmediate(cb, errorCode("MULTISIGNATURES.SELF_SIGN"));
 		}
+
+		trs.asset.multisignature.keysgroup.forEach(function (key) {
+			var math = key[0];
+			var publicKey = key.splice(1);
+
+			if (math != '+') {
+				return cb("Math wrong");
+			}
+
+			// check that there is publicKey
+			try {
+				var b = new Buffer(publicKey, 'hex');
+				if (b.length != 32) {
+					return cb("Wrong public key" + publicKey);
+				}
+			} catch (e) {
+				return cb("Wrong public key: " + publicKey);
+			}
+		});
 
 		var keysgroup = trs.asset.multisignature.keysgroup.reduce(function (p, c) {
 			if (p.indexOf(c) < 0) p.push(c);
@@ -255,6 +278,7 @@ function Multisignature() {
 //constructor
 function Multisignatures(cb, scope) {
 	library = scope;
+	genesisblock = library.genesisblock;
 	self = this;
 	self.__private = private;
 	private.attachApi();
@@ -312,7 +336,8 @@ shared.getAccounts = function (req, cb) {
 				type: "string",
 				format: "publicKey"
 			}
-		}
+		},
+		required: ['publicKey']
 	}, function (err) {
 		if (err) {
 			return cb(err[0].message);

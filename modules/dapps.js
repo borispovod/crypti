@@ -439,6 +439,10 @@ function DApp() {
 		if (trs.asset.dapp.siaAscii) {
 			isSia = true;
 
+			if (trs.asset.dapp.siaAscii.length == 0) {
+				return setImmediate(cb, "Empty sia ascii");
+			}
+
 			if (typeof trs.asset.dapp.siaAscii !== 'string') {
 				return setImmediate(cb, errorCode("DAPPS.MISSED_SIA_ASCII"));
 			}
@@ -450,6 +454,10 @@ function DApp() {
 
 		if (trs.asset.dapp.siaIcon) {
 			isSiaIcon = true;
+
+			if (trs.asset.dapp.siaIcon.length == 0) {
+				return setImmediate(cb, "Empty sia icon");
+			}
 
 			if (typeof trs.asset.dapp.siaIcon !== 'string') {
 				return setImmediate(cb, errorCode("DAPPS.INCORRECT_SIA_ICON", trs.asset.dapp));
@@ -591,21 +599,29 @@ function DApp() {
 		private.unconfirmedLinks[trs.asset.dapp.git] = true;
 		private.unconfirmedAscii[trs.asset.dapp.siaAscii] = true;
 
-		library.dbLite.query("SELECT count(transactionId) FROM dapps WHERE (name = $name or siaAscii = $siaAscii or git = $git) and transactionId != $transactionId", {
+		library.dbLite.query("SELECT name, siaAscii, git FROM dapps WHERE (name = $name or siaAscii = $siaAscii or git = $git) and transactionId != $transactionId", {
 			name: trs.asset.dapp.name,
 			siaAscii: trs.asset.dapp.siaAscii || null,
 			git: trs.asset.dapp.git || null,
 			transactionId: trs.id
-		}, ['count'], function (err, rows) {
-			if (err || rows.length == 0) {
+		}, ['name', 'siaAscii', 'git'], function (err, rows) {
+			if (err) {
 				return setImmediate(cb, "Sql error");
 			}
 
-			if (rows[0].count > 0) {
-				return setImmediate(cb, errorCode("DAPPS.EXISTS_DAPP_NAME"));
-			}
+			if (rows.length > 0) {
+				var dapp = rows[0];
 
-			return setImmediate(cb, null, trs);
+				if (dapp.name == trs.asset.dapp.name) {
+					return setImmediate(cb, "DApp with this name already exists: " + dapp.name);
+				} else if (dapp.siaAscii == trs.asset.dapp.siaAscii) {
+					return setImmediate(cb, "DApp with this sia code already exists")
+				} else if (dapp.git == trs.asset.dapp.git) {
+					return setImmediate(cb, "DApp with this git already exists: " + dapp.git);
+				}
+			} else {
+				return setImmediate(cb, null, trs);
+			}
 		});
 	}
 
@@ -1002,8 +1018,9 @@ private.attachApi = function () {
 					minLength: 1
 				},
 				category: {
-					type: 'string',
-					minLength: 1
+					type: 'integer',
+					minimum: 0,
+					maximum: 8
 				},
 				installed: {
 					type: 'integer',
@@ -1019,11 +1036,7 @@ private.attachApi = function () {
 			var category = null;
 
 			if (query.category) {
-				category = dappCategory[query.category];
-
-				if (category != 0 && !category) {
-					return res.json({success: false, error: "Incorrect category"});
-				}
+				category = query.category;
 			}
 
 			library.dbLite.query("CREATE VIRTUAL TABLE IF NOT EXISTS dapps_search USING fts4(content=dapps, name, description, tags)", function (err, rows) {
@@ -1880,6 +1893,10 @@ private.launch = function (body, cb) {
 			return cb("DApp already launched");
 		}
 
+		if (body.params.length > 0) {
+			body.params.push("modules.full.json");
+		}
+
 		private.launched[body.id] = true;
 
 		private.get(body.id, function (err, dapp) {
@@ -1901,7 +1918,7 @@ private.launch = function (body, cb) {
 									library.logger.error(err);
 									return cb("Can't create public link for: " + body.id);
 								} else {
-									private.launchApp(dapp, body.params || [], function (err) {
+									private.launchApp(dapp, body.params || ['', "modules.full.json"], function (err) {
 										if (err) {
 											private.launched[body.id] = false;
 											library.logger.error(err);

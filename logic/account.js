@@ -2,13 +2,14 @@ var async = require('async');
 var jsonSql = require('json-sql')();
 jsonSql.setDialect("sqlite")
 var constants = require('../helpers/constants.js');
-var genesisBlock = require('../helpers/genesisblock.js').block;
+var genesisBlock = null;
 
 var private = {};
 
 //constructor
 function Account(scope, cb) {
 	this.scope = scope;
+	genesisBlock = this.scope.genesisblock.block;
 
 	this.table = "mem_accounts";
 

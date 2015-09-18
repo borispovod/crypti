@@ -91,24 +91,12 @@ function Contact() {
 	}
 
 	this.applyUnconfirmed = function (trs, sender, cb) {
-		library.dbLite.query("SELECT count(id) FROM trs where recipientId=$address", {
-			address: trs.asset.contact.address.slice(1)
-		}, ['count'], function (err, rows) {
+		self.checkUnconfirmedContacts(trs.senderPublicKey, [trs.asset.contact.address], function (err) {
 			if (err) {
-				return setImmediate(cb, "Sql error");
+				return setImmediate(cb, errorCode("CONTACTS.ALREADY_ADDED_UNCONFIRMED", trs));
 			}
 
-			if (rows.length == 0 || rows[0].count == 0) {
-				return setImmediate(cb, "Can't apply contact, recipient doesn't exists");
-			}
-
-			self.checkUnconfirmedContacts(trs.senderPublicKey, [trs.asset.contact.address], function (err) {
-				if (err) {
-					return setImmediate(cb, errorCode("CONTACTS.ALREADY_ADDED_UNCONFIRMED", trs));
-				}
-
-				this.scope.account.merge(sender.address, {u_contacts: [trs.asset.contact.address]}, cb);
-			}.bind(this));
+			this.scope.account.merge(sender.address, {u_contacts: [trs.asset.contact.address]}, cb);
 		}.bind(this));
 	}
 
@@ -212,7 +200,7 @@ private.attachApi = function () {
 //public methods
 Contacts.prototype.checkContacts = function (publicKey, contacts, cb) {
 	if (util.isArray(contacts)) {
-		modules.accounts.getAccount({publicKey: publicKey}, function (err, account) {
+		modules.accounts.setAccountAndGet({publicKey: publicKey}, function (err, account) {
 			if (err) {
 				return cb(err);
 			}
@@ -223,6 +211,10 @@ Contacts.prototype.checkContacts = function (publicKey, contacts, cb) {
 			for (var i = 0; i < contacts.length; i++) {
 				var math = contacts[i][0];
 				var contactAddress = contacts[i].slice(1);
+
+				if (math != '+') {
+					return cb("Incorrect math for contact");
+				}
 
 				if (math == "+" && (account.contacts !== null && account.contacts.indexOf(contactAddress) != -1)) {
 					return cb("Can't verify contacts, you already added this contact");
