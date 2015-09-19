@@ -182,6 +182,9 @@ module.exports = function (grunt) {
 			notify: {
 				text: '@sebastian @eric @boris @landgraf_paul New version (' + config.version + ') of Crypti available: http://storage.googleapis.com/crypti-testing/nodes/' + config.version + '.zip (v' + today + ')'
 			}
+		},
+		jshint: {
+			all: ['app.js', 'helpers/**/*.js', 'modules/**/*.js', 'logic/**/*.js']
 		}
 	});
 
@@ -195,10 +198,13 @@ module.exports = function (grunt) {
 	grunt.loadNpmTasks('grunt-gcloud');
 	grunt.loadNpmTasks('grunt-nodemailer');
 	grunt.loadNpmTasks('grunt-slack-hook');
+	grunt.loadNpmTasks('grunt-contrib-jshint');
+
 
 	grunt.registerTask("default", ["obfuscator"]);
 	grunt.registerTask("release", ["default", "jscrambler"]);
 	grunt.registerTask('script', ["uglify:script"]);
 	grunt.registerTask('build', ["exec:folder", "release", "exec:package", "exec:build", "compress"])
 	grunt.registerTask("package", ["build", "gcloud:project", "nodemailer:message", "slack"]);
+	grunt.registerTask("validate", ["jshint"]);
 };
