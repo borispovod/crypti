@@ -1,5 +1,4 @@
 {
-"block": {
 "version": 0,
 "totalAmount": 10000000000000000,
 "totalFee": 0,
@@ -1779,5 +1778,4 @@
 "height": 1,
 "blockSignature": "2e6fd311b55727376dde72ac69b7d3d2148ef28e1d61f954f408874f3f1a45a19d831ec204982d1e9544f504a3c1501df31a0a7d4a4e21beb2a6dd368d658d0b",
 "id": "1904506138016700155"
-}
 }
