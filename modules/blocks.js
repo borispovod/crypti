@@ -618,7 +618,6 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, verify, cb) {
 					});
 				}
 
-				console.log('apply transactions');
 				async.eachSeries(block.transactions, function (transaction, cb) {
 					if (verify) {
 						modules.accounts.setAccountAndGet({publicKey: transaction.senderPublicKey}, function (err, sender) {
