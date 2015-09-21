@@ -306,27 +306,27 @@ private.getBlockSlotData = function (slot, height) {
 private.loop = function (cb) {
 	if (!Object.keys(private.keypairs).length) {
 		library.logger.debug('loop', 'exit: have no delegates');
-		return;
+		return setImmediate(cb);
 	}
 
 	if (!private.loaded || modules.loader.syncing()) {
 		library.logger.log('loop', 'exit: syncing');
-		return;
+		return setImmediate(cb);
 	}
 
 	var currentSlot = slots.getSlotNumber();
 	var lastBlock = modules.blocks.getLastBlock();
 
 	if (currentSlot == slots.getSlotNumber(lastBlock.timestamp)) {
-		library.logger.log('loop', 'exit: lastBlock is in the same slot');
-		return;
+		//library.logger.log('loop', 'exit: lastBlock is in the same slot');
+		return setImmediate(cb);
 	}
 
 	var currentBlockData = private.getBlockSlotData(currentSlot, lastBlock.height + 1);
 
 	if (currentBlockData === null) {
 		library.logger.log('loop', 'skip slot');
-		return;
+		return setImmediate(cb);
 	}
 
 	library.sequence.add(function (cb) {
@@ -346,6 +346,7 @@ private.loop = function (cb) {
 		if (err) {
 			library.logger.error("Problem in block generation", err);
 		}
+		setImmediate(cb);
 	});
 }
 
@@ -559,16 +560,11 @@ Delegates.prototype.onBlockchainReady = function () {
 	private.loadMyDelegates(function nextLoop(err) {
 		var nextSlot = slots.getNextSlot();
 
-		var scheduledTime = slots.getSlotTime(nextSlot);
-		scheduledTime = scheduledTime <= slots.getTime() ? scheduledTime + 1 : scheduledTime;
-		var realTime = new Date(slots.getRealTime(scheduledTime) + 1000);
+		//var scheduledTime = slots.getSlotTime(nextSlot);
+		//scheduledTime = scheduledTime <= slots.getTime() ? scheduledTime + 1 : scheduledTime;
+		var realTime = new Date(slots.getRealTime() + 1000);
 		schedule.scheduleJob(realTime, function (time) {
-			nextLoop();
-			if (slots.roundTime(new Date()) == slots.roundTime(new Date(time))) {
-				private.loop();
-			} else {
-				library.logger.log('loop', 'missed slot');
-			}
+			private.loop(nextLoop);
 		}.bind(this, realTime));
 	}); //temp
 
@@ -699,7 +695,7 @@ shared.getDelegate = function (req, cb) {
 
 		modules.accounts.getAccounts(filter, ["username", "address", "publicKey"], function (err, delegates) {
 			if (err || delegates.length == 0) {
-				return cb(err? err.toString() : "This delegate not found");
+				return cb(err ? err.toString() : "This delegate not found");
 			}
 
 			var delegate = delegates[0];
