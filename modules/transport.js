@@ -267,7 +267,7 @@ private.attachApi = function () {
 				return res.status(200).json({success: false, error: "Validation error"});
 			}
 
-			modules.multisignatures.processSignature(signature, function (err) {
+			modules.multisignatures.processSignature(res.body.signature, function (err) {
 				if (err) {
 					return res.status(200).json({success: false, error: "Process signature error"});
 				} else {
