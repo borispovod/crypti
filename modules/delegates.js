@@ -338,7 +338,7 @@ private.loop = function (cb) {
 				cb(err);
 			});
 		} else {
-			library.logger.log('loop', 'exit: ' + _activeDelegates[slots.getSlotNumber() % slots.delegates] + ' delegate slot');
+			//library.logger.log('loop', 'exit: ' + _activeDelegates[slots.getSlotNumber() % slots.delegates] + ' delegate slot');
 
 			setImmediate(cb);
 		}
