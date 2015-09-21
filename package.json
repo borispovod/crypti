@@ -84,6 +84,7 @@
     "js-nacl": "^0.6.0",
     "jsdox": "~0.4.9",
     "lodash": "^3.9.3",
+    "memwatch": "^0.2.2",
     "mocha": "^2.2.5",
     "moment": "^2.9.0",
     "nodeload": "^0.4.0",

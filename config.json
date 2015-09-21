@@ -14,18 +14,10 @@
   },
   "peers": {
     "list": [
-      {
-        "ip": "104.155.53.172",
-        "port": 7040
-      },
-      {
-        "ip": "104.155.15.135",
-        "port": 7040
-      }
     ],
     "blackList": [],
     "options": {
-      "timeout": 20000
+      "timeout": 4000
     }
   },
   "forging": {
@@ -139,7 +131,7 @@
     }
   },
   "loading": {
-    "verifyOnLoading": true,
+    "verifyOnLoading": false,
     "loadPerIteration": 5000
   },
   "sia": {
@@ -161,13 +153,6 @@
   },
   "dapp": {
     "autoexec": [
-      {
-        "params": [
-          "F3DP835EBuZMAhiuYn2AzhJh1lz8glLolghCMD4X8lRh5v2GlcBWws7plIDUuPjf3GUTOnyYEfXQx7cH",
-          "modules.full.json"
-        ],
-        "dappid": "15616498276233037701"
-      }
     ]
   }
 }

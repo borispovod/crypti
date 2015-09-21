@@ -9,6 +9,11 @@ var path = require('path');
 var https = require('https');
 var fs = require('fs');
 var z_schema = require('z-schema');
+var memwatch = require('memwatch');
+
+memwatch.on('leak', function(info) {
+	console.error('Memory leak detected: ', info);
+});
 
 var versionBuild = fs.readFileSync(path.join(__dirname, 'build'), 'utf8');
 
