@@ -86,7 +86,7 @@ function Multisignature() {
 
 		trs.asset.multisignature.keysgroup.forEach(function (key) {
 			var math = key[0];
-			var publicKey = key.splice(1);
+			var publicKey = key.slice(1);
 
 			if (math != '+') {
 				return cb("Math wrong");
