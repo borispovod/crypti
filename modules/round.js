@@ -71,8 +71,9 @@ Round.prototype.backwardTick = function (block, previousBlock, cb) {
 
 			async.series([
 				function (cb) {
+					var task;
 					async.whilst(function () {
-						var task = private.tasks.shift();
+						task = private.tasks.shift();
 						return !!task;
 					}, function (cb) {
 						task(function () {

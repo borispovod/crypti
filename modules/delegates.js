@@ -310,7 +310,7 @@ private.loop = function (cb) {
 	}
 
 	if (!private.loaded || modules.loader.syncing()) {
-		library.logger.log('loop', 'exit: syncing');
+		//library.logger.log('loop', 'exit: syncing');
 		return setImmediate(cb);
 	}
 
@@ -338,7 +338,7 @@ private.loop = function (cb) {
 				cb(err);
 			});
 		} else {
-			library.logger.log('loop', 'exit: ' + _activeDelegates[slots.getSlotNumber() % slots.delegates] + ' delegate slot');
+			//library.logger.log('loop', 'exit: ' + _activeDelegates[slots.getSlotNumber() % slots.delegates] + ' delegate slot');
 
 			setImmediate(cb);
 		}
