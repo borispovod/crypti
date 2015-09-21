@@ -76,9 +76,6 @@ Round.prototype.backwardTick = function (block, previousBlock, cb) {
 						task = private.tasks.shift();
 						return !!task;
 					}, function (cb) {
-						if(!task){
-							console.log("task", task, private.tasks)
-						}
 						task(function () {
 							cb();
 						});
