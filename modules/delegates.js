@@ -310,7 +310,7 @@ private.loop = function (cb) {
 	}
 
 	if (!private.loaded || modules.loader.syncing()) {
-		library.logger.log('loop', 'exit: syncing');
+		//library.logger.log('loop', 'exit: syncing');
 		return setImmediate(cb);
 	}
 
