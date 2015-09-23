@@ -358,7 +358,20 @@ shared.getContacts = function (req, cb) {
 				if (err) {
 					return cb(err.toString());
 				}
-				cb(null, {following: res.contacts, followers: res.followers});
+
+				var realFollowers = [];
+				// find and remove
+				for (var i in res.followers) {
+					var contact = res.contacts.find(function (item) {
+						return item.address == res.followers[i].address;
+					});
+
+					if (!contact) {
+						realFollowers.push(res.followers[i]);
+					}
+				}
+
+				cb(null, {following: res.contacts, followers: realFollowers});
 			});
 		});
 	});
