@@ -48,7 +48,7 @@ function Multisignature() {
 			return setImmediate(cb, "Multisignature can't contain less then one member");
 		}
 
-		if (trs.asset.multisignature.min < 1 || trs.asset.multisignature.min > 16) {
+		if (trs.asset.multisignature.min <= 1 || trs.asset.multisignature.min > 16) {
 			return setImmediate(cb, "Wrong transaction asset min for multisignature transaction: " + trs.id);
 		}
 
@@ -270,7 +270,7 @@ function Multisignature() {
 		if (!sender.multisignatures.length) {
 			return trs.signatures.length == trs.asset.multisignature.keysgroup.length;
 		} else {
-			return trs.signatures.length >= sender.multimin;
+			return trs.signatures.length >= sender.multimin - 1;
 		}
 	}
 }

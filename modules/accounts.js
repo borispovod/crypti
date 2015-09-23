@@ -127,7 +127,7 @@ function Vote() {
 			if (!trs.signatures) {
 				return false;
 			}
-			return trs.signatures.length >= sender.multimin;
+			return trs.signatures.length >= sender.multimin - 1;
 		} else {
 			return true;
 		}
@@ -299,7 +299,7 @@ function Username() {
 			if (!trs.signatures) {
 				return false;
 			}
-			return trs.signatures.length >= sender.multimin;
+			return trs.signatures.length >= sender.multimin - 1;
 		} else {
 			return true;
 		}
