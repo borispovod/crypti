@@ -23,7 +23,7 @@ program
 	.option('-l, --log <level>', 'Log level')
 	.parse(process.argv);
 
-if (gc) {
+if (typeof gc !== 'undefined') {
 	setInterval(function () {
 		gc();
 	}, 60000);
