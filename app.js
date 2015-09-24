@@ -10,8 +10,9 @@ var https = require('https');
 var fs = require('fs');
 var z_schema = require('z-schema');
 var memwatch = require('memwatch');
+var util = require('util');
 
-memwatch.on('leak', function(info) {
+memwatch.on('leak', function (info) {
 	console.error('Memory leak detected: ', info);
 });
 
@@ -253,15 +254,27 @@ d.run(function () {
 				if (!task) {
 					return setTimeout(nextSequenceTick, 100);
 				}
-				task.worker(function (err, res) {
-					task.callback && setImmediate(task.callback, err, res);
+				var args = [function (err, res) {
+					task.done && setImmediate(task.done, err, res);
 					setTimeout(nextSequenceTick, 100);
-				});
+				}];
+				if (task.args) {
+					args = args.concat(task.args);
+				}
+				task.worker.apply(task.worker, args);
 			});
 			cb(null, {
-				add: function (worker, done) {
+				add: function (worker, args, done) {
+					if (!done && args && typeof(args) == 'function') {
+						done = args;
+						args = undefined;
+					}
 					if (worker && typeof(worker) == 'function') {
-						sequence.push({worker: worker, callback: done});
+						var task = {worker: worker, done: done};
+						if (util.isArray(args)){
+							task.args = args;
+						}
+						sequence.push(task);
 					}
 				}
 			});
@@ -274,15 +287,27 @@ d.run(function () {
 				if (!task) {
 					return setTimeout(nextSequenceTick, 100);
 				}
-				task.worker(function (err, res) {
-					task.callback && setImmediate(task.callback, err, res);
+				var args = [function (err, res) {
+					task.done && setImmediate(task.done, err, res);
 					setTimeout(nextSequenceTick, 100);
-				});
+				}];
+				if (task.args) {
+					args = args.concat(task.args);
+				}
+				task.worker.apply(task.worker, args);
 			});
 			cb(null, {
-				add: function (worker, done) {
+				add: function (worker, args, done) {
+					if (!done && args && typeof(args) == 'function') {
+						done = args;
+						args = undefined;
+					}
 					if (worker && typeof(worker) == 'function') {
-						sequence.push({worker: worker, callback: done});
+						var task = {worker: worker, done: done};
+						if (util.isArray(args)){
+							task.args = args;
+						}
+						sequence.push(task);
 					}
 				}
 			});
