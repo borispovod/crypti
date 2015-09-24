@@ -253,23 +253,16 @@ d.run(function () {
 				if (!task) {
 					return setTimeout(nextSequenceTick, 100);
 				}
-				task(function () {
+				task.worker(function (err, res) {
+					task.callback && setImmediate(task.callback, err, res);
 					setTimeout(nextSequenceTick, 100);
 				});
 			});
 			cb(null, {
 				add: function (worker, done) {
-					sequence.push(function (cb) {
-						if (worker && typeof(worker) == 'function') {
-							worker(function (err, res) {
-								setImmediate(cb);
-								done && setImmediate(done, err, res);
-							});
-						} else {
-							setImmediate(cb);
-							done && setImmediate(done);
-						}
-					});
+					if (worker && typeof(worker) == 'function') {
+						sequence.push({worker: worker, callback: done});
+					}
 				}
 			});
 		},
@@ -281,23 +274,16 @@ d.run(function () {
 				if (!task) {
 					return setTimeout(nextSequenceTick, 100);
 				}
-				task(function () {
+				task.worker(function (err, res) {
+					task.callback && setImmediate(task.callback, err, res);
 					setTimeout(nextSequenceTick, 100);
 				});
 			});
 			cb(null, {
 				add: function (worker, done) {
-					sequence.push(function (cb) {
-						if (worker && typeof(worker) == 'function') {
-							worker(function (err, res) {
-								setImmediate(cb);
-								done && setImmediate(done, err, res);
-							});
-						} else {
-							setImmediate(cb);
-							done && setImmediate(done);
-						}
-					});
+					if (worker && typeof(worker) == 'function') {
+						sequence.push({worker: worker, callback: done});
+					}
 				}
 			});
 		},
