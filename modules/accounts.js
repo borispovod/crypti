@@ -74,7 +74,6 @@ function Vote() {
 	this.applyUnconfirmed = function (trs, sender, cb) {
 		modules.delegates.checkUnconfirmedDelegates(trs.senderPublicKey, trs.asset.votes, function (err) {
 			if (err) {
-				console.log(err);
 				return setImmediate(cb, errorCode("VOTES.ALREADY_VOTED_UNCONFIRMED", trs));
 			}
 
