@@ -9,7 +9,7 @@ var path = require('path');
 var https = require('https');
 var fs = require('fs');
 var z_schema = require('z-schema');
-require('v8-profiler');
+var util = require('util');
 
 var versionBuild = fs.readFileSync(path.join(__dirname, 'build'), 'utf8');
 
@@ -23,9 +23,11 @@ program
 	.option('-l, --log <level>', 'Log level')
 	.parse(process.argv);
 
-setInterval(function () {
-	gc();
-}, 60000);
+if (gc) {
+	setInterval(function () {
+		gc();
+	}, 60000);
+}
 
 if (program.config) {
 	extend(appConfig, require(path.resolve(process.cwd(), program.config)));
@@ -253,23 +255,28 @@ d.run(function () {
 				if (!task) {
 					return setTimeout(nextSequenceTick, 100);
 				}
-				task(function () {
+				var args = [function (err, res) {
+					task.done && setImmediate(task.done, err, res);
 					setTimeout(nextSequenceTick, 100);
-				});
+				}];
+				if (task.args) {
+					args = args.concat(task.args);
+				}
+				task.worker.apply(task.worker, args);
 			});
 			cb(null, {
-				add: function (worker, done) {
-					sequence.push(function (cb) {
-						if (worker && typeof(worker) == 'function') {
-							worker(function (err, res) {
-								setImmediate(cb);
-								done && setImmediate(done, err, res);
-							});
-						} else {
-							setImmediate(cb);
-							done && setImmediate(done);
+				add: function (worker, args, done) {
+					if (!done && args && typeof(args) == 'function') {
+						done = args;
+						args = undefined;
+					}
+					if (worker && typeof(worker) == 'function') {
+						var task = {worker: worker, done: done};
+						if (util.isArray(args)){
+							task.args = args;
 						}
-					});
+						sequence.push(task);
+					}
 				}
 			});
 		},
@@ -281,23 +288,28 @@ d.run(function () {
 				if (!task) {
 					return setTimeout(nextSequenceTick, 100);
 				}
-				task(function () {
+				var args = [function (err, res) {
+					task.done && setImmediate(task.done, err, res);
 					setTimeout(nextSequenceTick, 100);
-				});
+				}];
+				if (task.args) {
+					args = args.concat(task.args);
+				}
+				task.worker.apply(task.worker, args);
 			});
 			cb(null, {
-				add: function (worker, done) {
-					sequence.push(function (cb) {
-						if (worker && typeof(worker) == 'function') {
-							worker(function (err, res) {
-								setImmediate(cb);
-								done && setImmediate(done, err, res);
-							});
-						} else {
-							setImmediate(cb);
-							done && setImmediate(done);
+				add: function (worker, args, done) {
+					if (!done && args && typeof(args) == 'function') {
+						done = args;
+						args = undefined;
+					}
+					if (worker && typeof(worker) == 'function') {
+						var task = {worker: worker, done: done};
+						if (util.isArray(args)){
+							task.args = args;
 						}
-					});
+						sequence.push(task);
+					}
 				}
 			});
 		},
