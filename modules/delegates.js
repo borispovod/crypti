@@ -227,7 +227,7 @@ function Delegate() {
 			if (!trs.signatures) {
 				return false;
 			}
-			return trs.signatures.length >= sender.multimin;
+			return trs.signatures.length >= sender.multimin - 1;
 		} else {
 			return true;
 		}
@@ -261,10 +261,13 @@ private.attachApi = function () {
 		"get /": "getDelegates",
 		"get /fee": "getFee",
 		"get /forging/getForgedByAccount": "getForgedByAccount",
+		"put /": "addDelegate"
+	});
+
+	router.map(private, {
 		"post /forging/enable": "enableForging",
 		"post /forging/disable": "disableForging",
-		"get /forging/status": "statusForging",
-		"put /": "addDelegate"
+		"get /forging/status": "statusForging"
 	});
 
 	library.network.app.use('/api/delegates', router);
@@ -872,7 +875,7 @@ shared.getForgedByAccount = function (req, cb) {
 	});
 }
 
-shared.enableForging = function (req, cb) {
+private.enableForging = function (req, cb) {
 	var body = req.body;
 	library.scheme.validate(body, {
 		type: "object",
@@ -926,7 +929,7 @@ shared.enableForging = function (req, cb) {
 	});
 }
 
-shared.disableForging = function (req, cb) {
+private.disableForging = function (req, cb) {
 	var body = req.body;
 	library.scheme.validate(body, {
 		type: "object",
@@ -980,7 +983,7 @@ shared.disableForging = function (req, cb) {
 	});
 }
 
-shared.statusForging = function (req, cb) {
+private.statusForging = function (req, cb) {
 	var query = req.body;
 	library.scheme.validate(query, {
 		type: "object",
