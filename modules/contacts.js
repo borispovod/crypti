@@ -1,5 +1,4 @@
-var encryptHelper = require('../helpers/encrypt.js'),
-	TransactionTypes = require('../helpers/transaction-types.js'),
+var TransactionTypes = require('../helpers/transaction-types.js'),
 	Router = require('../helpers/router.js'),
 	constants = require('../helpers/constants.js'),
 	ed = require('ed25519'),

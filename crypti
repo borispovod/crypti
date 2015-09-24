@@ -1,7 +1,0 @@
-#!/bin/bash
-
-if [ -z $NODE ]; then
-    NODE=/usr/bin/node
-fi
-
-$NODE bin/cli.js $@

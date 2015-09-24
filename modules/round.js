@@ -162,6 +162,7 @@ Round.prototype.tick = function (block, cb) {
 		cb && setImmediate(cb, err);
 	}
 
+
 	private.forgedBlocks[block.generatorPublicKey] = (private.forgedBlocks[block.generatorPublicKey] || 0) + 1;
 	var round = self.calc(block.height);
 

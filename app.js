@@ -9,11 +9,7 @@ var path = require('path');
 var https = require('https');
 var fs = require('fs');
 var z_schema = require('z-schema');
-var memwatch = require('memwatch');
-
-memwatch.on('leak', function(info) {
-	console.error('Memory leak detected: ', info);
-});
+require('v8-profiler');
 
 var versionBuild = fs.readFileSync(path.join(__dirname, 'build'), 'utf8');
 
@@ -26,6 +22,10 @@ program
 	.option('-x, --peers [peers...]', 'Peers list')
 	.option('-l, --log <level>', 'Log level')
 	.parse(process.argv);
+
+setInterval(function () {
+	gc();
+}, 60000);
 
 if (program.config) {
 	extend(appConfig, require(path.resolve(process.cwd(), program.config)));
