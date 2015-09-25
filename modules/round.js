@@ -43,8 +43,6 @@ Round.prototype.directionSwap = function (direction) {
 
 Round.prototype.backwardTick = function (block, previousBlock, cb) {
 	function done(err) {
-		delete private.unFeesByRound[round];
-		delete private.unDelegatesByRound[round];
 		cb && cb(err);
 	}
 
@@ -125,7 +123,7 @@ Round.prototype.backwardTick = function (block, previousBlock, cb) {
 								});
 							}, cb);
 						});
-					}else{
+					} else {
 						cb();
 					}
 				},
@@ -139,7 +137,11 @@ Round.prototype.backwardTick = function (block, previousBlock, cb) {
 						});
 					}, cb);
 				}
-			], done);
+			], function (err) {
+				delete private.unFeesByRound[round];
+				delete private.unDelegatesByRound[round];
+				done(err)
+			});
 		} else {
 			done();
 		}
@@ -157,8 +159,6 @@ Round.prototype.blocksStat = function (publicKey) {
 
 Round.prototype.tick = function (block, cb) {
 	function done(err) {
-		delete private.feesByRound[round];
-		delete private.delegatesByRound[round];
 		cb && setImmediate(cb, err);
 	}
 
@@ -262,7 +262,11 @@ Round.prototype.tick = function (block, cb) {
 						cb();
 					});
 				}
-			], done);
+			], function (err) {
+				delete private.feesByRound[round];
+				delete private.delegatesByRound[round];
+				done(err);
+			});
 		} else {
 			done();
 		}
