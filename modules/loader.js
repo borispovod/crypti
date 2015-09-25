@@ -116,21 +116,24 @@ private.findUpdate = function(lastBlock, peer, cb) {
 			if (commonBlock.id != lastBlock.id) {
 				modules.round.directionSwap('forward');
 			}
+
 			if (err) {
 				library.logger.fatal('delete blocks before', err);
-				process.exit(1);
+				process.exit(0);
+				return;
 			}
 
 			library.logger.debug("Load blocks from peer " + peerStr);
 
-			modules.blocks.loadBlocksFromPeer(peer, commonBlock.id, function (err) {
-				if (err) {
+			modules.blocks.loadBlocksFromPeer(peer, commonBlock.id, function (err, countOfBlocks) {
+				if (err && backupBlocks.length > countOfBlocks) {
 					modules.transactions.deleteHiddenTransaction();
 					library.logger.error(err);
 					library.logger.log("can't load blocks, ban 60 min", peerStr);
 					modules.peer.state(peer.ip, peer.port, 0, 3600);
 
 					library.logger.info("Remove blocks again until " + commonBlock.id + " (at " + commonBlock.height + ")");
+
 					if (commonBlock.id != lastBlock.id) {
 						modules.round.directionSwap('backward');
 					}

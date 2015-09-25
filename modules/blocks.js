@@ -735,7 +735,7 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 		// check payload hash, transaction, number of confirmations
 
 		var totalAmount = 0, totalFee = 0, payloadHash = crypto.createHash('sha256'), appliedTransactions = {}, acceptedRequests = {}, acceptedConfirmations = {};
-
+		var payloadLength = 0;
 
 		async.eachSeries(block.transactions, function (transaction, cb) {
 			try {
@@ -787,6 +787,7 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 							}
 
 							payloadHash.update(bytes);
+							payloadLength += bytes.length;
 
 							totalAmount += transaction.amount;
 							totalFee += transaction.fee;
@@ -805,6 +806,10 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 
 			if (payloadHash.digest().toString('hex') !== block.payloadHash) {
 				errors.push("Invalid payload hash: " + block.id);
+			}
+
+			if (payloadLength != block.payloadLength) {
+				errors.push("Incorrect payload length of block: " + block.id);
 			}
 
 			if (totalAmount != block.totalAmount) {
@@ -867,6 +872,7 @@ Blocks.prototype.simpleDeleteAfterBlock = function (blockId, cb) {
 Blocks.prototype.loadBlocksFromPeer = function (peer, lastCommonBlockId, cb) {
 	var loaded = false;
 	var count = 0;
+	var countOfBlocks = 0;
 
 	async.whilst(
 		function () {
@@ -920,6 +926,7 @@ Blocks.prototype.loadBlocksFromPeer = function (peer, lastCommonBlockId, cb) {
 						}
 						self.processBlock(block, false, function (err) {
 							if (!err) {
+								countOfBlocks += 1;
 								lastCommonBlockId = block.id;
 							} else {
 								var peerStr = data.peer ? ip.fromLong(data.peer.ip) + ":" + data.peer.port : 'unknown';
@@ -934,7 +941,7 @@ Blocks.prototype.loadBlocksFromPeer = function (peer, lastCommonBlockId, cb) {
 			});
 		},
 		function (err) {
-			setImmediate(cb, err);
+			setImmediate(cb, err, countOfBlocks);
 		}
 	)
 }

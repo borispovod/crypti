@@ -9,6 +9,14 @@ var https = require('https');
 var fs = require('fs');
 var z_schema = require('z-schema');
 
+if (typeof gc !== 'undefined') {
+	console.log("Will clear each minute memory!");
+
+	setInterval(function () {
+		gc();
+	}, 60000);
+}
+
 var versionBuild = fs.readFileSync(path.join(__dirname, 'build'), 'utf8');
 
 program

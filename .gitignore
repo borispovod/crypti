@@ -1,4 +1,9 @@
+blockchain.db.zip
+public/
 dapps/
+genesisBlock.json
+dapps/
+genesisBlock.json
 stacktrace*
 logs.log
 logs.old.log

@@ -77,6 +77,7 @@ function applyDiff(source, diff) {
 			}
 		}
 	}
+
 	return res;
 }
 
@@ -99,9 +100,12 @@ Account.prototype.applyUnconfirmedDelegateList = function (diff) {
 	var dest = applyDiff(this.unconfirmedDelegates, diff);
 
 	if (dest !== false) {
-		if (dest && dest.length > 101) {
+		if (dest && dest.length > 105) {
+			console.log(dest);
+			console.log(dest.length);
 			return false;
 		}
+
 		this.unconfirmedDelegates = dest;
 		library.bus.message('changeUnconfirmedDelegates', this.balance, diff);
 		return true;
@@ -135,9 +139,12 @@ Account.prototype.applyDelegateList = function (diff) {
 	var dest = applyDiff(this.delegates, diff);
 
 	if (dest !== false) {
-		if (dest && dest.length > 101) {
+		if (dest && dest.length > 105) {
+			console.log(this.unconfirmedDelegates);
+			console.log(this.delegates);
 			return false;
 		}
+
 		this.delegates = dest;
 		library.bus.message('changeDelegates', this.balance, diff);
 		return true;
@@ -321,14 +328,11 @@ function Vote() {
 	}
 
 	this.apply = function (trs, sender) {
-		sender.applyDelegateList(trs.asset.votes);
-
-		return true;
+		return sender.applyDelegateList(trs.asset.votes);
 	}
 
 	this.undo = function (trs, sender) {
 		sender.undoDelegateList(trs.asset.votes);
-
 		return true;
 	}
 
@@ -339,7 +343,7 @@ function Vote() {
 
 		var res = sender.applyUnconfirmedDelegateList(trs.asset.votes);
 
-		setImmediate(cb, !res ? "Can't apply delegates: " + trs.id : null);
+		setImmediate(cb, !res ? "Can't apply unconfirmed delegates: " + trs.id : null);
 	}
 
 	this.undoUnconfirmed = function (trs, sender) {
@@ -786,17 +790,14 @@ function attachApi() {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
 
-			console.log(query.username);
 			var address = private.username2address[query.username.toLowerCase()];
 
-			console.log(address);
 			if (!address) {
 				return res.json({success: false, error: errorCode("ACCOUNTS.ACCOUNT_DOESNT_FOUND")});
 			}
 
 			var account = self.getAccount(address);
 
-			console.log(account);
 			if (!account) {
 				return res.json({success: false, error: errorCode("ACCOUNTS.ACCOUNT_DOESNT_FOUND")});
 			}
