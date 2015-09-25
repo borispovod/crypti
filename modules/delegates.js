@@ -561,6 +561,9 @@ Delegates.prototype.onBlockchainReady = function () {
 	private.loaded = true;
 
 	private.loadMyDelegates(function nextLoop(err) {
+		 if(err){
+			 library.logger.error("Can´t load delegates", err);
+		 }
 		var nextSlot = slots.getNextSlot();
 
 		//var scheduledTime = slots.getSlotTime(nextSlot);
