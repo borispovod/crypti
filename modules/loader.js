@@ -84,7 +84,7 @@ private.findUpdate = function (lastBlock, peer, cb) {
 		library.logger.info("Found common block " + commonBlock.id + " (at " + commonBlock.height + ")" + " with peer " + peerStr);
 		var toRemove = lastBlock.height - commonBlock.height;
 
-		if (toRemove > 4320) {
+		if (toRemove > 1010) {
 			library.logger.log("long fork, ban 60 min", peerStr);
 			modules.peer.state(peer.ip, peer.port, 0, 3600);
 			return cb();

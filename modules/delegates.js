@@ -264,11 +264,139 @@ private.attachApi = function () {
 		"put /": "addDelegate"
 	});
 
-	router.map(private, {
+	router.post('/forging/enable', function (req, res) {
+		var body = req.body;
+		library.scheme.validate(body, {
+			type: "object",
+			properties: {
+				secret: {
+					type: "string",
+					minLength: 1,
+					maxLength: 100
+				},
+				publicKey: {
+					type: "string",
+					format: "publicKey"
+				}
+			},
+			required: ["secret"]
+		}, function (err) {
+			if (err) {
+				return res.json({success: false, error: err[0].message});
+			}
+
+			var ip = req.connection.remoteAddress;
+
+			if (library.config.forging.access.whiteList.length > 0 && library.config.forging.access.whiteList.indexOf(ip) < 0) {
+				return res.json({success: false, error: errorCode("COMMON.ACCESS_DENIED")});
+			}
+
+			var keypair = ed.MakeKeypair(crypto.createHash('sha256').update(body.secret, 'utf8').digest());
+
+			if (body.publicKey) {
+				if (keypair.publicKey.toString('hex') != body.publicKey) {
+					return res.json({success: false, error: errorCode("COMMON.INVALID_SECRET_KEY")});
+				}
+			}
+
+			if (private.keypairs[keypair.publicKey.toString('hex')]) {
+				return res.json({success: false, error : errorCode("COMMON.FORGING_ALREADY_ENABLED")});
+			}
+
+			modules.accounts.getAccount({publicKey: keypair.publicKey.toString('hex')}, function (err, account) {
+				if (err) {
+					return res.json({success: false, error: err.toString()});
+				}
+				if (account && account.isDelegate) {
+					private.keypairs[keypair.publicKey.toString('hex')] = keypair;
+					return res.json({success: true, address: account.address});
+					library.logger.info("Forging enabled on account: " + account.address);
+				} else {
+					return res.json({success: false, error: errorCode("DELEGATES.DELEGATE_NOT_FOUND")});
+				}
+			});
+		});
+	});
+
+	router.post('/forging/disable', function (req, res) {
+		var body = req.body;
+		library.scheme.validate(body, {
+			type: "object",
+			properties: {
+				secret: {
+					type: "string",
+					minLength: 1,
+					maxLength: 100
+				},
+				publicKey: {
+					type: "string",
+					format: "publicKey"
+				}
+			},
+			required: ["secret"]
+		}, function (err) {
+			if (err) {
+				return res.json({success: false, error: err[0].message});
+			}
+
+			var ip = req.connection.remoteAddress;
+
+			if (library.config.forging.access.whiteList.length > 0 && library.config.forging.access.whiteList.indexOf(ip) < 0) {
+				return res.json({success: false, error: errorCode("COMMON.ACCESS_DENIED")});
+			}
+
+			var keypair = ed.MakeKeypair(crypto.createHash('sha256').update(body.secret, 'utf8').digest());
+
+			if (body.publicKey) {
+				if (keypair.publicKey.toString('hex') != body.publicKey) {
+					return res.json({success: false, error: errorCode("COMMON.INVALID_SECRET_KEY")});
+				}
+			}
+
+			if (!private.keypairs[keypair.publicKey.toString('hex')]) {
+				return res.json({success: false, error: errorCode("DELEGATES.FORGER_NOT_FOUND")});
+			}
+
+			modules.accounts.getAccount({publicKey: keypair.publicKey.toString('hex')}, function (err, account) {
+				if (err) {
+					return res.json({success: false, error: err.toString()});
+				}
+				if (account && account.isDelegate) {
+					delete private.keypairs[keypair.publicKey.toString('hex')];
+					return res.json({success: true, address: account.address});
+					library.logger.info("Forging disabled on account: " + account.address);
+				} else {
+					return res.json({success: false, error : errorCode("DELEGATES.FORGER_NOT_FOUND")});
+				}
+			});
+		});
+	});
+
+	router.get('/forging/status', function (req, res) {
+		var query = req.query;
+		library.scheme.validate(query, {
+			type: "object",
+			properties: {
+				publicKey: {
+					type: "string",
+					format: "publicKey"
+				}
+			},
+			required: ["publicKey"]
+		}, function (err) {
+			if (err) {
+				return res.json({success: false, error: err[0].message});
+			}
+
+			return res.json({success: true, enabled: !!private.keypairs[query.publicKey]});
+		});
+	});
+
+	/*router.map(private, {
 		"post /forging/enable": "enableForging",
 		"post /forging/disable": "disableForging",
 		"get /forging/status": "statusForging"
-	});
+	});*/
 
 	library.network.app.use('/api/delegates', router);
 	library.network.app.use(function (err, req, res, next) {
@@ -879,131 +1007,15 @@ shared.getForgedByAccount = function (req, cb) {
 }
 
 private.enableForging = function (req, cb) {
-	var body = req.body;
-	library.scheme.validate(body, {
-		type: "object",
-		properties: {
-			secret: {
-				type: "string",
-				minLength: 1,
-				maxLength: 100
-			},
-			publicKey: {
-				type: "string",
-				format: "publicKey"
-			}
-		},
-		required: ["secret"]
-	}, function (err) {
-		if (err) {
-			return cb(err[0].message);
-		}
 
-		var ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
-
-		if (library.config.forging.access.whiteList.length > 0 && library.config.forging.access.whiteList.indexOf(ip) < 0) {
-			return cb(errorCode("COMMON.ACCESS_DENIED"));
-		}
-
-		var keypair = ed.MakeKeypair(crypto.createHash('sha256').update(body.secret, 'utf8').digest());
-
-		if (body.publicKey) {
-			if (keypair.publicKey.toString('hex') != body.publicKey) {
-				return cb(errorCode("COMMON.INVALID_SECRET_KEY"));
-			}
-		}
-
-		if (private.keypairs[keypair.publicKey.toString('hex')]) {
-			return cb(errorCode("COMMON.FORGING_ALREADY_ENABLED"));
-		}
-
-		modules.accounts.getAccount({publicKey: keypair.publicKey.toString('hex')}, function (err, account) {
-			if (err) {
-				return cb(err.toString());
-			}
-			if (account && account.isDelegate) {
-				private.keypairs[keypair.publicKey.toString('hex')] = keypair;
-				cb(null, {address: account.address});
-				library.logger.info("Forging enabled on account: " + account.address);
-			} else {
-				cb(errorCode("DELEGATES.DELEGATE_NOT_FOUND"));
-			}
-		});
-	});
 }
 
 private.disableForging = function (req, cb) {
-	var body = req.body;
-	library.scheme.validate(body, {
-		type: "object",
-		properties: {
-			secret: {
-				type: "string",
-				minLength: 1,
-				maxLength: 100
-			},
-			publicKey: {
-				type: "string",
-				format: "publicKey"
-			}
-		},
-		required: ["secret"]
-	}, function (err) {
-		if (err) {
-			return cb(err[0].message);
-		}
 
-		var ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
-
-		if (library.config.forging.access.whiteList.length > 0 && library.config.forging.access.whiteList.indexOf(ip) < 0) {
-			return cb(errorCode("COMMON.ACCESS_DENIED"));
-		}
-
-		var keypair = ed.MakeKeypair(crypto.createHash('sha256').update(body.secret, 'utf8').digest());
-
-		if (body.publicKey) {
-			if (keypair.publicKey.toString('hex') != body.publicKey) {
-				return cb(errorCode("COMMON.INVALID_SECRET_KEY"));
-			}
-		}
-
-		if (!private.keypairs[keypair.publicKey.toString('hex')]) {
-			return cb(errorCode("DELEGATES.FORGER_NOT_FOUND"));
-		}
-
-		modules.accounts.getAccount({publicKey: keypair.publicKey.toString('hex')}, function (err, account) {
-			if (err) {
-				return cb(err.toString());
-			}
-			if (account && account.isDelegate) {
-				delete private.keypairs[keypair.publicKey.toString('hex')];
-				cb(null, {address: account.address});
-				library.logger.info("Forging disabled on account: " + account.address);
-			} else {
-				cb(errorCode("DELEGATES.FORGER_NOT_FOUND"));
-			}
-		});
-	});
 }
 
 private.statusForging = function (req, cb) {
-	var query = req.body;
-	library.scheme.validate(query, {
-		type: "object",
-		properties: {
-			publicKey: {
-				type: "string",
-				format: "publicKey"
-			}
-		},
-		required: ["publicKey"]
-	}, function (err) {
-		if (err) {
-			return cb(err[0].message);
-		}
 
-		cb(null, {enabled: !!private.keypairs[query.publicKey]});
-	});
 }
 
 shared.addDelegate = function (req, cb) {
