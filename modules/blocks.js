@@ -99,7 +99,7 @@ private.saveGenesisBlock = function (cb) {
 
 private.deleteBlock = function (blockId, cb) {
 	library.dbLite.query("DELETE FROM blocks WHERE id = $id", {id: blockId}, function (err, res) {
-		cb(err, res)
+		cb(err, res);
 	});
 }
 
