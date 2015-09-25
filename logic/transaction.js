@@ -392,28 +392,10 @@ Transaction.prototype.objectNormalize = function (trs) {
 		throw Error('Unknown transaction type ' + trs.type);
 	}
 
-	if (!trs.senderUsername) {
-		delete trs.senderUsername;
-	}
-
-	if (!trs.recipientUsername) {
-		delete trs.recipientUsername;
-	}
-
-	if (!trs.recipientId) {
-		delete trs.recipientId;
-	}
-
-	if (trs.signSignature == null) {
-		delete trs.signSignature;
-	}
-
-	if (trs.asset == null) {
-		delete trs.asset;
-	}
-
-	if (trs.height == null) {
-		delete trs.height;
+	for (var i in trs) {
+		if (trs[i] === null || typeof trs[i] === 'undefined') {
+			delete trs[i];
+		}
 	}
 
 	var report = scheme.validate(trs, {

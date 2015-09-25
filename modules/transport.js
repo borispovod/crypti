@@ -131,7 +131,7 @@ function attachApi() {
 
 
 			if (!escapedIds.length) {
-				report = library.scheme.validate(req.headers, {
+				var report = library.scheme.validate(req.headers, {
 					type: "object",
 					properties: {
 						port: {

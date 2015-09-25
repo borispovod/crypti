@@ -353,11 +353,17 @@ function Vote() {
 	}
 
 	this.objectNormalize = function (trs) {
-		var report = library.scheme.validate(trs.asset.votes, {
-			type: "array",
-			minLength: 1,
-			maxLength: 32,
-			uniqueItems: true
+		var report = library.scheme.validate(trs.asset, {
+			type: "object",
+			properties: {
+				votes: {
+					type: "array",
+					minLength: 1,
+					maxLength: 33,
+					uniqueItems: true
+				}
+			},
+			required: ['votes']
 		});
 
 		if (!report) {

@@ -157,7 +157,11 @@ private.updatePeerList = function (cb) {
 			return cb();
 		}
 
-		var report = library.scheme.validate(data.body.peers, {type: "array", required: true});
+		var report = library.scheme.validate(data.body, {type: "object", properties: {
+			peers: {
+				type: "array"
+			}
+		}, required: ['peers']});
 
 		if (!report) {
 			return cb();
@@ -168,10 +172,10 @@ private.updatePeerList = function (cb) {
 		//var peers = RequestSanitizer.array(data.body.peers);
 		async.eachLimit(peers, 2, function (peer, cb) {
 			var report = library.scheme.validate(peer, {
-				object: true,
+				type: "object",
 				properties: {
 					ip: {
-						type: "integer"
+						type: 'string'
 					},
 					port: {
 						type: "integer",
@@ -187,20 +191,19 @@ private.updatePeerList = function (cb) {
 						type: "string"
 					},
 					sharePort: {
-						type: "string"
+						type: "integer"
 					},
 					version: {
 						type: "string"
 					}
 				},
-				required: ['ip', 'port', 'state']
+				required: ['ip', 'port', 'state', 'sharePort']
 			});
 
 			if (!report) {
 				setImmediate(cb, "Peers incorrect");
+				return;
 			}
-
-			peer = report.value;
 
 			if (ip.toLong("127.0.0.1") == peer.ip || peer.port == 0 || peer.port > 65535) {
 				setImmediate(cb);

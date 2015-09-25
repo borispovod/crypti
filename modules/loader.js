@@ -236,7 +236,12 @@ private.loadUnconfirmedTransactions = function(cb) {
 			return cb()
 		}
 
-		var report = library.scheme.validate(data.body.transactions, {type: "array", required: true});
+		var report = library.scheme.validate(data.body, {type: "object", properties: {
+			transactions: {
+				type: "array"
+			}
+		}, required: ['transactions']});
+
 		if (!report) {
 			return cb();
 		}

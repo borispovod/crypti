@@ -187,6 +187,12 @@ Block.prototype.dbSave = function (dbLite, block, cb) {
 }
 
 Block.prototype.objectNormalize = function (block) {
+	for (var i in block) {
+		if (block[i] === null || typeof block[i] === 'undefined') {
+			delete block[i];
+		}
+	}
+
 	var report = scheme.validate(block, {
 		object: true,
 		properties: {
