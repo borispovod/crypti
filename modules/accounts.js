@@ -122,9 +122,10 @@ Account.prototype.undoUnconfirmedDelegateList = function (diff) {
 	var dest = applyDiff(this.unconfirmedDelegates, copyDiff);
 
 	if (dest !== false) {
-		if (dest && dest.length > 101) {
+		/*if (dest && dest.length > 101) {
 			return false;
-		}
+		}*/
+
 		this.unconfirmedDelegates = dest;
 		library.bus.message('changeUnconfirmedDelegates', this.balance, copyDiff);
 		return true;
@@ -161,9 +162,10 @@ Account.prototype.undoDelegateList = function (diff) {
 	var dest = applyDiff(this.delegates, copyDiff);
 
 	if (dest !== false) {
-		if (dest && dest.length > 101) {
+		/*if (dest && dest.length > 101) {
 			return false;
-		}
+		}*/
+
 		this.delegates = dest;
 		library.bus.message('changeDelegates', this.balance, copyDiff);
 		return true;
