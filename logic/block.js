@@ -186,6 +186,12 @@ Block.prototype.dbSave = function (block, cb) {
 }
 
 Block.prototype.objectNormalize = function (block) {
+	for (var i in block) {
+		if (block[i] == null || typeof block[i] === 'undefined') {
+			delete block[i];
+		}
+	}
+
 	var report = this.scope.scheme.validate(block, {
 		type: "object",
 		properties: {
