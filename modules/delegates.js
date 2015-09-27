@@ -300,7 +300,7 @@ private.attachApi = function () {
 			}
 
 			if (private.keypairs[keypair.publicKey.toString('hex')]) {
-				return res.json({success: false, error : errorCode("COMMON.FORGING_ALREADY_ENABLED")});
+				return res.json({success: false, error: errorCode("COMMON.FORGING_ALREADY_ENABLED")});
 			}
 
 			modules.accounts.getAccount({publicKey: keypair.publicKey.toString('hex')}, function (err, account) {
@@ -366,7 +366,7 @@ private.attachApi = function () {
 					return res.json({success: true, address: account.address});
 					library.logger.info("Forging disabled on account: " + account.address);
 				} else {
-					return res.json({success: false, error : errorCode("DELEGATES.FORGER_NOT_FOUND")});
+					return res.json({success: false, error: errorCode("DELEGATES.FORGER_NOT_FOUND")});
 				}
 			});
 		});
@@ -393,10 +393,10 @@ private.attachApi = function () {
 	});
 
 	/*router.map(private, {
-		"post /forging/enable": "enableForging",
-		"post /forging/disable": "disableForging",
-		"get /forging/status": "statusForging"
-	});*/
+	 "post /forging/enable": "enableForging",
+	 "post /forging/disable": "disableForging",
+	 "get /forging/status": "statusForging"
+	 });*/
 
 	library.network.app.use('/api/delegates', router);
 	library.network.app.use(function (err, req, res, next) {
@@ -689,9 +689,9 @@ Delegates.prototype.onBlockchainReady = function () {
 	private.loaded = true;
 
 	private.loadMyDelegates(function nextLoop(err) {
-		 if(err){
-			 library.logger.error("Can´t load delegates", err);
-		 }
+		if (err) {
+			library.logger.error("Can´t load delegates", err);
+		}
 		var nextSlot = slots.getNextSlot();
 
 		//var scheduledTime = slots.getSlotTime(nextSlot);
@@ -918,7 +918,7 @@ shared.getDelegates = function (req, cb) {
 			isDelegate: 1,
 			//limit: query.limit > 101 ? 101 : query.limit,
 			//offset: query.offset,
-			sort: ["vote", "publicKey"]
+			sort: {"vote": -1, "publicKey": 1}
 		}, ["username", "address", "publicKey", "vote"], function (err, delegates) {
 			if (err) {
 				return cb(err.toString());
@@ -936,7 +936,7 @@ shared.getDelegates = function (req, cb) {
 			var count = delegates.length;
 			var length = Math.min(limit, count);
 			var realLimit = Math.min(offset + limit, count);
-
+			
 			for (var i = 0; i < delegates.length; i++) {
 				delegates[i].rate = i + 1;
 				var stat = modules.round.blocksStat(delegates[i].publicKey);
