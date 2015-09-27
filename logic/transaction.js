@@ -330,21 +330,17 @@ Transaction.prototype.verify = function (trs, sender, requester, cb) { //inherit
 	var multisignatures = sender.multisignatures || sender.u_multisignatures;
 
 	if (multisignatures.length == 0) {
-		if (trs.asset && trs.asset.multisignature.keysgroup) {
+		if (trs.asset && trs.asset.multisignature && trs.asset.multisignature.keysgroup) {
 
 			multisignatures = trs.asset.multisignature.keysgroup.map(function (key) {
 				return key.slice(1);
 			});
-		} else {
-			return setImmediate(cb, "This is not multisignature transaction");
 		}
 	}
 
 	if (trs.requesterPublicKey) {
 		multisignatures.push(trs.senderPublicKey);
 	}
-
-	console.log(multisignatures);
 
 	if (trs.signatures) {
 		for (var d = 0; d < trs.signatures.length; d++) {
