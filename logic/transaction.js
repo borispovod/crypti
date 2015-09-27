@@ -327,13 +327,46 @@ Transaction.prototype.verify = function (trs, sender, requester, cb) { //inherit
 		}
 	}
 
-	var multisignatures = sender.multisignatures;
+	var multisignatures = sender.multisignatures || sender.u_multisignatures;
+
+	if (multisignatures.length == 0) {
+		if (trs.asset && trs.asset.multisignature.keysgroup) {
+
+			multisignatures = trs.asset.multisignature.keysgroup.map(function (key) {
+				return key.slice(1);
+			});
+		} else {
+			return setImmediate(cb, "This is not multisignature transaction");
+		}
+	}
 
 	if (trs.requesterPublicKey) {
 		multisignatures.push(trs.senderPublicKey);
 	}
 
-	for (var s = 0; s < multisignatures.length; s++) {
+	console.log(multisignatures);
+
+	if (trs.signatures) {
+		for (var d = 0; d < trs.signatures.length; d++) {
+			verify = false;
+
+			for (var s = 0; s < multisignatures.length; s++) {
+				if (trs.requesterPublicKey && multisignatures[s] == trs.requesterPublicKey) {
+					continue;
+				}
+
+				if (this.verifySignature(trs, multisignatures[s], trs.signatures[d])) {
+					verify = true;
+				}
+			}
+
+			if (!verify) {
+				return setImmediate(cb, "Failed multisignature: " + trs.id);
+			}
+		}
+	}
+
+	/*for (var s = 0; s < multisignatures.length; s++) {
 		verify = false;
 
 		if (trs.requesterPublicKey && multisignatures[s] == trs.requesterPublicKey) {
@@ -346,12 +379,14 @@ Transaction.prototype.verify = function (trs, sender, requester, cb) { //inherit
 					verify = true;
 				}
 			}
-
-			if (!verify) {
-				return setImmediate(cb, "Failed multisignature: " + trs.id);
-			}
+		} else {
+			verify = true;
 		}
-	}
+
+		if (!verify) {
+			return setImmediate(cb, "Failed multisignature: " + trs.id);
+		}
+	}*/
 
 	//check sender
 	if (trs.senderId != sender.address) {

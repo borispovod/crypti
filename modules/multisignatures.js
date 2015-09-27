@@ -267,6 +267,7 @@ function Multisignature() {
 		if (!trs.signatures) {
 			return false;
 		}
+
 		if (!sender.multisignatures.length) {
 			return trs.signatures.length == trs.asset.multisignature.keysgroup.length;
 		} else {
