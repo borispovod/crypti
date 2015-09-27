@@ -21,8 +21,8 @@
     "change-case": "*",
     "colors": "*",
     "commander": "~2.6.0",
-    "cycle": "^1.0.3",
     "crypti-sandbox": "~1.0.0",
+    "cycle": "^1.0.3",
     "dblite": "https://github.com/crypti/dblite/tarball/master",
     "decompress-zip": "^0.2.0",
     "ed25519": "0.0.4",
@@ -59,6 +59,8 @@
     "usage": "^0.6.0",
     "util-extend": "*",
     "valid-url": "^1.0.9",
+    "validator": "^4.0.6",
+    "validator.js": "^1.2.2",
     "z-schema": "^3.12.0"
   },
   "devDependencies": {
