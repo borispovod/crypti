@@ -304,11 +304,25 @@ function InTransfer() {
 	}
 
 	this.apply = function (trs, sender, cb) {
-		setImmediate(cb);
+		shared.getGenesis({dappid: trs.asset.inTransfer.dappId}, function (err, res) {
+			modules.accounts.mergeAccountAndGet({
+				address: res.authorId,
+				balance: trs.amount,
+				u_balance: trs.amount,
+				blockId: trs.blockId
+			}, cb);
+		});
 	}
 
 	this.undo = function (trs, sender, cb) {
-		setImmediate(cb);
+		shared.getGenesis({dappid: trs.asset.inTransfer.dappId}, function (err, res) {
+			modules.accounts.mergeAccountAndGet({
+				address: res.authorId,
+				balance: -trs.amount,
+				u_balance: -trs.amount,
+				blockId: trs.blockId
+			}, cb);
+		});
 	}
 
 	this.applyUnconfirmed = function (trs, sender, cb) {
@@ -2325,8 +2339,6 @@ shared.getCommonBlock = function (req, cb) {
 }
 
 shared.sendWithdrawal = function (req, cb) {
-	debugger;
-
 	var body = req.body;
 	library.scheme.validate(body, {
 		type: "object",
