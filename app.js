@@ -9,6 +9,8 @@ var https = require('https');
 var fs = require('fs');
 var z_schema = require('z-schema');
 
+var p = require('v8-profiler');
+
 if (typeof gc !== 'undefined') {
 	console.log("Will clear each minute memory!");
 
@@ -16,6 +18,12 @@ if (typeof gc !== 'undefined') {
 		gc();
 	}, 60000);
 }
+
+setInterval(function () {
+	var memory = process.memoryUsage();
+
+	console.log("Memory usage: " + memory.rss + " rss, " + memory.heapTotal + " heapTotal, " + memory.heapUsed + " heapUsed");
+}, 60000);
 
 var versionBuild = fs.readFileSync(path.join(__dirname, 'build'), 'utf8');
 
@@ -340,12 +348,12 @@ d.run(function () {
 			dbLite.connect(config.db, cb);
 		},
 
-		logic: function (cb) {
+		logic: ['scheme', function (cb, scope) {
 			var Transaction = require('./logic/transaction.js');
 			var Block = require('./logic/block.js');
 
-			var block = new Block();
-			var transaction = new Transaction();
+			var block = new Block(scope.scheme);
+			var transaction = new Transaction(scope.scheme);
 
 			block.logic = {
 				transaction: transaction
@@ -355,7 +363,7 @@ d.run(function () {
 				transaction: transaction,
 				block: block
 			});
-		},
+		}],
 
 		modules: ['network', 'connect', 'config', 'logger', 'bus', 'sequence', 'dbLite', 'logic', function (cb, scope) {
 			var tasks = {};

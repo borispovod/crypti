@@ -5,18 +5,16 @@ var slots = require('../helpers/slots.js'),
 	constants = require('../helpers/constants.js'),
 	ByteBuffer = require("bytebuffer"),
 	bignum = require('../helpers/bignum.js'),
-	extend = require('util-extend'),
-	z_schema = require('z-schema');
+	extend = require('util-extend');
 
-var scheme = new z_schema();
+var private = {};
 
 //constructor
-function Transaction() {
-
+function Transaction(scheme) {
+	private.scheme = scheme;
 }
 
 //private methods
-var private = {};
 private.types = {};
 
 //public methods
@@ -398,7 +396,7 @@ Transaction.prototype.objectNormalize = function (trs) {
 		}
 	}
 
-	var report = scheme.validate(trs, {
+	var report = private.scheme.validate(trs, {
 		object: true,
 		properties: {
 			id: {

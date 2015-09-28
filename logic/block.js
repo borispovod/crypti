@@ -4,18 +4,16 @@ var slots = require('../helpers/slots.js'),
 	genesisblock = require("../helpers/genesisblock.js"),
 	bignum = require('../helpers/bignum.js'),
 	ByteBuffer = require("bytebuffer"),
-	constants = require('../helpers/constants.js'),
-	z_schema = require('z-schema');
+	constants = require('../helpers/constants.js');
 
-var scheme = new z_schema();
+var private = {};
 
 //constructor
-function Block() {
-
+function Block(scheme) {
+	private.scheme = scheme;
 }
 
 //private methods
-var private = {};
 private.getAddressByPublicKey = function (publicKey) {
 	var publicKeyHash = crypto.createHash('sha256').update(publicKey, 'hex').digest();
 	var temp = new Buffer(8);
@@ -193,7 +191,7 @@ Block.prototype.objectNormalize = function (block) {
 		}
 	}
 
-	var report = scheme.validate(block, {
+	var report = private.scheme.validate(block, {
 		object: true,
 		properties: {
 			id: {

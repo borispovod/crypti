@@ -476,7 +476,7 @@ Blocks.prototype.count = function (cb) {
 }
 
 Blocks.prototype.loadBlocksData = function (filter, options, cb) {
-	if (arguments.length < 3) {
+	if (typeof options === 'function') {
 		cb = options;
 		options = {};
 	}
@@ -888,9 +888,12 @@ Blocks.prototype.loadBlocksFromPeer = function (peer, lastCommonBlockId, cb) {
 					return next(err || data.body.error);
 				}
 
-				var blocks = data.body.blocks;
-				if (typeof blocks === "string") {
-					blocks = library.dbLite.parseCSV(blocks);
+				var stringBlocks = data.body.blocks;
+				if (typeof stringBlocks === "string") {
+					var blocks = library.dbLite.parseCSV(stringBlocks);
+					stringBlocks = null;
+				} else {
+					var block = stringBlocks;
 				}
 
 				// not working of data.body is empty....
@@ -905,6 +908,7 @@ Blocks.prototype.loadBlocksFromPeer = function (peer, lastCommonBlockId, cb) {
 				//blocks = RequestSanitizer.array(blocks);
 
 				blocks = blocks.map(library.dbLite.row2parsed, library.dbLite.parseFields(private.blocksDataFields));
+
 				try {
 					blocks = private.readDbRows(blocks);
 				} catch (e) {
