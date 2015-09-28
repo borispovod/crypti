@@ -9,8 +9,6 @@ var https = require('https');
 var fs = require('fs');
 var z_schema = require('z-schema');
 
-var p = require('v8-profiler');
-
 if (typeof gc !== 'undefined') {
 	console.log("Will clear each minute memory!");
 
