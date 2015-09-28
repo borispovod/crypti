@@ -936,7 +936,7 @@ shared.getDelegates = function (req, cb) {
 			var count = delegates.length;
 			var length = Math.min(limit, count);
 			var realLimit = Math.min(offset + limit, count);
-			
+
 			for (var i = 0; i < delegates.length; i++) {
 				delegates[i].rate = i + 1;
 				var stat = modules.round.blocksStat(delegates[i].publicKey);
