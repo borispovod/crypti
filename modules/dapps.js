@@ -213,8 +213,6 @@ function OutTransfer() {
 	}
 
 	this.dbSave = function (trs, cb) {
-		var self = this;
-
 		library.dbLite.query("INSERT INTO outtransfer(dappId, transactionId, outTransactionId) VALUES($dappId, $transactionId, $outTransactionId)", {
 			dappId: trs.asset.outTransfer.dappId,
 			outTransactionId: trs.asset.outTransfer.transactionId,
@@ -2327,6 +2325,8 @@ shared.getCommonBlock = function (req, cb) {
 }
 
 shared.sendWithdrawal = function (req, cb) {
+	debugger;
+
 	var body = req.body;
 	library.scheme.validate(body, {
 		type: "object",
