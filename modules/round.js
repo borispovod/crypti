@@ -75,7 +75,7 @@ Round.prototype.backwardTick = function (block, previousBlock, cb) {
 						return !!task;
 					}, function (cb) {
 						task(function () {
-							cb();
+							setImmediate(cb);
 						});
 					}, cb);
 				},
@@ -128,12 +128,13 @@ Round.prototype.backwardTick = function (block, previousBlock, cb) {
 					}
 				},
 				function (cb) {
+					var task;
 					async.whilst(function () {
-						var task = private.tasks.shift();
+						task = private.tasks.shift();
 						return !!task;
 					}, function (cb) {
 						task(function () {
-							cb();
+							setImmediate(cb);;
 						});
 					}, cb);
 				}
@@ -175,7 +176,7 @@ Round.prototype.tick = function (block, cb) {
 
 	//console.log(block.height, round, nextRound);
 	if (round !== nextRound || block.height == 1) {
-		if (private.delegatesByRound[round].length == slots.delegates || block.height == 1) {
+		if (private.delegatesByRound[round].length == slots.delegates || block.height == 1 || block.height == 101) {
 
 			var roundDelegates = modules.delegates.generateDelegateList(block.height);
 			roundDelegates.forEach(function (delegate) {
@@ -233,6 +234,7 @@ Round.prototype.tick = function (block, cb) {
 												return cb(err);
 											}
 											modules.delegates.addFee(delegate, leftover);
+											cb();
 										});
 									} else {
 										cb();
@@ -245,12 +247,13 @@ Round.prototype.tick = function (block, cb) {
 					}
 				},
 				function (cb) {
+					var task;
 					async.whilst(function () {
-						var task = private.tasks.shift();
+						task = private.tasks.shift();
 						return !!task;
 					}, function (cb) {
 						task(function () {
-							cb();
+							setImmediate(cb);
 						});
 					}, function () {
 						library.bus.message('finishRound', round);
@@ -259,10 +262,7 @@ Round.prototype.tick = function (block, cb) {
 				}
 			], function (err) {
 				delete private.feesByRound[round];
-
-				if (block.height != 1) {
-					delete private.delegatesByRound[round];
-				}
+				delete private.delegatesByRound[round];
 
 				done(err);
 			});
