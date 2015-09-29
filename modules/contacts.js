@@ -297,7 +297,7 @@ shared.getUnconfirmedContacts = function (req, cb) {
 		var transactions = modules.transactions.getUnconfirmedTransactionList();
 
 		var contacts = [];
-		async.forEach(transactions, function (item, cb) {
+		async.eachSeries(transactions, function (item, cb) {
 			if (item.type != TransactionTypes.FOLLOW) {
 				return setImmediate(cb);
 			}
