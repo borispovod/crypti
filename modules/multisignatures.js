@@ -84,7 +84,7 @@ function Multisignature() {
 			return setImmediate(cb, errorCode("MULTISIGNATURES.SELF_SIGN"));
 		}
 
-		trs.asset.multisignature.keysgroup.forEach(function (key) {
+		async.eachSeries(trs.asset.multisignature.keysgroup, function (key, cb) {
 			var math = key[0];
 			var publicKey = key.slice(1);
 
@@ -101,18 +101,24 @@ function Multisignature() {
 			} catch (e) {
 				return cb("Wrong public key: " + publicKey);
 			}
+
+			return setImmediate(cb);
+		}, function (err) {
+			if (err) {
+				return cb(err);
+			}
+
+			var keysgroup = trs.asset.multisignature.keysgroup.reduce(function (p, c) {
+				if (p.indexOf(c) < 0) p.push(c);
+				return p;
+			}, []);
+
+			if (keysgroup.length != trs.asset.multisignature.keysgroup.length) {
+				return setImmediate(cb, errorCode("MULTISIGNATURES.NOT_UNIQUE_SET"));
+			}
+
+			setImmediate(cb, null, trs);
 		});
-
-		var keysgroup = trs.asset.multisignature.keysgroup.reduce(function (p, c) {
-			if (p.indexOf(c) < 0) p.push(c);
-			return p;
-		}, []);
-
-		if (keysgroup.length != trs.asset.multisignature.keysgroup.length) {
-			return setImmediate(cb, errorCode("MULTISIGNATURES.NOT_UNIQUE_SET"));
-		}
-
-		setImmediate(cb, null, trs);
 	}
 
 	this.process = function (trs, sender, cb) {
@@ -396,6 +402,7 @@ shared.getAccounts = function (req, cb) {
 //shared
 shared.pending = function (req, cb) {
 	var query = req.body;
+
 	library.scheme.validate(query, {
 		type: "object",
 		properties: {
@@ -523,19 +530,23 @@ Multisignatures.prototype.processSignature = function (tx, cb) {
 			if (transaction.requesterPublicKey) {
 				multisignatures.push(transaction.senderPublicKey);
 			}
+
 			try {
 				for (var i = 0; i < multisignatures.length && !verify; i++) {
-					verify = library.logic.transaction.verifySecondSignature(transaction, multisignatures[i].substring(1), tx.signature);
+					verify = library.logic.transaction.verifySignature(transaction, multisignatures[i], tx.signature);
 				}
 			} catch (e) {
 				return cb("Failed to verify signature: " + transaction.id);
 			}
+
+			transaction.signatures = transaction.signatures || [];
 
 			if (transaction.signatures.indexOf(tx.signature) >= 0) {
 				return cb("This signature already exists");
 			}
 
 			if (!verify) {
+				console.log('here');
 				return cb("Failed to verify signature: " + transaction.id);
 			}
 
@@ -602,7 +613,10 @@ shared.sign = function (req, cb) {
 				transaction.signatures = transaction.signatures || [];
 				transaction.signatures.push(sign);
 
-				library.bus.message('signature', transaction, true);
+				library.bus.message('signature', {
+					signature: sign,
+					transaction: transaction.id
+				}, true);
 				cb();
 			}, function (err) {
 				if (err) {

@@ -244,7 +244,7 @@ private.attachApi = function () {
 	router.post('/signatures', function (req, res) {
 		res.set(private.headers);
 
-		library.scheme.validate(res.body, {
+		library.scheme.validate(req.body, {
 			type: "object",
 			properties: {
 				signature: {
@@ -267,7 +267,8 @@ private.attachApi = function () {
 				return res.status(200).json({success: false, error: "Validation error"});
 			}
 
-			modules.multisignatures.processSignature(res.body.signature, function (err) {
+			modules.multisignatures.processSignature(req.body.signature, function (err) {
+				console.log("processed signature", err);
 				if (err) {
 					return res.status(200).json({success: false, error: "Process signature error"});
 				} else {
