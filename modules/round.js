@@ -162,7 +162,6 @@ Round.prototype.tick = function (block, cb) {
 		cb && setImmediate(cb, err);
 	}
 
-
 	private.forgedBlocks[block.generatorPublicKey] = (private.forgedBlocks[block.generatorPublicKey] || 0) + 1;
 	var round = self.calc(block.height);
 
@@ -200,9 +199,6 @@ Round.prototype.tick = function (block, cb) {
 				function (cb) {
 					var foundationFee = Math.floor(private.feesByRound[round] / 10);
 					var diffFee = private.feesByRound[round] - foundationFee;
-
-					//console.log("Fee:");
-					//console.log(foundationFee, diffFee);
 
 					if (foundationFee || diffFee) {
 						modules.accounts.mergeAccountAndGet({
@@ -257,14 +253,17 @@ Round.prototype.tick = function (block, cb) {
 							cb();
 						});
 					}, function () {
-						//console.log('here!');
 						library.bus.message('finishRound', round);
 						cb();
 					});
 				}
 			], function (err) {
 				delete private.feesByRound[round];
-				delete private.delegatesByRound[round];
+
+				if (block.height != 1) {
+					delete private.delegatesByRound[round];
+				}
+
 				done(err);
 			});
 		} else {
@@ -276,7 +275,6 @@ Round.prototype.tick = function (block, cb) {
 }
 
 Round.prototype.onFinishRound = function (round) {
-	//console.log("round finished");
 	library.network.io.sockets.emit('rounds/change', {number: round});
 }
 

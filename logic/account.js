@@ -824,6 +824,7 @@ Account.prototype.merge = function (address, diff, cb) {
 		if (err) {
 			return cb(err);
 		}
+
 		self.get({address: address}, function (err, account) {
 			if (!err) {
 				if (diff.balance) {
