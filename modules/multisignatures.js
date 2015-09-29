@@ -52,6 +52,10 @@ function Multisignature() {
 			return setImmediate(cb, "Wrong transaction asset min for multisignature transaction: " + trs.id);
 		}
 
+		if (trs.asset.multisignature.min > trs.asset.multisignature.keysgroup.length + 1) {
+			return setImmediate(cb, "Wrong multisignature min");
+		}
+
 		if (trs.asset.multisignature.lifetime < 1 || trs.asset.multisignature.lifetime > 72) {
 			return setImmediate(cb, "Wrong transaction asset lifetime for multisignature transaction: " + trs.id);
 		}
