@@ -424,7 +424,7 @@ shared.pending = function (req, cb) {
 		var transactions = modules.transactions.getUnconfirmedTransactionList();
 
 		var pendings = [];
-		async.forEach(transactions, function (item, cb) {
+		async.eachSeries(transactions, function (item, cb) {
 			if (item.signatures && item.signatures.length > 0) {
 				var verify = false;
 
