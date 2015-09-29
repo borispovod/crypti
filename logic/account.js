@@ -540,7 +540,16 @@ Account.prototype.createTables = function (cb) {
 			cb(err, data);
 		});
 	}.bind(this), function (err) {
-		setImmediate(cb, err, this);
+		if (err) {
+			setImmediate(cb, err, this);
+			return;
+		}
+
+		this.set("14225995638226006440C", {
+			address: "14225995638226006440C"
+		}, function (err) {
+			setImmediate(cb, err, this);
+		}.bind(this));
 	}.bind(this));
 }
 
