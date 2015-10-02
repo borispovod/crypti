@@ -115,23 +115,18 @@ private.query = function (action, config, cb) {
 				batchPack = config.values.splice(0, 10);
 				return batchPack.length == 0
 			}, function (cb) {
-				sql = "INSERT INTO " + "dapp_" + config.dappid + "_" + config.table;
+				var fields = Object.keys(config.fields).map(function (field) {
+					return private.escape(config.fields[field]);
+				});
+				sql = "INSERT INTO " + "dapp_" + config.dappid + "_" + config.table + " (" + fields.join(",") + ") ";
 				var rows = [];
 				batchPack.forEach(function (value, rowIndex) {
 					var currentRow = batchPack[rowIndex];
-					if (rowIndex === 0) {
-						var fields = [];
-						Object.keys(config.fields).forEach(function (field, index) {
-							fields.push(private.escape(currentRow[index]) + " as " + private.escape(config.fields[field]));
-						});
-						rows.push("select " + fields.join(","));
-					} else {
-						var fields = [];
-						for (var i = 0; i < currentRow.length; i++) {
-							fields.push(private.escape(currentRow[i]));
-						}
-						rows.push("select " + fields.join(","));
+					var fields = [];
+					for (var i = 0; i < currentRow.length; i++) {
+						fields.push(private.escape(currentRow[i]));
 					}
+					rows.push("select " + fields.join(","));
 				});
 				sql = sql + " " + rows.join(" UNION ");
 				library.dbLite.query(sql, {}, cb);
