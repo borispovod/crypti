@@ -14,7 +14,7 @@ Clone repo and run:
 
 ```sh
 npm install --production
-``
+```
 
 ## Start
 
