@@ -368,20 +368,7 @@ function InTransfer() {
 		library.dbLite.query("INSERT INTO intransfer(dappId, transactionId) VALUES($dappId, $transactionId)", {
 			dappId: trs.asset.inTransfer.dappId,
 			transactionId: trs.id
-		}, function (err) {
-			if (err) {
-				return cb(err);
-			}
-
-			self.message(trs.asset.inTransfer.dappId, {
-				topic: "balance",
-				message: {
-					transactionId: trs.id
-				}
-			}, function (err) {
-				return cb();
-			});
-		});
+		}, cb);
 	}
 
 	this.ready = function (trs, sender) {
@@ -2494,6 +2481,42 @@ shared.sendWithdrawal = function (req, cb) {
 
 			cb(null, {transactionId: transaction[0].id});
 		});
+	});
+}
+
+shared.getWithdrawalTransactions = function (req, cb) {
+	library.dbLite.query("SELECT t.id, lower(hex(t.senderPublicKey)), t.amount FROM trs t " +
+		"inner join blocks b on t.blockId = b.id and t.type = $type " +
+		"inner join outtransfer ot on ot.transactionId = t.id and ot.dappid = $dappid", {
+		dappid: req.dappid,
+		type: TransactionTypes.OUT_TRANSFER
+	}, {
+		id: String,
+		senderPublicKey: String,
+		amount: Number
+	}, function (err, rows) {
+		if (err) {
+			return cb("Sql error");
+		}
+		cb(null, rows);
+	});
+}
+
+shared.getBalanceTransactions = function (req, cb) {
+	library.dbLite.query("SELECT t.id, lower(hex(t.senderPublicKey)), t.amount FROM trs t " +
+		"inner join blocks b on t.blockId = b.id and t.type = $type " +
+		"inner join intransfer dt on dt.transactionId = t.id and dt.dappid = $dappid", {
+		dappid: req.dappid,
+		type: TransactionTypes.IN_TRANSFER
+	}, {
+		id: String,
+		senderPublicKey: String,
+		amount: Number
+	}, function (err, rows) {
+		if (err) {
+			return cb("Sql error");
+		}
+		cb(null, rows);
 	});
 }
 
