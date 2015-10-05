@@ -1,10 +1,7 @@
 {
   "name": "Crypti",
-  "version": "0.3.0",
+  "version": "0.3.2",
   "private": true,
-  "bin": {
-    "crypti": "./crypti"
-  },
   "scripts": {
     "start": "node app.js",
     "test": "mocha",

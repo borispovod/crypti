@@ -7,14 +7,14 @@ module.exports = function (config) {
 	var exports = {};
 
 	config.levels = config.levels || {
-		"trace": 0,
-		"debug": 1,
-		"log": 2,
-		"info": 3,
-		"warn": 4,
-		"error": 5,
-		"fatal": 6
-	}
+			"trace": 0,
+			"debug": 1,
+			"log": 2,
+			"info": 3,
+			"warn": 4,
+			"error": 5,
+			"fatal": 6
+		}
 
 	config.filename = config.filename || __dirname + '/logs.log';
 
