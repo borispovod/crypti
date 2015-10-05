@@ -423,6 +423,11 @@ Blocks.prototype.getCommonBlock = function (peer, height, cb) {
 		function (next) {
 			count++;
 			private.getIdSequence(lastBlockHeight, function (err, data) {
+				if (err) {
+					library.logger.error(err.toString());
+					return next(err);
+				}
+
 				var max = lastBlockHeight;
 				lastBlockHeight = data.firstHeight;
 				modules.transport.getFromPeer(peer, {
@@ -555,9 +560,6 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, cb) {
 	"left outer join usernames as u on u.transactionId=t.id " +
 	"ORDER BY b.height, t.rowid" +
 	"", params, private.blocksDataFields, function (err, rows) {
-		// Some notes:
-		// If loading catch error, for example, invalid signature on block & transaction, need to stop loading and remove all blocks after last good block.
-		// We need to process all transactions of block
 		if (err) {
 			return cb(err);
 		}
@@ -743,6 +745,7 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 			} catch (e) {
 				return setImmediate(cb, e.toString());
 			}
+
 			transaction.blockId = block.id;
 
 			library.dbLite.query("SELECT id FROM trs WHERE id=$id", {id: transaction.id}, ['id'], function (err, rows) {

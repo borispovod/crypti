@@ -43,7 +43,7 @@ function reverseDiff(diff) {
 	return copyDiff;
 }
 
-function applyDiff(source, diff) {
+function applyDiff(source, diff, dismissMin) {
 	var res = source ? source.slice() : [];
 
 	for (var i = 0; i < diff.length; i++) {
@@ -63,7 +63,12 @@ function applyDiff(source, diff) {
 
 			res.push(publicKey);
 		}
+
 		if (math == "-") {
+			if (dismissMin) {
+				return false;
+			}
+
 			var index = -1;
 			if (res) {
 				index = res.indexOf(publicKey);
@@ -177,7 +182,7 @@ Account.prototype.undoDelegateList = function (diff) {
 Account.prototype.applyContact = function (diff) {
 	if (diff === null) return;
 
-	var dest = applyDiff(this.following, [diff]);
+	var dest = applyDiff(this.following, [diff], true);
 
 	if (dest !== false) {
 		var math = diff[0];
@@ -211,7 +216,7 @@ Account.prototype.undoContact = function (diff) {
 
 	var copyDiff = reverseDiff([diff]);
 
-	var dest = applyDiff(this.following, copyDiff);
+	var dest = applyDiff(this.following, copyDiff, true);
 
 	if (dest !== false) {
 		var math = diff[0];
@@ -243,7 +248,7 @@ Account.prototype.undoContact = function (diff) {
 Account.prototype.applyUnconfirmedContact = function (diff) {
 	if (diff === null) return;
 
-	var dest = applyDiff(this.unconfirmedFollowing, [diff]);
+	var dest = applyDiff(this.unconfirmedFollowing, [diff], true);
 
 	if (dest !== false) {
 		this.unconfirmedFollowing = dest || [];
@@ -258,7 +263,7 @@ Account.prototype.undoUnconfirmedContact = function (diff) {
 
 	var copyDiff = reverseDiff([diff]);
 
-	var dest = applyDiff(this.unconfirmedFollowing, copyDiff);
+	var dest = applyDiff(this.unconfirmedFollowing, copyDiff, true);
 
 	if (dest !== false) {
 		this.unconfirmedFollowing = dest || [];
