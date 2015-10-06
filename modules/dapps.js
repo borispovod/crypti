@@ -2484,30 +2484,32 @@ shared.sendWithdrawal = function (req, cb) {
 	});
 }
 
-shared.getWithdrawalTransactions = function (req, cb) {
-	library.dbLite.query("SELECT t.id, lower(hex(t.senderPublicKey)), t.amount FROM trs t " +
+shared.getWithdrawalLastTransaction = function (req, cb) {
+	library.dbLite.query("SELECT ot.outTransactionId FROM trs t " +
 		"inner join blocks b on t.blockId = b.id and t.type = $type " +
-		"inner join outtransfer ot on ot.transactionId = t.id and ot.dappid = $dappid", {
+		"inner join outtransfer ot on ot.transactionId = t.id and ot.dappid = $dappid " +
+		"order by b.height desc limit 1", {
 		dappid: req.dappid,
 		type: TransactionTypes.OUT_TRANSFER
 	}, {
-		id: String,
-		senderPublicKey: String,
-		amount: Number
+		id: String
 	}, function (err, rows) {
 		if (err) {
 			return cb("Sql error");
 		}
-		cb(null, rows);
+		cb(null, rows[0]);
 	});
 }
 
 shared.getBalanceTransactions = function (req, cb) {
 	library.dbLite.query("SELECT t.id, lower(hex(t.senderPublicKey)), t.amount FROM trs t " +
 		"inner join blocks b on t.blockId = b.id and t.type = $type " +
-		"inner join intransfer dt on dt.transactionId = t.id and dt.dappid = $dappid", {
+		"inner join intransfer dt on dt.transactionId = t.id and dt.dappid = $dappid " +
+		(req.body.lastTransactionId ? "where b.height > (select height from blocks ib inner join trs it on ib.id = it.blockId and it.id = $lastId) " : "") +
+		"order by b.height", {
 		dappid: req.dappid,
-		type: TransactionTypes.IN_TRANSFER
+		type: TransactionTypes.IN_TRANSFER,
+		lastId: req.body.lastTransactionId
 	}, {
 		id: String,
 		senderPublicKey: String,

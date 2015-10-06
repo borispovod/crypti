@@ -145,6 +145,11 @@ Sql.prototype.createTables = function (dappid, config, cb) {
 		config[i].table = "dapp_" + dappid + "_" + config[i].table;
 		if (config[i].type == "table") {
 			config[i].type = "create";
+			if (config[i].foreignKeys) {
+				for (var n = 0; n < config[i].foreignKeys; n++) {
+					config[i].foreignKeys[n].table = "dapp_" + dappid + "_" + foreignKeys[n].table;
+				}
+			}
 		} else if (config[i].type == "index") {
 			config[i].type = "index";
 		} else {
