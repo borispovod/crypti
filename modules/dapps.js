@@ -103,12 +103,9 @@ function OutTransfer() {
 				} else {
 					var count = rows[0].count;
 
-					console.log('count', count);
 					if (count) {
-						console.log('not confirmed');
 						return setImmediate(cb, "This transaction already confirmed");
 					} else {
-						console.log('applied');
 						return setImmediate(cb);
 					}
 				}

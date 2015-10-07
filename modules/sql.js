@@ -104,6 +104,7 @@ private.query = function (action, config, cb) {
 		}
 
 		if (action == "select") {
+			//console.log(sql.query, sql.values)
 			library.dbLite.query(sql.query, sql.values, null, done);
 		} else {
 			library.dbLite.query(sql.query, sql.values, done);
