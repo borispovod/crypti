@@ -75,23 +75,26 @@ function OutTransfer() {
 			return setImmediate(cb, "DApp Id missed for input transfer transaction");
 		}
 
-		// find dapp by id
+		setImmediate(cb, null, trs);
+	}
+
+	this.process = function (trs, sender, cb) {
 		library.dbLite.query("SELECT count(*) FROM dapps WHERE transactionId=$id", {
 			id: trs.asset.outTransfer.dappId
 		}, ['count'], function (err, rows) {
 			if (err) {
 				library.logger.error(err.toString());
-				return setImmediate(cb, "This dapp not found: " + trs.asset.outTransfer.dappId);
+				return cb("This dapp not found: " + trs.asset.outTransfer.dappId);
 			}
 
 			var count = rows[0].count;
 
 			if (count == 0) {
-				return setImmediate(cb, "This dapp not found: " + trs.asset.outTransfer.dappId);
+				return cb("This dapp not found: " + trs.asset.outTransfer.dappId);
 			}
 
 			if (private.unconfirmedOutTansfers[trs.asset.outTransfer.transactionId]) {
-				return setImmediate(cb, "This transaction already on processing: " + trs.asset.outTransfer.transactionId);
+				return cb("This transaction already on processing: " + trs.asset.outTransfer.transactionId);
 			}
 
 			library.dbLite.query("SELECT count(*) FROM outtransfer WHERE outTransactionId = $transactionId", {
@@ -99,23 +102,18 @@ function OutTransfer() {
 			}, {'count': Number}, function (err, rows) {
 				if (err) {
 					library.logger.error(err.toString());
-					return setImmediate(cb, "This transaction already confirmed: " + trs.asset.outTransfer.transactionId);
+					return cb("This transaction already confirmed: " + trs.asset.outTransfer.transactionId);
 				} else {
 					var count = rows[0].count;
 
 					if (count) {
-						return setImmediate(cb, "This transaction already confirmed");
+						return cb("This transaction already confirmed");
 					} else {
-						return setImmediate(cb);
+						return cb(null, trs);
 					}
 				}
 			})
 		});
-
-	}
-
-	this.process = function (trs, sender, cb) {
-		setImmediate(cb, null, trs);
 	}
 
 	this.getBytes = function (trs) {

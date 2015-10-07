@@ -550,7 +550,6 @@ Multisignatures.prototype.processSignature = function (tx, cb) {
 			}
 
 			if (!verify) {
-				console.log('here');
 				return cb("Failed to verify signature: " + transaction.id);
 			}
 
