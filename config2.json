@@ -1,0 +1,68 @@
+{
+  "port": 7041,
+  "address": "0.0.0.0",
+  "serveHttpAPI": true,
+  "serveHttpWallet": true,
+  "version": "0.5.0",
+  "fileLogLevel": "info",
+  "consoleLogLevel": "log",
+  "sharePort": true,
+  "api": {
+    "access": {
+      "whiteList": []
+    }
+  },
+  "peers": {
+    "list": [
+      {
+        "ip": "127.0.0.1",
+        "port": 7040
+      }
+    ],
+    "blackList": [],
+    "options": {
+      "timeout": 4000
+    }
+  },
+  "forging": {
+    "secret": [
+    ],
+    "access": {
+      "whiteList": [
+        "127.0.0.1"
+      ]
+    }
+  },
+  "loading": {
+    "verifyOnLoading": true,
+    "loadPerIteration": 5000
+  },
+  "sia": {
+    "peers": [
+      {
+        "ip": "127.0.0.1",
+        "port": 8080
+      }
+    ]
+  },
+  "ssl": {
+    "enabled": false,
+    "options": {
+      "port": 443,
+      "address": "0.0.0.0",
+      "key": "./ssl/crypti.key",
+      "cert": "./ssl/crypti.crt"
+    }
+  },
+  "dapp": {
+    "autoexec": [
+      {
+        "params": [
+          "F3DP835EBuZMAhiuYn2AzhJh1lz8glLolghCMD4X8lRh5v2GlcBWws7plIDUuPjf3GUTOnyYEfXQx7cH",
+          "modules.full.json"
+        ],
+        "dappid": "15616498276233037701"
+      }
+    ]
+  }
+}
