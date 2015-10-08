@@ -104,6 +104,7 @@ private.query = function (action, config, cb) {
 		}
 
 		if (action == "select") {
+			//console.log(sql.query, sql.values)
 			library.dbLite.query(sql.query, sql.values, null, done);
 		} else {
 			library.dbLite.query(sql.query, sql.values, done);
@@ -115,23 +116,18 @@ private.query = function (action, config, cb) {
 				batchPack = config.values.splice(0, 10);
 				return batchPack.length == 0
 			}, function (cb) {
-				sql = "INSERT INTO " + "dapp_" + config.dappid + "_" + config.table;
+				var fields = Object.keys(config.fields).map(function (field) {
+					return private.escape(config.fields[field]);
+				});
+				sql = "INSERT INTO " + "dapp_" + config.dappid + "_" + config.table + " (" + fields.join(",") + ") ";
 				var rows = [];
 				batchPack.forEach(function (value, rowIndex) {
 					var currentRow = batchPack[rowIndex];
-					if (rowIndex === 0) {
-						var fields = [];
-						Object.keys(config.fields).forEach(function (field, index) {
-							fields.push(private.escape(currentRow[index]) + " as " + private.escape(config.fields[field]));
-						});
-						rows.push("select " + fields.join(","));
-					} else {
-						var fields = [];
-						for (var i = 0; i < currentRow.length; i++) {
-							fields.push(private.escape(currentRow[i]));
-						}
-						rows.push("select " + fields.join(","));
+					var fields = [];
+					for (var i = 0; i < currentRow.length; i++) {
+						fields.push(private.escape(currentRow[i]));
 					}
+					rows.push("select " + fields.join(","));
 				});
 				sql = sql + " " + rows.join(" UNION ");
 				library.dbLite.query(sql, {}, cb);
@@ -150,6 +146,11 @@ Sql.prototype.createTables = function (dappid, config, cb) {
 		config[i].table = "dapp_" + dappid + "_" + config[i].table;
 		if (config[i].type == "table") {
 			config[i].type = "create";
+			if (config[i].foreignKeys) {
+				for (var n = 0; n < config[i].foreignKeys; n++) {
+					config[i].foreignKeys[n].table = "dapp_" + dappid + "_" + foreignKeys[n].table;
+				}
+			}
 		} else if (config[i].type == "index") {
 			config[i].type = "index";
 		} else {

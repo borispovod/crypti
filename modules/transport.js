@@ -268,7 +268,6 @@ private.attachApi = function () {
 			}
 
 			modules.multisignatures.processSignature(req.body.signature, function (err) {
-				console.log("processed signature", err);
 				if (err) {
 					return res.status(200).json({success: false, error: "Process signature error"});
 				} else {
