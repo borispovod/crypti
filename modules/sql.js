@@ -147,8 +147,8 @@ Sql.prototype.createTables = function (dappid, config, cb) {
 		if (config[i].type == "table") {
 			config[i].type = "create";
 			if (config[i].foreignKeys) {
-				for (var n = 0; n < config[i].foreignKeys; n++) {
-					config[i].foreignKeys[n].table = "dapp_" + dappid + "_" + foreignKeys[n].table;
+				for (var n = 0; n < config[i].foreignKeys.length; n++) {
+					config[i].foreignKeys[n].table = "dapp_" + dappid + "_" + config[i].foreignKeys[n].table;
 				}
 			}
 		} else if (config[i].type == "index") {
