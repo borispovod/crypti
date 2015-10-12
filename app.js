@@ -30,7 +30,7 @@ if (typeof gc !== 'undefined') {
 }
 
 if (program.config) {
-	extend(appConfig, require(path.resolve(process.cwd(), program.config)));
+	appConfig = require(path.resolve(process.cwd(), program.config));
 }
 
 if (program.port) {
