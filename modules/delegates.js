@@ -924,8 +924,8 @@ shared.getDelegates = function (req, cb) {
 				return cb(err.toString());
 			}
 
-			var limit = query.limit,
-				offset = query.offset,
+			var limit = query.limit || 101,
+				offset = query.offset || 0,
 				orderField = query.orderBy,
 				active = query.active;
 
