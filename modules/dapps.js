@@ -433,7 +433,11 @@ function DApp() {
 		if (trs.asset.dapp.siaAscii) {
 			isSia = true;
 
-			if (trs.asset.dapp.siaAscii.length == 0) {
+			if (trs.asset.dapp.siaAscii.trim() != trs.asset.dapp.siaAscii) {
+				return setImmediate(cb, "Didn't trimmed sia ascii");
+			}
+
+			if (trs.asset.dapp.siaAscii.trim().length == 0) {
 				return setImmediate(cb, "Empty sia ascii");
 			}
 
