@@ -504,7 +504,7 @@ function DApp() {
 			return setImmediate(cb, errorCode("DAPPS.STORAGE_MISSED"));
 		}
 
-		if (!trs.asset.dapp.name || trs.asset.dapp.name.trim().length == 0) {
+		if (!trs.asset.dapp.name || trs.asset.dapp.name.trim().length == 0 || trs.asset.dapp.name.trim() != trs.asset.dapp.name) {
 			return setImmediate(cb, errorCode("DAPPS.EMPTY_NAME"));
 		}
 
@@ -616,6 +616,8 @@ function DApp() {
 					return setImmediate(cb, "DApp with this sia code already exists")
 				} else if (dapp.git == trs.asset.dapp.git) {
 					return setImmediate(cb, "DApp with this git already exists: " + dapp.git);
+				} else {
+					return setImmediate(cb, "Some error");
 				}
 			} else {
 				return setImmediate(cb, null, trs);
