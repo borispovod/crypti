@@ -134,7 +134,7 @@ Round.prototype.backwardTick = function (block, previousBlock, cb) {
 						return !!task;
 					}, function (cb) {
 						task(function () {
-							setImmediate(cb);;
+							setImmediate(cb);
 						});
 					}, cb);
 				}
@@ -177,13 +177,14 @@ Round.prototype.tick = function (block, cb) {
 	//console.log(block.height, round, nextRound);
 	if (round !== nextRound || block.height == 1) {
 		if (private.delegatesByRound[round].length == slots.delegates || block.height == 1 || block.height == 101) {
-
-			var roundDelegates = modules.delegates.generateDelegateList(block.height);
-			roundDelegates.forEach(function (delegate) {
-				if (private.delegatesByRound[round].indexOf(delegate) == -1) {
-					private.missedBlocks[delegate] = (private.missedBlocks[delegate] || 0) + 1;
-				}
-			});
+			if (block.height != 1) {
+				var roundDelegates = modules.delegates.generateDelegateList(block.height);
+				roundDelegates.forEach(function (delegate) {
+					if (private.delegatesByRound[round].indexOf(delegate) == -1) {
+						private.missedBlocks[delegate] = (private.missedBlocks[delegate] || 0) + 1;
+					}
+				});
+			}
 
 			async.series([
 				function (cb) {
