@@ -39,7 +39,7 @@ private.attachApi = function () {
 
 	router.use(function (req, res, next) {
 		//console.log("Request for us: " + req.url);
-		var peerIp = req.headers['x-forwarded-for'] = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+		var peerIp = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
 
 		if (peerIp == "127.0.0.1") {
 			return next();
