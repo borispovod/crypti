@@ -87,8 +87,8 @@ function Delegate() {
 			return cb(errorCode("DELEGATES.EXISTS_DELEGATE"));
 		}
 
-		if (sender.username) {
-			return cb(null, trs);
+		if (sender.username && sender.username != trs.asset.delegate.username) {
+			return cb("Incorrect username in transaction");
 		}
 
 		modules.accounts.getAccount({
