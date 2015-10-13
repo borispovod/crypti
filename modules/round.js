@@ -43,8 +43,6 @@ Round.prototype.directionSwap = function (direction) {
 
 Round.prototype.backwardTick = function (block, previousBlock, cb) {
 	function done(err) {
-		delete private.unFeesByRound[round];
-		delete private.unDelegatesByRound[round];
 		cb && cb(err);
 	}
 
@@ -71,12 +69,13 @@ Round.prototype.backwardTick = function (block, previousBlock, cb) {
 
 			async.series([
 				function (cb) {
+					var task;
 					async.whilst(function () {
-						var task = private.tasks.shift();
+						task = private.tasks.shift();
 						return !!task;
 					}, function (cb) {
 						task(function () {
-							cb();
+							setImmediate(cb);
 						});
 					}, cb);
 				},
@@ -124,19 +123,26 @@ Round.prototype.backwardTick = function (block, previousBlock, cb) {
 								});
 							}, cb);
 						});
+					} else {
+						cb();
 					}
 				},
 				function (cb) {
+					var task;
 					async.whilst(function () {
-						var task = private.tasks.shift();
+						task = private.tasks.shift();
 						return !!task;
 					}, function (cb) {
 						task(function () {
-							cb();
+							setImmediate(cb);
 						});
 					}, cb);
 				}
-			], done);
+			], function (err) {
+				delete private.unFeesByRound[round];
+				delete private.unDelegatesByRound[round];
+				done(err)
+			});
 		} else {
 			done();
 		}
@@ -154,8 +160,6 @@ Round.prototype.blocksStat = function (publicKey) {
 
 Round.prototype.tick = function (block, cb) {
 	function done(err) {
-		delete private.feesByRound[round];
-		delete private.delegatesByRound[round];
 		cb && setImmediate(cb, err);
 	}
 
@@ -170,14 +174,17 @@ Round.prototype.tick = function (block, cb) {
 
 	var nextRound = self.calc(block.height + 1);
 
+	//console.log(block.height, round, nextRound);
 	if (round !== nextRound || block.height == 1) {
-		if (private.delegatesByRound[round].length == slots.delegates || block.height == 1) {
-			var roundDelegates = modules.delegates.generateDelegateList(block.height);
-			roundDelegates.forEach(function (delegate) {
-				if (private.delegatesByRound[round].indexOf(delegate) == -1) {
-					private.missedBlocks[delegate] = (private.missedBlocks[delegate] || 0) + 1;
-				}
-			});
+		if (private.delegatesByRound[round].length == slots.delegates || block.height == 1 || block.height == 101) {
+			if (block.height != 1) {
+				var roundDelegates = modules.delegates.generateDelegateList(block.height);
+				roundDelegates.forEach(function (delegate) {
+					if (private.delegatesByRound[round].indexOf(delegate) == -1) {
+						private.missedBlocks[delegate] = (private.missedBlocks[delegate] || 0) + 1;
+					}
+				});
+			}
 
 			async.series([
 				function (cb) {
@@ -228,6 +235,7 @@ Round.prototype.tick = function (block, cb) {
 												return cb(err);
 											}
 											modules.delegates.addFee(delegate, leftover);
+											cb();
 										});
 									} else {
 										cb();
@@ -240,19 +248,25 @@ Round.prototype.tick = function (block, cb) {
 					}
 				},
 				function (cb) {
+					var task;
 					async.whilst(function () {
-						var task = private.tasks.shift();
+						task = private.tasks.shift();
 						return !!task;
 					}, function (cb) {
 						task(function () {
-							cb();
+							setImmediate(cb);
 						});
 					}, function () {
 						library.bus.message('finishRound', round);
 						cb();
 					});
 				}
-			], done);
+			], function (err) {
+				delete private.feesByRound[round];
+				delete private.delegatesByRound[round];
+
+				done(err);
+			});
 		} else {
 			done();
 		}

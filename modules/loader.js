@@ -1,7 +1,7 @@
 var async = require('async'),
 	Router = require('../helpers/router.js'),
 	util = require('util'),
-	genesisBlock = require("../helpers/genesisblock.js"),
+	genesisBlock = null,
 	ip = require("ip"),
 	bignum = require('../helpers/bignum.js'),
 	sandboxHelper = require('../helpers/sandbox.js');
@@ -20,6 +20,7 @@ private.syncIntervalId = null;
 //constructor
 function Loader(cb, scope) {
 	library = scope;
+	genesisBlock = library.genesisblock;
 	self = this;
 	self.__private = private;
 	private.attachApi();
@@ -81,8 +82,9 @@ private.findUpdate = function (lastBlock, peer, cb) {
 		}
 
 		library.logger.info("Found common block " + commonBlock.id + " (at " + commonBlock.height + ")" + " with peer " + peerStr);
+		var toRemove = lastBlock.height - commonBlock.height;
 
-		if (lastBlock.height - commonBlock.height > 1440) {
+		if (toRemove > 1010) {
 			library.logger.log("long fork, ban 60 min", peerStr);
 			modules.peer.state(peer.ip, peer.port, 0, 3600);
 			return cb();
@@ -104,6 +106,8 @@ private.findUpdate = function (lastBlock, peer, cb) {
 				modules.round.directionSwap('backward');
 			}
 
+			library.bus.message('deleteBlocksBefore', commonBlock);
+
 			modules.blocks.deleteBlocksBefore(commonBlock, function (err, backupBlocks) {
 				if (commonBlock.id != lastBlock.id) {
 					modules.round.directionSwap('forward');
@@ -115,50 +119,62 @@ private.findUpdate = function (lastBlock, peer, cb) {
 
 				library.logger.debug("Load blocks from peer " + peerStr);
 
-				modules.blocks.loadBlocksFromPeer(peer, commonBlock.id, function (err) {
+				modules.blocks.loadBlocksFromPeer(peer, commonBlock.id, function (err, lastValidBlock) {
 					if (err) {
 						modules.transactions.deleteHiddenTransaction();
 						library.logger.error(err);
 						library.logger.log("can't load blocks, ban 60 min", peerStr);
 						modules.peer.state(peer.ip, peer.port, 0, 3600);
 
-						library.logger.info("Remove blocks again until " + commonBlock.id + " (at " + commonBlock.height + ")");
-						if (commonBlock.id != lastBlock.id) {
-							modules.round.directionSwap('backward');
-						}
+						if (lastValidBlock) {
+							var uploaded = lastValidBlock.height - commonBlock.height;
 
-						// fix 1000 blocks and check, if you need to remove more 1000 blocks - ban node
+							if (toRemove < uploaded) {
+								library.logger.info("Remove blocks again until " + lastValidBlock.id + " (at " + lastValidBlock.height + ")");
 
-						modules.blocks.deleteBlocksBefore(commonBlock, function (err) {
-							if (commonBlock.id != lastBlock.id) {
-								modules.round.directionSwap('forward');
-							}
-							if (err) {
-								library.logger.fatal('delete blocks before', err);
-								process.exit(1);
-							}
+								if (lastValidBlock.id != lastBlock.id) {
+									modules.round.directionSwap('backward');
+								}
 
-							if (backupBlocks.length) {
-								library.logger.info("Restore stored blocks until " + backupBlocks[backupBlocks.length - 1].height);
-								async.series([
-									function (cb) {
-										async.eachSeries(backupBlocks, function (block, cb) {
-											modules.blocks.processBlock(block, false, cb);
-										}, cb)
-									}, function (cb) {
-										async.eachSeries(overTransactionList, function (trs, cb) {
-											modules.transactions.processUnconfirmedTransaction(trs, false, function () {
-												cb()
-											});
-										}, cb);
+								modules.blocks.deleteBlocksBefore(lastValidBlock, function (err) {
+									if (lastValidBlock.id != lastBlock.id) {
+										modules.round.directionSwap('forward');
 									}
-								], cb);
+									if (err) {
+										library.logger.fatal('delete blocks before', err);
+										process.exit(1);
+									}
+
+									async.eachSeries(overTransactionList, function (trs, cb) {
+										modules.transactions.processUnconfirmedTransaction(trs, false, cb);
+									}, cb);
+								});
 							} else {
-								async.eachSeries(overTransactionList, function (trs, cb) {
-									modules.transactions.processUnconfirmedTransaction(trs, false, cb);
-								}, cb);
+								library.logger.info("Remove blocks again until common " + commonBlock.id + " (at " + commonBlock.height + ")");
+
+								if (commonBlock.id != lastBlock.id) {
+									modules.round.directionSwap('backward');
+								}
+
+								modules.blocks.deleteBlocksBefore(commonBlock, function (err) {
+									if (commonBlock.id != lastBlock.id) {
+										modules.round.directionSwap('forward');
+									}
+									if (err) {
+										library.logger.fatal('delete blocks before', err);
+										process.exit(1);
+									}
+
+									async.eachSeries(overTransactionList, function (trs, cb) {
+										modules.transactions.processUnconfirmedTransaction(trs, false, cb);
+									}, cb);
+								});
 							}
-						});
+						} else {
+							async.eachSeries(overTransactionList, function (trs, cb) {
+								modules.transactions.processUnconfirmedTransaction(trs, false, cb);
+							}, cb);
+						}
 					} else {
 						for (var i = 0; i < overTransactionList.length; i++) {
 							modules.transactions.pushHiddenTransaction(overTransactionList[i]);
@@ -197,12 +213,15 @@ private.loadBlocks = function (lastBlock, cb) {
 
 		data.body.height = parseInt(data.body.height);
 
-		var report = library.scheme.validate(data.body.height, {type: "object", properties: {
-			"height": {
-				type: "integer",
-				minimum: 0
-			}
-		}, required: ['height']});
+		var report = library.scheme.validate(data.body, {
+			type: "object",
+			properties: {
+				"height": {
+					type: "integer",
+					minimum: 0
+				}
+			}, required: ['height']
+		});
 
 		if (!report) {
 			library.logger.log("Can't parse blockchain height: " + peerStr + "\n" + library.scheme.getLastError());
@@ -241,11 +260,12 @@ private.loadSignatures = function (cb) {
 				return cb();
 			}
 
-			async.eachSeries(data.body.signatures, function (signature, cb) {
-				modules.multisignatures.processSignature(signature, function (err) {
-					// important!
-					setImmediate(cb);
-				});
+			library.sequence.add(function (cb) {
+				async.eachSeries(data.body.signatures, function (signature, cb) {
+					modules.multisignatures.processSignature(signature, function (err) {
+						setImmediate(cb);
+					});
+				}, cb);
 			}, cb);
 		});
 	});
@@ -281,7 +301,10 @@ private.loadUnconfirmedTransactions = function (cb) {
 				return setImmediate(cb);
 			}
 		}
-		modules.transactions.receiveTransactions(transactions, cb);
+
+		library.balancesSequence.add(function (cb) {
+			modules.transactions.receiveTransactions(transactions, cb);
+		}, cb);
 	});
 }
 
@@ -436,23 +459,19 @@ Loader.prototype.onPeerReady = function () {
 	});
 
 	setImmediate(function nextLoadUnconfirmedTransactions() {
-		library.sequence.add(function (cb) {
-			private.loadUnconfirmedTransactions(cb);
-		}, function (err) {
-			err && library.logger.error('loadUnconfirmedTransactions timer', err);
+			private.loadUnconfirmedTransactions(function (err) {
+				err && library.logger.error('loadUnconfirmedTransactions timer', err);
+				setTimeout(nextLoadUnconfirmedTransactions, 14 * 1000)
+			});
 
-			setTimeout(nextLoadUnconfirmedTransactions, 14 * 1000)
-		})
 	});
 
 	setImmediate(function nextLoadSignatures() {
-		library.sequence.add(function (cb) {
-			private.loadSignatures(cb);
-		}, function (err) {
+		private.loadSignatures(function (err) {
 			err && library.logger.error('loadSignatures timer', err);
 
 			setTimeout(nextLoadSignatures, 14 * 1000)
-		})
+		});
 	});
 }
 

@@ -3,7 +3,7 @@ var crypto = require('crypto'),
 	ip = require('ip'),
 	ByteBuffer = require("bytebuffer"),
 	constants = require("../helpers/constants.js"),
-	genesisblock = require("../helpers/genesisblock.js"),
+	genesisblock = null,
 	constants = require('../helpers/constants.js'),
 	Router = require('../helpers/router.js'),
 	slots = require('../helpers/slots.js'),
@@ -24,19 +24,21 @@ private.blocksDataFields = {
 	'b_id': String, 'b_version': String, 'b_timestamp': Number, 'b_height': Number, 'b_previousBlock': String, 'b_numberOfTransactions': String, 'b_totalAmount': String, 'b_totalFee': String, 'b_payloadLength': String, 'b_payloadHash': String, 'b_generatorPublicKey': String, 'b_blockSignature': String,
 	't_id': String, 't_type': Number, 't_timestamp': Number, 't_senderPublicKey': String, 't_requesterPublicKey': String, 't_senderId': String, 't_recipientId': String, 't_senderUsername': String, 't_recipientUsername': String, 't_amount': String, 't_fee': String, 't_signature': String, 't_signSignature': String, 't_signatures': String,
 	's_publicKey': String,
-	'd_username': String,
+	'd_username': String, 'd_transactionId': String,
 	'v_votes': String,
 	'c_address': String,
 	'u_alias': String,
 	'm_min': Number, 'm_lifetime': Number, 'm_keysgroup': String,
 	'dapp_name': String, 'dapp_description': String, 'dapp_tags': String, 'dapp_type': Number, 'dapp_siaAscii': String, 'dapp_siaIcon': String, 'dapp_git': String, 'dapp_category': Number, 'dapp_icon': String,
-	'dapptransfer_dappid': String
+	'in_dappId': String,
+	'ot_dappId': String, 'ot_outTransactionId': String
 };
 // @formatter:on
 
 //constructor
 function Blocks(cb, scope) {
 	library = scope;
+	genesisblock = library.genesisblock;
 	self = this;
 	self.__private = private;
 	private.attachApi();
@@ -97,7 +99,7 @@ private.saveGenesisBlock = function (cb) {
 
 private.deleteBlock = function (blockId, cb) {
 	library.dbLite.query("DELETE FROM blocks WHERE id = $id", {id: blockId}, function (err, res) {
-		cb(err, res)
+		cb(err, res);
 	});
 }
 
@@ -256,35 +258,37 @@ private.saveBlock = function (block, cb) {
 }
 
 private.popLastBlock = function (oldLastBlock, cb) {
-	self.loadBlocksPart({id: oldLastBlock.previousBlock}, function (err, previousBlock) {
-		if (err || !previousBlock.length) {
-			return cb(err || 'previousBlock is null');
-		}
-		previousBlock = previousBlock[0];
+	library.balancesSequence.add(function (cb) {
+		self.loadBlocksPart({id: oldLastBlock.previousBlock}, function (err, previousBlock) {
+			if (err || !previousBlock.length) {
+				return cb(err || 'previousBlock is null');
+			}
+			previousBlock = previousBlock[0];
 
-		async.eachSeries(oldLastBlock.transactions.reverse(), function (transaction, cb) {
-			async.series([
-				function (cb) {
-					modules.transactions.undo(transaction, cb);
-				}, function (cb) {
-					modules.transactions.undoUnconfirmed(transaction, cb);
-				}, function (cb) {
-					modules.transactions.pushHiddenTransaction(transaction);
-					setImmediate(cb);
-				}
-			], cb);
-		}, function (err) {
-			modules.round.backwardTick(oldLastBlock, previousBlock, function () {
-				private.deleteBlock(oldLastBlock.id, function (err) {
-					if (err) {
-						return cb(err);
+			async.eachSeries(oldLastBlock.transactions.reverse(), function (transaction, cb) {
+				async.series([
+					function (cb) {
+						modules.transactions.undo(transaction, cb);
+					}, function (cb) {
+						modules.transactions.undoUnconfirmed(transaction, cb);
+					}, function (cb) {
+						modules.transactions.pushHiddenTransaction(transaction);
+						setImmediate(cb);
 					}
+				], cb);
+			}, function (err) {
+				modules.round.backwardTick(oldLastBlock, previousBlock, function () {
+					private.deleteBlock(oldLastBlock.id, function (err) {
+						if (err) {
+							return cb(err);
+						}
 
-					cb(null, previousBlock);
+						cb(null, previousBlock);
+					});
 				});
 			});
 		});
-	});
+	},cb);
 }
 
 private.getIdSequence = function (height, cb) {
@@ -487,13 +491,14 @@ Blocks.prototype.loadBlocksData = function (filter, options, cb) {
 				"b.id, b.version, b.timestamp, b.height, b.previousBlock, b.numberOfTransactions, b.totalAmount, b.totalFee, b.payloadLength, lower(hex(b.payloadHash)), lower(hex(b.generatorPublicKey)), lower(hex(b.blockSignature)), " +
 				"t.id, t.type, t.timestamp, lower(hex(t.senderPublicKey)), lower(hex(t.requesterPublicKey)), t.senderId, t.recipientId, t.senderUsername, t.recipientUsername, t.amount, t.fee, lower(hex(t.signature)), lower(hex(t.signSignature)), t.signatures, " +
 				"lower(hex(s.publicKey)), " +
-				"d.username, " +
+				"d.username, d.transactionId, " +
 				"v.votes, " +
 				"c.address, " +
 				"u.username, " +
 				"m.min, m.lifetime, m.keysgroup, " +
 				"dapp.name, dapp.description, dapp.tags, dapp.type, dapp.siaAscii, dapp.siaIcon, dapp.git, dapp.category, dapp.icon, " +
-				"dt.dappid " +
+				"it.dappId, " +
+				"ot.dappId, ot.outTransactionId " +
 				"FROM blocks b " +
 				"left outer join trs as t on t.blockId=b.id " +
 				"left outer join delegates as d on d.transactionId=t.id " +
@@ -503,8 +508,9 @@ Blocks.prototype.loadBlocksData = function (filter, options, cb) {
 				"left outer join usernames as u on u.transactionId=t.id " +
 				"left outer join multisignatures as m on m.transactionId=t.id " +
 				"left outer join dapps as dapp on dapp.transactionId=t.id " +
-				"left outer join dapptransfers dt on dt.transactionId=t.id " +
-				(filter.id ? " where id = $id " : "") + (filter.lastId ? " where b.height > $height and b.height < $limit " : "") +
+				"left outer join intransfer it on it.transactionId=t.id " +
+				"left outer join outtransfer ot on ot.transactionId=t.id " +
+				(filter.id ? " where b.id = $id " : "") + (filter.lastId ? " where b.height > $height and b.height < $limit " : "") +
 				limitPart +
 				"ORDER BY b.height, t.rowid" +
 				"", params, fields, cb);
@@ -538,13 +544,14 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, verify, cb) {
 			"b.id, b.version, b.timestamp, b.height, b.previousBlock, b.numberOfTransactions, b.totalAmount, b.totalFee, b.payloadLength, lower(hex(b.payloadHash)), lower(hex(b.generatorPublicKey)), lower(hex(b.blockSignature)), " +
 			"t.id, t.type, t.timestamp, lower(hex(t.senderPublicKey)), lower(hex(t.requesterPublicKey)), t.senderId, t.recipientId, t.senderUsername, t.recipientUsername, t.amount, t.fee, lower(hex(t.signature)), lower(hex(t.signSignature)), t.signatures, " +
 			"lower(hex(s.publicKey)), " +
-			"d.username, " +
+			"d.username, d.transactionId, " +
 			"v.votes, " +
 			"c.address, " +
 			"u.username, " +
 			"m.min, m.lifetime, m.keysgroup, " +
 			"dapp.name, dapp.description, dapp.tags, dapp.type, dapp.siaAscii, dapp.siaIcon, dapp.git, dapp.category, dapp.icon, " +
-			"dt.dappid " +
+			"it.dappId, " +
+			"ot.dappId, ot.outTransactionId " +
 			"FROM blocks b " +
 			"left outer join trs as t on t.blockId=b.id " +
 			"left outer join delegates as d on d.transactionId=t.id " +
@@ -554,7 +561,8 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, verify, cb) {
 			"left outer join usernames as u on u.transactionId=t.id " +
 			"left outer join multisignatures as m on m.transactionId=t.id " +
 			"left outer join dapps as dapp on dapp.transactionId=t.id " +
-			"left outer join dapptransfers dt on dt.transactionId=t.id " +
+			"left outer join intransfer it on it.transactionId=t.id " +
+			"left outer join outtransfer ot on ot.transactionId=t.id " +
 			"where b.height >= $offset and b.height < $limit " +
 			"ORDER BY b.height, t.rowid" +
 			"", params, private.blocksDataFields, function (err, rows) {
@@ -641,6 +649,7 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, verify, cb) {
 					}
 				}, function (err) {
 					if (err) {
+						library.logger.error(err);
 						var lastValidTransaction = block.transactions.findIndex(function (trs) {
 							return trs.id == err.transaction.id;
 						});
@@ -672,213 +681,214 @@ Blocks.prototype.getLastBlock = function () {
 }
 
 Blocks.prototype.processBlock = function (block, broadcast, cb) {
-	try {
-		block.id = library.logic.block.getId(block);
-	} catch (e) {
-		return setImmediate(cb, e.toString());
-	}
-	block.height = private.lastBlock.height + 1;
-
-	modules.transactions.undoUnconfirmedList(function (err, unconfirmedTransactions) {
-		if (err) {
-			return process.exit(0);
+	library.balancesSequence.add(function (cb) {
+		try {
+			block.id = library.logic.block.getId(block);
+		} catch (e) {
+			return setImmediate(cb, e.toString());
 		}
+		block.height = private.lastBlock.height + 1;
 
-		function done(err) {
-			modules.transactions.applyUnconfirmedList(unconfirmedTransactions, function () {
-				setImmediate(cb, err);
-			});
-		}
-
-		if (!block.previousBlock && block.height != 1) {
-			return setImmediate(done, "Wrong previous block");
-		}
-
-		library.dbLite.query("SELECT id FROM blocks WHERE id=$id", {id: block.id}, ['id'], function (err, rows) {
+		modules.transactions.undoUnconfirmedList(function (err, unconfirmedTransactions) {
 			if (err) {
-				return done(err);
+				return process.exit(0);
 			}
 
-			var bId = rows.length && rows[0].id;
-
-			if (bId) {
-				return done("Block already exists: " + block.id);
+			function done(err) {
+				modules.transactions.applyUnconfirmedList(unconfirmedTransactions, function () {
+					setImmediate(cb, err);
+				});
 			}
 
-			try {
-				var valid = library.logic.block.verifySignature(block);
-			} catch (e) {
-				return setImmediate(cb, e.toString());
-			}
-			if (!valid) {
-				return done("Can't verify signature: " + block.id);
+			if (!block.previousBlock && block.height != 1) {
+				return setImmediate(done, "Wrong previous block");
 			}
 
-			if (block.previousBlock != private.lastBlock.id) {
-				//fork same height and different previous block
-				modules.delegates.fork(block, 1);
-				return done("Can't verify previous block: " + block.id);
-			}
+			library.dbLite.query("SELECT id FROM blocks WHERE id=$id", {id: block.id}, ['id'], function (err, rows) {
+				if (err) {
+					return done(err);
+				}
 
-			if (block.version > 2 || block.version <= 0) {
-				return done("Invalid version of block: " + block.id)
-			}
+				var bId = rows.length && rows[0].id;
 
-			var blockSlotNumber = slots.getSlotNumber(block.timestamp);
-			var lastBlockSlotNumber = slots.getSlotNumber(private.lastBlock.timestamp);
+				if (bId) {
+					return done("Block already exists: " + block.id);
+				}
 
-			if (blockSlotNumber > slots.getSlotNumber() || blockSlotNumber <= lastBlockSlotNumber) {
-				return done("Can't verify block timestamp: " + block.id);
-			}
-
-			if (!modules.delegates.validateBlockSlot(block)) {
-				//fork another delegate's slot
-				modules.delegates.fork(block, 3);
-				return done("Can't verify slot: " + block.id);
-			}
-
-			if (block.payloadLength > constants.maxPayloadLength) {
-				return done("Can't verify payload length of block: " + block.id);
-			}
-
-			if (block.transactions.length != block.numberOfTransactions || block.transactions.length > 100) {
-				return done("Invalid amount of block assets: " + block.id);
-			}
-
-			// check payload hash, transaction, number of confirmations
-
-			var totalAmount = 0, totalFee = 0, payloadHash = crypto.createHash('sha256'), appliedTransactions = {}, acceptedRequests = {}, acceptedConfirmations = {};
-
-			async.eachSeries(block.transactions, function (transaction, cb) {
 				try {
-					transaction.id = library.logic.transaction.getId(transaction);
+					var valid = library.logic.block.verifySignature(block);
 				} catch (e) {
 					return setImmediate(cb, e.toString());
 				}
+				if (!valid) {
+					return done("Can't verify signature: " + block.id);
+				}
 
-				transaction.blockId = block.id;
+				if (block.previousBlock != private.lastBlock.id) {
+					//fork same height and different previous block
+					modules.delegates.fork(block, 1);
+					return done("Can't verify previous block: " + block.id);
+				}
 
-				library.dbLite.query("SELECT id FROM trs WHERE id=$id", {id: transaction.id}, ['id'], function (err, rows) {
-						if (err) {
-							return cb(err);
-						}
+				if (block.version > 2 || block.version <= 0) {
+					return done("Invalid version of block: " + block.id)
+				}
 
-						var tId = rows.length && rows[0].id;
+				var blockSlotNumber = slots.getSlotNumber(block.timestamp);
+				var lastBlockSlotNumber = slots.getSlotNumber(private.lastBlock.timestamp);
 
-						if (tId) {
-							//fork transactions already exist
-							modules.delegates.fork(block, 2);
-							setImmediate(cb, "Transaction already exists: " + transaction.id);
-						} else {
-							if (appliedTransactions[transaction.id]) {
-								return setImmediate(cb, "Dublicated transaction in block: " + transaction.id);
+				if (blockSlotNumber > slots.getSlotNumber() || blockSlotNumber <= lastBlockSlotNumber) {
+					return done("Can't verify block timestamp: " + block.id);
+				}
+
+				if (!modules.delegates.validateBlockSlot(block)) {
+					//fork another delegate's slot
+					modules.delegates.fork(block, 3);
+					return done("Can't verify slot: " + block.id);
+				}
+
+				if (block.payloadLength > constants.maxPayloadLength) {
+					return done("Can't verify payload length of block: " + block.id);
+				}
+
+				if (block.transactions.length != block.numberOfTransactions || block.transactions.length > 100) {
+					return done("Invalid amount of block assets: " + block.id);
+				}
+
+				// check payload hash, transaction, number of confirmations
+
+				var totalAmount = 0, totalFee = 0, payloadHash = crypto.createHash('sha256'), appliedTransactions = {}, acceptedRequests = {}, acceptedConfirmations = {};
+
+				async.eachSeries(block.transactions, function (transaction, cb) {
+					try {
+						transaction.id = library.logic.transaction.getId(transaction);
+					} catch (e) {
+						return setImmediate(cb, e.toString());
+					}
+
+					transaction.blockId = block.id;
+
+					library.dbLite.query("SELECT id FROM trs WHERE id=$id", {id: transaction.id}, ['id'], function (err, rows) {
+							if (err) {
+								return cb(err);
 							}
 
-							modules.accounts.getAccount({publicKey: transaction.senderPublicKey}, function (err, sender) {
-								if (err) {
-									return cb(err);
+							var tId = rows.length && rows[0].id;
+
+							if (tId) {
+								//fork transactions already exist
+								modules.delegates.fork(block, 2);
+								setImmediate(cb, "Transaction already exists: " + transaction.id);
+							} else {
+								if (appliedTransactions[transaction.id]) {
+									return setImmediate(cb, "Dublicated transaction in block: " + transaction.id);
 								}
 
-								library.logic.transaction.verify(transaction, sender, function (err) {
+								modules.accounts.getAccount({publicKey: transaction.senderPublicKey}, function (err, sender) {
 									if (err) {
-										return setImmediate(cb, err);
+										return cb(err);
 									}
 
-									modules.transactions.applyUnconfirmed(transaction, function (err) {
+									library.logic.transaction.verify(transaction, sender, function (err) {
 										if (err) {
-											return setImmediate(cb, "Can't apply transaction: " + transaction.id);
+											return setImmediate(cb, err);
 										}
 
-										try {
-											var bytes = library.logic.transaction.getBytes(transaction);
-										} catch (e) {
-											return setImmediate(cb, e.toString());
-										}
+										modules.transactions.applyUnconfirmed(transaction, function (err) {
+											if (err) {
+												return setImmediate(cb, "Can't apply transaction: " + transaction.id);
+											}
 
-										appliedTransactions[transaction.id] = transaction;
+											try {
+												var bytes = library.logic.transaction.getBytes(transaction);
+											} catch (e) {
+												return setImmediate(cb, e.toString());
+											}
 
-										var index = unconfirmedTransactions.indexOf(transaction.id);
-										if (index >= 0) {
-											unconfirmedTransactions.splice(index, 1);
-										}
+											appliedTransactions[transaction.id] = transaction;
 
-										payloadHash.update(bytes);
+											var index = unconfirmedTransactions.indexOf(transaction.id);
+											if (index >= 0) {
+												unconfirmedTransactions.splice(index, 1);
+											}
 
-										totalAmount += transaction.amount;
-										totalFee += transaction.fee;
+											payloadHash.update(bytes);
 
-										setImmediate(cb);
+											totalAmount += transaction.amount;
+											totalFee += transaction.fee;
+
+											setImmediate(cb);
+										});
 									});
 								});
+							}
+						}
+					);
+				}, function (err) {
+					var errors = [];
+
+					if (err) {
+						errors.push(err);
+					}
+
+					if (payloadHash.digest().toString('hex') !== block.payloadHash) {
+						errors.push("Invalid payload hash: " + block.id);
+					}
+
+					if (totalAmount != block.totalAmount) {
+						errors.push("Invalid total amount: " + block.id);
+					}
+
+					if (totalFee != block.totalFee) {
+						errors.push("Invalid total fee: " + block.id);
+					}
+
+					if (errors.length > 0) {
+						async.eachSeries(block.transactions, function (transaction, cb) {
+							if (appliedTransactions[transaction.id]) {
+								modules.transactions.undoUnconfirmed(transaction, cb);
+							} else {
+								setImmediate(cb);
+							}
+						}, function () {
+							done(errors[0]);
+						});
+					} else {
+						try {
+							block = library.logic.block.objectNormalize(block);
+						} catch (e) {
+							return setImmediate(done, e);
+						}
+
+						async.eachSeries(block.transactions, function (transaction, cb) {
+							modules.transactions.apply(transaction, function (err) {
+								if (err) {
+									library.logger.error("Can't apply transactions: " + transaction.id);
+									process.exit(0);
+								}
+								modules.transactions.removeUnconfirmedTransaction(transaction.id);
+								setImmediate(cb);
 							});
-						}
-					}
-				);
-			}, function (err) {
-				var errors = [];
+						}, function (err) {
+							private.saveBlock(block, function (err) {
+								if (err) {
+									library.logger.error("Can't save block...");
+									library.logger.error(err);
+									process.exit(0);
+								}
 
-				if (err) {
-					errors.push(err);
-				}
+								library.bus.message('newBlock', block, broadcast);
+								private.lastBlock = block;
 
-				if (payloadHash.digest().toString('hex') !== block.payloadHash) {
-					errors.push("Invalid payload hash: " + block.id);
-				}
-
-				if (totalAmount != block.totalAmount) {
-					errors.push("Invalid total amount: " + block.id);
-				}
-
-				if (totalFee != block.totalFee) {
-					errors.push("Invalid total fee: " + block.id);
-				}
-
-				if (errors.length > 0) {
-					async.eachSeries(block.transactions, function (transaction, cb) {
-						if (appliedTransactions[transaction.id]) {
-							modules.transactions.undoUnconfirmed(transaction, cb);
-						} else {
-							setImmediate(cb);
-						}
-					}, function () {
-						done(errors[0]);
-					});
-				} else {
-					try {
-						block = library.logic.block.objectNormalize(block);
-					} catch (e) {
-						return setImmediate(done, e);
-					}
-
-					async.eachSeries(block.transactions, function (transaction, cb) {
-						modules.transactions.apply(transaction, function (err) {
-							if (err) {
-								library.logger.error("Can't apply transactions: " + transaction.id);
-								process.exit(0);
-							}
-							modules.transactions.removeUnconfirmedTransaction(transaction.id);
-							setImmediate(cb);
+								modules.round.tick(block, done);
+								//setImmediate(done);
+							});
 						});
-					}, function (err) {
-						private.saveBlock(block, function (err) {
-							if (err) {
-								library.logger.error("Can't save block...");
-								library.logger.error(err);
-								process.exit(0);
-							}
-
-							library.bus.message('newBlock', block, broadcast);
-							private.lastBlock = block;
-
-							modules.round.tick(block, done);
-
-							//setImmediate(done);
-						});
-					});
-				}
-			});
-		})
-	});
+					}
+				});
+			})
+		});
+	}, cb);
 }
 
 Blocks.prototype.simpleDeleteAfterBlock = function (blockId, cb) {
@@ -888,6 +898,7 @@ Blocks.prototype.simpleDeleteAfterBlock = function (blockId, cb) {
 Blocks.prototype.loadBlocksFromPeer = function (peer, lastCommonBlockId, cb) {
 	var loaded = false;
 	var count = 0;
+	var lastValidBlock = null;
 
 	async.whilst(
 		function () {
@@ -904,11 +915,11 @@ Blocks.prototype.loadBlocksFromPeer = function (peer, lastCommonBlockId, cb) {
 				}
 
 				var blocks = data.body.blocks;
+
 				if (typeof blocks === "string") {
 					blocks = library.dbLite.parseCSV(blocks);
 				}
 
-				// not working of data.body is empty....
 				var report = library.scheme.validate(blocks, {
 					type: "array"
 				});
@@ -936,6 +947,7 @@ Blocks.prototype.loadBlocksFromPeer = function (peer, lastCommonBlockId, cb) {
 						self.processBlock(block, false, function (err) {
 							if (!err) {
 								lastCommonBlockId = block.id;
+								lastValidBlock = block;
 							} else {
 								var peerStr = data.peer ? ip.fromLong(data.peer.ip) + ":" + data.peer.port : 'unknown';
 								library.logger.log('block ' + (block ? block.id : 'null') + ' is not valid, ban 60 min', peerStr);
@@ -949,7 +961,7 @@ Blocks.prototype.loadBlocksFromPeer = function (peer, lastCommonBlockId, cb) {
 			});
 		},
 		function (err) {
-			setImmediate(cb, err);
+			setImmediate(cb, err, lastValidBlock);
 		}
 	)
 }
@@ -976,11 +988,11 @@ Blocks.prototype.deleteBlocksBefore = function (block, cb) {
 
 Blocks.prototype.generateBlock = function (keypair, timestamp, cb) {
 	var transactions = modules.transactions.getUnconfirmedTransactionList();
-	var ready = []
+	var ready = [];
 
 	async.eachSeries(transactions, function (transaction, cb) {
 		modules.accounts.getAccount({publicKey: transaction.senderPublicKey}, function (err, sender) {
-			if (err) {
+			if (err || !sender) {
 				return cb("sender doesn´t found");
 			}
 
@@ -1015,6 +1027,10 @@ Blocks.prototype.sandboxApi = function (call, args, cb) {
 
 //events
 Blocks.prototype.onReceiveBlock = function (block) {
+	if (modules.loader.syncing()) {
+		return;
+	}
+
 	library.sequence.add(function (cb) {
 		if (block.previousBlock == private.lastBlock.id && private.lastBlock.height + 1 == block.height) {
 			library.logger.log('recieved new block id:' + block.id + ' height:' + block.height + ' slot:' + slots.getSlotNumber(block.timestamp))

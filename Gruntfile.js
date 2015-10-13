@@ -70,6 +70,7 @@ module.exports = function (grunt) {
 						"mkdir  -p  ./builded/" + config.version + "/public" + "&&" +
 						"cp ./builded/app.js ./builded/" + config.version + "&&" +
 						"cp ./config.json ./builded/" + config.version + "/config.json" + "&&" +
+						"cp ./genesisBlock.json ./builded/" + config.version + "/genesisBlock.json" + "&&" +
 						"cp ./package.json ./builded/" + config.version + "/package.json" + "&&" +
 						"cd public && mkdir -p ./static && npm install &&  bower install && grunt release && cd ../ &&" +
 						"cp ./public/wallet.html ./builded/" + config.version + "/public/" + "&&" +
@@ -86,7 +87,7 @@ module.exports = function (grunt) {
 						"cp -rf ./public/bower_components/materialize ./builded/" + config.version + "/public/bower_components/materialize &&" +
 						"cp -rf ./public/bower_components/blob ./builded/" + config.version + "/public/bower_components/blob &&" +
 						"cp -rf ./public/bower_components/file-saver ./builded/" + config.version + "/public/bower_components/file-saver &&" +
-						"cp -rf ./public/node_modules/zeroclipboard ./builded/" + config.version + "/public/node_modules/zeroclipboard"
+						"cp -rf ./public/node_modules/zeroclipboard ./builded/" + config.version + "/public/node_modules/zeroclipboard "
 				}
 			},
 			folder: {
@@ -182,6 +183,9 @@ module.exports = function (grunt) {
 			notify: {
 				text: '@sebastian @eric @boris @landgraf_paul New version (' + config.version + ') of Crypti available: http://storage.googleapis.com/crypti-testing/nodes/' + config.version + '.zip (v' + today + ')'
 			}
+		},
+		jshint: {
+			all: ['app.js', 'helpers/**/*.js', 'modules/**/*.js', 'logic/**/*.js']
 		}
 	});
 
@@ -195,10 +199,13 @@ module.exports = function (grunt) {
 	grunt.loadNpmTasks('grunt-gcloud');
 	grunt.loadNpmTasks('grunt-nodemailer');
 	grunt.loadNpmTasks('grunt-slack-hook');
+	grunt.loadNpmTasks('grunt-contrib-jshint');
+
 
 	grunt.registerTask("default", ["obfuscator"]);
 	grunt.registerTask("release", ["default", "jscrambler"]);
 	grunt.registerTask('script', ["uglify:script"]);
 	grunt.registerTask('build', ["exec:folder", "release", "exec:package", "exec:build", "compress"])
 	grunt.registerTask("package", ["build", "gcloud:project", "nodemailer:message", "slack"]);
+	grunt.registerTask("validate", ["jshint"]);
 };

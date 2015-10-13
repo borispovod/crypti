@@ -1,7 +1,7 @@
 var slots = require('../helpers/slots.js'),
 	ed = require('ed25519'),
 	crypto = require('crypto'),
-	genesisblock = require("../helpers/genesisblock.js"),
+	genesisblock = null,
 	bignum = require('../helpers/bignum.js'),
 	ByteBuffer = require("bytebuffer"),
 	constants = require('../helpers/constants.js');
@@ -9,6 +9,7 @@ var slots = require('../helpers/slots.js'),
 //constructor
 function Block(scope, cb) {
 	this.scope = scope;
+	genesisblock = this.scope.genesisblock;
 	cb && setImmediate(cb, null, this);
 }
 
@@ -185,8 +186,14 @@ Block.prototype.dbSave = function (block, cb) {
 }
 
 Block.prototype.objectNormalize = function (block) {
+	for (var i in block) {
+		if (block[i] == null || typeof block[i] === 'undefined') {
+			delete block[i];
+		}
+	}
+
 	var report = this.scope.scheme.validate(block, {
-		object: true,
+		type: "object",
 		properties: {
 			id: {
 				type: "string"

@@ -2,12 +2,14 @@ var program = require('commander');
 var packageJson = require('./package.json');
 var Logger = require('./logger.js');
 var appConfig = require("./config.json");
+var genesisblock = require('./genesisBlock.json');
 var async = require('async');
 var extend = require('extend');
 var path = require('path');
 var https = require('https');
 var fs = require('fs');
 var z_schema = require('z-schema');
+var util = require('util');
 
 var versionBuild = fs.readFileSync(path.join(__dirname, 'build'), 'utf8');
 
@@ -21,8 +23,14 @@ program
 	.option('-l, --log <level>', 'Log level')
 	.parse(process.argv);
 
+if (typeof gc !== 'undefined') {
+	setInterval(function () {
+		gc();
+	}, 60000);
+}
+
 if (program.config) {
-	extend(appConfig, require(path.resolve(process.cwd(), program.config)));
+	appConfig = require(path.resolve(process.cwd(), program.config));
 }
 
 if (program.port) {
@@ -34,7 +42,6 @@ if (program.address) {
 }
 
 if (program.peers) {
-
 	if (typeof program.peers === 'string') {
 		appConfig.peers.list = program.peers.split(',').map(function (peer) {
 			peer = peer.split(":");
@@ -102,6 +109,12 @@ d.run(function () {
 			cb(null, versionBuild);
 		},
 
+		genesisblock: function (cb) {
+			cb(null, {
+				block: genesisblock
+			});
+		},
+
 		scheme: function (cb) {
 			z_schema.registerFormat("hex", function (str) {
 				try {
@@ -114,6 +127,10 @@ d.run(function () {
 			});
 
 			z_schema.registerFormat('publicKey', function (str) {
+				if (str.length == 0) {
+					return true;
+				}
+
 				try {
 					var publicKey = new Buffer(str, "hex");
 
@@ -137,6 +154,10 @@ d.run(function () {
 			});
 
 			z_schema.registerFormat('signature', function (str) {
+				if (str.length == 0) {
+					return true;
+				}
+
 				try {
 					var signature = new Buffer(str, "hex");
 					return signature.length == 64;
@@ -162,6 +183,10 @@ d.run(function () {
 
 				value = parseInt(value);
 				return true;
+			});
+
+			z_schema.registerFormat('ip', function (value) {
+
 			});
 
 			cb(null, new z_schema())
@@ -224,35 +249,72 @@ d.run(function () {
 		},
 
 		sequence: function (cb) {
-
 			var sequence = [];
 			setImmediate(function nextSequenceTick() {
 				var task = sequence.shift();
 				if (!task) {
 					return setTimeout(nextSequenceTick, 100);
 				}
-				task(function () {
+				var args = [function (err, res) {
+					task.done && setImmediate(task.done, err, res);
 					setTimeout(nextSequenceTick, 100);
-				});
+				}];
+				if (task.args) {
+					args = args.concat(task.args);
+				}
+				task.worker.apply(task.worker, args);
 			});
 			cb(null, {
-				add: function (worker, done) {
-					sequence.push(function (cb) {
-						if (worker && typeof(worker) == 'function') {
-							worker(function (err, res) {
-								setImmediate(cb);
-								done && setImmediate(done, err, res);
-							});
-						} else {
-							setImmediate(cb);
-							done && setImmediate(done);
+				add: function (worker, args, done) {
+					if (!done && args && typeof(args) == 'function') {
+						done = args;
+						args = undefined;
+					}
+					if (worker && typeof(worker) == 'function') {
+						var task = {worker: worker, done: done};
+						if (util.isArray(args)){
+							task.args = args;
 						}
-					});
+						sequence.push(task);
+					}
 				}
 			});
 		},
 
-		connect: ['config', 'logger', 'build', 'network', function (cb, scope) {
+		balancesSequence: function (cb) {
+			var sequence = [];
+			setImmediate(function nextSequenceTick() {
+				var task = sequence.shift();
+				if (!task) {
+					return setTimeout(nextSequenceTick, 100);
+				}
+				var args = [function (err, res) {
+					task.done && setImmediate(task.done, err, res);
+					setTimeout(nextSequenceTick, 100);
+				}];
+				if (task.args) {
+					args = args.concat(task.args);
+				}
+				task.worker.apply(task.worker, args);
+			});
+			cb(null, {
+				add: function (worker, args, done) {
+					if (!done && args && typeof(args) == 'function') {
+						done = args;
+						args = undefined;
+					}
+					if (worker && typeof(worker) == 'function') {
+						var task = {worker: worker, done: done};
+						if (util.isArray(args)){
+							task.args = args;
+						}
+						sequence.push(task);
+					}
+				}
+			});
+		},
+
+		connect: ['config', 'genesisblock', 'logger', 'build', 'network', function (cb, scope) {
 			var path = require('path');
 			var bodyParser = require('body-parser');
 			var methodOverride = require('method-override');
@@ -268,7 +330,7 @@ d.run(function () {
 			scope.network.app.use(bodyParser.json());
 			scope.network.app.use(methodOverride());
 
-			var ignore = ['id', 'name', 'lastBlockId', 'blockId', 'transactionId', 'address', 'recipientId', 'senderId', 'senderUsername', 'recipientUsername', 'previousBlock'];
+			var ignore = ['id', 'name', 'lastBlockId', 'blockId', 'username', 'transactionId', 'address', 'recipientId', 'senderId', 'senderUsername', 'recipientUsername', 'previousBlock'];
 			scope.network.app.use(queryParser({
 				parser: function (value, radix, name) {
 					if (ignore.indexOf(name) >= 0) {
@@ -336,7 +398,6 @@ d.run(function () {
 				}
 			});
 
-
 		}],
 
 		bus: function (cb) {
@@ -362,7 +423,7 @@ d.run(function () {
 			dbLite.connect(config.db, cb);
 		},
 
-		logic: ['dbLite', 'bus', 'scheme', function (cb, scope) {
+		logic: ['dbLite', 'bus', 'scheme', 'genesisblock', function (cb, scope) {
 			var Transaction = require('./logic/transaction.js');
 			var Block = require('./logic/block.js');
 			var Account = require('./logic/account.js');
@@ -377,26 +438,33 @@ d.run(function () {
 				scheme: function (cb) {
 					cb(null, scope.scheme);
 				},
-				account: ["dbLite", "bus", "scheme", function (cb, scope) {
+				genesisblock: function (cb) {
+					cb(null, {
+						block: genesisblock
+					});
+				},
+				account: ["dbLite", "bus", "scheme", 'genesisblock', function (cb, scope) {
 					new Account(scope, cb);
 				}],
-				transaction: ["dbLite", "bus", "scheme", "account", function (cb, scope) {
+				transaction: ["dbLite", "bus", "scheme", 'genesisblock', "account", function (cb, scope) {
 					new Transaction(scope, cb);
 				}],
-				block: ["dbLite", "bus", "scheme", "account", "transaction", function (cb, scope) {
+				block: ["dbLite", "bus", "scheme", 'genesisblock', "account", "transaction", function (cb, scope) {
 					new Block(scope, cb);
 				}]
 			}, cb);
 		}],
 
-		modules: ['network', 'connect', 'config', 'logger', 'bus', 'sequence', 'dbSequence', 'dbLite', 'logic', function (cb, scope) {
+		modules: ['network', 'connect', 'config', 'logger', 'bus', 'sequence', 'dbSequence', 'balancesSequence', 'dbLite', 'logic', function (cb, scope) {
 			var tasks = {};
 			Object.keys(config.modules).forEach(function (name) {
 				tasks[name] = function (cb) {
 					var d = require('domain').create();
+
 					d.on('error', function (err) {
 						scope.logger.fatal('domain ' + name, {message: err.message, stack: err.stack});
 					});
+
 					d.run(function () {
 						logger.debug('loading module', name)
 						var Klass = require(config.modules[name]);

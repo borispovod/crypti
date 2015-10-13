@@ -1,5 +1,6 @@
 var util = require('util'),
 	request = require('request'),
+	ip = require('ip'),
 	fs = require('fs'),
 	sandboxHelper = require('../helpers/sandbox.js'),
 	async = require('async');
@@ -58,12 +59,11 @@ private.downloadPeers = function(peer, cb) {
 		} else {
 			// validate peers
 			async.eachSeries(body.peers, function (peer, cb) {
-				library.schema.validate(peer, {
+				library.scheme.validate(peer, {
 					type: "object",
 					properties: {
 						"ip": {
-							type: "string",
-							format: "ip"
+							type: "string"
 						},
 						"port": {
 							type: "integer",
@@ -103,7 +103,7 @@ Sia.prototype.uploadAscii = function (id, ascii, icon, cb) {
 		private.getRandomPeers(1, function (err, peers) {
 			if (err) {
 				library.logger.error(err);
-				uploadAsciiRecursive();
+				return cb(err.toString());
 			} else {
 				var peer = peers[0];
 				var peerStr = "http://" + peer.ip + ":" + peer.port;
@@ -120,80 +120,92 @@ Sia.prototype.uploadAscii = function (id, ascii, icon, cb) {
 					if (err || resp.statusCode != 200) {
 						library.logger.error(err.toString() || "Can't download file");
 						private.removePeer(peer, function (removeErr) {
-							library.logger.error(removeErr.toString() || err.toString() || "Can't download file");
+							library.logger.error(err? err.toString() : "Can't download file");
 							return uploadAsciiRecursive();
 						});
 						//return setImmediate(cb, err || "Can't download file");
-					}
-
-					if (body.success) {
-						return cb(null, body.file);
 					} else {
-						return cb("Can't add this file, this file already added");
+
+						if (body.success) {
+							return cb(null, body.file);
+						} else {
+							return cb("Can't add this file, this file already added");
+						}
 					}
 				});
 			}
 		});
 	}
+
+	uploadAsciiRecursive();
 }
 
 //public methods
 Sia.prototype.download = function (nickname, path, cb) {
-	var peer = library.config.sia.peer;
-	var peerStr = "http://" + peer.address + ":" + peer.port;
+	private.getRandomPeers(1, function (err, peers) {
+		var peer = peers[0];
+		var peerStr = "http://" + peer.ip + ":" + peer.port;
 
-	request.post({
-		url: peerStr + "/download",
-		json: {
-			nickname: nickname
-		},
-		timeout: 1000 * 60 * 2
-	}, function (err, resp, body) {
-		if (err || resp.statusCode != 200) {
-			return setImmediate(cb, err || "Can't download file");
-		}
-
-		if (body.success || (!body.success && body.error == "This file already downloaded, use /get to get file.")) {
-			if (typeof path === 'string') {
-				var stream = fs.createWriteStream(path);
-
-				// to file
-				request.post({
-					url: peerStr + "/get",
-					json: {
-						nickname: nickname
-					},
-					timeout: 1000 * 60
-				}).on("error", function (err) {
-					if (cb) {
-						return setImmediate(cb, err);
-					}
-				}).on('end', function () {
-					if (cb) {
-						return setImmediate(cb, null, path);
-					}
-				}).pipe(stream);
-			} else {
-				// to stream
-				request.post({
-					url: peerStr + "/get",
-					json: {
-						nickname: nickname
-					},
-					timeout: 1000 * 60
-				}).on("error", function (err) {
-					if (cb) {
-						return setImmediate(cb, err);
-					}
-				}).on('end', function () {
-					if (cb) {
-						return setImmediate(cb, null, path);
-					}
-				}).pipe(path);
+		request.post({
+			url: peerStr + "/download",
+			json: {
+				nickname: nickname
+			},
+			timeout: 1000 * 60 * 2
+		}, function (err, resp, body) {
+			if (err || resp.statusCode != 200) {
+				if (cb) {
+					return setImmediate(cb, err || "Can't download file");
+				} else {
+					library.logger.error(err);
+					return;
+				}
 			}
-		} else {
-			return setImmediate(cb, "Error downloading from sia: " + body);
-		}
+
+			if (body.success || (!body.success && body.error == "This file already downloaded, use /get to get file.")) {
+				if (typeof path === 'string') {
+					var stream = fs.createWriteStream(path);
+
+					// to file
+					request.post({
+						url: peerStr + "/get",
+						json: {
+							nickname: nickname
+						},
+						timeout: 1000 * 60
+					}).on("error", function (err) {
+						if (cb) {
+							return setImmediate(cb, err);
+						}
+					}).on('end', function () {
+						if (cb) {
+							return setImmediate(cb, null, path);
+						}
+					}).pipe(stream);
+				} else {
+					// to stream
+					request.post({
+						url: peerStr + "/get",
+						json: {
+							nickname: nickname
+						},
+						timeout: 1000 * 60
+					}).on("error", function (err) {
+						if (cb) {
+							return setImmediate(cb, err);
+						}
+					}).on('end', function () {
+						if (cb) {
+							return setImmediate(cb, null, path);
+						}
+					}).pipe(path);
+				}
+			} else {
+				if (cb) {
+					return setImmediate(cb, "Error downloading from sia: " + body);
+				}
+			}
+		});
 	});
 }
 
@@ -216,7 +228,7 @@ Sia.prototype.onBlockchainReady = function () {
 			} else {
 				private.downloadPeers(peers[0], function (err) {
 					if (err) {
-						private.removePeer(function (removeErr) {
+						private.removePeer(peers[0], function (removeErr) {
 							cb(removeErr || err);
 						});
 					};
@@ -225,22 +237,54 @@ Sia.prototype.onBlockchainReady = function () {
 		});
 	}
 
+	// save local peers
+	async.eachSeries(library.config.sia.peers, function (peer, cb) {
+		library.scheme.validate(peer, {
+			type: "object",
+			properties: {
+				"ip": {
+					type: "string"
+				},
+				"port": {
+					type: "integer",
+					minimum: 1,
+					maximum: 65535
+				}
+			}
+		}, function (err) {
+			if (err) {
+				return cb(err);
+			}
 
-	downloadPeers(function (err) {
+			library.dbLite.query("INSERT OR IGNORE INTO sia_peers(ip, port) VALUES($ip, $port)", {
+				ip: ip.toLong(peer.ip),
+				port: peer.port
+			}, function (err, r) {
+				setImmediate(cb, err);
+			});
+		})
+	}, function (err) {
 		if (err) {
 			library.logger.error(err);
 		} else {
-			setTimeout(function downloadPeersTimeout() {
-				downloadPeersTimeout(function (err) {
-					if (err) {
-						library.logger.error(err);
-					}
+			downloadPeers(function (err) {
+				if (err) {
+					library.logger.error(err);
+				} else {
+					setTimeout(function downloadPeersTimeout() {
+						downloadPeersTimeout(function (err) {
+							if (err) {
+								library.logger.error(err);
+							}
 
-					setTimeout(downloadPeersTimeout, 1000 * 60);
-				})
-			}, 1000 * 60);
+							setTimeout(downloadPeersTimeout, 1000 * 60);
+						})
+					}, 1000 * 60);
+				}
+			});
 		}
 	});
+
 
 }
 

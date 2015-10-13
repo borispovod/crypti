@@ -38,6 +38,7 @@ private.attachApi = function () {
 	});
 
 	router.use(function (req, res, next) {
+		//console.log("Request for us: " + req.url);
 		var peerIp = req.headers['x-forwarded-for'] = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
 
 		if (peerIp == "127.0.0.1") {
@@ -128,7 +129,7 @@ private.attachApi = function () {
 
 			var max = query.max;
 			var min = query.min;
-			var ids = query.ids.filter(function (id) {
+			var ids = query.ids.split(",").filter(function (id) {
 				return /^\d+$/.test(id);
 			});
 			var escapedIds = ids.map(function (id) {
@@ -243,7 +244,7 @@ private.attachApi = function () {
 	router.post('/signatures', function (req, res) {
 		res.set(private.headers);
 
-		library.scheme.validate(res.body, {
+		library.scheme.validate(req.body, {
 			type: "object",
 			properties: {
 				signature: {
@@ -266,7 +267,7 @@ private.attachApi = function () {
 				return res.status(200).json({success: false, error: "Validation error"});
 			}
 
-			modules.multisignatures.processSignature(signature, function (err) {
+			modules.multisignatures.processSignature(req.body.signature, function (err) {
 				if (err) {
 					return res.status(200).json({success: false, error: "Process signature error"});
 				} else {
@@ -330,7 +331,7 @@ private.attachApi = function () {
 			return res.status(200).json({success: false, message: "Invalid transaction body"});
 		}
 
-		library.sequence.add(function (cb) {
+		library.balancesSequence.add(function (cb) {
 			modules.transactions.receiveTransactions([transaction], cb);
 		}, function (err) {
 			if (err) {
@@ -352,10 +353,19 @@ private.attachApi = function () {
 		res.set(private.headers);
 
 		try {
-			if (!req.body.dappid) throw Error("missed dappid");
-			if (!req.body.timestamp || !req.body.hash) throw Error("missed hash sum");
+			if (!req.body.dappid) {
+				return res.status(200).json({success: false, message: "missed dappid"});
+			}
+			if (!req.body.timestamp || !req.body.hash) {
+				return res.status(200).json({
+					success: false,
+					message: "missed hash sum"
+				});
+			}
 			var newHash = private.hashsum(req.body.body, req.body.timestamp);
-			if (newHash !== req.body.hash) throw Error("wrong hash sum");
+			if (newHash !== req.body.hash) {
+				return res.status(200).json({success: false, message: "wrong hash sum"});
+			}
 		} catch (e) {
 			return res.status(200).json({success: false, message: e.toString()});
 		}
@@ -376,7 +386,7 @@ private.attachApi = function () {
 			}
 
 			library.bus.message('message', req.body, true);
-			res.status(200).json(extend(body, {success: true}));
+			res.status(200).json(extend({}, body, {success: true}));
 		});
 	});
 
@@ -384,10 +394,19 @@ private.attachApi = function () {
 		res.set(private.headers);
 
 		try {
-			if (!req.body.dappid) throw Error("missed dappid");
-			if (!req.body.timestamp || !req.body.hash) throw Error("missed hash sum");
+			if (!req.body.dappid) {
+				return res.status(200).json({success: false, message: "missed dappid"});
+			}
+			if (!req.body.timestamp || !req.body.hash) {
+				return res.status(200).json({
+					success: false,
+					message: "missed hash sum"
+				});
+			}
 			var newHash = private.hashsum(req.body.body, req.body.timestamp);
-			if (newHash !== req.body.hash) throw Error("wrong hash sum");
+			if (newHash !== req.body.hash) {
+				return res.status(200).json({success: false, message: "wrong hash sum"});
+			}
 		} catch (e) {
 			return res.status(200).json({success: false, message: e.toString()});
 		}
@@ -401,7 +420,7 @@ private.attachApi = function () {
 				return res.status(200).json({success: false, message: err});
 			}
 
-			res.status(200).json(extend(body, {success: true}));
+			res.status(200).json(extend({}, body, {success: true}));
 		});
 	});
 
@@ -642,7 +661,11 @@ shared.request = function (msg, cb) {
 	msg.hash = private.hashsum(msg.body, msg.timestamp);
 
 	if (msg.body.peer) {
-		self.getFromPeer({ip: msg.body.peer.ip, port: msg.body.peer.port}, {api: '/dapp/request', data: msg, method: "POST"}, cb);
+		self.getFromPeer({ip: msg.body.peer.ip, port: msg.body.peer.port}, {
+			api: '/dapp/request',
+			data: msg,
+			method: "POST"
+		}, cb);
 	} else {
 		self.getFromRandomPeer({dappid: msg.dappid}, {api: '/dapp/request', data: msg, method: "POST"}, cb);
 	}

@@ -2,7 +2,7 @@ var ed = require('ed25519'),
 	util = require('util'),
 	ByteBuffer = require("bytebuffer"),
 	crypto = require('crypto'),
-	genesisblock = require('../helpers/genesisblock.js'),
+	genesisblock = null,
 	constants = require("../helpers/constants.js"),
 	slots = require('../helpers/slots.js'),
 	extend = require('extend'),
@@ -60,6 +60,7 @@ function Transfer() {
 			if (err) {
 				return cb(err);
 			}
+
 			modules.accounts.mergeAccountAndGet({
 				address: trs.recipientId,
 				balance: trs.amount,
@@ -74,6 +75,7 @@ function Transfer() {
 			if (err) {
 				return cb(err);
 			}
+
 			modules.accounts.mergeAccountAndGet({
 				address: trs.recipientId,
 				balance: -trs.amount,
@@ -109,7 +111,7 @@ function Transfer() {
 				return false;
 			}
 
-			return trs.signatures.length >= sender.multimin;
+			return trs.signatures.length >= sender.multimin - 1;
 		} else {
 			return true;
 		}
@@ -119,6 +121,7 @@ function Transfer() {
 //constructor
 function Transactions(cb, scope) {
 	library = scope;
+	genesisblock = library.genesisblock;
 	self = this;
 	self.__private = private;
 	private.attachApi();
@@ -158,7 +161,7 @@ private.attachApi = function () {
 }
 
 private.list = function (filter, cb) {
-	var sortFields = ['t.id', 't.blockId', 't.amount', 't.type', 't.timestamp', 't.senderPublicKey', 't.senderId', 't.recipientId', 't.senderUsername', 't.recipientUsername', 't.confirmations', 'b.height'];
+	var sortFields = ['t.id', 't.blockId', 't.amount', 't.fee', 't.type', 't.timestamp', 't.senderPublicKey', 't.senderId', 't.recipientId', 't.senderUsername', 't.recipientUsername', 't.confirmations', 'b.height'];
 	var params = {}, fields_or = [], owner = "";
 	if (filter.blockId) {
 		fields_or.push('blockId = $blockId')
@@ -233,14 +236,14 @@ private.list = function (filter, cb) {
 		var count = rows.length ? rows[0].count : 0;
 
 		// need to fix 'or' or 'and' in query
-		library.dbLite.query("select t.id, b.height, t.blockId, t.type, t.timestamp, lower(hex(t.senderPublicKey)), t.senderId, t.recipientId, t.senderUsername, t.recipientUsername, t.amount, t.fee, lower(hex(t.signature)), lower(hex(t.signSignature)), (select max(height) + 1 from blocks) - b.height " +
+		library.dbLite.query("select t.id, b.height, t.blockId, t.type, t.timestamp, lower(hex(t.senderPublicKey)), t.senderId, t.recipientId, t.senderUsername, t.recipientUsername, t.amount, t.fee, lower(hex(t.signature)), lower(hex(t.signSignature)), t.signatures, (select max(height) + 1 from blocks) - b.height " +
 			"from trs t " +
 			"inner join blocks b on t.blockId = b.id " +
 			(fields_or.length || owner ? "where " : "") + " " +
 			(fields_or.length ? "(" + fields_or.join(' or ') + ") " : "") + (fields_or.length && owner ? " and " + owner : owner) + " " +
 			(filter.orderBy ? 'order by ' + sortBy + ' ' + sortMethod : '') + " " +
 			(filter.limit ? 'limit $limit' : '') + " " +
-			(filter.offset ? 'offset $offset' : ''), params, ['t_id', 'b_height', 't_blockId', 't_type', 't_timestamp', 't_senderPublicKey', 't_senderId', 't_recipientId', 't_senderUsername', 't_recipientUsername', 't_amount', 't_fee', 't_signature', 't_signSignature', 'confirmations'], function (err, rows) {
+			(filter.offset ? 'offset $offset' : ''), params, ['t_id', 'b_height', 't_blockId', 't_type', 't_timestamp', 't_senderPublicKey', 't_senderId', 't_recipientId', 't_senderUsername', 't_recipientUsername', 't_amount', 't_fee', 't_signature', 't_signSignature', 't_signatures', 'confirmations'], function (err, rows) {
 			if (err) {
 				return cb(err);
 			}
@@ -348,10 +351,14 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 			return done(err);
 		}
 
-		if (transaction.requesterPublicKey && sender.multisignatures && sender.multisignatures.length) {
+		if (transaction.requesterPublicKey && sender && sender.multisignatures && sender.multisignatures.length) {
 			modules.accounts.getAccount({publicKey: transaction.requesterPublicKey}, function (err, requester) {
 				if (err) {
 					return done(err);
+				}
+
+				if (!requester) {
+					return cb("Requester didn't found");
 				}
 
 				library.logic.transaction.process(transaction, sender, requester, function (err, transaction) {
@@ -416,6 +423,11 @@ Transactions.prototype.apply = function (transaction, cb) {
 		if (err) {
 			return cb(err);
 		}
+
+		if (!sender) {
+			return cb("Sender didn't found");
+		}
+
 		library.logic.transaction.apply(transaction, sender, cb);
 	});
 }
@@ -703,7 +715,7 @@ shared.addTransactions = function (req, cb) {
 			query.username = body.recipientId;
 		}
 
-		library.sequence.add(function (cb) {
+		library.balancesSequence.add(function (cb) {
 			modules.accounts.getAccount(query, function (err, recipient) {
 				if (err) {
 					return cb(err.toString());
@@ -714,7 +726,7 @@ shared.addTransactions = function (req, cb) {
 				var recipientId = recipient ? recipient.address : body.recipientId;
 				var recipientUsername = recipient ? recipient.username : null;
 
-				if (body.multisigAccountPublicKey) {
+				if (body.multisigAccountPublicKey && body.multisigAccountPublicKey != keypair.publicKey.toString('hex')) {
 					modules.accounts.getAccount({publicKey: body.multisigAccountPublicKey}, function (err, account) {
 						if (err) {
 							return cb(err.toString());

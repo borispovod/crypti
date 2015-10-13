@@ -1,5 +1,4 @@
-var encryptHelper = require('../helpers/encrypt.js'),
-	TransactionTypes = require('../helpers/transaction-types.js'),
+var TransactionTypes = require('../helpers/transaction-types.js'),
 	Router = require('../helpers/router.js'),
 	constants = require('../helpers/constants.js'),
 	ed = require('ed25519'),
@@ -91,24 +90,12 @@ function Contact() {
 	}
 
 	this.applyUnconfirmed = function (trs, sender, cb) {
-		library.dbLite.query("SELECT count(id) FROM trs where recipientId=$address", {
-			address: trs.asset.contact.address.slice(1)
-		}, ['count'], function (err, rows) {
+		self.checkUnconfirmedContacts(trs.senderPublicKey, [trs.asset.contact.address], function (err) {
 			if (err) {
-				return setImmediate(cb, "Sql error");
+				return setImmediate(cb, errorCode("CONTACTS.ALREADY_ADDED_UNCONFIRMED", trs));
 			}
 
-			if (rows.length == 0 || rows[0].count == 0) {
-				return setImmediate(cb, "Can't apply contact, recipient doesn't exists");
-			}
-
-			self.checkUnconfirmedContacts(trs.senderPublicKey, [trs.asset.contact.address], function (err) {
-				if (err) {
-					return setImmediate(cb, errorCode("CONTACTS.ALREADY_ADDED_UNCONFIRMED", trs));
-				}
-
-				this.scope.account.merge(sender.address, {u_contacts: [trs.asset.contact.address]}, cb);
-			}.bind(this));
+			this.scope.account.merge(sender.address, {u_contacts: [trs.asset.contact.address]}, cb);
 		}.bind(this));
 	}
 
@@ -162,7 +149,7 @@ function Contact() {
 			if (!trs.signatures) {
 				return false;
 			}
-			return trs.signatures.length >= sender.multimin;
+			return trs.signatures.length >= sender.multimin - 1;
 		} else {
 			return true;
 		}
@@ -212,7 +199,7 @@ private.attachApi = function () {
 //public methods
 Contacts.prototype.checkContacts = function (publicKey, contacts, cb) {
 	if (util.isArray(contacts)) {
-		modules.accounts.getAccount({publicKey: publicKey}, function (err, account) {
+		modules.accounts.setAccountAndGet({publicKey: publicKey}, function (err, account) {
 			if (err) {
 				return cb(err);
 			}
@@ -223,6 +210,10 @@ Contacts.prototype.checkContacts = function (publicKey, contacts, cb) {
 			for (var i = 0; i < contacts.length; i++) {
 				var math = contacts[i][0];
 				var contactAddress = contacts[i].slice(1);
+
+				if (math != '+') {
+					return cb("Incorrect math for contact");
+				}
 
 				if (math == "+" && (account.contacts !== null && account.contacts.indexOf(contactAddress) != -1)) {
 					return cb("Can't verify contacts, you already added this contact");
@@ -254,6 +245,10 @@ Contacts.prototype.checkUnconfirmedContacts = function (publicKey, contacts, cb)
 			for (var i = 0; i < contacts.length; i++) {
 				var math = contacts[i][0];
 				var contactAddress = contacts[i].slice(1);
+
+				if (math != '+' && math != '-') {
+					return cb(errorCode('Incorrect math'));
+				}
 
 				if (contactAddress == selfAddress) {
 					return cb(errorCode("CONTACTS.SELF_FRIENDING"));
@@ -302,7 +297,7 @@ shared.getUnconfirmedContacts = function (req, cb) {
 		var transactions = modules.transactions.getUnconfirmedTransactionList();
 
 		var contacts = [];
-		async.forEach(transactions, function (item, cb) {
+		async.eachSeries(transactions, function (item, cb) {
 			if (item.type != TransactionTypes.FOLLOW) {
 				return setImmediate(cb);
 			}
@@ -362,7 +357,20 @@ shared.getContacts = function (req, cb) {
 				if (err) {
 					return cb(err.toString());
 				}
-				cb(null, {following: res.contacts, followers: res.followers});
+
+				var realFollowers = [];
+				// find and remove
+				for (var i in res.followers) {
+					var contact = res.contacts.find(function (item) {
+						return item.address == res.followers[i].address;
+					});
+
+					if (!contact) {
+						realFollowers.push(res.followers[i]);
+					}
+				}
+
+				cb(null, {following: res.contacts, followers: realFollowers});
 			});
 		});
 	});
@@ -418,8 +426,8 @@ shared.addContact = function (req, cb) {
 			query.username = followingAddress;
 		}
 
-		library.sequence.add(function (cb) {
-			if (body.multisigAccountPublicKey) {
+		library.balancesSequence.add(function (cb) {
+			if (body.multisigAccountPublicKey && body.multisigAccountPublicKey != keypair.publicKey.toString('hex')) {
 				modules.accounts.getAccount({publicKey: body.multisigAccountPublicKey}, function (err, account) {
 					if (err) {
 						return cb(err.toString());

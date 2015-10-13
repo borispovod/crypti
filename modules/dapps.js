@@ -32,30 +32,34 @@ private.unconfirmedAscii = {};
 private.appPath = process.cwd();
 private.dappsPath = path.join(process.cwd(), 'dapps');
 private.sandboxes = {};
+private.dappready = {};
 private.routes = {};
+private.unconfirmedOutTansfers = {};
 
 function isASCII(str, extended) {
 	return (extended ? /^[\x00-\xFF]*$/ : /^[\x00-\x7F]*$/).test(str);
 }
 
-function Transfer() {
+function OutTransfer() {
 	this.create = function (data, trs) {
-		trs.recipientId = null;
+		trs.recipientId = data.recipientId;
 		trs.amount = data.amount;
 
-		trs.asset.dapptransfer = {
-			dappid: data.dappid
+		trs.asset.outTransfer = {
+			dappId: data.dappId,
+			transactionId: data.transactionId
 		};
 
 		return trs;
 	}
 
 	this.calculateFee = function (trs) {
-		return 1 * constants.fixedPoint;
+		var fee = parseInt(trs.amount / 100 * library.logic.block.calculateFee());
+		return fee || 1;
 	}
 
 	this.verify = function (trs, sender, cb) {
-		if (trs.recipientId) {
+		if (!trs.recipientId) {
 			return setImmediate(cb, errorCode("TRANSACTIONS.INVALID_RECIPIENT", trs));
 		}
 
@@ -63,18 +67,61 @@ function Transfer() {
 			return setImmediate(cb, errorCode("TRANSACTIONS.INVALID_AMOUNT", trs));
 		}
 
-		setImmediate(cb);
+		if (!trs.asset.outTransfer.dappId) {
+			return setImmediate(cb, "DApp Id missed for out transfer transaction");
+		}
+
+		if (!trs.asset.outTransfer.transactionId) {
+			return setImmediate(cb, "DApp Id missed for input transfer transaction");
+		}
+
+		setImmediate(cb, null, trs);
 	}
 
 	this.process = function (trs, sender, cb) {
-		setImmediate(cb, null, trs);
+		library.dbLite.query("SELECT count(*) FROM dapps WHERE transactionId=$id", {
+			id: trs.asset.outTransfer.dappId
+		}, ['count'], function (err, rows) {
+			if (err) {
+				library.logger.error(err.toString());
+				return cb("This dapp not found: " + trs.asset.outTransfer.dappId);
+			}
+
+			var count = rows[0].count;
+
+			if (count == 0) {
+				return cb("This dapp not found: " + trs.asset.outTransfer.dappId);
+			}
+
+			if (private.unconfirmedOutTansfers[trs.asset.outTransfer.transactionId]) {
+				return cb("This transaction already on processing: " + trs.asset.outTransfer.transactionId);
+			}
+
+			library.dbLite.query("SELECT count(*) FROM outtransfer WHERE outTransactionId = $transactionId", {
+				transactionId: trs.asset.outTransfer.transactionId
+			}, {'count': Number}, function (err, rows) {
+				if (err) {
+					library.logger.error(err.toString());
+					return cb("This transaction already confirmed: " + trs.asset.outTransfer.transactionId);
+				} else {
+					var count = rows[0].count;
+
+					if (count) {
+						return cb("This transaction already confirmed");
+					} else {
+						return cb(null, trs);
+					}
+				}
+			})
+		});
 	}
 
 	this.getBytes = function (trs) {
 		try {
 			var buf = new Buffer([]);
-			var nameBuf = new Buffer(trs.asset.dapptransfer.dappid, 'utf8');
-			buf = Buffer.concat([buf, nameBuf]);
+			var dappIdBuf = new Buffer(trs.asset.outTransfer.dappId, 'utf8');
+			var transactionIdBuff = new Buffer(trs.asset.outTransfer.transactionId, 'utf8');
+			buf = Buffer.concat([buf, dappIdBuf, transactionIdBuff]);
 		} catch (e) {
 			throw Error(e.toString());
 		}
@@ -83,31 +130,61 @@ function Transfer() {
 	}
 
 	this.apply = function (trs, sender, cb) {
-		setImmediate(cb);
+		private.unconfirmedOutTansfers[trs.asset.outTransfer.transactionId] = false;
+
+		modules.accounts.setAccountAndGet({address: trs.recipientId}, function (err, recipient) {
+			if (err) {
+				return cb(err);
+			}
+
+			modules.accounts.mergeAccountAndGet({
+				address: trs.recipientId,
+				balance: trs.amount,
+				u_balance: trs.amount,
+				blockId: trs.blockId
+			}, cb);
+		});
 	}
 
 	this.undo = function (trs, sender, cb) {
-		setImmediate(cb);
+		private.unconfirmedOutTansfers[trs.asset.outTransfer.transactionId] = true;
+
+		modules.accounts.setAccountAndGet({address: trs.recipientId}, function (err, recipient) {
+			if (err) {
+				return cb(err);
+			}
+			modules.accounts.mergeAccountAndGet({
+				address: trs.recipientId,
+				balance: -trs.amount,
+				u_balance: -trs.amount
+			}, cb);
+		});
 	}
 
 	this.applyUnconfirmed = function (trs, sender, cb) {
+		private.unconfirmedOutTansfers[trs.asset.outTransfer.transactionId] = true;
 		setImmediate(cb);
 	}
 
 	this.undoUnconfirmed = function (trs, sender, cb) {
+		private.unconfirmedOutTansfers[trs.asset.outTransfer.transactionId] = false;
 		setImmediate(cb);
 	}
 
 	this.objectNormalize = function (trs) {
-		var report = library.scheme.validate(trs.asset.dapptransfer, {
+		var report = library.scheme.validate(trs.asset.outTransfer, {
 			object: true,
 			properties: {
-				dappid: {
+				dappId: {
 					type: "string",
 					minLength: 1
 				},
+				transactionId: {
+					type: "string",
+					minLength: 1
+				}
 			},
-			required: ["dappid"]
+			required: ["dappId", "transactionId"]
 		});
 
 		if (!report) {
@@ -118,27 +195,30 @@ function Transfer() {
 	}
 
 	this.dbRead = function (raw) {
-		if (!raw.dapptransfer_dappid) {
+		if (!raw.ot_dappId) {
 			return null;
 		} else {
-			var dapptransfer = {
-				dappid: raw.dapptransfer_dappid
+			var outTransfer = {
+				dappId: raw.ot_dappId,
+				transactionId: raw.ot_outTransactionId
 			}
 
-			return {dapptransfer: dapptransfer};
+			return {outTransfer: outTransfer};
 		}
 	}
 
 	this.dbSave = function (trs, cb) {
-		library.dbLite.query("INSERT INTO dapptransfers(dappid, transactionId) VALUES($dappid, $transactionId)", {
-			dappid: trs.asset.dapptransfer.dappid,
+		library.dbLite.query("INSERT INTO outtransfer(dappId, transactionId, outTransactionId) VALUES($dappId, $transactionId, $outTransactionId)", {
+			dappId: trs.asset.outTransfer.dappId,
+			outTransactionId: trs.asset.outTransfer.transactionId,
 			transactionId: trs.id
 		}, function (err) {
 			if (err) {
 				return cb(err);
 			}
-			self.message(trs.asset.dapptransfer.dappid, {
-				topic: "balance",
+
+			self.message(trs.asset.outTransfer.dappId, {
+				topic: "withdrawal",
 				message: {
 					transactionId: trs.id
 				}
@@ -151,7 +231,147 @@ function Transfer() {
 			if (!trs.signatures) {
 				return false;
 			}
-			return trs.signatures.length >= sender.multimin;
+			return trs.signatures.length >= sender.multimin - 1;
+		} else {
+			return true;
+		}
+	}
+}
+
+function InTransfer() {
+	this.create = function (data, trs) {
+		trs.recipientId = null;
+		trs.amount = data.amount;
+
+		trs.asset.inTransfer = {
+			dappId: data.dappId
+		};
+
+		return trs;
+	}
+
+	this.calculateFee = function (trs) {
+		var fee = parseInt(trs.amount / 100 * library.logic.block.calculateFee());
+		return fee || 1;
+	}
+
+	this.verify = function (trs, sender, cb) {
+		if (trs.recipientId) {
+			return setImmediate(cb, errorCode("TRANSACTIONS.INVALID_RECIPIENT", trs));
+		}
+
+		if (!trs.amount) {
+			return setImmediate(cb, errorCode("TRANSACTIONS.INVALID_AMOUNT", trs));
+		}
+
+		library.dbLite.query("SELECT count(*) FROM dapps WHERE transactionId=$id", {
+			id: trs.asset.inTransfer.dappId
+		}, ['count'], function (err, rows) {
+			if (err) {
+				library.logger.error(err.toString());
+				return setImmediate(cb, "This dapp not found: " + trs.asset.inTransfer.dappId);
+			}
+
+			var count = rows[0].count;
+			if (count == 0) {
+				return setImmediate(cb, "This dapp not found: " + trs.asset.inTransfer.dappId);
+			}
+
+			setImmediate(cb);
+		});
+
+	}
+
+	this.process = function (trs, sender, cb) {
+		setImmediate(cb, null, trs);
+	}
+
+	this.getBytes = function (trs) {
+		try {
+			var buf = new Buffer([]);
+			var nameBuf = new Buffer(trs.asset.inTransfer.dappId, 'utf8');
+			buf = Buffer.concat([buf, nameBuf]);
+		} catch (e) {
+			throw Error(e.toString());
+		}
+
+		return buf;
+	}
+
+	this.apply = function (trs, sender, cb) {
+		shared.getGenesis({dappid: trs.asset.inTransfer.dappId}, function (err, res) {
+			modules.accounts.mergeAccountAndGet({
+				address: res.authorId,
+				balance: trs.amount,
+				u_balance: trs.amount,
+				blockId: trs.blockId
+			}, cb);
+		});
+	}
+
+	this.undo = function (trs, sender, cb) {
+		shared.getGenesis({dappid: trs.asset.inTransfer.dappId}, function (err, res) {
+			modules.accounts.mergeAccountAndGet({
+				address: res.authorId,
+				balance: -trs.amount,
+				u_balance: -trs.amount,
+				blockId: trs.blockId
+			}, cb);
+		});
+	}
+
+	this.applyUnconfirmed = function (trs, sender, cb) {
+		setImmediate(cb);
+	}
+
+	this.undoUnconfirmed = function (trs, sender, cb) {
+		setImmediate(cb);
+	}
+
+	this.objectNormalize = function (trs) {
+		var report = library.scheme.validate(trs.asset.inTransfer, {
+			object: true,
+			properties: {
+				dappId: {
+					type: "string",
+					minLength: 1
+				},
+			},
+			required: ["dappId"]
+		});
+
+		if (!report) {
+			throw Error("Can't verify dapp transaction, incorrect parameters: " + library.scheme.getLastError());
+		}
+
+		return trs;
+	}
+
+	this.dbRead = function (raw) {
+		if (!raw.in_dappId) {
+			return null;
+		} else {
+			var inTransfer = {
+				dappId: raw.in_dappId
+			}
+
+			return {inTransfer: inTransfer};
+		}
+	}
+
+	this.dbSave = function (trs, cb) {
+		library.dbLite.query("INSERT INTO intransfer(dappId, transactionId) VALUES($dappId, $transactionId)", {
+			dappId: trs.asset.inTransfer.dappId,
+			transactionId: trs.id
+		}, cb);
+	}
+
+	this.ready = function (trs, sender) {
+		if (sender.multisignatures.length) {
+			if (!trs.signatures) {
+				return false;
+			}
+			return trs.signatures.length >= sender.multimin - 1;
 		} else {
 			return true;
 		}
@@ -213,6 +433,14 @@ function DApp() {
 		if (trs.asset.dapp.siaAscii) {
 			isSia = true;
 
+			if (trs.asset.dapp.siaAscii.trim() != trs.asset.dapp.siaAscii) {
+				return setImmediate(cb, "Didn't trimmed sia ascii");
+			}
+
+			if (trs.asset.dapp.siaAscii.trim().length == 0) {
+				return setImmediate(cb, "Empty sia ascii");
+			}
+
 			if (typeof trs.asset.dapp.siaAscii !== 'string') {
 				return setImmediate(cb, errorCode("DAPPS.MISSED_SIA_ASCII"));
 			}
@@ -224,6 +452,10 @@ function DApp() {
 
 		if (trs.asset.dapp.siaIcon) {
 			isSiaIcon = true;
+
+			if (trs.asset.dapp.siaIcon.length == 0) {
+				return setImmediate(cb, "Empty sia icon");
+			}
 
 			if (typeof trs.asset.dapp.siaIcon !== 'string') {
 				return setImmediate(cb, errorCode("DAPPS.INCORRECT_SIA_ICON", trs.asset.dapp));
@@ -272,7 +504,7 @@ function DApp() {
 			return setImmediate(cb, errorCode("DAPPS.STORAGE_MISSED"));
 		}
 
-		if (!trs.asset.dapp.name || trs.asset.dapp.name.trim().length == 0) {
+		if (!trs.asset.dapp.name || trs.asset.dapp.name.trim().length == 0 || trs.asset.dapp.name.trim() != trs.asset.dapp.name) {
 			return setImmediate(cb, errorCode("DAPPS.EMPTY_NAME"));
 		}
 
@@ -365,21 +597,31 @@ function DApp() {
 		private.unconfirmedLinks[trs.asset.dapp.git] = true;
 		private.unconfirmedAscii[trs.asset.dapp.siaAscii] = true;
 
-		library.dbLite.query("SELECT count(transactionId) FROM dapps WHERE (name = $name or siaAscii = $siaAscii or git = $git) and transactionId != $transactionId", {
+		library.dbLite.query("SELECT name, siaAscii, git FROM dapps WHERE (name = $name or siaAscii = $siaAscii or git = $git) and transactionId != $transactionId", {
 			name: trs.asset.dapp.name,
 			siaAscii: trs.asset.dapp.siaAscii || null,
 			git: trs.asset.dapp.git || null,
 			transactionId: trs.id
-		}, ['count'], function (err, rows) {
-			if (err || rows.length == 0) {
+		}, ['name', 'siaAscii', 'git'], function (err, rows) {
+			if (err) {
 				return setImmediate(cb, "Sql error");
 			}
 
-			if (rows[0].count > 0) {
-				return setImmediate(cb, errorCode("DAPPS.EXISTS_DAPP_NAME"));
-			}
+			if (rows.length > 0) {
+				var dapp = rows[0];
 
-			return setImmediate(cb, null, trs);
+				if (dapp.name == trs.asset.dapp.name) {
+					return setImmediate(cb, "DApp with this name already exists: " + dapp.name);
+				} else if (dapp.siaAscii == trs.asset.dapp.siaAscii) {
+					return setImmediate(cb, "DApp with this sia code already exists")
+				} else if (dapp.git == trs.asset.dapp.git) {
+					return setImmediate(cb, "DApp with this git already exists: " + dapp.git);
+				} else {
+					return setImmediate(cb, "Some error");
+				}
+			} else {
+				return setImmediate(cb, null, trs);
+			}
 		});
 	}
 
@@ -494,7 +736,7 @@ function DApp() {
 			if (!trs.signatures) {
 				return false;
 			}
-			return trs.signatures.length >= sender.multimin;
+			return trs.signatures.length >= sender.multimin - 1;
 		} else {
 			return true;
 		}
@@ -507,7 +749,9 @@ function DApps(cb, scope) {
 	self = this;
 	self.__private = private;
 	library.logic.transaction.attachAssetType(TransactionTypes.DAPP, new DApp());
-	library.logic.transaction.attachAssetType(TransactionTypes.DAPPTRANSFER, new Transfer());
+	library.logic.transaction.attachAssetType(TransactionTypes.IN_TRANSFER, new InTransfer());
+	library.logic.transaction.attachAssetType(TransactionTypes.OUT_TRANSFER, new OutTransfer());
+
 	private.attachApi();
 
 	process.on('exit', function () {
@@ -627,7 +871,7 @@ private.attachApi = function () {
 				}
 			}
 
-			library.sequence.add(function (cb) {
+			library.balancesSequence.add(function (cb) {
 				modules.accounts.getAccount({publicKey: keypair.publicKey.toString('hex')}, function (err, account) {
 					if (err) {
 						return cb("Sql error");
@@ -774,8 +1018,9 @@ private.attachApi = function () {
 					minLength: 1
 				},
 				category: {
-					type: 'string',
-					minLength: 1
+					type: 'integer',
+					minimum: 0,
+					maximum: 8
 				},
 				installed: {
 					type: 'integer',
@@ -791,11 +1036,7 @@ private.attachApi = function () {
 			var category = null;
 
 			if (query.category) {
-				category = dappCategory[query.category];
-
-				if (category != 0 && !category) {
-					return res.json({success: false, error: "Incorrect category"});
-				}
+				category = query.category;
 			}
 
 			library.dbLite.query("CREATE VIRTUAL TABLE IF NOT EXISTS dapps_search USING fts4(content=dapps, name, description, tags)", function (err, rows) {
@@ -1150,6 +1391,34 @@ private.attachApi = function () {
 		});
 	});
 
+	router.get('/file', function (req, res, next) {
+		req.sanitize(req.query, {
+			type: "object",
+			properties: {
+				id: {
+					type: "string",
+					minLength: 1
+				}
+			},
+			required: ['id']
+		}, function (err, report, query) {
+			if (err) return next(err);
+			if (!report.isValid) return res.json({success: false, error: report.issues});
+
+			private.get(query.id, function (err, dapp) {
+				if (err) {
+					return res.json({success: false, error: err});
+				}
+
+				if (!dapp.siaIcon) {
+					return res.json({success: false, error: "This dapp don't have sia icon."})
+				}
+
+				private.getFile(dapp, res);
+			});
+		});
+	})
+
 	router.get('/icon', function (req, res, next) {
 		req.sanitize(req.query, {
 			type: "object",
@@ -1281,7 +1550,18 @@ private.list = function (filter, cb) {
 		(fields.length ? "where " + fields.join(' or ') + " " : "") +
 		(filter.orderBy ? 'order by ' + sortBy + ' ' + sortMethod : '') + " " +
 		(filter.limit ? 'limit $limit' : '') + " " +
-		(filter.offset ? 'offset $offset' : ''), params, {name: String, description: String, tags: String, siaAscii: String, siaIcon: String, git: String, type: Number, category: Number, icon: String, transactionId:String}, function (err, rows) {
+		(filter.offset ? 'offset $offset' : ''), params, {
+		name: String,
+		description: String,
+		tags: String,
+		siaAscii: String,
+		siaIcon: String,
+		git: String,
+		type: Number,
+		category: Number,
+		icon: String,
+		transactionId: String
+	}, function (err, rows) {
 		if (err) {
 			return cb(err);
 		}
@@ -1519,6 +1799,21 @@ private.apiHandler = function (message, callback) {
 	}
 }
 
+private.getFile = function (dapp, res) {
+	modules.sia.uploadAscii(dapp.transactionId, dapp.siaAscii, false, function (err, file) {
+		if (err) {
+			return res.json({success: false, error: "Internal error"});
+		} else {
+			res.writeHead(200, {
+				'Content-Type': 'application/vnd.android.package-archive',
+				'Content-Disposition': 'attachment; filename=' + file
+			});
+
+			modules.sia.download(file, res);
+		}
+	});
+}
+
 private.getIcon = function (dapp, res) {
 	modules.sia.uploadAscii(dapp.transactionId, dapp.siaIcon, true, function (err, file) {
 		if (err) {
@@ -1598,6 +1893,10 @@ private.launch = function (body, cb) {
 			return cb("DApp already launched");
 		}
 
+		if (body.params.length > 0) {
+			body.params.push("modules.full.json");
+		}
+
 		private.launched[body.id] = true;
 
 		private.get(body.id, function (err, dapp) {
@@ -1619,7 +1918,7 @@ private.launch = function (body, cb) {
 									library.logger.error(err);
 									return cb("Can't create public link for: " + body.id);
 								} else {
-									private.launchApp(dapp, body.params || [], function (err) {
+									private.launchApp(dapp, body.params || ['', "modules.full.json"], function (err) {
 										if (err) {
 											private.launched[body.id] = false;
 											library.logger.error(err);
@@ -1783,12 +2082,16 @@ private.addTransactions = function (req, cb) {
 				minLength: 1,
 				maxLength: 100
 			},
-			dappid: {
+			dappId: {
 				type: "string",
 				minLength: 1
+			},
+			multisigAccountPublicKey: {
+				type: "string",
+				format: "publicKey"
 			}
 		},
-		required: ["secret", "amount", "dappid"]
+		required: ["secret", "amount", "dappId"]
 	}, function (err) {
 		if (err) {
 			return cb(err[0].message);
@@ -1805,47 +2108,102 @@ private.addTransactions = function (req, cb) {
 
 		var query = {};
 
-		var isAddress = /^[0-9]+[C|c]$/g;
-		if (isAddress.test(body.recipientId)) {
-			query.address = body.recipientId;
-		} else {
-			query.username = body.recipientId;
-		}
+		library.balancesSequence.add(function (cb) {
+			if (body.multisigAccountPublicKey && body.multisigAccountPublicKey != keypair.publicKey.toString('hex')) {
+				modules.accounts.getAccount({publicKey: body.multisigAccountPublicKey}, function (err, account) {
+					if (err) {
+						return cb(err.toString());
+					}
 
-		library.sequence.add(function (cb) {
-			modules.accounts.getAccount({publicKey: keypair.publicKey.toString('hex')}, function (err, account) {
-				if (err) {
-					return cb(err.toString());
-				}
-				if (!account || !account.publicKey) {
-					return cb(errorCode("COMMON.OPEN_ACCOUNT"));
-				}
+					if (!account || !account.publicKey) {
+						return cb("Multisignature account not found");
+					}
 
-				if (account.secondSignature && !body.secondSecret) {
-					return cb(errorCode("COMMON.SECOND_SECRET_KEY"));
-				}
+					if (!account.multisignatures || !account.multisignatures) {
+						return cb("This account don't have multisignature");
+					}
 
-				var secondKeypair = null;
+					if (account.multisignatures.indexOf(keypair.publicKey.toString('hex')) < 0) {
+						return cb("This account don't added to multisignature");
+					}
 
-				if (account.secondSignature) {
-					var secondHash = crypto.createHash('sha256').update(body.secondSecret, 'utf8').digest();
-					secondKeypair = ed.MakeKeypair(secondHash);
-				}
+					modules.accounts.getAccount({publicKey: keypair.publicKey}, function (err, requester) {
+						if (err) {
+							return cb(err.toString());
+						}
 
-				try {
-					var transaction = library.logic.transaction.create({
-						type: TransactionTypes.DAPPTRANSFER,
-						amount: body.amount,
-						sender: account,
-						keypair: keypair,
-						secondKeypair: secondKeypair,
-						dappid: body.dappid
+						if (!requester || !requester.publicKey) {
+							return cb(errorCode("COMMON.OPEN_ACCOUNT"));
+						}
+
+						if (requester.secondSignature && !body.secondSecret) {
+							return cb(errorCode("COMMON.SECOND_SECRET_KEY"));
+						}
+
+						if (requester.publicKey == account.publicKey) {
+							return cb("Incorrect requester");
+						}
+
+						var secondKeypair = null;
+
+						if (requester.secondSignature) {
+							var secondHash = crypto.createHash('sha256').update(body.secondSecret, 'utf8').digest();
+							secondKeypair = ed.MakeKeypair(secondHash);
+						}
+
+						try {
+							var transaction = library.logic.transaction.create({
+								type: TransactionTypes.IN_TRANSFER,
+								amount: body.amount,
+								sender: account,
+								keypair: keypair,
+								requester: keypair,
+								secondKeypair: secondKeypair,
+								dappId: body.dappId
+							});
+						} catch (e) {
+							return cb(e.toString());
+						}
+
+						modules.transactions.receiveTransactions([transaction], cb);
 					});
-				} catch (e) {
-					return cb(e.toString());
-				}
-				modules.transactions.receiveTransactions([transaction], cb);
-			});
+				});
+			} else {
+				modules.accounts.getAccount({publicKey: keypair.publicKey.toString('hex')}, function (err, account) {
+					if (err) {
+						return cb(err.toString());
+					}
+					if (!account || !account.publicKey) {
+						return cb(errorCode("COMMON.OPEN_ACCOUNT"));
+					}
+
+					if (account.secondSignature && !body.secondSecret) {
+						return cb(errorCode("COMMON.SECOND_SECRET_KEY"));
+					}
+
+					var secondKeypair = null;
+
+					if (account.secondSignature) {
+						var secondHash = crypto.createHash('sha256').update(body.secondSecret, 'utf8').digest();
+						secondKeypair = ed.MakeKeypair(secondHash);
+					}
+
+					try {
+						var transaction = library.logic.transaction.create({
+							type: TransactionTypes.IN_TRANSFER,
+							amount: body.amount,
+							sender: account,
+							keypair: keypair,
+							secondKeypair: secondKeypair,
+							dappId: body.dappId
+						});
+					} catch (e) {
+						return cb(e.toString());
+					}
+
+					modules.transactions.receiveTransactions([transaction], cb);
+				});
+			}
 		}, function (err, transaction) {
 			if (err) {
 				return cb(err.toString());
@@ -1869,6 +2227,9 @@ DApps.prototype.request = function (dappid, method, path, query, cb) {
 	if (!private.sandboxes[dappid]) {
 		return cb(errorCode("DAPPS.DAPPS_NOT_FOUND"));
 	}
+	if (!private.dappready[dappid]) {
+		return cb(errorCode("DAPPS.DAPPS_NOT_READY"));
+	}
 	private.sandboxes[dappid].sendMessage({
 		method: method,
 		path: path,
@@ -1883,20 +2244,31 @@ DApps.prototype.onBind = function (scope) {
 
 DApps.prototype.onBlockchainReady = function () {
 	if (library.config.dapp) {
-		setTimeout(function () {
-			async.eachSeries(library.config.dapp.autoexec || [], function (dapp, cb) {
-				private.launch({params: dapp.params, id: dapp.dappid}, function (err) {
-					console.log("lanched " + dapp.dappid + " as " + dapp.params[0], err)
-					cb();
-				});
+		async.eachSeries(library.config.dapp.autoexec || [], function (dapp, cb) {
+			private.launch({params: dapp.params, id: dapp.dappid}, function (err) {
+				console.log("lanched " + dapp.dappid + " as " + dapp.params[0], err)
+				cb();
 			});
-		}, 5000)
+		});
 	}
+}
+
+DApps.prototype.onDeleteBlocksBefore = function (block) {
+	Object.keys(private.sandboxes).forEach(function (dappId) {
+		self.request(dappId, "post", "/message", {
+			topic: "rollback",
+			message: {pointId: block.id, pointHeight: block.height}
+		}, function (err) {
+			if (err) {
+				library.logger.error("onDeleteBlocksBefore message", err)
+			}
+		});
+	});
 }
 
 DApps.prototype.onNewBlock = function (block, broadcast) {
 	Object.keys(private.sandboxes).forEach(function (dappId) {
-		self.request(dappId, "post", "/message", {
+		broadcast && self.request(dappId, "post", "/message", {
 			topic: "point",
 			message: {id: block.id, height: block.height}
 		}, function (err) {
@@ -1904,7 +2276,7 @@ DApps.prototype.onNewBlock = function (block, broadcast) {
 				library.logger.error("onNewBlock message", err)
 			}
 		});
-	})
+	});
 }
 
 //shared
@@ -1930,12 +2302,17 @@ shared.getGenesis = function (req, cb) {
 	});
 }
 
+shared.setReady = function (req, cb) {
+	private.dappready[req.dappid] = true;
+	cb(null, {});
+}
+
 shared.getCommonBlock = function (req, cb) {
 	library.dbLite.query("SELECT b.height, t.id, t.senderId, t.amount FROM trs t " +
 		"inner join blocks b on t.blockId = b.id and t.id = $id and t.type = $type" +
-		"inner join dapptransfers dt on dt.transactionId = t.id and dt.dappid = $dappid", {
+		"inner join intransfer dt on dt.transactionId = t.id and dt.dappid = $dappid", {
 		dappid: req.dappid,
-		type: TransactionTypes.DAPPTRANSFER
+		type: TransactionTypes.IN_TRANSFER
 	}, {
 		height: Number,
 		id: String,
@@ -1945,7 +2322,203 @@ shared.getCommonBlock = function (req, cb) {
 		if (err) {
 			return cb("Sql error");
 		}
+		cb(null, rows);
+	});
+}
 
+shared.sendWithdrawal = function (req, cb) {
+	var body = req.body;
+	library.scheme.validate(body, {
+		type: "object",
+		properties: {
+			secret: {
+				type: "string",
+				minLength: 1,
+				maxLength: 100
+			},
+			amount: {
+				type: "integer",
+				minimum: 1,
+				maximum: constants.totalAmount
+			},
+			recipientId: {
+				type: "string",
+				minLength: 2,
+				maxLength: 21
+			},
+			secondSecret: {
+				type: "string",
+				minLength: 1,
+				maxLength: 100
+			},
+			transactionId: {
+				type: "string",
+				minLength: 1,
+				maxLength: 20
+			},
+			multisigAccountPublicKey: {
+				type: "string",
+				format: "publicKey"
+			}
+		},
+		required: ["secret", 'recipientId', "amount", "transactionId"]
+	}, function (err) {
+		if (err) {
+			return cb(err[0].message);
+		}
+
+		var hash = crypto.createHash('sha256').update(body.secret, 'utf8').digest();
+		var keypair = ed.MakeKeypair(hash);
+		var query = {};
+
+		var isAddress = /^[0-9]+[C|c]$/g;
+		if (!isAddress.test(body.recipientId)) {
+			return cb("Incorrect address");
+		}
+
+		library.balancesSequence.add(function (cb) {
+			if (body.multisigAccountPublicKey && body.multisigAccountPublicKey != keypair.publicKey.toString('hex')) {
+				modules.accounts.getAccount({publicKey: body.multisigAccountPublicKey}, function (err, account) {
+					if (err) {
+						return cb(err.toString());
+					}
+
+					if (!account || !account.publicKey) {
+						return cb("Multisignature account not found");
+					}
+
+					if (!account.multisignatures || !account.multisignatures) {
+						return cb("This account don't have multisignature");
+					}
+
+					if (account.multisignatures.indexOf(keypair.publicKey.toString('hex')) < 0) {
+						return cb("This account don't added to multisignature");
+					}
+
+					modules.accounts.getAccount({publicKey: keypair.publicKey}, function (err, requester) {
+						if (err) {
+							return cb(err.toString());
+						}
+
+						if (!requester || !requester.publicKey) {
+							return cb(errorCode("COMMON.OPEN_ACCOUNT"));
+						}
+
+						if (requester.secondSignature && !body.secondSecret) {
+							return cb(errorCode("COMMON.SECOND_SECRET_KEY"));
+						}
+
+						if (requester.publicKey == account.publicKey) {
+							return cb("Incorrect requester");
+						}
+
+						var secondKeypair = null;
+
+						if (requester.secondSignature) {
+							var secondHash = crypto.createHash('sha256').update(body.secondSecret, 'utf8').digest();
+							secondKeypair = ed.MakeKeypair(secondHash);
+						}
+
+						try {
+							var transaction = library.logic.transaction.create({
+								type: TransactionTypes.OUT_TRANSFER,
+								amount: body.amount,
+								sender: account,
+								recipientId: body.recipientId,
+								keypair: keypair,
+								secondKeypair: secondKeypair,
+								requester: keypair,
+								dappId: req.dappid,
+								transactionId: body.transactionId
+							});
+						} catch (e) {
+							return cb(e.toString());
+						}
+						modules.transactions.receiveTransactions([transaction], cb);
+					});
+				});
+			} else {
+				modules.accounts.getAccount({publicKey: keypair.publicKey.toString('hex')}, function (err, account) {
+					if (err) {
+						return cb(err.toString());
+					}
+					if (!account || !account.publicKey) {
+						return cb(errorCode("COMMON.OPEN_ACCOUNT"));
+					}
+
+					if (account.secondSignature && !body.secondSecret) {
+						return cb(errorCode("COMMON.SECOND_SECRET_KEY"));
+					}
+
+					var secondKeypair = null;
+
+					if (account.secondSignature) {
+						var secondHash = crypto.createHash('sha256').update(body.secondSecret, 'utf8').digest();
+						secondKeypair = ed.MakeKeypair(secondHash);
+					}
+
+					try {
+						var transaction = library.logic.transaction.create({
+							type: TransactionTypes.OUT_TRANSFER,
+							amount: body.amount,
+							sender: account,
+							recipientId: body.recipientId,
+							keypair: keypair,
+							secondKeypair: secondKeypair,
+							dappId: req.dappid,
+							transactionId: body.transactionId
+						});
+					} catch (e) {
+						return cb(e.toString());
+					}
+
+					modules.transactions.receiveTransactions([transaction], cb);
+				});
+			}
+		}, function (err, transaction) {
+			if (err) {
+				return cb(err.toString());
+			}
+
+			cb(null, {transactionId: transaction[0].id});
+		});
+	});
+}
+
+shared.getWithdrawalLastTransaction = function (req, cb) {
+	library.dbLite.query("SELECT ot.outTransactionId FROM trs t " +
+		"inner join blocks b on t.blockId = b.id and t.type = $type " +
+		"inner join outtransfer ot on ot.transactionId = t.id and ot.dappid = $dappid " +
+		"order by b.height desc limit 1", {
+		dappid: req.dappid,
+		type: TransactionTypes.OUT_TRANSFER
+	}, {
+		id: String
+	}, function (err, rows) {
+		if (err) {
+			return cb("Sql error");
+		}
+		cb(null, rows[0]);
+	});
+}
+
+shared.getBalanceTransactions = function (req, cb) {
+	library.dbLite.query("SELECT t.id, lower(hex(t.senderPublicKey)), t.amount FROM trs t " +
+		"inner join blocks b on t.blockId = b.id and t.type = $type " +
+		"inner join intransfer dt on dt.transactionId = t.id and dt.dappid = $dappid " +
+		(req.body.lastTransactionId ? "where b.height > (select height from blocks ib inner join trs it on ib.id = it.blockId and it.id = $lastId) " : "") +
+		"order by b.height", {
+		dappid: req.dappid,
+		type: TransactionTypes.IN_TRANSFER,
+		lastId: req.body.lastTransactionId
+	}, {
+		id: String,
+		senderPublicKey: String,
+		amount: Number
+	}, function (err, rows) {
+		if (err) {
+			return cb("Sql error");
+		}
 		cb(null, rows);
 	});
 }

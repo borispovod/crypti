@@ -1,6 +1,6 @@
 var ed2curve = require('ed2curve');
 var nacl_factory = require("js-nacl");
-var nacl = nacl_factory.instantiate();
+//var nacl = nacl_factory.instantiate();
 
 function convertPublicKey(publicKey) {
 	return ed2curve.convertPublicKey(publicKey)

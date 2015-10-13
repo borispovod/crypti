@@ -152,7 +152,7 @@ function Signature() {
 			if (!trs.signatures) {
 				return false;
 			}
-			return trs.signatures.length >= sender.multimin;
+			return trs.signatures.length >= sender.multimin - 1;
 		} else {
 			return true;
 		}
@@ -258,8 +258,8 @@ shared.addSignature = function (req, cb) {
 			}
 		}
 
-		library.sequence.add(function (cb) {
-			if (body.multisigAccountPublicKey) {
+		library.balancesSequence.add(function (cb) {
+			if (body.multisigAccountPublicKey && body.multisigAccountPublicKey != keypair.publicKey.toString('hex')) {
 				modules.accounts.getAccount({publicKey: body.multisigAccountPublicKey}, function (err, account) {
 					if (err) {
 						return cb(err.toString());

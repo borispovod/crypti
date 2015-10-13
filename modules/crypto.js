@@ -3,13 +3,13 @@ var util = require('util'),
 	fs = require('fs'),
 	crypto = require('crypto'),
 	ed = require('ed25519'),
-	encryptHelper = require('../helpers/encrypt.js'),
+	//encryptHelper = require('../helpers/encrypt.js'),
 	sandboxHelper = require('../helpers/sandbox.js');
 
 var modules, library, self, private = {}, shared = {};
 
 private.loaded = false;
-
+/*
 shared.keypair = function (req, cb) {
 	var data = req.body;
 	try {
@@ -154,6 +154,8 @@ shared.decryptbox = function (req, cb) {
 		});
 	});
 }
+
+*/
 
 //constructor
 function Crypto(cb, scope) {

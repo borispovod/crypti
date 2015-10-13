@@ -1,13 +1,15 @@
 var async = require('async');
 var jsonSql = require('json-sql')();
+jsonSql.setDialect("sqlite")
 var constants = require('../helpers/constants.js');
-var genesisBlock = require('../helpers/genesisblock.js').block;
+var genesisBlock = null;
 
 var private = {};
 
 //constructor
 function Account(scope, cb) {
 	this.scope = scope;
+	genesisBlock = this.scope.genesisblock.block;
 
 	this.table = "mem_accounts";
 
@@ -538,7 +540,16 @@ Account.prototype.createTables = function (cb) {
 			cb(err, data);
 		});
 	}.bind(this), function (err) {
-		setImmediate(cb, err, this);
+		if (err) {
+			setImmediate(cb, err, this);
+			return;
+		}
+
+		this.set("14225995638226006440C", {
+			address: "14225995638226006440C"
+		}, function (err) {
+			setImmediate(cb, err, this);
+		}.bind(this));
 	}.bind(this));
 }
 
@@ -822,6 +833,7 @@ Account.prototype.merge = function (address, diff, cb) {
 		if (err) {
 			return cb(err);
 		}
+
 		self.get({address: address}, function (err, account) {
 			if (!err) {
 				if (diff.balance) {

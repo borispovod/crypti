@@ -1,5 +1,6 @@
 var async = require('async');
 var jsonSql = require('json-sql')();
+jsonSql.setDialect("sqlite")
 var extend = require('extend');
 var sandboxHelper = require('../helpers/sandbox.js')
 
@@ -8,6 +9,10 @@ var modules, library, self, private = {}, shared = {};
 
 private.loaded = false;
 
+private.DOUBLE_DOUBLE_QUOTES = /""/g;
+private.SINGLE_QUOTES = /'/g;
+private.SINGLE_QUOTES_DOUBLED = "''";
+
 //constructor
 function Sql(cb, scope) {
 	library = scope;
@@ -15,6 +20,30 @@ function Sql(cb, scope) {
 	self.__private = private;
 
 	setImmediate(cb, null, self);
+}
+
+private.escape = function (what) {
+	switch (typeof what) {
+		case 'string':
+			return "'" + what.replace(
+					private.SINGLE_QUOTES, private.SINGLE_QUOTES_DOUBLED
+				) + "'";
+		case 'object':
+			if (what == null) {
+				return 'null';
+			} else if (Buffer.isBuffer(what)) {
+				return "X'" + what.toString('hex') + "'";
+			} else {
+				return ("'" + JSON.stringify(what).replace(
+					private.SINGLE_QUOTES, private.SINGLE_QUOTES_DOUBLED
+				) + "'");
+			}
+		case 'boolean':
+			return what ? '1' : '0'; // 1 => true, 0 => false
+		case 'number':
+			if (isFinite(what)) return '' + what;
+	}
+	throw new Error('unsupported data', typeof what);
 }
 
 private.pass = function (obj, dappid) {
@@ -51,16 +80,7 @@ private.pass = function (obj, dappid) {
 
 //private methods
 private.query = function (action, config, cb) {
-	private.pass(config, config.dappid);
-
-	var defaultConfig = {
-		type: action
-	};
-
-	var map = config.map || null;
-	delete config.map;
-
-	var sql = jsonSql.build(extend(config, defaultConfig));
+	var sql = null;
 
 	function done(err, data) {
 		if (err) {
@@ -70,10 +90,48 @@ private.query = function (action, config, cb) {
 		cb(err, data);
 	}
 
-	if (action == "select") {
-		library.dbLite.query(sql.query, sql.values, map, done);
+	if (action != "batch") {
+		private.pass(config, config.dappid);
+
+		var defaultConfig = {
+			type: action
+		};
+
+		try {
+			sql = jsonSql.build(extend({}, config, defaultConfig));
+		} catch (e) {
+			return done(e.toString());
+		}
+
+		if (action == "select") {
+			//console.log(sql.query, sql.values)
+			library.dbLite.query(sql.query, sql.values, null, done);
+		} else {
+			library.dbLite.query(sql.query, sql.values, done);
+		}
 	} else {
-		library.dbLite.query(sql.query, sql.values, done);
+		var batchPack = [];
+		async.until(
+			function () {
+				batchPack = config.values.splice(0, 10);
+				return batchPack.length == 0
+			}, function (cb) {
+				var fields = Object.keys(config.fields).map(function (field) {
+					return private.escape(config.fields[field]);
+				});
+				sql = "INSERT INTO " + "dapp_" + config.dappid + "_" + config.table + " (" + fields.join(",") + ") ";
+				var rows = [];
+				batchPack.forEach(function (value, rowIndex) {
+					var currentRow = batchPack[rowIndex];
+					var fields = [];
+					for (var i = 0; i < currentRow.length; i++) {
+						fields.push(private.escape(currentRow[i]));
+					}
+					rows.push("select " + fields.join(","));
+				});
+				sql = sql + " " + rows.join(" UNION ");
+				library.dbLite.query(sql, {}, cb);
+			}, done);
 	}
 }
 
@@ -88,6 +146,11 @@ Sql.prototype.createTables = function (dappid, config, cb) {
 		config[i].table = "dapp_" + dappid + "_" + config[i].table;
 		if (config[i].type == "table") {
 			config[i].type = "create";
+			if (config[i].foreignKeys) {
+				for (var n = 0; n < config[i].foreignKeys.length; n++) {
+					config[i].foreignKeys[n].table = "dapp_" + dappid + "_" + config[i].foreignKeys[n].table;
+				}
+			}
 		} else if (config[i].type == "index") {
 			config[i].type = "index";
 		} else {
@@ -149,6 +212,11 @@ Sql.prototype.onBlockchainReady = function () {
 shared.select = function (req, cb) {
 	var config = extend({}, req.body, {dappid: req.dappid});
 	private.query.call(this, "select", config, cb);
+}
+
+shared.batch = function (req, cb) {
+	var config = extend({}, req.body, {dappid: req.dappid});
+	private.query.call(this, "batch", config, cb);
 }
 
 shared.insert = function (req, cb) {

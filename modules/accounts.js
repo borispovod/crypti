@@ -90,11 +90,17 @@ function Vote() {
 	}
 
 	this.objectNormalize = function (trs) {
-		var report = library.scheme.validate(trs.asset.votes, {
-			type: "array",
-			minLength: 1,
-			maxLength: 32,
-			uniqueItems: true
+		var report = library.scheme.validate(trs.asset, {
+			type: "object",
+			properties: {
+				votes: {
+					type: "array",
+					minLength: 1,
+					maxLength: 105,
+					uniqueItems: true
+				}
+			},
+			required: ['votes']
 		});
 
 		if (!report) {
@@ -126,7 +132,7 @@ function Vote() {
 			if (!trs.signatures) {
 				return false;
 			}
-			return trs.signatures.length >= sender.multimin;
+			return trs.signatures.length >= sender.multimin - 1;
 		} else {
 			return true;
 		}
@@ -298,7 +304,7 @@ function Username() {
 			if (!trs.signatures) {
 				return false;
 			}
-			return trs.signatures.length >= sender.multimin;
+			return trs.signatures.length >= sender.multimin - 1;
 		} else {
 			return true;
 		}
@@ -408,6 +414,7 @@ Accounts.prototype.getAccount = function (filter, fields, cb) {
 		filter.address = self.generateAddressByPublicKey(filter.publicKey);
 		delete filter.publicKey;
 	}
+
 	library.logic.account.get(filter, fields, cb);
 }
 
@@ -671,8 +678,8 @@ shared.addDelegates = function (req, cb) {
 			}
 		}
 
-		library.sequence.add(function (cb) {
-			if (body.multisigAccountPublicKey) {
+		library.balancesSequence.add(function (cb) {
+			if (body.multisigAccountPublicKey && body.multisigAccountPublicKey != keypair.publicKey.toString('hex')) {
 				modules.accounts.getAccount({publicKey: body.multisigAccountPublicKey}, function (err, account) {
 					if (err) {
 						return cb(err.toString());
@@ -815,8 +822,8 @@ shared.addUsername = function (req, cb) {
 			}
 		}
 
-		library.sequence.add(function (cb) {
-			if (body.multisigAccountPublicKey) {
+		library.balancesSequence.add(function (cb) {
+			if (body.multisigAccountPublicKey && body.multisigAccountPublicKey != keypair.publicKey.toString('hex')) {
 				modules.accounts.getAccount({publicKey: body.multisigAccountPublicKey}, function (err, account) {
 					if (err) {
 						return cb(err.toString());

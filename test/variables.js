@@ -222,7 +222,6 @@ function addPeers(numOfPeers, cb) {
 				'os': os
 			}
 		}, function (err, resp, body) {
-			console.log(body);
 			if (err || resp.statusCode != 200) {
 				return next(err || "Status code is not 200 (getHeight)");
 			} else {

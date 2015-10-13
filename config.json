@@ -14,10 +14,14 @@
 	},
 	"peers": {
 		"list": [
+			{
+				"ip": "127.0.0.1",
+				"port": 7040
+			}
 		],
 		"blackList": [],
 		"options": {
-			"timeout": 20000
+			"timeout": 4000
 		}
 	},
 	"forging": {
@@ -134,13 +138,13 @@
 		"verifyOnLoading": true,
 		"loadPerIteration": 5000
 	},
-    "sia": {
-	  "pees": [
-		{
-		  "ip": "127.0.0.1",
-		  "port": 8080
-		}
-	  ]
+	"sia": {
+		"peers": [
+			{
+				"ip": "127.0.0.1",
+				"port": 8080
+			}
+		]
 	},
 	"ssl": {
 		"enabled": false,
@@ -150,9 +154,5 @@
 			"key": "./ssl/crypti.key",
 			"cert": "./ssl/crypti.crt"
 		}
-	},
-	"dapp": {
-		"autoexec": [
-		]
 	}
 }
