@@ -1,5 +1,5 @@
 /**
- * Ask Sebastian if you have any questions. Last Edit: 22/06/2015
+ * Ask Sebastian if you have any questions. Last Edit: 30/09/2015
  */
 
 'use strict';
@@ -14,6 +14,8 @@ var block = {
     totalAmount : 0,
     totalFee : 0
 };
+
+var testBlocksUnder101 = 0;
 
 console.log("Starting Miscellaneous Tests");
 
@@ -33,7 +35,7 @@ describe('Miscellaneous tests (peers, blocks, etc)', function() {
                 .expect('Content-Type', /json/)
                 .expect(200)
                 .end(function (err, res){
-                    //console.log(res.body);
+                    console.log(JSON.stringify(res.body));
                     node.expect(res.body).to.have.property("success").to.be.true;
                     node.expect(res.body).to.have.property("build");
                     node.expect(res.body).to.have.property("version").to.equal(node.version);
@@ -49,7 +51,7 @@ describe('Miscellaneous tests (peers, blocks, etc)', function() {
                 .expect('Content-Type', /json/)
                 .expect(200)
                 .end(function (err, res){
-                    //console.log(res.body);
+                    console.log(JSON.stringify(res.body));
                     node.expect(res.body).to.have.property("success").to.be.false;
                     node.expect(res.body).to.have.property("error");
                     done();
@@ -64,7 +66,7 @@ describe('Miscellaneous tests (peers, blocks, etc)', function() {
                 .expect('Content-Type', /json/)
                 .expect(200)
                 .end(function (err, res){
-                    //console.log(res.body);
+                    console.log(JSON.stringify(res.body));
                     node.expect(res.body).to.have.property("success").to.be.true;
                     node.expect(res.body).to.have.property("peers").that.is.an('array');
                     if (res.body.peers.length > 0){
@@ -84,7 +86,7 @@ describe('Miscellaneous tests (peers, blocks, etc)', function() {
                 .expect('Content-Type', /json/)
                 .expect(200)
                 .end(function (err, res){
-                    //console.log(res.body);
+                    console.log(JSON.stringify(res.body));
                     node.expect(res.body).to.have.property("success").to.be.true;
                     node.expect(res.body).to.have.property("peers").that.is.an('array');
                     if (res.body.peers.length > 0){
@@ -104,7 +106,7 @@ describe('Miscellaneous tests (peers, blocks, etc)', function() {
                 .expect('Content-Type', /json/)
                 .expect(200)
                 .end(function (err, res){
-                    //console.log(res.body);
+                    console.log(JSON.stringify(res.body));
                     node.expect(res.body).to.have.property("success").to.be.true;
                     node.expect(res.body).to.have.property("peers").that.is.an('array');
 
@@ -122,7 +124,7 @@ describe('Miscellaneous tests (peers, blocks, etc)', function() {
                 .expect('Content-Type', /json/)
                 .expect(200)
                 .end(function (err, res){
-                    //console.log(res.body);
+                    console.log(JSON.stringify(res.body));
                     node.expect(res.body).to.have.property("success").to.be.true;
                     node.expect(res.body).to.have.property("peers").that.is.an('array');
 
@@ -146,7 +148,7 @@ describe('Miscellaneous tests (peers, blocks, etc)', function() {
                 .expect('Content-Type', /json/)
                 .expect(200)
                 .end(function (err, res){
-                    //console.log(res.body);
+                    console.log(JSON.stringify(res.body));
                     node.expect(res.body).to.have.property("success").to.be.false;
                     node.expect(res.body).to.have.property("error");
                     done();
@@ -161,7 +163,7 @@ describe('Miscellaneous tests (peers, blocks, etc)', function() {
                 .expect('Content-Type', /json/)
                 .expect(200)
                 .end(function (err, res){
-                    //console.log(res.body);
+                    console.log(JSON.stringify(res.body));
                     node.expect(res.body).to.have.property("success").to.be.false;
                     node.expect(res.body).to.have.property("error");
                     done();
@@ -178,11 +180,19 @@ describe('Miscellaneous tests (peers, blocks, etc)', function() {
                 .expect('Content-Type', /json/)
                 .expect(200)
                 .end(function (err, res){
-                    //console.log(res.body);
+                    console.log(JSON.stringify(res.body));
                     node.expect(res.body).to.have.property("success").to.be.true;
-                    node.expect(res.body).to.have.property("height").to.be.above(0);
-                    if (res.body.success == true){
-                        block.blockHeight = res.body.height;
+                    if (res.body.success == true && res.body.height != null){
+                        node.expect(res.body).to.have.property("height").to.be.above(0);
+                        if (res.body.success == true){
+                            block.blockHeight = res.body.height;
+                            if (res.body.height > 100){
+                                testBlocksUnder101 = true;
+                            }
+                        }
+                    }
+                    else{
+                        console.log("Request failed or height is null");
                     }
                     done();
                 });
@@ -195,10 +205,15 @@ describe('Miscellaneous tests (peers, blocks, etc)', function() {
                 .expect('Content-Type', /json/)
                 .expect(200)
                 .end(function (err, res){
-                    //console.log(res.body);
+                    console.log(JSON.stringify(res.body));
                     node.expect(res.body).to.have.property("success").to.be.true;
-                    node.expect(res.body).to.have.property("fee");
-                    node.expect(res.body.fee).to.equal(node.Fees.transactionFee * 100);
+                    if (res.body.success == true && res.body.fee != null){
+                        node.expect(res.body).to.have.property("fee");
+                        node.expect(res.body.fee).to.equal(node.Fees.transactionFee * 100);
+                    }
+                    else {
+                        console.log('Request failed or fee is null');
+                    }
                     done();
                 });
         });
@@ -211,24 +226,69 @@ describe('Miscellaneous tests (peers, blocks, etc)', function() {
                 .expect('Content-Type', /json/)
                 .expect(200)
                 .end(function (err, res){
-                    //console.log(res.body);
+                    console.log(JSON.stringify(res.body));
                     node.expect(res.body).to.have.property("success").to.be.true;
-                    node.expect(res.body).to.have.property("blocks").that.is.an('array');
-                    node.expect(res.body.blocks).to.have.length(1);
-                    node.expect(res.body.blocks[0]).to.have.property("previousBlock");
-                    node.expect(res.body.blocks[0]).to.have.property("totalAmount");
-                    node.expect(res.body.blocks[0]).to.have.property("totalFee");
-                    node.expect(res.body.blocks[0]).to.have.property("generatorId");
-                    node.expect(res.body.blocks[0]).to.have.property("confirmations");
-                    node.expect(res.body.blocks[0]).to.have.property("blockSignature");
-                    node.expect(res.body.blocks[0]).to.have.property("numberOfTransactions");
-                    node.expect(res.body.blocks[0].height).to.equal(block.blockHeight);
-                    block.id = res.body.blocks[0].id;
-                    block.generatorPublicKey = res.body.blocks[0].generatorPublicKey;
-                    block.totalAmount = res.body.blocks[0].totalAmount;
-                    block.totalFee = res.body.blocks[0].totalFee;
+                    if (res.body.success == true && res.body.blocks != null){
+                        node.expect(res.body).to.have.property("blocks").that.is.an('array');
+                        node.expect(res.body).to.have.property("count").to.equal(1);
+                        node.expect(res.body.blocks.length).to.equal(1);
+                        node.expect(res.body.blocks[0]).to.have.property("previousBlock");
+                        node.expect(res.body.blocks[0]).to.have.property("totalAmount");
+                        node.expect(res.body.blocks[0]).to.have.property("totalFee");
+                        node.expect(res.body.blocks[0]).to.have.property("generatorId");
+                        node.expect(res.body.blocks[0]).to.have.property("confirmations");
+                        node.expect(res.body.blocks[0]).to.have.property("blockSignature");
+                        node.expect(res.body.blocks[0]).to.have.property("numberOfTransactions");
+                        node.expect(res.body.blocks[0].height).to.equal(block.blockHeight);
+                        block.id = res.body.blocks[0].id;
+                        block.generatorPublicKey = res.body.blocks[0].generatorPublicKey;
+                        block.totalAmount = res.body.blocks[0].totalAmount;
+                        block.totalFee = res.body.blocks[0].totalFee;
+                    }
+                    else{
+                        console.log("Request failed or blocks array is null");
+                    }
                     done();
                 });
+        });
+
+        test = test + 1;
+        it(test + '. Get blocks list by parameters: height IF HEIGHT < 100. Expecting success',function(done){
+            if (testBlocksUnder101){
+                var height = 10;
+                node.api.get('/blocks?height='+height)
+                    .set('Accept', 'application/json')
+                    .expect('Content-Type', /json/)
+                    .expect(200)
+                    .end(function (err, res){
+                        console.log(JSON.stringify(res.body));
+                        node.expect(res.body).to.have.property("success").to.be.true;
+                        if (res.body.success == true && res.body.blocks != null){
+                            node.expect(res.body).to.have.property("count");
+                            node.expect(res.body).to.have.property("blocks").that.is.an('array');
+                            node.expect(res.body.blocks.length).to.equal(1);
+                            node.expect(res.body.blocks[0]).to.have.property("previousBlock");
+                            node.expect(res.body.blocks[0]).to.have.property("totalAmount");
+                            node.expect(res.body.blocks[0]).to.have.property("totalFee");
+                            node.expect(res.body.blocks[0]).to.have.property("generatorId");
+                            node.expect(res.body.blocks[0]).to.have.property("confirmations");
+                            node.expect(res.body.blocks[0]).to.have.property("blockSignature");
+                            node.expect(res.body.blocks[0]).to.have.property("numberOfTransactions");
+                            node.expect(res.body.blocks[0].height).to.equal(10);
+                            block.id = res.body.blocks[0].id;
+                            block.generatorPublicKey = res.body.blocks[0].generatorPublicKey;
+                            block.totalAmount = res.body.blocks[0].totalAmount;
+                            block.totalFee = res.body.blocks[0].totalFee;
+                        }
+                        else{
+                            console.log("Request failed or blocks array is null");
+                        }
+                        done();
+                    });
+            }
+            else {
+                done();
+            }
         });
 
         test = test + 1;
@@ -239,7 +299,7 @@ describe('Miscellaneous tests (peers, blocks, etc)', function() {
                 .expect('Content-Type', /json/)
                 .expect(200)
                 .end(function (err, res){
-                    //console.log(res.body);
+                    console.log(JSON.stringify(res.body));
                     node.expect(res.body).to.have.property("success").to.be.true;
                     node.expect(res.body).to.have.property("blocks").that.is.an('array');
                     for (var i = 0; i < res.body.blocks.length; i++){
@@ -257,7 +317,7 @@ describe('Miscellaneous tests (peers, blocks, etc)', function() {
                 .expect('Content-Type', /json/)
                 .expect(200)
                 .end(function (err, res){
-                    //console.log(res.body);
+                    console.log(JSON.stringify(res.body));
                     node.expect(res.body).to.have.property("success").to.be.true;
                     node.expect(res.body).to.have.property("blocks").that.is.an('array');
                     for (var i = 0; i < res.body.blocks.length; i++){
@@ -275,7 +335,7 @@ describe('Miscellaneous tests (peers, blocks, etc)', function() {
                 .expect('Content-Type', /json/)
                 .expect(200)
                 .end(function (err, res){
-                    //console.log(res.body);
+                    console.log(JSON.stringify(res.body));
                     node.expect(res.body).to.have.property("success").to.be.true;
                     node.expect(res.body).to.have.property("blocks").that.is.an('array');
                     for (var i = 0; i < res.body.blocks.length; i++){
@@ -287,22 +347,24 @@ describe('Miscellaneous tests (peers, blocks, etc)', function() {
 
         test = test + 1;
         it(test + '. Get blocks list by parameters: previousBlock. Expecting success',function(done){
-            var previousBlock = block.id;
-            node.onNewBlock(function(err){
-				node.expect(err).to.be.not.ok;
-				node.api.get('/blocks?previousBlock='+previousBlock)
-					.set('Accept', 'application/json')
-					.expect('Content-Type', /json/)
-					.expect(200)
-					.end(function (err, res){
-						//console.log(res.body);
-						node.expect(res.body).to.have.property("success").to.be.true;
-						node.expect(res.body).to.have.property("blocks").that.is.an('array');
-						node.expect(res.body.blocks).to.have.length(1);
-						node.expect(res.body.blocks[0].previousBlock).to.equal(block.id);
-						done();
-					});
-            });
+            if (block.id != null){
+                var previousBlock = block.id;
+                node.onNewBlock(function(err){
+                    node.expect(err).to.be.not.ok;
+                    node.api.get('/blocks?previousBlock='+previousBlock)
+                        .set('Accept', 'application/json')
+                        .expect('Content-Type', /json/)
+                        .expect(200)
+                        .end(function (err, res){
+                            console.log(JSON.stringify(res.body));
+                            node.expect(res.body).to.have.property("success").to.be.true;
+                            node.expect(res.body).to.have.property("blocks").that.is.an('array');
+                            node.expect(res.body.blocks).to.have.length(1);
+                            node.expect(res.body.blocks[0].previousBlock).to.equal(previousBlock);
+                            done();
+                        });
+                });
+            }
         });
 
         test = test + 1;
@@ -313,7 +375,7 @@ describe('Miscellaneous tests (peers, blocks, etc)', function() {
                 .expect('Content-Type', /json/)
                 .expect(200)
                 .end(function (err, res){
-                    //console.log(res.body);
+                    console.log(JSON.stringify(res.body));
                     node.expect(res.body).to.have.property("success").to.be.true;
                     node.expect(res.body).to.have.property("blocks").that.is.an('array');
                     for (var i = 0; i < res.body.blocks.length; i++){

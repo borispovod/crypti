@@ -1,6 +1,6 @@
 {
 	"port": 7040,
-	"address": "127.0.0.1",
+	"address": "192.168.253.73",
 	"serveHttpAPI": true,
 	"serveHttpWallet": true,
 	"version": "0.5.0",
@@ -144,7 +144,8 @@
 	"mocha": {
 		"peers": {
 			"account" : "F3DP835EBuZMAhiuYn2AzhJh1lz8glLolghCMD4X8lRh5v2GlcBWws7plIDUuPjf3GUTOnyYEfXQx7cH",
-			"address" : "2334212999465599568C"
+			"address" : "2334212999465599568C",
+		  	"publicKey" : "631b91fa537f74e23addccd30555fbc7729ea267c7e0517cbf1bfcc46354abc3"
 		}
 	}
 }

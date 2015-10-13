@@ -9,7 +9,7 @@ describe("Peers usernames", function () {
 		var transaction = node.crypti.username.createUsername(node.peers_config.account, node.randomDelegateName());
 		node.peer.post('/transactions')
 			.set('Accept', 'application/json')
-			.set('Version',node.version)
+			.set('version',node.version)
 			.set('share-port',1)
 			.set('port',node.config.port)
 			.send({
@@ -18,12 +18,12 @@ describe("Peers usernames", function () {
 			.expect('Content-Type', /json/)
 			.expect(200)
 			.end(function (err, res) {
+				console.log("Sent: POST /transactions with data:" + JSON.stringify(transaction) + "! Got Reply: " + JSON.stringify(res.body));
 				node.expect(res.body).to.have.property("success").to.be.true;
 				transaction = node.crypti.username.createUsername(node.peers_config.account, node.randomAccount());
-
 				node.peer.post('/transactions')
 					.set('Accept', 'application/json')
-					.set('Version',node.version)
+					.set('version',node.version)
 					.set('share-port',1)
 					.set('port',node.config.port)
 					.send({
@@ -41,7 +41,7 @@ describe("Peers usernames", function () {
 	it("Register delegate and then username. Should return not ok", function (done) {
 		node.api.post('/accounts/open')
 			.set('Accept', 'application/json')
-			.set('Version',node.version)
+			.set('version',node.version)
 			.set('share-port',1)
 			.set('port',node.config.port)
 			.send({
@@ -50,10 +50,18 @@ describe("Peers usernames", function () {
 			.expect('Content-Type', /json/)
 			.expect(200)
 			.end(function (err, res) {
-				account.address = res.body.account.address;
+				console.log("Opening Account with secret= " + account.password + " Got reply: " + JSON.stringify(res.body));
+				if(res.body.success == true && res.body.account.address != null){
+					account.address = res.body.account.address;
+				}
+				else {
+					console.log("Couldn't open account. Test failed");
+					node.expect(true).to.equal(false);
+					done();
+				}
 				node.api.put('/transactions')
 					.set('Accept', 'application/json')
-					.set('Version',node.version)
+					.set('version',node.version)
 					.set('share-port',1)
 					.set('port',node.config.port)
 					.send({
@@ -65,12 +73,12 @@ describe("Peers usernames", function () {
 					.expect(200)
 					.end(function (err, res) {
 						node.onNewBlock(function (err) {
+							console.log("We sent XCR to account. We got answer: " + JSON.stringify(res.body));
 							node.expect(err).to.be.not.ok;
-
 							var transaction = node.crypti.delegate.createDelegate(account.password, node.randomDelegateName());
 							node.peer.post('/transactions')
 								.set('Accept', 'application/json')
-								.set('Version',node.version)
+								.set('version',node.version)
 								.set('share-port',1)
 								.set('port',node.config.port)
 								.send({
@@ -79,13 +87,12 @@ describe("Peers usernames", function () {
 								.expect('Content-Type', /json/)
 								.expect(200)
 								.end(function (err, res) {
+									console.log("We tried to create delegate. Got answer: " + JSON.stringify(res.body));
 									node.expect(res.body).to.have.property("success").to.be.true;
-
 									transaction = node.crypti.username.createUsername(account.password, node.randomDelegateName());
-
 									node.peer.post('/transactions')
 										.set('Accept', 'application/json')
-										.set('Version',node.version)
+										.set('version',node.version)
 										.set('share-port',1)
 										.set('port',node.config.port)
 										.send({
@@ -94,7 +101,7 @@ describe("Peers usernames", function () {
 										.expect('Content-Type', /json/)
 										.expect(200)
 										.end(function (err, res) {
-											//console.log(res.body);
+											console.log("Tried to register username. Got answer: " + JSON.stringify(res.body));
 											node.expect(res.body).to.have.property("success").to.be.false;
 											done();
 										});
@@ -108,7 +115,7 @@ describe("Peers usernames", function () {
 	it("Register username and then register delegate. Should return not ok", function (done) {
 		node.api.post('/accounts/open')
 			.set('Accept', 'application/json')
-			.set('Version',node.version)
+			.set('version',node.version)
 			.set('share-port',1)
 			.set('port',node.config.port)
 			.send({
@@ -120,7 +127,7 @@ describe("Peers usernames", function () {
 				account2.address = res.body.account.address;
 				node.api.put('/transactions')
 					.set('Accept', 'application/json')
-					.set('Version',node.version)
+					.set('version',node.version)
 					.set('share-port',1)
 					.set('port',node.config.port)
 					.send({
@@ -133,12 +140,10 @@ describe("Peers usernames", function () {
 					.end(function (err, res) {
 						node.onNewBlock(function (err) {
 							node.expect(err).to.be.not.ok;
-
 							var transaction = node.crypti.username.createUsername(account2.password, node.randomDelegateName());
-
 							node.peer.post('/transactions')
 								.set('Accept', 'application/json')
-								.set('Version',node.version)
+								.set('version',node.version)
 								.set('share-port',1)
 								.set('port',node.config.port)
 								.send({
@@ -152,7 +157,7 @@ describe("Peers usernames", function () {
 									transaction = node.crypti.delegate.createDelegate(account2.password, node.randomDelegateName());
 									node.peer.post('/transactions')
 										.set('Accept', 'application/json')
-										.set('Version',node.version)
+										.set('version',node.version)
 										.set('share-port',1)
 										.set('port',node.config.port)
 										.send({

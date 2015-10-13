@@ -8,7 +8,7 @@ describe("Peer contacts", function () {
 	before(function (done) {
 		node.api.post('/accounts/open')
 			.set('Accept', 'application/json')
-			.set('Version',node.version)
+			.set('version',node.version)
 			.set('share-port',1)
 			.set('port',node.config.port)
 			.send({
@@ -21,7 +21,7 @@ describe("Peer contacts", function () {
 				account.publicKey = res.body.account.publicKey;
 				node.api.put('/transactions')
 					.set('Accept', 'application/json')
-					.set('Version',node.version)
+					.set('version',node.version)
 					.set('share-port',1)
 					.set('port',node.config.port)
 					.send({
@@ -41,7 +41,7 @@ describe("Peer contacts", function () {
 		var transaction = node.crypti.contact.createContact(account.password, "5819218109212912C");
 		node.peer.post('/transactions')
 			.set('Accept', 'application/json')
-			.set('Version',node.version)
+			.set('version',node.version)
 			.set('share-port',1)
 			.set('port',node.config.port)
 			.send({
@@ -50,7 +50,7 @@ describe("Peer contacts", function () {
 			.expect('Content-Type', /json/)
 			.expect(200)
 			.end(function (err, res) {
-				//console.log(res.body);
+				console.log(JSON.stringify(res.body));
 				node.expect(res.body).to.have.property("success").to.be.false;
 				done();
 			});
@@ -61,7 +61,7 @@ describe("Peer contacts", function () {
 		var transaction = node.crypti.contact.createContact(account.password, "-" + node.peers_config.address);
 		node.peer.post('/transactions')
 			.set('Accept', 'application/json')
-			.set('Version',node.version)
+			.set('version',node.version)
 			.set('share-port',1)
 			.set('port',node.config.port)
 			.send({
@@ -70,7 +70,7 @@ describe("Peer contacts", function () {
 			.expect('Content-Type', /json/)
 			.expect(200)
 			.end(function (err, res) {
-				//console.log(res.body);
+				console.log(JSON.stringify(res.body));
 				node.expect(res.body).to.have.property("success").to.be.false;
 				node.onNewBlock(done);
 			});
@@ -82,7 +82,7 @@ describe("Peer contacts", function () {
 		var transaction = node.crypti.contact.createContact(account.password, "+" + node.peers_config.address);
 		node.peer.post('/transactions')
 			.set('Accept', 'application/json')
-			.set('Version',node.version)
+			.set('version',node.version)
 			.set('share-port',1)
 			.set('port',node.config.port)
 			.send({
@@ -91,7 +91,7 @@ describe("Peer contacts", function () {
 			.expect('Content-Type', /json/)
 			.expect(200)
 			.end(function (err, res) {
-				//console.log(res.body);
+				console.log(JSON.stringify(res.body));
 				node.expect(res.body).to.have.property("success").to.be.true;
 				node.onNewBlock(done);
 			});
@@ -101,7 +101,7 @@ describe("Peer contacts", function () {
 		var transaction = node.crypti.contact.createContact(account.password, "+" + node.peers_config.address);
 		node.peer.post('/transactions')
 			.set('Accept', 'application/json')
-			.set('Version',node.version)
+			.set('version',node.version)
 			.set('share-port',1)
 			.set('port',node.config.port)
 			.send({
@@ -110,7 +110,7 @@ describe("Peer contacts", function () {
 			.expect('Content-Type', /json/)
 			.expect(200)
 			.end(function (err, res) {
-				//console.log(res.body);
+				console.log(JSON.stringify(res.body));
 				node.expect(res.body).to.have.property("success").to.be.false;
 				node.onNewBlock(done);
 			});
