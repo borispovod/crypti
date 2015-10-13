@@ -197,9 +197,10 @@ private.list = function (filter, cb) {
 
 		library.dbLite.query("select b.id, b.version, b.timestamp, b.height, b.previousBlock, b.numberOfTransactions, b.totalAmount, b.totalFee, b.payloadLength,  lower(hex(b.payloadHash)), lower(hex(b.generatorPublicKey)), lower(hex(b.blockSignature)), (select max(height) + 1 from blocks) - b.height " +
 			"from blocks b " +
-			"where " + (fields.length ? fields.join(' and ') : '') + (fields.length ? " and " : "") + " b.height >= $offset and b.height <= $limit " +
-			(filter.orderBy ? 'order by ' + sortBy + ' ' + sortMethod : ''), params, ['b_id', 'b_version', 'b_timestamp', 'b_height', 'b_previousBlock', 'b_numberOfTransactions', 'b_totalAmount', 'b_totalFee', 'b_payloadLength', 'b_payloadHash', 'b_generatorPublicKey', 'b_blockSignature', 'b_confirmations'], function (err, rows) {
+			(fields.length ? "where " +  fields.join(' and ') : '')  + " " +
+			(filter.orderBy ? 'order by ' + sortBy + ' ' + sortMethod : '') + " limit $limit offset $offset ", params, ['b_id', 'b_version', 'b_timestamp', 'b_height', 'b_previousBlock', 'b_numberOfTransactions', 'b_totalAmount', 'b_totalFee', 'b_payloadLength', 'b_payloadHash', 'b_generatorPublicKey', 'b_blockSignature', 'b_confirmations'], function (err, rows) {
 			if (err) {
+				library.logger.error(err);
 				return cb(err);
 			}
 
@@ -212,6 +213,7 @@ private.list = function (filter, cb) {
 				blocks: blocks,
 				count: count
 			}
+
 			cb(null, data);
 		});
 	});
@@ -1127,7 +1129,7 @@ shared.getBlocks = function (req, cb) {
 		library.dbSequence.add(function (cb) {
 			private.list(query, function (err, data) {
 				if (err) {
-					return cb(errorCode("BLOCKS.BLOCK_NOT_FOUND"));
+					return cb("Sql error");
 				}
 				cb(null, {blocks: data.blocks, count: data.count});
 			});
