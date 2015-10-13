@@ -162,6 +162,9 @@ private.list = function (filter, cb) {
 		filter.offset = 0;
 	}
 
+	params.limit = filter.limit;
+	params.offset = filter.offset;
+
 	if (filter.limit > 100) {
 		return cb('Maximum of limit is 100');
 	}
@@ -173,27 +176,7 @@ private.list = function (filter, cb) {
 			return cb(err);
 		}
 
-		var count = rows.length ? rows[0].count : 0;
-
-		if (sortMethod == "desc") {
-			var end = count - filter.offset;
-
-			if (end < 0) {
-				end = 0;
-			}
-
-			var start = end - filter.limit + 1;
-
-			if (start < 0) {
-				start = 0;
-			}
-
-			params.limit = end;
-			params.offset = start;
-		} else {
-			params.offset = filter.offset;
-			params.limit = filter.limit + filter.offset;
-		}
+		var count = rows[0].count;
 
 		library.dbLite.query("select b.id, b.version, b.timestamp, b.height, b.previousBlock, b.numberOfTransactions, b.totalAmount, b.totalFee, b.payloadLength,  lower(hex(b.payloadHash)), lower(hex(b.generatorPublicKey)), lower(hex(b.blockSignature)), (select max(height) + 1 from blocks) - b.height " +
 			"from blocks b " +
