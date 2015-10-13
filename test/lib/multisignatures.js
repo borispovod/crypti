@@ -1,5 +1,5 @@
 /**
- * Ask Sebastian if you have any questions. Last Edit: 30/09/2015
+ * Ask Sebastian if you have any questions. Last Edit: 13/10/2015
  */
 
 // Requires and node configuration
@@ -24,7 +24,7 @@ var MultiSigTX = {
     min : 0,
     members : [],
     txId : ""
-};
+}
 
 // Used for opening accounts
 var accountOpenTurn = 0;
@@ -56,7 +56,7 @@ function openAccount (account, i){
                     MultisigAccount.publicKey = res.body.account.publicKey;
                 }
             });
-};
+}
 
 // Used for sending XCR to accounts
 var accountSendTurn = 0;
@@ -82,7 +82,7 @@ function sendXCR (account, i){
                 }
             });
     });
-};
+}
 
 function sendXCRfromMultisigAccount (amount, recipient){
     node.api.put('/transactions')
@@ -117,7 +117,7 @@ function confirmTransaction (account, id){
                 console.log("Signing Tx ID = " + id + " from account with password = " + account.password + " Got reply: " + JSON.stringify(res.body));
                 node.expect(res.body).to.have.property("success").to.be.true;
             });
-};
+}
 
 
 // Used for KeysGroup
@@ -130,7 +130,7 @@ function makeKeysGroup (){
         keysgroup.push(member);
     }
     return keysgroup;
-};
+}
 
 // Used for test labeling
 var test = 0;

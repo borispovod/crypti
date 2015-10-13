@@ -11,13 +11,6 @@ describe("Peers votes", function () {
 
 	before(function (done) {
 		node.api.get('/delegates/voters?publicKey=' + node.peers_config.publicKey)
-			.set('Accept', 'application/json')
-			.set('version',node.version)
-			.set('share-port',1)
-			.set('port',node.config.port)
-			.send({
-				transaction: transaction
-			})
 			.expect('Content-Type', /json/)
 			.expect(200)
 			.end(function (err, res) {
@@ -119,7 +112,6 @@ describe("Peers votes", function () {
 
 	test = test + 1;
 	it("Remove votes from delegate and then vote again. Should be not ok", function (done) {
-<<<<<<< HEAD
 		node.onNewBlock(function (err) {
 			var transaction = node.crypti.vote.createVote(node.peers_config.account, ["-9062a3b2d585be13b66e705af3f40657a97d0e4a27ec56664e05cdb5c953b0f6"]);
 			node.peer.post('/transactions')
@@ -153,7 +145,7 @@ describe("Peers votes", function () {
 						});
 				});
 		});
-=======
+
 		var transaction = node.crypti.vote.createVote(node.peers_config.account, ["-9062a3b2d585be13b66e705af3f40657a97d0e4a27ec56664e05cdb5c953b0f6"]);
 		node.peer.post('/transactions')
 			.set('Accept', 'application/json')
@@ -185,7 +177,6 @@ describe("Peers votes", function () {
 						done();
 					});
 			});
->>>>>>> 057b16280815627c09f8fe7db8dd473c97c59ed4
 	});
 
 	// not right test, because sometimes new block came and we don't have time to vote
