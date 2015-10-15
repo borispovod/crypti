@@ -250,9 +250,9 @@ Contacts.prototype.checkUnconfirmedContacts = function (publicKey, contacts, cb)
 					return cb(errorCode('Incorrect math'));
 				}
 
-				if (contactAddress == selfAddress) {
-					return cb(errorCode("CONTACTS.SELF_FRIENDING"));
-				}
+				//if (contactAddress == selfAddress) {
+				//	return cb(errorCode("CONTACTS.SELF_FRIENDING"));
+				//}
 
 				if (math == "+" && (account.u_delegates !== null && account.u_delegates.indexOf(contactAddress) != -1)) {
 					return cb("Can't verify contacts, you already voted for this delegate");

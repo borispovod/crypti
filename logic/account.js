@@ -545,8 +545,8 @@ Account.prototype.createTables = function (cb) {
 			return;
 		}
 
-		this.set("14225995638226006440C", {
-			address: "14225995638226006440C"
+		this.set(constants.foundation, {
+			address: constants.foundation
 		}, function (err) {
 			setImmediate(cb, err, this);
 		}.bind(this));
@@ -760,6 +760,10 @@ Account.prototype.merge = function (address, diff, cb) {
 		}
 	});
 
+	if (Object.keys(insert_object).length !== 0 || Object.keys(remove_object).length !== 0) {
+		console.log(insert_object, remove_object)
+	}
+
 	var sqles = [];
 
 	if (Object.keys(remove).length) {
@@ -768,7 +772,8 @@ Account.prototype.merge = function (address, diff, cb) {
 				type: 'remove',
 				table: self.table + "2" + el,
 				condition: {
-					dependentId: {$in: remove[el]}
+					dependentId: {$in: remove[el]},
+					accountId: address
 				}
 			});
 			sqles.push(sql);

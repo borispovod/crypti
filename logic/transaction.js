@@ -409,7 +409,6 @@ Transaction.prototype.verify = function (trs, sender, requester, cb) { //inherit
 	});
 }
 
-
 Transaction.prototype.verifySignature = function (trs, publicKey, signature) {
 	if (!private.types[trs.type]) {
 		throw Error('Unknown transaction type ' + trs.type);
@@ -524,7 +523,7 @@ Transaction.prototype.applyUnconfirmed = function (trs, sender, requester, cb) {
 		return setImmediate(cb, 'Unknown transaction type ' + trs.type);
 	}
 
-	if (!trs.requesterPublicKey && sender.secondSignature && !trs.signSignature) {
+	if (!trs.requesterPublicKey && sender.secondSignature && !trs.signSignature && trs.blockId != genesisblock.block.id) {
 		return setImmediate(cb, 'Failed second signature: ' + trs.id);
 	}
 

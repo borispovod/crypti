@@ -152,7 +152,7 @@ function Username() {
 	}
 
 	this.calculateFee = function (trs) {
-		return 1 * constants.fixedPoint;
+		return 100 * constants.fixedPoint;
 	}
 
 	this.verify = function (trs, sender, cb) {

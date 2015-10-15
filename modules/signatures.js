@@ -28,7 +28,7 @@ function Signature() {
 		if (modules.blocks.getLastBlock().height >= MilestoneBlocks.FEE_BLOCK) {
 			return 5 * constants.fixedPoint;
 		} else {
-			return 5 * constants.fixedPoint;
+			return 100 * constants.fixedPoint;
 		}
 	}
 
@@ -215,7 +215,7 @@ shared.getFee = function (req, cb) {
 	if (modules.blocks.getLastBlock().height >= MilestoneBlocks.FEE_BLOCK) {
 		fee = 5 * constants.fixedPoint;
 	} else {
-		fee = 5 * constants.fixedPoint;
+		fee = 100 * constants.fixedPoint;
 	}
 
 	cb(null, {fee: fee})

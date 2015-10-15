@@ -2246,7 +2246,7 @@ DApps.prototype.onBlockchainReady = function () {
 	if (library.config.dapp) {
 		async.eachSeries(library.config.dapp.autoexec || [], function (dapp, cb) {
 			private.launch({params: dapp.params, id: dapp.dappid}, function (err) {
-				console.log("lanched " + dapp.dappid + " as " + dapp.params[0], err)
+				console.log("lanched " + dapp.dappid, err)
 				cb();
 			});
 		});

@@ -1,3 +1,4 @@
 module.exports = {
-	FEE_BLOCK : 114000
+	FEE_BLOCK : 114000,
+	USERNAME_BLOCK: 1096794
 }

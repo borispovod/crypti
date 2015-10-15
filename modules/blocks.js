@@ -288,7 +288,7 @@ private.popLastBlock = function (oldLastBlock, cb) {
 				});
 			});
 		});
-	},cb);
+	}, cb);
 }
 
 private.getIdSequence = function (height, cb) {
@@ -610,13 +610,18 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, verify, cb) {
 					}
 				}
 
-				if (block.id != genesisblock.block.id) {
-					block.transactions = block.transactions.sort(function (a, b) {
-						if (a.type == TransactionTypes.SIGNATURE)
+				block.transactions = block.transactions.sort(function (a, b) {
+					if (block.id == genesisblock.block.id) {
+						if (a.type == TransactionTypes.VOTE)
 							return 1;
-						return 0;
-					});
-				}
+					}
+
+					if (a.type == TransactionTypes.SIGNATURE) {
+						return 1;
+					}
+
+					return 0;
+				});
 
 				async.eachSeries(block.transactions, function (transaction, cb) {
 					if (verify) {
