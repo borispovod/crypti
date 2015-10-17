@@ -50,11 +50,14 @@ module.exports.connect = function (connectString, cb) {
 		"CREATE INDEX IF NOT EXISTS dapps_name ON dapps(name)",
 		"CREATE INDEX IF NOT EXISTS sia_peers_unique ON sia_peers(ip, port)",
 		"PRAGMA foreign_keys = ON",
-		"UPDATE peers SET state = 1, clock = null where state != 0",
 		"PRAGMA synchronous=OFF",
 		"PRAGMA journal_mode=MEMORY",
 		"PRAGMA default_cache_size=10000",
 		"PRAGMA locking_mode=EXCLUSIVE"
+	];
+
+	var post = [
+		"UPDATE peers SET state = 1, clock = null where state != 0"
 	];
 
 	async.eachSeries(sql, function (command, cb) {
@@ -63,7 +66,7 @@ module.exports.connect = function (connectString, cb) {
 		});
 	}, function (err) {
 		if (err) {
-			return cb(err, db);
+			return cb(err);
 		}
 
 		var migration = {
@@ -83,7 +86,7 @@ module.exports.connect = function (connectString, cb) {
 
 		db.query("PRAGMA user_version", function (err, rows) {
 			if (err) {
-				return cb(err, db);
+				return cb(err);
 			}
 
 			var currentVersion = rows[0] || 0;
@@ -106,7 +109,16 @@ module.exports.connect = function (connectString, cb) {
 					});
 				});
 			}, function (err) {
-				return cb(err, db);
+				if (err) {
+					return cb(err);
+				}
+				async.eachSeries(post, function (command, cb) {
+					db.query(command, function (err, data) {
+						cb(err, data);
+					});
+				}, function (err) {
+					cb(err, db);
+				});
 			});
 		});
 	});
