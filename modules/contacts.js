@@ -25,11 +25,7 @@ function Contact() {
 	}
 
 	this.calculateFee = function (trs, sender) {
-		if (sender.multisignatures) {
-			return 1 *  sender.multimin * constants.fixedPoint;
-		} else {
-			return 1 * constants.fixedPoint;
-		}
+		return 1 * constants.fixedPoint;
 	}
 
 	this.verify = function (trs, sender, cb) {

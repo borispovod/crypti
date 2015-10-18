@@ -39,18 +39,10 @@ function Delegate() {
 	}
 
 	this.calculateFee = function (trs, sender) {
-		if (sender.multisignatures) {
-			if (modules.blocks.getLastBlock().height >= MilestoneBlocks.FEE_BLOCK) {
-				return 100 * constants.fixedPoint * sender.multimin;
-			} else {
-				return 10000 * constants.fixedPoint * sender.multimin;
-			}
+		if (modules.blocks.getLastBlock().height >= MilestoneBlocks.FEE_BLOCK) {
+			return 100 * constants.fixedPoint;
 		} else {
-			if (modules.blocks.getLastBlock().height >= MilestoneBlocks.FEE_BLOCK) {
-				return 100 * constants.fixedPoint;
-			} else {
-				return 10000 * constants.fixedPoint;
-			}
+			return 10000 * constants.fixedPoint;
 		}
 	}
 

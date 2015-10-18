@@ -54,11 +54,7 @@ function OutTransfer() {
 	}
 
 	this.calculateFee = function (trs, sender) {
-		if (sender.multisignatures) {
-			var fee = parseInt(trs.amount / 100 * library.logic.block.calculateFee()) * sender.multimin;
-		} else {
-			var fee = parseInt(trs.amount / 100 * library.logic.block.calculateFee());
-		}
+		var fee = parseInt(trs.amount / 100 * library.logic.block.calculateFee());
 		return fee || 1;
 	}
 
@@ -255,11 +251,7 @@ function InTransfer() {
 	}
 
 	this.calculateFee = function (trs, sender) {
-		if (sender.multisignatures) {
-			var fee = parseInt(trs.amount / 100 * library.logic.block.calculateFee()) * sender.multimin;
-		} else {
-			var fee = parseInt(trs.amount / 100 * library.logic.block.calculateFee());
-		}
+		var fee = parseInt(trs.amount / 100 * library.logic.block.calculateFee());
 		return fee || 1;
 	}
 
@@ -407,11 +399,7 @@ function DApp() {
 	}
 
 	this.calculateFee = function (trs, sender) {
-		if (sender.multisignatures) {
-			return 500 * constants.fixedPoint * sender.multimin;
-		} else {
-			return 500 * constants.fixedPoint;
-		}
+		return 500 * constants.fixedPoint;
 	}
 
 	this.verify = function (trs, sender, cb) {
