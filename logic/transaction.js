@@ -50,7 +50,7 @@ Transaction.prototype.create = function (data) {
 
 	trs.id = this.getId(trs);
 
-	trs.fee = private.types[trs.type].calculateFee.call(this, trs) || false;
+	trs.fee = private.types[trs.type].calculateFee.call(this, trs, data.sender) || false;
 
 	return trs;
 }
@@ -390,7 +390,7 @@ Transaction.prototype.verify = function (trs, sender, requester, cb) { //inherit
 	}
 
 	//calc fee
-	var fee = private.types[trs.type].calculateFee.call(this, trs) || false;
+	var fee = private.types[trs.type].calculateFee.call(this, trs, sender) || false;
 	if (!fee || trs.fee != fee) {
 		return setImmediate(cb, "Invalid transaction type/fee: " + trs.id);
 	}

@@ -38,11 +38,19 @@ function Delegate() {
 		return trs;
 	}
 
-	this.calculateFee = function (trs) {
-		if (modules.blocks.getLastBlock().height >= MilestoneBlocks.FEE_BLOCK) {
-			return 100 * constants.fixedPoint;
+	this.calculateFee = function (trs, sender) {
+		if (sender.multisignatures) {
+			if (modules.blocks.getLastBlock().height >= MilestoneBlocks.FEE_BLOCK) {
+				return 100 * constants.fixedPoint * sender.multimin;
+			} else {
+				return 10000 * constants.fixedPoint * sender.multimin;
+			}
 		} else {
-			return 10000 * constants.fixedPoint;
+			if (modules.blocks.getLastBlock().height >= MilestoneBlocks.FEE_BLOCK) {
+				return 100 * constants.fixedPoint;
+			} else {
+				return 10000 * constants.fixedPoint;
+			}
 		}
 	}
 

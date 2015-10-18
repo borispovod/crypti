@@ -29,9 +29,14 @@ function Transfer() {
 		return trs;
 	}
 
-	this.calculateFee = function (trs) {
-		var fee = parseInt(trs.amount / 100 * library.logic.block.calculateFee());
-		return fee || 1;
+	this.calculateFee = function (trs, sender) {
+		if (sender.multisignatures) {
+			var fee = parseInt(trs.amount / 100 * library.logic.block.calculateFee()) * sender.miltimin;
+			return fee || 1;
+		} else {
+			var fee = parseInt(trs.amount / 100 * library.logic.block.calculateFee());
+			return fee || 1;
+		}
 	}
 
 	this.verify = function (trs, sender, cb) {
