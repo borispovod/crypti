@@ -42,7 +42,7 @@ function Delegate() {
 		if (modules.blocks.getLastBlock().height >= MilestoneBlocks.FEE_BLOCK) {
 			return 100 * constants.fixedPoint;
 		} else {
-			return 100 * constants.fixedPoint;
+			return 10000 * constants.fixedPoint;
 		}
 	}
 
@@ -78,7 +78,7 @@ function Delegate() {
 				return setImmediate(cb, errorCode("DELEGATES.USERNAME_IS_TOO_LONG", trs));
 			}
 		} else {
-			if (trs.asset.delegate.username) {
+			if (trs.asset.delegate.username && trs.asset.delegate.username != sender.username) {
 				return cb(errorCode("USERNAMES.ALREADY_HAVE_USERNAME"));
 			}
 		}
@@ -154,7 +154,7 @@ function Delegate() {
 	}
 
 	this.applyUnconfirmed = function (trs, sender, cb) {
-		if (sender.u_username && trs.asset.delegate.username) {
+		if (sender.u_username && trs.asset.delegate.username && trs.asset.delegate.username != sender.u_username) {
 			return cb(errorCode("USERNAMES.ALREADY_HAVE_USERNAME"));
 		}
 
@@ -242,7 +242,7 @@ function Delegate() {
 
 	this.dbSave = function (trs, cb) {
 		library.dbLite.query("INSERT INTO delegates(username, transactionId) VALUES($username, $transactionId)", {
-			username: trs.asset.delegate.username || null,
+			username: trs.asset.delegate.username,
 			transactionId: trs.id
 		}, cb);
 	}
@@ -1001,7 +1001,7 @@ shared.getFee = function (req, cb) {
 	if (modules.blocks.getLastBlock().height >= MilestoneBlocks.FEE_BLOCK) {
 		fee = 100 * constants.fixedPoint;
 	} else {
-		fee = 100 * constants.fixedPoint;
+		fee = 10000 * constants.fixedPoint;
 	}
 
 	cb(null, {fee: fee})
@@ -1066,7 +1066,7 @@ shared.addDelegate = function (req, cb) {
 				type: "string"
 			}
 		},
-		required: ["secret"]
+		required: ["secret", "username"]
 	}, function (err) {
 		if (err) {
 			return cb(err[0].message);

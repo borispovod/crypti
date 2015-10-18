@@ -1,7 +1,6 @@
 var async = require('async'),
 	Router = require('../helpers/router.js'),
 	util = require('util'),
-	genesisBlock = null,
 	ip = require("ip"),
 	bignum = require('../helpers/bignum.js'),
 	sandboxHelper = require('../helpers/sandbox.js');
@@ -12,7 +11,8 @@ require('colors');
 var modules, library, self, private = {}, shared = {};
 
 private.loaded = false;
-private.loadingLastBlock = genesisBlock;
+private.loadingLastBlock = null;
+private.genesisBlock = null;
 private.total = 0;
 private.blocksToSync = 0;
 private.syncIntervalId = null;
@@ -20,7 +20,7 @@ private.syncIntervalId = null;
 //constructor
 function Loader(cb, scope) {
 	library = scope;
-	genesisBlock = library.genesisblock;
+	private.genesisBlock = private.loadingLastBlock = library.genesisblock;
 	self = this;
 	self.__private = private;
 	private.attachApi();
@@ -64,7 +64,7 @@ private.syncTrigger = function (turnOn) {
 private.loadFullDb = function (peer, cb) {
 	var peerStr = peer ? ip.fromLong(peer.ip) + ":" + peer.port : 'unknown';
 
-	var commonBlockId = genesisBlock.block.id;
+	var commonBlockId = private.genesisBlock.block.id;
 
 	library.logger.debug("Load blocks from genesis from " + peerStr);
 
@@ -231,7 +231,7 @@ private.loadBlocks = function (lastBlock, cb) {
 		if (bignum(modules.blocks.getLastBlock().height).lt(data.body.height)) { //diff in chainbases
 			private.blocksToSync = data.body.height;
 
-			if (lastBlock.id != genesisBlock.block.id) { //have to found common block
+			if (lastBlock.id != private.genesisBlock.block.id) { //have to found common block
 				private.findUpdate(lastBlock, data.peer, cb);
 			} else { //have to load full db
 				private.loadFullDb(data.peer, cb);

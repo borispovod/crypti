@@ -1,7 +1,8 @@
 var async = require('async'),
 	util = require('util'),
 	slots = require('../helpers/slots.js'),
-	sandboxHelper = require('../helpers/sandbox.js');
+	sandboxHelper = require('../helpers/sandbox.js'),
+	constants = require('../helpers/constants.js');
 
 //private fields
 var modules, library, self, private = {}, shared = {};
@@ -85,7 +86,7 @@ Round.prototype.backwardTick = function (block, previousBlock, cb) {
 
 					if (foundationFee || diffFee) {
 						modules.accounts.mergeAccountAndGet({
-							address: "14225995638226006440C",
+							address: constants.foundation,
 							balance: -foundationFee,
 							u_balance: -foundationFee
 						}, function (err, recipient) {
@@ -204,7 +205,7 @@ Round.prototype.tick = function (block, cb) {
 
 					if (foundationFee || diffFee) {
 						modules.accounts.mergeAccountAndGet({
-							address: "14225995638226006440C",
+							address: constants.foundation,
 							balance: foundationFee,
 							u_balance: foundationFee
 						}, function (err, recipient) {
