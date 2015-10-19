@@ -1062,7 +1062,11 @@ private.attachApi = function () {
 										categorySql = " AND category = $category"
 									}
 
-									library.dbLite.query("SELECT transactionId, name, description, tags, siaAscii, siaIcon, git, type, category, icon FROM dapps WHERE rowid IN (" + rows.join(',') + ")" + categorySql, {category: category}, {
+									var rowids = rows.map(function (row) {
+										return row.rowid;
+									});
+
+									library.dbLite.query("SELECT transactionId, name, description, tags, siaAscii, siaIcon, git, type, category, icon FROM dapps WHERE rowid IN (" + rowids.join(',') + ")" + categorySql, {category: category}, {
 										'transactionId': String,
 										'name': String,
 										'description': String,
