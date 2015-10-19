@@ -282,12 +282,13 @@ private.attachApi = function () {
 
 		var unconfirmedList = modules.transactions.getUnconfirmedTransactionList();
 		var signatures = [];
+
 		async.eachSeries(unconfirmedList, function (trs, cb) {
 			if (trs.signatures && trs.signatures.length) {
 				signatures.push({
 					transaction: trs.id,
 					signatures: trs.signatures
-				})
+				});
 			}
 
 			setImmediate(cb);

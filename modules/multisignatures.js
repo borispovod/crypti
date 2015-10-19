@@ -499,7 +499,7 @@ Multisignatures.prototype.processSignature = function (tx, cb) {
 	}
 
 	if (transaction.type == TransactionTypes.MULTI) {
-		if (transaction.asset.multisignature.signatures && transaction.signatures.indexOf(tx.signature) != -1) {
+		if (transaction.asset.multisignature.signatures || transaction.signatures.indexOf(tx.signature) != -1) {
 			return cb(errorCode("MULTISIGNATURES.SIGN_NOT_ALLOWED", transaction));
 		}
 
@@ -507,12 +507,12 @@ Multisignatures.prototype.processSignature = function (tx, cb) {
 		var verify = false;
 
 		try {
-			for (var i = 0; i < transaction.asset.multisignature.keysgroup && !verify; i++) {
+			for (var i = 0; i < transaction.asset.multisignature.keysgroup.length && !verify; i++) {
 				var key = transaction.asset.multisignature.keysgroup[i].substring(1);
 				verify = library.logic.transaction.verifySignature(transaction, key, tx.signature);
 			}
 		} catch (e) {
-			return cb("Failed to signature verification");
+			return cb("Failed to signature verification, exception");
 		}
 
 		if (!verify) {

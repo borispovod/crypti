@@ -251,20 +251,31 @@ private.loadSignatures = function (cb) {
 			return cb();
 		}
 
-		library.scheme.validate(data.body.signatures, {
-			type: "array",
-			required: true,
-			uniqueItems: true
+		library.scheme.validate(data.body, {
+			type: "object",
+			properties: {
+				signatures: {
+					type: "array",
+					uniqueItems: true
+				}
+			},
+			required: ['signatures']
 		}, function (err) {
 			if (err) {
 				return cb();
 			}
 
+
 			library.sequence.add(function (cb) {
 				async.eachSeries(data.body.signatures, function (signature, cb) {
-					modules.multisignatures.processSignature(signature, function (err) {
-						setImmediate(cb);
-					});
+					async.eachSeries(signature.signatures, function (s, cb) {
+						modules.multisignatures.processSignature({
+							signature: s,
+							transaction: signature.transaction
+						}, function (err) {
+							setImmediate(cb);
+						});
+					}, cb);
 				}, cb);
 			}, cb);
 		});
@@ -280,11 +291,17 @@ private.loadUnconfirmedTransactions = function (cb) {
 			return cb()
 		}
 
-		var report = library.scheme.validate(data.body.transactions, {
-			type: "array",
-			required: true,
-			uniqueItems: true
+		var report = library.scheme.validate(data.body, {
+			type: "object",
+			properties: {
+				transactions: {
+					type: "array",
+					uniqueItems: true
+				}
+			},
+			required: ['transactions']
 		});
+
 		if (!report) {
 			return cb();
 		}
@@ -301,6 +318,7 @@ private.loadUnconfirmedTransactions = function (cb) {
 				return setImmediate(cb);
 			}
 		}
+
 
 		library.balancesSequence.add(function (cb) {
 			modules.transactions.receiveTransactions(transactions, cb);
