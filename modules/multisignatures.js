@@ -362,9 +362,7 @@ shared.getAccounts = function (req, cb) {
 				return cb("Internal sql error");
 			}
 
-			var addresses = rows.map(function (item) {
-				return item.accountId;
-			});
+			var addresses = rows[0].accountId.split(',');
 
 			modules.accounts.getAccounts({
 				address: {$in: addresses},
@@ -456,7 +454,7 @@ shared.pending = function (req, cb) {
 
 				if (sender.u_multisignatures.indexOf(query.publicKey) >= 0 || sender.multisignatures.indexOf(query.publicKey) >= 0) {
 					var min = sender.u_multimin || sender.multimin;
-					var lifetime = sender.u_multilifetime || sender.multilifetime;;
+					var lifetime = sender.u_multilifetime || sender.multilifetime;
 					var signatures = sender.u_multisignatures.length;
 
 					pendings.push({
@@ -470,7 +468,29 @@ shared.pending = function (req, cb) {
 				return cb();
 			});
 		}, function () {
-			return cb(null, {transactions: pendings});
+			// get groups
+			library.dbLite.query("select GROUP_CONCAT(accountId) from mem_accounts2multisignatures where dependentId = $publicKey", {
+				publicKey: query.publicKey
+			}, ['accountId'], function (err, rows) {
+				if (err) {
+					library.logger.error(err);
+					return cb("Internal sql error");
+				}
+
+				var addresses = rows[0].accountId.split(',');
+
+				modules.accounts.getAccounts({
+					address: {$in: addresses},
+					sort: 'balance'
+				}, ['address', 'multimin', 'multilifetime', 'multisignatures'], function (err, rows) {
+					if (err) {
+						library.logger.error(err);
+						return cb("Internal sql error");
+					}
+
+					return cb(null, {transactions: pendings, multisigaccounts: rows});
+				});
+			});
 		});
 	});
 }

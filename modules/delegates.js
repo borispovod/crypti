@@ -897,9 +897,7 @@ shared.getVoters = function (req, cb) {
 				return cb("Internal sql error");
 			}
 
-			var addresses = rows.map(function (item) {
-				return item.accountId;
-			})
+			var addresses = rows[0].accountId.split(',');
 
 			modules.accounts.getAccounts({
 				address: {$in: addresses},
