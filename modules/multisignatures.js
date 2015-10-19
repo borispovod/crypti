@@ -468,29 +468,7 @@ shared.pending = function (req, cb) {
 				return cb();
 			});
 		}, function () {
-			// get groups
-			library.dbLite.query("select GROUP_CONCAT(accountId) from mem_accounts2multisignatures where dependentId = $publicKey", {
-				publicKey: query.publicKey
-			}, ['accountId'], function (err, rows) {
-				if (err) {
-					library.logger.error(err);
-					return cb("Internal sql error");
-				}
-
-				var addresses = rows[0].accountId.split(',');
-
-				modules.accounts.getAccounts({
-					address: {$in: addresses},
-					sort: 'balance'
-				}, ['address', 'multimin', 'multilifetime', 'multisignatures'], function (err, rows) {
-					if (err) {
-						library.logger.error(err);
-						return cb("Internal sql error");
-					}
-
-					return cb(null, {transactions: pendings, multisigaccounts: rows});
-				});
-			});
+			return cb(null, {transactions: pending});
 		});
 	});
 }
