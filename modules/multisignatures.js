@@ -468,7 +468,7 @@ shared.pending = function (req, cb) {
 				return cb();
 			});
 		}, function () {
-			return cb(null, {transactions: pending});
+			return cb(null, {transactions: pendings});
 		});
 	});
 }

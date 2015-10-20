@@ -25,7 +25,7 @@ describe("Peers delegates transactions", function () {
 					.set('port',node.config.port)
 					.send({
 						secret: node.peers_config.account,
-						amount: 100000000000,
+						amount: node.Fees.delegateRegistrationFee,
 						recipientId: account.address
 					})
 					.expect('Content-Type', /json/)
@@ -34,6 +34,8 @@ describe("Peers delegates transactions", function () {
 						node.onNewBlock(function (err) {
 							node.expect(err).to.be.not.ok;
 							var transaction = node.crypti.delegate.createDelegate(account.password, crypto.randomBytes(64).toString('hex'));
+							transaction.fee = node.Fees.delegateRegistrationFee;
+
 							node.peer.post('/transactions')
 								.set('Accept', 'application/json')
 								.set('version',node.version)
@@ -56,6 +58,8 @@ describe("Peers delegates transactions", function () {
 
 	it("Create delegate from account with no funds. Should return not ok", function (done) {
 		var transaction = node.crypti.delegate.createDelegate(node.randomPassword(), node.randomDelegateName());
+		transaction.fee = node.Fees.delegateRegistrationFee;
+
 		node.peer.post('/transactions')
 			.set('Accept', 'application/json')
 			.set('version',node.version)
@@ -76,6 +80,8 @@ describe("Peers delegates transactions", function () {
 	it("Create delegate on acccount. Should return ok", function (done) {
 		account.username = node.randomDelegateName();
 		var transaction = node.crypti.delegate.createDelegate(account.password, account.username);
+		transaction.fee = node.Fees.delegateRegistrationFee;
+
 		node.peer.post('/transactions')
 			.set('Accept', 'application/json')
 			.set('version',node.version)
@@ -123,6 +129,8 @@ describe("Peers delegates transactions", function () {
 							node.expect(err).to.be.not.ok;
 							account2.username = node.randomDelegateName();
 							var transaction = node.crypti.delegate.createDelegate(account2.password, account2.username);
+							transaction.fee = node.Fees.delegateRegistrationFee;
+
 							node.peer.post('/transactions')
 								.set('Accept', 'application/json')
 								.set('version',node.version)
@@ -138,6 +146,7 @@ describe("Peers delegates transactions", function () {
 
 									account2.username = node.randomDelegateName();
 									var transaction2 = node.crypti.delegate.createDelegate(account2.password, account2.username);
+									transaction2.fee = node.Fees.delegateRegistrationFee;
 
 									node.peer.post('/transactions')
 										.set('Accept', 'application/json')
