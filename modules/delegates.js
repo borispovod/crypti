@@ -87,8 +87,8 @@ function Delegate() {
 			return cb(errorCode("DELEGATES.EXISTS_DELEGATE"));
 		}
 
-		if (sender.username && sender.username != trs.asset.delegate.username) {
-			return cb("Incorrect username in transaction");
+		if (sender.username) {
+			return cb(null, trs);
 		}
 
 		modules.accounts.getAccount({
@@ -131,25 +131,30 @@ function Delegate() {
 			u_isDelegate: 0,
 			isDelegate: 1
 		}
-		if (trs.asset.delegate.username) {
+
+		if (!sender.nameexist && trs.asset.delegate.username) {
 			data.u_username = null;
 			data.username = trs.asset.delegate.username;
 		}
+
 		modules.accounts.setAccountAndGet(data, cb);
 	}
 
 	this.undo = function (trs, sender, cb) {
 		delete private.delegates[trs.asset.delegate.publicKey];
 		delete private.unconfirmedDelegates[trs.asset.delegate.publicKey];
+
 		var data = {
 			address: sender.address,
 			u_isDelegate: 1,
 			isDelegate: 0
 		}
-		if (trs.asset.delegate.username) {
+
+		if (!sender.nameexist && trs.asset.delegate.username) {
 			data.username = null;
 			data.u_username = trs.asset.delegate.username;
 		}
+
 		modules.accounts.setAccountAndGet(data, cb);
 	}
 
@@ -168,10 +173,12 @@ function Delegate() {
 				u_isDelegate: 1,
 				isDelegate: 0
 			}
-			if (trs.asset.delegate.username) {
+
+			if (!sender.nameexist && trs.asset.delegate.username) {
 				data.username = null;
 				data.u_username = trs.asset.delegate.username;
 			}
+
 			modules.accounts.setAccountAndGet(data, cb);
 		}
 
@@ -187,7 +194,7 @@ function Delegate() {
 			}
 
 			if (account) {
-				return cb(errorCode("DELEGATES.EXISTS_DELEGATE"));
+				return cb(errorCode("DELEGATES.EXISTS_USERNAME"));
 			}
 
 			done();
@@ -200,10 +207,12 @@ function Delegate() {
 			u_isDelegate: 0,
 			isDelegate: 0
 		}
-		if (trs.asset.delegate.username) {
+
+		if (!sender.nameexist && trs.asset.delegate.username) {
 			data.username = null;
 			data.u_username = null;
 		}
+
 		modules.accounts.setAccountAndGet(data, cb);
 	}
 

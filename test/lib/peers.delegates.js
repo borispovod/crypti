@@ -119,7 +119,7 @@ describe("Peers delegates transactions", function () {
 					.set('port',node.config.port)
 					.send({
 						secret: node.peers_config.account,
-						amount: 100000000000,
+						amount: node.Fees.delegateRegistrationFee,
 						recipientId: account2.address
 					})
 					.expect('Content-Type', /json/)

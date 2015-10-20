@@ -285,6 +285,23 @@ function Account(scope, cb) {
 			},
 			conv: String,
 			default: genesisBlock.id
+		}, {
+			name: "nameexist",
+			type: "Boolean",
+			filter: {
+				type: "boolean"
+			},
+			conv: Boolean,
+			default: 0
+		},
+		{
+			name: "u_nameexist",
+			type: "Boolean",
+			filter: {
+				type: "boolean"
+			},
+			conv: Boolean,
+			default: 0
 		}
 	];
 
@@ -657,6 +674,7 @@ Account.prototype.getAll = function (filter, fields, cb) {
 		if (err) {
 			return cb(err);
 		}
+
 
 		cb(null, data || []);
 	}.bind(this));

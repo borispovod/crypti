@@ -26,7 +26,7 @@ var version = "0.5.0" // Node version
 // Holds Fee amounts for different transaction types.
 var Fees = {
 	voteFee : 100000000,
-	usernameFee : 100000000,
+	usernameFee : 10000000000,
 	followFee : 100000000,
 	transactionFee : 0.001,
 	secondPasswordFee : 10000000000,

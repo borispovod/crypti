@@ -27,6 +27,8 @@ describe("Peers second signature transactions", function () {
 
 	it("Send second signature from account that have no funds. Should return not ok", function (done) {
 		var transaction = node.crypti.signature.createSignature(node.randomPassword(), node.randomPassword());
+		transaction.fee = node.Fees.secondPasswordFee;
+
 		node.peer.post('/transactions')
 			.set('Accept', 'application/json')
 			.set('version',node.version)
@@ -64,7 +66,7 @@ describe("Peers second signature transactions", function () {
 					.set('port',node.config.port)
 					.send({
 						secret: node.peers_config.account,
-						amount: 100000000000,
+						amount: 50000000000,
 						recipientId: account.address
 					})
 					.expect('Content-Type', /json/)
@@ -76,6 +78,8 @@ describe("Peers second signature transactions", function () {
 						node.onNewBlock(function (err) {
 							node.expect(err).to.be.not.ok;
 							var transaction = node.crypti.signature.createSignature(account.password, account.secondPassword);
+							transaction.fee = node.Fees.secondPasswordFee;
+
 							node.peer.post('/transactions')
 								.set('Accept', 'application/json')
 								.set('version',node.version)
@@ -178,7 +182,7 @@ describe("Peers second signature transactions", function () {
 					.set('port',node.config.port)
 					.send({
 						secret: node.peers_config.account,
-						amount: 100000000000,
+						amount: 50000000000,
 						recipientId: account2.address
 					})
 					.expect('Content-Type', /json/)
@@ -189,6 +193,8 @@ describe("Peers second signature transactions", function () {
 						node.onNewBlock(function (err) {
 							node.expect(err).to.be.not.ok;
 							var transaction = node.crypti.signature.createSignature(account2.password, account2.secondPassword);
+							transaction.fee = node.Fees.secondPasswordFee;
+
 							node.peer.post('/transactions')
 								.set('Accept', 'application/json')
 								.set('version',node.version)
@@ -239,7 +245,7 @@ describe("Peers second signature transactions", function () {
 					.set('Accept', 'application/json')
 					.send({
 						secret: node.peers_config.account,
-						amount: 100000000000,
+						amount: 50000000000,
 						recipientId: account3.address
 					})
 					.expect('Content-Type', /json/)
@@ -263,6 +269,8 @@ describe("Peers second signature transactions", function () {
 									node.expect(res.body).to.have.property('success').to.be.true;
 
 									var transaction = node.crypti.signature.createSignature(account3.password, account3.secondPassword);
+									transaction.fee = node.Fees.secondPasswordFee;
+
 									node.peer.post('/transactions')
 										.set('Accept', 'application/json')
 										.set('version',node.version)

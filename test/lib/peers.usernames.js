@@ -7,6 +7,8 @@ var account2 = node.randomAccount();
 describe("Peers usernames", function () {
 	it("Register username on new account and then try to register another username. Should return not ok", function (done) {
 		var transaction = node.crypti.username.createUsername(node.peers_config.account, node.randomDelegateName());
+		transaction.fee = node.Fees.usernameFee;
+
 		node.peer.post('/transactions')
 			.set('Accept', 'application/json')
 			.set('version',node.version)
@@ -21,6 +23,8 @@ describe("Peers usernames", function () {
 				console.log("Sent: POST /transactions with data:" + JSON.stringify(transaction) + "! Got Reply: " + JSON.stringify(res.body));
 				node.expect(res.body).to.have.property("success").to.be.true;
 				transaction = node.crypti.username.createUsername(node.peers_config.account, node.randomAccount());
+				transaction.fee = node.Fees.usernameFee;
+
 				node.peer.post('/transactions')
 					.set('Accept', 'application/json')
 					.set('version',node.version)
@@ -66,7 +70,7 @@ describe("Peers usernames", function () {
 					.set('port',node.config.port)
 					.send({
 						secret: node.peers_config.account,
-						amount: 100000000000,
+						amount: 1500000000000,
 						recipientId: account.address
 					})
 					.expect('Content-Type', /json/)
@@ -76,6 +80,8 @@ describe("Peers usernames", function () {
 							console.log("We sent XCR to account. We got answer: " + JSON.stringify(res.body));
 							node.expect(err).to.be.not.ok;
 							var transaction = node.crypti.delegate.createDelegate(account.password, node.randomDelegateName());
+							transaction.fee = node.Fees.delegateRegistrationFee;
+
 							node.peer.post('/transactions')
 								.set('Accept', 'application/json')
 								.set('version',node.version)
@@ -90,6 +96,8 @@ describe("Peers usernames", function () {
 									console.log("We tried to create delegate. Got answer: " + JSON.stringify(res.body));
 									node.expect(res.body).to.have.property("success").to.be.true;
 									transaction = node.crypti.username.createUsername(account.password, node.randomDelegateName());
+									transaction.fee = node.Fees.usernameFee;
+
 									node.peer.post('/transactions')
 										.set('Accept', 'application/json')
 										.set('version',node.version)
@@ -132,7 +140,7 @@ describe("Peers usernames", function () {
 					.set('port',node.config.port)
 					.send({
 						secret: node.peers_config.account,
-						amount: 100000000000,
+						amount: 1500000000000,
 						recipientId: account2.address
 					})
 					.expect('Content-Type', /json/)
@@ -141,6 +149,8 @@ describe("Peers usernames", function () {
 						node.onNewBlock(function (err) {
 							node.expect(err).to.be.not.ok;
 							var transaction = node.crypti.username.createUsername(account2.password, node.randomDelegateName());
+							transaction.fee = node.Fees.usernameFee;
+
 							node.peer.post('/transactions')
 								.set('Accept', 'application/json')
 								.set('version',node.version)
@@ -154,21 +164,26 @@ describe("Peers usernames", function () {
 								.end(function (err, res) {
 									node.expect(res.body).to.have.property("success").to.be.true;
 
-									transaction = node.crypti.delegate.createDelegate(account2.password, node.randomDelegateName());
-									node.peer.post('/transactions')
-										.set('Accept', 'application/json')
-										.set('version',node.version)
-										.set('share-port',1)
-										.set('port',node.config.port)
-										.send({
-											transaction: transaction
-										})
-										.expect('Content-Type', /json/)
-										.expect(200)
-										.end(function (err, res) {
-											node.expect(res.body).to.have.property("success").to.be.false;
-											done();
-										});
+									node.onNewBlock(function () {
+										transaction = node.crypti.delegate.createDelegate(account2.password, node.randomDelegateName());
+										transaction.fee = node.Fees.delegateRegistrationFee;
+
+										node.peer.post('/transactions')
+											.set('Accept', 'application/json')
+											.set('version',node.version)
+											.set('share-port',1)
+											.set('port',node.config.port)
+											.send({
+												transaction: transaction
+											})
+											.expect('Content-Type', /json/)
+											.expect(200)
+											.end(function (err, res) {
+												console.log(res.body);
+												node.expect(res.body).to.have.property("success").to.be.false;
+												done();
+											});
+									});
 								});
 
 						}, 10000);

@@ -220,11 +220,11 @@ function Username() {
 	}
 
 	this.apply = function (trs, sender, cb) {
-		self.setAccountAndGet({address: sender.address, u_username: null, username: trs.asset.username.alias}, cb);
+		self.setAccountAndGet({address: sender.address, u_username: null, username: trs.asset.username.alias, nameexist: 1, u_nameexist: 0}, cb);
 	}
 
 	this.undo = function (trs, sender, cb) {
-		self.setAccountAndGet({address: sender.address, username: null, u_username: trs.asset.username.alias}, cb);
+		self.setAccountAndGet({address: sender.address, username: null, u_username: trs.asset.username.alias, nameexist: 0, u_nameexist: 1}, cb);
 	}
 
 	this.applyUnconfirmed = function (trs, sender, cb) {
@@ -247,12 +247,12 @@ function Username() {
 				return cb(errorCode("USERNAMES.EXISTS_USERNAME", trs));
 			}
 
-			self.setAccountAndGet({address: sender.address, u_username: trs.asset.username.alias}, cb);
+			self.setAccountAndGet({address: sender.address, u_username: trs.asset.username.alias, u_nameexist: 1}, cb);
 		});
 	}
 
 	this.undoUnconfirmed = function (trs, sender, cb) {
-		self.setAccountAndGet({address: sender.address, u_username: null}, cb);
+		self.setAccountAndGet({address: sender.address, u_username: null, u_nameexist: 0}, cb);
 	}
 
 	this.objectNormalize = function (trs) {

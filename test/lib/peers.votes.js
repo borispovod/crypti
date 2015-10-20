@@ -1,3 +1,4 @@
+
 var node = require('./../variables.js'),
 	crypto = require('crypto');
 
@@ -17,7 +18,7 @@ describe("Peers votes", function () {
 				console.log(JSON.stringify(res.body));
 				node.expect(res.body).to.have.property("success").to.be.true;
 				if (res.body.success == true){
-						node.expect(res.body).to.have.property("accounts").that.is.an('array');
+					node.expect(res.body).to.have.property("accounts").that.is.an('array');
 					if (res.body.accounts != null) {
 						for (var i = 0; i < res.body.accounts.length; i++) {
 							if (res.body.accounts[i].publicKey == "badf44a77df894ccad87fa62bac892e63e5e39fd972f6a3e6e850ed1a1708e98") {
@@ -145,40 +146,44 @@ describe("Peers votes", function () {
 						});
 				});
 		});
-
-		var transaction = node.crypti.vote.createVote(node.peers_config.account, ["-9062a3b2d585be13b66e705af3f40657a97d0e4a27ec56664e05cdb5c953b0f6"]);
-		node.peer.post('/transactions')
-			.set('Accept', 'application/json')
-			.set('version',node.version)
-			.set('share-port',1)
-			.set('port',node.config.port)
-			.send({
-				transaction: transaction
-			})
-			.expect('Content-Type', /json/)
-			.expect(200)
-			.end(function (err, res) {
-				node.expect(res.body).to.have.property("success").to.be.true;
-
-				var transaction2 = node.crypti.vote.createVote(node.peers_config.account, ["+9062a3b2d585be13b66e705af3f40657a97d0e4a27ec56664e05cdb5c953b0f6"]);
-				node.peer.post('/transactions')
-					.set('Accept', 'application/json')
-					.set('version',node.version)
-					.set('share-port',1)
-					.set('port',node.config.port)
-					.send({
-						transaction: transaction2
-					})
-					.expect('Content-Type', /json/)
-					.expect(200)
-					.end(function (err, res) {
-						//console.log(res.body);
-						node.expect(res.body).to.have.property("success").to.be.false;
-						done();
-					});
-			});
 	});
 
+	/*
+	 test = test + 1;
+	 it("OLD REMOVE VOTES AND VOTE AGAIN", function (done) {
+	 var transaction = node.crypti.vote.createVote(node.peers_config.account, ["-9062a3b2d585be13b66e705af3f40657a97d0e4a27ec56664e05cdb5c953b0f6"]);
+	 node.peer.post('/transactions')
+	 .set('Accept', 'application/json')
+	 .set('version',node.version)
+	 .set('share-port',1)
+	 .set('port',node.config.port)
+	 .send({
+	 transaction: transaction
+	 })
+	 .expect('Content-Type', /json/)
+	 .expect(200)
+	 .end(function (err, res) {
+	 node.expect(res.body).to.have.property("success").to.be.true;
+
+	 var transaction2 = node.crypti.vote.createVote(node.peers_config.account, ["+9062a3b2d585be13b66e705af3f40657a97d0e4a27ec56664e05cdb5c953b0f6"]);
+	 node.peer.post('/transactions')
+	 .set('Accept', 'application/json')
+	 .set('version',node.version)
+	 .set('share-port',1)
+	 .set('port',node.config.port)
+	 .send({
+	 transaction: transaction2
+	 })
+	 .expect('Content-Type', /json/)
+	 .expect(200)
+	 .end(function (err, res) {
+	 //console.log(res.body);
+	 node.expect(res.body).to.have.property("success").to.be.false;
+	 done();
+	 });
+	 });
+	 });
+	 */
 	// not right test, because sometimes new block came and we don't have time to vote
 	it("Create new delegate. Should return be ok.", function (done) {
 		node.api.post('/accounts/open')
@@ -208,7 +213,7 @@ describe("Peers votes", function () {
 					.set('port',node.config.port)
 					.send({
 						secret: node.peers_config.account,
-						amount: 100000000000,
+						amount: node.Fees.delegateRegistrationFee,
 						recipientId: account.address
 					})
 					.expect('Content-Type', /json/)
@@ -218,6 +223,7 @@ describe("Peers votes", function () {
 							node.expect(err).to.be.not.ok;
 							account.username = node.randomDelegateName();
 							var transaction = node.crypti.delegate.createDelegate(account.password, account.username);
+							transaction.fee = node.Fees.delegateRegistrationFee;
 							node.peer.post('/transactions')
 								.set('Accept', 'application/json')
 								.set('version',node.version)
