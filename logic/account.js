@@ -675,7 +675,6 @@ Account.prototype.getAll = function (filter, fields, cb) {
 			return cb(err);
 		}
 
-
 		cb(null, data || []);
 	}.bind(this));
 }

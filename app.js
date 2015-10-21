@@ -10,6 +10,7 @@ var https = require('https');
 var fs = require('fs');
 var z_schema = require('z-schema');
 var util = require('util');
+var Sequence = require('./helpers/sequence.js');
 
 var versionBuild = fs.readFileSync(path.join(__dirname, 'build'), 'utf8');
 
@@ -220,99 +221,32 @@ d.run(function () {
 			});
 		}],
 
-		dbSequence: function (cb) {
-			var sequence = [];
-			setImmediate(function nextSequenceTick() {
-				var task = sequence.shift();
-				if (!task) {
-					return setTimeout(nextSequenceTick, 100);
-				}
-				task(function () {
-					setTimeout(nextSequenceTick, 100);
-				});
-			});
-			cb(null, {
-				add: function (worker, done) {
-					sequence.push(function (cb) {
-						if (worker && typeof(worker) == 'function') {
-							worker(function (err, res) {
-								setImmediate(cb);
-								done && setImmediate(done, err, res);
-							});
-						} else {
-							setImmediate(cb);
-							done && setImmediate(done);
-						}
-					});
+		dbSequence: ["logger", function (cb, scope) {
+			var sequence = new Sequence({
+				onWarning: function(current, limit){
+					scope.logger.warn("db queue", current)
 				}
 			});
-		},
+			cb(null, sequence);
+		}],
 
-		sequence: function (cb) {
-			var sequence = [];
-			setImmediate(function nextSequenceTick() {
-				var task = sequence.shift();
-				if (!task) {
-					return setTimeout(nextSequenceTick, 100);
-				}
-				var args = [function (err, res) {
-					task.done && setImmediate(task.done, err, res);
-					setTimeout(nextSequenceTick, 100);
-				}];
-				if (task.args) {
-					args = args.concat(task.args);
-				}
-				task.worker.apply(task.worker, args);
-			});
-			cb(null, {
-				add: function (worker, args, done) {
-					if (!done && args && typeof(args) == 'function') {
-						done = args;
-						args = undefined;
-					}
-					if (worker && typeof(worker) == 'function') {
-						var task = {worker: worker, done: done};
-						if (util.isArray(args)){
-							task.args = args;
-						}
-						sequence.push(task);
-					}
+		sequence: ["logger", function (cb, scope) {
+			var sequence = new Sequence({
+				onWarning: function(current, limit){
+					scope.logger.warn("main queue", current)
 				}
 			});
-		},
+			cb(null, sequence);
+		}],
 
-		balancesSequence: function (cb) {
-			var sequence = [];
-			setImmediate(function nextSequenceTick() {
-				var task = sequence.shift();
-				if (!task) {
-					return setTimeout(nextSequenceTick, 100);
-				}
-				var args = [function (err, res) {
-					task.done && setImmediate(task.done, err, res);
-					setTimeout(nextSequenceTick, 100);
-				}];
-				if (task.args) {
-					args = args.concat(task.args);
-				}
-				task.worker.apply(task.worker, args);
-			});
-			cb(null, {
-				add: function (worker, args, done) {
-					if (!done && args && typeof(args) == 'function') {
-						done = args;
-						args = undefined;
-					}
-					if (worker && typeof(worker) == 'function') {
-						var task = {worker: worker, done: done};
-						if (util.isArray(args)){
-							task.args = args;
-						}
-						sequence.push(task);
-					}
+		balancesSequence: ["logger", function (cb, scope) {
+			var sequence = new Sequence({
+				onWarning: function(current, limit){
+					scope.logger.warn("balance queue", current)
 				}
 			});
-		},
+			cb(null, sequence);
+		}],
 
 		connect: ['config', 'genesisblock', 'logger', 'build', 'network', function (cb, scope) {
 			var path = require('path');
