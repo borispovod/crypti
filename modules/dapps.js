@@ -1897,6 +1897,8 @@ private.launch = function (body, cb) {
 			return cb("DApp already launched");
 		}
 
+		body.params = body.params || [''];
+
 		if (body.params.length > 0) {
 			body.params.push("modules.full.json");
 		}

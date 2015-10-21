@@ -641,9 +641,8 @@ describe('Dapps', function() {
 						node.expect(res.body.transaction).to.have.property("senderPublicKey");
 						node.expect(res.body.transaction).to.have.property("timestamp");
 						node.expect(res.body.transaction).to.have.property("asset").that.is.an('object');
-						node.expect(res.body.transaction).to.have.property("recipentId");
+						node.expect(res.body.transaction).to.have.property("recipientId");
 						node.expect(res.body.transaction).to.have.property("signature");
-						node.expect(res.body.transaction).to.have.property("signSignature");
 						node.expect(res.body.transaction).to.have.property("fee").to.equal(node.Fees.dappAddFee);
 						node.expect(res.body.transaction).to.have.property("senderId").to.equal(Account1.address);
 						node.expect(res.body.transaction.asset).to.have.property("dapp").that.is.an('object');
@@ -1495,7 +1494,10 @@ describe('Dapps', function() {
 
 		test += 1;
 		it(test + '. Search for Dapps that are not installed. We expect success',function(done){
-			var q = "SELECT * DAPPS WHERE ID > 0"; var category = node.randomProperty(node.DappCategory, true); var installed = 0;
+			var q = "SELECT * DAPPS WHERE ID > 0";
+			var category = node.randomProperty(node.DappCategory);
+			var installed = 0;
+
 			node.api.get('/dapps/search?q=' + q + '&installed'+ installed + '&category=' + category)
 				.expect('Content-Type', /json/)
 				.expect(200)
