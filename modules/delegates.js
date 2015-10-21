@@ -31,7 +31,7 @@ function Delegate() {
 		trs.recipientId = null;
 		trs.amount = 0;
 		trs.asset.delegate = {
-			username: data.username,
+			username: data.username || data.sender.username,
 			publicKey: data.sender.publicKey
 		};
 
@@ -1073,7 +1073,7 @@ shared.addDelegate = function (req, cb) {
 				type: "string"
 			}
 		},
-		required: ["secret", "username"]
+		required: ["secret"]
 	}, function (err) {
 		if (err) {
 			return cb(err[0].message);
