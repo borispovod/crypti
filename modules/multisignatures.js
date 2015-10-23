@@ -425,7 +425,7 @@ shared.pending = function (req, cb) {
 		async.eachSeries(transactions, function (item, cb) {
 			var signed = false;
 
-			if (item.signatures && item.signatures.length > 0) {
+			if (!verify && item.signatures && item.signatures.length > 0) {
 				var verify = false;
 
 				for (var i in item.signatures) {
@@ -447,6 +447,11 @@ shared.pending = function (req, cb) {
 				}
 			}
 
+
+			if (!signed && item.senderPublicKey == query.publicKey) {
+				signed = true;
+			}
+
 			modules.accounts.getAccount({
 				publicKey: item.senderPublicKey
 			}, function (err, sender) {
@@ -454,7 +459,7 @@ shared.pending = function (req, cb) {
 					return cb(err);
 				}
 
-				if (sender.u_multisignatures.indexOf(query.publicKey) >= 0 || sender.multisignatures.indexOf(query.publicKey) >= 0) {
+				if (sender.publicKey == query.publicKey || sender.u_multisignatures.indexOf(query.publicKey) >= 0 || sender.multisignatures.indexOf(query.publicKey) >= 0) {
 					var min = sender.u_multimin || sender.multimin;
 					var lifetime = sender.u_multilifetime || sender.multilifetime;
 					var signatures = sender.u_multisignatures.length;
