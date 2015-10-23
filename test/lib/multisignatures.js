@@ -651,20 +651,19 @@ describe('Multisignatures', function() {
                         node.expect(res.body).to.have.property("success").to.be.true;
                         node.expect(res.body).to.have.property("transactions").that.is.an('array');
                         var flag = 0;
-						console.log(res.body.transactions);
                         if (res.body.transactions[0] != null) {
                             for (var i = 0; i < res.body.transactions.length; i++) {
-                                if (res.body.transactions[i].senderId == MultisigAccount.address) {
+								console.log(MultisigAccount.publicKey);
+                                if (res.body.transactions[i].transaction.senderPublicKey == MultisigAccount.publicKey) {
                                     flag += 1;
                                     node.expect(res.body.transactions[i].transaction).to.have.property("type").to.equal(node.TxTypes.MULTI);
                                     node.expect(res.body.transactions[i].transaction).to.have.property("amount").to.equal(0);
                                     node.expect(res.body.transactions[i].transaction).to.have.property("asset").that.is.an('object');
-                                    node.expect(res.body.transactions[i].transaction).to.have.property("fee").to.equal(node.Fees.multisignatureRegistrationFee);
+                                    node.expect(res.body.transactions[i].transaction).to.have.property("fee").to.equal(node.Fees.multisignatureRegistrationFee * (Keys.length + 1));
                                     node.expect(res.body.transactions[i].transaction).to.have.property("id").to.equal(MultiSigTX.txId);
                                     node.expect(res.body.transactions[i].transaction).to.have.property("senderPublicKey").to.equal(MultisigAccount.publicKey);
-                                    node.expect(res.body.transactions[i].transaction.asset).to.have.property("keysgroup").to.equal(Keys);
-                                    node.expect(res.body.transactions[i].transaction.asset).to.have.property("lifetime").to.equal(MultiSigTX.lifetime);
-                                    node.expect(res.body.transactions[i].transaction.asset).to.have.property("min").to.equal(MultiSigTX.min);
+                                    node.expect(res.body.transactions[i]).to.have.property("lifetime").to.equal(MultiSigTX.lifetime);
+                                    node.expect(res.body.transactions[i]).to.have.property("min").to.equal(MultiSigTX.min);
                                 }
                             }
                             node.expect(flag).to.equal(1);
