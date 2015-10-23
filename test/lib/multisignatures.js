@@ -651,6 +651,7 @@ describe('Multisignatures', function() {
                         node.expect(res.body).to.have.property("success").to.be.true;
                         node.expect(res.body).to.have.property("transactions").that.is.an('array');
                         var flag = 0;
+						console.log(res.body.transactions);
                         if (res.body.transactions[0] != null) {
                             for (var i = 0; i < res.body.transactions.length; i++) {
                                 if (res.body.transactions[i].senderId == MultisigAccount.address) {

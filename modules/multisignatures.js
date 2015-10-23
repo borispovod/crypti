@@ -423,6 +423,8 @@ shared.pending = function (req, cb) {
 
 		var pendings = [];
 		async.eachSeries(transactions, function (item, cb) {
+			var signed = false;
+
 			if (item.signatures && item.signatures.length > 0) {
 				var verify = false;
 
@@ -441,7 +443,7 @@ shared.pending = function (req, cb) {
 				}
 
 				if (verify) {
-					return setImmediate(cb);
+					signed = true;
 				}
 			}
 
@@ -461,6 +463,7 @@ shared.pending = function (req, cb) {
 						max: signatures.length,
 						min: min,
 						lifetime: lifetime,
+						signed: signed,
 						transaction: item
 					});
 				}
