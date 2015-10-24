@@ -1,4 +1,5 @@
 var crypto = require('crypto'),
+	extend = require('extend'),
 	ed = require('ed25519'),
 	async = require('async'),
 	shuffle = require('knuth-shuffle').knuthShuffle,
@@ -297,6 +298,30 @@ private.attachApi = function () {
 		"get /forging/getForgedByAccount": "getForgedByAccount",
 		"put /": "addDelegate"
 	});
+
+	if (process.env.DEBUG) {
+		var tmpKepairs = {};
+
+		router.get('/forging/disableAll', function (req, res) {
+			if (Object.keys(tmpKepairs).length != 0) {
+				return res.json({success: false});
+			}
+
+			tmpKepairs = private.keypairs;
+			private.keypairs = {};
+			return res.json({success: true});
+		});
+
+		router.get('/forging/enableAll', function (req, res) {
+			if (Object.keys(tmpKepairs).length == 0) {
+				return res.json({success: false});
+			}
+
+			private.keypairs = tmpKepairs;
+			tmpKepairs = {};
+			return res.json({success: true});
+		});
+	}
 
 	router.post('/forging/enable', function (req, res) {
 		var body = req.body;

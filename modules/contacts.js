@@ -242,11 +242,11 @@ Contacts.prototype.checkUnconfirmedContacts = function (publicKey, contacts, cb)
 				return cb("Account not found");
 			}
 
-			for (var i = 0; i < contacts.length; i++) {
-				var math = contacts[i][0];
-				var contactAddress = contacts[i].slice(1);
+			async.eachSeries(contacts, function (contact, cb) {
+				var math = contact[0];
+				var contactAddress = contact.slice(1);
 
-				if (math != '+' && math != '-') {
+				if (math != '+') {
 					return cb(errorCode('Incorrect math'));
 				}
 
@@ -254,15 +254,24 @@ Contacts.prototype.checkUnconfirmedContacts = function (publicKey, contacts, cb)
 				//	return cb(errorCode("CONTACTS.SELF_FRIENDING"));
 				//}
 
-				if (math == "+" && (account.u_delegates !== null && account.u_delegates.indexOf(contactAddress) != -1)) {
-					return cb("Can't verify contacts, you already voted for this delegate");
-				}
-				if (math == "-" && (account.u_delegates === null || account.u_delegates.indexOf(contactAddress) === -1)) {
-					return cb("Can't verify contacts, you had no contacts for this delegate");
-				}
-			}
+				modules.accounts.setAccountAndGet({
+					address: contactAddress
+				}, function (err) {
+					if (err) {
+						return cb(err);
+					}
 
-			cb();
+					if (math == "+" && (account.u_contacts !== null && account.u_contacts.indexOf(contactAddress) != -1)) {
+						return cb("Can't verify contacts, you already voted for this delegate");
+					}
+					if (math == "-" && (account.u_contacts === null || account.u_contacts.indexOf(contactAddress) === -1)) {
+						return cb("Can't verify contacts, you had no contacts for this delegate");
+					}
+
+					return cb();
+				});
+
+			}, cb);
 		});
 	} else {
 		return setImmediate(cb, "Provide array of contacts");
