@@ -45,6 +45,10 @@ private.attachApi = function () {
 			return next();
 		}
 
+		if (!peerIp) {
+			console.log("This ip is wrong!!!!");
+		}
+
 		req.headers['port'] = parseInt(req.headers['port']);
 		req.headers['share-port'] = parseInt(req.headers['share-port']);
 

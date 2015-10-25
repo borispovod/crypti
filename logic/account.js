@@ -683,9 +683,7 @@ Account.prototype.set = function (address, fields, cb) {
 	var self = this;
 
 	fields.address = address;
-
 	var account = fields;
-
 	var sqles = []
 
 	var sql = jsonSql.build({
@@ -694,6 +692,7 @@ Account.prototype.set = function (address, fields, cb) {
 		table: this.table,
 		values: this.toDB(account)
 	});
+
 	sqles.push(sql);
 
 	var sql = jsonSql.build({
@@ -704,6 +703,7 @@ Account.prototype.set = function (address, fields, cb) {
 			address: address
 		}
 	});
+
 	sqles.push(sql);
 
 	async.eachSeries(sqles, function (sql, cb) {
