@@ -641,7 +641,7 @@ function DApp() {
 		}
 
 		var report = library.scheme.validate(trs.asset.dapp, {
-			object: true,
+			type: "object",
 			properties: {
 				category: {
 					type: "integer",
