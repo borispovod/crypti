@@ -35,7 +35,7 @@
     "extend": "^2.0.0",
     "gift": "^0.6.1",
     "image-type": "^2.0.2",
-    "ip": "^0.3.2",
+    "ip": "*",
     "js-nacl": "^0.6.0",
     "json-schema": "~0.2.2",
     "json-sql": "https://github.com/crypti/json-sql/tarball/master",
