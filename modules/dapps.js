@@ -520,7 +520,7 @@ function DApp() {
 			return setImmediate(cb, errorCode("DAPPS.TOO_LONG_TAGS"));
 		}
 
-		if (trs.asset.dapp.tags) {
+		/*if (trs.asset.dapp.tags) {
 			var tags = trs.asset.dapp.tags.split(',');
 
 			tags = tags.map(function (tag) {
@@ -532,7 +532,7 @@ function DApp() {
 					return setImmediate(cb, "Dublicate tags: " + tags[i]);
 				}
 			}
-		}
+		}*/
 
 		setImmediate(cb);
 	}
@@ -683,12 +683,12 @@ function DApp() {
 				},
 				git: {
 					type: "string",
-					minLength: 1,
+					minLength: 0,
 					maxLength: 2000
 				},
 				icon: {
 					type: "string",
-					minLength: 1,
+					minLength: 0,
 					maxLength: 2000
 				}
 			},
