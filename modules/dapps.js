@@ -188,7 +188,7 @@ function OutTransfer() {
 		});
 
 		if (!report) {
-			throw Error("Can't verify dapp transaction, incorrect parameters: " + library.scheme.getLastError());
+			throw Error("Can't verify dapp out transaction, incorrect parameters: " + library.scheme.getLastError());
 		}
 
 		return trs;
@@ -341,7 +341,7 @@ function InTransfer() {
 		});
 
 		if (!report) {
-			throw Error("Can't verify dapp transaction, incorrect parameters: " + library.scheme.getLastError());
+			throw Error("Can't verify dapp in transaction, incorrect parameters: " + library.scheme.getLastError());
 		}
 
 		return trs;
@@ -669,12 +669,12 @@ function DApp() {
 				},
 				git: {
 					type: "string",
-					minLength: 1,
+					minLength: 0,
 					maxLength: 2000
 				},
 				icon: {
 					type: "string",
-					minLength: 1,
+					minLength: 0,
 					maxLength: 2000
 				}
 			},
@@ -682,7 +682,7 @@ function DApp() {
 		});
 
 		if (!report) {
-			throw Error("Can't verify dapp transaction, incorrect parameters: " + library.scheme.getLastError());
+			throw Error("Can't verify dapp new transaction, incorrect parameters: " + library.scheme.getLastError());
 		}
 
 		return trs;
