@@ -505,6 +505,8 @@ Multisignatures.prototype.processSignature = function (tx, cb) {
 	}
 
 	if (transaction.type == TransactionTypes.MULTI) {
+		transaction.signatures = transaction.signatures || [];
+
 		if (transaction.asset.multisignature.signatures || transaction.signatures.indexOf(tx.signature) != -1) {
 			return cb(errorCode("MULTISIGNATURES.SIGN_NOT_ALLOWED", transaction));
 		}
@@ -541,18 +543,19 @@ Multisignatures.prototype.processSignature = function (tx, cb) {
 				multisignatures.push(transaction.senderPublicKey);
 			}
 
+
+			transaction.signatures = transaction.signatures || [];
+
+			if (transaction.signatures.indexOf(tx.signature) >= 0) {
+				return cb("This signature already exists");
+			}
+
 			try {
 				for (var i = 0; i < multisignatures.length && !verify; i++) {
 					verify = library.logic.transaction.verifySignature(transaction, multisignatures[i], tx.signature);
 				}
 			} catch (e) {
 				return cb("Failed to verify signature: " + transaction.id);
-			}
-
-			transaction.signatures = transaction.signatures || [];
-
-			if (transaction.signatures.indexOf(tx.signature) >= 0) {
-				return cb("This signature already exists");
 			}
 
 			if (!verify) {
