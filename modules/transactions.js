@@ -346,7 +346,7 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 		});
 	}
 
-	modules.accounts.getAccount({publicKey: transaction.senderPublicKey}, function (err, sender) {
+	modules.accounts.setAccountAndGet({publicKey: transaction.senderPublicKey}, function (err, sender) {
 		if (err) {
 			return done(err);
 		}
