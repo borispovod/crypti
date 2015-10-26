@@ -520,6 +520,20 @@ function DApp() {
 			return setImmediate(cb, errorCode("DAPPS.TOO_LONG_TAGS"));
 		}
 
+		if (trs.asset.dapp.tags) {
+			var tags = trs.asset.dapp.tags.split(',');
+
+			tags = tags.map(function (tag) {
+				return tag.trim();
+			}).sort();
+
+			for (var i = 0; i < tags.length - 1; i++) {
+				if (tags[i + 1] == tags[i]) {
+					return setImmediate(cb, "Dublicate tags: " + tags[i]);
+				}
+			}
+		}
+
 		setImmediate(cb);
 	}
 
