@@ -1155,12 +1155,20 @@ private.attachApi = function () {
 				id: {
 					type: 'string',
 					minLength: 1
+				},
+				master: {
+					type: 'string',
+					minLength: 1
 				}
 			},
-			required: ["id"]
+			required: ["id", "master"]
 		}, function (err, report, body) {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
+
+			if (library.config.dapp.masterpassword && body.secret !== library.config.dapp.masterpassword) {
+				return res.json({success: false, error: "Incorrect master password"});
+			}
 
 			private.get(body.id, function (err, dapp) {
 				if (err) {
@@ -1259,6 +1267,10 @@ private.attachApi = function () {
 		})
 	});
 
+	router.get('/ismasterpasswordenabled', function (req, res, next) {
+		return res.json({success: true, enabled: !!library.config.dapp.masterpassword});
+	});
+
 	router.post('/uninstall', function (req, res, next) {
 		req.sanitize(req.body, {
 			type: "object",
@@ -1266,12 +1278,20 @@ private.attachApi = function () {
 				id: {
 					type: 'string',
 					minLength: 1
+				},
+				master: {
+					type: 'string',
+					minLength: 1
 				}
 			},
-			required: ["id"]
+			required: ["id", "master"]
 		}, function (err, report, body) {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
+
+			if (library.config.dapp.masterpassword && body.master !== library.config.dapp.masterpassword) {
+				return res.json({success: false, error: "Incorrect master password"});
+			}
 
 			private.get(body.id, function (err, dapp) {
 				if (err) {
@@ -1377,15 +1397,23 @@ private.attachApi = function () {
 				id: {
 					type: 'string',
 					minLength: 1
+				},
+				master: {
+					type: "string",
+					minLength: 1
 				}
 			},
-			required: ["id"]
+			required: ["id", "master"]
 		}, function (err, report, body) {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
 
 			if (!private.launched[body.id]) {
 				return res.json({success: false, error: "DApp not launched"});
+			}
+
+			if (library.config.dapp.masterpassword && body.master !== library.config.dapp.masterpassword) {
+				return res.json({success: false, error: "Incorrect master password"});
 			}
 
 			private.get(body.id, function (err, dapp) {
@@ -1899,12 +1927,20 @@ private.launch = function (body, cb) {
 			id: {
 				type: 'string',
 				minLength: 1
+			},
+			master: {
+				type: "string",
+				minLength: 1
 			}
 		},
-		required: ["id"]
+		required: ["id", "master"]
 	}, function (err) {
 		if (err) {
 			return cb(err[0].message);
+		}
+
+		if (library.config.dapp.masterpassword && body.master !== library.config.dapp.masterpassword) {
+			return cb("Incorrect master password");
 		}
 
 		if (private.launched[body.id]) {
