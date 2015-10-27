@@ -116,6 +116,10 @@ d.run(function () {
 			});
 		},
 
+		public: function (cb) {
+			cb(null, path.join(__dirname, 'public'));
+		},
+
 		scheme: function (cb) {
 			z_schema.registerFormat("hex", function (str) {
 				try {
@@ -248,7 +252,7 @@ d.run(function () {
 			cb(null, sequence);
 		}],
 
-		connect: ['config', 'genesisblock', 'logger', 'build', 'network', function (cb, scope) {
+		connect: ['config', 'public', 'genesisblock', 'logger', 'build', 'network', function (cb, scope) {
 			var path = require('path');
 			var bodyParser = require('body-parser');
 			var methodOverride = require('method-override');

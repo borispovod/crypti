@@ -803,6 +803,7 @@ function DApps(cb, scope) {
 			});
 		}
 	});
+
 }
 
 private.attachApi = function () {
@@ -1161,7 +1162,7 @@ private.attachApi = function () {
 					minLength: 1
 				}
 			},
-			required: ["id", "master"]
+			required: ["id"]
 		}, function (err, report, body) {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
@@ -1284,7 +1285,7 @@ private.attachApi = function () {
 					minLength: 1
 				}
 			},
-			required: ["id", "master"]
+			required: ["id"]
 		}, function (err, report, body) {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
@@ -1353,6 +1354,10 @@ private.attachApi = function () {
 		});
 	});
 
+	router.get('/siaenabled', function (req, res, next) {
+		return res.json({success: true, enabled: !!library.config.sia.peer});
+	})
+
 	router.get('/installing', function (req, res, next) {
 		var ids = [];
 		for (var i in private.loading) {
@@ -1403,7 +1408,7 @@ private.attachApi = function () {
 					minLength: 1
 				}
 			},
-			required: ["id", "master"]
+			required: ["id"]
 		}, function (err, report, body) {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
@@ -1619,6 +1624,16 @@ private.list = function (filter, cb) {
 private.createBasePathes = function (cb) {
 	async.series([
 		function (cb) {
+			var iconsPath = path.join(library.public, 'images', 'dapps');
+			fs.exists(iconsPath, function (exists) {
+				if (exists) {
+					return setImmediate(cb);
+				} else {
+					fs.mkdir(iconsPath, cb);
+				}
+			});
+		},
+		function (cb) {
 			fs.exists(private.dappsPath, function (exists) {
 				if (exists) {
 					return setImmediate(cb);
@@ -1742,15 +1757,19 @@ private.downloadDApp = function (dApp, cb) {
 						}
 					});
 				} else if (dApp.siaAscii) {
+					if (!library.config.sia.peer) {
+						return setImmediate(cb, "Sia disabled");
+					}
+
 					var dappZip = path.join(dappPath, dApp.transactionId + ".zip");
 
 					// fetch from sia
-					modules.sia.uploadAscii(dApp.transactionId, dApp.siaAscii, false, function (err, file) {
+					modules.sia.uploadAscii(dApp.siaAscii, function (err, file) {
 						if (err) {
 							return setImmediate(cb, "Failed to download file: " + err);
 						}
 
-						modules.sia.download(file, dappZip, function (err, dappZip) {
+						modules.sia.download(file, dappZip, function (err) {
 							if (err) {
 								library.logger.error(err);
 
@@ -1846,6 +1865,10 @@ private.apiHandler = function (message, callback) {
 }
 
 private.getFile = function (dapp, res) {
+	if (!library.config.sia.peer) {
+		return res.json({success: false, error: "Sia disabled"});
+	}
+
 	modules.sia.uploadAscii(dapp.transactionId, dapp.siaAscii, false, function (err, file) {
 		if (err) {
 			return res.json({success: false, error: "Internal error"});
@@ -1861,13 +1884,41 @@ private.getFile = function (dapp, res) {
 }
 
 private.getIcon = function (dapp, res) {
-	modules.sia.uploadAscii(dapp.transactionId, dapp.siaIcon, true, function (err, file) {
-		if (err) {
-			return res.json({success: false, error: "Internal error"});
-		} else {
-			modules.sia.download(file, res);
+	var iconPath = path.join(library.public, 'images', 'dapps', dapp.transactionId);
+
+
+	if (!library.config.sia.peer) {
+		var readStream = fs.createReadStream(path.join(library.public, 'images', 'placeholder.png'));
+		readStream.pipe(res);
+	} else {
+		function error() {
+			var readStream = fs.createReadStream(path.join(library.public, 'images', 'siaerror.png'));
+			readStream.pipe(res);
 		}
-	});
+
+		fs.exists(iconPath, function (exists) {
+			if (!exists) {
+				modules.sia.uploadAscii(dapp.siaIcon, function (err, file) {
+					if (err) {
+						console.log(err);
+						return error();
+					} else {
+						modules.sia.download(file, iconPath, function (err) {
+							if (err) {
+								return error();
+							}
+
+							var readStream = fs.createReadStream(iconPath);
+							readStream.pipe(res);
+						});
+					}
+				});
+			} else {
+				var readStream = fs.createReadStream(iconPath);
+				readStream.pipe(res);
+			}
+		});
+	}
 }
 
 private.dappRoutes = function (dapp, cb) {
@@ -1933,7 +1984,7 @@ private.launch = function (body, cb) {
 				minLength: 1
 			}
 		},
-		required: ["id", "master"]
+		required: ["id"]
 	}, function (err) {
 		if (err) {
 			return cb(err[0].message);
