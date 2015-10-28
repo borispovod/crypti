@@ -464,6 +464,8 @@ function DApp() {
 			if (!isASCII(trs.asset.dapp.siaIcon)) {
 				return setImmediate(cb, errorCode("DAPPS.INCORRECT_SIA_ICON", trs.asset.dapp));
 			}
+
+
 		}
 
 		if (trs.asset.dapp.icon) {

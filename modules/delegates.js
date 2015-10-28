@@ -664,6 +664,8 @@ Delegates.prototype.checkUnconfirmedDelegates = function (publicKey, votes, cb) 
 				return cb("Account not found");
 			}
 
+			account.u_delegates = account.u_delegates || [];
+
 			for (var i = 0; i < votes.length; i++) {
 				var math = votes[i][0];
 				var publicKey = votes[i].slice(1);
@@ -683,6 +685,17 @@ Delegates.prototype.checkUnconfirmedDelegates = function (publicKey, votes, cb) 
 				}
 				if (math == "-" && (account.u_delegates === null || account.u_delegates.indexOf(publicKey) === -1)) {
 					return cb("Can't verify votes, you had no votes for this delegate");
+				}
+
+				if (math == "+") {
+					account.u_delegates.push(publicKey);
+				} else {
+					var index = account.u_delegates.indexOf(publicKey);
+					account.u_delegates.splice(index, 1);
+				}
+
+				if (account.u_delegates.length > 105) {
+					return cb("Can't verify votes, too much votes");
 				}
 			}
 
@@ -727,6 +740,8 @@ Delegates.prototype.validateBlockSlot = function (block) {
 
 	var currentSlot = slots.getSlotNumber(block.timestamp);
 	var delegate_id = activeDelegates[currentSlot % slots.delegates];
+	var nextDelegate_id = activeDelegates[(currentSlot+1) % slots.delegates];
+	var previousDelegate_id = activeDelegates[(currentSlot-1) % slots.delegates];
 
 	if (delegate_id && block.generatorPublicKey == delegate_id) {
 		return true;

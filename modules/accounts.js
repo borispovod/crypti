@@ -60,16 +60,6 @@ function Vote() {
 	}
 
 	this.apply = function (trs, sender, cb) {
-		if (sender.delegates) {
-			if (sender.delegates.length + trs.asset.votes.length > 105) {
-				return setImmediate(cb, "Max number of votes is 105 delegates");
-			}
-		} else {
-			if (trs.asset.votes.length > 105) {
-				return setImmediate(cb, "Max number of votes is 105 delegates");
-			}
-		}
-
 		this.scope.account.merge(sender.address, {delegates: trs.asset.votes}, cb);
 	}
 
@@ -82,19 +72,10 @@ function Vote() {
 	}
 
 	this.applyUnconfirmed = function (trs, sender, cb) {
-		if (sender.u_delegates) {
-			if (sender.u_delegates.length + trs.asset.votes.length > 105) {
-				return setImmediate(cb, "Max number of votes is 105 delegates");
-			}
-		} else {
-			if (trs.asset.votes.length > 105) {
-				return setImmediate(cb, "Max number of votes is 105 delegates");
-			}
-		}
 
 		modules.delegates.checkUnconfirmedDelegates(trs.senderPublicKey, trs.asset.votes, function (err) {
 			if (err) {
-				return setImmediate(cb, errorCode("VOTES.ALREADY_VOTED_UNCONFIRMED", trs));
+				return setImmediate(cb, err);
 			}
 
 			this.scope.account.merge(sender.address, {u_delegates: trs.asset.votes}, cb);
