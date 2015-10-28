@@ -522,6 +522,8 @@ private.loop = function (cb) {
 	library.sequence.add(function (cb) {
 		var _activeDelegates = self.generateDelegateList(lastBlock.height + 1);
 
+		console.log(_activeDelegates);
+
 		if (slots.getSlotNumber(currentBlockData.time) == slots.getSlotNumber()) {
 			modules.blocks.generateBlock(currentBlockData.keypair, currentBlockData.time, function (err) {
 				library.logger.log('round ' + _activeDelegates[slots.getSlotNumber(currentBlockData.time) % slots.delegates] + ': ' + modules.round.calc(modules.blocks.getLastBlock().height) + ' new block id: ' + modules.blocks.getLastBlock().id + ' height:' + modules.blocks.getLastBlock().height + ' slot:' + slots.getSlotNumber(currentBlockData.time))
@@ -548,6 +550,7 @@ private.loadMyDelegates = function (cb) {
 
 	async.eachSeries(secrets, function (secret, cb) {
 		var keypair = ed.MakeKeypair(crypto.createHash('sha256').update(secret, 'utf8').digest());
+
 		modules.accounts.getAccount({
 			publicKey: keypair.publicKey.toString('hex')
 		}, function (err, account) {
@@ -742,6 +745,15 @@ Delegates.prototype.validateBlockSlot = function (block) {
 	var delegate_id = activeDelegates[currentSlot % slots.delegates];
 	var nextDelegate_id = activeDelegates[(currentSlot+1) % slots.delegates];
 	var previousDelegate_id = activeDelegates[(currentSlot-1) % slots.delegates];
+
+	/*
+	console.log('block');
+	console.log(delegate_id);
+	console.log(nextDelegate_id);
+	console.log(previousDelegate_id);
+	console.log(block.generatorPublicKey);
+	*/
+
 
 	if (delegate_id && block.generatorPublicKey == delegate_id) {
 		return true;

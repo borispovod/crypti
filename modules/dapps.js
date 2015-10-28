@@ -441,6 +441,11 @@ function DApp() {
 				return setImmediate(cb, "Empty sia ascii");
 			}
 
+
+			if (trs.asset.dapp.siaAscii.length > 10000) {
+				return setImmediate(cb, "Sia ascii max length is 10000");
+			}
+
 			if (typeof trs.asset.dapp.siaAscii !== 'string') {
 				return setImmediate(cb, errorCode("DAPPS.MISSED_SIA_ASCII"));
 			}
@@ -457,6 +462,14 @@ function DApp() {
 				return setImmediate(cb, "Empty sia icon");
 			}
 
+			if (trs.asset.dapp.siaIcon != trs.asset.dapp.siaIcon.trim()) {
+				return setImmediate(cb, "Not trimmed sia icon");
+			}
+
+			if (trs.asset.dapp.siaIcon.length > 10000) {
+				return setImmediate(cb, "Incorrect sia icon length");
+			}
+
 			if (typeof trs.asset.dapp.siaIcon !== 'string') {
 				return setImmediate(cb, errorCode("DAPPS.INCORRECT_SIA_ICON", trs.asset.dapp));
 			}
@@ -464,8 +477,6 @@ function DApp() {
 			if (!isASCII(trs.asset.dapp.siaIcon)) {
 				return setImmediate(cb, errorCode("DAPPS.INCORRECT_SIA_ICON", trs.asset.dapp));
 			}
-
-
 		}
 
 		if (trs.asset.dapp.icon) {
