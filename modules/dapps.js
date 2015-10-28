@@ -441,7 +441,6 @@ function DApp() {
 				return setImmediate(cb, "Empty sia ascii");
 			}
 
-
 			if (trs.asset.dapp.siaAscii.length > 10000) {
 				return setImmediate(cb, "Sia ascii max length is 10000");
 			}

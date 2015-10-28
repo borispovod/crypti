@@ -522,8 +522,6 @@ private.loop = function (cb) {
 	library.sequence.add(function (cb) {
 		var _activeDelegates = self.generateDelegateList(lastBlock.height + 1);
 
-		console.log(_activeDelegates);
-
 		if (slots.getSlotNumber(currentBlockData.time) == slots.getSlotNumber()) {
 			modules.blocks.generateBlock(currentBlockData.keypair, currentBlockData.time, function (err) {
 				library.logger.log('round ' + _activeDelegates[slots.getSlotNumber(currentBlockData.time) % slots.delegates] + ': ' + modules.round.calc(modules.blocks.getLastBlock().height) + ' new block id: ' + modules.blocks.getLastBlock().id + ' height:' + modules.blocks.getLastBlock().height + ' slot:' + slots.getSlotNumber(currentBlockData.time))
