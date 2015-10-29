@@ -1700,6 +1700,20 @@ private.getInstalledIds = function (cb) {
 private.removeDApp = function (dApp, cb) {
 	var dappPath = path.join(private.dappsPath, dApp.transactionId);
 
+	function remove(err) {
+		if (err) {
+			library.logger.error("Uninstall dapp: " + err);
+		}
+
+		rmdir(dappPath, function (err) {
+			if (err) {
+				return setImmediate(cb, "Can't removed dapp folder: " + err);
+			} else {
+				return cb();
+			}
+		});
+	}
+
 	fs.exists(dappPath, function (exists) {
 		if (!exists) {
 			return setImmediate(cb, "This dapp not found");
@@ -1707,21 +1721,14 @@ private.removeDApp = function (dApp, cb) {
 			try {
 				var blockchain = require(path.join(dappPath, 'blockchain.json'));
 			} catch (e) {
-				return setImmediate(cb);
+				return remove(e.toString());
 			}
 
 			modules.sql.dropTables(dApp.transactionId, blockchain, function (err) {
 				if (err) {
 					library.logger.error("Can't remove tables of dapp: " + err);
 				}
-
-				rmdir(dappPath, function (err) {
-					if (err) {
-						return setImmediate(cb, "Can't removed dapp folder: " + err);
-					} else {
-						return cb();
-					}
-				});
+				remove(err);
 			});
 		}
 	});
