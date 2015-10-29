@@ -22,7 +22,7 @@ private.lastBlock = {};
 // @formatter:off
 private.blocksDataFields = {
 	'b_id': String, 'b_version': String, 'b_timestamp': Number, 'b_height': Number, 'b_previousBlock': String, 'b_numberOfTransactions': String, 'b_totalAmount': String, 'b_totalFee': String, 'b_payloadLength': String, 'b_payloadHash': String, 'b_generatorPublicKey': String, 'b_blockSignature': String,
-	't_id': String, 't_type': Number, 't_timestamp': Number, 't_senderPublicKey': String, 't_requesterPublicKey': String, 't_senderId': String, 't_recipientId': String, 't_senderUsername': String, 't_recipientUsername': String, 't_amount': String, 't_fee': String, 't_signature': String, 't_signSignature': String, 't_signatures': String,
+	't_id': String, 't_type': Number, 't_timestamp': Number, 't_senderPublicKey': String, 't_senderId': String, 't_recipientId': String, 't_senderUsername': String, 't_recipientUsername': String, 't_amount': String, 't_fee': String, 't_signature': String, 't_signSignature': String, 't_signatures': String,
 	's_publicKey': String,
 	'd_username': String,
 	'v_votes': String,
@@ -31,7 +31,8 @@ private.blocksDataFields = {
 	'm_min': Number, 'm_lifetime': Number, 'm_keysgroup': String,
 	'dapp_name': String, 'dapp_description': String, 'dapp_tags': String, 'dapp_type': Number, 'dapp_siaAscii': String, 'dapp_siaIcon': String, 'dapp_git': String, 'dapp_category': Number, 'dapp_icon': String,
 	'in_dappId': String,
-	'ot_dappId': String, 'ot_outTransactionId': String
+	'ot_dappId': String, 'ot_outTransactionId': String,
+	't_requesterPublicKey': String
 };
 // @formatter:on
 
@@ -474,7 +475,7 @@ Blocks.prototype.loadBlocksData = function (filter, options, cb) {
 
 			library.dbLite[method]("SELECT " +
 				"b.id, b.version, b.timestamp, b.height, b.previousBlock, b.numberOfTransactions, b.totalAmount, b.totalFee, b.payloadLength, lower(hex(b.payloadHash)), lower(hex(b.generatorPublicKey)), lower(hex(b.blockSignature)), " +
-				"t.id, t.type, t.timestamp, lower(hex(t.senderPublicKey)), lower(hex(t.requesterPublicKey)), t.senderId, t.recipientId, t.senderUsername, t.recipientUsername, t.amount, t.fee, lower(hex(t.signature)), lower(hex(t.signSignature)), t.signatures, " +
+				"t.id, t.type, t.timestamp, lower(hex(t.senderPublicKey)), t.senderId, t.recipientId, t.senderUsername, t.recipientUsername, t.amount, t.fee, lower(hex(t.signature)), lower(hex(t.signSignature)), t.signatures, " +
 				"lower(hex(s.publicKey)), " +
 				"d.username, " +
 				"v.votes, " +
@@ -483,7 +484,8 @@ Blocks.prototype.loadBlocksData = function (filter, options, cb) {
 				"m.min, m.lifetime, m.keysgroup, " +
 				"dapp.name, dapp.description, dapp.tags, dapp.type, dapp.siaAscii, dapp.siaIcon, dapp.git, dapp.category, dapp.icon, " +
 				"it.dappId, " +
-				"ot.dappId, ot.outTransactionId " +
+				"ot.dappId, ot.outTransactionId, " +
+				"lower(hex(t.requesterPublicKey)) " +
 				"FROM blocks b " +
 				"left outer join trs as t on t.blockId=b.id " +
 				"left outer join delegates as d on d.transactionId=t.id " +
@@ -527,7 +529,7 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, verify, cb) {
 	library.dbSequence.add(function (cb) {
 		library.dbLite.query("SELECT " +
 			"b.id, b.version, b.timestamp, b.height, b.previousBlock, b.numberOfTransactions, b.totalAmount, b.totalFee, b.payloadLength, lower(hex(b.payloadHash)), lower(hex(b.generatorPublicKey)), lower(hex(b.blockSignature)), " +
-			"t.id, t.type, t.timestamp, lower(hex(t.senderPublicKey)), lower(hex(t.requesterPublicKey)), t.senderId, t.recipientId, t.senderUsername, t.recipientUsername, t.amount, t.fee, lower(hex(t.signature)), lower(hex(t.signSignature)), t.signatures, " +
+			"t.id, t.type, t.timestamp, lower(hex(t.senderPublicKey)), t.senderId, t.recipientId, t.senderUsername, t.recipientUsername, t.amount, t.fee, lower(hex(t.signature)), lower(hex(t.signSignature)), t.signatures, " +
 			"lower(hex(s.publicKey)), " +
 			"d.username, " +
 			"v.votes, " +
@@ -536,7 +538,8 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, verify, cb) {
 			"m.min, m.lifetime, m.keysgroup, " +
 			"dapp.name, dapp.description, dapp.tags, dapp.type, dapp.siaAscii, dapp.siaIcon, dapp.git, dapp.category, dapp.icon, " +
 			"it.dappId, " +
-			"ot.dappId, ot.outTransactionId " +
+			"ot.dappId, ot.outTransactionId, " +
+			"lower(hex(t.requesterPublicKey)) " +
 			"FROM blocks b " +
 			"left outer join trs as t on t.blockId=b.id " +
 			"left outer join delegates as d on d.transactionId=t.id " +

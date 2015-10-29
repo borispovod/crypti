@@ -111,6 +111,8 @@ function Vote() {
 	}
 
 	this.dbRead = function (raw) {
+		//console.log(raw.v_votes);
+
 		if (!raw.v_votes) {
 			return null
 		} else {

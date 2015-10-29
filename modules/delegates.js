@@ -219,7 +219,7 @@ function Delegate() {
 
 	this.objectNormalize = function (trs) {
 		var report = library.scheme.validate(trs.asset.delegate, {
-			object: true,
+			type: "object",
 			properties: {
 				publicKey: {
 					type: "string",
