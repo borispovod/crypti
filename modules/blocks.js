@@ -181,7 +181,7 @@ private.list = function (filter, cb) {
 
 		library.dbLite.query("select b.id, b.version, b.timestamp, b.height, b.previousBlock, b.numberOfTransactions, b.totalAmount, b.totalFee, b.payloadLength,  lower(hex(b.payloadHash)), lower(hex(b.generatorPublicKey)), lower(hex(b.blockSignature)), (select max(height) + 1 from blocks) - b.height " +
 			"from blocks b " +
-			(fields.length ? "where " +  fields.join(' and ') : '')  + " " +
+			(fields.length ? "where " + fields.join(' and ') : '') + " " +
 			(filter.orderBy ? 'order by ' + sortBy + ' ' + sortMethod : '') + " limit $limit offset $offset ", params, ['b_id', 'b_version', 'b_timestamp', 'b_height', 'b_previousBlock', 'b_numberOfTransactions', 'b_totalAmount', 'b_totalFee', 'b_payloadLength', 'b_payloadHash', 'b_generatorPublicKey', 'b_blockSignature', 'b_confirmations'], function (err, rows) {
 			if (err) {
 				library.logger.error(err);
@@ -497,7 +497,8 @@ Blocks.prototype.loadBlocksData = function (filter, options, cb) {
 				"left outer join dapps as dapp on dapp.transactionId=t.id " +
 				"left outer join intransfer it on it.transactionId=t.id " +
 				"left outer join outtransfer ot on ot.transactionId=t.id " +
-				(filter.id ? " where b.id = $id " : "") + (filter.lastId ? " where b.height > $height and b.height < $limit " : "") +
+				(filter.id || filter.lastId ? "where " : "") + " " +
+				(filter.id ? " b.id = $id " : "") + (filter.id && filter.lastId ? " and " : "") + (filter.lastId ? " b.height > $height and b.height < $limit " : "") +
 				limitPart +
 				"ORDER BY b.height, t.rowid" +
 				"", params, fields, cb);
