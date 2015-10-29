@@ -1779,7 +1779,13 @@ private.downloadDApp = function (dApp, cb) {
 					});
 				} else if (dApp.siaAscii) {
 					if (!library.config.sia.peer) {
-						return setImmediate(cb, "Sia disabled");
+						rmdir(dappPath, function (err) {
+							if (err) {
+								library.logger.error(err.toString());
+							}
+
+							return setImmediate(cb, "Sia disabled");
+						});
 					}
 
 					var dappZip = path.join(dappPath, dApp.transactionId + ".zip");
@@ -1787,7 +1793,15 @@ private.downloadDApp = function (dApp, cb) {
 					// fetch from sia
 					modules.sia.uploadAscii(dApp.siaAscii, function (err, file) {
 						if (err) {
-							return setImmediate(cb, "Failed to download file: " + err);
+							library.logger.error("Uploading ascii: " + err.toString());
+							rmdir(dappPath, function (err) {
+								if (err) {
+									library.logger.error(err.toString());
+								}
+
+								return setImmediate(cb, "Failed to download sia dapp");
+							});
+							return;
 						}
 
 						modules.sia.download(file, dappZip, function (err) {
