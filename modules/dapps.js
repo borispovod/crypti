@@ -867,7 +867,8 @@ private.attachApi = function () {
 				},
 				siaAscii: {
 					type: "string",
-					minLength: 1
+					minLength: 1,
+					maxLength: 10000
 				},
 				git: {
 					type: "string",
@@ -881,7 +882,8 @@ private.attachApi = function () {
 				},
 				siaIcon: {
 					type: "string",
-					minLength: 1
+					minLength: 1,
+					maxLength: 10000
 				}
 			},
 			required: ["secret", "type", "name", "category"]
@@ -1179,7 +1181,7 @@ private.attachApi = function () {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
 
-			if (library.config.dapp.masterpassword && body.secret !== library.config.dapp.masterpassword) {
+			if (library.config.dapp.masterpassword && body.master !== library.config.dapp.masterpassword) {
 				return res.json({success: false, error: "Incorrect master password"});
 			}
 
