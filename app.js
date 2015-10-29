@@ -99,7 +99,7 @@ d.run(function () {
 	var modules = [];
 	async.auto({
 		config: function (cb) {
-			if (!appConfig.dapp.masterpassword) {
+			if (appConfig.dapp.masterrequired && !appConfig.dapp.masterpassword) {
 				console.log("Provide master password in config, see dapp.masterpassword parameter in config.json!");
 				process.exit(0);
 			}
