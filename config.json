@@ -154,7 +154,7 @@
 		}
 	},
 	"dapp": {
-		"masterpassword": "",
+		"masterpassword": "crypti",
 		"autoexec": [
 		]
 	}
