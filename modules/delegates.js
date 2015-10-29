@@ -237,7 +237,7 @@ function Delegate() {
 	}
 
 	this.dbRead = function (raw) {
-		if (!raw.d_transactionId) {
+		if (!raw.d_username) {
 			return null;
 		} else {
 			var delegate = {
