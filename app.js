@@ -93,7 +93,7 @@ var logger = new Logger({echo: appConfig.consoleLogLevel, errorLevel: appConfig.
 var d = require('domain').create();
 d.on('error', function (err) {
 	logger.fatal('domain master', {message: err.message, stack: err.stack});
-	//process.exit(0);
+	process.exit(0);
 });
 d.run(function () {
 	var modules = [];
@@ -399,6 +399,8 @@ d.run(function () {
 		}],
 
 		modules: ['network', 'connect', 'config', 'logger', 'bus', 'sequence', 'dbSequence', 'balancesSequence', 'dbLite', 'logic', function (cb, scope) {
+			console.log('modules');
+
 			var tasks = {};
 			Object.keys(config.modules).forEach(function (name) {
 				tasks[name] = function (cb) {
@@ -422,6 +424,7 @@ d.run(function () {
 		}],
 
 		ready: ['modules', 'bus', function (cb, scope) {
+			console.log('ready');
 			scope.bus.message("bind", scope.modules);
 			cb();
 		}]

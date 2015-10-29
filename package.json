@@ -1,6 +1,6 @@
 {
   "name": "Crypti",
-  "version": "0.4.0",
+  "version": "0.5.2",
   "private": true,
   "bin": {
     "crypti": "./crypti"
