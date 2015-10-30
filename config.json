@@ -46,7 +46,7 @@
 		}
 	},
 	"loading": {
-		"verifyOnLoading": true,
+		"verifyOnLoading": false,
 		"loadPerIteration": 5000
 	},
 	"sia": {
