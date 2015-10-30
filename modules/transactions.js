@@ -418,18 +418,8 @@ Transactions.prototype.undoUnconfirmedList = function (cb) {
 	})
 }
 
-Transactions.prototype.apply = function (transaction, cb) {
-	modules.accounts.getAccount({publicKey: transaction.senderPublicKey}, function (err, sender) {
-		if (err) {
-			return cb(err);
-		}
-
-		if (!sender) {
-			return cb("Sender didn't found");
-		}
-
-		library.logic.transaction.apply(transaction, sender, cb);
-	});
+Transactions.prototype.apply = function (transaction, sender, cb) {
+	library.logic.transaction.apply(transaction, sender, cb);
 }
 
 Transactions.prototype.undo = function (transaction, cb) {
@@ -441,32 +431,26 @@ Transactions.prototype.undo = function (transaction, cb) {
 	});
 }
 
-Transactions.prototype.applyUnconfirmed = function (transaction, cb) {
-	modules.accounts.getAccount({publicKey: transaction.senderPublicKey}, function (err, sender) {
-		if (err) {
-			return cb(err);
-		}
+Transactions.prototype.applyUnconfirmed = function (transaction, sender, cb) {
+	if (!sender && transaction.blockId != genesisblock.block.id) {
+		return cb('Failed account: ' + transaction.id);
+	} else {
+		if (transaction.requesterPublicKey) {
+			modules.accounts.getAccount({publicKey: transaction.requesterPublicKey}, function (err, requester) {
+				if (err) {
+					return cb(err);
+				}
 
-		if (!sender && transaction.blockId != genesisblock.block.id) {
-			return cb('Failed account: ' + transaction.id);
+				if (!requester) {
+					return cb('Failed requester: ' + transaction.id);
+				}
+
+				library.logic.transaction.applyUnconfirmed(transaction, sender, requester, cb);
+			});
 		} else {
-			if (transaction.requesterPublicKey) {
-				modules.accounts.getAccount({publicKey: transaction.requesterPublicKey}, function (err, requester) {
-					if (err) {
-						return cb(err);
-					}
-
-					if (!requester) {
-						return cb('Failed requester: ' + transaction.id);
-					}
-
-					library.logic.transaction.applyUnconfirmed(transaction, sender, requester, cb);
-				});
-			} else {
-				library.logic.transaction.applyUnconfirmed(transaction, sender, cb);
-			}
+			library.logic.transaction.applyUnconfirmed(transaction, sender, cb);
 		}
-	});
+	}
 }
 
 Transactions.prototype.undoUnconfirmed = function (transaction, cb) {
