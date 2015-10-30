@@ -155,7 +155,7 @@
 	},
 	"dapp": {
 		"masterrequired": true,
-		"masterpassword": "",
+		"masterpassword": "1",
 		"autoexec": [
 		]
 	}
