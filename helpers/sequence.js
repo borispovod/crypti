@@ -11,22 +11,28 @@ function Sequence(config) {
 	this.sequence = [];
 
 	setImmediate(function nextSequenceTick() {
-		if (_default.onWarning && self.sequence.length >= _default.warningLimit){
+		if (_default.onWarning && self.sequence.length >= _default.warningLimit) {
 			_default.onWarning(self.sequence.length, _default.warningLimit);
 		}
-		var task = self.sequence.shift();
-		if (!task) {
-			return setTimeout(nextSequenceTick, 100);
-		}
-		var args = [function (err, res) {
-			task.done && setImmediate(task.done, err, res);
-			setTimeout(nextSequenceTick, 100);
-		}];
-		if (task.args) {
-			args = args.concat(task.args);
-		}
-		task.worker.apply(task.worker, args);
+		self.__tick(function () {
+			setTimeout(nextSequenceTick, 1);
+		});
 	});
+}
+
+Sequence.prototype.__tick = function (cb) {
+	var task = this.sequence.shift();
+	if (!task) {
+		return setImmediate(cb);
+	}
+	var args = [function (err, res) {
+		task.done && setImmediate(task.done, err, res);
+		setImmediate(cb);
+	}];
+	if (task.args) {
+		args = args.concat(task.args);
+	}
+	task.worker.apply(task.worker, args);
 }
 
 Sequence.prototype.add = function (worker, args, done) {
