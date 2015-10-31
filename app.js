@@ -399,8 +399,6 @@ d.run(function () {
 		}],
 
 		modules: ['network', 'connect', 'config', 'logger', 'bus', 'sequence', 'dbSequence', 'balancesSequence', 'dbLite', 'logic', function (cb, scope) {
-			console.log('modules');
-
 			var tasks = {};
 			Object.keys(config.modules).forEach(function (name) {
 				tasks[name] = function (cb) {
@@ -424,13 +422,14 @@ d.run(function () {
 		}],
 
 		ready: ['modules', 'bus', function (cb, scope) {
-			console.log('ready');
 			scope.bus.message("bind", scope.modules);
 			cb();
 		}]
 	}, function (err, scope) {
 		if (err) {
 			logger.fatal(err)
+		} else {
+			scope.logger.info("Modules ready and launched");
 		}
 	});
 });

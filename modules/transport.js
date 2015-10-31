@@ -545,11 +545,13 @@ Transport.prototype.getFromPeer = function (peer, options, cb) {
 						}
 					});
 				} else {
-					modules.peer.state(peer.ip, peer.port, 0, 600, function (err) {
-						if (!err) {
-							library.logger.info('ban 10 min ' + req.method + ' ' + req.url);
-						}
-					});
+					if (!options.not_ban) {
+						modules.peer.state(peer.ip, peer.port, 0, 600, function (err) {
+							if (!err) {
+								library.logger.info('ban 10 min ' + req.method + ' ' + req.url);
+							}
+						});
+					}
 				}
 			}
 			cb && cb(err || ('request status code' + response.statusCode));

@@ -60,54 +60,72 @@ private.updatePeerList = function (cb) {
 		}
 
 		var report = library.scheme.validate(data.body.peers, {type: "array", required: true, uniqueItems: true});
+		library.scheme.validate(data.body, {
+			type: "object",
+			properties: {
+				peers: {
+					type: "array",
+					uniqueItems: true
+				}
+			},
+			required: ['peers']
+		}, function (err) {
+			if (err) {
+				return cb();
+			}
 
-		if (!report) {
-			return cb();
-		}
+			var peers = data.body.peers;
 
-		var peers = data.body.peers;
-
-		async.eachLimit(peers, 2, function (peer, cb) {
-			var report = library.scheme.validate(peer, {
-				object: true,
-				properties: {
-					ip: {
-						type: "integer"
+			async.eachLimit(peers, 2, function (peer, cb) {
+				library.scheme.validate(peer, {
+					type: "object",
+					properties: {
+						ip: {
+							type: "string"
+						},
+						port: {
+							type: "integer",
+							minimum: 1,
+							maximum: 65535
+						},
+						state: {
+							type: "integer",
+							minimum: 0,
+							maximum: 3
+						},
+						os: {
+							type: "string"
+						},
+						sharePort: {
+							type: "integer",
+							minimum: 0,
+							maximum: 1
+						},
+						version: {
+							type: "string"
+						}
 					},
-					port: {
-						type: "integer",
-						minimum: 1,
-						maximum: 65535
-					},
-					state: {
-						type: "integer",
-						minimum: 0,
-						maximum: 3
-					},
-					os: {
-						type: "string"
-					},
-					sharePort: {
-						type: "string"
-					},
-					version: {
-						type: "string"
+					required: ['ip', 'port', 'state']
+				}, function (err) {
+					if (err) {
+						console.log(err, peer);
+						return setImmediate(cb, "Peer incorrect: " + err);
 					}
-				},
-				required: ['ip', 'port', 'state']
-			});
 
-			if (!report) {
-				setImmediate(cb, "Peers incorrect");
-			}
+					peer.ip = parseInt(peer.ip);
 
-			if (ip.toLong("127.0.0.1") == peer.ip || peer.port == 0 || peer.port > 65535) {
-				setImmediate(cb);
-				return;
-			}
+					if (isNaN(peer.ip)) {
+						return setImmediate(cb);
+					}
 
-			self.update(peer, cb);
-		}, cb);
+					if (ip.toLong("127.0.0.1") == peer.ip || peer.port == 0 || peer.port > 65535) {
+						return setImmediate(cb);
+					}
+
+					self.update(peer, cb);
+				});
+			}, cb);
+		});
 	});
 }
 
