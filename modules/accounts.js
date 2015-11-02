@@ -222,11 +222,23 @@ function Username() {
 	}
 
 	this.apply = function (trs, sender, cb) {
-		self.setAccountAndGet({address: sender.address, u_username: null, username: trs.asset.username.alias, nameexist: 1, u_nameexist: 0}, cb);
+		self.setAccountAndGet({
+			address: sender.address,
+			u_username: null,
+			username: trs.asset.username.alias,
+			nameexist: 1,
+			u_nameexist: 0
+		}, cb);
 	}
 
 	this.undo = function (trs, sender, cb) {
-		self.setAccountAndGet({address: sender.address, username: null, u_username: trs.asset.username.alias, nameexist: 0, u_nameexist: 1}, cb);
+		self.setAccountAndGet({
+			address: sender.address,
+			username: null,
+			u_username: trs.asset.username.alias,
+			nameexist: 0,
+			u_nameexist: 1
+		}, cb);
 	}
 
 	this.applyUnconfirmed = function (trs, sender, cb) {
@@ -408,6 +420,9 @@ Accounts.prototype.generateAddressByPublicKey = function (publicKey) {
 	}
 
 	var address = bignum.fromBuffer(temp).toString() + "C";
+	if (!address) {
+		throw Error("wrong publicKey " + publicKey);
+	}
 	return address;
 }
 
@@ -433,6 +448,9 @@ Accounts.prototype.setAccountAndGet = function (data, cb) {
 			return cb("must provide address or publicKey");
 		}
 	}
+	if (!address) {
+		throw cb("wrong publicKey at setAccountAndGet " + publicKey);
+	}
 	library.logic.account.set(address, data, function (err) {
 		if (err) {
 			return cb(err);
@@ -449,6 +467,9 @@ Accounts.prototype.mergeAccountAndGet = function (data, cb) {
 		} else {
 			return cb("must provide address or publicKey");
 		}
+	}
+	if (!address) {
+		throw cb("wrong publicKey at mergeAccountAndGet " + publicKey);
 	}
 	library.logic.account.merge(address, data, cb);
 }
