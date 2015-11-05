@@ -372,6 +372,9 @@ Blocks.prototype.getCommonBlock = function (peer, height, cb) {
 		function (next) {
 			count++;
 			private.getIdSequence(lastBlockHeight, function (err, data) {
+				if (err){
+					return next(err)
+				}
 				var max = lastBlockHeight;
 				lastBlockHeight = data.firstHeight;
 				modules.transport.getFromPeer(peer, {
