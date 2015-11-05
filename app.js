@@ -100,11 +100,18 @@ d.run(function () {
 	async.auto({
 		config: function (cb) {
 			if (appConfig.dapp.masterrequired && !appConfig.dapp.masterpassword) {
-				console.log("Provide master password in config, see dapp.masterpassword parameter in config.json!");
-				process.exit(0);
+				var randomstring = require("randomstring");
+				appConfig.dapp.masterpassword = randomstring.generate({
+					length: 12,
+					readable: true,
+					charset: 'alphanumeric'
+				});
+				fs.writeFile("./config.json", JSON.stringify(appConfig, null, 4), "utf8", function (err) {
+					cb(err, appConfig)
+				});
+			} else {
+				cb(null, appConfig);
 			}
-
-			cb(null, appConfig);
 		},
 
 		logger: function (cb) {
@@ -232,7 +239,7 @@ d.run(function () {
 
 		dbSequence: ["logger", function (cb, scope) {
 			var sequence = new Sequence({
-				onWarning: function(current, limit){
+				onWarning: function (current, limit) {
 					scope.logger.warn("db queue", current)
 				}
 			});
@@ -241,7 +248,7 @@ d.run(function () {
 
 		sequence: ["logger", function (cb, scope) {
 			var sequence = new Sequence({
-				onWarning: function(current, limit){
+				onWarning: function (current, limit) {
 					scope.logger.warn("main queue", current)
 				}
 			});
@@ -250,7 +257,7 @@ d.run(function () {
 
 		balancesSequence: ["logger", function (cb, scope) {
 			var sequence = new Sequence({
-				onWarning: function(current, limit){
+				onWarning: function (current, limit) {
 					scope.logger.warn("balance queue", current)
 				}
 			});
