@@ -46,7 +46,7 @@ private.attachApi = function () {
 		}
 
 		if (!peerIp) {
-			console.log("Wrong ip: " + peerIp);
+			return res.status(500).send({success: false, error: "Wrong header data"});
 		}
 
 		req.headers['port'] = parseInt(req.headers['port']);
