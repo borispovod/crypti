@@ -245,7 +245,8 @@ private.loadBlocks = function (lastBlock, cb) {
 private.loadSignatures = function (cb) {
 	modules.transport.getFromRandomPeer({
 		api: '/signatures',
-		method: 'GET'
+		method: 'GET',
+		not_ban: true
 	}, function (err, data) {
 		if (err) {
 			return cb();
@@ -264,7 +265,6 @@ private.loadSignatures = function (cb) {
 			if (err) {
 				return cb();
 			}
-
 
 			library.sequence.add(function (cb) {
 				async.eachSeries(data.body.signatures, function (signature, cb) {

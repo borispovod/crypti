@@ -3,7 +3,7 @@
 	"address": "0.0.0.0",
 	"serveHttpAPI": true,
 	"serveHttpWallet": true,
-	"version": "0.5.0",
+	"version": "0.5.2",
 	"fileLogLevel": "info",
 	"consoleLogLevel": "log",
 	"sharePort": true,
@@ -135,7 +135,7 @@
 		}
 	},
 	"loading": {
-		"verifyOnLoading": true,
+		"verifyOnLoading": false,
 		"loadPerIteration": 5000
 	},
 	"sia": {
