@@ -2022,7 +2022,7 @@ private.launch = function (body, cb) {
 			},
 			master: {
 				type: "string",
-				minLength: 1
+				minLength: 0
 			}
 		},
 		required: ["id"]
@@ -2393,7 +2393,7 @@ DApps.prototype.onBind = function (scope) {
 DApps.prototype.onBlockchainReady = function () {
 	if (library.config.dapp) {
 		async.eachSeries(library.config.dapp.autoexec || [], function (dapp, cb) {
-			private.launch({params: dapp.params, id: dapp.dappid}, function (err) {
+			private.launch({params: dapp.params, id: dapp.dappid, master: library.config.dapp.masterpassword}, function (err) {
 				console.log("lanched " + dapp.dappid, err)
 				cb();
 			});
