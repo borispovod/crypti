@@ -19,7 +19,8 @@ var async = require('async'),
 	extend = require('extend'),
 	ip = require('ip'),
 	valid_url = require('valid-url'),
-	sandboxHelper = require('../helpers/sandbox.js');
+	sandboxHelper = require('../helpers/sandbox.js'),
+  request = require('request');
 
 var modules, library, self, private = {}, shared = {};
 
@@ -300,6 +301,9 @@ function InTransfer() {
 
 	this.apply = function (trs, sender, cb) {
 		shared.getGenesis({dappid: trs.asset.inTransfer.dappId}, function (err, res) {
+			if (err){
+				return cb(err);
+			}
 			modules.accounts.mergeAccountAndGet({
 				address: res.authorId,
 				balance: trs.amount,
@@ -311,6 +315,9 @@ function InTransfer() {
 
 	this.undo = function (trs, sender, cb) {
 		shared.getGenesis({dappid: trs.asset.inTransfer.dappId}, function (err, res) {
+			if (err){
+				return cb(err);
+			}
 			modules.accounts.mergeAccountAndGet({
 				address: res.authorId,
 				balance: -trs.amount,
@@ -1181,9 +1188,9 @@ private.attachApi = function () {
 			if (err) return next(err);
 			if (!report.isValid) return res.json({success: false, error: report.issues});
 
-			if (library.config.dapp.masterpassword && body.master !== library.config.dapp.masterpassword) {
+			/*if (library.config.dapp.masterpassword && body.master !== library.config.dapp.masterpassword) {
 				return res.json({success: false, error: "Incorrect master password"});
-			}
+			}*/
 
 			private.get(body.id, function (err, dapp) {
 				if (err) {
@@ -1475,9 +1482,9 @@ private.attachApi = function () {
 					return res.json({success: false, error: err});
 				}
 
-				if (!dapp.siaIcon) {
+				/*if (!dapp.siaIcon) {
 					return res.json({success: false, error: "This dapp don't have sia icon."})
-				}
+				}*/
 
 				private.getFile(dapp, res);
 			});
@@ -1485,6 +1492,7 @@ private.attachApi = function () {
 	})
 
 	router.get('/icon', function (req, res, next) {
+    console.log('get icon');
 		req.sanitize(req.query, {
 			type: "object",
 			properties: {
@@ -1503,9 +1511,9 @@ private.attachApi = function () {
 					return res.json({success: false, error: err});
 				}
 
-				if (!dapp.siaIcon) {
+				/*if (!dapp.siaIcon) {
 					return res.json({success: false, error: "This dapp don't have sia icon."})
-				}
+				}*/
 
 				private.getIcon(dapp, res);
 			});
@@ -1900,11 +1908,14 @@ private.apiHandler = function (message, callback) {
 }
 
 private.getFile = function (dapp, res) {
-	if (!library.config.sia.peer) {
+	/*if (!library.config.sia.peer) {
 		return res.json({success: false, error: "Sia disabled"});
-	}
+	}*/
 
-	modules.sia.uploadAscii(dapp.transactionId, dapp.siaAscii, false, function (err, file) {
+  //download file here
+
+  request(dapp.siaAscii).pipe(res);
+	/*modules.sia.uploadAscii(dapp.transactionId, dapp.siaAscii, false, function (err, file) {
 		if (err) {
 			return res.json({success: false, error: "Internal error"});
 		} else {
@@ -1915,18 +1926,19 @@ private.getFile = function (dapp, res) {
 
 			modules.sia.download(file, res);
 		}
-	});
+	});*/
 }
 
 private.getIcon = function (dapp, res) {
 	var iconPath = path.join(library.public, 'images', 'dapps', dapp.transactionId);
 
+  request(dapp.icon).pipe(res);
 
-	if (!library.config.sia.peer) {
+	/*if (!library.config.sia.peer) {
 		var readStream = fs.createReadStream(path.join(library.public, 'images', 'placeholder.png'));
 		readStream.pipe(res);
-	} else {
-		function error() {
+	} else {*/
+		/*function error() {
 			var readStream = fs.createReadStream(path.join(library.public, 'images', 'siaerror.png'));
 			readStream.pipe(res);
 		}
@@ -1952,8 +1964,8 @@ private.getIcon = function (dapp, res) {
 				var readStream = fs.createReadStream(iconPath);
 				readStream.pipe(res);
 			}
-		});
-	}
+		});*/
+	//}
 }
 
 private.dappRoutes = function (dapp, cb) {

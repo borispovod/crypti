@@ -705,8 +705,6 @@ Transaction.prototype.objectNormalize = function (trs) {
 	try {
 		trs = private.types[trs.type].objectNormalize.call(this, trs);
 	} catch (e) {
-		console.log('or here');
-		console.log(trs.asset);
 		throw Error(e.toString());
 	}
 

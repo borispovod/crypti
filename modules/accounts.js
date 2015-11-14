@@ -370,21 +370,45 @@ private.attachApi = function () {
 
 	// надо тут поправить
 	if (process.env.TOP && process.env.TOP.toUpperCase() == "TRUE") {
-		router.get('/top', function (req, res) {
-			var arr = Object.keys(private.accounts).map(function (key) {
-				return private.accounts[key]
-			});
+		router.get('/top', function (req, res, next) {
+			req.sanitize(req.query, {
+				type: "object",
+				properties: {
+					limit: {
+						type: "integer",
+						minimum: 0,
+						maximum: 100
+					},
+					offset: {
+						type: "integer",
+						minimum: 0
+					}
+				}
+			}, function (err, report, query) {
+				if (err) return next(err);
+				if (!report.isValid) return res.json({success: false, error: report.issues});
+				self.getAccounts({
+					sort: {
+						balance: -1
+					},
+					offset: query.offset,
+					limit: query.limit
+				}, function (err, raw) {
+					if (err) {
+						return res.json({success: false, error: err.toString()});
+					}
+					var accounts = raw.map(function (fullAccount) {
+						return {
+							address: fullAccount.address,
+							username: fullAccount.username,
+							balance: fullAccount.balance,
+							publicKey: fullAccount.publicKey
+						}
+					});
 
-			arr.sort(function (a, b) {
-				if (a.balance > b.balance)
-					return -1;
-				if (a.balance < b.balance)
-					return 1;
-				return 0;
-			});
-
-			arr = arr.slice(0, 30);
-			return res.json({success: true, accounts: arr});
+					res.json({success: true, accounts: accounts});
+				})
+			})
 		});
 	}
 
