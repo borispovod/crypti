@@ -12,6 +12,10 @@ var z_schema = require('z-schema');
 var util = require('util');
 var Sequence = require('./helpers/sequence.js');
 
+if (process.env.DUMP) {
+	require('longjohn');
+}
+
 var versionBuild = fs.readFileSync(path.join(__dirname, 'build'), 'utf8');
 
 program
@@ -411,7 +415,7 @@ d.run(function () {
 					d.run(function () {
 						logger.debug('loading module', name)
 						var Klass = require(config.modules[name]);
-						var obj = new Klass(cb, scope)
+						var obj = new Klass(cb, scope);
 						modules.push(obj);
 					});
 				}
@@ -430,6 +434,12 @@ d.run(function () {
 			logger.fatal(err)
 		} else {
 			scope.logger.info("Modules ready and launched");
+
+			setInterval(function () {
+				var memory = process.memoryUsage();
+
+				scope.logger.info("Memory usage: " + memory.rss + " rss, " + memory.heapTotal + " heapTotal, " + memory.heapUsed + " heapUsed");
+			}, 60000);
 		}
 	});
 });
