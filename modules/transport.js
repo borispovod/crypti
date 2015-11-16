@@ -653,6 +653,11 @@ Transport.prototype.onMessage = function (msg, broadcast) {
 	}
 }
 
+Transport.prototype.cleanup = function (cb) {
+	private.loaded = false;
+	cb();
+}
+
 //shared
 shared.message = function (msg, cb) {
 	msg.timestamp = (new Date()).getTime();

@@ -12,6 +12,8 @@ var z_schema = require('z-schema');
 var util = require('util');
 var Sequence = require('./helpers/sequence.js');
 
+process.stdin.resume();
+
 var versionBuild = fs.readFileSync(path.join(__dirname, 'build'), 'utf8');
 
 program
@@ -63,6 +65,7 @@ if (program.log) {
 process.on('uncaughtException', function (err) {
 	// handle the error safely
 	logger.fatal('system error', {message: err.message, stack: err.stack});
+	process.emit('cleanup');
 });
 
 var config = {
@@ -437,6 +440,32 @@ d.run(function () {
 			logger.fatal(err)
 		} else {
 			scope.logger.info("Modules ready and launched");
+
+			process.once('cleanup', function () {
+				console.log("cleaning")
+				async.eachSeries(modules, function (module, cb) {
+					if (typeof(module.cleanup) == 'function'){
+						module.cleanup(cb);
+					}else{
+						setImmediate(cb);
+					}
+				}, function (err) {
+					console.log("cleaned", err)
+					process.exit(1);
+				});
+			});
+
+			process.once('SIGTERM', function () {
+				process.emit('cleanup');
+			})
+
+			process.once('exit', function () {
+				process.emit('cleanup');
+			});
+
+			process.once('SIGINT', function () {
+				process.emit('cleanup');
+			});
 		}
 	});
 });

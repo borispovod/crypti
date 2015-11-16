@@ -66,7 +66,9 @@ function Transfer() {
 				balance: trs.amount,
 				u_balance: trs.amount,
 				blockId: trs.blockId
-			}, cb);
+			}, function (err) {
+				cb(err);
+			});
 		});
 	}
 
@@ -79,8 +81,11 @@ function Transfer() {
 			modules.accounts.mergeAccountAndGet({
 				address: trs.recipientId,
 				balance: -trs.amount,
-				u_balance: -trs.amount
-			}, cb);
+				u_balance: -trs.amount,
+				blockId: trs.blockId
+			}, function (err) {
+				cb(err);
+			});
 		});
 	}
 

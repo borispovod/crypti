@@ -348,6 +348,7 @@ private.applyTransaction = function (block, transaction, sender, cb) {
 
 		modules.transactions.apply(transaction, sender, function (err) {
 			if (err) {
+				console.log(err)
 				return setImmediate(cb, {
 					message: "Can't apply transaction: " + transaction.id,
 					transaction: transaction,
@@ -372,7 +373,7 @@ Blocks.prototype.getCommonBlock = function (peer, height, cb) {
 		function (next) {
 			count++;
 			private.getIdSequence(lastBlockHeight, function (err, data) {
-				if (err){
+				if (err) {
 					return next(err)
 				}
 				var max = lastBlockHeight;
@@ -568,103 +569,113 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, verify, cb) {
 			var blocks = private.readDbRows(rows);
 
 			async.eachSeries(blocks, function (block, cb) {
-				if (block.id != genesisblock.block.id) {
-					if (verify) {
-						if (block.previousBlock != private.lastBlock.id) {
-							return cb({
-								message: "Can't verify previous block",
-								block: block
-							});
-						}
+				async.series([
+					function (cb) {
+						if (block.id != genesisblock.block.id) {
+							if (verify) {
+								if (block.previousBlock != private.lastBlock.id) {
+									return cb({
+										message: "Can't verify previous block",
+										block: block
+									});
+								}
 
-						try {
-							var valid = library.logic.block.verifySignature(block);
-						} catch (e) {
-							return setImmediate(cb, {
-								message: e.toString(),
-								block: block
-							});
-						}
-						if (!valid) {
-							// need to break cicle and delete this block and blocks after this block
-							return cb({
-								message: "Can't verify signature",
-								block: block
-							});
-						}
+								try {
+									var valid = library.logic.block.verifySignature(block);
+								} catch (e) {
+									return setImmediate(cb, {
+										message: e.toString(),
+										block: block
+									});
+								}
+								if (!valid) {
+									// need to break cicle and delete this block and blocks after this block
+									return cb({
+										message: "Can't verify signature",
+										block: block
+									});
+								}
 
-						if (!modules.delegates.validateBlockSlot(block)) {
-							return cb({
-								message: "Can't verify slot",
-								block: block
-							});
-						}
-					}
-				}
-
-				block.transactions = block.transactions.sort(function (a, b) {
-					if (block.id == genesisblock.block.id) {
-						if (a.type == TransactionTypes.VOTE)
-							return 1;
-					}
-
-					if (a.type == TransactionTypes.SIGNATURE) {
-						return 1;
-					}
-
-					return 0;
-				});
-
-				async.eachSeries(block.transactions, function (transaction, cb) {
-					if (verify) {
-						modules.accounts.setAccountAndGet({publicKey: transaction.senderPublicKey}, function (err, sender) {
-							if (err) {
-								return cb({
-									message: err,
-									transaction: transaction,
-									block: block
+								modules.delegates.validateBlockSlot(block, function (err) {
+									if (err) {
+										return cb({
+											message: "Can't verify slot",
+											block: block
+										});
+									}
+									cb();
 								});
 							}
-							if (verify && block.id != genesisblock.block.id) {
-								library.logic.transaction.verify(transaction, sender, function (err) {
+						} else {
+							cb();
+						}
+					},
+					function (cb) {
+						block.transactions = block.transactions.sort(function (a, b) {
+							if (block.id == genesisblock.block.id) {
+								if (a.type == TransactionTypes.VOTE)
+									return 1;
+							}
+
+							if (a.type == TransactionTypes.SIGNATURE) {
+								return 1;
+							}
+
+							return 0;
+						});
+
+						async.eachSeries(block.transactions, function (transaction, cb) {
+							if (verify) {
+								modules.accounts.setAccountAndGet({publicKey: transaction.senderPublicKey}, function (err, sender) {
 									if (err) {
-										return setImmediate(cb, {
+										return cb({
 											message: err,
 											transaction: transaction,
 											block: block
 										});
 									}
-									private.applyTransaction(block, transaction, sender, cb);
+									if (verify && block.id != genesisblock.block.id) {
+										library.logic.transaction.verify(transaction, sender, function (err) {
+											if (err) {
+												return setImmediate(cb, {
+													message: err,
+													transaction: transaction,
+													block: block
+												});
+											}
+											private.applyTransaction(block, transaction, sender, cb);
+										});
+									} else {
+										private.applyTransaction(block, transaction, sender, cb);
+									}
 								});
 							} else {
-								private.applyTransaction(block, transaction, sender, cb);
+								setImmediate(cb);
+							}
+						}, function (err) {
+							if (err) {
+								library.logger.error(err);
+								var lastValidTransaction = block.transactions.findIndex(function (trs) {
+									return trs.id == err.transaction.id;
+								});
+								var transactions = block.transactions.slice(0, lastValidTransaction + 1);
+								async.eachSeries(transactions.reverse(), function (transaction, cb) {
+									async.series([
+										function (cb) {
+											modules.transactions.undo(transaction, cb);
+										}, function (cb) {
+											modules.transactions.undoUnconfirmed(transaction, cb);
+										}
+									], cb);
+								}, cb);
+							} else {
+								private.lastBlock = block;
+
+								modules.round.tick(private.lastBlock, cb);
 							}
 						});
-					} else {
-						setImmediate(cb);
 					}
-				}, function (err) {
-					if (err) {
-						library.logger.error(err);
-						var lastValidTransaction = block.transactions.findIndex(function (trs) {
-							return trs.id == err.transaction.id;
-						});
-						var transactions = block.transactions.slice(0, lastValidTransaction + 1);
-						async.eachSeries(transactions.reverse(), function (transaction, cb) {
-							async.series([
-								function (cb) {
-									modules.transactions.undo(transaction, cb);
-								}, function (cb) {
-									modules.transactions.undoUnconfirmed(transaction, cb);
-								}
-							], cb);
-						}, cb);
-					} else {
-						private.lastBlock = block;
-
-						modules.round.tick(private.lastBlock, cb);
-					}
-				});
+				], cb)
 			}, function (err) {
 				cb(err, private.lastBlock);
 			});
@@ -737,132 +748,127 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 					return done("Can't verify block timestamp: " + block.id);
 				}
 
-				if (!modules.delegates.validateBlockSlot(block)) {
-					//fork another delegate's slot
-					modules.delegates.fork(block, 3);
-					return done("Can't verify slot: " + block.id);
-				}
-
-				if (block.payloadLength > constants.maxPayloadLength) {
-					return done("Can't verify payload length of block: " + block.id);
-				}
-
-				if (block.transactions.length != block.numberOfTransactions || block.transactions.length > 100) {
-					return done("Invalid amount of block assets: " + block.id);
-				}
-
-				// check payload hash, transaction, number of confirmations
-
-				var totalAmount = 0, totalFee = 0, payloadHash = crypto.createHash('sha256'), appliedTransactions = {}, acceptedRequests = {}, acceptedConfirmations = {};
-
-				async.eachSeries(block.transactions, function (transaction, cb) {
-					try {
-						transaction.id = library.logic.transaction.getId(transaction);
-					} catch (e) {
-						return setImmediate(cb, e.toString());
+				modules.delegates.validateBlockSlot(block, function (err) {
+					if (err) {
+						//fork another delegate's slot
+						modules.delegates.fork(block, 3);
+						return done("Can't verify slot: " + block.id);
+					}
+					if (block.payloadLength > constants.maxPayloadLength) {
+						return done("Can't verify payload length of block: " + block.id);
 					}
 
-					transaction.blockId = block.id;
+					if (block.transactions.length != block.numberOfTransactions || block.transactions.length > 100) {
+						return done("Invalid amount of block assets: " + block.id);
+					}
 
-					library.dbLite.query("SELECT id FROM trs WHERE id=$id", {id: transaction.id}, ['id'], function (err, rows) {
-							if (err) {
-								return cb(err);
-							}
+					// check payload hash, transaction, number of confirmations
 
-							var tId = rows.length && rows[0].id;
+					var totalAmount = 0, totalFee = 0, payloadHash = crypto.createHash('sha256'), appliedTransactions = {}, acceptedRequests = {}, acceptedConfirmations = {};
 
-							if (tId) {
-								//fork transactions already exist
-								modules.delegates.fork(block, 2);
-								setImmediate(cb, "Transaction already exists: " + transaction.id);
-							} else {
-								if (appliedTransactions[transaction.id]) {
-									return setImmediate(cb, "Dublicated transaction in block: " + transaction.id);
+					async.eachSeries(block.transactions, function (transaction, cb) {
+						try {
+							transaction.id = library.logic.transaction.getId(transaction);
+						} catch (e) {
+							return setImmediate(cb, e.toString());
+						}
+
+						transaction.blockId = block.id;
+
+						library.dbLite.query("SELECT id FROM trs WHERE id=$id", {id: transaction.id}, ['id'], function (err, rows) {
+								if (err) {
+									return cb(err);
 								}
 
-								modules.accounts.getAccount({publicKey: transaction.senderPublicKey}, function (err, sender) {
-									if (err) {
-										return cb(err);
+								var tId = rows.length && rows[0].id;
+
+								if (tId) {
+									//fork transactions already exist
+									modules.delegates.fork(block, 2);
+									setImmediate(cb, "Transaction already exists: " + transaction.id);
+								} else {
+									if (appliedTransactions[transaction.id]) {
+										return setImmediate(cb, "Dublicated transaction in block: " + transaction.id);
 									}
 
-									library.logic.transaction.verify(transaction, sender, function (err) {
+									modules.accounts.getAccount({publicKey: transaction.senderPublicKey}, function (err, sender) {
 										if (err) {
-											return setImmediate(cb, err);
+											return cb(err);
 										}
 
-										modules.transactions.applyUnconfirmed(transaction, sender, function (err) {
+										library.logic.transaction.verify(transaction, sender, function (err) {
 											if (err) {
-												return setImmediate(cb, "Can't apply transaction: " + transaction.id);
+												return setImmediate(cb, err);
 											}
 
-											try {
-												var bytes = library.logic.transaction.getBytes(transaction);
-											} catch (e) {
-												return setImmediate(cb, e.toString());
-											}
+											modules.transactions.applyUnconfirmed(transaction, sender, function (err) {
+												if (err) {
+													return setImmediate(cb, "Can't apply transaction: " + transaction.id);
+												}
 
-											appliedTransactions[transaction.id] = transaction;
+												try {
+													var bytes = library.logic.transaction.getBytes(transaction);
+												} catch (e) {
+													return setImmediate(cb, e.toString());
+												}
 
-											var index = unconfirmedTransactions.indexOf(transaction.id);
-											if (index >= 0) {
-												unconfirmedTransactions.splice(index, 1);
-											}
+												appliedTransactions[transaction.id] = transaction;
 
-											payloadHash.update(bytes);
+												var index = unconfirmedTransactions.indexOf(transaction.id);
+												if (index >= 0) {
+													unconfirmedTransactions.splice(index, 1);
+												}
 
-											totalAmount += transaction.amount;
-											totalFee += transaction.fee;
+												payloadHash.update(bytes);
 
-											setImmediate(cb);
+												totalAmount += transaction.amount;
+												totalFee += transaction.fee;
+
+												setImmediate(cb);
+											});
 										});
 									});
-								});
-							}
-						}
-					);
-				}, function (err) {
-					var errors = [];
-
-					if (err) {
-						errors.push(err);
-					}
-
-					if (payloadHash.digest().toString('hex') !== block.payloadHash) {
-						errors.push("Invalid payload hash: " + block.id);
-					}
-
-					if (totalAmount != block.totalAmount) {
-						errors.push("Invalid total amount: " + block.id);
-					}
-
-					if (totalFee != block.totalFee) {
-						errors.push("Invalid total fee: " + block.id);
-					}
-
-					if (errors.length > 0) {
-						async.eachSeries(block.transactions, function (transaction, cb) {
-							if (appliedTransactions[transaction.id]) {
-								modules.transactions.undoUnconfirmed(transaction, cb);
-							} else {
-								setImmediate(cb);
-							}
-						}, function () {
-							done(errors[0]);
-						});
-					} else {
-						try {
-							block = library.logic.block.objectNormalize(block);
-						} catch (e) {
-							return setImmediate(done, e);
-						}
-
-						async.eachSeries(block.transactions, function (transaction, cb) {
-							modules.accounts.getAccount({publicKey: transaction.senderPublicKey}, function (err, sender) {
-								if (err) {
-									library.logger.error("Can't apply transactions: " + transaction.id);
-									process.exit(0);
 								}
-								modules.transactions.apply(transaction, sender, function (err) {
+							}
+						);
+					}, function (err) {
+						var errors = [];
+
+						if (err) {
+							errors.push(err);
+						}
+
+						if (payloadHash.digest().toString('hex') !== block.payloadHash) {
+							errors.push("Invalid payload hash: " + block.id);
+						}
+
+						if (totalAmount != block.totalAmount) {
+							errors.push("Invalid total amount: " + block.id);
+						}
+
+						if (totalFee != block.totalFee) {
+							errors.push("Invalid total fee: " + block.id);
+						}
+
+						if (errors.length > 0) {
+							async.eachSeries(block.transactions, function (transaction, cb) {
+								if (appliedTransactions[transaction.id]) {
+									modules.transactions.undoUnconfirmed(transaction, cb);
+								} else {
+									setImmediate(cb);
+								}
+							}, function () {
+								done(errors[0]);
+							});
+						} else {
+							try {
+								block = library.logic.block.objectNormalize(block);
+							} catch (e) {
+								return setImmediate(done, e);
+							}
+
+							async.eachSeries(block.transactions, function (transaction, cb) {
+								modules.transactions.apply(transaction, function (err) {
 									if (err) {
 										library.logger.error("Can't apply transactions: " + transaction.id);
 										process.exit(0);
@@ -870,23 +876,23 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 									modules.transactions.removeUnconfirmedTransaction(transaction.id);
 									setImmediate(cb);
 								});
-							});
-						}, function (err) {
-							private.saveBlock(block, function (err) {
-								if (err) {
-									library.logger.error("Can't save block...");
-									library.logger.error(err);
-									process.exit(0);
-								}
+							}, function (err) {
+								private.saveBlock(block, function (err) {
+									if (err) {
+										library.logger.error("Can't save block...");
+										library.logger.error(err);
+										process.exit(0);
+									}
 
-								library.bus.message('newBlock', block, broadcast);
-								private.lastBlock = block;
+									library.bus.message('newBlock', block, broadcast);
+									private.lastBlock = block;
 
-								modules.round.tick(block, done);
-								//setImmediate(done);
+									modules.round.tick(block, done);
+									//setImmediate(done);
+								});
 							});
-						});
-					}
+						}
+					});
 				});
 			})
 		});

@@ -80,13 +80,17 @@ function Contact() {
 	}
 
 	this.apply = function (trs, sender, cb) {
-		this.scope.account.merge(sender.address, {contacts: [trs.asset.contact.address]}, cb);
+		this.scope.account.merge(sender.address, {contacts: [trs.asset.contact.address], blockId: trs.blockId}, function (err) {
+			cb(err);
+		});
 	}
 
 	this.undo = function (trs, sender, cb) {
 		var contactsInvert = Diff.reverse([trs.asset.contact.address]);
 
-		this.scope.account.merge(sender.address, {contacts: contactsInvert}, cb);
+		this.scope.account.merge(sender.address, {contacts: contactsInvert, blockId: trs.blockId}, function (err) {
+			cb(err);
+		});
 	}
 
 	this.applyUnconfirmed = function (trs, sender, cb) {
@@ -95,14 +99,18 @@ function Contact() {
 				return setImmediate(cb, errorCode("CONTACTS.ALREADY_ADDED_UNCONFIRMED", trs));
 			}
 
-			this.scope.account.merge(sender.address, {u_contacts: [trs.asset.contact.address]}, cb);
+			this.scope.account.merge(sender.address, {u_contacts: [trs.asset.contact.address], blockId: trs.blockId}, function (err) {
+				cb(err);
+			});
 		}.bind(this));
 	}
 
 	this.undoUnconfirmed = function (trs, sender, cb) {
 		var contactsInvert = Diff.reverse([trs.asset.contact.address]);
 
-		this.scope.account.merge(sender.address, {u_contacts: contactsInvert}, cb);
+		this.scope.account.merge(sender.address, {u_contacts: contactsInvert, blockId: trs.blockId}, function (err) {
+			cb(err);
+		});
 	}
 
 	this.objectNormalize = function (trs) {

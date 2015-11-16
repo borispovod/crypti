@@ -63,6 +63,11 @@ Server.prototype.onBlockchainReady = function () {
 	private.loaded = true;
 }
 
+Server.prototype.cleanup = function (cb) {
+	private.loaded = false;
+	cb();
+}
+
 //shared
 
 //export

@@ -484,7 +484,9 @@ Transaction.prototype.apply = function (trs, sender, cb) {
 
 		private.types[trs.type].apply.call(this, trs, sender, function (err) {
 			if (err) {
-				this.scope.account.merge(sender.address, {balance: amount}, cb);
+				this.scope.account.merge(sender.address, {balance: amount, blockId: trs.blockId}, function (err) {
+					cb(err);
+				});
 			} else {
 				setImmediate(cb);
 			}
@@ -499,14 +501,16 @@ Transaction.prototype.undo = function (trs, sender, cb) {
 
 	var amount = trs.amount + trs.fee;
 
-	this.scope.account.merge(sender.address, {balance: amount}, function (err, sender) {
+	this.scope.account.merge(sender.address, {balance: amount, blockId: trs.blockId}, function (err, sender) {
 		if (err) {
 			return cb(err);
 		}
 
 		private.types[trs.type].undo.call(this, trs, sender, function (err) {
 			if (err) {
-				this.scope.account.merge(sender.address, {balance: amount}, cb);
+				this.scope.account.merge(sender.address, {balance: amount, blockId: trs.blockId}, function (err) {
+					cb(err);
+				});
 			} else {
 				setImmediate(cb);
 			}
@@ -545,14 +549,14 @@ Transaction.prototype.applyUnconfirmed = function (trs, sender, requester, cb) {
 		return setImmediate(cb, 'Account has no balance: ' + trs.id);
 	}
 
-	this.scope.account.merge(sender.address, {u_balance: -amount}, function (err, sender) {
+	this.scope.account.merge(sender.address, {u_balance: -amount, blockId: trs.blockId}, function (err, sender) {
 		if (err) {
 			return cb(err);
 		}
 
 		private.types[trs.type].applyUnconfirmed.call(this, trs, sender, function (err) {
 			if (err) {
-				this.scope.account.merge(sender.address, {u_balance: amount}, function (err2) {
+				this.scope.account.merge(sender.address, {u_balance: amount, blockId: trs.blockId}, function (err2) {
 					cb(err);
 				});
 			} else {
@@ -569,14 +573,16 @@ Transaction.prototype.undoUnconfirmed = function (trs, sender, cb) {
 
 	var amount = trs.amount + trs.fee;
 
-	this.scope.account.merge(sender.address, {u_balance: amount}, function (err, sender) {
+	this.scope.account.merge(sender.address, {u_balance: amount, blockId: trs.blockId}, function (err, sender) {
 		if (err) {
 			return cb(err);
 		}
 
 		private.types[trs.type].undoUnconfirmed.call(this, trs, sender, function (err) {
 			if (err) {
-				this.scope.account.merge(sender.address, {u_balance: -amount}, cb);
+				this.scope.account.merge(sender.address, {u_balance: -amount, blockId: trs.blockId}, function (err) {
+					cb(err);
+				});
 			} else {
 				setImmediate(cb, err);
 			}

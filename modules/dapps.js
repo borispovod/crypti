@@ -142,7 +142,9 @@ function OutTransfer() {
 				balance: trs.amount,
 				u_balance: trs.amount,
 				blockId: trs.blockId
-			}, cb);
+			}, function (err) {
+				cb(err);
+			});
 		});
 	}
 
@@ -156,8 +158,11 @@ function OutTransfer() {
 			modules.accounts.mergeAccountAndGet({
 				address: trs.recipientId,
 				balance: -trs.amount,
-				u_balance: -trs.amount
-			}, cb);
+				u_balance: -trs.amount,
+				blockId: trs.blockId
+			}, function (err) {
+				cb(err);
+			});
 		});
 	}
 
@@ -300,7 +305,7 @@ function InTransfer() {
 
 	this.apply = function (trs, sender, cb) {
 		shared.getGenesis({dappid: trs.asset.inTransfer.dappId}, function (err, res) {
-			if (err){
+			if (err) {
 				return cb(err);
 			}
 			modules.accounts.mergeAccountAndGet({
@@ -308,13 +313,15 @@ function InTransfer() {
 				balance: trs.amount,
 				u_balance: trs.amount,
 				blockId: trs.blockId
-			}, cb);
+			}, function (err) {
+				cb(err);
+			});
 		});
 	}
 
 	this.undo = function (trs, sender, cb) {
 		shared.getGenesis({dappid: trs.asset.inTransfer.dappId}, function (err, res) {
-			if (err){
+			if (err) {
 				return cb(err);
 			}
 			modules.accounts.mergeAccountAndGet({
@@ -322,7 +329,9 @@ function InTransfer() {
 				balance: -trs.amount,
 				u_balance: -trs.amount,
 				blockId: trs.blockId
-			}, cb);
+			}, function (err) {
+				cb(err);
+			});
 		});
 	}
 
@@ -2393,7 +2402,11 @@ DApps.prototype.onBind = function (scope) {
 DApps.prototype.onBlockchainReady = function () {
 	if (library.config.dapp) {
 		async.eachSeries(library.config.dapp.autoexec || [], function (dapp, cb) {
-			private.launch({params: dapp.params, id: dapp.dappid, master: library.config.dapp.masterpassword}, function (err) {
+			private.launch({
+				params: dapp.params,
+				id: dapp.dappid,
+				master: library.config.dapp.masterpassword
+			}, function (err) {
 				console.log("lanched " + dapp.dappid, err)
 				cb();
 			});

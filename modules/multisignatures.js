@@ -149,7 +149,8 @@ function Multisignature() {
 		this.scope.account.merge(sender.address, {
 			multisignatures: trs.asset.multisignature.keysgroup,
 			multimin: trs.asset.multisignature.min,
-			multilifetime: trs.asset.multisignature.lifetime
+			multilifetime: trs.asset.multisignature.lifetime,
+			blockId: trs.blockId
 		}, function (err) {
 			if (err) {
 				return cb(err);
@@ -167,7 +168,7 @@ function Multisignature() {
 				}, function (err) {
 					cb(err);
 				})
-			},cb);
+			}, cb);
 		});
 	}
 
@@ -178,8 +179,11 @@ function Multisignature() {
 		this.scope.account.merge(sender.address, {
 			multisignatures: multiInvert,
 			multimin: -trs.asset.multisignature.min,
-			multilifetime: -trs.asset.multisignature.lifetime
-		}, cb);
+			multilifetime: -trs.asset.multisignature.lifetime,
+			blockId: trs.blockId
+		}, function (err) {
+			cb(err);
+		});
 	}
 
 	this.applyUnconfirmed = function (trs, sender, cb) {
@@ -196,7 +200,8 @@ function Multisignature() {
 		this.scope.account.merge(sender.address, {
 			u_multisignatures: trs.asset.multisignature.keysgroup,
 			u_multimin: trs.asset.multisignature.min,
-			u_multilifetime: trs.asset.multisignature.lifetime
+			u_multilifetime: trs.asset.multisignature.lifetime,
+			blockId: trs.blockId
 		}, function (err) {
 			cb();
 		});
@@ -209,8 +214,11 @@ function Multisignature() {
 		this.scope.account.merge(sender.address, {
 			u_multisignatures: multiInvert,
 			u_multimin: -trs.asset.multisignature.min,
-			u_multilifetime: -trs.asset.multisignature.lifetime
-		}, cb);
+			u_multilifetime: -trs.asset.multisignature.lifetime,
+			blockId: trs.blockId
+		}, function (err) {
+			cb(err);
+		});
 	}
 
 	this.objectNormalize = function (trs) {

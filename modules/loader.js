@@ -102,6 +102,122 @@ private.findUpdate = function (lastBlock, peer, cb) {
 				modules.transactions.removeUnconfirmedTransaction(unconfirmedList[i]);
 			}
 
+			async.series([
+				function (cb) {
+					if (commonBlock.id != lastBlock.id) {
+						modules.round.directionSwap('backward', lastBlock ,cb);
+					} else {
+						cb();
+					}
+				},
+				function (cb) {
+					library.bus.message('deleteBlocksBefore', commonBlock);
+
+					modules.blocks.deleteBlocksBefore(commonBlock, cb);
+				},
+				function (cb) {
+					if (commonBlock.id != lastBlock.id) {
+						modules.round.directionSwap('forward', lastBlock ,cb);
+					} else {
+						cb();
+					}
+				},
+				function (cb) {
+					library.logger.debug("Load blocks from peer " + peerStr);
+
+					modules.blocks.loadBlocksFromPeer(peer, commonBlock.id, function (err, lastValidBlock) {
+						if (err) {
+							modules.transactions.deleteHiddenTransaction();
+							library.logger.error(err);
+							library.logger.log("can't load blocks, ban 60 min", peerStr);
+							modules.peer.state(peer.ip, peer.port, 0, 3600);
+
+							if (lastValidBlock) {
+								var uploaded = lastValidBlock.height - commonBlock.height;
+
+								if (toRemove < uploaded) {
+									library.logger.info("Remove blocks again until " + lastValidBlock.id + " (at " + lastValidBlock.height + ")");
+
+									async.series([
+										function (cb) {
+											if (lastValidBlock.id != lastBlock.id) {
+												modules.round.directionSwap('backward', lastBlock ,cb);
+											} else {
+												cb();
+											}
+										},
+										function (cb) {
+											modules.blocks.deleteBlocksBefore(lastValidBlock, function (err) {
+												async.series([
+													function (cb) {
+														if (lastValidBlock.id != lastBlock.id) {
+															modules.round.directionSwap('forward', lastBlock ,cb);
+														}
+													},
+													function (cb) {
+														async.eachSeries(overTransactionList, function (trs, cb) {
+															modules.transactions.processUnconfirmedTransaction(trs, false, cb);
+														}, cb);
+													}
+												], cb);
+											});
+										}
+									], cb);
+
+								} else {
+									library.logger.info("Remove blocks again until common " + commonBlock.id + " (at " + commonBlock.height + ")");
+
+									async.series([
+										function (cb) {
+											if (commonBlock.id != lastBlock.id) {
+												modules.round.directionSwap('backward', lastBlock ,cb);
+											} else {
+												cb();
+											}
+										},
+										function (cb) {
+											modules.blocks.deleteBlocksBefore(commonBlock, cb);
+										},
+										function (cb) {
+											if (commonBlock.id != lastBlock.id) {
+												modules.round.directionSwap('forward', lastBlock ,cb);
+											} else {
+												cb();
+											}
+										},
+										function (cb) {
+											async.eachSeries(overTransactionList, function (trs, cb) {
+												modules.transactions.processUnconfirmedTransaction(trs, false, cb);
+											}, cb);
+										}
+									], cb);
+								}
+							} else {
+								async.eachSeries(overTransactionList, function (trs, cb) {
+									modules.transactions.processUnconfirmedTransaction(trs, false, cb);
+								}, cb);
+							}
+						} else {
+							for (var i = 0; i < overTransactionList.length; i++) {
+								modules.transactions.pushHiddenTransaction(overTransactionList[i]);
+							}
+
+							var trs = modules.transactions.shiftHiddenTransaction();
+							async.whilst(
+								function () {
+									return trs
+								},
+								function (next) {
+									modules.transactions.processUnconfirmedTransaction(trs, true, function () {
+										trs = modules.transactions.shiftHiddenTransaction();
+										next();
+									});
+								}, cb);
+						}
+					});
+				}
+			], cb)
+
 			if (commonBlock.id != lastBlock.id) {
 				modules.round.directionSwap('backward');
 			}
@@ -424,8 +540,6 @@ private.loadBlockChain = function () {
 													library.logger.info("Can't load without verifying, clear accounts from database and load");
 													load(count);
 												} else {
-													modules.delegates.loadDelegatesList(delegates);
-
 													modules.blocks.loadBlocksOffset(1, count, verify, function (err, lastBlock) {
 														if (err) {
 															library.logger.error(err || "Can't load last block");
@@ -463,6 +577,7 @@ Loader.prototype.sandboxApi = function (call, args, cb) {
 //events
 Loader.prototype.onPeerReady = function () {
 	setImmediate(function nextLoadBlock() {
+		if (!private.loaded) return;
 		library.sequence.add(function (cb) {
 			private.syncTrigger(true);
 			var lastBlock = modules.blocks.getLastBlock();
@@ -477,14 +592,16 @@ Loader.prototype.onPeerReady = function () {
 	});
 
 	setImmediate(function nextLoadUnconfirmedTransactions() {
-			private.loadUnconfirmedTransactions(function (err) {
-				err && library.logger.error('loadUnconfirmedTransactions timer', err);
-				setTimeout(nextLoadUnconfirmedTransactions, 14 * 1000)
-			});
+		if (!private.loaded) return;
+		private.loadUnconfirmedTransactions(function (err) {
+			err && library.logger.error('loadUnconfirmedTransactions timer', err);
+			setTimeout(nextLoadUnconfirmedTransactions, 14 * 1000)
+		});
 
 	});
 
 	setImmediate(function nextLoadSignatures() {
+		if (!private.loaded) return;
 		private.loadSignatures(function (err) {
 			err && library.logger.error('loadSignatures timer', err);
 
@@ -501,6 +618,11 @@ Loader.prototype.onBind = function (scope) {
 
 Loader.prototype.onBlockchainReady = function () {
 	private.loaded = true;
+}
+
+Loader.prototype.cleanup = function (cb) {
+	private.loaded = false;
+	cb();
 }
 
 //shared

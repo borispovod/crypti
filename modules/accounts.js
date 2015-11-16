@@ -60,7 +60,9 @@ function Vote() {
 	}
 
 	this.apply = function (trs, sender, cb) {
-		this.scope.account.merge(sender.address, {delegates: trs.asset.votes}, cb);
+		this.scope.account.merge(sender.address, {delegates: trs.asset.votes, blockId: trs.blockId}, function (err) {
+			cb(err);
+		});
 	}
 
 	this.undo = function (trs, sender, cb) {
@@ -68,7 +70,9 @@ function Vote() {
 
 		var votesInvert = Diff.reverse(trs.asset.votes);
 
-		this.scope.account.merge(sender.address, {delegates: votesInvert}, cb);
+		this.scope.account.merge(sender.address, {delegates: votesInvert, blockId: trs.blockId}, function (err) {
+			cb(err);
+		});
 	}
 
 	this.applyUnconfirmed = function (trs, sender, cb) {
@@ -77,7 +81,9 @@ function Vote() {
 				return setImmediate(cb, err);
 			}
 
-			this.scope.account.merge(sender.address, {u_delegates: trs.asset.votes}, cb);
+			this.scope.account.merge(sender.address, {u_delegates: trs.asset.votes, blockId: trs.blockId}, function (err) {
+				cb(err);
+			});
 		}.bind(this));
 	}
 
@@ -86,7 +92,9 @@ function Vote() {
 
 		var votesInvert = Diff.reverse(trs.asset.votes);
 
-		this.scope.account.merge(sender.address, {u_delegates: votesInvert}, cb);
+		this.scope.account.merge(sender.address, {u_delegates: votesInvert, blockId: trs.blockId}, function (err) {
+			cb(err);
+		});
 	}
 
 	this.objectNormalize = function (trs) {
@@ -662,24 +670,40 @@ shared.getDelegates = function (req, cb) {
 			}
 
 			if (account.delegates) {
-				var stat = modules.delegates.getStats();
-
-				var delegates = account.delegates.map(function (delegate) {
-					return self.generateAddressByPublicKey(delegate);
-				});
-				self.getAccounts({address: {$in: delegates}}, ["username", "address", "publicKey", "rate", "vote"], function (err, delegates) {
+				self.getAccounts({
+					isDelegate: 1,
+					sort: {"vote": -1, "publicKey": 1}
+				}, ["username", "address", "publicKey", "vote", "missedBlocks", "producedBlocks", "virgin"], function (err, delegates) {
 					if (err) {
 						return cb(err.toString());
 					}
 
+					var limit = query.limit || 101,
+						offset = query.offset || 0,
+						orderField = query.orderBy,
+						active = query.active;
+
+					orderField = orderField ? orderField.split(':') : null;
+					limit = limit > 101 ? 101 : limit;
+					var orderBy = orderField ? orderField[0] : null;
+					var sortMode = orderField && orderField.length == 2 ? orderField[1] : 'asc';
+					var count = delegates.length;
+					var length = Math.min(limit, count);
+					var realLimit = Math.min(offset + limit, count);
+
 					for (var i = 0; i < delegates.length; i++) {
-						delegates[i].vote = stat.votes[delegates[i].publicKey];
-						delegates[i].rate = stat.rates[delegates[i].publicKey];
-						delegates[i].productivity = stat.productivities[delegates[i].publicKey];
+						delegates[i].rate = i + 1;
+
+						var percent = 100 - (delegates[i].missedBlocks / ((delegates[i].producedBlocks + delegates[i].missedBlocks) / 100));
+						var outsider = i + 1 > slots.delegates && delegates[i].virgin;
+						delegates[i].productivity = !outsider ? delegates[i].virgin ? 0 : parseFloat(Math.floor(percent * 100) / 100).toFixed(2) : null
 					}
 
-					cb(null, {delegates: delegates});
+					var result = delegates.filter(function (delegate) {
+						return delegate.publicKey == account.delegates;
+					});
 
+					cb(null, {delegates: result});
 				});
 			} else {
 				cb(null, {delegates: []});
