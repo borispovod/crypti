@@ -22,6 +22,10 @@ function Round(cb, scope) {
 	setImmediate(cb, null, self);
 }
 
+Round.prototype.loaded = function () {
+	return private.loaded;
+}
+
 //public methods
 Round.prototype.calc = function (height) {
 	return Math.floor(height / slots.delegates) + (height % slots.delegates > 0 ? 1 : 0);
@@ -31,10 +35,13 @@ Round.prototype.getVotes = function (round, cb) {
 	library.dbLite.query("select delegate, amount from ( " +
 		"select m.delegate, sum(m.amount) amount, m.round from mem_round m " +
 		"group by m.delegate, m.round " +
-		") where round = $round", {round: round}, {delegate: String, amount: Number}, cb);
+		") where round = $round", {round: round}, {delegate: String, amount: Number}, function (err, rows) {
+		cb(err, rows)
+	});
 }
 
 Round.prototype.flush = function (round, cb) {
+	console.log("flash", round)
 	library.dbLite.query("delete from mem_round where round = $round", {round: round}, cb);
 }
 
@@ -99,12 +106,18 @@ Round.prototype.backwardTick = function (block, previousBlock, cb) {
 						if (!outsiders.length) {
 							return cb();
 						}
-						library.dbLite.query('update mem_accounts set missedBlock = missedBlock + 1 where address in (' + outsiders.join(',') + ')', function (err, data) {
+						var escaped = outsiders.map(function (item) {
+							return "'" + item + "'";
+						});
+						library.dbLite.query('update mem_accounts set missedblocks = missedblocks + 1 where address in (' + escaped.join(',') + ')', function (err, data) {
 							cb(err);
 						});
 					},
 					function (cb) {
 						self.getVotes(round, function (err, votes) {
+							if (err) {
+								return cb(err);
+							}
 							async.eachSeries(votes, function (vote, cb) {
 								library.dbLite.query('update mem_accounts set vote = vote + $amount where address = $address', {
 									address: modules.accounts.generateAddressByPublicKey(vote.delegate),
@@ -172,6 +185,9 @@ Round.prototype.backwardTick = function (block, previousBlock, cb) {
 					},
 					function (cb) {
 						self.getVotes(round, function (err, votes) {
+							if (err) {
+								return cb(err);
+							}
 							async.eachSeries(votes, function (vote, cb) {
 								library.dbLite.query('update mem_accounts set vote = vote + $amount where address = $address', {
 									address: modules.accounts.generateAddressByPublicKey(vote.delegate),
@@ -200,6 +216,8 @@ Round.prototype.tick = function (block, cb) {
 	function done(err) {
 		cb && setImmediate(cb, err);
 	}
+
+	debugger
 
 	modules.accounts.mergeAccountAndGet({
 		publicKey: block.generatorPublicKey,
@@ -245,12 +263,18 @@ Round.prototype.tick = function (block, cb) {
 						if (!outsiders.length) {
 							return cb();
 						}
-						library.dbLite.query('update mem_accounts set missedBlock = missedBlock + 1 where address in (' + outsiders.join(',') + ')', function (err, data) {
+						var escaped = outsiders.map(function (item) {
+							return "'" + item + "'";
+						});
+						library.dbLite.query('update mem_accounts set missedblocks = missedblocks + 1 where address in (' + escaped.join(',') + ')', function (err, data) {
 							cb(err);
 						});
 					},
 					function (cb) {
 						self.getVotes(round, function (err, votes) {
+							if (err) {
+								return cb(err);
+							}
 							async.eachSeries(votes, function (vote, cb) {
 								library.dbLite.query('update mem_accounts set vote = vote + $amount where address = $address', {
 									address: modules.accounts.generateAddressByPublicKey(vote.delegate),
@@ -318,6 +342,9 @@ Round.prototype.tick = function (block, cb) {
 					},
 					function (cb) {
 						self.getVotes(round, function (err, votes) {
+							if (err) {
+								return cb(err);
+							}
 							async.eachSeries(votes, function (vote, cb) {
 								library.dbLite.query('update mem_accounts set vote = vote + $amount where address = $address', {
 									address: modules.accounts.generateAddressByPublicKey(vote.delegate),
@@ -356,10 +383,23 @@ Round.prototype.onBind = function (scope) {
 }
 
 Round.prototype.onBlockchainReady = function () {
-	private.loaded = true;
+	var round = self.calc(modules.blocks.getLastBlock().height);
+	library.dbLite.query("select sum(b.totalFee), GROUP_CONCAT(lower(hex(b.generatorPublicKey))) from blocks b where (select (cast(b.height / 101 as integer) + (case when b.height % 101 > 0 then 1 else 0 end))) = $round",
+		{
+			round: round
+		},
+		{
+			fees: Number,
+			delegates: Array
+		}, function (err, rows) {
+			private.feesByRound[round] = rows[0].fees;
+			private.delegatesByRound[round] = rows[0].delegates;
+			private.loaded = true;
+		});
 }
 
 Round.prototype.onFinishRound = function (round) {
+	console.log("end ", round)
 	library.network.io.sockets.emit('rounds/change', {number: round});
 }
 

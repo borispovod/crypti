@@ -499,7 +499,7 @@ private.loop = function (cb) {
 		return setImmediate(cb);
 	}
 
-	if (!private.loaded || modules.loader.syncing()) {
+	if (!private.loaded || modules.loader.syncing() || !modules.round.loaded()) {
 		//library.logger.log('loop', 'exit: syncing');
 		return setImmediate(cb);
 	}

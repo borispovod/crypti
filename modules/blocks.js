@@ -605,12 +605,13 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, verify, cb) {
 									}
 									cb();
 								});
+							}else{
+								setImmediate(cb);
 							}
 						} else {
-							cb();
+							setImmediate(cb);
 						}
-					},
-					function (cb) {
+					}, function (cb) {
 						block.transactions = block.transactions.sort(function (a, b) {
 							if (block.id == genesisblock.block.id) {
 								if (a.type == TransactionTypes.VOTE)

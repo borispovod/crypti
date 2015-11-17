@@ -444,7 +444,7 @@ private.loadUnconfirmedTransactions = function (cb) {
 
 private.loadBlockChain = function () {
 	var offset = 0, limit = library.config.loading.loadPerIteration;
-	var verify = true; //library.config.loading.verifyOnLoading;
+	var verify = false; //library.config.loading.verifyOnLoading;
 
 	function load(count) {
 		verify = true;
