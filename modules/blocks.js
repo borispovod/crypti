@@ -348,7 +348,6 @@ private.applyTransaction = function (block, transaction, sender, cb) {
 
 		modules.transactions.apply(transaction, sender, function (err) {
 			if (err) {
-				console.log(err)
 				return setImmediate(cb, {
 					message: "Can't apply transaction: " + transaction.id,
 					transaction: transaction,

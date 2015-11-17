@@ -146,6 +146,15 @@ function Account(scope, cb) {
 			default: 0
 		},
 		{
+			name: "rate",
+			type: "BigInt",
+			filter: {
+				type: "integer"
+			},
+			conv: Number,
+			default: 0
+		},
+		{
 			name: "delegates",
 			type: "Text",
 			filter: {
@@ -226,8 +235,7 @@ function Account(scope, cb) {
 			},
 			conv: Array,
 			expression: "(select GROUP_CONCAT(dependentId) from " + this.table + "2u_multisignatures where accountId = a.address)"
-		},
-		{
+		}, {
 			name: "multimin",
 			type: "BigInt",
 			filter: {
@@ -237,8 +245,7 @@ function Account(scope, cb) {
 			},
 			conv: Number,
 			default: 0
-		},
-		{
+		}, {
 			name: "u_multimin",
 			type: "BigInt",
 			filter: {
@@ -248,8 +255,7 @@ function Account(scope, cb) {
 			},
 			conv: Number,
 			default: 0
-		},
-		{
+		}, {
 			name: "multilifetime",
 			type: "BigInt",
 			filter: {
@@ -259,8 +265,7 @@ function Account(scope, cb) {
 			},
 			conv: Number,
 			default: 0
-		},
-		{
+		}, {
 			name: "u_multilifetime",
 			type: "BigInt",
 			filter: {
@@ -270,8 +275,7 @@ function Account(scope, cb) {
 			},
 			conv: Number,
 			default: 0
-		},
-		{
+		}, {
 			name: "blockId",
 			type: "String",
 			length: 20,
@@ -282,8 +286,7 @@ function Account(scope, cb) {
 			},
 			conv: String,
 			default: genesisBlock.id
-		},
-		{
+		}, {
 			name: "nameexist",
 			type: "Boolean",
 			filter: {
