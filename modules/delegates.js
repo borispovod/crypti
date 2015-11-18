@@ -119,7 +119,7 @@ function Delegate() {
 		return buf;
 	}
 
-	this.apply = function (trs, sender, cb) {
+	this.apply = function (trs, block, sender, cb) {
 		var data = {
 			address: sender.address,
 			u_isDelegate: 0,
@@ -135,7 +135,7 @@ function Delegate() {
 		modules.accounts.setAccountAndGet(data, cb);
 	}
 
-	this.undo = function (trs, sender, cb) {
+	this.undo = function (trs, block, sender, cb) {
 		var data = {
 			address: sender.address,
 			u_isDelegate: 1,
@@ -782,7 +782,7 @@ shared.getDelegate = function (req, cb) {
 		modules.accounts.getAccounts({
 			isDelegate: 1,
 			sort: {"vote": -1, "publicKey": 1}
-		}, ["username", "address", "publicKey", "vote", "missedBlocks", "producedBlocks", "virgin"], function (err, delegates) {
+		}, ["username", "address", "publicKey", "vote", "missedblocks", "producedblocks", "virgin"], function (err, delegates) {
 			if (err) {
 				return cb(err.toString());
 			}
@@ -803,7 +803,7 @@ shared.getDelegate = function (req, cb) {
 			for (var i = 0; i < delegates.length; i++) {
 				delegates[i].rate = i + 1;
 
-				var percent = 100 - (delegates[i].missedBlocks / ((delegates[i].producedBlocks + delegates[i].missedBlocks) / 100));
+				var percent = 100 - (delegates[i].missedblocks / ((delegates[i].producedblocks + delegates[i].missedblocks) / 100));
 				var outsider = i + 1 > slots.delegates && delegates[i].virgin;
 				delegates[i].productivity = !outsider ? delegates[i].virgin ? 0 : parseFloat(Math.floor(percent * 100) / 100).toFixed(2) : null
 			}
@@ -821,6 +821,16 @@ shared.getDelegate = function (req, cb) {
 
 				return false;
 			});
+
+			if (delegate) {
+				var percent = 100 - (delegate.missedblocks / ((delegate.producedblocks + delegate.missedblocks) / 100));
+				console.log(delegate.producedblocks, delegate.missedblocks, percent);
+				var outsider = i + 1 > slots.delegates && delegate.virgin;
+				console.log(outsider);
+				delegate.productivity = !outsider ? delegate.virgin ? 0 : parseFloat(Math.floor(percent * 100) / 100).toFixed(2) : null
+				console.log(delegate)
+			}
+
 
 			if (delegate) {
 				cb(null, {delegate: delegate});
@@ -900,7 +910,7 @@ shared.getDelegates = function (req, cb) {
 			//limit: query.limit > 101 ? 101 : query.limit,
 			//offset: query.offset,
 			sort: {"vote": -1, "publicKey": 1}
-		}, ["username", "address", "publicKey", "vote", "missedBlocks", "producedBlocks", "virgin"], function (err, delegates) {
+		}, ["username", "address", "publicKey", "vote", "missedblocks", "producedblocks", "virgin"], function (err, delegates) {
 			if (err) {
 				return cb(err.toString());
 			}
@@ -921,7 +931,7 @@ shared.getDelegates = function (req, cb) {
 			for (var i = 0; i < delegates.length; i++) {
 				delegates[i].rate = i + 1;
 
-				var percent = 100 - (delegates[i].missedBlocks / ((delegates[i].producedBlocks + delegates[i].missedBlocks) / 100));
+				var percent = 100 - (delegates[i].missedblocks / ((delegates[i].producedblocks + delegates[i].missedblocks) / 100));
 				var outsider = i + 1 > slots.delegates && delegates[i].virgin;
 				delegates[i].productivity = !outsider ? delegates[i].virgin ? 0 : parseFloat(Math.floor(percent * 100) / 100).toFixed(2) : null
 			}

@@ -79,16 +79,25 @@ function Contact() {
 		return bb.toBuffer()
 	}
 
-	this.apply = function (trs, sender, cb) {
-		this.scope.account.merge(sender.address, {contacts: [trs.asset.contact.address], blockId: trs.blockId}, function (err) {
-			cb(err);
-		});
+	this.apply = function (trs, block, sender, cb) {
+		this.scope.account.merge(sender.address,
+			{
+				contacts: [trs.asset.contact.address],
+				blockId: block.id,
+				round: modules.round.calc(block.height)
+			}, function (err) {
+				cb(err);
+			});
 	}
 
-	this.undo = function (trs, sender, cb) {
+	this.undo = function (trs, block, sender, cb) {
 		var contactsInvert = Diff.reverse([trs.asset.contact.address]);
 
-		this.scope.account.merge(sender.address, {contacts: contactsInvert, blockId: trs.blockId}, function (err) {
+		this.scope.account.merge(sender.address, {
+			contacts: contactsInvert,
+			blockId: block.id,
+			round: modules.round.calc(block.height)
+		}, function (err) {
 			cb(err);
 		});
 	}
@@ -99,7 +108,9 @@ function Contact() {
 				return setImmediate(cb, errorCode("CONTACTS.ALREADY_ADDED_UNCONFIRMED", trs));
 			}
 
-			this.scope.account.merge(sender.address, {u_contacts: [trs.asset.contact.address], blockId: trs.blockId}, function (err) {
+			this.scope.account.merge(sender.address, {
+				u_contacts: [trs.asset.contact.address]
+			}, function (err) {
 				cb(err);
 			});
 		}.bind(this));
@@ -108,7 +119,7 @@ function Contact() {
 	this.undoUnconfirmed = function (trs, sender, cb) {
 		var contactsInvert = Diff.reverse([trs.asset.contact.address]);
 
-		this.scope.account.merge(sender.address, {u_contacts: contactsInvert, blockId: trs.blockId}, function (err) {
+		this.scope.account.merge(sender.address, {u_contacts: contactsInvert}, function (err) {
 			cb(err);
 		});
 	}

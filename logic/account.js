@@ -819,12 +819,12 @@ Account.prototype.merge = function (address, diff, cb) {
 						update.$inc[value] = trueValue;
 						if (value == "balance") {
 							round.push({
-								query: "insert into mem_round (address, amount, delegate, blockId, round) select $address, $amount, dependentId, $blockId, (select (cast(height / $delegates as integer) + (case when height % $delegates > 0 then 1 else 0 end)) from blocks where id = $blockId) from mem_accounts2delegates where accountId = $address",
+								query: "insert into mem_round (address, amount, delegate, blockId, round) select $address, $amount, dependentId, $blockId, $round from mem_accounts2delegates where accountId = $address",
 								values: {
 									address: address,
 									amount: trueValue,
 									blockId: diff.blockId,
-									delegates: slots.delegates
+									round: diff.round
 								}
 							});
 						}
@@ -834,12 +834,12 @@ Account.prototype.merge = function (address, diff, cb) {
 						update.$dec[value] = Math.abs(trueValue);
 						if (value == "balance") {
 							round.push({
-								query: "insert into mem_round (address, amount, delegate, blockId, round) select $address, $amount, dependentId, $blockId, (select (cast(height / $delegates as integer) + (case when height % $delegates > 0 then 1 else 0 end)) from blocks where id = $blockId) from mem_accounts2delegates where accountId = $address",
+								query: "insert into mem_round (address, amount, delegate, blockId, round) select $address, $amount, dependentId, $blockId, $round from mem_accounts2delegates where accountId = $address",
 								values: {
 									address: address,
 									amount: trueValue,
 									blockId: diff.blockId,
-									delegates: slots.delegates
+									round: diff.round
 								}
 							});
 						}
@@ -873,12 +873,12 @@ Account.prototype.merge = function (address, diff, cb) {
 								remove[value].push(val);
 								if (value == "delegates") {
 									round.push({
-										query: "insert into mem_round (address, amount, delegate, blockId, round) select $address, -balance, $delegate, $blockId, (select (cast(height / $delegates as integer) + (case when height % $delegates > 0 then 1 else 0 end)) from blocks where id = $blockId) from mem_accounts where address = $address",
+										query: "insert into mem_round (address, amount, delegate, blockId, round) select $address, -balance, $delegate, $blockId, $round from mem_accounts where address = $address",
 										values: {
 											address: address,
 											delegate: val,
 											blockId: diff.blockId,
-											delegates: slots.delegates
+											round: diff.round
 										}
 									});
 								}
@@ -888,12 +888,12 @@ Account.prototype.merge = function (address, diff, cb) {
 								insert[value].push(val)
 								if (value == "delegates") {
 									round.push({
-										query: "insert into mem_round (address, amount, delegate, blockId, round) select $address, balance, $delegate, $blockId, (select (cast(height / $delegates as integer) + (case when height % $delegates > 0 then 1 else 0 end)) from blocks where id = $blockId) from mem_accounts where address = $address",
+										query: "insert into mem_round (address, amount, delegate, blockId, round) select $address, balance, $delegate, $blockId, $round from mem_accounts where address = $address",
 										values: {
 											address: address,
 											delegate: val,
 											blockId: diff.blockId,
-											delegates: slots.delegates
+											round: diff.round
 										}
 									});
 								}
@@ -903,12 +903,12 @@ Account.prototype.merge = function (address, diff, cb) {
 								insert[value].push(val)
 								if (value == "delegates") {
 									round.push({
-										query: "insert into mem_round (address, amount, delegate, blockId, round) select $address, balance, $delegate, $blockId, (select (cast(height / $delegates as integer) + (case when height % $delegates > 0 then 1 else 0 end)) from blocks where id = $blockId) from mem_accounts where address = $address",
+										query: "insert into mem_round (address, amount, delegate, blockId, round) select $address, balance, $delegate, $blockId, $round from mem_accounts where address = $address",
 										values: {
 											address: address,
 											delegate: val,
 											blockId: diff.blockId,
-											delegates: slots.delegates
+											round: diff.round
 										}
 									});
 								}

@@ -129,7 +129,7 @@ function OutTransfer() {
 		return buf;
 	}
 
-	this.apply = function (trs, sender, cb) {
+	this.apply = function (trs, block, sender, cb) {
 		private.unconfirmedOutTansfers[trs.asset.outTransfer.transactionId] = false;
 
 		modules.accounts.setAccountAndGet({address: trs.recipientId}, function (err, recipient) {
@@ -141,14 +141,15 @@ function OutTransfer() {
 				address: trs.recipientId,
 				balance: trs.amount,
 				u_balance: trs.amount,
-				blockId: trs.blockId
+				blockId: block.id,
+				round: modules.round.calc(block.height)
 			}, function (err) {
 				cb(err);
 			});
 		});
 	}
 
-	this.undo = function (trs, sender, cb) {
+	this.undo = function (trs, block, sender, cb) {
 		private.unconfirmedOutTansfers[trs.asset.outTransfer.transactionId] = true;
 
 		modules.accounts.setAccountAndGet({address: trs.recipientId}, function (err, recipient) {
@@ -159,7 +160,8 @@ function OutTransfer() {
 				address: trs.recipientId,
 				balance: -trs.amount,
 				u_balance: -trs.amount,
-				blockId: trs.blockId
+				blockId: block.id,
+				round: modules.round.calc(block.height)
 			}, function (err) {
 				cb(err);
 			});
@@ -303,7 +305,7 @@ function InTransfer() {
 		return buf;
 	}
 
-	this.apply = function (trs, sender, cb) {
+	this.apply = function (trs, block, sender, cb) {
 		shared.getGenesis({dappid: trs.asset.inTransfer.dappId}, function (err, res) {
 			if (err) {
 				return cb(err);
@@ -312,14 +314,15 @@ function InTransfer() {
 				address: res.authorId,
 				balance: trs.amount,
 				u_balance: trs.amount,
-				blockId: trs.blockId
+				blockId: block.id,
+				round: modules.round.calc(block.height)
 			}, function (err) {
 				cb(err);
 			});
 		});
 	}
 
-	this.undo = function (trs, sender, cb) {
+	this.undo = function (trs, block, sender, cb) {
 		shared.getGenesis({dappid: trs.asset.inTransfer.dappId}, function (err, res) {
 			if (err) {
 				return cb(err);
@@ -328,7 +331,8 @@ function InTransfer() {
 				address: res.authorId,
 				balance: -trs.amount,
 				u_balance: -trs.amount,
-				blockId: trs.blockId
+				blockId: block.id,
+				round: modules.round.calc(block.height)
 			}, function (err) {
 				cb(err);
 			});
@@ -613,11 +617,11 @@ function DApp() {
 		return buf;
 	}
 
-	this.apply = function (trs, sender, cb) {
+	this.apply = function (trs, block, sender, cb) {
 		setImmediate(cb);
 	}
 
-	this.undo = function (trs, sender, cb) {
+	this.undo = function (trs, block, sender, cb) {
 		setImmediate(cb);
 	}
 

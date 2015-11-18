@@ -59,18 +59,26 @@ function Vote() {
 		return buf;
 	}
 
-	this.apply = function (trs, sender, cb) {
-		this.scope.account.merge(sender.address, {delegates: trs.asset.votes, blockId: trs.blockId}, function (err) {
+	this.apply = function (trs, block, sender, cb) {
+		this.scope.account.merge(sender.address, {
+			delegates: trs.asset.votes,
+			blockId: block.id,
+			round: modules.round.calc(block.height)
+		}, function (err) {
 			cb(err);
 		});
 	}
 
-	this.undo = function (trs, sender, cb) {
+	this.undo = function (trs, block, sender, cb) {
 		if (trs.asset.votes === null) return cb();
 
 		var votesInvert = Diff.reverse(trs.asset.votes);
 
-		this.scope.account.merge(sender.address, {delegates: votesInvert, blockId: trs.blockId}, function (err) {
+		this.scope.account.merge(sender.address, {
+			delegates: votesInvert,
+			blockId: block.id,
+			round: modules.round.calc(block.height)
+		}, function (err) {
 			cb(err);
 		});
 	}
@@ -81,7 +89,9 @@ function Vote() {
 				return setImmediate(cb, err);
 			}
 
-			this.scope.account.merge(sender.address, {u_delegates: trs.asset.votes, blockId: trs.blockId}, function (err) {
+			this.scope.account.merge(sender.address, {
+				u_delegates: trs.asset.votes
+			}, function (err) {
 				cb(err);
 			});
 		}.bind(this));
@@ -92,7 +102,7 @@ function Vote() {
 
 		var votesInvert = Diff.reverse(trs.asset.votes);
 
-		this.scope.account.merge(sender.address, {u_delegates: votesInvert, blockId: trs.blockId}, function (err) {
+		this.scope.account.merge(sender.address, {u_delegates: votesInvert}, function (err) {
 			cb(err);
 		});
 	}
@@ -229,7 +239,7 @@ function Username() {
 		return buf;
 	}
 
-	this.apply = function (trs, sender, cb) {
+	this.apply = function (trs, block, sender, cb) {
 		self.setAccountAndGet({
 			address: sender.address,
 			u_username: null,
@@ -239,7 +249,7 @@ function Username() {
 		}, cb);
 	}
 
-	this.undo = function (trs, sender, cb) {
+	this.undo = function (trs, block, sender, cb) {
 		self.setAccountAndGet({
 			address: sender.address,
 			username: null,
@@ -673,7 +683,7 @@ shared.getDelegates = function (req, cb) {
 				self.getAccounts({
 					isDelegate: 1,
 					sort: {"vote": -1, "publicKey": 1}
-				}, ["username", "address", "publicKey", "vote", "missedBlocks", "producedBlocks", "virgin"], function (err, delegates) {
+				}, ["username", "address", "publicKey", "vote", "missedblocks", "producedblocks", "virgin"], function (err, delegates) {
 					if (err) {
 						return cb(err.toString());
 					}
@@ -694,7 +704,7 @@ shared.getDelegates = function (req, cb) {
 					for (var i = 0; i < delegates.length; i++) {
 						delegates[i].rate = i + 1;
 
-						var percent = 100 - (delegates[i].missedBlocks / ((delegates[i].producedBlocks + delegates[i].missedBlocks) / 100));
+						var percent = 100 - (delegates[i].missedblocks / ((delegates[i].producedblocks + delegates[i].missedblocks) / 100));
 						var outsider = i + 1 > slots.delegates && delegates[i].virgin;
 						delegates[i].productivity = !outsider ? delegates[i].virgin ? 0 : parseFloat(Math.floor(percent * 100) / 100).toFixed(2) : null
 					}

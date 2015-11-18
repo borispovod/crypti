@@ -18,6 +18,10 @@ function Transaction(scope, cb) {
 var private = {};
 private.types = {};
 
+function calc (height) {
+	return Math.floor(height / slots.delegates) + (height % slots.delegates > 0 ? 1 : 0);
+}
+
 //public methods
 Transaction.prototype.create = function (data) {
 	if (!private.types[data.type]) {
@@ -36,7 +40,7 @@ Transaction.prototype.create = function (data) {
 		type: data.type,
 		amount: 0,
 		senderPublicKey: data.sender.publicKey,
-		requesterPublicKey: data.requester? data.requester.publicKey.toString('hex') : null,
+		requesterPublicKey: data.requester ? data.requester.publicKey.toString('hex') : null,
 		timestamp: slots.getTime(),
 		asset: {}
 	};
@@ -184,10 +188,10 @@ Transaction.prototype.process = function (trs, sender, requester, cb) {
 	}
 
 	/*
-	if (!this.ready(trs, sender)) {
-		return setImmediate(cb, "Transaction is not ready: " + trs.id);
-	}
-	*/
+	 if (!this.ready(trs, sender)) {
+	 return setImmediate(cb, "Transaction is not ready: " + trs.id);
+	 }
+	 */
 
 	try {
 		var txId = this.getId(trs);
@@ -257,10 +261,10 @@ Transaction.prototype.verify = function (trs, sender, requester, cb) { //inherit
 	}
 
 	/*
-	if (!this.ready(trs, sender)) {
-		return setImmediate(cb, "Transaction is not ready: " + trs.id);
-	}
-	*/
+	 if (!this.ready(trs, sender)) {
+	 return setImmediate(cb, "Transaction is not ready: " + trs.id);
+	 }
+	 */
 
 	//check sender
 	if (!sender) {
@@ -363,26 +367,26 @@ Transaction.prototype.verify = function (trs, sender, requester, cb) { //inherit
 	}
 
 	/*for (var s = 0; s < multisignatures.length; s++) {
-		verify = false;
+	 verify = false;
 
-		if (trs.requesterPublicKey && multisignatures[s] == trs.requesterPublicKey) {
-			continue;
-		}
+	 if (trs.requesterPublicKey && multisignatures[s] == trs.requesterPublicKey) {
+	 continue;
+	 }
 
-		if (trs.signatures) {
-			for (var d = 0; d < trs.signatures.length && !verify; d++) {
-				if (this.verifySignature(trs, multisignatures[s], trs.signatures[d])) {
-					verify = true;
-				}
-			}
-		} else {
-			verify = true;
-		}
+	 if (trs.signatures) {
+	 for (var d = 0; d < trs.signatures.length && !verify; d++) {
+	 if (this.verifySignature(trs, multisignatures[s], trs.signatures[d])) {
+	 verify = true;
+	 }
+	 }
+	 } else {
+	 verify = true;
+	 }
 
-		if (!verify) {
-			return setImmediate(cb, "Failed multisignature: " + trs.id);
-		}
-	}*/
+	 if (!verify) {
+	 return setImmediate(cb, "Failed multisignature: " + trs.id);
+	 }
+	 }*/
 
 	//check sender
 	if (trs.senderId != sender.address) {
@@ -462,7 +466,7 @@ Transaction.prototype.verifyBytes = function (bytes, publicKey, signature) {
 	return res;
 }
 
-Transaction.prototype.apply = function (trs, sender, cb) {
+Transaction.prototype.apply = function (trs, block, sender, cb) {
 	if (!private.types[trs.type]) {
 		return setImmediate(cb, 'Unknown transaction type ' + trs.type);
 	}
@@ -477,14 +481,22 @@ Transaction.prototype.apply = function (trs, sender, cb) {
 		return setImmediate(cb, "Balance has no XCR: " + trs.id);
 	}
 
-	this.scope.account.merge(sender.address, {balance: -amount, blockId: trs.blockId}, function (err, sender) {
+	this.scope.account.merge(sender.address, {
+		balance: -amount,
+		blockId: block.id,
+		round: calc(block.height)
+	}, function (err, sender) {
 		if (err) {
 			return cb(err);
 		}
 
-		private.types[trs.type].apply.call(this, trs, sender, function (err) {
+		private.types[trs.type].apply.call(this, trs, block, sender, function (err) {
 			if (err) {
-				this.scope.account.merge(sender.address, {balance: amount, blockId: trs.blockId}, function (err) {
+				this.scope.account.merge(sender.address, {
+					balance: amount,
+					blockId: block.id,
+					round: calc(block.height)
+				}, function (err) {
 					cb(err);
 				});
 			} else {
@@ -494,21 +506,29 @@ Transaction.prototype.apply = function (trs, sender, cb) {
 	}.bind(this));
 }
 
-Transaction.prototype.undo = function (trs, sender, cb) {
+Transaction.prototype.undo = function (trs, block, sender, cb) {
 	if (!private.types[trs.type]) {
 		return setImmediate(cb, 'Unknown transaction type ' + trs.type);
 	}
 
 	var amount = trs.amount + trs.fee;
 
-	this.scope.account.merge(sender.address, {balance: amount, blockId: trs.blockId}, function (err, sender) {
+	this.scope.account.merge(sender.address, {
+		balance: amount,
+		blockId: block.id,
+		round: calc(block.height)
+	}, function (err, sender) {
 		if (err) {
 			return cb(err);
 		}
 
-		private.types[trs.type].undo.call(this, trs, sender, function (err) {
+		private.types[trs.type].undo.call(this, trs, block, sender, function (err) {
 			if (err) {
-				this.scope.account.merge(sender.address, {balance: amount, blockId: trs.blockId}, function (err) {
+				this.scope.account.merge(sender.address, {
+					balance: amount,
+					blockId: block.id,
+					round: calc(block.height)
+				}, function (err) {
 					cb(err);
 				});
 			} else {
@@ -549,14 +569,14 @@ Transaction.prototype.applyUnconfirmed = function (trs, sender, requester, cb) {
 		return setImmediate(cb, 'Account has no balance: ' + trs.id);
 	}
 
-	this.scope.account.merge(sender.address, {u_balance: -amount, blockId: trs.blockId}, function (err, sender) {
+	this.scope.account.merge(sender.address, {u_balance: -amount}, function (err, sender) {
 		if (err) {
 			return cb(err);
 		}
 
 		private.types[trs.type].applyUnconfirmed.call(this, trs, sender, function (err) {
 			if (err) {
-				this.scope.account.merge(sender.address, {u_balance: amount, blockId: trs.blockId}, function (err2) {
+				this.scope.account.merge(sender.address, {u_balance: amount}, function (err2) {
 					cb(err);
 				});
 			} else {
@@ -573,14 +593,14 @@ Transaction.prototype.undoUnconfirmed = function (trs, sender, cb) {
 
 	var amount = trs.amount + trs.fee;
 
-	this.scope.account.merge(sender.address, {u_balance: amount, blockId: trs.blockId}, function (err, sender) {
+	this.scope.account.merge(sender.address, {u_balance: amount}, function (err, sender) {
 		if (err) {
 			return cb(err);
 		}
 
 		private.types[trs.type].undoUnconfirmed.call(this, trs, sender, function (err) {
 			if (err) {
-				this.scope.account.merge(sender.address, {u_balance: -amount, blockId: trs.blockId}, function (err) {
+				this.scope.account.merge(sender.address, {u_balance: -amount}, function (err) {
 					cb(err);
 				});
 			} else {

@@ -55,7 +55,7 @@ function Transfer() {
 		return null;
 	}
 
-	this.apply = function (trs, sender, cb) {
+	this.apply = function (trs, block, sender, cb) {
 		modules.accounts.setAccountAndGet({address: trs.recipientId}, function (err, recipient) {
 			if (err) {
 				return cb(err);
@@ -65,14 +65,15 @@ function Transfer() {
 				address: trs.recipientId,
 				balance: trs.amount,
 				u_balance: trs.amount,
-				blockId: trs.blockId
+				blockId: block.id,
+				round: modules.round.calc(block.height)
 			}, function (err) {
 				cb(err);
 			});
 		});
 	}
 
-	this.undo = function (trs, sender, cb) {
+	this.undo = function (trs, block, sender, cb) {
 		modules.accounts.setAccountAndGet({address: trs.recipientId}, function (err, recipient) {
 			if (err) {
 				return cb(err);
@@ -82,7 +83,8 @@ function Transfer() {
 				address: trs.recipientId,
 				balance: -trs.amount,
 				u_balance: -trs.amount,
-				blockId: trs.blockId
+				blockId: block.id,
+				round: modules.round.calc(block.height)
 			}, function (err) {
 				cb(err);
 			});
@@ -430,17 +432,12 @@ Transactions.prototype.undoUnconfirmedList = function (cb) {
 	})
 }
 
-Transactions.prototype.apply = function (transaction, sender, cb) {
-	library.logic.transaction.apply(transaction, sender, cb);
+Transactions.prototype.apply = function (transaction, block, sender, cb) {
+	library.logic.transaction.apply(transaction, block, sender, cb);
 }
 
-Transactions.prototype.undo = function (transaction, cb) {
-	modules.accounts.getAccount({publicKey: transaction.senderPublicKey}, function (err, sender) {
-		if (err) {
-			return cb(err);
-		}
-		library.logic.transaction.undo(transaction, sender, cb);
-	});
+Transactions.prototype.undo = function (transaction, block, sender, cb) {
+	library.logic.transaction.undo(transaction, block, sender, cb);
 }
 
 Transactions.prototype.applyUnconfirmed = function (transaction, sender, cb) {

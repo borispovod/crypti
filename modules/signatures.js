@@ -72,7 +72,7 @@ function Signature() {
 		return bb.toBuffer();
 	}
 
-	this.apply = function (trs, sender, cb) {
+	this.apply = function (trs, block, sender, cb) {
 		modules.accounts.setAccountAndGet({
 			address: sender.address,
 			secondSignature: 1,
@@ -81,7 +81,7 @@ function Signature() {
 		}, cb);
 	}
 
-	this.undo = function (trs, sender, cb) {
+	this.undo = function (trs, block, sender, cb) {
 		modules.accounts.setAccountAndGet({
 			address: sender.address,
 			secondSignature: 0,

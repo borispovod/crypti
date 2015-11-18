@@ -254,7 +254,12 @@ private.popLastBlock = function (oldLastBlock, cb) {
 			async.eachSeries(oldLastBlock.transactions.reverse(), function (transaction, cb) {
 				async.series([
 					function (cb) {
-						modules.transactions.undo(transaction, cb);
+						modules.accounts.getAccount({publicKey: transaction.senderPublicKey}, function (err, sender) {
+							if (err) {
+								return cb(err);
+							}
+							modules.transactions.undo(transaction, oldLastBlock, sender, cb);
+						});
 					}, function (cb) {
 						modules.transactions.undoUnconfirmed(transaction, cb);
 					}, function (cb) {
@@ -346,7 +351,7 @@ private.applyTransaction = function (block, transaction, sender, cb) {
 			});
 		}
 
-		modules.transactions.apply(transaction, sender, function (err) {
+		modules.transactions.apply(transaction, block, sender, function (err) {
 			if (err) {
 				return setImmediate(cb, {
 					message: "Can't apply transaction: " + transaction.id,
@@ -604,7 +609,7 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, verify, cb) {
 									}
 									cb();
 								});
-							}else{
+							} else {
 								setImmediate(cb);
 							}
 						} else {
@@ -662,7 +667,12 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, verify, cb) {
 								async.eachSeries(transactions.reverse(), function (transaction, cb) {
 									async.series([
 										function (cb) {
-											modules.transactions.undo(transaction, cb);
+											modules.accounts.getAccount({publicKey: transaction.senderPublicKey}, function (err, sender) {
+												if (err) {
+													return cb(err);
+												}
+												modules.transactions.undo(transaction, block, sender, cb);
+											});
 										}, function (cb) {
 											modules.transactions.undoUnconfirmed(transaction, cb);
 										}
@@ -868,13 +878,19 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 							}
 
 							async.eachSeries(block.transactions, function (transaction, cb) {
-								modules.transactions.apply(transaction, function (err) {
+								modules.accounts.getAccount({publicKey: transaction.senderPublicKey}, function (err, sender) {
 									if (err) {
 										library.logger.error("Can't apply transactions: " + transaction.id);
 										process.exit(0);
 									}
-									modules.transactions.removeUnconfirmedTransaction(transaction.id);
-									setImmediate(cb);
+									modules.transactions.apply(transaction, block, sender, function (err) {
+										if (err) {
+											library.logger.error("Can't apply transactions: " + transaction.id);
+											process.exit(0);
+										}
+										modules.transactions.removeUnconfirmedTransaction(transaction.id);
+										setImmediate(cb);
+									});
 								});
 							}, function (err) {
 								private.saveBlock(block, function (err) {

@@ -41,7 +41,6 @@ Round.prototype.getVotes = function (round, cb) {
 }
 
 Round.prototype.flush = function (round, cb) {
-	console.log("flash", round)
 	library.dbLite.query("delete from mem_round where round = $round", {round: round}, cb);
 }
 
@@ -64,8 +63,9 @@ Round.prototype.backwardTick = function (block, previousBlock, cb) {
 
 	modules.accounts.mergeAccountAndGet({
 		publicKey: block.generatorPublicKey,
-		producedBlocks: -1,
-		blockId: block.id
+		producedblocks: -1,
+		blockId: block.id,
+		round: modules.round.calc(block.height)
 	}, function (err) {
 		if (err) {
 			return done(err);
@@ -122,10 +122,12 @@ Round.prototype.backwardTick = function (block, previousBlock, cb) {
 								library.dbLite.query('update mem_accounts set vote = vote + $amount where address = $address', {
 									address: modules.accounts.generateAddressByPublicKey(vote.delegate),
 									amount: vote.amount
-								}, function (err) {
-									self.flush(round, cb);
+								}, cb);
+							}, function (err) {
+								self.flush(round, function (err2) {
+									cb(err || err2);
 								});
-							}, cb)
+							})
 						});
 					},
 					function (cb) {
@@ -137,7 +139,8 @@ Round.prototype.backwardTick = function (block, previousBlock, cb) {
 								address: constants.foundation,
 								balance: -foundationFee,
 								u_balance: -foundationFee,
-								blockId: block.id
+								blockId: block.id,
+								round: modules.round.calc(block.height)
 							}, function (err) {
 								if (err) {
 									return cb(err);
@@ -150,32 +153,25 @@ Round.prototype.backwardTick = function (block, previousBlock, cb) {
 										publicKey: delegate,
 										balance: -delegatesFee,
 										u_balance: -delegatesFee,
-										blockId: block.id
+										blockId: block.id,
+										round: modules.round.calc(block.height),
+										fees: -delegatesFee
 									}, function (err) {
 										if (err) {
 											return cb(err);
 										}
-										modules.statistic.addFee(delegate, -delegatesFee, function (err) {
-											if (err) {
-												return cb(err);
-											}
-
-											if (index === 0) {
-												modules.accounts.mergeAccountAndGet({
-													publicKey: delegate,
-													balance: -leftover,
-													u_balance: -leftover,
-													blockId: block.id
-												}, function (err) {
-													if (err) {
-														return cb(err);
-													}
-													modules.statistic.addFee(delegate, -leftover, cb);
-												});
-											} else {
-												cb();
-											}
-										});
+										if (index === 0) {
+											modules.accounts.mergeAccountAndGet({
+												publicKey: delegate,
+												balance: -leftover,
+												u_balance: -leftover,
+												blockId: block.id,
+												round: modules.round.calc(block.height),
+												fees: -leftover
+											}, cb);
+										} else {
+											cb();
+										}
 									});
 								}, cb);
 							});
@@ -192,10 +188,12 @@ Round.prototype.backwardTick = function (block, previousBlock, cb) {
 								library.dbLite.query('update mem_accounts set vote = vote + $amount where address = $address', {
 									address: modules.accounts.generateAddressByPublicKey(vote.delegate),
 									amount: vote.amount
-								}, function (err) {
-									self.flush(round, cb);
+								}, cb);
+							}, function (err) {
+								self.flush(round, function (err2) {
+									cb(err || err2);
 								});
-							}, cb)
+							})
 						});
 					}
 				], function (err) {
@@ -217,12 +215,11 @@ Round.prototype.tick = function (block, cb) {
 		cb && setImmediate(cb, err);
 	}
 
-	debugger
-
 	modules.accounts.mergeAccountAndGet({
 		publicKey: block.generatorPublicKey,
-		producedBlocks: 1,
-		blockId: block.id
+		producedblocks: 1,
+		blockId: block.id,
+		round: modules.round.calc(block.height)
 	}, function (err) {
 		if (err) {
 			return done(err);
@@ -279,10 +276,12 @@ Round.prototype.tick = function (block, cb) {
 								library.dbLite.query('update mem_accounts set vote = vote + $amount where address = $address', {
 									address: modules.accounts.generateAddressByPublicKey(vote.delegate),
 									amount: vote.amount
-								}, function (err) {
-									self.flush(round, cb);
+								}, cb);
+							}, function (err) {
+								self.flush(round, function (err2) {
+									cb(err || err2);
 								});
-							}, cb)
+							})
 						});
 					},
 					function (cb) {
@@ -294,7 +293,8 @@ Round.prototype.tick = function (block, cb) {
 								address: constants.foundation,
 								balance: foundationFee,
 								u_balance: foundationFee,
-								blockId: block.id
+								blockId: block.id,
+								round: modules.round.calc(block.height)
 							}, function (err) {
 								if (err) {
 									return cb(err);
@@ -307,32 +307,25 @@ Round.prototype.tick = function (block, cb) {
 										publicKey: delegate,
 										balance: delegatesFee,
 										u_balance: delegatesFee,
-										blockId: block.id
+										blockId: block.id,
+										round: modules.round.calc(block.height),
+										fees: delegatesFee
 									}, function (err) {
 										if (err) {
 											return cb(err);
 										}
-										modules.statistic.addFee(delegate, delegatesFee, function (err) {
-											if (err) {
-												return cb(err);
-											}
-
-											if (index === private.delegatesByRound[round].length - 1) {
-												modules.accounts.mergeAccountAndGet({
-													publicKey: delegate,
-													balance: leftover,
-													u_balance: leftover,
-													blockId: block.id
-												}, function (err) {
-													if (err) {
-														return cb(err);
-													}
-													modules.statistic.addFee(delegate, leftover, cb);
-												});
-											} else {
-												cb();
-											}
-										});
+										if (index === private.delegatesByRound[round].length - 1) {
+											modules.accounts.mergeAccountAndGet({
+												publicKey: delegate,
+												balance: leftover,
+												u_balance: leftover,
+												blockId: block.id,
+												round: modules.round.calc(block.height),
+												fees: leftover
+											}, cb);
+										} else {
+											cb();
+										}
 									});
 								}, cb);
 							});
@@ -349,12 +342,12 @@ Round.prototype.tick = function (block, cb) {
 								library.dbLite.query('update mem_accounts set vote = vote + $amount where address = $address', {
 									address: modules.accounts.generateAddressByPublicKey(vote.delegate),
 									amount: vote.amount
-								}, function (err) {
-									self.flush(round, cb);
-								});
+								}, cb);
 							}, function (err) {
 								library.bus.message('finishRound', round);
-								cb(err);
+								self.flush(round, function (err2) {
+									cb(err || err2);
+								});
 							})
 						});
 					}
@@ -399,7 +392,6 @@ Round.prototype.onBlockchainReady = function () {
 }
 
 Round.prototype.onFinishRound = function (round) {
-	console.log("end ", round)
 	library.network.io.sockets.emit('rounds/change', {number: round});
 }
 
