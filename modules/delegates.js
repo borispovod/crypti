@@ -804,6 +804,7 @@ shared.getDelegate = function (req, cb) {
 				delegates[i].rate = i + 1;
 
 				var percent = 100 - (delegates[i].missedblocks / ((delegates[i].producedblocks + delegates[i].missedblocks) / 100));
+				percent = percent || 0;
 				var outsider = i + 1 > slots.delegates && delegates[i].virgin;
 				delegates[i].productivity = !outsider ? delegates[i].virgin ? 0 : parseFloat(Math.floor(percent * 100) / 100).toFixed(2) : null
 			}
@@ -821,16 +822,6 @@ shared.getDelegate = function (req, cb) {
 
 				return false;
 			});
-
-			if (delegate) {
-				var percent = 100 - (delegate.missedblocks / ((delegate.producedblocks + delegate.missedblocks) / 100));
-				console.log(delegate.producedblocks, delegate.missedblocks, percent);
-				var outsider = i + 1 > slots.delegates && delegate.virgin;
-				console.log(outsider);
-				delegate.productivity = !outsider ? delegate.virgin ? 0 : parseFloat(Math.floor(percent * 100) / 100).toFixed(2) : null
-				console.log(delegate)
-			}
-
 
 			if (delegate) {
 				cb(null, {delegate: delegate});
@@ -932,6 +923,7 @@ shared.getDelegates = function (req, cb) {
 				delegates[i].rate = i + 1;
 
 				var percent = 100 - (delegates[i].missedblocks / ((delegates[i].producedblocks + delegates[i].missedblocks) / 100));
+				percent = percent || 0;
 				var outsider = i + 1 > slots.delegates && delegates[i].virgin;
 				delegates[i].productivity = !outsider ? delegates[i].virgin ? 0 : parseFloat(Math.floor(percent * 100) / 100).toFixed(2) : null
 			}
