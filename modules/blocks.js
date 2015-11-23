@@ -372,7 +372,7 @@ Blocks.prototype.getCommonBlock = function (peer, height, cb) {
 		function (next) {
 			count++;
 			private.getIdSequence(lastBlockHeight, function (err, data) {
-				if (err){
+				if (err) {
 					return next(err)
 				}
 				var max = lastBlockHeight;
@@ -857,7 +857,7 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 						}
 
 						async.eachSeries(block.transactions, function (transaction, cb) {
-							modules.accounts.getAccount({publicKey: transaction.senderPublicKey}, function (err, sender) {
+							modules.accounts.setAccountAndGet({publicKey: transaction.senderPublicKey}, function (err, sender) {
 								if (err) {
 									library.logger.error("Can't apply transactions: " + transaction.id);
 									process.exit(0);
