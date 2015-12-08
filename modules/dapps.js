@@ -1377,6 +1377,10 @@ private.attachApi = function () {
 	});
 
 	router.post('/launch', function (req, res, next) {
+		if (library.config.dapp.masterpassword && req.body.master !== library.config.dapp.masterpassword) {
+			return res.json({success: false, error: "Incorrect master password"});
+		}
+
 		private.launch(req.body, function (err) {
 			if (err) {
 				return res.json({"success": false, "error": err});
@@ -2042,10 +2046,6 @@ private.launch = function (body, cb) {
 	}, function (err) {
 		if (err) {
 			return cb(err[0].message);
-		}
-
-		if (library.config.dapp.masterpassword && body.master !== library.config.dapp.masterpassword) {
-			return cb("Incorrect master password");
 		}
 
 		if (private.launched[body.id]) {

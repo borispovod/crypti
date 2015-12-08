@@ -705,12 +705,13 @@ shared.getDelegates = function (req, cb) {
 						delegates[i].rate = i + 1;
 
 						var percent = 100 - (delegates[i].missedblocks / ((delegates[i].producedblocks + delegates[i].missedblocks) / 100));
+						percent = percent || 0;
 						var outsider = i + 1 > slots.delegates && delegates[i].virgin;
 						delegates[i].productivity = !outsider ? delegates[i].virgin ? 0 : parseFloat(Math.floor(percent * 100) / 100).toFixed(2) : null
 					}
 
 					var result = delegates.filter(function (delegate) {
-						return delegate.publicKey == account.delegates;
+						return account.delegates.indexOf(delegate.publicKey) != -1;
 					});
 
 					cb(null, {delegates: result});

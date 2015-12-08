@@ -489,7 +489,7 @@ private.getBlockSlotData = function (slot, height, cb) {
 				return cb(null, {time: slots.getSlotTime(currentSlot), keypair: private.keypairs[delegate_id]});
 			}
 		}
-		cb();
+		cb(null, null);
 	});
 }
 
