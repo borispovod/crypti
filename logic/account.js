@@ -235,7 +235,8 @@ function Account(scope, cb) {
 			},
 			conv: Array,
 			expression: "(select GROUP_CONCAT(dependentId) from " + this.table + "2u_multisignatures where accountId = a.address)"
-		}, {
+		},
+		{
 			name: "multimin",
 			type: "BigInt",
 			filter: {
@@ -245,7 +246,8 @@ function Account(scope, cb) {
 			},
 			conv: Number,
 			default: 0
-		}, {
+		},
+		{
 			name: "u_multimin",
 			type: "BigInt",
 			filter: {
@@ -255,7 +257,8 @@ function Account(scope, cb) {
 			},
 			conv: Number,
 			default: 0
-		}, {
+		},
+		{
 			name: "multilifetime",
 			type: "BigInt",
 			filter: {
@@ -265,7 +268,8 @@ function Account(scope, cb) {
 			},
 			conv: Number,
 			default: 0
-		}, {
+		},
+		{
 			name: "u_multilifetime",
 			type: "BigInt",
 			filter: {
@@ -275,7 +279,8 @@ function Account(scope, cb) {
 			},
 			conv: Number,
 			default: 0
-		}, {
+		},
+		{
 			name: "blockId",
 			type: "String",
 			length: 20,
@@ -286,7 +291,8 @@ function Account(scope, cb) {
 			},
 			conv: String,
 			default: genesisBlock.id
-		}, {
+		},
+		{
 			name: "nameexist",
 			type: "Boolean",
 			filter: {
@@ -639,6 +645,13 @@ Account.prototype.createTables = function (cb) {
 		]
 	});
 	sqles.push(sql.query);
+
+	sqles.push("delete from mem_accounts2u_contacts;");
+	sqles.push("delete from mem_accounts2u_delegates;");
+	sqles.push("delete from mem_accounts2u_multisignatures;");
+	sqles.push("INSERT INTO mem_accounts2u_contacts SELECT * FROM mem_accounts2contacts;");
+	sqles.push("INSERT INTO mem_accounts2u_delegates SELECT * FROM mem_accounts2delegates;");
+	sqles.push("INSERT INTO mem_accounts2u_multisignatures SELECT * FROM mem_accounts2multisignatures;");
 
 	async.eachSeries(sqles, function (command, cb) {
 		scope.dbLite.query(command, function (err, data) {
