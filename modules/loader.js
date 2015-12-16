@@ -105,7 +105,7 @@ private.findUpdate = function (lastBlock, peer, cb) {
 			async.series([
 				function (cb) {
 					if (commonBlock.id != lastBlock.id) {
-						modules.round.directionSwap('backward', lastBlock ,cb);
+						modules.round.directionSwap('backward', lastBlock, cb);
 					} else {
 						cb();
 					}
@@ -117,7 +117,7 @@ private.findUpdate = function (lastBlock, peer, cb) {
 				},
 				function (cb) {
 					if (commonBlock.id != lastBlock.id) {
-						modules.round.directionSwap('forward', lastBlock ,cb);
+						modules.round.directionSwap('forward', lastBlock, cb);
 					} else {
 						cb();
 					}
@@ -141,7 +141,7 @@ private.findUpdate = function (lastBlock, peer, cb) {
 									async.series([
 										function (cb) {
 											if (lastValidBlock.id != lastBlock.id) {
-												modules.round.directionSwap('backward', lastBlock ,cb);
+												modules.round.directionSwap('backward', lastBlock, cb);
 											} else {
 												cb();
 											}
@@ -151,7 +151,7 @@ private.findUpdate = function (lastBlock, peer, cb) {
 												async.series([
 													function (cb) {
 														if (lastValidBlock.id != lastBlock.id) {
-															modules.round.directionSwap('forward', lastBlock ,cb);
+															modules.round.directionSwap('forward', lastBlock, cb);
 														}
 													},
 													function (cb) {
@@ -170,7 +170,7 @@ private.findUpdate = function (lastBlock, peer, cb) {
 									async.series([
 										function (cb) {
 											if (commonBlock.id != lastBlock.id) {
-												modules.round.directionSwap('backward', lastBlock ,cb);
+												modules.round.directionSwap('backward', lastBlock, cb);
 											} else {
 												cb();
 											}
@@ -180,7 +180,7 @@ private.findUpdate = function (lastBlock, peer, cb) {
 										},
 										function (cb) {
 											if (commonBlock.id != lastBlock.id) {
-												modules.round.directionSwap('forward', lastBlock ,cb);
+												modules.round.directionSwap('forward', lastBlock, cb);
 											} else {
 												cb();
 											}
@@ -217,99 +217,6 @@ private.findUpdate = function (lastBlock, peer, cb) {
 					});
 				}
 			], cb)
-
-			if (commonBlock.id != lastBlock.id) {
-				modules.round.directionSwap('backward');
-			}
-
-			library.bus.message('deleteBlocksBefore', commonBlock);
-
-			modules.blocks.deleteBlocksBefore(commonBlock, function (err, backupBlocks) {
-				if (commonBlock.id != lastBlock.id) {
-					modules.round.directionSwap('forward');
-				}
-				if (err) {
-					library.logger.fatal('delete blocks before', err);
-					process.exit(1);
-				}
-
-				library.logger.debug("Load blocks from peer " + peerStr);
-
-				modules.blocks.loadBlocksFromPeer(peer, commonBlock.id, function (err, lastValidBlock) {
-					if (err) {
-						modules.transactions.deleteHiddenTransaction();
-						library.logger.error(err);
-						library.logger.log("can't load blocks, ban 60 min", peerStr);
-						modules.peer.state(peer.ip, peer.port, 0, 3600);
-
-						if (lastValidBlock) {
-							var uploaded = lastValidBlock.height - commonBlock.height;
-
-							if (toRemove < uploaded) {
-								library.logger.info("Remove blocks again until " + lastValidBlock.id + " (at " + lastValidBlock.height + ")");
-
-								if (lastValidBlock.id != lastBlock.id) {
-									modules.round.directionSwap('backward');
-								}
-
-								modules.blocks.deleteBlocksBefore(lastValidBlock, function (err) {
-									if (lastValidBlock.id != lastBlock.id) {
-										modules.round.directionSwap('forward');
-									}
-									if (err) {
-										library.logger.fatal('delete blocks before', err);
-										process.exit(1);
-									}
-
-									async.eachSeries(overTransactionList, function (trs, cb) {
-										modules.transactions.processUnconfirmedTransaction(trs, false, cb);
-									}, cb);
-								});
-							} else {
-								library.logger.info("Remove blocks again until common " + commonBlock.id + " (at " + commonBlock.height + ")");
-
-								if (commonBlock.id != lastBlock.id) {
-									modules.round.directionSwap('backward');
-								}
-
-								modules.blocks.deleteBlocksBefore(commonBlock, function (err) {
-									if (commonBlock.id != lastBlock.id) {
-										modules.round.directionSwap('forward');
-									}
-									if (err) {
-										library.logger.fatal('delete blocks before', err);
-										process.exit(1);
-									}
-
-									async.eachSeries(overTransactionList, function (trs, cb) {
-										modules.transactions.processUnconfirmedTransaction(trs, false, cb);
-									}, cb);
-								});
-							}
-						} else {
-							async.eachSeries(overTransactionList, function (trs, cb) {
-								modules.transactions.processUnconfirmedTransaction(trs, false, cb);
-							}, cb);
-						}
-					} else {
-						for (var i = 0; i < overTransactionList.length; i++) {
-							modules.transactions.pushHiddenTransaction(overTransactionList[i]);
-						}
-
-						var trs = modules.transactions.shiftHiddenTransaction();
-						async.whilst(
-							function () {
-								return trs
-							},
-							function (next) {
-								modules.transactions.processUnconfirmedTransaction(trs, true, function () {
-									trs = modules.transactions.shiftHiddenTransaction();
-									next();
-								});
-							}, cb);
-					}
-				});
-			});
 		});
 	});
 }
@@ -546,8 +453,14 @@ private.loadBlockChain = function () {
 															library.logger.info("Can't load without verifying, clear accounts from database and load");
 															load(count);
 														} else {
-															library.logger.info('blockchain ready');
-															library.bus.message('blockchainReady');
+															modules.blocks.loadLastBlock(function (err, block) {
+																if (err) {
+																	return load(count);
+																}
+																private.lastBlock = block;
+																library.logger.info('blockchain ready');
+																library.bus.message('blockchainReady');
+															});
 														}
 													});
 												}

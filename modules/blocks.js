@@ -693,6 +693,59 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, verify, cb) {
 	}, cb);
 }
 
+Blocks.prototype.loadLastBlock = function (cb) {
+	library.dbSequence.add(function (cb) {
+		library.dbLite.query("SELECT " +
+			"b.id, b.version, b.timestamp, b.height, b.previousBlock, b.numberOfTransactions, b.totalAmount, b.totalFee, b.payloadLength, lower(hex(b.payloadHash)), lower(hex(b.generatorPublicKey)), lower(hex(b.blockSignature)), " +
+			"t.id, t.type, t.timestamp, lower(hex(t.senderPublicKey)), t.senderId, t.recipientId, t.senderUsername, t.recipientUsername, t.amount, t.fee, lower(hex(t.signature)), lower(hex(t.signSignature)), " +
+			"lower(hex(s.publicKey)), " +
+			"d.username, " +
+			"v.votes, " +
+			"c.address, " +
+			"u.username, " +
+			"m.min, m.lifetime, m.keysgroup, " +
+			"dapp.name, dapp.description, dapp.tags, dapp.type, dapp.siaAscii, dapp.siaIcon, dapp.git, dapp.category, dapp.icon, " +
+			"it.dappId, " +
+			"ot.dappId, ot.outTransactionId, " +
+			"lower(hex(t.requesterPublicKey)), t.signatures " +
+			"FROM blocks b " +
+			"left outer join trs as t on t.blockId=b.id " +
+			"left outer join delegates as d on d.transactionId=t.id " +
+			"left outer join votes as v on v.transactionId=t.id " +
+			"left outer join signatures as s on s.transactionId=t.id " +
+			"left outer join contacts as c on c.transactionId=t.id " +
+			"left outer join usernames as u on u.transactionId=t.id " +
+			"left outer join multisignatures as m on m.transactionId=t.id " +
+			"left outer join dapps as dapp on dapp.transactionId=t.id " +
+			"left outer join intransfer it on it.transactionId=t.id " +
+			"left outer join outtransfer ot on ot.transactionId=t.id " +
+			"where b.height = (select max(height) from blocks) " +
+			"ORDER BY b.height, t.rowid" +
+			"", {}, private.blocksDataFields, function (err, rows) {
+			if (err) {
+				return cb(err);
+			}
+
+			var block = private.readDbRows(rows)[0];
+
+			block.transactions = block.transactions.sort(function (a, b) {
+				if (block.id == genesisblock.block.id) {
+					if (a.type == TransactionTypes.VOTE)
+						return 1;
+				}
+
+				if (a.type == TransactionTypes.SIGNATURE) {
+					return 1;
+				}
+
+				return 0;
+			});
+
+			cb(null, block);
+		});
+	}, cb);
+}
+
 Blocks.prototype.getLastBlock = function () {
 	return private.lastBlock;
 }

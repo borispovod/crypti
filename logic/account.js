@@ -1026,7 +1026,14 @@ Account.prototype.merge = function (address, diff, cb) {
 				});
 			}, function (err) {
 				if (err) {
-					return cb(err);
+					if (sqles.length > 1) {
+						self.scope.dbLite.query('ROLLBACK;', function (rollbackErr) {
+							cb(rollbackErr || err);
+						});
+					} else {
+						cb(err);
+					}
+					return;
 				}
 				if (sqles.length > 1) {
 					self.scope.dbLite.query('COMMIT;', cb);
@@ -1046,7 +1053,14 @@ Account.prototype.merge = function (address, diff, cb) {
 				});
 			}, function (err) {
 				if (err) {
-					return cb(err);
+					if (round.length > 1) {
+						self.scope.dbLite.query('ROLLBACK;', function (rollbackErr) {
+							cb(rollbackErr || err);
+						});
+					} else {
+						cb(err);
+					}
+					return;
 				}
 				if (round.length > 1) {
 					self.scope.dbLite.query('COMMIT;', cb);
