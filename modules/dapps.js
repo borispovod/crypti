@@ -2462,6 +2462,7 @@ shared.getGenesis = function (req, cb) {
 			pointId: rows[0].id,
 			pointHeight: rows[0].height,
 			authorId: rows[0].authorId,
+			dappid: req.dappid,
 			associate: rows[0].multisignature ? rows[0].multisignature.split(",") : []
 		});
 	});

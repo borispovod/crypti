@@ -648,10 +648,10 @@ Account.prototype.createTables = function (cb) {
 
 	sqles.push("delete from mem_accounts2u_contacts;");
 	sqles.push("delete from mem_accounts2u_delegates;");
-	sqles.push("delete from mem_accounts2u_multisignatures;");
+	//sqles.push("delete from mem_accounts2u_multisignatures;");
 	sqles.push("INSERT INTO mem_accounts2u_contacts SELECT * FROM mem_accounts2contacts;");
 	sqles.push("INSERT INTO mem_accounts2u_delegates SELECT * FROM mem_accounts2delegates;");
-	sqles.push("INSERT INTO mem_accounts2u_multisignatures SELECT * FROM mem_accounts2multisignatures;");
+	//sqles.push("INSERT INTO mem_accounts2u_multisignatures SELECT * FROM mem_accounts2multisignatures;");
 
 	async.eachSeries(sqles, function (command, cb) {
 		scope.dbLite.query(command, function (err, data) {
@@ -783,6 +783,10 @@ Account.prototype.getAll = function (filter, fields, cb) {
 Account.prototype.set = function (address, fields, cb) {
 	var self = this;
 
+	if (fields.publicKey !== undefined && !fields.publicKey){
+		console.log("!!!!!!!!!!!!!!!!!!!!!!!", address, diff)
+	}
+
 	fields.address = address;
 	var account = fields;
 	var sqles = []
@@ -818,6 +822,10 @@ Account.prototype.merge = function (address, diff, cb) {
 	var update = {}, remove = {}, insert = {}, insert_object = {}, remove_object = {}, round = [];
 
 	var self = this;
+
+	if (diff.publicKey !== undefined && !diff.publicKey){
+		console.log("!!!!!!!!!!!!!!!!!!!!!!!", address, diff)
+	}
 
 	this.editable.forEach(function (value) {
 		if (diff[value]) {
