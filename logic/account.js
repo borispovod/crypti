@@ -339,7 +339,7 @@ function Account(scope, cb) {
 				type: "boolean"
 			},
 			conv: Boolean,
-			expression: "(select count(*) > 0 from blocks where lower(hex(generatorPublicKey)) = a.publicKey)"
+			expression: "0"
 		},
 		{
 			name: "fees",

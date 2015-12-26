@@ -931,7 +931,7 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 							}
 
 							async.eachSeries(block.transactions, function (transaction, cb) {
-								modules.accounts.getAccount({publicKey: transaction.senderPublicKey}, function (err, sender) {
+								modules.accounts.setAccountAndGet({publicKey: transaction.senderPublicKey}, function (err, sender) {
 									if (err) {
 										library.logger.error("Can't apply transactions: " + transaction.id);
 										process.exit(0);
