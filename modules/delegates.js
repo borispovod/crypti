@@ -980,7 +980,10 @@ shared.getForgedByAccount = function (req, cb) {
 		}
 
 		modules.accounts.getAccount({publicKey: query.generatorPublicKey}, "fees", function (err, account) {
-			cb(err, {fees: account.fees});
+			if (err || !account) {
+				return cb(err || "Account not found")
+			}
+			cb(null, {fees: account.fees});
 		});
 	});
 }

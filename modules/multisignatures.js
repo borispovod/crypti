@@ -467,6 +467,10 @@ shared.pending = function (req, cb) {
 					return cb(err);
 				}
 
+				if (!sender) {
+					return cb(errorCode("Sender not found"));
+				}
+
 				if ((sender.publicKey == query.publicKey && sender.u_multisignatures.length > 0) || sender.u_multisignatures.indexOf(query.publicKey) >= 0 || sender.multisignatures.indexOf(query.publicKey) >= 0) {
 					var min = sender.u_multimin || sender.multimin;
 					var lifetime = sender.u_multilifetime || sender.multilifetime;
@@ -549,6 +553,10 @@ Multisignatures.prototype.processSignature = function (tx, cb) {
 
 			if (transaction.requesterPublicKey) {
 				multisignatures.push(transaction.senderPublicKey);
+			}
+
+			if (!account) {
+				return cb(errorCode("Account not found"));
 			}
 
 
@@ -660,6 +668,10 @@ shared.sign = function (req, cb) {
 			}, function (err, account) {
 				if (err) {
 					return cb("Error, account for multisignature transaction not found");
+				}
+
+				if (!account) {
+					return cb(errorCode("Account not found"));
 				}
 
 				if (!transaction.requesterPublicKey) {
