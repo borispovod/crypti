@@ -11,6 +11,7 @@ require('colors');
 var modules, library, self, private = {}, shared = {};
 
 private.loaded = false;
+private.isActive = false;
 private.loadingLastBlock = null;
 private.genesisBlock = null;
 private.total = 0;
@@ -491,6 +492,7 @@ Loader.prototype.sandboxApi = function (call, args, cb) {
 Loader.prototype.onPeerReady = function () {
 	setImmediate(function nextLoadBlock() {
 		if (!private.loaded) return;
+		private.isActive = true;
 		library.sequence.add(function (cb) {
 			private.syncTrigger(true);
 			var lastBlock = modules.blocks.getLastBlock();
@@ -499,6 +501,9 @@ Loader.prototype.onPeerReady = function () {
 			err && library.logger.error('loadBlocks timer', err);
 			private.syncTrigger(false);
 			private.blocksToSync = 0;
+
+			private.isActive = false;
+			if (!private.loaded) return;
 
 			setTimeout(nextLoadBlock, 9 * 1000)
 		});
@@ -535,7 +540,17 @@ Loader.prototype.onBlockchainReady = function () {
 
 Loader.prototype.cleanup = function (cb) {
 	private.loaded = false;
-	cb();
+	if (!private.isActive) {
+		cb();
+	} else {
+		setImmediate(function nextWatch() {
+			if (private.isActive) {
+				setTimeout(nextWatch, 1 * 1000)
+			} else {
+				cb();
+			}
+		});
+	}
 }
 
 //shared
