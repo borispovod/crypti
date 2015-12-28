@@ -35,6 +35,8 @@ private.blocksDataFields = {
 	't_requesterPublicKey': String, 't_signatures': String
 };
 // @formatter:on
+private.loaded = false;
+private.isActive = false;
 
 //constructor
 function Blocks(cb, scope) {
@@ -751,21 +753,28 @@ Blocks.prototype.getLastBlock = function () {
 }
 
 Blocks.prototype.processBlock = function (block, broadcast, cb) {
+	if (!private.loaded) {
+		return setImmediate(cb, errorCode('COMMON.LOADING'));
+	}
+	private.isActive = true;
 	library.balancesSequence.add(function (cb) {
 		try {
 			block.id = library.logic.block.getId(block);
 		} catch (e) {
+			private.isActive = false;
 			return setImmediate(cb, e.toString());
 		}
 		block.height = private.lastBlock.height + 1;
 
 		modules.transactions.undoUnconfirmedList(function (err, unconfirmedTransactions) {
 			if (err) {
+				private.isActive = false;
 				return process.exit(0);
 			}
 
 			function done(err) {
 				modules.transactions.applyUnconfirmedList(unconfirmedTransactions, function () {
+					private.isActive = false;
 					setImmediate(cb, err);
 				});
 			}
@@ -1104,7 +1113,7 @@ Blocks.prototype.sandboxApi = function (call, args, cb) {
 
 //events
 Blocks.prototype.onReceiveBlock = function (block) {
-	if (modules.loader.syncing()) {
+	if (modules.loader.syncing() || !private.loaded) {
 		return;
 	}
 
@@ -1128,10 +1137,30 @@ Blocks.prototype.onReceiveBlock = function (block) {
 
 Blocks.prototype.onBind = function (scope) {
 	modules = scope;
+
+	private.loaded = true;
+}
+
+Blocks.prototype.cleanup = function (cb) {
+	private.loaded = false;
+	if (!private.isActive) {
+		cb();
+	} else {
+		setImmediate(function nextWatch() {
+			if (private.isActive) {
+				setTimeout(nextWatch, 1 * 1000)
+			} else {
+				cb();
+			}
+		});
+	}
 }
 
 //shared
 shared.getBlock = function (req, cb) {
+	if (!private.loaded) {
+		cb(errorCode('COMMON.LOADING'))
+	}
 	var query = req.body;
 	library.scheme.validate(query, {
 		type: "object",
@@ -1159,6 +1188,9 @@ shared.getBlock = function (req, cb) {
 }
 
 shared.getBlocks = function (req, cb) {
+	if (!private.loaded) {
+		cb(errorCode('COMMON.LOADING'))
+	}
 	var query = req.body;
 	library.scheme.validate(query, {
 		type: "object",
@@ -1213,11 +1245,17 @@ shared.getBlocks = function (req, cb) {
 }
 
 shared.getHeight = function (req, cb) {
+	if (!private.loaded) {
+		cb(errorCode('COMMON.LOADING'))
+	}
 	var query = req.body;
 	cb(null, {height: private.lastBlock.height});
 }
 
 shared.getFee = function (req, cb) {
+	if (!private.loaded) {
+		cb(errorCode('COMMON.LOADING'))
+	}
 	var query = req.body;
 	cb(null, {fee: library.logic.block.calculateFee()});
 }
