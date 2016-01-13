@@ -300,6 +300,9 @@ function InTransfer() {
 
 	this.apply = function (trs, sender, cb) {
 		shared.getGenesis({dappid: trs.asset.inTransfer.dappId}, function (err, res) {
+			if (err){
+				return cb(err);
+			}
 			modules.accounts.mergeAccountAndGet({
 				address: res.authorId,
 				balance: trs.amount,
@@ -311,6 +314,9 @@ function InTransfer() {
 
 	this.undo = function (trs, sender, cb) {
 		shared.getGenesis({dappid: trs.asset.inTransfer.dappId}, function (err, res) {
+			if (err){
+				return cb(err);
+			}
 			modules.accounts.mergeAccountAndGet({
 				address: res.authorId,
 				balance: -trs.amount,

@@ -776,14 +776,11 @@ Delegates.prototype.onBlockchainReady = function () {
 		if (err) {
 			library.logger.error("Can´t load delegates", err);
 		}
-		var nextSlot = slots.getNextSlot();
 
-		//var scheduledTime = slots.getSlotTime(nextSlot);
-		//scheduledTime = scheduledTime <= slots.getTime() ? scheduledTime + 1 : scheduledTime;
-		var realTime = new Date(slots.getRealTime() + 1000);
-		schedule.scheduleJob(realTime, function (time) {
-			private.loop(nextLoop);
-		}.bind(this, realTime));
+		private.loop(function () {
+			setTimeout(nextLoop, 1000);
+		});
+
 	}); //temp
 
 }

@@ -4,7 +4,7 @@ var extend = require('extend');
 function Sequence(config) {
 	var _default = {
 		onWarning: null,
-		warningLimit: 10
+		warningLimit: 50
 	}
 	_default = extend(_default, config);
 	var self = this;
@@ -15,7 +15,7 @@ function Sequence(config) {
 			_default.onWarning(self.sequence.length, _default.warningLimit);
 		}
 		self.__tick(function () {
-			setTimeout(nextSequenceTick, 1);
+			setTimeout(nextSequenceTick, 3);
 		});
 	});
 }

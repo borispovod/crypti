@@ -35,7 +35,7 @@ module.exports = function (grunt) {
 		obfuscator: {
 			files: files,
 			entry: 'app.js',
-			out: 'builded/app.js',
+			out: './builded/app.js',
 			strings: true,
 			root: __dirname
 		},
@@ -203,7 +203,7 @@ module.exports = function (grunt) {
 
 
 	grunt.registerTask("default", ["obfuscator"]);
-	grunt.registerTask("release", ["default", "jscrambler"]);
+	grunt.registerTask("release", ["default"]);
 	grunt.registerTask('script', ["uglify:script"]);
 	grunt.registerTask('build', ["exec:folder", "release", "exec:package", "exec:build", "compress"])
 	grunt.registerTask("package", ["build", "gcloud:project", "nodemailer:message", "slack"]);

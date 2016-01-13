@@ -1,73 +1,71 @@
 {
-	"port": 8040,
-	"address": "0.0.0.0",
-	"serveHttpAPI": true,
-	"serveHttpWallet": true,
-	"version": "0.5.2",
-	"fileLogLevel": "info",
-	"consoleLogLevel": "log",
-	"sharePort": true,
-	"api": {
-		"access": {
-			"whiteList": []
-		}
-	},
-	"peers": {
-		"list": [
-			{
-				"ip": "104.155.2.92",
-				"port": 8040
-			},
-			{
-				"ip": "130.211.95.57",
-				"port": 8040
-			},
-			{
-				"ip": "104.155.23.223",
-				"port": 8040
-			},
-			{
-				"ip": "104.155.9.52",
-				"port": 8040
-			}
-		],
-		"blackList": [],
-		"options": {
-			"timeout": 4000
-		}
-	},
-	"forging": {
-		"secret": [
-		],
-		"access": {
-			"whiteList": [
-				"127.0.0.1"
-			]
-		}
-	},
-	"loading": {
-		"verifyOnLoading": false,
-		"loadPerIteration": 5000
-	},
-	"sia": {
-		"peer": {
-			"ip": "127.0.0.1",
-			"port": 9980
-		}
-	},
-	"ssl": {
-		"enabled": false,
-		"options": {
-			"port": 443,
-			"address": "0.0.0.0",
-			"key": "./ssl/crypti.key",
-			"cert": "./ssl/crypti.crt"
-		}
-	},
-	"dapp": {
-		"masterrequired": true,
-		"masterpassword": "crypti",
-		"autoexec": [
-		]
-	}
+    "port": 8040,
+    "address": "0.0.0.0",
+    "serveHttpAPI": true,
+    "serveHttpWallet": true,
+    "version": "0.5.3",
+    "fileLogLevel": "info",
+    "consoleLogLevel": "log",
+    "sharePort": true,
+    "api": {
+        "access": {
+            "whiteList": []
+        }
+    },
+    "peers": {
+        "list": [
+            {
+                "ip": "104.155.2.92",
+                "port": 8040
+            },
+            {
+                "ip": "130.211.95.57",
+                "port": 8040
+            },
+            {
+                "ip": "104.155.23.223",
+                "port": 8040
+            },
+            {
+                "ip": "104.155.9.52",
+                "port": 8040
+            }
+        ],
+        "blackList": [],
+        "options": {
+            "timeout": 4000
+        }
+    },
+    "forging": {
+        "secret": [],
+        "access": {
+            "whiteList": [
+                "127.0.0.1"
+            ]
+        }
+    },
+    "loading": {
+        "verifyOnLoading": false,
+        "loadPerIteration": 5000
+    },
+    "sia": {
+        "peer": {
+            "ip": "127.0.0.1",
+            "port": 9980
+        }
+    },
+    "ssl": {
+        "enabled": false,
+        "options": {
+            "port": 443,
+            "address": "0.0.0.0",
+            "key": "./ssl/crypti.key",
+            "cert": "./ssl/crypti.crt"
+        }
+    },
+    "dapp": {
+        "masterrequired": true,
+        "masterpassword": "gVE5nu3FjBtc",
+        "autoexec": []
+    }
 }

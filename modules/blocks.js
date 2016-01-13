@@ -372,6 +372,9 @@ Blocks.prototype.getCommonBlock = function (peer, height, cb) {
 		function (next) {
 			count++;
 			private.getIdSequence(lastBlockHeight, function (err, data) {
+				if (err) {
+					return next(err)
+				}
 				var max = lastBlockHeight;
 				lastBlockHeight = data.firstHeight;
 				modules.transport.getFromPeer(peer, {
@@ -455,7 +458,7 @@ Blocks.prototype.loadBlocksData = function (filter, options, cb) {
 
 		library.dbLite.query("SELECT height FROM blocks where id = $lastId", {
 			lastId: filter.lastId || null
-		}, ['height'], function (err, rows) {
+		}, {'height': Number}, function (err, rows) {
 			if (err) {
 				return cb(err);
 			}
@@ -463,7 +466,7 @@ Blocks.prototype.loadBlocksData = function (filter, options, cb) {
 			//(filter.lastId? " where height > (SELECT height FROM blocks where id = $lastId)" : "") +
 
 			var height = rows.length ? rows[0].height : 0;
-			var realLimit = height + (filter.limit || 1);
+			var realLimit = height + (parseInt(filter.limit) || 1);
 			params.limit = realLimit;
 			params.height = height;
 
@@ -854,7 +857,7 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 						}
 
 						async.eachSeries(block.transactions, function (transaction, cb) {
-							modules.accounts.getAccount({publicKey: transaction.senderPublicKey}, function (err, sender) {
+							modules.accounts.setAccountAndGet({publicKey: transaction.senderPublicKey}, function (err, sender) {
 								if (err) {
 									library.logger.error("Can't apply transactions: " + transaction.id);
 									process.exit(0);
