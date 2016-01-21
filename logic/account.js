@@ -364,31 +364,47 @@ Account.prototype.createTables = function (cb) {
 	});
 	sqles.push(sql.query);
 
-	var sql = jsonSql.build({
-		type: "index",
-		table: this.table,
-		name: this.table + "_username_unique",
-		indexOn: "username",
-		condition: {
-			username: {
-				$isnot: null
-			}
-		}
-	});
-	sqles.push(sql.query);
-
-	var sql = jsonSql.build({
-		type: "index",
-		table: this.table,
-		name: this.table + "_publicKey_unique",
-		indexOn: "publicKey",
-		condition: {
-			publicKey: {
-				$isnot: null
-			}
-		}
-	});
-	sqles.push(sql.query);
+	//var sql = jsonSql.build({
+	//	type: "index",
+	//	table: this.table,
+	//	name: this.table + "_address",
+	//	indexOn: "address"
+	//});
+	//sqles.push(sql.query);
+	//
+	//var sql = jsonSql.build({
+	//	type: "index",
+	//	table: this.table,
+	//	name: this.table + "_publicKey",
+	//	indexOn: "publicKey"
+	//});
+	//sqles.push(sql.query);
+	//
+	//var sql = jsonSql.build({
+	//	type: "index",
+	//	table: this.table,
+	//	name: this.table + "_username_unique",
+	//	indexOn: "username",
+	//	condition: {
+	//		username: {
+	//			$isnot: null
+	//		}
+	//	}
+	//});
+	//sqles.push(sql.query);
+	//
+	//var sql = jsonSql.build({
+	//	type: "index",
+	//	table: this.table,
+	//	name: this.table + "_publicKey_unique",
+	//	indexOn: "publicKey",
+	//	condition: {
+	//		publicKey: {
+	//			$isnot: null
+	//		}
+	//	}
+	//});
+	//sqles.push(sql.query);
 
 	var sql = jsonSql.build({
 		type: 'create',
@@ -776,10 +792,6 @@ Account.prototype.merge = function (address, diff, cb) {
 			}
 		}
 	});
-
-	if (Object.keys(insert_object).length !== 0 || Object.keys(remove_object).length !== 0) {
-		console.log(insert_object, remove_object)
-	}
 
 	var sqles = [];
 

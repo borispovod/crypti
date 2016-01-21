@@ -275,8 +275,8 @@ private.getById = function (id, cb) {
 	});
 }
 
-private.addUnconfirmedTransaction = function (transaction, cb) {
-	self.applyUnconfirmed(transaction, function (err) {
+private.addUnconfirmedTransaction = function (transaction, sender, cb) {
+	self.applyUnconfirmed(transaction, sender, function (err) {
 		if (err) {
 			self.addDoubleSpending(transaction);
 			return setImmediate(cb, err);
@@ -330,23 +330,23 @@ Transactions.prototype.removeUnconfirmedTransaction = function (id) {
 }
 
 Transactions.prototype.processUnconfirmedTransaction = function (transaction, broadcast, cb) {
-	function done(err) {
-		if (err) {
-			return cb(err);
-		}
-
-		private.addUnconfirmedTransaction(transaction, function (err) {
+	modules.accounts.setAccountAndGet({publicKey: transaction.senderPublicKey}, function (err, sender) {
+		function done(err) {
 			if (err) {
 				return cb(err);
 			}
 
-			library.bus.message('unconfirmedTransaction', transaction, broadcast);
+			private.addUnconfirmedTransaction(transaction, sender, function (err) {
+				if (err) {
+					return cb(err);
+				}
 
-			cb();
-		});
-	}
+				library.bus.message('unconfirmedTransaction', transaction, broadcast);
 
-	modules.accounts.setAccountAndGet({publicKey: transaction.senderPublicKey}, function (err, sender) {
+				cb();
+			});
+		}
+
 		if (err) {
 			return done(err);
 		}
@@ -393,13 +393,20 @@ Transactions.prototype.processUnconfirmedTransaction = function (transaction, br
 
 Transactions.prototype.applyUnconfirmedList = function (ids, cb) {
 	async.eachSeries(ids, function (id, cb) {
-		var transaction = self.getUnconfirmedTransaction(id)
-		self.applyUnconfirmed(transaction, function (err) {
+		var transaction = self.getUnconfirmedTransaction(id);
+		modules.accounts.setAccountAndGet({publicKey: transaction.senderPublicKey}, function (err, sender) {
 			if (err) {
 				self.removeUnconfirmedTransaction(id);
 				self.addDoubleSpending(transaction);
+				return setImmediate(cb);
 			}
-			setImmediate(cb);
+			self.applyUnconfirmed(transaction, sender, function (err) {
+				if (err) {
+					self.removeUnconfirmedTransaction(id);
+					self.addDoubleSpending(transaction);
+				}
+				setImmediate(cb);
+			});
 		});
 	}, cb);
 }
@@ -418,18 +425,8 @@ Transactions.prototype.undoUnconfirmedList = function (cb) {
 	})
 }
 
-Transactions.prototype.apply = function (transaction, cb) {
-	modules.accounts.getAccount({publicKey: transaction.senderPublicKey}, function (err, sender) {
-		if (err) {
-			return cb(err);
-		}
-
-		if (!sender) {
-			return cb("Sender didn't found");
-		}
-
-		library.logic.transaction.apply(transaction, sender, cb);
-	});
+Transactions.prototype.apply = function (transaction, sender, cb) {
+	library.logic.transaction.apply(transaction, sender, cb);
 }
 
 Transactions.prototype.undo = function (transaction, cb) {
@@ -441,32 +438,26 @@ Transactions.prototype.undo = function (transaction, cb) {
 	});
 }
 
-Transactions.prototype.applyUnconfirmed = function (transaction, cb) {
-	modules.accounts.getAccount({publicKey: transaction.senderPublicKey}, function (err, sender) {
-		if (err) {
-			return cb(err);
-		}
+Transactions.prototype.applyUnconfirmed = function (transaction, sender, cb) {
+	if (!sender && transaction.blockId != genesisblock.block.id) {
+		return cb('Failed account: ' + transaction.id);
+	} else {
+		if (transaction.requesterPublicKey) {
+			modules.accounts.getAccount({publicKey: transaction.requesterPublicKey}, function (err, requester) {
+				if (err) {
+					return cb(err);
+				}
 
-		if (!sender && transaction.blockId != genesisblock.block.id) {
-			return cb('Failed account: ' + transaction.id);
+				if (!requester) {
+					return cb('Failed requester: ' + transaction.id);
+				}
+
+				library.logic.transaction.applyUnconfirmed(transaction, sender, requester, cb);
+			});
 		} else {
-			if (transaction.requesterPublicKey) {
-				modules.accounts.getAccount({publicKey: transaction.requesterPublicKey}, function (err, requester) {
-					if (err) {
-						return cb(err);
-					}
-
-					if (!requester) {
-						return cb('Failed requester: ' + transaction.id);
-					}
-
-					library.logic.transaction.applyUnconfirmed(transaction, sender, requester, cb);
-				});
-			} else {
-				library.logic.transaction.applyUnconfirmed(transaction, sender, cb);
-			}
+			library.logic.transaction.applyUnconfirmed(transaction, sender, cb);
 		}
-	});
+	}
 }
 
 Transactions.prototype.undoUnconfirmed = function (transaction, cb) {

@@ -5,7 +5,7 @@ var path = require('path');
 var isWin = /^win/.test(process.platform);
 var isMac = /^darwin/.test(process.platform);
 
-//dblite.bin = path.join(process.cwd(), 'sqlite', 'sqlite3');
+//dblite.bin = path.join(process.cwd(), 'sqlite3', 'sqlite3');
 
 module.exports.connect = function (connectString, cb) {
 	var db = dblite(connectString);
@@ -104,14 +104,16 @@ module.exports.connect = function (connectString, cb) {
 					if (err) {
 						return cb(err);
 					}
+
 					db.query("PRAGMA user_version = " + ver, function (err, data) {
-						cb(err);
+						cb(err, data);
 					});
 				});
 			}, function (err) {
 				if (err) {
 					return cb(err);
 				}
+
 				async.eachSeries(post, function (command, cb) {
 					db.query(command, function (err, data) {
 						cb(err, data);

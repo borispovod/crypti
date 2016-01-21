@@ -111,6 +111,8 @@ function Vote() {
 	}
 
 	this.dbRead = function (raw) {
+		//console.log(raw.v_votes);
+
 		if (!raw.v_votes) {
 			return null
 		} else {
@@ -220,11 +222,23 @@ function Username() {
 	}
 
 	this.apply = function (trs, sender, cb) {
-		self.setAccountAndGet({address: sender.address, u_username: null, username: trs.asset.username.alias, nameexist: 1, u_nameexist: 0}, cb);
+		self.setAccountAndGet({
+			address: sender.address,
+			u_username: null,
+			username: trs.asset.username.alias,
+			nameexist: 1,
+			u_nameexist: 0
+		}, cb);
 	}
 
 	this.undo = function (trs, sender, cb) {
-		self.setAccountAndGet({address: sender.address, username: null, u_username: trs.asset.username.alias, nameexist: 0, u_nameexist: 1}, cb);
+		self.setAccountAndGet({
+			address: sender.address,
+			username: null,
+			u_username: trs.asset.username.alias,
+			nameexist: 0,
+			u_nameexist: 1
+		}, cb);
 	}
 
 	this.applyUnconfirmed = function (trs, sender, cb) {
@@ -356,21 +370,45 @@ private.attachApi = function () {
 
 	// надо тут поправить
 	if (process.env.TOP && process.env.TOP.toUpperCase() == "TRUE") {
-		router.get('/top', function (req, res) {
-			var arr = Object.keys(private.accounts).map(function (key) {
-				return private.accounts[key]
-			});
+		router.get('/top', function (req, res, next) {
+			req.sanitize(req.query, {
+				type: "object",
+				properties: {
+					limit: {
+						type: "integer",
+						minimum: 0,
+						maximum: 100
+					},
+					offset: {
+						type: "integer",
+						minimum: 0
+					}
+				}
+			}, function (err, report, query) {
+				if (err) return next(err);
+				if (!report.isValid) return res.json({success: false, error: report.issues});
+				self.getAccounts({
+					sort: {
+						balance: -1
+					},
+					offset: query.offset,
+					limit: query.limit
+				}, function (err, raw) {
+					if (err) {
+						return res.json({success: false, error: err.toString()});
+					}
+					var accounts = raw.map(function (fullAccount) {
+						return {
+							address: fullAccount.address,
+							username: fullAccount.username,
+							balance: fullAccount.balance,
+							publicKey: fullAccount.publicKey
+						}
+					});
 
-			arr.sort(function (a, b) {
-				if (a.balance > b.balance)
-					return -1;
-				if (a.balance < b.balance)
-					return 1;
-				return 0;
-			});
-
-			arr = arr.slice(0, 30);
-			return res.json({success: true, accounts: arr});
+					res.json({success: true, accounts: accounts});
+				})
+			})
 		});
 	}
 
@@ -406,6 +444,9 @@ Accounts.prototype.generateAddressByPublicKey = function (publicKey) {
 	}
 
 	var address = bignum.fromBuffer(temp).toString() + "C";
+	if (!address) {
+		throw Error("wrong publicKey " + publicKey);
+	}
 	return address;
 }
 
@@ -431,6 +472,9 @@ Accounts.prototype.setAccountAndGet = function (data, cb) {
 			return cb("must provide address or publicKey");
 		}
 	}
+	if (!address) {
+		throw cb("wrong publicKey at setAccountAndGet " + publicKey);
+	}
 	library.logic.account.set(address, data, function (err) {
 		if (err) {
 			return cb(err);
@@ -447,6 +491,9 @@ Accounts.prototype.mergeAccountAndGet = function (data, cb) {
 		} else {
 			return cb("must provide address or publicKey");
 		}
+	}
+	if (!address) {
+		throw cb("wrong publicKey at mergeAccountAndGet " + publicKey);
 	}
 	library.logic.account.merge(address, data, cb);
 }

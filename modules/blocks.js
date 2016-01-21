@@ -22,7 +22,7 @@ private.lastBlock = {};
 // @formatter:off
 private.blocksDataFields = {
 	'b_id': String, 'b_version': String, 'b_timestamp': Number, 'b_height': Number, 'b_previousBlock': String, 'b_numberOfTransactions': String, 'b_totalAmount': String, 'b_totalFee': String, 'b_payloadLength': String, 'b_payloadHash': String, 'b_generatorPublicKey': String, 'b_blockSignature': String,
-	't_id': String, 't_type': Number, 't_timestamp': Number, 't_senderPublicKey': String, 't_requesterPublicKey': String, 't_senderId': String, 't_recipientId': String, 't_senderUsername': String, 't_recipientUsername': String, 't_amount': String, 't_fee': String, 't_signature': String, 't_signSignature': String, 't_signatures': String,
+	't_id': String, 't_type': Number, 't_timestamp': Number, 't_senderPublicKey': String, 't_senderId': String, 't_recipientId': String, 't_senderUsername': String, 't_recipientUsername': String, 't_amount': String, 't_fee': String, 't_signature': String, 't_signSignature': String,
 	's_publicKey': String,
 	'd_username': String,
 	'v_votes': String,
@@ -31,7 +31,8 @@ private.blocksDataFields = {
 	'm_min': Number, 'm_lifetime': Number, 'm_keysgroup': String,
 	'dapp_name': String, 'dapp_description': String, 'dapp_tags': String, 'dapp_type': Number, 'dapp_siaAscii': String, 'dapp_siaIcon': String, 'dapp_git': String, 'dapp_category': Number, 'dapp_icon': String,
 	'in_dappId': String,
-	'ot_dappId': String, 'ot_outTransactionId': String
+	'ot_dappId': String, 'ot_outTransactionId': String,
+	't_requesterPublicKey': String, 't_signatures': String
 };
 // @formatter:on
 
@@ -180,7 +181,7 @@ private.list = function (filter, cb) {
 
 		library.dbLite.query("select b.id, b.version, b.timestamp, b.height, b.previousBlock, b.numberOfTransactions, b.totalAmount, b.totalFee, b.payloadLength,  lower(hex(b.payloadHash)), lower(hex(b.generatorPublicKey)), lower(hex(b.blockSignature)), (select max(height) + 1 from blocks) - b.height " +
 			"from blocks b " +
-			(fields.length ? "where " +  fields.join(' and ') : '')  + " " +
+			(fields.length ? "where " + fields.join(' and ') : '') + " " +
 			(filter.orderBy ? 'order by ' + sortBy + ' ' + sortMethod : '') + " limit $limit offset $offset ", params, ['b_id', 'b_version', 'b_timestamp', 'b_height', 'b_previousBlock', 'b_numberOfTransactions', 'b_totalAmount', 'b_totalFee', 'b_payloadLength', 'b_payloadHash', 'b_generatorPublicKey', 'b_blockSignature', 'b_confirmations'], function (err, rows) {
 			if (err) {
 				library.logger.error(err);
@@ -335,8 +336,8 @@ private.readDbRows = function (rows) {
 	return blocks;
 }
 
-private.applyTransaction = function (block, transaction, cb) {
-	modules.transactions.applyUnconfirmed(transaction, function (err) {
+private.applyTransaction = function (block, transaction, sender, cb) {
+	modules.transactions.applyUnconfirmed(transaction, sender, function (err) {
 		if (err) {
 			return setImmediate(cb, {
 				message: err,
@@ -345,7 +346,7 @@ private.applyTransaction = function (block, transaction, cb) {
 			});
 		}
 
-		modules.transactions.apply(transaction, function (err) {
+		modules.transactions.apply(transaction, sender, function (err) {
 			if (err) {
 				return setImmediate(cb, {
 					message: "Can't apply transaction: " + transaction.id,
@@ -371,6 +372,9 @@ Blocks.prototype.getCommonBlock = function (peer, height, cb) {
 		function (next) {
 			count++;
 			private.getIdSequence(lastBlockHeight, function (err, data) {
+				if (err){
+					return next(err)
+				}
 				var max = lastBlockHeight;
 				lastBlockHeight = data.firstHeight;
 				modules.transport.getFromPeer(peer, {
@@ -454,7 +458,7 @@ Blocks.prototype.loadBlocksData = function (filter, options, cb) {
 
 		library.dbLite.query("SELECT height FROM blocks where id = $lastId", {
 			lastId: filter.lastId || null
-		}, ['height'], function (err, rows) {
+		}, {'height': Number}, function (err, rows) {
 			if (err) {
 				return cb(err);
 			}
@@ -462,7 +466,7 @@ Blocks.prototype.loadBlocksData = function (filter, options, cb) {
 			//(filter.lastId? " where height > (SELECT height FROM blocks where id = $lastId)" : "") +
 
 			var height = rows.length ? rows[0].height : 0;
-			var realLimit = height + (filter.limit || 1);
+			var realLimit = height + (parseInt(filter.limit) || 1);
 			params.limit = realLimit;
 			params.height = height;
 
@@ -474,7 +478,7 @@ Blocks.prototype.loadBlocksData = function (filter, options, cb) {
 
 			library.dbLite[method]("SELECT " +
 				"b.id, b.version, b.timestamp, b.height, b.previousBlock, b.numberOfTransactions, b.totalAmount, b.totalFee, b.payloadLength, lower(hex(b.payloadHash)), lower(hex(b.generatorPublicKey)), lower(hex(b.blockSignature)), " +
-				"t.id, t.type, t.timestamp, lower(hex(t.senderPublicKey)), lower(hex(t.requesterPublicKey)), t.senderId, t.recipientId, t.senderUsername, t.recipientUsername, t.amount, t.fee, lower(hex(t.signature)), lower(hex(t.signSignature)), t.signatures, " +
+				"t.id, t.type, t.timestamp, lower(hex(t.senderPublicKey)), t.senderId, t.recipientId, t.senderUsername, t.recipientUsername, t.amount, t.fee, lower(hex(t.signature)), lower(hex(t.signSignature)), " +
 				"lower(hex(s.publicKey)), " +
 				"d.username, " +
 				"v.votes, " +
@@ -483,7 +487,8 @@ Blocks.prototype.loadBlocksData = function (filter, options, cb) {
 				"m.min, m.lifetime, m.keysgroup, " +
 				"dapp.name, dapp.description, dapp.tags, dapp.type, dapp.siaAscii, dapp.siaIcon, dapp.git, dapp.category, dapp.icon, " +
 				"it.dappId, " +
-				"ot.dappId, ot.outTransactionId " +
+				"ot.dappId, ot.outTransactionId, " +
+				"lower(hex(t.requesterPublicKey)), t.signatures " +
 				"FROM blocks b " +
 				"left outer join trs as t on t.blockId=b.id " +
 				"left outer join delegates as d on d.transactionId=t.id " +
@@ -495,7 +500,8 @@ Blocks.prototype.loadBlocksData = function (filter, options, cb) {
 				"left outer join dapps as dapp on dapp.transactionId=t.id " +
 				"left outer join intransfer it on it.transactionId=t.id " +
 				"left outer join outtransfer ot on ot.transactionId=t.id " +
-				(filter.id ? " where b.id = $id " : "") + (filter.lastId ? " where b.height > $height and b.height < $limit " : "") +
+				(filter.id || filter.lastId ? "where " : "") + " " +
+				(filter.id ? " b.id = $id " : "") + (filter.id && filter.lastId ? " and " : "") + (filter.lastId ? " b.height > $height and b.height < $limit " : "") +
 				limitPart +
 				"ORDER BY b.height, t.rowid" +
 				"", params, fields, cb);
@@ -527,7 +533,7 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, verify, cb) {
 	library.dbSequence.add(function (cb) {
 		library.dbLite.query("SELECT " +
 			"b.id, b.version, b.timestamp, b.height, b.previousBlock, b.numberOfTransactions, b.totalAmount, b.totalFee, b.payloadLength, lower(hex(b.payloadHash)), lower(hex(b.generatorPublicKey)), lower(hex(b.blockSignature)), " +
-			"t.id, t.type, t.timestamp, lower(hex(t.senderPublicKey)), lower(hex(t.requesterPublicKey)), t.senderId, t.recipientId, t.senderUsername, t.recipientUsername, t.amount, t.fee, lower(hex(t.signature)), lower(hex(t.signSignature)), t.signatures, " +
+			"t.id, t.type, t.timestamp, lower(hex(t.senderPublicKey)), t.senderId, t.recipientId, t.senderUsername, t.recipientUsername, t.amount, t.fee, lower(hex(t.signature)), lower(hex(t.signSignature)), " +
 			"lower(hex(s.publicKey)), " +
 			"d.username, " +
 			"v.votes, " +
@@ -536,7 +542,8 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, verify, cb) {
 			"m.min, m.lifetime, m.keysgroup, " +
 			"dapp.name, dapp.description, dapp.tags, dapp.type, dapp.siaAscii, dapp.siaIcon, dapp.git, dapp.category, dapp.icon, " +
 			"it.dappId, " +
-			"ot.dappId, ot.outTransactionId " +
+			"ot.dappId, ot.outTransactionId, " +
+			"lower(hex(t.requesterPublicKey)), t.signatures " +
 			"FROM blocks b " +
 			"left outer join trs as t on t.blockId=b.id " +
 			"left outer join delegates as d on d.transactionId=t.id " +
@@ -627,11 +634,10 @@ Blocks.prototype.loadBlocksOffset = function (limit, offset, verify, cb) {
 											block: block
 										});
 									}
-
-									private.applyTransaction(block, transaction, cb);
+									private.applyTransaction(block, transaction, sender, cb);
 								});
 							} else {
-								private.applyTransaction(block, transaction, cb);
+								private.applyTransaction(block, transaction, sender, cb);
 							}
 						});
 					} else {
@@ -784,7 +790,7 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 											return setImmediate(cb, err);
 										}
 
-										modules.transactions.applyUnconfirmed(transaction, function (err) {
+										modules.transactions.applyUnconfirmed(transaction, sender, function (err) {
 											if (err) {
 												return setImmediate(cb, "Can't apply transaction: " + transaction.id);
 											}
@@ -851,13 +857,19 @@ Blocks.prototype.processBlock = function (block, broadcast, cb) {
 						}
 
 						async.eachSeries(block.transactions, function (transaction, cb) {
-							modules.transactions.apply(transaction, function (err) {
+							modules.accounts.getAccount({publicKey: transaction.senderPublicKey}, function (err, sender) {
 								if (err) {
 									library.logger.error("Can't apply transactions: " + transaction.id);
 									process.exit(0);
 								}
-								modules.transactions.removeUnconfirmedTransaction(transaction.id);
-								setImmediate(cb);
+								modules.transactions.apply(transaction, sender, function (err) {
+									if (err) {
+										library.logger.error("Can't apply transactions: " + transaction.id);
+										process.exit(0);
+									}
+									modules.transactions.removeUnconfirmedTransaction(transaction.id);
+									setImmediate(cb);
+								});
 							});
 						}, function (err) {
 							private.saveBlock(block, function (err) {
