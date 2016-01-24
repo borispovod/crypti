@@ -1,90 +1,69 @@
-### Crypti coin ###
+### Crypti ###
 
-Version 0.2
+Crypti is a next generation crypto-currency and decentralized application platform. 
 
+Requires:
 
-### Install ###
-First run:
-```
-npm install
-```
+* SQLite (version < 3.8.6)
+* Node.js (version 0.10.x)
+* Npm
 
-Dependencies
+## Installation
 
-* sqlite3
-* grunt-cli
+Clone the repository and run: 
 
-Install sqlite3 (Ubuntu/Debian)
-
-```
-apt-get install sqlite3
+```sh
+npm install --production
 ```
 
-Install sqltie3 (Fedora/CentOS)
+## Start
 
-```
-yum install sqlite
-```
+Go to the Crypti folder and run:
 
-Install grunt-cli with global flag
-
-```
-npm install grunt-cli -g
+```sh
+node app.js
 ```
 
-### Build ###
+## Bug Contest
 
-Before start application static html interface stored in public folder should be built.
-```
-cd public
-bower install
-grunt
-```
+If you happen to find any bugs, we are currently [offering good bounties](https://blog.crypti.me/crypti-is-now-open-source/). Either submit a new [issue](https://github.com/crypti/crypti-sources/issues/new) or join our [slack](http://slack.crypti.me) and tell us about it there.
 
-### Test ###
+## Contribution
 
-To run tests use standard npm test method:
-```
-npm test
-```
+All source code contributions are welcome. Simply open a pull request with your proposed changes.
 
-or
+## More Information
 
-```
-test/test.sh
-```
+* [Official Website](http://crypti.me)
+* [Official Forum](http://forum.crypti.me)
+* [BitcoinTalk Thread](https://bitcointalk.org/index.php?topic=654463)
+* [White Paper](http://crypti.me/crypti.pdf)
 
-Crypti uses mocha so it possible to run test manually from cli:
-```
-mocha test/test.js
-mocha test/transaction/index.js
-```
+## Contributors
 
-#### Own tests ####
+* Boris Povod <boris@crypti.me>
+* Pavel Nekrasov <landgraf.paul@gmail.com>
 
-Main test file is test/test.sh is used for separate test suites and to run tests with settings. Each test should
-return exit code on failure:
+## License 
 
-```
-# Bash test
-./run-some-test.sh || exit 1;
-# JS test file
-$NODE test-file.js || exit 1;
-```
+The MIT License (MIT)
 
-**Note**. Use $NODE variable instead of `node` to use npm-defined node.js version.
+Copyright (c) 2015 Crypti
 
-To add custom mocha test add test file into test dir and then require it in `test.js` file in the appropriate place:
-```
-// test.js
-require('./helpers/transaction.js');
-require('./ui/login.js');
-```
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
 
-Note to use semantic names to avoid mess of files. Try to name it similarly to testing module or functionality name.
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
 
-### Start ###
-Run:
-```
-crypti -p [port] -a [address] -c [config-path]
-```
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
