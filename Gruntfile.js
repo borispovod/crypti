@@ -16,19 +16,6 @@ module.exports = function (grunt) {
 		'app.js'
 	];
 
-	var today = moment().format("HH:mm:ss DD/MM/YYYY");
-
-	var recipients = [
-		{
-			email: 'boris@crypti.me',
-			name: 'Boris Povod'
-		},
-		{
-			email: 'sebastian@crypti.me',
-			name: "Sebastian"
-		}
-	];
-
 	var config = require("./config.json");
 
 	grunt.initConfig({
@@ -39,30 +26,6 @@ module.exports = function (grunt) {
 			strings: true,
 			root: __dirname
 		},
-
-		jscrambler: {
-			main: {
-				files: [
-					{src: 'builded/app.js', dest: './'}
-				],
-				options: {
-					keys: {
-						accessKey: '24F15B0087298FBDEE7E90FE0B14F34D33E12CE2',
-						secretKey: 'FC255E27922479D0D8FE40CFAE8FBA45DD08947A'
-					},
-					params: {
-						whitespace: '%DEFAULT%',
-						rename_local: '%DEFAULT%',
-						duplicate_literals: '%DEFAULT%',
-						function_reorder: '%DEFAULT%',
-						expiration_date: '2015/12/31',
-						dot_notation_elimination: '%DEFAULT%',
-						function_outlining: '%DEFAULT%'
-					}
-				}
-			}
-		},
-
 		exec: {
 			package: {
 				command: function () {
@@ -97,7 +60,6 @@ module.exports = function (grunt) {
 				command: "cd ./builded/" + config.version + "/ && touch build && echo 'v" + today + "' > build"
 			}
 		},
-
 		compress: {
 			main: {
 				options: {
@@ -108,23 +70,6 @@ module.exports = function (grunt) {
 				]
 			}
 		},
-
-		gcloud: {
-			project: {
-				options: {
-					projectId: 'crypti-cloud',
-					bucket: 'crypti-testing',
-					keyFilename: '.gcloud.json'
-				},
-				files: [
-					{
-						src: config.version + ".zip",
-						dest: 'nodes'
-					}
-				]
-			}
-		},
-
 		uglify: {
 			script: {
 				options: {
@@ -135,7 +80,6 @@ module.exports = function (grunt) {
 				}
 			}
 		},
-
 		jsdox: {
 			generate: {
 				src: [
@@ -148,42 +92,6 @@ module.exports = function (grunt) {
 				}
 			}
 		},
-
-		nodemailer: {
-			options: {
-				transport: {
-					type: 'SMTP',
-					options: {
-						service: 'Gmail',
-						auth: {
-							user: 'helpdesk@crypti.me',
-							pass: 'U6XzQPM45MLJyk8'
-						}
-					}
-				},
-				recipients: recipients
-			},
-			message: {
-				options: {
-					from: "Crypti Versions <helpdesk@crypti.me>",
-					subject: 'Version ' + config.version + ' available now',
-					text: 'New version is avaliable now: http://storage.googleapis.com/crypti-testing/nodes/' + config.version + '.zip (v' + today + ')',
-					html: 'New version is avaliable now: http://storage.googleapis.com/crypti-testing/nodes/' + config.version + '.zip (v' + today + ')'
-				}
-			}
-		},
-		slack: {
-			options: {
-				endpoint: 'https://hooks.slack.com/services/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',
-				channel: '#testing',
-				username: 'Crypti',
-				icon_emoji: ":thumbsup:",
-				icon_url: 'http://vermilion1.github.io/presentations/grunt/images/grunt-logo.png' // if icon_emoji not specified
-			},
-			notify: {
-				text: '@sebastian @eric @boris @landgraf_paul New version (' + config.version + ') of Crypti available: http://storage.googleapis.com/crypti-testing/nodes/' + config.version + '.zip (v' + today + ')'
-			}
-		},
 		jshint: {
 			all: ['app.js', 'helpers/**/*.js', 'modules/**/*.js', 'logic/**/*.js']
 		}
@@ -191,21 +99,16 @@ module.exports = function (grunt) {
 
 
 	grunt.loadNpmTasks('grunt-obfuscator');
-	grunt.loadNpmTasks("grunt-jscrambler");
 	grunt.loadNpmTasks('grunt-contrib-uglify');
 	grunt.loadNpmTasks('grunt-jsdox');
 	grunt.loadNpmTasks('grunt-exec');
 	grunt.loadNpmTasks('grunt-contrib-compress');
-	grunt.loadNpmTasks('grunt-gcloud');
-	grunt.loadNpmTasks('grunt-nodemailer');
-	grunt.loadNpmTasks('grunt-slack-hook');
 	grunt.loadNpmTasks('grunt-contrib-jshint');
 
 
 	grunt.registerTask("default", ["obfuscator"]);
-	grunt.registerTask("release", ["default", "jscrambler"]);
+	grunt.registerTask("release", ["default"]);
 	grunt.registerTask('script', ["uglify:script"]);
 	grunt.registerTask('build', ["exec:folder", "release", "exec:package", "exec:build", "compress"])
-	grunt.registerTask("package", ["build", "gcloud:project", "nodemailer:message", "slack"]);
 	grunt.registerTask("validate", ["jshint"]);
 };
