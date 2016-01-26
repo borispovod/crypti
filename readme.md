@@ -1,6 +1,16 @@
 ### Crypti ###
 
-Crypti is a next generation crypto-currency and decentralized application platform. 
+Crypti is a decentralized application (Dapp) platform and cryptocurrency.  
+
+Crypti provides a full stack solution for deploying truly decentralized applications onto the blockchain. While also providing an excellent user experience for anyone looking to make safe & easy transactions within seconds.  
+
+Crypti's very own Dapp store gives consumers the same if not superior interface consumers have come to expect from existing centralized solutions currently dominating the market.  
+
+Each Dapp operates on a separate custom sidechain secured by Crypti's own tried and tested version of the Delegated Proof of Stake consensus model.  
+
+For the progressive startup looking for the perfect platform on which to launch their first Dapp. Crypti is by far the quickest to deploy and most democratic solution currently in existence.  
+
+Further development of the core protocol is maintained by the Crypti Foundation. A dedicated team of developers, entrepreneurs and engineers from across the globe.  
 
 Requires:
 
