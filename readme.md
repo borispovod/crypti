@@ -42,6 +42,15 @@ If you happen to find any bugs, we are currently [offering good bounties](https:
 
 All source code contributions are welcome. Simply open a pull request with your proposed changes.
 
+Latest mainnet version is `0.5.4` version. 
+Latest developing version is `0.5.5` version.
+
+Each versions exists in two branches: mainnet and testnet.
+
+Testnet branch uses for tests. Mainnet branch uses for mainnet.
+
+To more information see our contribution document.
+
 ## More Information
 
 * [Official Website](http://crypti.me)
