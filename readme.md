@@ -45,7 +45,7 @@ All source code contributions are welcome. Simply open a pull request with your 
 Latest mainnet version is `0.5.4` version. 
 Latest developing version is `0.5.5` version.
 
-Each versions exists in two branches: mainnet and testnet.
+Each versions exists in two branches: *mainnet* and *testnet*.
 
 Testnet branch uses for tests. Mainnet branch uses for mainnet.
 
