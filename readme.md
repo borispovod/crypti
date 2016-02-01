@@ -49,7 +49,9 @@ Each versions exists in two branches: *mainnet* and *testnet*.
 
 Testnet branch uses for tests. Mainnet branch uses for mainnet.
 
-To more information see our contribution document.
+To more information see our [contributing document](contributing.md).
+
+To see code guidline, see [guidline document](guidline.md).
 
 ## More Information
 
