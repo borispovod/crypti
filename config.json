@@ -14,10 +14,6 @@
 	},
 	"peers": {
 		"list": [
-			{
-				"ip": "127.0.0.1",
-				"port": 5040
-			}
 		],
 		"blackList": [],
 		"options": {
