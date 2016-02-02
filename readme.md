@@ -32,9 +32,11 @@ Install frontend:
 
 ```
 cd public
+git fetch origin dapps:dapps
+git checkout dapps
 npm install
 bower install
-grunt
+grunt release
 ```
 
 Install Crypti.js (required for tests):
