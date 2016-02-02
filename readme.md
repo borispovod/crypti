@@ -44,6 +44,22 @@ cd test/cryptijs
 npm install
 ```
 
+Frontend build
+
+```sh
+cd public
+grunt
+grunt release -- for release build
+```
+
+Run tests:
+
+```sh
+npm install -g mocha
+mocha
+```
+
+
 ## Start
 
 Go to the Crypti folder and run:
@@ -67,7 +83,7 @@ Each versions exists in two branches: *mainnet* and *testnet*.
 
 Testnet branch uses for tests. Mainnet branch uses for mainnet.
 
-To more information see our [contributing document](contributing.md).
+To more information see our [contributing document](CONTRIBUTING.md).
 
 To see code guidline, see [guidline document](guidline.md).
 
