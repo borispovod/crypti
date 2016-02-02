@@ -23,8 +23,30 @@ Requires:
 Clone the repository and run: 
 
 ```sh
-npm install --production
+git submodule init
+git submodule update
+npm install
+cd public
+npm install
+bower install
+cd test/cryptijs
+npm install
 ```
+
+Frontend build
+```sh
+cd public
+grunt
+grunt release -- for release build
+```
+
+Run tests:
+
+```sh
+npm install -g mocha
+mocha
+```
+
 
 ## Start
 
