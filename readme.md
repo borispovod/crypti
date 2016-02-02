@@ -24,6 +24,24 @@ Clone the repository and run:
 
 ```sh
 npm install --production
+git submodule init
+git submodule update
+```
+
+Install frontend:
+
+```
+cd public
+npm install
+bower install
+grunt
+```
+
+Install Crypti.js (required for tests):
+
+```
+cd test/cryptijs
+npm install
 ```
 
 ## Start
